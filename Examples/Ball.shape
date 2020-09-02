@@ -1,0 +1,29 @@
+// ShapeScript document
+
+detail 32
+
+stencil {
+    // ball
+    sphere {
+        color 1 1 0
+    }
+    // stripe
+    cube {
+        color 0 0 1
+        size 1 1 0.4
+    }
+    // star
+    extrude {
+        color 1 0 0
+        size 0.3 0.3 1
+        path {
+            for 1 to 5 {
+                point 0 -0.5
+                rotate 1 / 5
+                point 0 -1
+                rotate 1 / 5
+            }
+            point 0 -0.5
+        }
+    }
+}

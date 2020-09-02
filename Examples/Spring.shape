@@ -1,0 +1,25 @@
+// ShapeScript document
+
+detail 32
+
+define spring {
+    option coils 2 // number of coils
+    option spacing 0.3 // spacing between coils
+    option thickness 0.2 // thickness of spring
+    option radius 0.5 // radius of coil
+    loft {
+        translate 0 -spacing * coils / 2
+        for 0 to detail * coils {
+            rotate 0 1/detail 0
+            translate radius
+            circle { size thickness/2 }
+            translate -radius
+            rotate 0 1/detail 0
+            translate 0 spacing/detail
+        }
+    }
+}
+
+spring {
+    coils 4
+}

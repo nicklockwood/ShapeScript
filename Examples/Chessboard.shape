@@ -1,0 +1,245 @@
+// ShapeScript document
+
+detail 16
+
+define white 1 0.8
+define black 0.1
+define boardEdge 0.25
+define boardWhite 1 0.8
+define boardBlack 0.25
+
+// board
+color boardEdge
+union {
+    translate 0 -0.1
+    difference {
+        cube { size 8.8 0.2 8.8 }
+        translate 0 0.1 0
+        cube { size 8 0.2 8 }
+    }
+    translate -3.5 0.025 -3.5
+    color boardBlack
+    for 1 to 4 {
+        for 1 to 4 {
+            cube { size 0.95 0.15 0.95 }
+            translate 1 0 0
+            color boardWhite
+            cube { size 0.95 0.15 0.95 }
+            translate -1 0 1
+            cube { size 0.95 0.15 0.95 }
+            translate 1 0 0
+            color boardBlack
+            cube { size 0.95 0.15 0.95 }
+            translate -1 0 1
+        }
+        translate 2 0 -8
+    }
+}
+
+// add a small gap between board and pieces to prevent z-fighting
+translate 0 -0.01
+
+// pawns
+translate 3.5 0 -2.5
+color white
+for 1 to 2 {
+    for 1 to 8 {
+        union {
+            lathe {
+                path {
+                    point 0 0.6
+                    point -0.05 0.6
+                    curve -0.12 0.2
+                    point -0.25 0.1
+                    point -0.25 0
+                    point -0.25 0
+                    point 0 0
+                }
+            }
+            translate 0 0.6
+            sphere { size 0.25 }
+        }
+        translate -1
+    }
+    translate 8 0 5
+    color black
+}
+
+// castles
+translate 0 0 -4
+for 1 to 2 {
+    color black
+    for 1 to 2 {
+        difference {
+            lathe {
+                path {
+                    point 0 0.7
+                    curve -0.15 0.7
+                    point -0.15 0.8
+                    point -0.2 0.8
+                    point -0.2 0.8
+                    point -0.2 0.7
+                    point -0.15 0.6
+                    curve -0.2 0.2
+                    point -0.3 0.1
+                    point -0.3 0
+                    point -0.3 0
+                    point 0 0
+                }
+            }
+            translate 0 0.8
+            cube { size 0.4 0.1 0.1 }
+            cube { size 0.1 0.1 0.4 }
+        }
+        translate 0 0 -7
+        color white
+    }
+    translate -7 0 14
+}
+
+// knights
+translate 13 0 0
+for 1 to 2 {
+    color black
+    for 1 to 2 {
+        union {
+            lathe {
+                path {
+                    point 0 0.6
+                    point -0.2 0.3
+                    curve -0.15 0.2
+                    point -0.28 0.1
+                    point -0.28 0
+                    point 0 0
+                }
+            }
+            translate 0.04 0.05 0
+            scale 0.9 0.9 0.2
+            extrude {
+                path {
+                    point 0 1
+                    point -0.3 0.9
+                    point -0.3 0.8
+                    point -0.1 0.8
+                    curve -0.32 0.5
+                    point -0.2 0.3
+                    point 0.13 0.3
+                    curve 0.11 0.5
+                    point 0.22 0.9
+                    point 0 1
+                }
+            }
+        }
+        translate 0 0 -7
+        color white
+    }
+    translate -5 0 14
+}
+
+// bishops
+translate 9 0 0
+for 1 to 2 {
+    color black
+    for 1 to 2 {
+        difference {
+            lathe {
+                path {
+                    point 0 1
+                    point -0.05 0.98
+                    point -0.04 0.94
+                    curve -0.14 0.8
+                    point -0.09 0.65
+                    point -0.09 0.65
+                    point -0.2 0.6
+                    point -0.2 0.58
+                    point -0.1 0.58
+                    curve -0.18 0.2
+                    point -0.28 0.1
+                    point -0.28 0
+                    point -0.28 0
+                    point 0 0
+                }
+            }
+            translate -0.1 1
+            rotate -0.1 0 0
+            cube { size 0.03 0.5 0.5 }
+            rotate 0 0 -0.1
+        }
+        translate 0 0 -7
+        color white
+    }
+    translate -3 0 14
+}
+
+// king
+translate 5 0 0
+color black
+for 1 to 2 {
+    union {
+        lathe {
+            path {
+                point 0 1.29
+                point -0.06 1.27
+                point -0.04 1.22
+                point -0.2 1.17
+                point -0.1 0.95
+                point -0.2 0.9
+                point -0.2 0.88
+                point -0.1 0.88
+                curve -0.2 0.25
+                point -0.35 0.1
+                point -0.35 0
+                point -0.35 0
+                point 0 0
+            }
+        }
+        translate 0 1.35
+        cube { size 0.075 0.15 0.04 }
+        cube { size 0.15 0.075 0.04 }
+    }
+    translate 0 0 -7
+    color white
+}
+
+// queen
+translate -1 0 14
+color black
+for 1 to 2 {
+    union {
+        lathe {
+            path {
+                point 0 1.19
+                point -0.06 1.17
+                point -0.04 1.12
+                point -0.15 1.07
+                point 0 0.9
+            }
+        }
+        difference {
+            lathe {
+                path {
+                    point -0 0.9
+                    point -0.18 1.15
+                    point -0.2 1.1
+                    point -0.1 0.9
+                    point -0.19 0.85
+                    point -0.19 0.83
+                    point -0.09 0.83
+                    curve -0.19 0.2
+                    point -0.32 0.1
+                    point -0.32 0
+                    point -0.32 0
+                    point 0 0
+                }
+            }
+            translate 0 1.15
+            rotate 0 0 0.5
+            for 0 to 7 {
+                rotate 0.125 0 0
+                cylinder { size 0.1 0.5 0.1 }
+            }
+        }
+    }
+    translate 0 0 -7
+    color white
+}

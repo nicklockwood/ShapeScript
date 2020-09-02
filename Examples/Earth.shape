@@ -1,0 +1,6 @@
+// ShapeScript document
+
+detail 64
+
+texture "Earth.png"
+sphere

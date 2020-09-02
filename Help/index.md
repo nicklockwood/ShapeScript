@@ -1,0 +1,29 @@
+ShapeScript Help
+---
+
+- [Overview](overview.md)
+- [Getting Started](getting-started.md)
+- [Camera Control](camera-control.md)
+- Geometry
+    - [Primitives](primitives.md)
+    - [Options](options.md)
+    - [Materials](materials.md)
+    - [Transforms](transforms.md)
+    - [Groups](groups.md)
+    - [Paths](paths.md)
+    - [Text](text.md)
+    - [Builders](builders.md)
+    - [Constructive Solid Geometry](csg.md)
+- Syntax
+    - [Comments](comments.md)
+    - [Literals](literals.md)
+    - [Operators](operators.md)
+    - [Symbols](symbols.md)
+    - [Functions](functions.md)
+    - [Commands](commands.md)
+    - [Loops](loops.md)
+    - [Blocks](blocks.md)
+    - [Scope](scope.md)
+    - [Import](import.md)
+- [Examples](examples.md)
+- [Glossary](glossary.md)
