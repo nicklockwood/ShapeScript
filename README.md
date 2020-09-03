@@ -34,13 +34,13 @@ pod 'ShapeScript', '~> 1.0'
 
 To install using Carthage, add this to your Cartfile:
 
-```
+```ogdl
 github "nicklockwood/ShapeScript" ~> 1.0
 ```
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
-```
+```swift
 .package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.0.0")),
 ```
 
