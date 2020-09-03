@@ -321,6 +321,7 @@
 			buildConfigurationList = 01BFB3AD21425C8500E47A7C /* Build configuration list for PBXNativeTarget "ShapeScriptTests" */;
 			buildPhases = (
 				01BFB39B21425C8500E47A7C /* Sources */,
+				01F2A9EB25017D3D0081CDF5 /* Format Code */,
 				01BFB39C21425C8500E47A7C /* Frameworks */,
 				01BFB39D21425C8500E47A7C /* Resources */,
 			);
@@ -476,6 +477,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "chflags -R nouchg \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/Examples/\"\nexit 0\n";
+		};
+		01F2A9EB25017D3D0081CDF5 /* Format Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Format Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftformat >/dev/null; then\n  swiftformat .\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

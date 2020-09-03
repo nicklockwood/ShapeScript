@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
 
     @IBAction func showHelp(_: Any) {
         NSWorkspace.shared.open(URL(string:
-        "https://github.com/nicklockwood/ShapeScript/blob/master/Help/index.md")!)
+            "https://github.com/nicklockwood/ShapeScript/blob/master/Help/index.md")!)
     }
 
     @IBAction func openExample(sender: NSMenuItem) {
