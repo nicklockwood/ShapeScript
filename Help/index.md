@@ -25,5 +25,6 @@ ShapeScript Help
     - [Blocks](blocks.md)
     - [Scope](scope.md)
     - [Import](import.md)
+- [Export](export.md)
 - [Examples](examples.md)
 - [Glossary](glossary.md)
