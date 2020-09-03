@@ -267,6 +267,7 @@
 			buildPhases = (
 				013ED08D23C0DB3D00FEEE5C /* Generate Linux Tests */,
 				016FAB2E21BFE78100AF60DC /* Sources */,
+				01F2A9E9250177730081CDF5 /* Format Code */,
 				016FAB2F21BFE78100AF60DC /* Frameworks */,
 				016FAB3021BFE78100AF60DC /* Resources */,
 			);
@@ -385,6 +386,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "swift test --generate-linuxmain\n";
+		};
+		01F2A9E9250177730081CDF5 /* Format Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Format Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftformat >/dev/null; then\n  swiftformat .\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -537,7 +556,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_DISABLE_SAFETY_CHECKS = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.2;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -597,7 +615,6 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_DISABLE_SAFETY_CHECKS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 4.2;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -631,7 +648,7 @@
 				PRODUCT_NAME = Euclid;
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -662,7 +679,7 @@
 				PRODUCT_NAME = Euclid;
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
 			};
 			name = Release;
 		};
@@ -683,7 +700,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "macosx iphonesimulator iphoneos";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
 			};
 			name = Debug;
 		};
@@ -704,7 +721,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "macosx iphonesimulator iphoneos";
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
 			};
 			name = Release;
 		};

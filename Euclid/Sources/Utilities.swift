@@ -54,6 +54,13 @@ func verticesAreConvex(_ vertices: [Vertex]) -> Bool {
     return pointsAreConvex(vertices.map { $0.position })
 }
 
+func verticesAreCoplanar(_ vertices: [Vertex]) -> Bool {
+    if vertices.count < 4 {
+        return true
+    }
+    return pointsAreCoplanar(vertices.map { $0.position })
+}
+
 func faceNormalForConvexVertices(_ vertices: [Vertex]) -> Vector? {
     assert(verticesAreConvex(vertices))
     return faceNormalForConvexPoints(vertices.map { $0.position })
@@ -167,6 +174,25 @@ func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
     }
 }
 
+func pointsAreCoplanar(_ points: [Vector]) -> Bool {
+    if points.count < 4 {
+        return true
+    }
+    let b = points[1]
+    let ab = b - points[0]
+    let bc = points[2] - b
+    let normal = ab.cross(bc)
+    let length = normal.length
+    if length < epsilon {
+        return false
+    }
+    let plane = Plane(unchecked: normal / length, pointOnPlane: b)
+    for p in points[3...] where !plane.containsPoint(p) {
+        return false
+    }
+    return true
+}
+
 // https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order#1165943
 func flattenedPointsAreClockwise(_ points: [Vector]) -> Bool {
     assert(!points.contains(where: { $0.z != 0 }))
@@ -254,7 +280,8 @@ func lineSegmentsIntersect(
     if pi.x < min(p0.x, p1.x) || pi.x > max(p0.x, p1.x) ||
         pi.x < min(p2.x, p3.x) || pi.x > max(p2.x, p3.x) ||
         pi.y < min(p0.y, p1.y) || pi.y > max(p0.y, p1.y) ||
-        pi.y < min(p2.y, p3.y) || pi.y > max(p2.y, p3.y) {
+        pi.y < min(p2.y, p3.y) || pi.y > max(p2.y, p3.y)
+    {
         return false
     }
     return true
