@@ -32,7 +32,6 @@
 		01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BD943821936B90005FFAEC /* RandomSequence.swift */; };
 		01BFB3A021425C8500E47A7C /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
 		01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3A421425C8500E47A7C /* LexerTests.swift */; };
-		01BFB3A721425C8500E47A7C /* ShapeScript.h in Headers */ = {isa = PBXBuildFile; fileRef = 01BFB39921425C8500E47A7C /* ShapeScript.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B021425C9A00E47A7C /* Lexer.swift */; };
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
 /* End PBXBuildFile section */
@@ -129,7 +128,6 @@
 		01BD943521936514005FFAEC /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
 		01BD943821936B90005FFAEC /* RandomSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSequence.swift; sourceTree = "<group>"; };
 		01BFB39621425C8500E47A7C /* ShapeScript.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShapeScript.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		01BFB39921425C8500E47A7C /* ShapeScript.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShapeScript.h; sourceTree = "<group>"; };
 		01BFB39A21425C8500E47A7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		01BFB39F21425C8500E47A7C /* ShapeScriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShapeScriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01BFB3A421425C8500E47A7C /* LexerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexerTests.swift; sourceTree = "<group>"; };
@@ -235,7 +233,6 @@
 		01BFB39821425C8500E47A7C /* ShapeScript */ = {
 			isa = PBXGroup;
 			children = (
-				01BFB39921425C8500E47A7C /* ShapeScript.h */,
 				01BFB3B021425C9A00E47A7C /* Lexer.swift */,
 				014F85DA215BE1A900461FB7 /* Parser.swift */,
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
@@ -268,7 +265,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01BFB3A721425C8500E47A7C /* ShapeScript.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -774,6 +770,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator appletvos appletvsimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -802,6 +799,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator appletvos appletvsimulator";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -822,6 +820,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.GeometryScriptTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator appletvos appletvsimulator";
 				SWIFT_VERSION = 4.2;
 			};
 			name = Debug;
@@ -842,6 +841,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.GeometryScriptTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator appletvos appletvsimulator";
 				SWIFT_VERSION = 4.2;
 			};
 			name = Release;

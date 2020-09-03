@@ -1,5 +1,5 @@
 [![Travis](https://travis-ci.org/nicklockwood/ShapeScript.svg)](https://travis-ci.org/nicklockwood/ShapeScript)
-[![Platforms](https://img.shields.io/badge/platforms-macOS-lightgray.svg)]()
+[![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20macOS%20|%20tvOS-lightgray.svg)]()
 [![Swift 5](https://img.shields.io/badge/swift-5.0-red.svg?style=flat)](https://developer.apple.com/swift)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 [![Twitter](https://img.shields.io/badge/twitter-@nicklockwood-blue.svg)](http://twitter.com/nicklockwood)
@@ -24,7 +24,7 @@ If you would like to support the development of Euclid and the ShapeScript langu
 
 # Installation
 
-ShapeScript is packaged as a dynamic framework for macOS, which itself depends on the [Euclid](https://github.com/nicklockwood/Euclid) framework, a copy of which is included in this repository.
+ShapeScript is packaged as a dynamic framework, which itself depends on the [Euclid](https://github.com/nicklockwood/Euclid) framework, a copy of which is included in this repository.
 
 To install the ShapeScript framework using CocoaPods, add the following to your Podfile:
 
@@ -46,7 +46,7 @@ To install using Swift Package Manager, add this to the `dependencies:` section 
 
 The repository also includes the ShapeScript Viewer application, a cut-down version of the ShapeScript app available on the [Mac App Store](https://apps.apple.com/app/id1441135869). It is not currently possible to install or run this app using CocoaPods, Carthage or Swift Package Manager, however you can run it by opening the included Xcode project and selecting the `ShapeScript Viewer` scheme.
 
-**Note:** ShapeScript requires Xcode 10+ to build, and runs on macOS 10.13+.
+**Note:** ShapeScript Viewer requires Xcode 11+ to build, and runs on macOS 10.13+.
 
 # Usage
 

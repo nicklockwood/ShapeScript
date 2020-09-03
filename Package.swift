@@ -5,6 +5,8 @@ let package = Package(
     name: "ShapeScript",
     platforms: [
         .macOS(.v10_13),
+        .iOS(.v11),
+        .tvOS(.v11)
     ],
     products: [
         .library(name: "ShapeScript", targets: ["ShapeScript"]),

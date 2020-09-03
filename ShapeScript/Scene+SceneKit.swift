@@ -9,6 +9,12 @@
 import Euclid
 import SceneKit
 
+#if canImport(AppKit)
+private typealias OSColor = NSColor
+#else
+private typealias OSColor = UIColor
+#endif
+
 public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
@@ -20,7 +26,7 @@ public extension SCNMaterial {
                 diffuse.contents = data
             }
         } else if let color = m.color {
-            diffuse.contents = NSColor(
+            diffuse.contents = OSColor(
                 red: CGFloat(color.r),
                 green: CGFloat(color.g),
                 blue: CGFloat(color.b),
@@ -112,8 +118,8 @@ public extension Geometry {
     func select(with scnGeometry: SCNGeometry?) -> Geometry? {
         isSelected = (self.scnGeometry == scnGeometry)
         for material in self.scnGeometry.materials {
-            material.emission.contents = isSelected ? NSColor.red : .black
-            material.multiply.contents = isSelected ? NSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1) : .white
+            material.emission.contents = isSelected ? OSColor.red : .black
+            material.multiply.contents = isSelected ? OSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1) : .white
         }
         var selected = isSelected ? self : nil
         for child in children {
@@ -132,15 +138,29 @@ public extension Color {
         self.init(unchecked: components.map(Double.init))
     }
 
-    init(nsColor: NSColor) {
-        self.init(cgColor: nsColor.cgColor)
+    fileprivate init(osColor: OSColor) {
+        self.init(cgColor: osColor.cgColor)
     }
+
+    #if canImport(AppKit)
+
+    init(nsColor: NSColor) {
+        self.init(osColor: nsColor)
+    }
+
+    #else
+
+    init(uiColor: UIColor) {
+        self.init(osColor: uiColor)
+    }
+
+    #endif
 }
 
 public extension Material {
     init?(scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
-        color = (scnMaterial.diffuse.contents as? NSColor).map(Color.init(nsColor:)) ?? .white
+        color = (scnMaterial.diffuse.contents as? OSColor).map(Color.init(osColor:)) ?? .white
         switch scnMaterial.diffuse.contents {
         case let data as Data:
             texture = .data(data)
