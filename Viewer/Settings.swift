@@ -131,7 +131,7 @@ class Settings {
 
     func addEditorApp(for url: URL) {
         guard !editorApps.contains(where: { $0.url == url }),
-            let data = bookmark(for: url)
+              let data = bookmark(for: url)
         else {
             // TODO: Handle error
             return

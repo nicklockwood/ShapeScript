@@ -187,7 +187,7 @@ extension EvaluationContext {
         if let entry = importCache.store[url] {
             program = entry
         } else if url.pathExtension == "shape", // TODO: async source loading?
-            let source = try? String(contentsOf: url, encoding: .utf8)
+                  let source = try? String(contentsOf: url, encoding: .utf8)
         {
             do {
                 program = try parse(source)

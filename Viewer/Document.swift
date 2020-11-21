@@ -180,7 +180,7 @@ class Document: NSDocument, EvaluationDelegate {
             .font: NSFont.systemFont(ofSize: 15, weight: .regular),
         ]))
         if let lineRange = lineRange, let range = range,
-            let font = NSFont(name: "Courier", size: 15)
+           let font = NSFont(name: "Courier", size: 15)
         {
             let sourceLine = String(source[lineRange])
             let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound)
@@ -602,7 +602,7 @@ class Document: NSDocument, EvaluationDelegate {
         let path = url.absoluteString
         guard let data = bookmarks[path] else {
             guard !url.pathExtension.isEmpty,
-                let directoryURL = resolveBookMark(for: url.deletingLastPathComponent())
+                  let directoryURL = resolveBookMark(for: url.deletingLastPathComponent())
             else {
                 return nil
             }

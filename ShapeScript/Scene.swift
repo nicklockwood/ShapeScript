@@ -533,8 +533,8 @@ public class Geometry {
 
 // MARK: Stats
 
-extension Geometry {
-    public var objectCount: Int {
+public extension Geometry {
+    var objectCount: Int {
         if type == .none {
             var count = 0
             for child in children {
@@ -546,7 +546,7 @@ extension Geometry {
         }
     }
 
-    public var polygonCount: Int {
+    var polygonCount: Int {
         var count = mesh?.polygons.count ?? 0
         for child in children {
             count += child.polygonCount
@@ -554,7 +554,7 @@ extension Geometry {
         return count
     }
 
-    public var triangleCount: Int {
+    var triangleCount: Int {
         var count = 0
         for polygon in mesh?.polygons ?? [] {
             count += polygon.triangulate().count
@@ -565,7 +565,7 @@ extension Geometry {
         return count
     }
 
-    public var exactBounds: Bounds {
+    var exactBounds: Bounds {
         return merged().bounds
     }
 }

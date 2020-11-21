@@ -288,7 +288,7 @@ enum Value {
         case let .mesh(mesh): return mesh
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
-        case let .pair(pair): return pair
+        case let .pair(first, second): return (first, second)
         case .void: return ()
         }
     }
@@ -455,11 +455,11 @@ private func evaluateParameter(_ parameter: Expression?,
     var values = [Value]()
     for (i, param) in parameters.enumerated() {
         if case let .identifier(identifier) = param.type {
-            let (name, range) = (identifier.name, identifier.range)
+            let name = identifier.name
             if case let .command(parameterType, fn)? = context.symbol(for: name), parameterType != .void {
                 guard i < parameters.count - 1 else {
                     throw RuntimeError(
-                        .missingArgument(for: identifier.name, index: 0, type: parameterType.rawValue),
+                        .missingArgument(for: name, index: 0, type: parameterType.rawValue),
                         at: param.range.upperBound ..< param.range.upperBound
                     )
                 }
@@ -671,7 +671,7 @@ extension Definition {
                     if baseURL == context.baseURL {
                         throw error
                     }
-                    // TODO: improve this error by mentioning thre symbol that failed
+                    // TODO: improve this error by mentioning the symbol that failed
                     // and showing the context of the failure not just the call site
                     throw RuntimeErrorType.importError(
                         ImportError(error),
