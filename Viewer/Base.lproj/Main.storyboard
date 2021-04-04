@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -1125,12 +1125,12 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                             </scrollView>
-                            <progressIndicator wantsLayer="YES" canDrawConcurrently="YES" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="okT-Gt-UpC">
+                            <progressIndicator wantsLayer="YES" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="okT-Gt-UpC">
                                 <rect key="frame" x="20" y="464" width="16" height="16"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                             </progressIndicator>
                             <button hidden="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="OHs-rr-GgV">
-                                <rect key="frame" x="290" y="13" width="121" height="32"/>
+                                <rect key="frame" x="293" y="13" width="115" height="32"/>
                                 <buttonCell key="cell" type="push" title="Grant Access" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="HM9-A6-Bmm">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1196,19 +1196,19 @@
             <objects>
                 <viewController id="MZh-nf-gf2" customClass="WelcomeViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="viK-IC-gmI">
-                        <rect key="frame" x="0.0" y="0.0" width="480" height="359"/>
+                        <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="m6e-rY-deL">
-                                <rect key="frame" x="105" y="328" width="270" height="29"/>
+                                <rect key="frame" x="105" y="329" width="270" height="29"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Welcome to ShapeScript" id="xQA-71-8xc">
-                                    <font key="font" size="25" name=".AppleSystemUIFont"/>
+                                    <font key="font" metaFont="system" size="25"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fXe-V7-5iL">
-                                <rect key="frame" x="100" y="67" width="281" height="32"/>
+                                <rect key="frame" x="103" y="69" width="275" height="32"/>
                                 <buttonCell key="cell" type="push" title="Open ShapeScript in the Mac App Store" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="RYB-oh-8Mo">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1218,7 +1218,7 @@
                                 </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uyk-FY-bZa">
-                                <rect key="frame" x="180" y="28" width="120" height="18"/>
+                                <rect key="frame" x="177" y="29" width="124" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show at Startup" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Pdw-43-3k6">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1228,7 +1228,7 @@
                                 </connections>
                             </button>
                             <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="wlV-u6-KGa">
-                                <rect key="frame" x="18" y="121" width="444" height="187"/>
+                                <rect key="frame" x="18" y="122" width="444" height="187"/>
                                 <textFieldCell key="cell" selectable="YES" alignment="left" allowsEditingTextAttributes="YES" id="0Gi-Tq-WvP">
                                     <font key="font" metaFont="system" size="14"/>
                                     <string key="title">ShapeScript is a text-based open-source 3D modelling tool. Get started by creating a new shape document from the File menu, or open one of the examples from the Help menu. To edit a model, press Cmd-E to open it in an editor of your choice.
@@ -1294,7 +1294,7 @@ The commercial release of ShapeScript (which you can find on the Mac App Store) 
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9zx-XF-NB1">
-                                <rect key="frame" x="425" y="287" width="38" height="25"/>
+                                <rect key="frame" x="425" y="287" width="39" height="25"/>
                                 <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="Him-O9-n1G">
                                     <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="menu"/>
@@ -1305,7 +1305,7 @@ The commercial release of ShapeScript (which you can find on the Mac App Store) 
                                 </connections>
                             </popUpButton>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JF9-IY-pLq">
-                                <rect key="frame" x="324" y="294" width="97" height="16"/>
+                                <rect key="frame" x="325" y="294" width="97" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="External Editor:" id="xfK-VJ-Lcd">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>

@@ -44,25 +44,25 @@ func showSheet(_ dialog: NSSavePanel, in window: NSWindow?,
 
 extension Double {
     var shortDescription: String {
-        return self < 0.0001 ? "0" : String(format: "%.4g", self)
+        self < 0.0001 ? "0" : String(format: "%.4g", self)
     }
 }
 
 extension Vector {
     var shortDescription: String {
-        return "\(x.shortDescription) \(y.shortDescription) \(z.shortDescription)"
+        "\(x.shortDescription) \(y.shortDescription) \(z.shortDescription)"
     }
 }
 
 extension Angle {
     var shortDescription: String {
-        return (radians / .pi).shortDescription
+        (radians / .pi).shortDescription
     }
 }
 
 extension Rotation {
     var shortDescription: String {
-        return "\(roll.shortDescription) \(yaw.shortDescription) \(pitch.shortDescription)"
+        "\(roll.shortDescription) \(yaw.shortDescription) \(pitch.shortDescription)"
     }
 }
 

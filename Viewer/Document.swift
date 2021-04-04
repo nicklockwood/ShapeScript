@@ -510,11 +510,11 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     var importedFileCount: Int {
-        return linkedResources.filter { $0.pathExtension == "shape" }.count
+        linkedResources.filter { $0.pathExtension == "shape" }.count
     }
 
     var textureCount: Int {
-        return linkedResources.filter { $0.pathExtension != "shape" }.count
+        linkedResources.filter { $0.pathExtension != "shape" }.count
     }
 
     // MARK: EvaluationDelegate
@@ -571,7 +571,7 @@ class Document: NSDocument, EvaluationDelegate {
             UserDefaults.standard.set(newValue, forKey: "SandboxBookmarks")
         }
         get {
-            return UserDefaults.standard.dictionary(forKey: "SandboxBookmarks") as? [String: Data] ?? [:]
+            UserDefaults.standard.dictionary(forKey: "SandboxBookmarks") as? [String: Data] ?? [:]
         }
     }
 

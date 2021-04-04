@@ -200,7 +200,7 @@ public class Geometry {
     }
 
     public func transformed(by transform: Transform) -> Geometry {
-        return Geometry(
+        Geometry(
             type: type,
             name: name,
             transform: self.transform * transform,
@@ -566,6 +566,6 @@ public extension Geometry {
     }
 
     var exactBounds: Bounds {
-        return merged().bounds
+        merged().bounds
     }
 }

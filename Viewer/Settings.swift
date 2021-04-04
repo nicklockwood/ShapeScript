@@ -43,7 +43,7 @@ struct EditorApp: Comparable {
     }
 
     static func < (lhs: EditorApp, rhs: EditorApp) -> Bool {
-        return lhs.name < rhs.name
+        lhs.name < rhs.name
     }
 }
 
@@ -55,19 +55,19 @@ class Settings {
     // MARK: App version
 
     var appVersion: String? {
-        get { return defaults.object(forKey: #function) as? String }
+        get { defaults.object(forKey: #function) as? String }
         set { defaults.set(newValue, forKey: #function) }
     }
 
     var previousAppVersion: String? {
-        get { return defaults.object(forKey: #function) as? String }
+        get { defaults.object(forKey: #function) as? String }
         set { defaults.set(newValue, forKey: #function) }
     }
 
     // MARK: Welcome screen
 
     var showWelcomeScreenAtStartup: Bool {
-        get { return defaults.object(forKey: #function) as? Bool ?? true }
+        get { defaults.object(forKey: #function) as? Bool ?? true }
         set { defaults.set(newValue, forKey: #function) }
     }
 
@@ -142,18 +142,18 @@ class Settings {
     }
 
     var userDidChooseEditor: Bool {
-        get { return defaults.bool(forKey: #function) }
+        get { defaults.bool(forKey: #function) }
         set { defaults.set(newValue, forKey: #function) }
     }
 
     private var editorAppBookmarks: [Data] {
-        get { return defaults.object(forKey: #function) as? [Data] ?? [] }
+        get { defaults.object(forKey: #function) as? [Data] ?? [] }
         set { defaults.set(newValue, forKey: #function) }
     }
 
     private func bookmark(for url: URL) -> Data? {
         // TODO: Handle errors
-        return try? url.bookmarkData(
+        try? url.bookmarkData(
             options: [],
             includingResourceValuesForKeys: nil,
             relativeTo: nil

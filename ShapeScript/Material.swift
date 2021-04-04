@@ -51,7 +51,7 @@ public struct Material: Hashable {
     }
 
     public var isOpaque: Bool {
-        return opacity > 0.999 && (color?.a ?? 1) > 0.999
+        opacity > 0.999 && (color?.a ?? 1) > 0.999
     }
 
     public static let `default` = Material()

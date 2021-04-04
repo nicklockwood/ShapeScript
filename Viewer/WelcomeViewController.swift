@@ -26,7 +26,7 @@ class WelcomeViewController: NSViewController {
     }
 
     public static var shouldShowAtStartup: Bool {
-        get { return Settings.shared.showWelcomeScreenAtStartup }
+        get { Settings.shared.showWelcomeScreenAtStartup }
         set { Settings.shared.showWelcomeScreenAtStartup = newValue }
     }
 }

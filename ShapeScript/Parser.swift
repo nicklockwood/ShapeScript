@@ -120,11 +120,11 @@ public struct ParserError: Error, Equatable {
 
 private extension ArraySlice where Element == Token {
     var nextToken: Token {
-        return first!
+        first!
     }
 
     mutating func readToken() -> Token {
-        return popFirst()!
+        popFirst()!
     }
 
     mutating func readToken(_ type: TokenType) -> Bool {

@@ -37,7 +37,7 @@ class EvaluationContext {
     var opacity = 1.0
 
     var sourceLocation: SourceLocation? {
-        return sourceIndex.map {
+        sourceIndex.map {
             SourceLocation(
                 at: source.lineAndColumn(at: $0).line,
                 in: baseURL
@@ -119,7 +119,7 @@ typealias Symbols = [String: Symbol]
 
 extension EvaluationContext {
     func symbol(for name: String) -> Symbol? {
-        return userSymbols[name] ?? symbols[name]
+        userSymbols[name] ?? symbols[name]
     }
 
     func define(_ name: String, as symbol: Symbol) {
@@ -127,11 +127,11 @@ extension EvaluationContext {
     }
 
     var expressionSymbols: [String] {
-        return Array(symbols.merging(userSymbols) { $1 }.keys)
+        Array(symbols.merging(userSymbols) { $1 }.keys)
     }
 
     var commandSymbols: [String] {
-        return expressionSymbols.compactMap {
+        expressionSymbols.compactMap {
             if case .constant? = symbol(for: $0) {
                 return nil
             }

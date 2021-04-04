@@ -12,7 +12,7 @@ import Foundation
 
 extension Dictionary where Key == String, Value == Symbol {
     static func + (lhs: Symbols, rhs: Symbols) -> Symbols {
-        return lhs.merging(rhs) { $1 }
+        lhs.merging(rhs) { $1 }
     }
 
     static let transforms: Symbols = [
@@ -287,7 +287,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
 extension EvaluationContext {
     var paths: [Path] {
-        return children.compactMap { $0.value as? Path }
+        children.compactMap { $0.value as? Path }
     }
 }
 

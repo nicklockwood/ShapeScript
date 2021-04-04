@@ -192,15 +192,15 @@ private let linebreaks = CharacterSet.newlines
 
 private extension UnicodeScalar {
     var isWhitespace: Bool {
-        return whitespace.contains(self)
+        whitespace.contains(self)
     }
 
     var isLinebreak: Bool {
-        return linebreaks.contains(self)
+        linebreaks.contains(self)
     }
 
     var isWhitespaceOrLinebreak: Bool {
-        return isWhitespace || isLinebreak
+        isWhitespace || isLinebreak
     }
 }
 

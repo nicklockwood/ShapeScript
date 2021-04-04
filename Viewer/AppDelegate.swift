@@ -11,7 +11,7 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
     var window: NSWindow? {
-        return NSApp.mainWindow
+        NSApp.mainWindow
     }
 
     lazy var welcomeWindowController: NSWindowController = {

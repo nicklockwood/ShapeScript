@@ -94,7 +94,7 @@ public extension SCNNode {
 
 public extension Geometry {
     var scnGeometry: SCNGeometry {
-        return associatedData as? SCNGeometry ?? SCNGeometry()
+        associatedData as? SCNGeometry ?? SCNGeometry()
     }
 
     func scnBuild() {

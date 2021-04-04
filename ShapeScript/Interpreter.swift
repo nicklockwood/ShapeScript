@@ -294,11 +294,11 @@ enum Value {
     }
 
     var doubleValue: Double {
-        return value as! Double
+        value as! Double
     }
 
     var intValue: Int {
-        return Int(truncating: doubleValue as NSNumber)
+        Int(truncating: doubleValue as NSNumber)
     }
 
     var type: ValueType {

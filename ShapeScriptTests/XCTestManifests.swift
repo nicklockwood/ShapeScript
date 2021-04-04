@@ -59,6 +59,7 @@ extension LexerTests {
         ("testInfixThenPrefixExpressionWithoutSpaces", testInfixThenPrefixExpressionWithoutSpaces),
         ("testInfixThenPrefixExpressionWithSpaces", testInfixThenPrefixExpressionWithSpaces),
         ("testInvalidIdentifier", testInvalidIdentifier),
+        ("testInvalidIdentifier2", testInvalidIdentifier2),
         ("testLeadingDecimalPoint", testLeadingDecimalPoint),
         ("testLeadingSpace", testLeadingSpace),
         ("testLeadingZero", testLeadingZero),
