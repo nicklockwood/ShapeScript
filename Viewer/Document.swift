@@ -460,18 +460,22 @@ class Document: NSDocument, EvaluationDelegate {
                 triangleCount = "calculating…"
                 dimensions = "calculating…"
             }
+            let nameString = selectedGeometry.name.flatMap {
+                $0.isEmpty ? nil : "Name: \($0)"
+            }
             actionSheet.messageText = "Selected Object Info"
-            actionSheet.informativeText = """
-            Type: \(selectedGeometry.type)
-            Children: \(selectedGeometry.children.count)
-            Polygons: \(polygonCount)
-            Triangles: \(triangleCount)
-            Dimensions: \(dimensions)
-            """ + locationString
-
-            //            Size: \(selectedGeometry.transform.scale.shortDescription)
-            //            Position: \(selectedGeometry.transform.offset.shortDescription)
-            //            Orientation: \(selectedGeometry.transform.rotation.shortDescription)
+            actionSheet.informativeText = [
+                nameString,
+                "Type: \(selectedGeometry.type)",
+                "Children: \(selectedGeometry.children.count)",
+                "Polygons: \(polygonCount)",
+                "Triangles: \(triangleCount)",
+                "Dimensions: \(dimensions)",
+//                "Size: \(selectedGeometry.transform.scale.shortDescription)",
+//                "Position: \(selectedGeometry.transform.offset.shortDescription)",
+//                "Orientation: \(selectedGeometry.transform.rotation.shortDescription)",
+                locationString,
+            ].compactMap { $0 }.joined(separator: "\n")
 
         } else {
             let polygonCount: String
