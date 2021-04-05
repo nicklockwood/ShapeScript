@@ -63,6 +63,13 @@ class LexerTests: XCTestCase {
         }
     }
 
+    func testInvalidIdentifier2() {
+        let input = "_a\n\ndefine foo 5"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("_a"))
+        }
+    }
+
     // MARK: numbers
 
     func testZero() {

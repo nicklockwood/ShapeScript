@@ -246,7 +246,7 @@ private extension Substring.UnicodeScalarView {
                     string.append(Character(removeFirst()))
                 }
             } else {
-                let terminator = whitespace.union(punctuation)
+                let terminator = whitespace.union(linebreaks).union(punctuation)
                 while let scalar = first, !terminator.contains(scalar) {
                     string.append(Character(removeFirst()))
                 }
