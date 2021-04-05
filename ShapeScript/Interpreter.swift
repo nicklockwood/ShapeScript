@@ -96,6 +96,9 @@ private func bestMatches(for symbol: String, in suggestions: [String]) -> [Strin
     return suggestions
         .compactMap { string -> (String, Int)? in
             let lowercaseString = string.lowercased()
+            guard lowercaseString != lowercasedSymbol else {
+                return nil
+            }
             let distance = levenshtein(lowercaseString, lowercasedSymbol)
             guard distance <= lowercasedSymbol.count / 2 ||
                 !lowercaseString.commonPrefix(with: lowercasedSymbol).isEmpty
