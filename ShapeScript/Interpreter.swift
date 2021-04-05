@@ -170,6 +170,8 @@ public struct RuntimeError: Error, Equatable {
             "y": ["height", "position"],
             "z": ["depth", "position"],
             "option": ["define"],
+            "subtract": ["difference"],
+            "subtraction": ["difference"],
         ]
         return alternatives[name.lowercased()]?
             .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
