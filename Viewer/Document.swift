@@ -90,6 +90,10 @@ class LoadingProgress {
 }
 
 class Document: NSDocument, EvaluationDelegate {
+    var sceneViewControllers: [SceneViewController] {
+        windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
+    }
+
     var geometry: Geometry? {
         didSet {
             updateViews()
@@ -97,9 +101,10 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     var selectedGeometry: Geometry? {
-        for windowController in windowControllers {
-            let viewController = windowController.window?.contentViewController as! SceneViewController
-            return viewController.selectedGeometry
+        for viewController in sceneViewControllers {
+            if let selectedGeometry = viewController.selectedGeometry {
+                return selectedGeometry
+            }
         }
         return nil
     }
@@ -114,8 +119,7 @@ class Document: NSDocument, EvaluationDelegate {
     var accessErrorURL: URL?
 
     func updateViews() {
-        for windowController in windowControllers {
-            let viewController = windowController.window?.contentViewController as! SceneViewController
+        for viewController in sceneViewControllers {
             viewController.isLoading = (progress?.inProgress == true)
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
@@ -218,7 +222,10 @@ class Document: NSDocument, EvaluationDelegate {
             }
             switch result {
             case .waiting:
-                break
+                for viewController in self.sceneViewControllers {
+                    viewController.showConsole = false
+                    viewController.clearLog()
+                }
             case let .partial(children), let .success(children):
                 self.errorMessage = nil
                 self.accessErrorURL = nil
@@ -441,7 +448,7 @@ class Document: NSDocument, EvaluationDelegate {
         if let selectedGeometry = self.selectedGeometry {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
-                locationString = "\n\nDefined on line \(location.line)"
+                locationString = "\nDefined on line \(location.line)"
                 if let url = location.file {
                     fileURL = url
                     locationString += " in '\(url.lastPathComponent)'"
@@ -560,7 +567,21 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     func debugLog(_ values: [Any?]) {
-        Swift.print(values.map { $0.map { "\($0)" } ?? "nil" }.joined(separator: " "))
+        let line = values.map { $0.map {
+            ($0 as? ShortDescribable).map { $0.shortDescription } ?? "\($0)"
+        } ?? "nil" }.joined(separator: " ")
+        Swift.print(line)
+        DispatchQueue.main.async {
+            for viewController in self.sceneViewControllers {
+                viewController.showConsole = true
+                viewController.appendLog(
+                    NSAttributedString(string: line + "\n", attributes: [
+                        .foregroundColor: NSColor.textColor,
+                        .font: NSFont.systemFont(ofSize: 13),
+                    ])
+                )
+            }
+        }
     }
 
     // MARK: Sandbox support

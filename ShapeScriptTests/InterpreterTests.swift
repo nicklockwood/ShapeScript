@@ -18,9 +18,9 @@ private class TestDelegate: EvaluationDelegate {
         preconditionFailure()
     }
 
-    var log = [String]()
+    var log = [AnyHashable?]()
     func debugLog(_ values: [Any?]) {
-        log.append(values.map { $0.map { "\($0)" } ?? "nil" }.joined(separator: " "))
+        log += values as! [AnyHashable?]
     }
 }
 
@@ -370,7 +370,7 @@ class InterpreterTests: XCTestCase {
         let program = "print cos pi"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(cos(Double.pi))"])
+        XCTAssertEqual(delegate.log, [cos(Double.pi)])
     }
 
     func testInvokeMonadicFunctionWithNoArgs() {
@@ -397,7 +397,7 @@ class InterpreterTests: XCTestCase {
         let program = "print pow 1 2"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(pow(1.0, 2.0))"])
+        XCTAssertEqual(delegate.log, [pow(1.0, 2.0)])
     }
 
     func testInvokeDyadicFunctionWithNoArgs() {
@@ -436,42 +436,42 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 0).x"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(1.0)"])
+        XCTAssertEqual(delegate.log, [1.0])
     }
 
     func testOutOfBoundsTupleVectorLookup() {
         let program = "print (1 0).z"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(0.0)"])
+        XCTAssertEqual(delegate.log, [0.0])
     }
 
     func testTupleRGBARedLookup() {
         let program = "print (0.1 0.2 0.3 0.4).red"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(0.1)"])
+        XCTAssertEqual(delegate.log, [0.1])
     }
 
     func testTupleRGBAlphaLookup() {
         let program = "print (0.1 0.2 0.3).alpha"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(1.0)"])
+        XCTAssertEqual(delegate.log, [1.0])
     }
 
     func testTupleIAGreenLookup() {
         let program = "print (0.1 0.2).green"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(0.1)"])
+        XCTAssertEqual(delegate.log, [0.1])
     }
 
     func testTupleIAAlphaLookup() {
         let program = "print (0.1 0.2).alpha"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, ["\(0.2)"])
+        XCTAssertEqual(delegate.log, [0.2])
     }
 
     func testTupleNonexistentLookup() {

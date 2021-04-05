@@ -15,11 +15,13 @@ class SceneViewController: NSViewController {
     let scnScene = SCNScene()
     private var scnView: SCNView!
 
-    @IBOutlet private var containerView: NSView!
+    @IBOutlet private var containerView: NSSplitView!
     @IBOutlet private var errorScrollView: NSScrollView!
     @IBOutlet private var errorTextView: NSTextView!
     @IBOutlet private var loadingIndicator: NSProgressIndicator!
     @IBOutlet private var grantAccessButton: NSButton!
+    @IBOutlet private var consoleScrollView: NSScrollView!
+    @IBOutlet private var consoleTextView: NSTextView!
 
     lazy var cameraNode: SCNNode = {
         let cameraNode = SCNNode()
@@ -40,6 +42,20 @@ class SceneViewController: NSViewController {
             errorTextView.textContainerInset = CGSize(width: 20, height: 20)
             errorTextView.textStorage?.setAttributedString(errorMessage)
             errorScrollView.isHidden = false
+        }
+    }
+
+    func clearLog() {
+        consoleTextView.textStorage?.setAttributedString(NSAttributedString(string: ""))
+    }
+
+    func appendLog(_ text: NSAttributedString) {
+        if text.string.isEmpty {
+            return
+        }
+        consoleTextView.textStorage?.append(text)
+        DispatchQueue.main.async {
+            self.consoleTextView.scrollToEndOfDocument(self)
         }
     }
 
@@ -71,6 +87,19 @@ class SceneViewController: NSViewController {
                 scnView.debugOptions.insert(.showWireframe)
             } else {
                 scnView.debugOptions.remove(.showWireframe)
+            }
+        }
+    }
+
+    public var showConsole = false {
+        didSet {
+            if showConsole {
+                if consoleScrollView.superview == nil {
+                    containerView.insertArrangedSubview(consoleScrollView, at: 1)
+                    consoleTextView.textContainerInset = CGSize(width: 5, height: 5)
+                }
+            } else {
+                containerView.removeArrangedSubview(consoleScrollView)
             }
         }
     }
@@ -121,7 +150,7 @@ class SceneViewController: NSViewController {
         // create view
         scnView = SCNView(frame: containerView.bounds, options: options)
         scnView.autoresizingMask = [.width, .height]
-        containerView.addSubview(scnView)
+        containerView.insertArrangedSubview(scnView, at: 0)
 
         // background
         scnScene.background.contents = NSColor.lightGray

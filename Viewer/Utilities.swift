@@ -8,6 +8,7 @@
 
 import AppKit
 import Euclid
+import ShapeScript
 
 // MARK: General
 
@@ -42,27 +43,76 @@ func showSheet(_ dialog: NSSavePanel, in window: NSWindow?,
 
 // MARK: Formatting for display
 
-extension Double {
+protocol ShortDescribable {
+    var shortDescription: String { get }
+}
+
+extension Double: ShortDescribable {
     var shortDescription: String {
-        self < 0.0001 ? "0" : String(format: "%.4g", self)
+        self < 0.0001 ? "0" : floor(self) == self ?
+            "\(Int(self))" : String(format: "%.4g", self)
     }
 }
 
-extension Vector {
+extension Vector: ShortDescribable {
     var shortDescription: String {
         "\(x.shortDescription) \(y.shortDescription) \(z.shortDescription)"
     }
 }
 
-extension Angle {
+extension Angle: ShortDescribable {
     var shortDescription: String {
         (radians / .pi).shortDescription
     }
 }
 
-extension Rotation {
+extension Rotation: ShortDescribable {
     var shortDescription: String {
         "\(roll.shortDescription) \(yaw.shortDescription) \(pitch.shortDescription)"
+    }
+}
+
+extension Color: ShortDescribable {
+    var shortDescription: String {
+        "\(r.shortDescription) \(g.shortDescription) \(b.shortDescription) \(a.shortDescription)"
+    }
+}
+
+extension Texture: ShortDescribable {
+    var shortDescription: String {
+        switch self {
+        case let .file(name: _, url: url):
+            return url.path
+        case .data:
+            return "texture { #data }"
+        }
+    }
+}
+
+extension Path: ShortDescribable {
+    var shortDescription: String {
+        if subpaths.count > 1 {
+            return "path { subpaths: \(subpaths.count) }"
+        }
+        return "path { points: \(points.count) }"
+    }
+}
+
+extension Geometry: ShortDescribable {
+    var shortDescription: String {
+        let fields = [
+            name.flatMap { $0.isEmpty ? nil : "    name: \($0)" },
+            children.isEmpty ? nil : "    children: \(children.count)",
+            "    size: \(transform.scale.shortDescription)",
+            "    position: \(transform.offset.shortDescription)",
+            "    orientation: \(transform.rotation.shortDescription)",
+        ].compactMap { $0 }.joined(separator: "\n")
+
+        return """
+        \(type) {
+        \(fields)
+        }
+        """
     }
 }
 

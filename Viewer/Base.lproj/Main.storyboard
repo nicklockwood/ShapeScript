@@ -291,7 +291,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="700" height="500"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <subviews>
-                            <customView translatesAutoresizingMaskIntoConstraints="NO" id="v8B-Y7-cHu">
+                            <customView translatesAutoresizingMaskIntoConstraints="NO" id="v8B-Y7-cHu" customClass="NSSplitView">
                                 <rect key="frame" x="0.0" y="0.0" width="700" height="500"/>
                                 <userDefinedRuntimeAttributes>
                                     <userDefinedRuntimeAttribute type="boolean" keyPath="wantsLayer" value="YES"/>
@@ -1157,6 +1157,8 @@
                         </constraints>
                     </customView>
                     <connections>
+                        <outlet property="consoleScrollView" destination="B7b-Vr-SmX" id="e39-eE-j7A"/>
+                        <outlet property="consoleTextView" destination="OaV-Ak-1uT" id="74V-ik-LSk"/>
                         <outlet property="containerView" destination="v8B-Y7-cHu" id="8DE-Xa-D8U"/>
                         <outlet property="errorScrollView" destination="uYM-uV-Hk2" id="EBY-zy-63K"/>
                         <outlet property="errorTextView" destination="yEn-1o-bXc" id="aut-YA-PIF"/>
@@ -1165,8 +1167,35 @@
                     </connections>
                 </viewController>
                 <customObject id="rPt-NT-nkU" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+                <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" id="B7b-Vr-SmX">
+                    <rect key="frame" x="0.0" y="0.0" width="240" height="135"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <clipView key="contentView" drawsBackground="NO" id="s63-TB-AyE">
+                        <rect key="frame" x="0.0" y="0.0" width="240" height="135"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" smartInsertDelete="YES" id="OaV-Ak-1uT">
+                                <rect key="frame" x="0.0" y="0.0" width="240" height="135"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <size key="minSize" width="240" height="135"/>
+                                <size key="maxSize" width="240" height="10000000"/>
+                                <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            </textView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="mY1-bD-lLg">
+                        <rect key="frame" x="-100" y="-100" width="240" height="16"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="KYh-1i-nLN">
+                        <rect key="frame" x="224" y="0.0" width="16" height="135"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
             </objects>
-            <point key="canvasLocation" x="75" y="817"/>
+            <point key="canvasLocation" x="95" y="1109"/>
         </scene>
         <!--Window Controller-->
         <scene sceneID="4Ch-F0-bpE">
