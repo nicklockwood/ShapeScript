@@ -43,6 +43,22 @@ public enum Texture: Hashable {
     case data(Data)
 }
 
+public enum MaterialProperty: Hashable {
+    case color(Color)
+    case texture(Texture)
+
+    init?(_ value: Any) {
+        switch value {
+        case let color as Color:
+            self = .color(color)
+        case let texture as Texture:
+            self = .texture(texture)
+        default:
+            return nil
+        }
+    }
+}
+
 public struct Material: Hashable {
     public var opacity = 1.0
     public var texture: Texture?

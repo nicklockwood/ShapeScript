@@ -34,10 +34,10 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let background: Symbols = [
-        "background": .property(.color, { parameter, context in
-            context.background = parameter.value as? Color ?? .clear
+        "background": .property(.colorOrTexture, { parameter, context in
+            context.background = MaterialProperty(parameter.value) ?? .color(.clear)
         }, { context in
-            .color(context.material.color ?? .white)
+            .colorOrTexture(context.background)
         }),
     ]
 

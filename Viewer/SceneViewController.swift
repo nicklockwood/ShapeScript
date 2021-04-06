@@ -104,9 +104,9 @@ class SceneViewController: NSViewController {
         }
     }
 
-    var background: Color? {
-        get { (scnScene.background.contents as? NSColor).map { Color(nsColor: $0) } }
-        set { scnScene.background.contents = newValue.flatMap { NSColor(color: $0) } }
+    var background: MaterialProperty? {
+        get { MaterialProperty(scnMaterialProperty: scnScene.background) }
+        set { newValue?.configureProperty(scnScene.background) }
     }
 
     var geometry: Geometry? {

@@ -15,23 +15,40 @@ private typealias OSColor = NSColor
 private typealias OSColor = UIColor
 #endif
 
+public extension OSColor {
+    convenience init(color: Color) {
+        self.init(
+            red: CGFloat(color.r),
+            green: CGFloat(color.g),
+            blue: CGFloat(color.b),
+            alpha: CGFloat(color.a)
+        )
+    }
+}
+
+public extension MaterialProperty {
+    func configureProperty(_ property: SCNMaterialProperty) {
+        switch self {
+        case let .color(color):
+            property.contents = OSColor(color: color)
+        case let .texture(texture):
+            switch texture {
+            case let .file(_, url):
+                property.contents = url
+            case let .data(data):
+                property.contents = data
+            }
+        }
+    }
+}
+
 public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
         if let texture = m.texture {
-            switch texture {
-            case let .file(_, url):
-                diffuse.contents = url
-            case let .data(data):
-                diffuse.contents = data
-            }
+            MaterialProperty.texture(texture).configureProperty(diffuse)
         } else if let color = m.color {
-            diffuse.contents = OSColor(
-                red: CGFloat(color.r),
-                green: CGFloat(color.g),
-                blue: CGFloat(color.b),
-                alpha: CGFloat(color.a)
-            )
+            MaterialProperty.color(color).configureProperty(diffuse)
         }
         transparency = CGFloat(m.opacity)
 
@@ -157,16 +174,33 @@ public extension Color {
     #endif
 }
 
+public extension MaterialProperty {
+    init?(scnMaterialProperty: SCNMaterialProperty) {
+        switch scnMaterialProperty.contents {
+        case let color as OSColor:
+            self = .color(Color(osColor: color))
+        case let data as Data:
+            self = .texture(.data(data))
+        case let url as URL:
+            self = .texture(.file(name: url.lastPathComponent, url: url))
+        default:
+            return nil
+        }
+    }
+}
+
 public extension Material {
     init?(scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
-        color = (scnMaterial.diffuse.contents as? OSColor).map(Color.init(osColor:)) ?? .white
-        switch scnMaterial.diffuse.contents {
-        case let data as Data:
-            texture = .data(data)
-        case let url as URL:
-            texture = .file(name: url.lastPathComponent, url: url)
+        switch MaterialProperty(scnMaterialProperty: scnMaterial.diffuse) {
+        case let .color(color)?:
+            self.color = color
+            texture = nil
+        case let .texture(texture)?:
+            color = .white
+            self.texture = texture
         default:
+            color = .white
             texture = nil
         }
     }
@@ -190,18 +224,3 @@ public extension Geometry {
         )
     }
 }
-
-// MARK: export
-
-public extension Color {
-    func asCGColor() -> CGColor {
-        CGColor(red: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: CGFloat(a))
-    }
-}
-
-public extension OSColor {
-    convenience init?(color: Color) {
-        self.init(cgColor: color.asCGColor())
-    }
-}
-

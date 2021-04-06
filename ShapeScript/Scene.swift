@@ -136,10 +136,10 @@ public struct SourceLocation {
 }
 
 public struct Scene {
-    public let background: Color
+    public let background: MaterialProperty
     public let children: [Geometry]
 
-    public static let empty = Self(background: .clear, children: [])
+    public static let empty = Self(background: .color(.clear), children: [])
 
     public func deepCopy() -> Self {
         Self(background: background, children: children.map { $0.deepCopy() })

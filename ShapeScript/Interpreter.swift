@@ -255,6 +255,7 @@ public struct RuntimeError: Error, Equatable {
 enum ValueType: String {
     case color
     case texture
+    case colorOrTexture = "color or texture"
     case number
     case vector
     case size
@@ -282,6 +283,26 @@ enum Value {
     case tuple([Value])
     case pair(Double, Double)
     case void
+
+    static func colorOrTexture(_ value: Any) -> Value {
+        switch value {
+        case let color as Color:
+            return .color(color)
+        case let texture as Texture:
+            return .texture(texture)
+        case let materialProperty as MaterialProperty:
+            switch materialProperty {
+            case let .color(color):
+                return .color(color)
+            case let .texture(texture):
+                return .texture(texture)
+            }
+        case let value as Value:
+            return colorOrTexture(value.value)
+        default:
+            return .color(.clear)
+        }
+    }
 
     var value: Any {
         switch self {
@@ -561,6 +582,15 @@ private func evaluateParameter(_ parameter: Expression?,
         } catch let error as RuntimeErrorType {
             throw RuntimeError(error, at: parameters[0].range)
         }
+    case .colorOrTexture:
+        let type: ValueType
+        switch values.first {
+        case .string?, .texture?:
+            type = .texture
+        default:
+            type = .color
+        }
+        return try evaluateParameter(parameter, as: type, for: identifier, in: context)
     case .number, .string, .texture, .path, .paths, .mesh, .point, .tuple:
         if parameters.count > 1 {
             throw RuntimeError(
@@ -570,7 +600,7 @@ private func evaluateParameter(_ parameter: Expression?,
         }
         let value = values[0]
         if value.type != type {
-            switch (value.type, type) {
+            switch (value, type) {
             case (.path, .paths):
                 return Value.paths([value.value as! Path])
             default:

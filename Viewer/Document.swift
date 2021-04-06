@@ -94,19 +94,21 @@ class Document: NSDocument, EvaluationDelegate {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
     }
 
-    var background: Color = .clear {
-        didSet {
-            for viewController in sceneViewControllers {
-                viewController.background = background
-            }
-        }
-    }
-
-
-    var geometry: Geometry? {
+    var scene: Scene? {
         didSet {
             updateViews()
         }
+    }
+
+    var geometry: Geometry {
+        Geometry(
+            type: .none,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            children: scene?.children ?? [],
+            sourceLocation: nil
+        )
     }
 
     var selectedGeometry: Geometry? {
@@ -130,6 +132,7 @@ class Document: NSDocument, EvaluationDelegate {
     func updateViews() {
         for viewController in sceneViewControllers {
             viewController.isLoading = (progress?.inProgress == true)
+            viewController.background = scene?.background
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
@@ -238,15 +241,7 @@ class Document: NSDocument, EvaluationDelegate {
             case let .partial(scene), let .success(scene):
                 self.errorMessage = nil
                 self.accessErrorURL = nil
-                self.background = scene.background
-                self.geometry = Geometry(
-                    type: .none,
-                    name: nil,
-                    transform: .identity,
-                    material: .default,
-                    children: scene.children,
-                    sourceLocation: nil
-                )
+                self.scene = scene
             case let .failure(error):
                 self.errorMessage = self.message(for: error, in: input)
                 if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
@@ -498,10 +493,11 @@ class Document: NSDocument, EvaluationDelegate {
             let polygonCount: String
             let triangleCount: String
             let dimensions: String
+            let geometry = self.geometry
             if progress?.didSucceed == true {
-                polygonCount = String(geometry?.polygonCount ?? 0)
-                triangleCount = String(geometry?.triangleCount ?? 0)
-                dimensions = (geometry?.exactBounds ?? .empty).size.shortDescription
+                polygonCount = String(geometry.polygonCount)
+                triangleCount = String(geometry.triangleCount)
+                dimensions = geometry.exactBounds.size.shortDescription
             } else {
                 polygonCount = "calculating…"
                 triangleCount = "calculating…"
@@ -509,7 +505,7 @@ class Document: NSDocument, EvaluationDelegate {
             }
             actionSheet.messageText = "Model Info"
             actionSheet.informativeText = """
-            Objects: \(geometry?.objectCount ?? 0)
+            Objects: \(geometry.objectCount)
             Polygons: \(polygonCount)
             Triangles: \(triangleCount)
             Dimensions: \(dimensions)

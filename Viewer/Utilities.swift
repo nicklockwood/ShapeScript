@@ -89,6 +89,17 @@ extension Texture: ShortDescribable {
     }
 }
 
+extension MaterialProperty: ShortDescribable {
+    var shortDescription: String {
+        switch self {
+        case let .color(color):
+            return color.shortDescription
+        case let .texture(texture):
+            return texture.shortDescription
+        }
+    }
+}
+
 extension Path: ShortDescribable {
     var shortDescription: String {
         if subpaths.count > 1 {

@@ -32,10 +32,16 @@ ShapeScript has a number of built-in commands:
 The `background` command can be used to set the background color of the rendered scene. For example:
 
 ```swift
-background 1 0 0 // set background to red
+background 1 0 0 // set background color to red
 ```
 
-This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.mdexport.md#rendering-an-image). By default, the background is transparent.
+Instead of a color, you can pass a file path to an image:
+
+```swift
+background "filename.png" // set background image
+```
+
+This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md#rendering-an-image). By default, the background is transparent.
 
 ## Detail
 

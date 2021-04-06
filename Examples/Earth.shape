@@ -2,5 +2,7 @@
 
 detail 64
 
+background "Stars.jpg"
+
 texture "Earth.png"
 sphere

@@ -61,7 +61,7 @@ bmp                      | Bitmap                                               
 
 If you aren't sure which format to use, the PNG format is a good all-rounder, with lossless compression and transparency support.
 
-By default, images are exported with a transparent background if the selected format supports it, or white otherwise. To change the background color, you can use the [background command](commands.md#background).
+By default, images are exported with a transparent background if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background).
 
 When exporting an image (or exporting a model for non-realtime use), you should use the `detail` command to increase the detail level. A detail level of 100 should be good enough for even a very large or high-resolution image, but this may take a long time to generate for a complex model.
 
