@@ -27,6 +27,16 @@ Commands do not *necessarily* accept or return a value. The main distinction bet
 
 ShapeScript has a number of built-in commands:
 
+## Background
+
+The `background` command can be used to set the background color of the rendered scene. For example:
+
+```swift
+background 1 0 0 // set background to red
+```
+
+This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.mdexport.md#rendering-an-image). By default, the background is transparent.
+
 ## Detail
 
 The `detail` command can be used anywhere in the ShapeScript file to override the local detail level used for approximating curved geometry. It is documented in the [options](options.md#detail) section.

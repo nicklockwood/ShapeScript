@@ -190,3 +190,18 @@ public extension Geometry {
         )
     }
 }
+
+// MARK: export
+
+public extension Color {
+    func asCGColor() -> CGColor {
+        CGColor(red: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: CGFloat(a))
+    }
+}
+
+public extension OSColor {
+    convenience init?(color: Color) {
+        self.init(cgColor: color.asCGColor())
+    }
+}
+

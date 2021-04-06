@@ -33,6 +33,14 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
+    static let background: Symbols = [
+        "background": .property(.color, { parameter, context in
+            context.background = parameter.value as? Color ?? .clear
+        }, { context in
+            .color(context.material.color ?? .white)
+        }),
+    ]
+
     static let color: Symbols = [
         "color": .property(.color, { parameter, context in
             context.material.color = parameter.value as? Color
@@ -276,7 +284,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ])
 
-    static let root: Symbols = _merge(global, materials, transforms, meshes, paths)
+    static let root: Symbols = _merge(global, background, materials, transforms, meshes, paths)
     static let builder: Symbols = _merge(primitive, transforms, paths)
     static let group: Symbols = _merge(primitive, transforms, meshes, paths)
     static let path: Symbols = _merge(global, transforms, points, paths)

@@ -17,10 +17,13 @@ public protocol EvaluationDelegate: AnyObject {
     func debugLog(_ values: [Any?])
 }
 
-public func evaluate(_ program: Program, delegate: EvaluationDelegate?) throws -> [Geometry] {
+public func evaluate(_ program: Program, delegate: EvaluationDelegate?) throws -> Scene {
     let context = EvaluationContext(source: program.source, delegate: delegate)
     try program.evaluate(in: context)
-    return context.children.map { $0.value as! Geometry }
+    return Scene(
+        background: context.background,
+        children: context.children.compactMap { $0.value as? Geometry }
+    )
 }
 
 public enum ImportError: Error, Equatable {

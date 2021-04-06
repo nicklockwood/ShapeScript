@@ -104,6 +104,11 @@ class SceneViewController: NSViewController {
         }
     }
 
+    var background: Color? {
+        get { (scnScene.background.contents as? NSColor).map { Color(nsColor: $0) } }
+        set { scnScene.background.contents = newValue.flatMap { NSColor(color: $0) } }
+    }
+
     var geometry: Geometry? {
         didSet {
             // clear scene
@@ -152,8 +157,9 @@ class SceneViewController: NSViewController {
         scnView.autoresizingMask = [.width, .height]
         containerView.insertArrangedSubview(scnView, at: 0)
 
-        // background
-        scnScene.background.contents = NSColor.underPageBackgroundColor
+        // set view background color
+        scnView.wantsLayer = true
+        scnView.layer?.backgroundColor = NSColor.underPageBackgroundColor.cgColor
 
         // set the scene to the view
         scnView.scene = scnScene

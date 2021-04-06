@@ -135,6 +135,17 @@ public struct SourceLocation {
     }
 }
 
+public struct Scene {
+    public let background: Color
+    public let children: [Geometry]
+
+    public static let empty = Self(background: .clear, children: [])
+
+    public func deepCopy() -> Self {
+        Self(background: background, children: children.map { $0.deepCopy() })
+    }
+}
+
 public class Geometry {
     public let type: GeometryType
     public let name: String?

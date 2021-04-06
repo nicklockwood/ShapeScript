@@ -98,8 +98,8 @@ class InterpreterTests: XCTestCase {
         let program = try parse("""
         cube { name "Foo" }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -113,8 +113,8 @@ class InterpreterTests: XCTestCase {
             circle
         }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -129,8 +129,8 @@ class InterpreterTests: XCTestCase {
             sphere
         }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -146,8 +146,8 @@ class InterpreterTests: XCTestCase {
         }
         wheel { name "Foo" }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -165,8 +165,8 @@ class InterpreterTests: XCTestCase {
         }
         wheels { name "Foo" }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -182,8 +182,8 @@ class InterpreterTests: XCTestCase {
         }
         wheel { name "Foo" }
         """)
-        let geometry = try evaluate(program, delegate: nil)
-        guard let first = geometry.first else {
+        let scene = try evaluate(program, delegate: nil)
+        guard let first = scene.children.first else {
             XCTFail()
             return
         }
@@ -262,8 +262,8 @@ class InterpreterTests: XCTestCase {
         translate 1 0 0
         cube { position 1 0 0 }
         """
-        let geometry = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(geometry.first?.transform.offset.x, 2)
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.transform.offset.x, 2)
     }
 
     func testPositionValidInPrimitive() {

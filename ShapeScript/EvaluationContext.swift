@@ -25,6 +25,7 @@ class EvaluationContext {
     var source: String
     var sourceIndex: String.Index?
 
+    var background: Color = .clear
     var material: Material = .default
     var transform = Transform.identity
     var childTransform = Transform.identity
@@ -61,6 +62,7 @@ class EvaluationContext {
         symbols = parent.symbols
         userSymbols = parent.userSymbols
         importCache = parent.importCache
+        background = parent.background
         material = parent.material
         childTypes = parent.childTypes
         random = parent.random

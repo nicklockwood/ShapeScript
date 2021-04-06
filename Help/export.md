@@ -46,9 +46,7 @@ When exporting for 3D printing, you will usually want to avoid having internal g
 
 ## Rendering an Image
 
-In addition to 3D model formats, ShapeScript can also export 2D images. Images are exported with a transparent background if the selected format supports it.
-
-To export an image, use one of the following file extensions when exporting:
+In addition to 3D model formats, ShapeScript can also export 2D images. The following image formats are supported:
 
 Extension             | File Type                                                       | Supports Transparency
 :--------------------| :-------------------------------------------------|:------------------------------
@@ -62,6 +60,8 @@ bmp                      | Bitmap                                               
 <br/>
 
 If you aren't sure which format to use, the PNG format is a good all-rounder, with lossless compression and transparency support.
+
+By default, images are exported with a transparent background if the selected format supports it, or white otherwise. To change the background color, you can use the [background command](commands.md#background).
 
 When exporting an image (or exporting a model for non-realtime use), you should use the `detail` command to increase the detail level. A detail level of 100 should be good enough for even a very large or high-resolution image, but this may take a long time to generate for a complex model.
 

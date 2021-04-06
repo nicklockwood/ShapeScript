@@ -23,8 +23,8 @@ extension RuntimeError: ProgramError {}
 class LoadingProgress {
     public enum Status {
         case waiting
-        case partial([Geometry])
-        case success([Geometry])
+        case partial(Scene)
+        case success(Scene)
         case failure(Error)
         case cancelled
     }
@@ -93,6 +93,15 @@ class Document: NSDocument, EvaluationDelegate {
     var sceneViewControllers: [SceneViewController] {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
     }
+
+    var background: Color = .clear {
+        didSet {
+            for viewController in sceneViewControllers {
+                viewController.background = background
+            }
+        }
+    }
+
 
     var geometry: Geometry? {
         didSet {
@@ -226,15 +235,16 @@ class Document: NSDocument, EvaluationDelegate {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
-            case let .partial(children), let .success(children):
+            case let .partial(scene), let .success(scene):
                 self.errorMessage = nil
                 self.accessErrorURL = nil
+                self.background = scene.background
                 self.geometry = Geometry(
                     type: .none,
                     name: nil,
                     transform: .identity,
                     material: .default,
-                    children: children,
+                    children: scene.children,
                     sourceLocation: nil
                 )
             case let .failure(error):
@@ -260,15 +270,15 @@ class Document: NSDocument, EvaluationDelegate {
                 let parsed = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "parsing: %.2fs", parsed - start))
 
-                let geometries = try evaluate(program, delegate: self)
+                let scene = try evaluate(program, delegate: self)
                 let evaluated = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "evaluating: %.2fs", evaluated - parsed))
 
                 // Clear errors and previous geometry
-                progress.setStatus(.partial([]))
+                progress.setStatus(.partial(.empty))
 
                 var lastUpdate = CFAbsoluteTimeGetCurrent()
-                for geometry in geometries {
+                for geometry in scene.children {
                     // pre-generate geometry
                     _ = geometry.build {
                         if progress.isCancelled {
@@ -277,7 +287,7 @@ class Document: NSDocument, EvaluationDelegate {
                         let time = CFAbsoluteTimeGetCurrent()
                         if time - lastUpdate > 0.3 {
                             geometry.scnBuild()
-                            progress.setStatus(.partial(geometries.map { $0.deepCopy() }))
+                            progress.setStatus(.partial(scene.deepCopy()))
                             lastUpdate = time
                         }
                         return true
@@ -292,7 +302,7 @@ class Document: NSDocument, EvaluationDelegate {
                 }
                 let done = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "geometry: %.2fs", done - evaluated))
-                progress.setStatus(.success(geometries.map { $0.deepCopy() }))
+                progress.setStatus(.success(scene.deepCopy()))
             } catch {
                 progress.setStatus(.failure(error))
             }
