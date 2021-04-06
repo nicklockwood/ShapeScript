@@ -153,7 +153,7 @@ class SceneViewController: NSViewController {
         containerView.insertArrangedSubview(scnView, at: 0)
 
         // background
-        scnScene.background.contents = NSColor.lightGray
+        scnScene.background.contents = NSColor.underPageBackgroundColor
 
         // set the scene to the view
         scnView.scene = scnScene
