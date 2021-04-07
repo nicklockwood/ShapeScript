@@ -83,7 +83,7 @@ func rotationBetweenVectors(_ v0: Vector, _ v1: Vector) -> Rotation {
         return .identity
     }
     let angle = v0.angle(with: v1)
-    return Rotation(unchecked: axis / length, radians: angle)
+    return Rotation(unchecked: axis / length, angle: angle)
 }
 
 func pointsAreDegenerate(_ points: [Vector]) -> Bool {
@@ -285,4 +285,28 @@ func lineSegmentsIntersect(
         return false
     }
     return true
+}
+
+func directionsAreParallel(_ d0: Vector, _ d1: Vector) -> Bool {
+    assert(d0.isNormalized)
+    assert(d1.isNormalized)
+    return abs(d0.dot(d1) - 1) <= epsilon
+}
+
+func directionsAreAntiparallel(_ d0: Vector, _ d1: Vector) -> Bool {
+    assert(d0.isNormalized)
+    assert(d1.isNormalized)
+    return abs(d0.dot(d1) + 1) <= epsilon
+}
+
+func directionsAreColinear(_ d0: Vector, _ d1: Vector) -> Bool {
+    assert(d0.isNormalized)
+    assert(d1.isNormalized)
+    return directionsAreParallel(d0, d1) || directionsAreAntiparallel(d0, d1)
+}
+
+func directionsAreNormal(_ d0: Vector, _ d1: Vector) -> Bool {
+    assert(d0.isNormalized)
+    assert(d1.isNormalized)
+    return abs(d0.dot(d1)) <= epsilon
 }

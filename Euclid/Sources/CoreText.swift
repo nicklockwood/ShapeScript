@@ -27,7 +27,7 @@ public extension Path {
         width: Double? = nil,
         detail: Int = 2
     ) -> [Path] {
-        return cgPaths(for: attributedString, width: width).map {
+        cgPaths(for: attributedString, width: width).map {
             let cgPath = CGMutablePath()
             let transform = CGAffineTransform(translationX: $1.x, y: $1.y)
             cgPath.addPath($0, transform: transform)
@@ -44,7 +44,7 @@ public extension Mesh {
         width: Double? = nil,
         depth: Double = 1,
         detail: Int = 2,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) {
         let font = font ?? CTFontCreateWithName("Helvetica" as CFString, 1, nil)
         let attributes = [NSAttributedString.Key.font: font]
@@ -58,7 +58,7 @@ public extension Mesh {
         width: Double? = nil,
         depth: Double = 1,
         detail _: Int = 2,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) {
         var meshes = [Mesh]()
         var cache = [CGPath: Mesh]()

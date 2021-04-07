@@ -46,17 +46,38 @@ public struct Vertex: Hashable {
     }
 }
 
+extension Vertex: Codable {
+    private enum CodingKeys: CodingKey {
+        case position, normal, texcoord
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let position = try container.decode(Vector.self, forKey: .position)
+        let normal = try container.decode(Vector.self, forKey: .normal)
+        let texcoord = try container.decodeIfPresent(Vector.self, forKey: .texcoord) ?? .zero
+        self.init(position, normal, texcoord)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(position, forKey: .position)
+        try container.encode(normal, forKey: .normal)
+        try texcoord == .zero ? () : container.encode(normal, forKey: .texcoord)
+    }
+}
+
 public extension Vertex {
     /// Invert all orientation-specific data (e.g. vertex normal). Called when the
     /// orientation of a polygon is flipped.
     func inverted() -> Vertex {
-        return Vertex(unchecked: position, -normal, texcoord)
+        Vertex(unchecked: position, -normal, texcoord)
     }
 
     /// Linearly interpolate between two vertices.
     /// Interpolation is applied to the position, texture coordinate and normal.
     func lerp(_ other: Vertex, _ t: Double) -> Vertex {
-        return Vertex(
+        Vertex(
             unchecked: position.lerp(other.position, t),
             normal.lerp(other.normal, t),
             texcoord.lerp(other.texcoord, t)
@@ -73,7 +94,7 @@ internal extension Vertex {
 
     // Approximate equality
     func isEqual(to other: Vertex, withPrecision p: Double = epsilon) -> Bool {
-        return position.isEqual(to: other.position, withPrecision: p) &&
+        position.isEqual(to: other.position, withPrecision: p) &&
             normal.isEqual(to: other.normal, withPrecision: p) &&
             texcoord.isEqual(to: other.texcoord, withPrecision: p)
     }

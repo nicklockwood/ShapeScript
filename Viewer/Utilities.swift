@@ -54,9 +54,15 @@ extension Vector {
     }
 }
 
+extension Angle {
+    var shortDescription: String {
+        return (radians / .pi).shortDescription
+    }
+}
+
 extension Rotation {
     var shortDescription: String {
-        return "\((roll / .pi).shortDescription) \((yaw / .pi).shortDescription) \((pitch / .pi).shortDescription)"
+        return "\(roll.shortDescription) \(yaw.shortDescription) \(pitch.shortDescription)"
     }
 }
 

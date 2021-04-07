@@ -31,17 +31,10 @@ public extension Path {
 
 public extension CGPath {
     private func enumerateElements(_ block: @convention(block) (CGPathElement) -> Void) {
-        #if os(iOS)
-        if #available(iOS 11.0, *) {
+        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
             applyWithBlock { block($0.pointee) }
             return
         }
-        #elseif os(OSX)
-        if #available(OSX 10.13, *) {
-            applyWithBlock { block($0.pointee) }
-            return
-        }
-        #endif
 
         // Fallback for earlier OSes
         typealias Block = @convention(block) (CGPathElement) -> Void
@@ -69,7 +62,7 @@ public extension CGPath {
         func endPath() {
             if points.count > 1 {
                 if points.count > 2, points.first == points.last,
-                    let firstElement = firstElement
+                   let firstElement = firstElement
                 {
                     updateLastPoint(nextElement: firstElement)
                 }
@@ -104,7 +97,7 @@ public extension CGPath {
             case .addQuadCurveToPoint, .addCurveToPoint:
                 p2 = nextElement.points[0]
                 isCurved = true
-            default: // Can be converted to @unknown in Swift 5
+            @unknown default:
                 return
             }
             switch lastElement.type {
@@ -122,7 +115,7 @@ public extension CGPath {
             case .addCurveToPoint:
                 p0 = lastElement.points[1]
                 p1 = lastElement.points[2]
-            default: // Can be converted to @unknown in Swift 5
+            @unknown default:
                 return
             }
             let d0 = Vector(Double(p1.x - p0.x), Double(p1.y - p0.y)).normalized()
@@ -191,7 +184,7 @@ public extension CGPath {
                     ))
                 }
                 points.append(.point(Vector(p3)))
-            default: // Can be converted to @unknown in Swift 5
+            @unknown default:
                 return
             }
             if firstElement == nil, element.type != .moveToPoint {

@@ -44,6 +44,34 @@ public struct Plane: Hashable {
     }
 }
 
+extension Plane: Codable {
+    private enum CodingKeys: CodingKey {
+        case normal, w
+    }
+
+    public init(from decoder: Decoder) throws {
+        if var container = try? decoder.unkeyedContainer() {
+            let x = try container.decode(Double.self)
+            let y = try container.decode(Double.self)
+            let z = try container.decode(Double.self)
+            normal = Vector(x, y, z).normalized()
+            w = try container.decode(Double.self)
+        } else {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            normal = try container.decode(Vector.self, forKey: .normal).normalized()
+            w = try container.decode(Double.self, forKey: .w)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(normal.x)
+        try container.encode(normal.y)
+        try container.encode(normal.z)
+        try container.encode(w)
+    }
+}
+
 public extension Plane {
     static let yz = Plane(unchecked: Vector(1, 0, 0), w: 0)
     static let xz = Plane(unchecked: Vector(0, 1, 0), w: 0)
@@ -79,23 +107,36 @@ public extension Plane {
 
     /// Returns the flipside of the plane
     func inverted() -> Plane {
-        return Plane(unchecked: -normal, w: -w)
+        Plane(unchecked: -normal, w: -w)
     }
 
     /// Checks if point is on plane
     func containsPoint(_ p: Vector) -> Bool {
-        return abs(p.distance(from: self)) < epsilon
+        abs(p.distance(from: self)) < epsilon
     }
 
     /// Returns line of intersection between planes
     func intersection(with p: Plane) -> Line? {
         guard !normal.isEqual(to: p.normal),
-            let origin = solveSimultaneousEquationsWith(self, p)
+              let origin = solveSimultaneousEquationsWith(self, p)
         else {
             // Planes do not intersect
             return nil
         }
         return Line(origin: origin, direction: normal.cross(p.normal))
+    }
+
+    /// Returns point intersection beteween plane and line
+    func intersection(with line: Line) -> Vector? {
+        // https://en.wikipedia.org/wiki/Line–plane_intersection#Algebraic_form
+        guard !directionsAreNormal(line.direction, normal) else {
+            return nil
+        }
+        let lineDotPlaneNormal = line.direction.dot(normal)
+        let planePoint = normal * w
+        let d = (planePoint - line.origin).dot(normal) / lineDotPlaneNormal
+        let intersection = line.origin + line.direction * d
+        return intersection
     }
 }
 
@@ -128,7 +169,7 @@ internal extension Plane {
 
     // Approximate equality
     func isEqual(to other: Plane, withPrecision p: Double = epsilon) -> Bool {
-        return abs(w - other.w) < p && normal.isEqual(to: other.normal, withPrecision: p)
+        abs(w - other.w) < p && normal.isEqual(to: other.normal, withPrecision: p)
     }
 }
 
@@ -140,7 +181,7 @@ enum PlaneComparison: Int {
     case spanning = 3
 
     func union(_ other: PlaneComparison) -> PlaneComparison {
-        return PlaneComparison(rawValue: rawValue | other.rawValue)!
+        PlaneComparison(rawValue: rawValue | other.rawValue)!
     }
 }
 

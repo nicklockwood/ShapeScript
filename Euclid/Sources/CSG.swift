@@ -72,7 +72,7 @@ public extension Mesh {
 
     /// Efficiently form union from multiple meshes
     static func union(_ meshes: [Mesh]) -> Mesh {
-        return multimerge(meshes, using: { $0.union($1) })
+        multimerge(meshes, using: { $0.union($1) })
     }
 
     /// Returns a new mesh created by subtracting the volume of the
@@ -106,7 +106,7 @@ public extension Mesh {
 
     /// Efficiently subtract multiple meshes
     static func difference(_ meshes: [Mesh]) -> Mesh {
-        return reduce(meshes, using: { $0.subtract($1) })
+        reduce(meshes, using: { $0.subtract($1) })
     }
 
     /// Returns a new mesh reprenting only the volume exclusively occupied by
@@ -145,7 +145,7 @@ public extension Mesh {
 
     /// Efficiently xor multiple meshes
     static func xor(_ meshes: [Mesh]) -> Mesh {
-        return multimerge(meshes, using: { $0.xor($1) })
+        multimerge(meshes, using: { $0.xor($1) })
     }
 
     /// Returns a new mesh reprenting the volume shared by both the mesh
@@ -176,7 +176,7 @@ public extension Mesh {
 
     /// Efficiently compute intersection of multiple meshes
     static func intersection(_ meshes: [Mesh]) -> Mesh {
-        return reduce(meshes, using: { $0.intersect($1) })
+        reduce(meshes, using: { $0.intersect($1) })
     }
 
     /// Returns a new mesh that retains the shape of the receiver, but with
@@ -221,7 +221,7 @@ public extension Mesh {
 
     /// Efficiently perform stencil with multiple meshes
     static func stencil(_ meshes: [Mesh]) -> Mesh {
-        return reduce(meshes, using: { $0.stencil($1) })
+        reduce(meshes, using: { $0.stencil($1) })
     }
 
     /// Split mesh along a plane
@@ -248,7 +248,7 @@ public extension Mesh {
     }
 
     /// Clip mesh to a plane and optionally fill sheared faces with specified material
-    func clip(to plane: Plane, fill: Polygon.Material = nil) -> Mesh {
+    func clip(to plane: Plane, fill: Material? = nil) -> Mesh {
         guard !polygons.isEmpty else {
             return self
         }
@@ -281,11 +281,11 @@ public extension Mesh {
             let normal = Vector(0, 0, 1)
             let angle = -normal.angle(with: plane.normal)
             let rotation: Rotation
-            if angle.isEqual(to: 0) {
+            if angle == .zero {
                 rotation = .identity
             } else {
                 let axis = normal.cross(plane.normal).normalized()
-                rotation = Rotation(unchecked: axis, radians: angle)
+                rotation = Rotation(unchecked: axis, angle: angle)
             }
             let rect = Polygon(
                 unchecked: [

@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0101BAF525687A450096B1E7 /* CodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0101BAF425687A450096B1E7 /* CodingTests.swift */; };
 		013312DD21CA532A00626F1B /* PlaneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312DC21CA532A00626F1B /* PlaneTests.swift */; };
 		013ED08F23C0E60900FEEE5C /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013ED08E23C0E60900FEEE5C /* Rotation.swift */; };
+		014AC60E2505963800F54349 /* SceneKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014AC60D2505963800F54349 /* SceneKitTests.swift */; };
 		0162A09623795E260078AE84 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; };
 		0162A09923795EB30078AE84 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; };
 		016FAB3A21BFE78100AF60DC /* Euclid.h in Headers */ = {isa = PBXBuildFile; fileRef = 016FAB2C21BFE78100AF60DC /* Euclid.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -35,6 +37,7 @@
 		016FABF421C078E400AF60DC /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 016FABF221C078E400AF60DC /* Main.storyboard */; };
 		016FABF621C078E500AF60DC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 016FABF521C078E500AF60DC /* Assets.xcassets */; };
 		016FABF921C078E500AF60DC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 016FABF721C078E500AF60DC /* LaunchScreen.storyboard */; };
+		018D0ACE255C398D006D2351 /* Euclid.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01A429FA2237A85C00C251A6 /* TextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A429F92237A85C00C251A6 /* TextTests.swift */; };
 		01BA296A222726BE0088D36B /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BA2969222726BD0088D36B /* XCTestManifests.swift */; };
 		01BA29712235A63F0088D36B /* CoreText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BA29702235A63F0088D36B /* CoreText.swift */; };
@@ -43,6 +46,10 @@
 		01D96AB523D8E36A00D0D267 /* BoundsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D96AB423D8E36A00D0D267 /* BoundsTests.swift */; };
 		01E5F54923D59BF100717D58 /* BSP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E5F54823D59BF100717D58 /* BSP.swift */; };
 		01F2382023BF4160005EC9DB /* LineSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F2381F23BF4160005EC9DB /* LineSegment.swift */; };
+		0A240137256A64FB00C1535C /* AngleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A240136256A64FB00C1535C /* AngleTests.swift */; };
+		0A24013F256A671600C1535C /* Angle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A24013E256A671600C1535C /* Angle.swift */; };
+		0A240148256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A240147256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift */; };
+		0A240149256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A240147256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift */; };
 		52A3852E238D6E5700BE8407 /* LineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A3852D238D6E5700BE8407 /* LineTests.swift */; };
 		52A663A123857D5300FACF9D /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A663A023857D5300FACF9D /* Line.swift */; };
 		52C844E223854CDF009C0A73 /* VectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C844E023854C87009C0A73 /* VectorTests.swift */; };
@@ -65,9 +72,25 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		018D0ACD255C3971006D2351 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				018D0ACE255C398D006D2351 /* Euclid.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0101BAF425687A450096B1E7 /* CodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingTests.swift; sourceTree = "<group>"; };
 		013312DC21CA532A00626F1B /* PlaneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaneTests.swift; sourceTree = "<group>"; };
 		013ED08E23C0E60900FEEE5C /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
+		014AC60D2505963800F54349 /* SceneKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitTests.swift; sourceTree = "<group>"; };
 		016FAB2921BFE78100AF60DC /* Euclid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Euclid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		016FAB2C21BFE78100AF60DC /* Euclid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Euclid.h; sourceTree = "<group>"; };
 		016FAB2D21BFE78100AF60DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -106,6 +129,9 @@
 		01D96AB423D8E36A00D0D267 /* BoundsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundsTests.swift; sourceTree = "<group>"; };
 		01E5F54823D59BF100717D58 /* BSP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BSP.swift; sourceTree = "<group>"; };
 		01F2381F23BF4160005EC9DB /* LineSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSegment.swift; sourceTree = "<group>"; };
+		0A240136256A64FB00C1535C /* AngleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngleTests.swift; sourceTree = "<group>"; };
+		0A24013E256A671600C1535C /* Angle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Angle.swift; sourceTree = "<group>"; };
+		0A240147256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FloatingPoint+ApproximateEquality.swift"; sourceTree = "<group>"; };
 		52A3852D238D6E5700BE8407 /* LineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineTests.swift; sourceTree = "<group>"; };
 		52A663A023857D5300FACF9D /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
 		52C844E023854C87009C0A73 /* VectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorTests.swift; sourceTree = "<group>"; };
@@ -171,6 +197,7 @@
 		016FAB2B21BFE78100AF60DC /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				0A24013E256A671600C1535C /* Angle.swift */,
 				016FAB4521BFE7C100AF60DC /* Utilities.swift */,
 				016FAB4321BFE7C100AF60DC /* Vector.swift */,
 				016FAB4621BFE7C100AF60DC /* Vertex.swift */,
@@ -191,6 +218,7 @@
 				01BA29702235A63F0088D36B /* CoreText.swift */,
 				016FAB2C21BFE78100AF60DC /* Euclid.h */,
 				016FAB2D21BFE78100AF60DC /* Info.plist */,
+				0A240147256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -198,6 +226,7 @@
 		016FAB3621BFE78100AF60DC /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				0A240136256A64FB00C1535C /* AngleTests.swift */,
 				01D96AB423D8E36A00D0D267 /* BoundsTests.swift */,
 				016FAB5F21BFE7CE00AF60DC /* CSGTests.swift */,
 				016FAB5C21BFE7CD00AF60DC /* PathTests.swift */,
@@ -207,8 +236,10 @@
 				016FAB5B21BFE7CD00AF60DC /* TransformTests.swift */,
 				016FAB5D21BFE7CE00AF60DC /* UtilityTests.swift */,
 				01BA29792235E34C0088D36B /* CGPathTests.swift */,
+				014AC60D2505963800F54349 /* SceneKitTests.swift */,
 				01A429F92237A85C00C251A6 /* TextTests.swift */,
 				52C844E023854C87009C0A73 /* VectorTests.swift */,
+				0101BAF425687A450096B1E7 /* CodingTests.swift */,
 				52A3852D238D6E5700BE8407 /* LineTests.swift */,
 				01BA2969222726BD0088D36B /* XCTestManifests.swift */,
 				016FAB3921BFE78100AF60DC /* Info.plist */,
@@ -249,6 +280,7 @@
 			buildPhases = (
 				016FAB2421BFE78100AF60DC /* Headers */,
 				016FAB2521BFE78100AF60DC /* Sources */,
+				0A24014C256AA09600C1535C /* Format Code */,
 				016FAB2621BFE78100AF60DC /* Frameworks */,
 				016FAB2721BFE78100AF60DC /* Resources */,
 			);
@@ -288,6 +320,7 @@
 				016FABE621C078E400AF60DC /* Sources */,
 				016FABE721C078E400AF60DC /* Frameworks */,
 				016FABE821C078E400AF60DC /* Resources */,
+				018D0ACD255C3971006D2351 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -306,18 +339,20 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1010;
-				LastUpgradeCheck = 1010;
+				LastUpgradeCheck = 1240;
 				ORGANIZATIONNAME = "Nick Lockwood";
 				TargetAttributes = {
 					016FAB2821BFE78100AF60DC = {
 						CreatedOnToolsVersion = 10.1;
-						LastSwiftMigration = 1010;
+						LastSwiftMigration = 1240;
 					};
 					016FAB3121BFE78100AF60DC = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1240;
 					};
 					016FABE921C078E400AF60DC = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1240;
 					};
 				};
 			};
@@ -405,6 +440,24 @@
 			shellPath = /bin/sh;
 			shellScript = "if which swiftformat >/dev/null; then\n  swiftformat .\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
 		};
+		0A24014C256AA09600C1535C /* Format Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Format Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftformat >/dev/null; then\n  swiftformat .\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -427,7 +480,9 @@
 				52A663A123857D5300FACF9D /* Line.swift in Sources */,
 				016FAB4F21BFE7C200AF60DC /* Vector.swift in Sources */,
 				016FAB5021BFE7C200AF60DC /* CSG.swift in Sources */,
+				0A240148256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift in Sources */,
 				016FAB5621BFE7C200AF60DC /* SceneKit.swift in Sources */,
+				0A24013F256A671600C1535C /* Angle.swift in Sources */,
 				016FAB5921BFE7C200AF60DC /* Plane.swift in Sources */,
 				016FAB5A21BFE7C200AF60DC /* Shapes.swift in Sources */,
 			);
@@ -438,12 +493,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				01A429FA2237A85C00C251A6 /* TextTests.swift in Sources */,
+				0A240137256A64FB00C1535C /* AngleTests.swift in Sources */,
 				52A3852E238D6E5700BE8407 /* LineTests.swift in Sources */,
 				016FAB6621BFE7CE00AF60DC /* ShapeTests.swift in Sources */,
 				016FAB6321BFE7CE00AF60DC /* UtilityTests.swift in Sources */,
 				016FAB6221BFE7CE00AF60DC /* PathTests.swift in Sources */,
+				014AC60E2505963800F54349 /* SceneKitTests.swift in Sources */,
 				016FAB6121BFE7CE00AF60DC /* TransformTests.swift in Sources */,
+				0A240149256A9A6900C1535C /* FloatingPoint+ApproximateEquality.swift in Sources */,
 				016FAB6421BFE7CE00AF60DC /* PolygonTests.swift in Sources */,
+				0101BAF525687A450096B1E7 /* CodingTests.swift in Sources */,
 				01BA296A222726BE0088D36B /* XCTestManifests.swift in Sources */,
 				016FAB6521BFE7CE00AF60DC /* CSGTests.swift in Sources */,
 				01BA297A2235E34C0088D36B /* CGPathTests.swift in Sources */,
@@ -523,6 +582,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -549,7 +609,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -589,6 +649,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -609,7 +670,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -642,6 +703,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.4.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.Euclid;
 				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
@@ -650,6 +712,7 @@
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -673,6 +736,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MARKETING_VERSION = 0.4.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.Euclid;
 				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
@@ -680,6 +744,7 @@
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -701,6 +766,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -722,6 +788,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -733,7 +800,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
 				INFOPLIST_FILE = Example/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -741,6 +808,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidExample;
 				PRODUCT_NAME = EuclidExample;
 				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -753,7 +821,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
 				INFOPLIST_FILE = Example/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -761,6 +829,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidExample;
 				PRODUCT_NAME = EuclidExample;
 				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};

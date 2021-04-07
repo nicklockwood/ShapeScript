@@ -37,21 +37,40 @@ public struct PathPoint: Hashable {
     public var isCurved: Bool
 }
 
+extension PathPoint: Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let x = try container.decode(Double.self)
+        let y = try container.decode(Double.self)
+        let z = (try? container.decodeIfPresent(Double.self) ?? 0) ?? 0
+        let isCurved = try container.decodeIfPresent(Bool.self) ?? false
+        self.init(Vector(x, y, z), isCurved: isCurved)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(position.x)
+        try container.encode(position.y)
+        try position.z == 0 ? () : container.encode(position.z)
+        try isCurved ? container.encode(true) : ()
+    }
+}
+
 public extension PathPoint {
     static func point(_ position: Vector) -> PathPoint {
-        return PathPoint(position, isCurved: false)
+        PathPoint(position, isCurved: false)
     }
 
     static func point(_ x: Double, _ y: Double, _ z: Double = 0) -> PathPoint {
-        return .point(Vector(x, y, z))
+        .point(Vector(x, y, z))
     }
 
     static func curve(_ position: Vector) -> PathPoint {
-        return PathPoint(position, isCurved: true)
+        PathPoint(position, isCurved: true)
     }
 
     static func curve(_ x: Double, _ y: Double, _ z: Double = 0) -> PathPoint {
-        return .curve(Vector(x, y, z))
+        .curve(Vector(x, y, z))
     }
 
     init(_ position: Vector, isCurved: Bool) {
@@ -74,10 +93,43 @@ public struct Path: Hashable {
     let subpathIndices: [Int]
 }
 
+extension Path: Codable {
+    private enum CodingKeys: CodingKey {
+        case points, subpaths
+    }
+
+    public init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: CodingKeys.self) {
+            let points = try container.decodeIfPresent([PathPoint].self, forKey: .points)
+            if var subpaths = try container.decodeIfPresent([Path].self, forKey: .subpaths) {
+                if let points = points {
+                    subpaths.insert(Path(points), at: 0)
+                }
+                self.init(subpaths: subpaths)
+            } else {
+                self.init(points ?? [])
+            }
+        } else {
+            let points = try [PathPoint](from: decoder)
+            self.init(points)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        let subpaths = self.subpaths
+        if subpaths.count < 2 {
+            try (subpaths.first?.points ?? []).encode(to: encoder)
+        } else {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(subpaths, forKey: .subpaths)
+        }
+    }
+}
+
 public extension Path {
     /// Returns true if all the path's points lie on as single plane
     var isPlanar: Bool {
-        return plane != nil
+        plane != nil
     }
 
     /// Returns a closed path by joining last point to first
@@ -166,7 +218,7 @@ public extension Path {
     }
 
     var edgeVertices: [Vertex] {
-        return edgeVertices(for: .default)
+        edgeVertices(for: .default)
     }
 
     /// Get edge vertices suitable for converting into a solid shape using lathe or extrusion
@@ -255,7 +307,7 @@ public extension Polygon {
     /// Create a polygon from a path
     /// Path may be convex or concave, but must be closed and non-degenerate
     /// Paths with
-    init?(shape: Path, material: Polygon.Material = nil) {
+    init?(shape: Path, material: Material? = nil) {
         guard let vertices = shape.faceVertices, let plane = shape.plane else {
             return nil
         }
@@ -472,7 +524,7 @@ func subpathIndicesFor(_ points: [PathPoint]) -> [Int] {
 }
 
 func pointsAreClosed(unchecked points: [PathPoint]) -> Bool {
-    return points.last?.position == points.first?.position
+    points.last?.position == points.first?.position
 }
 
 func extrapolate(_ p0: PathPoint, _ p1: PathPoint, _ p2: PathPoint) -> PathPoint {
@@ -482,7 +534,7 @@ func extrapolate(_ p0: PathPoint, _ p1: PathPoint, _ p2: PathPoint) -> PathPoint
     let p1p2 = (p2.position - p1.position).normalized()
     let axis = p0p1.cross(p1p2)
     let angle = -p0p1.angle(with: p1p2)
-    let r = Rotation(axis: axis, radians: angle) ?? .identity
+    let r = Rotation(axis: axis, angle: angle) ?? .identity
     let p2pe = p1p2.rotated(by: r) * length
     return .curve(p2.position + p2pe)
 }

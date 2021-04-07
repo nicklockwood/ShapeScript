@@ -36,16 +36,18 @@ import Foundation
 public extension Path {
     /// Create a closed circular path
     static func circle(radius r: Double = 0.5, segments: Int = 16) -> Path {
-        return ellipse(width: r * 2, height: r * 2, segments: segments)
+        ellipse(width: r * 2, height: r * 2, segments: segments)
     }
 
     /// Create a closed elliptical path
     static func ellipse(width: Double, height: Double, segments: Int = 16) -> Path {
         var points = [PathPoint]()
         let segments = max(3, segments)
-        let step = 2 * Double.pi / Double(segments)
-        let w = max(abs(width / 2), epsilon), h = max(abs(height / 2), epsilon)
-        for angle in stride(from: 0, through: 2 * .pi + epsilon, by: step) {
+        let step = Angle.twoPi / Double(segments)
+        let w = max(abs(width / 2), epsilon)
+        let h = max(abs(height / 2), epsilon)
+        for radians in stride(from: 0, through: Angle.twoPi.radians + epsilon, by: step.radians) {
+            let angle = Angle.radians(radians)
             points.append(.curve(w * -sin(angle), h * cos(angle)))
         }
         return Path(unchecked: points, plane: .xy, subpathIndices: [])
@@ -63,7 +65,7 @@ public extension Path {
 
     /// Create a closed square path
     static func square(size: Double = 1) -> Path {
-        return rectangle(width: size, height: size)
+        rectangle(width: size, height: size)
     }
 
     /// Create a quadratic bezier spline
@@ -190,7 +192,7 @@ public extension Mesh {
         center c: Vector = .init(0, 0, 0),
         size s: Vector,
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let polygons: [Polygon] = [
             [[5, 1, 3, 7], [+1, 0, 0]],
@@ -240,9 +242,9 @@ public extension Mesh {
         center c: Vector = .init(0, 0, 0),
         size s: Double = 1,
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
-        return cube(center: c, size: Vector(s, s, s), faces: faces, material: material)
+        cube(center: c, size: Vector(s, s, s), faces: faces, material: material)
     }
 
     /// Construct a sphere mesh
@@ -253,13 +255,13 @@ public extension Mesh {
         poleDetail: Int = 0,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         var semicircle = [PathPoint]()
         let stacks = max(2, stacks ?? (slices / 2))
         let r = max(abs(r), epsilon)
         for i in 0 ... stacks {
-            let a = Double(i) / Double(stacks) * .pi
+            let a = Double(i) / Double(stacks) * Angle.pi
             semicircle.append(.curve(-sin(a) * r, cos(a) * r))
         }
         return lathe(
@@ -281,7 +283,7 @@ public extension Mesh {
         poleDetail: Int = 0,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let r = max(abs(r), epsilon)
         let h = max(abs(h), epsilon)
@@ -312,7 +314,7 @@ public extension Mesh {
         addDetailAtBottomPole: Bool = false,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let r = max(abs(r), epsilon)
         let h = max(abs(h), epsilon)
@@ -354,9 +356,9 @@ public extension Mesh {
         addDetailForFlatPoles: Bool = false,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
-        return lathe(
+        lathe(
             unchecked: profile,
             slices: slices,
             poleDetail: poleDetail,
@@ -375,7 +377,7 @@ public extension Mesh {
         addDetailForFlatPoles: Bool = false,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Polygon.Material = nil,
+        material: Material? = nil,
         isConvex: Bool
     ) -> Mesh {
         let subpaths = profile.subpaths
@@ -428,7 +430,7 @@ public extension Mesh {
                 return subdivide(times - 1, v0, v0v1) + [v0v1, v1]
             }
             func isVertical(_ normal: Vector) -> Bool {
-                return abs(normal.x) < epsilon && abs(normal.z) < epsilon
+                abs(normal.x) < epsilon && abs(normal.z) < epsilon
             }
             var i = 0
             while i < vertices.count {
@@ -451,9 +453,14 @@ public extension Mesh {
 
         var polygons = [Polygon]()
         for i in 0 ..< slices {
-            let t0 = Double(i) / Double(slices), t1 = Double(i + 1) / Double(slices)
-            let a0 = t0 * 2 * .pi, a1 = t1 * 2 * .pi
-            let cos0 = cos(a0), cos1 = cos(a1), sin0 = sin(a0), sin1 = sin(a1)
+            let t0 = Double(i) / Double(slices)
+            let t1 = Double(i + 1) / Double(slices)
+            let a0 = t0 * Angle.twoPi
+            let a1 = t1 * Angle.twoPi
+            let cos0 = cos(a0)
+            let cos1 = cos(a1)
+            let sin0 = sin(a0)
+            let sin1 = sin(a1)
             for j in stride(from: 1, to: vertices.count, by: 2) {
                 let v0 = vertices[j - 1], v1 = vertices[j]
                 if v0.position.x == 0 {
@@ -543,8 +550,8 @@ public extension Mesh {
             // seal loose ends
             // TODO: improve this by not adding backfaces inside closed subsectors
             if let first = vertices.first?.position,
-                let last = vertices.last?.position,
-                first != last, first.x != 0 || last.x != 0
+               let last = vertices.last?.position,
+               first != last, first.x != 0 || last.x != 0
             {
                 polygons += polygons.inverted()
             }
@@ -557,7 +564,7 @@ public extension Mesh {
         _ shape: Path,
         depth: Double = 1,
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let offset = (shape.plane?.normal ?? Vector(0, 0, 1)) * (depth / 2)
         if offset.lengthSquared < epsilon {
@@ -579,7 +586,7 @@ public extension Mesh {
         _ shape: Path,
         along: Path,
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let subpaths = along.subpaths
         guard subpaths.count == 1 else {
@@ -603,9 +610,9 @@ public extension Mesh {
         let pathPlane = FlatteningPlane(bounds: along.bounds)
         switch (shapePlane, pathPlane) {
         case (.xy, .xy), (.xz, .xz):
-            shape = shape.rotated(by: .pitch(.pi / 2))
+            shape = shape.rotated(by: .pitch(.halfPi))
         case (.yz, .yz):
-            shape = shape.rotated(by: .yaw(.pi / 2))
+            shape = shape.rotated(by: .yaw(.halfPi))
         default:
             break
         }
@@ -666,9 +673,9 @@ public extension Mesh {
     static func loft(
         _ shapes: [Path],
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
-        return loft(
+        loft(
             unchecked: shapes,
             faces: faces,
             material: material,
@@ -679,7 +686,7 @@ public extension Mesh {
     private static func loft(
         unchecked shapes: [Path],
         faces: Faces = .default,
-        material: Polygon.Material = nil,
+        material: Material? = nil,
         isConvex: Bool
     ) -> Mesh {
         var subpathCount = 0
@@ -732,7 +739,7 @@ public extension Mesh {
             // TODO: better handling of case where e0 and e1 counts don't match
             let invert: Bool
             if let n = prev.plane?.normal,
-                let p0p1 = directionBetweenShapes(prev, path), p0p1.dot(n) > 0
+               let p0p1 = directionBetweenShapes(prev, path), p0p1.dot(n) > 0
             {
                 invert = false
             } else {
@@ -782,7 +789,7 @@ public extension Mesh {
         }
         if !isClosed, var polygon = Polygon(shape: prev, material: material) {
             if let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], prev),
-                p0p1.dot(polygon.plane.normal) < 0
+               p0p1.dot(polygon.plane.normal) < 0
             {
                 polygon = polygon.inverted()
             }
@@ -802,7 +809,7 @@ public extension Mesh {
     static func fill(
         _ shape: Path,
         faces: Faces = .default,
-        material: Polygon.Material = nil
+        material: Material? = nil
     ) -> Mesh {
         let subpaths = shape.subpaths
         if subpaths.count > 1 {

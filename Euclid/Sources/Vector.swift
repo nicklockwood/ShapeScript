@@ -42,6 +42,34 @@ public struct Vector: Hashable {
     }
 }
 
+extension Vector: Codable {
+    private enum CodingKeys: CodingKey {
+        case x, y, z
+    }
+
+    public init(from decoder: Decoder) throws {
+        let x, y, z: Double
+        if var container = try? decoder.unkeyedContainer() {
+            x = try container.decode(Double.self)
+            y = try container.decode(Double.self)
+            z = try container.decodeIfPresent(Double.self) ?? 0
+        } else {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            x = try container.decodeIfPresent(Double.self, forKey: .x) ?? 0
+            y = try container.decodeIfPresent(Double.self, forKey: .y) ?? 0
+            z = try container.decodeIfPresent(Double.self, forKey: .z) ?? 0
+        }
+        self.init(x, y, z)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
+        try z == 0 ? () : container.encode(z)
+    }
+}
+
 public extension Vector {
     static let zero = Vector(0, 0, 0)
 
@@ -57,43 +85,43 @@ public extension Vector {
     }
 
     var components: [Double] {
-        return [x, y, z]
+        [x, y, z]
     }
 
     static prefix func - (rhs: Vector) -> Vector {
-        return Vector(-rhs.x, -rhs.y, -rhs.z)
+        Vector(-rhs.x, -rhs.y, -rhs.z)
     }
 
     static func + (lhs: Vector, rhs: Vector) -> Vector {
-        return Vector(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
+        Vector(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
     }
 
     static func - (lhs: Vector, rhs: Vector) -> Vector {
-        return Vector(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
+        Vector(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
     }
 
     static func * (lhs: Vector, rhs: Double) -> Vector {
-        return Vector(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
+        Vector(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
     }
 
     static func / (lhs: Vector, rhs: Double) -> Vector {
-        return Vector(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs)
+        Vector(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs)
     }
 
     var lengthSquared: Double {
-        return dot(self)
+        dot(self)
     }
 
     var length: Double {
-        return lengthSquared.squareRoot()
+        lengthSquared.squareRoot()
     }
 
     func dot(_ a: Vector) -> Double {
-        return x * a.x + y * a.y + z * a.z
+        x * a.x + y * a.y + z * a.z
     }
 
     func cross(_ a: Vector) -> Vector {
-        return Vector(
+        Vector(
             y * a.z - z * a.y,
             z * a.x - x * a.z,
             x * a.y - y * a.x
@@ -101,46 +129,46 @@ public extension Vector {
     }
 
     var isNormalized: Bool {
-        return abs(lengthSquared - 1) < epsilon
+        abs(lengthSquared - 1) < epsilon
     }
 
     func normalized() -> Vector {
-        return self / length
+        self / length
     }
 
     /// Linearly interpolate between two vectors
     func lerp(_ a: Vector, _ t: Double) -> Vector {
-        return self + (a - self) * t
+        self + (a - self) * t
     }
 
     func quantized() -> Vector {
-        return Vector(quantize(x), quantize(y), quantize(z))
+        Vector(quantize(x), quantize(y), quantize(z))
     }
 
-    func angle(with a: Vector) -> Double {
+    func angle(with a: Vector) -> Angle {
         let cosineAngle = (dot(a) / (length * a.length))
-        return acos(cosineAngle)
+        return Angle.acos(cosineAngle)
     }
 
-    func angle(with plane: Plane) -> Double {
+    func angle(with plane: Plane) -> Angle {
         // We know that plane.normal.length == 1
         let complementeryAngle = dot(plane.normal) / length
-        return asin(complementeryAngle)
+        return Angle.asin(complementeryAngle)
     }
 
     func distance(from plane: Plane) -> Double {
-        return plane.normal.dot(self) - plane.w
+        plane.normal.dot(self) - plane.w
     }
 
     func project(onto plane: Plane) -> Vector {
-        return self - plane.normal * distance(from: plane)
+        self - plane.normal * distance(from: plane)
     }
 }
 
 internal extension Vector {
     // Approximate equality
     func isEqual(to other: Vector, withPrecision p: Double = epsilon) -> Bool {
-        return self == other ||
+        self == other ||
             (abs(x - other.x) < p && abs(y - other.y) < p && abs(z - other.z) < p)
     }
 

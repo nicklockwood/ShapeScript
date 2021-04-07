@@ -29,6 +29,8 @@
 //  SOFTWARE.
 //
 
+import Foundation
+
 /// A planar polygon
 public struct Polygon: Hashable {
     private var storage: Storage
@@ -37,17 +39,58 @@ public struct Polygon: Hashable {
     var id: Int
 }
 
+extension Polygon: Codable {
+    private enum CodingKeys: CodingKey {
+        case vertices, plane, material
+    }
+
+    public init(from decoder: Decoder) throws {
+        let vertices: [Vertex]
+        var plane: Plane?, material: Material?
+        if let container = try? decoder.container(keyedBy: CodingKeys.self) {
+            vertices = try container.decode([Vertex].self, forKey: .vertices)
+            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .vertices,
+                    in: container,
+                    debugDescription: "Vertices are degenerate"
+                )
+            }
+            plane = try container.decodeIfPresent(Plane.self, forKey: .plane)
+            material = try container.decodeIfPresent(CodableMaterial.self, forKey: .material)?.value
+        } else {
+            vertices = try [Vertex](from: decoder)
+            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+                throw DecodingError.dataCorruptedError(
+                    in: try decoder.unkeyedContainer(),
+                    debugDescription: "Vertices are degenerate"
+                )
+            }
+        }
+        self.init(unchecked: vertices, plane: plane, material: material)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(vertices, forKey: .vertices)
+        try container.encode(CodableMaterial(material), forKey: .material)
+        if plane != Plane(points: vertices.map { $0.position }) {
+            try container.encode(plane, forKey: .plane)
+        }
+    }
+}
+
 public extension Polygon {
     /// Material used by a given polygon
-    typealias Material = AnyHashable?
+    typealias Material = AnyHashable
 
     /// Public properties
-    var vertices: [Vertex] { return storage.vertices }
-    var plane: Plane { return storage.plane }
-    var bounds: Bounds { return storage.bounds }
-    var isConvex: Bool { return storage.isConvex }
-    var material: Material {
-        get { return storage.material }
+    var vertices: [Vertex] { storage.vertices }
+    var plane: Plane { storage.plane }
+    var bounds: Bounds { storage.bounds }
+    var isConvex: Bool { storage.isConvex }
+    var material: Material? {
+        get { storage.material }
         set {
             if isKnownUniquelyReferenced(&storage) {
                 storage.material = newValue
@@ -66,9 +109,9 @@ public extension Polygon {
     /// Create a polygon from a set of vertices
     /// Polygon can be convex or concave, but vertices must be coplanar and non-degenerate
     /// Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
-    init?(_ vertices: [Vertex], material: Material = nil) {
+    init?(_ vertices: [Vertex], material: Material? = nil) {
         guard vertices.count > 2, !verticesAreDegenerate(vertices),
-            let plane = Plane(points: vertices.map { $0.position })
+              let plane = Plane(points: vertices.map { $0.position })
         else {
             return nil
         }
@@ -89,8 +132,8 @@ public extension Polygon {
         var j = count - 1
         for i in 0 ..< count {
             if (points[i].y > p.y) != (points[j].y > p.y),
-                p.x < (points[j].x - points[i].x) * (p.y - points[i].y) /
-                (points[j].y - points[i].y) + points[i].x
+               p.x < (points[j].x - points[i].x) * (p.y - points[i].y) /
+               (points[j].y - points[i].y) + points[i].x
             {
                 c = !c
             }
@@ -113,7 +156,7 @@ public extension Polygon {
     }
 
     func inverted() -> Polygon {
-        return Polygon(
+        Polygon(
             unchecked: vertices.reversed().map { $0.inverted() },
             plane: plane.inverted(),
             isConvex: isConvex,
@@ -229,15 +272,15 @@ public extension Polygon {
 
 internal extension Collection where Element == Polygon {
     func inverted() -> [Polygon] {
-        return map { $0.inverted() }
+        map { $0.inverted() }
     }
 
     func tessellate() -> [Polygon] {
-        return flatMap { $0.tessellate() }
+        flatMap { $0.tessellate() }
     }
 
     func triangulate() -> [Polygon] {
-        return flatMap { $0.triangulate() }
+        flatMap { $0.triangulate() }
     }
 }
 
@@ -249,7 +292,7 @@ internal extension Polygon {
         normal: Vector,
         isConvex: Bool,
         bounds: Bounds? = nil,
-        material: Material
+        material: Material?
     ) {
         self.init(
             unchecked: vertices,
@@ -268,7 +311,7 @@ internal extension Polygon {
         plane: Plane? = nil,
         isConvex: Bool? = nil,
         bounds: Bounds? = nil,
-        material: Material = nil,
+        material: Material? = nil,
         id: Int = 0
     ) {
         assert(vertices.count > 2)
@@ -287,7 +330,7 @@ internal extension Polygon {
     }
 
     var boundsIfSet: Bounds? {
-        return storage.boundsIfSet
+        storage.boundsIfSet
     }
 
     // Join touching polygons (without checking they are coplanar or share the same material)
@@ -499,7 +542,7 @@ internal extension Polygon {
                 unchecked: f,
                 plane: polygon.plane,
                 isConvex: true,
-                material: polygon.material,
+                material: material,
                 id: polygon.id
             ))
         }
@@ -508,7 +551,7 @@ internal extension Polygon {
                 unchecked: b,
                 plane: polygon.plane,
                 isConvex: true,
-                material: polygon.material,
+                material: material,
                 id: polygon.id
             ))
         }
@@ -521,7 +564,7 @@ private extension Polygon {
         let plane: Plane
         var boundsIfSet: Bounds?
         let isConvex: Bool
-        var material: Material
+        var material: Material?
 
         var bounds: Bounds {
             if boundsIfSet == nil {
@@ -531,7 +574,7 @@ private extension Polygon {
         }
 
         static func == (lhs: Storage, rhs: Storage) -> Bool {
-            return lhs === rhs ||
+            lhs === rhs ||
                 (lhs.vertices == rhs.vertices && lhs.material == rhs.material)
         }
 
@@ -539,12 +582,73 @@ private extension Polygon {
             hasher.combine(vertices)
         }
 
-        init(vertices: [Vertex], plane: Plane, bounds: Bounds?, isConvex: Bool, material: Material) {
+        init(
+            vertices: [Vertex],
+            plane: Plane,
+            bounds: Bounds?,
+            isConvex: Bool,
+            material: Material?
+        ) {
             self.vertices = vertices
             self.plane = plane
             self.boundsIfSet = bounds
             self.isConvex = isConvex
             self.material = material
+        }
+    }
+}
+
+private struct CodableMaterial: Codable {
+    var value: Polygon.Material?
+
+    init(_ value: Polygon.Material?) {
+        self.value = value
+    }
+
+    enum CodingKeys: CodingKey {
+        case string, int, data, nscoded
+    }
+
+    init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: CodingKeys.self) {
+            if let string = try container.decodeIfPresent(String.self, forKey: .string) {
+                self.value = string
+            } else if let int = try container.decodeIfPresent(Int.self, forKey: .int) {
+                self.value = int
+            } else if let data = try container.decodeIfPresent(Data.self, forKey: .data) {
+                self.value = data
+            } else if let data = try container.decodeIfPresent(Data.self, forKey: .nscoded) {
+                self.value = NSKeyedUnarchiver.unarchiveObject(with: data) as? Polygon.Material
+            }
+        } else {
+            let container = try decoder.singleValueContainer()
+            if let string = try? container.decode(String.self) {
+                self.value = string
+            } else if let int = try? container.decode(Int.self) {
+                self.value = int
+            }
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        guard let value = value else { return }
+        switch value {
+        case let string as String:
+            try string.encode(to: encoder)
+        case let int as Int:
+            try int.encode(to: encoder)
+        case let data as Data:
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(data, forKey: .data)
+        case let object as NSCoding:
+            let data = NSKeyedArchiver.archivedData(withRootObject: object)
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(data, forKey: .nscoded)
+        default:
+            throw EncodingError.invalidValue(value, .init(
+                codingPath: encoder.codingPath,
+                debugDescription: "Cannot encode material of type \(type(of: value))"
+            ))
         }
     }
 }

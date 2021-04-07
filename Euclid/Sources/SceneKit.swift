@@ -57,14 +57,14 @@ public extension SCNQuaternion {
 private extension Data {
     mutating func append(_ int: UInt32) {
         var int = int
-        _ = withUnsafeMutablePointer(to: &int) { pointer in
+        withUnsafeMutablePointer(to: &int) { pointer in
             append(UnsafeBufferPointer(start: pointer, count: 1))
         }
     }
 
     mutating func append(_ double: Double) {
         var float = Float(double)
-        _ = withUnsafeMutablePointer(to: &float) { pointer in
+        withUnsafeMutablePointer(to: &float) { pointer in
             append(UnsafeBufferPointer(start: pointer, count: 1))
         }
     }
@@ -84,18 +84,44 @@ public extension SCNNode {
     }
 }
 
+#if os(iOS) || os(tvOS)
+private typealias OSColor = UIColor
+private typealias OSImage = UIImage
+#elseif os(OSX)
+private typealias OSColor = NSColor
+private typealias OSImage = NSImage
+#endif
+
+private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
+    switch material {
+    case let material as SCNMaterial:
+        return material
+    case let color as OSColor:
+        let material = SCNMaterial()
+        material.diffuse.contents = color
+        return material
+    case let image as OSImage:
+        let material = SCNMaterial()
+        material.diffuse.contents = image
+        return material
+    default:
+        return nil
+    }
+}
+
 public extension SCNGeometry {
     /// Creates an SCNGeometry using the default tessellation method
-    convenience init(_ mesh: Mesh, materialLookup: ((Polygon.Material) -> SCNMaterial)? = nil) {
+    convenience init(_ mesh: Mesh, materialLookup: ((Polygon.Material?) -> SCNMaterial?)? = nil) {
         self.init(triangles: mesh, materialLookup: materialLookup)
     }
 
     /// Creates an SCNGeometry from a Mesh using triangles
-    convenience init(triangles mesh: Mesh, materialLookup: ((Polygon.Material) -> SCNMaterial)? = nil) {
+    convenience init(triangles mesh: Mesh, materialLookup: ((Polygon.Material?) -> SCNMaterial?)? = nil) {
         var elementData = [Data]()
         var vertexData = Data()
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
+        let materialLookup = materialLookup ?? defaultMaterialLookup
         for (material, polygons) in mesh.polygonsByMaterial {
             var indexData = Data()
             func addVertex(_ vertex: Vertex) {
@@ -111,9 +137,7 @@ public extension SCNGeometry {
                 vertexData.append(vertex.texcoord.x)
                 vertexData.append(vertex.texcoord.y)
             }
-            if let materialLookup = materialLookup {
-                materials.append(materialLookup(material))
-            }
+            materials.append(materialLookup(material) ?? SCNMaterial())
             for polygon in polygons {
                 for triangle in polygon.triangulate() {
                     triangle.vertices.forEach(addVertex)
@@ -170,11 +194,12 @@ public extension SCNGeometry {
 
     /// Creates an SCNGeometry from a Mesh using convex polygons
     @available(OSX 10.12, iOS 10.0, tvOS 10.0, *)
-    convenience init(polygons mesh: Mesh, materialLookup: ((Polygon.Material) -> SCNMaterial)? = nil) {
+    convenience init(polygons mesh: Mesh, materialLookup: ((Polygon.Material?) -> SCNMaterial)? = nil) {
         var elementData = [(Int, Data)]()
         var vertexData = Data()
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
+        let materialLookup = materialLookup ?? defaultMaterialLookup
         for (material, polygons) in mesh.polygonsByMaterial {
             var indexData = Data()
             func addVertex(_ vertex: Vertex) {
@@ -190,9 +215,7 @@ public extension SCNGeometry {
                 vertexData.append(vertex.texcoord.x)
                 vertexData.append(vertex.texcoord.y)
             }
-            if let materialLookup = materialLookup {
-                materials.append(materialLookup(material))
-            }
+            materials.append(materialLookup(material) ?? SCNMaterial())
             let polygons = polygons.tessellate()
             for polygon in polygons {
                 indexData.append(UInt32(polygon.vertices.count))
@@ -445,7 +468,7 @@ private extension Data {
 
     func uint16(at index: Int) -> UInt16 {
         var int: UInt16 = 0
-        _ = withUnsafeMutablePointer(to: &int) { pointer in
+        withUnsafeMutablePointer(to: &int) { pointer in
             copyBytes(
                 to: UnsafeMutableBufferPointer(start: pointer, count: 1),
                 from: index ..< index + 2
@@ -456,7 +479,7 @@ private extension Data {
 
     func uint32(at index: Int) -> UInt32 {
         var int: UInt32 = 0
-        _ = withUnsafeMutablePointer(to: &int) { pointer in
+        withUnsafeMutablePointer(to: &int) { pointer in
             copyBytes(
                 to: UnsafeMutableBufferPointer(start: pointer, count: 1),
                 from: index ..< index + 4
@@ -467,7 +490,7 @@ private extension Data {
 
     func float(at index: Int) -> Double {
         var float: Float = 0
-        _ = withUnsafeMutablePointer(to: &float) { pointer in
+        withUnsafeMutablePointer(to: &float) { pointer in
             copyBytes(
                 to: UnsafeMutableBufferPointer(start: pointer, count: 1),
                 from: index ..< index + 4
@@ -477,7 +500,7 @@ private extension Data {
     }
 
     func vector(at index: Int) -> Vector {
-        return Vector(
+        Vector(
             float(at: index),
             float(at: index + 4),
             float(at: index + 8)
@@ -499,13 +522,14 @@ public extension Rotation {
             return
         }
         let axis = Vector(Double(q.x) / d, Double(q.y) / d, Double(q.z) / d)
-        self.init(unchecked: axis.normalized(), radians: Double(2 * acos(-q.w)))
+        let rotation = 2 * Angle.acos(Double(-q.w))
+        self.init(unchecked: axis.normalized(), angle: rotation)
     }
 }
 
 public extension Transform {
     static func transform(from scnNode: SCNNode) -> Transform {
-        return Transform(
+        Transform(
             offset: Vector(scnNode.position),
             rotation: Rotation(scnNode.orientation),
             scale: Vector(scnNode.scale)
@@ -521,7 +545,10 @@ public extension Bounds {
 
 public extension Mesh {
     /// Create a mesh from an SCNGeometry object with optional material mapping
-    init?(_ scnGeometry: SCNGeometry, materialLookup: ((SCNMaterial) -> Polygon.Material)? = nil) {
+    init?(_ scnGeometry: SCNGeometry, materialLookup: ((SCNMaterial) -> Material?)? = nil) {
+        // Force properties to update
+        let scnGeometry = scnGeometry.copy() as! SCNGeometry
+
         var polygons = [Polygon]()
         var vertices = [Vertex]()
         for source in scnGeometry.sources {
@@ -557,9 +584,8 @@ public extension Mesh {
                 continue
             }
         }
-        let materials: [Polygon.Material] = materialLookup.map {
-            scnGeometry.materials.map($0)
-        } ?? []
+        let materialLookup = materialLookup ?? { $0 as Material }
+        let materials = scnGeometry.materials.map(materialLookup)
         for (index, element) in scnGeometry.elements.enumerated() {
             let material = materials.isEmpty ? nil : materials[index % materials.count]
             switch element.primitiveType {
@@ -600,12 +626,12 @@ public extension Mesh {
     }
 
     /// Convenience function to create a mesh from an SCNGeometry with specified material
-    init?(_ scnGeometry: SCNGeometry, material: Polygon.Material) {
+    init?(_ scnGeometry: SCNGeometry, material: Material?) {
         self.init(scnGeometry) { _ in material }
     }
 
     @available(*, deprecated, message: "Use version with unnamed parameter instead")
-    init?(scnGeometry: SCNGeometry, materialLookup: ((SCNMaterial) -> Polygon.Material)? = nil) {
+    init?(scnGeometry: SCNGeometry, materialLookup: ((SCNMaterial) -> Material?)? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }
 }

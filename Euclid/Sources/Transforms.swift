@@ -36,14 +36,31 @@ public struct Transform: Hashable {
     public var rotation: Rotation
     public var scale: Vector
 
-    public init(
-        offset: Vector = .zero,
-        rotation: Rotation = .identity,
-        scale: Vector = .init(1, 1, 1)
-    ) {
-        self.offset = offset
-        self.rotation = rotation
-        self.scale = scale
+    public init(offset: Vector? = nil, rotation: Rotation? = nil, scale: Vector? = nil) {
+        self.offset = offset ?? .zero
+        self.rotation = rotation ?? .identity
+        self.scale = scale ?? Vector(1, 1, 1)
+    }
+}
+
+extension Transform: Codable {
+    private enum CodingKeys: CodingKey {
+        case offset, rotation, scale
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let offset = try container.decodeIfPresent(Vector.self, forKey: .offset)
+        let rotation = try container.decodeIfPresent(Rotation.self, forKey: .rotation)
+        let scale = try container.decodeIfPresent(Vector.self, forKey: .scale)
+        self.init(offset: offset, rotation: rotation, scale: scale)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try offset == .zero ? () : container.encode(offset, forKey: .offset)
+        try rotation == .identity ? () : container.encode(rotation, forKey: .rotation)
+        try scale == Vector(1, 1, 1) ? () : container.encode(scale, forKey: .scale)
     }
 }
 
@@ -80,7 +97,7 @@ public extension Transform {
 
 public extension Mesh {
     func translated(by v: Vector) -> Mesh {
-        return Mesh(
+        Mesh(
             unchecked: polygons.translated(by: v),
             bounds: boundsIfSet?.translated(by: v),
             isConvex: isConvex
@@ -88,7 +105,7 @@ public extension Mesh {
     }
 
     func rotated(by m: Rotation) -> Mesh {
-        return Mesh(unchecked: polygons.rotated(by: m), isConvex: isConvex)
+        Mesh(unchecked: polygons.rotated(by: m), isConvex: isConvex)
     }
 
     func scaled(by v: Vector) -> Mesh {
@@ -104,7 +121,7 @@ public extension Mesh {
     }
 
     func scaled(by f: Double) -> Mesh {
-        return Mesh(
+        Mesh(
             unchecked: polygons.scaled(by: f),
             bounds: boundsIfSet?.scaled(by: f),
             isConvex: isConvex && f > 0
@@ -112,7 +129,7 @@ public extension Mesh {
     }
 
     func scaleCorrected(for v: Vector) -> Mesh {
-        return Mesh(
+        Mesh(
             unchecked: polygons.scaleCorrected(for: v),
             bounds: boundsIfSet,
             isConvex: isConvex
@@ -120,13 +137,13 @@ public extension Mesh {
     }
 
     func transformed(by t: Transform) -> Mesh {
-        return Mesh(unchecked: polygons.transformed(by: t), isConvex: isConvex)
+        Mesh(unchecked: polygons.transformed(by: t), isConvex: isConvex)
     }
 }
 
 public extension Polygon {
     func translated(by v: Vector) -> Polygon {
-        return Polygon(
+        Polygon(
             unchecked: vertices.translated(by: v),
             normal: plane.normal,
             isConvex: isConvex,
@@ -136,7 +153,7 @@ public extension Polygon {
     }
 
     func rotated(by m: Rotation) -> Polygon {
-        return Polygon(
+        Polygon(
             unchecked: vertices.rotated(by: m),
             normal: plane.normal.rotated(by: m),
             isConvex: isConvex,
@@ -180,7 +197,7 @@ public extension Polygon {
     }
 
     func transformed(by t: Transform) -> Polygon {
-        return scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
+        scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
     }
 
     func scaleCorrected(for v: Vector) -> Polygon {
@@ -199,37 +216,37 @@ public extension Polygon {
 
 internal extension Collection where Element == Polygon {
     func translated(by v: Vector) -> [Polygon] {
-        return map { $0.translated(by: v) }
+        map { $0.translated(by: v) }
     }
 
     func rotated(by m: Rotation) -> [Polygon] {
-        return map { $0.rotated(by: m) }
+        map { $0.rotated(by: m) }
     }
 
     func scaled(by v: Vector) -> [Polygon] {
-        return map { $0.scaled(by: v) }
+        map { $0.scaled(by: v) }
     }
 
     func scaled(by f: Double) -> [Polygon] {
-        return map { $0.scaled(by: f) }
+        map { $0.scaled(by: f) }
     }
 
     func scaleCorrected(for v: Vector) -> [Polygon] {
-        return map { $0.scaleCorrected(for: v) }
+        map { $0.scaleCorrected(for: v) }
     }
 
     func transformed(by t: Transform) -> [Polygon] {
-        return map { $0.transformed(by: t) }
+        map { $0.transformed(by: t) }
     }
 }
 
 public extension Vertex {
     func translated(by v: Vector) -> Vertex {
-        return Vertex(position + v, normal, texcoord)
+        Vertex(position + v, normal, texcoord)
     }
 
     func rotated(by m: Rotation) -> Vertex {
-        return Vertex(position.rotated(by: m), normal.rotated(by: m), texcoord)
+        Vertex(position.rotated(by: m), normal.rotated(by: m), texcoord)
     }
 
     func scaled(by v: Vector) -> Vertex {
@@ -238,33 +255,33 @@ public extension Vertex {
     }
 
     func scaled(by f: Double) -> Vertex {
-        return Vertex(position * f, normal, texcoord)
+        Vertex(position * f, normal, texcoord)
     }
 
     func transformed(by t: Transform) -> Vertex {
-        return scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
+        scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
     }
 }
 
 internal extension Collection where Element == Vertex {
     func translated(by v: Vector) -> [Vertex] {
-        return map { $0.translated(by: v) }
+        map { $0.translated(by: v) }
     }
 
     func rotated(by m: Rotation) -> [Vertex] {
-        return map { $0.rotated(by: m) }
+        map { $0.rotated(by: m) }
     }
 
     func scaled(by v: Vector) -> [Vertex] {
-        return map { $0.scaled(by: v) }
+        map { $0.scaled(by: v) }
     }
 
     func scaled(by f: Double) -> [Vertex] {
-        return map { $0.scaled(by: f) }
+        map { $0.scaled(by: f) }
     }
 
     func transformed(by t: Transform) -> [Vertex] {
-        return map { $0.transformed(by: t) }
+        map { $0.transformed(by: t) }
     }
 }
 
@@ -272,7 +289,7 @@ public extension Vector {
     /// NOTE: no need for a translated() function because of the + operator
 
     func rotated(by m: Rotation) -> Vector {
-        return Vector(
+        Vector(
             x * m.m11 + y * m.m21 + z * m.m31,
             x * m.m12 + y * m.m22 + z * m.m32,
             x * m.m13 + y * m.m23 + z * m.m33
@@ -280,11 +297,11 @@ public extension Vector {
     }
 
     func scaled(by v: Vector) -> Vector {
-        return Vector(x * v.x, y * v.y, z * v.z)
+        Vector(x * v.x, y * v.y, z * v.z)
     }
 
     func transformed(by t: Transform) -> Vector {
-        return scaled(by: t.scale).rotated(by: t.rotation) + t.offset
+        scaled(by: t.scale).rotated(by: t.rotation) + t.offset
     }
 }
 
@@ -292,90 +309,90 @@ internal extension Collection where Element == Vector {
     /// NOTE: no need for a translated() function because of the + operator
 
     func rotated(by m: Rotation) -> [Vector] {
-        return map { $0.rotated(by: m) }
+        map { $0.rotated(by: m) }
     }
 
     func scaled(by v: Vector) -> [Vector] {
-        return map { $0.scaled(by: v) }
+        map { $0.scaled(by: v) }
     }
 
     func scaled(by f: Double) -> [Vector] {
-        return map { $0 * f }
+        map { $0 * f }
     }
 
     func transformed(by t: Transform) -> [Vector] {
-        return map { $0.transformed(by: t) }
+        map { $0.transformed(by: t) }
     }
 }
 
 public extension PathPoint {
     func translated(by v: Vector) -> PathPoint {
-        return PathPoint(position + v, isCurved: isCurved)
+        PathPoint(position + v, isCurved: isCurved)
     }
 
     func rotated(by r: Rotation) -> PathPoint {
-        return PathPoint(position.rotated(by: r), isCurved: isCurved)
+        PathPoint(position.rotated(by: r), isCurved: isCurved)
     }
 
     func scaled(by v: Vector) -> PathPoint {
-        return PathPoint(position.scaled(by: v), isCurved: isCurved)
+        PathPoint(position.scaled(by: v), isCurved: isCurved)
     }
 
     func scaled(by f: Double) -> PathPoint {
-        return PathPoint(position * f, isCurved: isCurved)
+        PathPoint(position * f, isCurved: isCurved)
     }
 
     func transformed(by t: Transform) -> PathPoint {
-        return PathPoint(position.transformed(by: t), isCurved: isCurved)
+        PathPoint(position.transformed(by: t), isCurved: isCurved)
     }
 }
 
 internal extension Collection where Element == PathPoint {
     func translated(by v: Vector) -> [PathPoint] {
-        return map { $0.translated(by: v) }
+        map { $0.translated(by: v) }
     }
 
     func rotated(by m: Rotation) -> [PathPoint] {
-        return map { $0.rotated(by: m) }
+        map { $0.rotated(by: m) }
     }
 
     func scaled(by v: Vector) -> [PathPoint] {
-        return map { $0.scaled(by: v) }
+        map { $0.scaled(by: v) }
     }
 
     func scaled(by f: Double) -> [PathPoint] {
-        return map { $0.scaled(by: f) }
+        map { $0.scaled(by: f) }
     }
 
     func transformed(by t: Transform) -> [PathPoint] {
-        return map { $0.transformed(by: t) }
+        map { $0.transformed(by: t) }
     }
 }
 
 public extension Path {
     func translated(by v: Vector) -> Path {
-        return Path(
+        Path(
             unchecked: points.translated(by: v),
             plane: plane?.translated(by: v), subpathIndices: subpathIndices
         )
     }
 
     func rotated(by r: Rotation) -> Path {
-        return Path(
+        Path(
             unchecked: points.rotated(by: r),
             plane: plane?.rotated(by: r), subpathIndices: subpathIndices
         )
     }
 
     func scaled(by v: Vector) -> Path {
-        return Path(
+        Path(
             unchecked: points.scaled(by: v),
             plane: plane?.scaled(by: v), subpathIndices: subpathIndices
         )
     }
 
     func scaled(by f: Double) -> Path {
-        return Path(
+        Path(
             unchecked: points.scaled(by: f),
             plane: plane?.scaled(by: f), subpathIndices: subpathIndices
         )
@@ -383,7 +400,7 @@ public extension Path {
 
     func transformed(by t: Transform) -> Path {
         // TODO: manually transform plane so we can make this more efficient
-        return Path(
+        Path(
             unchecked: points.transformed(by: t),
             plane: plane?.transformed(by: t), subpathIndices: subpathIndices
         )
@@ -392,11 +409,11 @@ public extension Path {
 
 public extension Plane {
     func translated(by v: Vector) -> Plane {
-        return Plane(unchecked: normal, pointOnPlane: normal * w + v)
+        Plane(unchecked: normal, pointOnPlane: normal * w + v)
     }
 
     func rotated(by r: Rotation) -> Plane {
-        return Plane(unchecked: normal.rotated(by: r), w: w)
+        Plane(unchecked: normal.rotated(by: r), w: w)
     }
 
     func scaled(by v: Vector) -> Plane {
@@ -406,32 +423,32 @@ public extension Plane {
     }
 
     func scaled(by f: Double) -> Plane {
-        return Plane(unchecked: normal, w: w * f)
+        Plane(unchecked: normal, w: w * f)
     }
 
     func transformed(by t: Transform) -> Plane {
-        return scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
+        scaled(by: t.scale).rotated(by: t.rotation).translated(by: t.offset)
     }
 }
 
 public extension Bounds {
     func translated(by v: Vector) -> Bounds {
-        return Bounds(min: min + v, max: max + v)
+        Bounds(min: min + v, max: max + v)
     }
 
     func rotated(by r: Rotation) -> Bounds {
-        return Bounds(points: corners.rotated(by: r))
+        Bounds(points: corners.rotated(by: r))
     }
 
     func scaled(by v: Vector) -> Bounds {
-        return Bounds(min: min.scaled(by: v), max: max.scaled(by: v))
+        Bounds(min: min.scaled(by: v), max: max.scaled(by: v))
     }
 
     func scaled(by f: Double) -> Bounds {
-        return Bounds(min: min * f, max: max * f)
+        Bounds(min: min * f, max: max * f)
     }
 
     func transformed(by t: Transform) -> Bounds {
-        return Bounds(points: corners.transformed(by: t))
+        Bounds(points: corners.transformed(by: t))
     }
 }
