@@ -88,7 +88,7 @@ path {
 }
 ```
 
-![Arc](images/circle.png)
+![Circle](images/circle.png)
 
 ## Circles
 
@@ -108,6 +108,41 @@ circle {
     detail 64
 }
 ```
+
+## Rectangles
+
+To create a square or rectangle you can use the `square` command:
+
+```swift
+square
+```
+
+Like `circle`, `square` accepts a `size` option. The following will create a rectangle exactly twice as wide as it is tall:
+
+```swift
+square {
+    size 2 1
+}
+```
+
+![Rectangle](images/rectangle.png)
+
+You can even create a rectangle with rounded corners using the `roundrect` command:
+
+```swift
+roundrect
+```
+
+In addition to `size`, `roundrect` also accepts a `radius` option, which controls the corner radius:
+
+```swift
+roundrect {
+    size 1
+    radius 0.25
+}
+```
+
+![Roundrect](images/roundrect.png)
 
 ## Procedural Paths
 
