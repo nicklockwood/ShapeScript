@@ -4,3 +4,4 @@
 --ifdef no-indent
 
 --exclude Euclid
+--exclude **/XCTestManifests.swift
