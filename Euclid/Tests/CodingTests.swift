@@ -122,21 +122,24 @@ class CodingTests: XCTestCase {
                 {
                     "position": [0, 0],
                     "normal": [0, 0, 1],
+                    "texcoord": [0, 1],
                 },
                 {
                     "position": [1, 0],
                     "normal": [0, 0, 1],
+                    "texcoord": [1, 1],
                 },
                 {
                     "position": [1, 1],
                     "normal": [0, 0, 1],
+                    "texcoord": [1, 0],
                 }
             ]
         }
         """), Polygon([
-            Vertex(Vector(0, 0), Vector(0, 0, 1)),
-            Vertex(Vector(1, 0), Vector(0, 0, 1)),
-            Vertex(Vector(1, 1), Vector(0, 0, 1)),
+            Vertex(Vector(0, 0), Vector(0, 0, 1), Vector(0, 1)),
+            Vertex(Vector(1, 0), Vector(0, 0, 1), Vector(1, 1)),
+            Vertex(Vector(1, 1), Vector(0, 0, 1), Vector(1, 0)),
         ]))
     }
 
@@ -193,6 +196,20 @@ class CodingTests: XCTestCase {
                 plane: Plane(normal: Vector(0, 0, 1), w: 0)
             )
         )
+    }
+
+    func testEncodingPolygonWithPlane() throws {
+        let polygon = Polygon(
+            unchecked: [
+                Vertex(Vector(0, 0), Vector(0, 0, 1), Vector(0, 1)),
+                Vertex(Vector(1, 0), Vector(0, 0, 1), Vector(1, 1)),
+                Vertex(Vector(1, 1), Vector(0, 0, 1), Vector(1, 0)),
+            ],
+            plane: Plane(normal: Vector(0, 0, 1), w: 0)
+        )
+        let encoded = try encode(polygon)
+        let decoded = try decode(encoded) as Euclid.Polygon
+        XCTAssertEqual(decoded, polygon)
     }
 
     // MARK: Material
@@ -284,22 +301,67 @@ class CodingTests: XCTestCase {
         )
     }
 
-    // MARK: PathPoint
-
-    func testDecodingPathPoint3() {
-        XCTAssertEqual(try decode("[1, 2, 3]"), PathPoint.point(1, 2, 3))
+    func testEncodingMeshWithoutMaterial() throws {
+        let mesh = Mesh.extrude(.square())
+        let encoded = try encode(mesh)
+        let decoded = try decode(encoded) as Euclid.Mesh
+        XCTAssertEqual(decoded, mesh)
     }
 
-    func testDecodingPathPoint2() {
+    func testEncodingMeshWithMaterial() throws {
+        let mesh = Mesh.extrude(.square(), material: "foo")
+        let encoded = try encode(mesh)
+        let decoded = try decode(encoded) as Euclid.Mesh
+        XCTAssertEqual(decoded, mesh)
+    }
+
+    func testEncodingMeshWithMixedMaterials() throws {
+        let mesh = Mesh([
+            Polygon(shape: .square(), material: "foo"),
+            Polygon(shape: .square()),
+            Polygon(shape: .square(), material: "bar"),
+        ].compactMap { $0 })
+        let encoded = try encode(mesh)
+        let decoded = try decode(encoded) as Euclid.Mesh
+        XCTAssertEqual(decoded, mesh)
+    }
+
+    // MARK: PathPoint
+
+    func testDecodingPathPoint2D() {
         XCTAssertEqual(try decode("[1, 2]"), PathPoint.point(1, 2))
     }
 
-    func testDecodingCurvedUnkeyedPathPoint3() {
+    func testEncodingPathPoint2D() throws {
+        let encoded = try encode(PathPoint.point(Vector(1, 2)))
+        XCTAssertEqual(encoded, "[1,2]")
+    }
+
+    func testDecodingPathPoint3D() {
+        XCTAssertEqual(try decode("[1, 2, 3]"), PathPoint.point(1, 2, 3))
+    }
+
+    func testEncodingPathPoint3D() throws {
+        let encoded = try encode(PathPoint.point(Vector(1, 2, 3)))
+        XCTAssertEqual(encoded, "[1,2,3]")
+    }
+
+    func testDecodingCurvedPathPoint2D() {
+        XCTAssertEqual(try decode("[1, 2, true]"), PathPoint.curve(1, 2))
+    }
+
+    func testEncodingCurvedPathPoint2D() throws {
+        let encoded = try encode(PathPoint.curve(Vector(1, 2)))
+        XCTAssertEqual(encoded, "[1,2,true]")
+    }
+
+    func testDecodingCurvedPathPoint3D() {
         XCTAssertEqual(try decode("[1, 2, 3, true]"), PathPoint.curve(1, 2, 3))
     }
 
-    func testDecodingCurvedPathPoint2() {
-        XCTAssertEqual(try decode("[1, 2, true]"), PathPoint.curve(1, 2))
+    func testEncodingCurvedPathPoint3D() throws {
+        let encoded = try encode(PathPoint.curve(Vector(1, 2, 3)))
+        XCTAssertEqual(encoded, "[1,2,3,true]")
     }
 
     // MARK: Path
@@ -354,6 +416,12 @@ class CodingTests: XCTestCase {
 
     func testEncodeAndDecodingRotation() throws {
         let rotation = Rotation(axis: Vector(1, 0, 0), angle: .radians(2))!
+        let encoded = try encode(rotation)
+        XCTAssert(try rotation.isEqual(to: decode(encoded)))
+    }
+
+    func testEncodeAndDecodePitchYawRollRotation() throws {
+        let rotation = Rotation(pitch: .degrees(10), yaw: .degrees(20), roll: .degrees(30))
         let encoded = try encode(rotation)
         XCTAssert(try rotation.isEqual(to: decode(encoded)))
     }

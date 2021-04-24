@@ -59,10 +59,17 @@ extension Polygon: Codable {
             plane = try container.decodeIfPresent(Plane.self, forKey: .plane)
             material = try container.decodeIfPresent(CodableMaterial.self, forKey: .material)?.value
         } else {
-            vertices = try [Vertex](from: decoder)
+            var container = try decoder.unkeyedContainer()
+            if let values = try? container.decode([Vertex].self) {
+                vertices = values
+                plane = try container.decode(Plane.self)
+                material = try container.decodeIfPresent(CodableMaterial.self)?.value
+            } else {
+                vertices = try [Vertex](from: decoder)
+            }
             guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
                 throw DecodingError.dataCorruptedError(
-                    in: try decoder.unkeyedContainer(),
+                    in: container,
                     debugDescription: "Vertices are degenerate"
                 )
             }
@@ -71,11 +78,13 @@ extension Polygon: Codable {
     }
 
     public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(vertices, forKey: .vertices)
-        try container.encode(CodableMaterial(material), forKey: .material)
-        if plane != Plane(points: vertices.map { $0.position }) {
-            try container.encode(plane, forKey: .plane)
+        if material == nil, plane == Plane(points: vertices.map { $0.position }) {
+            try vertices.encode(to: encoder)
+        } else {
+            var container = encoder.unkeyedContainer()
+            try container.encode(vertices)
+            try container.encode(plane)
+            try material.map { try container.encode(CodableMaterial($0)) }
         }
     }
 }
@@ -104,6 +113,13 @@ public extension Polygon {
                 )
             }
         }
+    }
+
+    /// Create copy of polygon with specified material
+    func with(material: Material?) -> Polygon {
+        var polygon = self
+        polygon.material = material
+        return polygon
     }
 
     /// Create a polygon from a set of vertices
@@ -598,8 +614,8 @@ private extension Polygon {
     }
 }
 
-private struct CodableMaterial: Codable {
-    var value: Polygon.Material?
+internal struct CodableMaterial: Codable {
+    let value: Polygon.Material?
 
     init(_ value: Polygon.Material?) {
         self.value = value
@@ -618,7 +634,16 @@ private struct CodableMaterial: Codable {
             } else if let data = try container.decodeIfPresent(Data.self, forKey: .data) {
                 self.value = data
             } else if let data = try container.decodeIfPresent(Data.self, forKey: .nscoded) {
-                self.value = NSKeyedUnarchiver.unarchiveObject(with: data) as? Polygon.Material
+                guard let value = NSKeyedUnarchiver.unarchiveObject(with: data) as? Polygon.Material else {
+                    throw DecodingError.dataCorruptedError(
+                        forKey: .nscoded,
+                        in: container,
+                        debugDescription: "Cannot decode material"
+                    )
+                }
+                self.value = value
+            } else {
+                self.value = nil
             }
         } else {
             let container = try decoder.singleValueContainer()
@@ -626,6 +651,11 @@ private struct CodableMaterial: Codable {
                 self.value = string
             } else if let int = try? container.decode(Int.self) {
                 self.value = int
+            } else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Cannot decode material"
+                )
             }
         }
     }

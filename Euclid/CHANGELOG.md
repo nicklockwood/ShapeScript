@@ -1,3 +1,30 @@
+## [0.4.5](https://github.com/nicklockwood/Euclid/releases/tag/0.4.5) (2021-06-26)
+
+- Rewrote CSG operations to use iteration rather than recursion, so they no longer overflow stack 
+- Add methods to create a Mesh from an SCNNode or file url (in any ModelIO-supported format)
+- Removed spurious assertion failure when creating paths with multiple subpaths
+
+## [0.4.4](https://github.com/nicklockwood/Euclid/releases/tag/0.4.4) (2021-04-27)
+
+- Fixed glitch in CSG operations on multiple meshes
+- Improved performance for CSG functions on non-convex meshes
+
+## [0.4.3](https://github.com/nicklockwood/Euclid/releases/tag/0.4.3) (2021-04-24)
+
+- Added up, right, forward vectors to Rotation
+- Removed unused file
+
+## [0.4.2](https://github.com/nicklockwood/Euclid/releases/tag/0.4.2) (2021-04-16)
+
+- Reduced size of serialized mesh data by ~50%
+- Materials are now deduplicated when encoding/decoding
+- Fixed bug when decoding serialized rotation values
+
+## [0.4.1](https://github.com/nicklockwood/Euclid/releases/tag/0.4.1) (2021-04-14)
+
+- Fixed bug with encoding texture coordinates
+- Material property is no longer encoded for polygons if nil
+
 ## [0.4.0](https://github.com/nicklockwood/Euclid/releases/tag/0.4.0) (2021-04-04)
 
 - Added type-safe Angle API replacing raw Doubles
