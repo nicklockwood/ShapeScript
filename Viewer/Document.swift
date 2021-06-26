@@ -31,7 +31,7 @@ class LoadingProgress {
 
     public typealias Observer = (Status) -> Void
 
-    private var thread: Thread?
+    private let queue = DispatchQueue(label: "ShapeScript.Processing")
     private let observer: Observer
     private(set) var status: Status = .waiting
 
@@ -83,9 +83,7 @@ class LoadingProgress {
 
     fileprivate func dispatch(_ block: @escaping () -> Void) {
         guard inProgress else { return }
-        thread = Thread(block: block)
-        thread?.stackSize = 4 * 1024 * 1024 * 1024
-        thread?.start()
+        queue.async(execute: block)
     }
 }
 
