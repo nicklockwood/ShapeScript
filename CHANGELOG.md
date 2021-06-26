@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.1) (2021-06-26)
+
+- Fixed operator associativity (addition/subtraction were previously right-associative)
+- Performing CSG operations on complex geometry no longer causes a stack overflow
+- Bumped Euclid version to 0.4.5
+
 ## [1.1.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.0) (2021-04-08)
 
 - Added support for background colors and images
