@@ -302,14 +302,13 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readExpression() throws -> Expression? {
-        guard let lhs = try readTerm() else {
+        guard var lhs = try readTerm() else {
             return nil
         }
-        let token = nextToken
-        if case let .infix(op) = token.type {
+        while case let .infix(op) = nextToken.type {
             removeFirst()
-            let rhs = try require(readExpression(), as: "operand")
-            return Expression(
+            let rhs = try require(readTerm(), as: "operand")
+            lhs = Expression(
                 type: .infix(lhs, op, rhs),
                 range: lhs.range.lowerBound ..< rhs.range.upperBound
             )

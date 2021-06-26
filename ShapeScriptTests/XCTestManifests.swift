@@ -91,8 +91,8 @@ extension ParserTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__ParserTests = [
+        ("testLeftAssociativity", testLeftAssociativity),
         ("testOperatorPrecedence", testOperatorPrecedence),
-        ("testRightAssociativity", testRightAssociativity),
     ]
 }
 
