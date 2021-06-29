@@ -18,17 +18,17 @@ union {
         cube { size 8 0.2 8 }
     }
     translate -3.5 0.025 -3.5
-    color boardBlack
+    color boardWhite
     for 1 to 4 {
         for 1 to 4 {
             cube { size 0.95 0.15 0.95 }
             translate 1 0 0
-            color boardWhite
+            color boardBlack
             cube { size 0.95 0.15 0.95 }
             translate -1 0 1
             cube { size 0.95 0.15 0.95 }
             translate 1 0 0
-            color boardBlack
+            color boardWhite
             cube { size 0.95 0.15 0.95 }
             translate -1 0 1
         }
@@ -172,7 +172,7 @@ for 1 to 2 {
 }
 
 // king
-translate 5 0 0
+translate 4 0 0
 color black
 for 1 to 2 {
     union {
@@ -202,7 +202,7 @@ for 1 to 2 {
 }
 
 // queen
-translate -1 0 14
+translate 1 0 14
 color black
 for 1 to 2 {
     union {
