@@ -42,6 +42,12 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    func testCRLFTreatedAsSingleCharacter() {
+        let input = "abc\r\n"
+        let tokens: [TokenType] = [.identifier("abc"), .linebreak, .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     // MARK: identifiers
 
     func testLetters() {
@@ -222,5 +228,30 @@ class LexerTests: XCTestCase {
         let index = input.lastIndex(of: "\n")!
         let range = input.lineRange(at: index)
         XCTAssertEqual(range, input.firstIndex(of: "b")! ..< index)
+    }
+
+    // MARK: lineAndColumn
+
+    func testLineAndColumnAtStartOfInput() {
+        let input = "foo"
+        let lc = input.lineAndColumn(at: input.startIndex)
+        XCTAssertEqual(lc.line, 1)
+        XCTAssertEqual(lc.column, 1)
+    }
+
+    func testLineAndColumnAtEndOfLine() {
+        let input = "foo\nbar\nbaz"
+        let index = input.lastIndex(of: "\n")!
+        let lc = input.lineAndColumn(at: index)
+        XCTAssertEqual(lc.line, 2)
+        XCTAssertEqual(lc.column, 4)
+    }
+
+    func testLineAndColumnAtCRLFEndOfLine() {
+        let input = "foo\r\nbar\r\nbaz"
+        let index = input.lastIndex(of: "\r\n")!
+        let lc = input.lineAndColumn(at: index)
+        XCTAssertEqual(lc.line, 2)
+        XCTAssertEqual(lc.column, 4)
     }
 }

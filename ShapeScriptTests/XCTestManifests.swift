@@ -52,6 +52,7 @@ extension LexerTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__LexerTests = [
+        ("testCRLFTreatedAsSingleCharacter", testCRLFTreatedAsSingleCharacter),
         ("testDecimal", testDecimal),
         ("testDigit", testDigit),
         ("testInfixExpressionWithoutSpaces", testInfixExpressionWithoutSpaces),
@@ -65,6 +66,9 @@ extension LexerTests {
         ("testLeadingZero", testLeadingZero),
         ("testLetters", testLetters),
         ("testLettersAndNumbers", testLettersAndNumbers),
+        ("testLineAndColumnAtCRLFEndOfLine", testLineAndColumnAtCRLFEndOfLine),
+        ("testLineAndColumnAtEndOfLine", testLineAndColumnAtEndOfLine),
+        ("testLineAndColumnAtStartOfInput", testLineAndColumnAtStartOfInput),
         ("testLineRangeOfIndexAtEndOfInput", testLineRangeOfIndexAtEndOfInput),
         ("testLineRangeOfIndexAtEndOfLine", testLineRangeOfIndexAtEndOfLine),
         ("testLineRangeOfIndexAtStartOfInput", testLineRangeOfIndexAtStartOfInput),
