@@ -12,14 +12,14 @@ import Foundation
 
 public func tokenize(_ input: String) throws -> [Token] {
     var tokens: [Token] = []
-    var scalars = Substring(input).unicodeScalars
+    var characters = Substring(input)
     var spaceBefore = true
-    _ = scalars.skipWhitespaceAndComments()
-    while let token = try scalars.readToken(spaceBefore: spaceBefore) {
+    _ = characters.skipWhitespaceAndComments()
+    while let token = try characters.readToken(spaceBefore: spaceBefore) {
         if token.type != .linebreak || tokens.last?.type != .linebreak {
             tokens.append(token)
         }
-        spaceBefore = scalars.skipWhitespaceAndComments()
+        spaceBefore = characters.skipWhitespaceAndComments()
         if !spaceBefore, let lastTokenType = tokens.last?.type {
             switch lastTokenType {
             case .infix, .dot, .lparen, .lbrace, .linebreak:
@@ -29,13 +29,13 @@ public func tokenize(_ input: String) throws -> [Token] {
             }
         }
     }
-    if !scalars.isEmpty {
-        let start = scalars.startIndex
-        let token = scalars.readToEndOfToken()
-        let range = start ..< scalars.startIndex
+    if !characters.isEmpty {
+        let start = characters.startIndex
+        let token = characters.readToEndOfToken()
+        let range = start ..< characters.startIndex
         throw LexerError(.unexpectedToken(token), at: range)
     }
-    tokens.append(Token(type: .eof, range: scalars.startIndex ..< scalars.endIndex))
+    tokens.append(Token(type: .eof, range: characters.startIndex ..< characters.endIndex))
     return tokens
 }
 
@@ -47,12 +47,12 @@ public enum Keyword: String, CaseIterable {
     case `import`
 }
 
-public enum PrefixOperator: UnicodeScalar {
+public enum PrefixOperator: Character {
     case plus = "+"
     case minus = "-"
 }
 
-public enum InfixOperator: UnicodeScalar {
+public enum InfixOperator: Character {
     case plus = "+"
     case minus = "-"
     case times = "*"
@@ -144,13 +144,12 @@ public struct LexerError: Error, Equatable {
 
 public extension String {
     func lineRange(at index: String.Index, includingIndent: Bool = false) -> Range<String.Index> {
-        let scalars = unicodeScalars
-        var endIndex = scalars.endIndex
-        var startIndex = scalars.startIndex
+        var endIndex = self.endIndex
+        var startIndex = self.startIndex
         var i = startIndex
         while i < endIndex {
-            let nextIndex = scalars.index(after: i)
-            if scalars[i].isLinebreak {
+            let nextIndex = self.index(after: i)
+            if self[i].isLinebreak {
                 if i >= index {
                     endIndex = i
                     break
@@ -160,8 +159,8 @@ public extension String {
             i = nextIndex
         }
         if !includingIndent {
-            while startIndex < endIndex, scalars[startIndex].isWhitespace {
-                startIndex = scalars.index(after: startIndex)
+            while startIndex < endIndex, self[startIndex].isWhitespace {
+                startIndex = self.index(after: startIndex)
             }
         }
         return startIndex ..< endIndex
@@ -169,17 +168,16 @@ public extension String {
 
     func lineAndColumn(at index: String.Index) -> (line: Int, column: Int) {
         var line = 1, column = 1
-        let scalars = unicodeScalars
-        var i = scalars.startIndex
-        assert(index < scalars.endIndex)
-        while i < min(index, scalars.endIndex) {
-            if scalars[i].isLinebreak {
+        var i = startIndex
+        assert(index < endIndex)
+        while i < min(index, endIndex) {
+            if self[i].isLinebreak == true {
                 line += 1
                 column = 1
             } else {
                 column += 1
             }
-            i = scalars.index(after: i)
+            i = self.index(after: i)
         }
         return (line: line, column: column)
     }
@@ -187,10 +185,13 @@ public extension String {
 
 // MARK: Implementation
 
-private let whitespace = CharacterSet.whitespaces
-private let linebreaks = CharacterSet.newlines
+private let whitespace = " \t"
+private let linebreaks = "\n\r\r\n"
+let punctuation = "/()[]{}"
+private let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+private let alphanumerics = "0123456789" + letters
 
-private extension UnicodeScalar {
+private extension Character {
     var isWhitespace: Bool {
         whitespace.contains(self)
     }
@@ -204,12 +205,12 @@ private extension UnicodeScalar {
     }
 }
 
-private extension Substring.UnicodeScalarView {
+private extension Substring {
     mutating func skipWhitespaceAndComments() -> Bool {
         var wasSpace = false
-        while let scalar = first {
-            guard scalar.isWhitespace else {
-                if scalar == "/" {
+        while let c = first {
+            guard c.isWhitespace else {
+                if c == "/" {
                     wasSpace = true
                     let nextIndex = index(after: startIndex)
                     if nextIndex != endIndex, self[nextIndex] == "/" {
@@ -229,7 +230,7 @@ private extension Substring.UnicodeScalarView {
     }
 
     mutating func readLineBreak() -> TokenType? {
-        guard let scalar = first, scalar.isLinebreak else {
+        guard let c = first, c.isLinebreak else {
             return nil
         }
         removeFirst()
@@ -238,17 +239,16 @@ private extension Substring.UnicodeScalarView {
 
     mutating func readToEndOfToken() -> String {
         var string = ""
-        let punctuation = CharacterSet(charactersIn: "/()[]{}")
-        if let scalar = popFirst() {
-            string.append(Character(scalar))
-            if punctuation.contains(scalar) {
-                while let scalar = first, punctuation.contains(scalar) {
-                    string.append(Character(removeFirst()))
+        if let c = popFirst() {
+            string.append(c)
+            if punctuation.contains(c) {
+                while let c = first, punctuation.contains(c) {
+                    string.append(removeFirst())
                 }
             } else {
-                let terminator = whitespace.union(linebreaks).union(punctuation)
-                while let scalar = first, !terminator.contains(scalar) {
-                    string.append(Character(removeFirst()))
+                let terminator = whitespace + linebreaks + punctuation
+                while let c = first, !terminator.contains(c) {
+                    string.append(removeFirst())
                 }
             }
         }
@@ -294,8 +294,8 @@ private extension Substring.UnicodeScalarView {
     mutating func readNumber() throws -> TokenType? {
         let start = self
         var digits = ""
-        while let c = first, CharacterSet.decimalDigits.contains(c) || c == "." {
-            digits.append(Character(removeFirst()))
+        while let c = first, "01234567890.".contains(c) {
+            digits.append(removeFirst())
         }
         if digits.isEmpty {
             return nil
@@ -316,17 +316,17 @@ private extension Substring.UnicodeScalarView {
         let start = self
         removeFirst()
         var string = "", escaped = false
-        loop: while let scalar = first {
-            switch scalar {
+        loop: while let c = first {
+            switch c {
             case "\"" where !escaped:
                 removeFirst()
                 return .string(string)
             case "\\" where !escaped:
                 escaped = true
-            case "\n", "\r":
+            case "\n", "\r", "\r\n":
                 break loop
             default:
-                string.append(Character(scalar))
+                string.append(c)
                 escaped = false
             }
             removeFirst()
@@ -336,12 +336,12 @@ private extension Substring.UnicodeScalarView {
     }
 
     mutating func readIdentifier() -> TokenType? {
-        guard let head = first, CharacterSet.letters.contains(head) else {
+        guard let head = first, letters.contains(head) else {
             return nil
         }
         var name = String(removeFirst())
-        while let c = first, CharacterSet.alphanumerics.contains(c) {
-            name.append(Character(removeFirst()))
+        while let c = first, alphanumerics.contains(c) {
+            name.append(removeFirst())
         }
         if let keyword = Keyword(rawValue: name) {
             return .keyword(keyword)
