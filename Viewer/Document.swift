@@ -152,6 +152,20 @@ class Document: NSDocument, EvaluationDelegate {
         updateViews()
     }
 
+    private func numberOfEmoji<S: StringProtocol>(in string: S) -> Int {
+        string.reduce(0) { count, c in
+            let scalars = c.unicodeScalars
+            if scalars.count > 1 || (scalars.first?.value ?? 0) > 0x238C {
+                return count + 1
+            }
+            return count
+        }
+    }
+
+    private func emojiSpacing<S: StringProtocol>(for string: S) -> Int {
+        Int(Double(numberOfEmoji(in: string)) * 1.25)
+    }
+
     private func message(for error: Error, in source: String) -> NSAttributedString {
         let errorType: String
         let message: String, range: Range<String.Index>?, hint: String?
@@ -197,12 +211,11 @@ class Document: NSDocument, EvaluationDelegate {
            let font = NSFont(name: "Courier", size: 15)
         {
             let sourceLine = String(source[lineRange])
-            let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound)
-            var length = source.distance(from: range.lowerBound, to: range.upperBound)
-            length = max(min(length, source.distance(
-                from: range.lowerBound,
-                to: lineRange.upperBound
-            )), 1)
+            let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound) +
+                emojiSpacing(for: source[lineRange.lowerBound ..< range.lowerBound])
+            let end = min(range.upperBound, lineRange.upperBound)
+            let length = max(1, source.distance(from: range.lowerBound, to: end)) +
+                emojiSpacing(for: source[range.lowerBound ..< end])
             var underline = String(repeating: " ", count: max(0, start))
             underline += String(repeating: "^", count: length)
             errorMessage.append(NSAttributedString(
