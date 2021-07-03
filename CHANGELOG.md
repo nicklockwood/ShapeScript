@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.2) (2021-07-03)
+
+- Fixed bug where CRLF was treated as two separate linebreaks, resulting in a crash
+- Error column indicator is now better aligned when code contains wide characters (e.g. emoji)
+- Fixed inverted black/white squares on chessboard example
+
 ## [1.1.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.1) (2021-06-26)
 
 - Fixed operator associativity (addition/subtraction were previously right-associative)
