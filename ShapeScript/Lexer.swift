@@ -169,7 +169,7 @@ public extension String {
     func lineAndColumn(at index: String.Index) -> (line: Int, column: Int) {
         var line = 1, column = 1
         var i = startIndex
-        assert(index < endIndex)
+        assert(index <= endIndex)
         while i < min(index, endIndex) {
             if self[i].isLinebreak == true {
                 line += 1
