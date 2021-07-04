@@ -145,8 +145,7 @@ public extension Path {
 
     /// Create a path from an array of `PathPoint`s
     init(_ points: [PathPoint]) {
-        let points = sanitizePoints(points)
-        self.init(unchecked: points)
+        self.init(unchecked: sanitizePoints(points))
     }
 
     /// Create a composite path from an array of subpaths
@@ -181,7 +180,7 @@ public extension Path {
                 if points.last?.position == points.first?.position {
                     points[0] = points.last!
                 }
-                paths.append(Path(unchecked: points, plane: nil, subpathIndices: []))
+                paths.append(Path(unchecked: points, plane: plane, subpathIndices: []))
             }
         }
         return paths.isEmpty && !points.isEmpty ? [self] : paths
@@ -190,12 +189,15 @@ public extension Path {
     /// Get vertices suitable for constructing a polygon from the path
     /// vertices include normals and uv coordinates normalized to the
     /// bounding rectangle of the path. Returns nil if path has subpaths
-    // TODO: should this be facePolygons instead, to handle non-planar shapes?
     var faceVertices: [Vertex]? {
+        // TODO: should this be facePolygons instead, to handle non-planar shapes?
         guard isClosed, let normal = plane?.normal, subpaths.count <= 1 else {
             return nil
         }
         let vectors = points.dropFirst().map { $0.position }
+        guard vectors.count > 2, !pointsAreDegenerate(vectors) else {
+            return nil
+        }
         var min = Vector(.infinity, .infinity)
         var max = Vector(-.infinity, -.infinity)
         let flatteningPlane = FlatteningPlane(normal: normal)
@@ -323,16 +325,36 @@ public extension Polygon {
 
 internal extension Path {
     init(unchecked points: [PathPoint], plane: Plane?, subpathIndices: [Int]?) {
+        assert(points == sanitizePoints(points))
         self.points = points
         self.isClosed = pointsAreClosed(unchecked: points)
         let positions = isClosed ? points.dropLast().map { $0.position } : points.map { $0.position }
         bounds = Bounds(points: positions)
-        self.subpathIndices = subpathIndices ?? subpathIndicesFor(points)
+        let subpathIndices = subpathIndices ?? subpathIndicesFor(points)
+        self.subpathIndices = subpathIndices
         if let plane = plane {
             self.plane = plane
-            assert(Plane(points: positions)?.isEqual(to: plane) == true)
-        } else {
+            assert(points.count < 3 || Path(
+                unchecked: points,
+                plane: nil,
+                subpathIndices: subpathIndices
+            ).plane?.isEqual(to: plane) == true)
+        } else if subpathIndices.isEmpty {
             self.plane = Plane(points: positions)
+        } else {
+            for path in subpaths {
+                guard let plane = path.plane else {
+                    self.plane = nil
+                    break
+                }
+                if let existing = self.plane {
+                    guard existing.isEqual(to: plane) else {
+                        self.plane = nil
+                        break
+                    }
+                }
+                self.plane = plane
+            }
         }
     }
 
@@ -368,16 +390,28 @@ internal extension Path {
         return true
     }
 
+    // Returns the most suitable FlatteningPlane for the path
+    var flatteningPlane: FlatteningPlane {
+        if let plane = plane {
+            return FlatteningPlane(normal: plane.normal)
+        }
+        let positions = isClosed ? points.dropLast().map { $0.position } : points.map { $0.position }
+        return FlatteningPlane(points: positions, convex: nil)
+    }
+
     // flattens z-axis
     // TODO: this is a hack and should be replaced by a better solution
     func flattened() -> Path {
         if bounds.min.z == 0, bounds.max.z == 0 {
             return self
         }
-        let flatteningPlane = FlatteningPlane(bounds: bounds)
+        guard subpathIndices.isEmpty else {
+            return Path(subpaths: subpaths.map { $0.flattened() })
+        }
+        let flatteningPlane = self.flatteningPlane
         return Path(unchecked: sanitizePoints(points.map {
             PathPoint(flatteningPlane.flattenPoint($0.position), isCurved: $0.isCurved)
-        }), plane: flatteningPlane.rawValue, subpathIndices: subpathIndices)
+        }), plane: flatteningPlane.rawValue, subpathIndices: [])
     }
 
     func clippedToYAxis() -> Path {
@@ -455,16 +489,19 @@ internal extension Path {
 
 // MARK: Path utility functions
 
+// Sanitize a set of path points by removing duplicates and invalid points
+// Should be safe to use on sets of points representing a compound path (with subpaths)
 func sanitizePoints(_ points: [PathPoint]) -> [PathPoint] {
     var result = [PathPoint]()
     var last: PathPoint?
     // Remove duplicate points
+    // TODO: In future, compound paths may support duplicate points
     for point in points where point.position != last?.position {
         result.append(point)
         last = point
     }
     // Remove invalid points
-    let isClosed = (result.first?.position == result.last?.position)
+    let isClosed = pointsAreClosed(unchecked: result)
     if result.count > (isClosed ? 3 : 2), let a = result.first?.position {
         let threshold = 1e-10
         var ab = result[1].position - a

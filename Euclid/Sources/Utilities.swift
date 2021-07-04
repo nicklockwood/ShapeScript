@@ -41,6 +41,7 @@ func quantize(_ value: Double) -> Double {
 // MARK: Vertex utilities
 
 func verticesAreDegenerate(_ vertices: [Vertex]) -> Bool {
+    // TODO: should vertex count < 3 actually be considered degenerate?
     guard vertices.count > 1 else {
         return false
     }
@@ -59,19 +60,6 @@ func verticesAreCoplanar(_ vertices: [Vertex]) -> Bool {
         return true
     }
     return pointsAreCoplanar(vertices.map { $0.position })
-}
-
-func faceNormalForConvexVertices(_ vertices: [Vertex]) -> Vector? {
-    assert(verticesAreConvex(vertices))
-    return faceNormalForConvexPoints(vertices.map { $0.position })
-}
-
-func faceNormalForConvexVertices(unchecked vertices: [Vertex]) -> Vector {
-    let ab = vertices[1].position - vertices[0].position
-    let bc = vertices[2].position - vertices[1].position
-    let normal = ab.cross(bc)
-    assert(normal.length > epsilon)
-    return normal.normalized()
 }
 
 // MARK: Vector utilities
@@ -96,6 +84,9 @@ func pointsAreDegenerate(_ points: [Vector]) -> Bool {
     var length = ab.length
     guard length > threshold else {
         return true
+    }
+    if count < 3 {
+        return false
     }
     ab = ab / length
     for i in 0 ..< count {
@@ -145,7 +136,11 @@ func pointsAreConvex(_ points: [Vector]) -> Bool {
     return true
 }
 
-func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
+// Computes the face normal for a collection of points
+// Points are assumed to be ordered in a counter-clockwise direction
+// Points are not verified to be coplanar or non-degenerate
+// Points are not required to form a convex polygon
+func faceNormalForPolygonPoints(_ points: [Vector], convex: Bool?) -> Vector {
     let count = points.count
     let unitZ = Vector(0, 0, 1)
     switch count {
@@ -153,24 +148,43 @@ func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
         return unitZ
     case 2:
         let ab = points[1] - points[0]
-        return ab.cross(unitZ).cross(ab)
-    default:
-        var b = points[0]
-        var ab = b - points.last!
-        var bestLengthSquared = 0.0
-        var best: Vector?
-        for c in points {
-            let bc = c - b
-            let normal = ab.cross(bc)
-            let lengthSquared = normal.lengthSquared
-            if lengthSquared > bestLengthSquared {
-                bestLengthSquared = lengthSquared
-                best = normal / lengthSquared.squareRoot()
-            }
-            b = c
-            ab = bc
+        let normal = ab.cross(unitZ).cross(ab)
+        let lengthSquared = normal.lengthSquared
+        guard lengthSquared > epsilon else {
+            return unitZ
         }
-        return best ?? Vector(0, 0, 1)
+        return normal / lengthSquared.squareRoot()
+    default:
+        func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
+            var b = points[0]
+            var ab = b - points.last!
+            var bestLengthSquared = 0.0
+            var best: Vector?
+            for c in points {
+                let bc = c - b
+                let normal = ab.cross(bc)
+                let lengthSquared = normal.lengthSquared
+                if lengthSquared > bestLengthSquared {
+                    bestLengthSquared = lengthSquared
+                    best = normal / lengthSquared.squareRoot()
+                }
+                b = c
+                ab = bc
+            }
+            return best ?? Vector(0, 0, 1)
+        }
+        let normal = faceNormalForConvexPoints(points)
+        let convex = convex ?? pointsAreConvex(points)
+        if !convex {
+            let flatteningPlane = FlatteningPlane(normal: normal)
+            let flattenedPoints = points.map { flatteningPlane.flattenPoint($0) }
+            let flattenedNormal = faceNormalForConvexPoints(flattenedPoints)
+            let isClockwise = flattenedPointsAreClockwise(flattenedPoints)
+            if (flattenedNormal.z > 0) == isClockwise {
+                return -normal
+            }
+        }
+        return normal
     }
 }
 
