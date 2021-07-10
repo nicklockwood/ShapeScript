@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
+		0111130C269A0AF500BE9490 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111130B269A0AF500BE9490 /* XCTestManifests.swift */; };
 		0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
@@ -104,6 +106,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
+		0111130B269A0AF500BE9490 /* XCTestManifests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
@@ -253,6 +257,8 @@
 				01BFB3A421425C8500E47A7C /* LexerTests.swift */,
 				01BFB3B42142726100E47A7C /* ParserTests.swift */,
 				017EE7132194ED6D0046C918 /* InterpreterTests.swift */,
+				01111309269A0AD600BE9490 /* MetadataTests.swift */,
+				0111130B269A0AF500BE9490 /* XCTestManifests.swift */,
 				01BFB3A621425C8500E47A7C /* Info.plist */,
 			);
 			path = ShapeScriptTests;
@@ -530,8 +536,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0111130C269A0AF500BE9490 /* XCTestManifests.swift in Sources */,
 				017EE7142194ED6D0046C918 /* InterpreterTests.swift in Sources */,
 				01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */,
+				0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */,
 				01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
