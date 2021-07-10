@@ -1,3 +1,9 @@
+## [1.1.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.3) (2021-07-10)
+
+- Fixed assertion failure if a parsing error occurs at the last character in the .shape file
+- Fixed bug in Path plane calculation that could result in corrupted extrusion shapes
+- Fixed a tessellation bug affecting anti-clockwise polygons
+
 ## [1.1.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.2) (2021-07-03)
 
 - Fixed bug where CRLF was treated as two separate linebreaks, resulting in a crash
