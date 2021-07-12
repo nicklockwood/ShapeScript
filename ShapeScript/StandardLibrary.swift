@@ -171,10 +171,10 @@ extension Dictionary where Key == String, Value == Symbol {
     static let points: Symbols = [
         // vertices
         "point": .command(.vector) { parameter, _ in
-            .point(.init(parameter.value as! Vector, isCurved: false))
+            .point(.point(parameter.value as! Vector))
         },
         "curve": .command(.vector) { parameter, _ in
-            .point(.init(parameter.value as! Vector, isCurved: true))
+            .point(.curve(parameter.value as! Vector))
         },
     ]
 

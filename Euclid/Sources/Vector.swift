@@ -42,6 +42,23 @@ public struct Vector: Hashable {
     }
 }
 
+extension Vector: Comparable {
+    /// Provides a stable sort order for Vectors
+    public static func < (lhs: Vector, rhs: Vector) -> Bool {
+        if lhs.x < rhs.x {
+            return true
+        } else if lhs.x > rhs.x {
+            return false
+        }
+        if lhs.y < rhs.y {
+            return true
+        } else if lhs.y > rhs.y {
+            return false
+        }
+        return lhs.z < rhs.z
+    }
+}
+
 extension Vector: Codable {
     private enum CodingKeys: CodingKey {
         case x, y, z
@@ -116,6 +133,10 @@ public extension Vector {
         Vector(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
     }
 
+    static func * (lhs: Double, rhs: Vector) -> Vector {
+        Vector(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z)
+    }
+
     static func *= (lhs: inout Vector, rhs: Double) {
         lhs.x *= rhs
         lhs.y *= rhs
@@ -180,12 +201,26 @@ public extension Vector {
         return Angle.asin(complementeryAngle)
     }
 
+    /// Distance of the point from a plane
+    /// A positive value is returned if the point lies in front of the plane
+    /// A negative value is returned if the point lies behind the plane
     func distance(from plane: Plane) -> Double {
-        plane.normal.dot(self) - plane.w
+        plane.distance(from: self)
     }
 
+    /// The nearest point to this point on the specified plane
     func project(onto plane: Plane) -> Vector {
         self - plane.normal * distance(from: plane)
+    }
+
+    /// Distance of the point from a line in 3D
+    func distance(from line: Line) -> Double {
+        line.distance(from: self)
+    }
+
+    /// The nearest point to this point on the specified line
+    func project(onto line: Line) -> Vector {
+        line.origin + line.direction * (self - line.origin).dot(line.direction)
     }
 }
 

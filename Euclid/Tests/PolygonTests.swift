@@ -91,6 +91,16 @@ class PolygonTests: XCTestCase {
         ]))
     }
 
+    func testDegeneratePolygonWithSelfIntersectingPoints() {
+        let normal = Vector(0, 0, 1)
+        XCTAssertNil(Polygon([
+            Vertex(Vector(0, 0), normal),
+            Vertex(Vector(1, 1), normal),
+            Vertex(Vector(1, 0), normal),
+            Vertex(Vector(0, 1), normal),
+        ]))
+    }
+
     // MARK: merging
 
     func testMerge1() {
@@ -618,7 +628,12 @@ class PolygonTests: XCTestCase {
         let points = triangles.map { $0.vertices.map { $0.position } }
         XCTAssertEqual(points, [
             [
+                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
                 Vector(1.086, 0.0, 0.16999999999999998),
+                Vector(1.086, 0.0, 0.13999999999999999),
+            ],
+            [
+                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
                 Vector(1.086, 0.0, 0.13999999999999999),
                 Vector(0.95, 1e-08, 0.13999999999999999),
             ],
@@ -627,12 +642,9 @@ class PolygonTests: XCTestCase {
                 Vector(0.9349999999999999, 0.0, 0.09999999999999999),
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
             ],
-            [
-                Vector(0.95, 1e-08, 0.13999999999999999),
-                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
-                Vector(1.086, 0.0, 0.16999999999999998),
-            ],
         ])
+        let merged = triangles.detessellate(ensureConvex: false)
+        XCTAssertEqual(Set(merged.flatMap { $0.vertices }), Set(polygon.vertices))
     }
 
     func testInvertedSlightlyNonPlanarPolygonTriangulated() {
@@ -653,20 +665,120 @@ class PolygonTests: XCTestCase {
         let points = triangles.map { $0.vertices.map { $0.position } }
         XCTAssertEqual(points, [
             [
-                Vector(0.95, 1e-08, 0.13999999999999999),
                 Vector(1.086, 0.0, 0.13999999999999999),
                 Vector(1.086, 0.0, 0.16999999999999998),
+                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
+            ],
+            [
+                Vector(0.95, 1e-08, 0.13999999999999999),
+                Vector(1.086, 0.0, 0.13999999999999999),
+                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
             ],
             [
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
                 Vector(0.9349999999999999, 0.0, 0.09999999999999999),
                 Vector(0.95, 1e-08, 0.13999999999999999),
             ],
-            [
-                Vector(1.086, 0.0, 0.16999999999999998),
-                Vector(0.9349999999999999, 0.0, 0.16999999999999998),
-                Vector(0.95, 1e-08, 0.13999999999999999),
-            ],
         ])
+        let merged = triangles.detessellate(ensureConvex: false)
+        XCTAssertEqual(Set(merged.flatMap { $0.vertices }), Set(polygon.vertices))
+    }
+
+    // MARK: detessellation
+
+    func testConcaveAnticlockwisePolygonCorrectlyDetessellated() {
+        let path = Path([
+            .point(0, 1),
+            .point(0.5, 0),
+            .point(0, -1),
+            .point(1, 0),
+            .point(0, 1),
+        ])
+        guard let polygon = Polygon(shape: path) else {
+            XCTFail()
+            return
+        }
+        let polygons = polygon.tessellate()
+        XCTAssertEqual(polygons.count, 2)
+        let result = polygons.detessellate()
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.undirectedEdges, polygon.undirectedEdges)
+        XCTAssertEqual(Set(result.first?.vertices ?? []), Set(polygon.vertices))
+    }
+
+    func testInvertedConcaveAnticlockwisePolygonCorrectlyDetessellated() {
+        let path = Path([
+            .point(0, 1),
+            .point(0.5, 0),
+            .point(0, -1),
+            .point(1, 0),
+            .point(0, 1),
+        ])
+        guard let polygon = Polygon(shape: path)?.inverted() else {
+            XCTFail()
+            return
+        }
+        let polygons = polygon.tessellate()
+        XCTAssertEqual(polygons.count, 2)
+        let result = polygons.detessellate()
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.undirectedEdges, polygon.undirectedEdges)
+        XCTAssertEqual(Set(result.first?.vertices ?? []), Set(polygon.vertices))
+    }
+
+    func testPolygonWithColinearPointsCorrectlyDetessellated() {
+        let normal = Vector(0, 0, -1)
+        guard let polygon = Polygon([
+            Vertex(Vector(0, 0), normal),
+            Vertex(Vector(0.5, 0), normal),
+            Vertex(Vector(0.5, 1), normal),
+            Vertex(Vector(-0.5, 1), normal),
+            Vertex(Vector(-0.5, 0), normal),
+        ]) else {
+            XCTFail()
+            return
+        }
+        let triangles = polygon.triangulate()
+        XCTAssertEqual(triangles.count, 3)
+        let result = triangles.detessellate()
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.vertices.count, 4)
+        XCTAssertEqual(result.first?.undirectedEdges.count, 4)
+    }
+
+    func testHouseShapedPolygonCorrectlyDetessellated() {
+        let normal = Vector(0, 0, -1)
+        guard let polygon = Polygon([
+            Vertex(Vector(0, 0.5), normal),
+            Vertex(Vector(1, 0), normal),
+            Vertex(Vector(0.5, 0), normal),
+            Vertex(Vector(0.5, -1), normal),
+            Vertex(Vector(-0.5, -1), normal),
+            Vertex(Vector(-0.5, 0), normal),
+            Vertex(Vector(-1, 0), normal),
+        ]) else {
+            XCTFail()
+            return
+        }
+        let triangles = polygon.triangulate()
+        XCTAssertEqual(triangles.count, 5)
+        let result = triangles.detessellate()
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.undirectedEdges, polygon.undirectedEdges)
+        XCTAssertEqual(Set(result.first?.vertices ?? []), Set(polygon.vertices))
+    }
+
+    // MARK: uniqueEdges
+
+    func testUniqueEdgesForCube() {
+        let mesh = Mesh.cube()
+        let edges = mesh.uniqueEdges
+        XCTAssertEqual(edges.count, 12)
+    }
+
+    func testUniqueEdgesForSphere() {
+        let mesh = Mesh.sphere(slices: 4)
+        let edges = Array(mesh.uniqueEdges)
+        XCTAssertEqual(edges.count, 12)
     }
 }
