@@ -105,7 +105,11 @@ public extension Mesh {
     }
 
     func rotated(by m: Rotation) -> Mesh {
-        Mesh(unchecked: polygons.rotated(by: m), isConvex: isConvex)
+        Mesh(
+            unchecked: polygons.rotated(by: m),
+            bounds: nil,
+            isConvex: isConvex
+        )
     }
 
     func scaled(by v: Vector) -> Mesh {
@@ -137,7 +141,11 @@ public extension Mesh {
     }
 
     func transformed(by t: Transform) -> Mesh {
-        Mesh(unchecked: polygons.transformed(by: t), isConvex: isConvex)
+        Mesh(
+            unchecked: polygons.transformed(by: t),
+            bounds: nil, // TODO: preserve bounds if t does not include rotation
+            isConvex: isConvex
+        )
     }
 }
 
@@ -147,7 +155,6 @@ public extension Polygon {
             unchecked: vertices.translated(by: v),
             normal: plane.normal,
             isConvex: isConvex,
-            bounds: boundsIfSet?.translated(by: v),
             material: material
         )
     }
@@ -178,7 +185,6 @@ public extension Polygon {
             unchecked: flipped ? vertices.reversed() : vertices,
             normal: plane.normal.scaled(by: vn).normalized(),
             isConvex: isConvex,
-            bounds: boundsIfSet?.scaled(by: v),
             material: material
         )
     }
@@ -190,7 +196,6 @@ public extension Polygon {
             unchecked: vertices.scaled(by: f),
             normal: plane.normal,
             isConvex: isConvex,
-            bounds: boundsIfSet?.scaled(by: f),
             material: material
         )
         return f < 0 ? polygon.inverted() : polygon
@@ -208,7 +213,6 @@ public extension Polygon {
             unchecked: flipped ? vertices.reversed() : vertices,
             normal: plane.normal,
             isConvex: isConvex,
-            bounds: boundsIfSet,
             material: material
         )
     }
@@ -331,23 +335,23 @@ internal extension Collection where Element == Vector {
 
 public extension PathPoint {
     func translated(by v: Vector) -> PathPoint {
-        PathPoint(position + v, isCurved: isCurved)
+        PathPoint(position + v, texcoord: texcoord, isCurved: isCurved)
     }
 
     func rotated(by r: Rotation) -> PathPoint {
-        PathPoint(position.rotated(by: r), isCurved: isCurved)
+        PathPoint(position.rotated(by: r), texcoord: texcoord, isCurved: isCurved)
     }
 
     func scaled(by v: Vector) -> PathPoint {
-        PathPoint(position.scaled(by: v), isCurved: isCurved)
+        PathPoint(position.scaled(by: v), texcoord: texcoord, isCurved: isCurved)
     }
 
     func scaled(by f: Double) -> PathPoint {
-        PathPoint(position * f, isCurved: isCurved)
+        PathPoint(position * f, texcoord: texcoord, isCurved: isCurved)
     }
 
     func transformed(by t: Transform) -> PathPoint {
-        PathPoint(position.transformed(by: t), isCurved: isCurved)
+        PathPoint(position.transformed(by: t), texcoord: texcoord, isCurved: isCurved)
     }
 }
 

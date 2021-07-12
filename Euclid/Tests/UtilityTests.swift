@@ -113,41 +113,14 @@ class UtilityTests: XCTestCase {
         ])
     }
 
-    // MARK: directions
+    // MARK: lines
 
-    func testParallelDirections() {
-        let direction1 = Vector(-1, 1, 3).normalized()
-        let direction2 = Vector(-1, 1, 3).normalized()
-        XCTAssertTrue(directionsAreParallel(direction1, direction2))
-        XCTAssertFalse(directionsAreAntiparallel(direction1, direction2))
-        XCTAssertTrue(directionsAreColinear(direction1, direction2))
-        XCTAssertFalse(directionsAreNormal(direction1, direction2))
-    }
-
-    func testAntiparallelDirections() {
-        let direction1 = Vector(-1, 2, 3).normalized()
-        let direction2 = Vector(1, -2, -3).normalized()
-        XCTAssertFalse(directionsAreParallel(direction1, direction2))
-        XCTAssertTrue(directionsAreAntiparallel(direction1, direction2))
-        XCTAssertTrue(directionsAreColinear(direction1, direction2))
-        XCTAssertFalse(directionsAreNormal(direction1, direction2))
-    }
-
-    func testNormalDirections() {
-        let direction1 = Vector(1, 0, 0).normalized()
-        let direction2 = Vector(0, 1, 0).normalized()
-        XCTAssertFalse(directionsAreParallel(direction1, direction2))
-        XCTAssertFalse(directionsAreAntiparallel(direction1, direction2))
-        XCTAssertFalse(directionsAreColinear(direction1, direction2))
-        XCTAssertTrue(directionsAreNormal(direction1, direction2))
-    }
-
-    func testGeneralDirections() {
-        let direction1 = Vector(-1, 2, 3).normalized()
-        let direction2 = Vector(5, -9, 1).normalized()
-        XCTAssertFalse(directionsAreParallel(direction1, direction2))
-        XCTAssertFalse(directionsAreAntiparallel(direction1, direction2))
-        XCTAssertFalse(directionsAreColinear(direction1, direction2))
-        XCTAssertFalse(directionsAreNormal(direction1, direction2))
+    func testVectorFromPointToLine() {
+        let result = vectorFromPointToLine(
+            Vector(2, 0),
+            Vector(-1, -1),
+            Vector(1, 0)
+        )
+        XCTAssertEqual(result, Vector(0, -1, 0))
     }
 }

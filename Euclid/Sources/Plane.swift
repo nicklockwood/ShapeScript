@@ -44,6 +44,16 @@ public struct Plane: Hashable {
     }
 }
 
+extension Plane: Comparable {
+    /// Provides a stable sort order for Planes
+    public static func < (lhs: Plane, rhs: Plane) -> Bool {
+        if lhs.normal == rhs.normal {
+            return lhs.w < rhs.w
+        }
+        return lhs.normal < rhs.normal
+    }
+}
+
 extension Plane: Codable {
     private enum CodingKeys: CodingKey {
         case normal, w
@@ -51,11 +61,8 @@ extension Plane: Codable {
 
     public init(from decoder: Decoder) throws {
         if var container = try? decoder.unkeyedContainer() {
-            let x = try container.decode(Double.self)
-            let y = try container.decode(Double.self)
-            let z = try container.decode(Double.self)
-            normal = Vector(x, y, z).normalized()
-            w = try container.decode(Double.self)
+            self.normal = try Vector(from: &container).normalized()
+            self.w = try container.decode(Double.self)
         } else {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             normal = try container.decode(Vector.self, forKey: .normal).normalized()
@@ -65,9 +72,7 @@ extension Plane: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
-        try container.encode(normal.x)
-        try container.encode(normal.y)
-        try container.encode(normal.z)
+        try normal.encode(to: &container)
         try container.encode(w)
     }
 }
@@ -90,14 +95,7 @@ public extension Plane {
     /// The polygon can be convex or concave. The direction of the plane normal is
     /// based on the assumption that the points are wound in an anticlockwise direction
     init?(points: [Vector]) {
-        guard !points.isEmpty, !pointsAreDegenerate(points) else {
-            return nil
-        }
-        self.init(unchecked: points, convex: nil)
-        // Check all points lie on this plane
-        if points.contains(where: { !containsPoint($0) }) {
-            return nil
-        }
+        self.init(points: points, convex: nil)
     }
 
     /// Returns the flipside of the plane
@@ -108,6 +106,13 @@ public extension Plane {
     /// Checks if point is on plane
     func containsPoint(_ p: Vector) -> Bool {
         abs(p.distance(from: self)) < epsilon
+    }
+
+    /// Distance of the point from a plane
+    /// A positive value is returned if the point lies in front of the plane
+    /// A negative value is returned if the point lies behind the plane
+    func distance(from p: Vector) -> Double {
+        normal.dot(p) - w
     }
 
     /// Returns line of intersection between planes
@@ -121,13 +126,14 @@ public extension Plane {
         return Line(origin: origin, direction: normal.cross(p.normal))
     }
 
-    /// Returns point intersection beteween plane and line
+    /// Returns point intersection between plane and line
     func intersection(with line: Line) -> Vector? {
         // https://en.wikipedia.org/wiki/Line–plane_intersection#Algebraic_form
-        guard !directionsAreNormal(line.direction, normal) else {
+        let lineDotPlaneNormal = line.direction.dot(normal)
+        guard abs(lineDotPlaneNormal) > epsilon else {
+            // Line and plane are parallel
             return nil
         }
-        let lineDotPlaneNormal = line.direction.dot(normal)
         let planePoint = normal * w
         let d = (planePoint - line.origin).dot(normal) / lineDotPlaneNormal
         let intersection = line.origin + line.direction * d
@@ -144,6 +150,17 @@ internal extension Plane {
 
     init(unchecked normal: Vector, pointOnPlane: Vector) {
         self.init(unchecked: normal, w: normal.dot(pointOnPlane))
+    }
+
+    init?(points: [Vector], convex: Bool?) {
+        guard !points.isEmpty, !pointsAreDegenerate(points) else {
+            return nil
+        }
+        self.init(unchecked: points, convex: convex)
+        // Check all points lie on this plane
+        if points.contains(where: { !containsPoint($0) }) {
+            return nil
+        }
     }
 
     init(unchecked points: [Vector], convex: Bool?) {

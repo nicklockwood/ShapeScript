@@ -42,36 +42,59 @@ public struct Vector: Hashable {
     }
 }
 
+extension Vector: Comparable {
+    /// Provides a stable sort order for Vectors
+    public static func < (lhs: Vector, rhs: Vector) -> Bool {
+        if lhs.x < rhs.x {
+            return true
+        } else if lhs.x > rhs.x {
+            return false
+        }
+        if lhs.y < rhs.y {
+            return true
+        } else if lhs.y > rhs.y {
+            return false
+        }
+        return lhs.z < rhs.z
+    }
+}
+
 extension Vector: Codable {
     private enum CodingKeys: CodingKey {
         case x, y, z
     }
 
     public init(from decoder: Decoder) throws {
-        let x, y, z: Double
         if var container = try? decoder.unkeyedContainer() {
-            x = try container.decode(Double.self)
-            y = try container.decode(Double.self)
-            z = try container.decodeIfPresent(Double.self) ?? 0
+            try self.init(from: &container)
         } else {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            x = try container.decodeIfPresent(Double.self, forKey: .x) ?? 0
-            y = try container.decodeIfPresent(Double.self, forKey: .y) ?? 0
-            z = try container.decodeIfPresent(Double.self, forKey: .z) ?? 0
+            let x = try container.decodeIfPresent(Double.self, forKey: .x) ?? 0
+            let y = try container.decodeIfPresent(Double.self, forKey: .y) ?? 0
+            let z = try container.decodeIfPresent(Double.self, forKey: .z) ?? 0
+            self.init(x, y, z)
         }
-        self.init(x, y, z)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
-        try container.encode(x)
-        try container.encode(y)
-        try z == 0 ? () : container.encode(z)
+        try encode(to: &container, skipZ: z == 0)
     }
+}
+
+/// Returns a new vector representing the min of the components of the passed vectors
+public func min(_ lhs: Vector, _ rhs: Vector) -> Vector {
+    Vector(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z))
+}
+
+/// Returns a new vector representing the max of the components of the passed vectors
+public func max(_ lhs: Vector, _ rhs: Vector) -> Vector {
+    Vector(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z))
 }
 
 public extension Vector {
     static let zero = Vector(0, 0, 0)
+    static let one = Vector(1, 1, 1)
 
     /// Create a vector from an array of coordinates.
     /// Omitted values are defaulted to zero.
@@ -81,6 +104,17 @@ public extension Vector {
         case 1: self.init(components[0], 0)
         case 2: self.init(components[0], components[1])
         default: self.init(components[0], components[1], components[2])
+        }
+    }
+
+    /// Create a size/scale vector from an array of coordinates.
+    /// Omitted values are defaulted to zero.
+    init(size components: [Double]) {
+        switch components.count {
+        case 0: self = .one
+        case 1: self.init(components[0], components[0], components[0])
+        case 2: self.init(components[0], components[1], components[0])
+        default: self.init(components)
         }
     }
 
@@ -114,6 +148,10 @@ public extension Vector {
 
     static func * (lhs: Vector, rhs: Double) -> Vector {
         Vector(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
+    }
+
+    static func * (lhs: Double, rhs: Vector) -> Vector {
+        Vector(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z)
     }
 
     static func *= (lhs: inout Vector, rhs: Double) {
@@ -180,12 +218,26 @@ public extension Vector {
         return Angle.asin(complementeryAngle)
     }
 
+    /// Distance of the point from a plane
+    /// A positive value is returned if the point lies in front of the plane
+    /// A negative value is returned if the point lies behind the plane
     func distance(from plane: Plane) -> Double {
         plane.normal.dot(self) - plane.w
     }
 
+    /// The nearest point to this point on the specified plane
     func project(onto plane: Plane) -> Vector {
         self - plane.normal * distance(from: plane)
+    }
+
+    /// Distance of the point from a line in 3D
+    func distance(from line: Line) -> Double {
+        line.distance(from: self)
+    }
+
+    /// The nearest point to this point on the specified line
+    func project(onto line: Line) -> Vector {
+        self + vectorFromPointToLine(self, line.origin, line.direction)
     }
 }
 
@@ -199,5 +251,24 @@ internal extension Vector {
     func compare(with plane: Plane) -> PlaneComparison {
         let t = distance(from: plane)
         return (t < -epsilon) ? .back : (t > epsilon) ? .front : .coplanar
+    }
+
+    /// Encode directly into an unkeyedContainer
+    func encode(to container: inout UnkeyedEncodingContainer) throws {
+        try encode(to: &container, skipZ: false)
+    }
+
+    /// Encode directly into an unkeyedContainer
+    func encode(to container: inout UnkeyedEncodingContainer, skipZ: Bool) throws {
+        try container.encode(x)
+        try container.encode(y)
+        try skipZ ? () : container.encode(z)
+    }
+
+    /// Decode directly from an unkeyedContainer
+    init(from container: inout UnkeyedDecodingContainer) throws {
+        self.x = try container.decode(Double.self)
+        self.y = try container.decode(Double.self)
+        self.z = try container.decodeIfPresent(Double.self) ?? 0
     }
 }

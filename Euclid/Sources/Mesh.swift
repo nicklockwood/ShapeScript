@@ -50,9 +50,7 @@ extension Mesh: Codable {
                     polygons.map { $0.with(material: material.value) }
                 }
             } else {
-                polygons = try container.decode([Polygon].self, forKey: .polygons).flatMap {
-                    $0.tessellate()
-                }
+                polygons = try container.decode([Polygon].self, forKey: .polygons)
             }
             self.init(
                 unchecked: polygons,
@@ -100,9 +98,20 @@ public extension Mesh {
         return polygonsByMaterial
     }
 
-    /// Construct a Mesh from a list of `Polygon` instances.
+    /// Returns all unique polygon edges in the mesh
+    var uniqueEdges: Set<LineSegment> {
+        polygons.uniqueEdges
+    }
+
+    /// Returns true if polygon is watertight, i.e. every edge is attached to at least 2 polygons.
+    /// Note: doesn't verify that mesh is not self-intersecting or inside-out.
+    var isWatertight: Bool {
+        isConvex || polygons.areWatertight
+    }
+
+    /// Construct a Mesh from an array of `Polygon` instances.
     init(_ polygons: [Polygon]) {
-        self.init(unchecked: polygons.flatMap { $0.tessellate() }, isConvex: false)
+        self.init(unchecked: polygons, bounds: nil, isConvex: false)
     }
 
     /// Replaces one material with another
@@ -137,23 +146,43 @@ public extension Mesh {
 
     /// Flips face direction of polygons.
     func inverted() -> Mesh {
-        Mesh(unchecked: polygons.inverted(), isConvex: false)
+        Mesh(
+            unchecked: polygons.inverted(),
+            bounds: bounds,
+            isConvex: false
+        )
     }
 
     /// Split concave polygons into 2 or more convex polygons.
     func tessellate() -> Mesh {
-        Mesh(unchecked: polygons.tessellate(), isConvex: isConvex)
+        Mesh(
+            unchecked: polygons.tessellate(),
+            bounds: bounds,
+            isConvex: isConvex
+        )
     }
 
     /// Tessellate polygons into triangles.
     func triangulate() -> Mesh {
-        Mesh(unchecked: polygons.triangulate(), isConvex: isConvex)
+        Mesh(
+            unchecked: polygons.triangulate(),
+            bounds: bounds,
+            isConvex: isConvex
+        )
+    }
+
+    /// Merge coplanar polygons that share one or more edges
+    func detessellate() -> Mesh {
+        Mesh(
+            unchecked: polygons.sortedByPlane().detessellate(),
+            bounds: bounds,
+            isConvex: isConvex
+        )
     }
 }
 
 internal extension Mesh {
-    init(unchecked polygons: [Polygon], bounds: Bounds? = nil, isConvex: Bool) {
-        assert(polygons.allSatisfy { $0.isConvex })
+    init(unchecked polygons: [Polygon], bounds: Bounds?, isConvex: Bool) {
         self.storage = Storage(
             polygons: polygons,
             bounds: bounds,
@@ -188,7 +217,7 @@ private extension Mesh {
 
         var bounds: Bounds {
             if boundsIfSet == nil {
-                boundsIfSet = Bounds(bounds: polygons.map { $0.bounds })
+                boundsIfSet = Bounds(polygons: polygons)
             }
             return boundsIfSet!
         }

@@ -5,6 +5,29 @@
 //  Created by Nick Lockwood on 20/01/2020.
 //  Copyright © 2020 Nick Lockwood. All rights reserved.
 //
+//  Distributed under the permissive MIT license
+//  Get the latest version from here:
+//
+//  https://github.com/nicklockwood/Euclid
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in all
+//  copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//  SOFTWARE.
+//
 
 struct BSP {
     private var nodes: [BSPNode]
@@ -23,11 +46,7 @@ struct BSP {
 
     func clip(_ polygons: [Polygon], _ keeping: ClipRule) -> [Polygon] {
         var id = 0
-        var polygons = polygons
-        for (i, p) in polygons.enumerated() where p.id != 0 {
-            polygons[i].id = 0
-        }
-        return clip(polygons, keeping, &id)
+        return clip(polygons.map { $0.with(id: 0) }, keeping, &id)
     }
 }
 
@@ -61,30 +80,23 @@ private class BSPNode {
 private extension BSP {
     mutating func initialize(_ polygons: [Polygon], isConvex: Bool) {
         nodes.reserveCapacity(polygons.count)
-
-        // Randomly shuffle polygons to reduce average number of splits
         var rng = DeterministicRNG()
-        var polygons = polygons.shuffled(using: &rng)
 
         guard isConvex else {
+            guard !polygons.isEmpty else {
+                return
+            }
+            // Randomly shuffle polygons to reduce average number of splits
+            let polygons = polygons.shuffled(using: &rng)
             nodes.append(BSPNode(plane: polygons[0].plane))
             insert(polygons)
             return
         }
 
         // Sort polygons by plane
-        let count = polygons.count
-        for i in 0 ..< count - 2 {
-            let p = polygons[i]
-            let plane = p.plane
-            var k = i + 1
-            for j in k ..< count where k < j && polygons[j].plane.isEqual(to: plane) {
-                polygons.swapAt(j, k)
-                k += 1
-            }
-        }
+        let polygons = polygons.sortedByPlane()
 
-        // Use fast bsp construction
+        // Create nodes
         var parent: BSPNode?
         for polygon in polygons {
             if let parent = parent, polygon.plane.isEqual(to: parent.plane) {
@@ -92,9 +104,16 @@ private extension BSP {
                 continue
             }
             let node = BSPNode(polygon: polygon)
-            parent?.back = nodes.count
             nodes.append(node)
             parent = node
+        }
+
+        // Randomly shuffle nodes to reduce average number of splits
+        nodes.shuffle(using: &rng)
+
+        // Use fast BSP construction
+        for i in 0 ..< nodes.count - 1 {
+            nodes[i].back = i + 1
         }
     }
 
@@ -162,7 +181,7 @@ private extension BSP {
                 var a = a
                 for i in total.indices.reversed() {
                     let b = total[i]
-                    if a.id == b.id, let c = a.join(unchecked: b, ensureConvex: true) {
+                    if a.id == b.id, let c = a.merge(unchecked: b, ensureConvex: false) {
                         a = c
                         total.remove(at: i)
                     }

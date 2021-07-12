@@ -47,16 +47,8 @@ extension Bounds: Codable {
     public init(from decoder: Decoder) throws {
         let min, max: Vector
         if var container = try? decoder.unkeyedContainer() {
-            min = try Vector(
-                container.decode(Double.self),
-                container.decode(Double.self),
-                container.decode(Double.self)
-            )
-            max = try Vector(
-                container.decode(Double.self),
-                container.decode(Double.self),
-                container.decode(Double.self)
-            )
+            min = try Vector(from: &container)
+            max = try Vector(from: &container)
         } else {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             min = try container.decode(Vector.self, forKey: .min)
@@ -67,12 +59,8 @@ extension Bounds: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
-        try container.encode(min.x)
-        try container.encode(min.y)
-        try container.encode(min.z)
-        try container.encode(max.x)
-        try container.encode(max.y)
-        try container.encode(max.z)
+        try min.encode(to: &container)
+        try max.encode(to: &container)
     }
 }
 
@@ -85,6 +73,19 @@ public extension Bounds {
         for p in points {
             min = Euclid.min(min, p)
             max = Euclid.max(max, p)
+        }
+        self.min = min
+        self.max = max
+    }
+
+    init(polygons: [Polygon]) {
+        var min = Vector(.infinity, .infinity, .infinity)
+        var max = Vector(-.infinity, -.infinity, -.infinity)
+        for p in polygons {
+            for v in p.vertices {
+                min = Euclid.min(min, v.position)
+                max = Euclid.max(max, v.position)
+            }
         }
         self.min = min
         self.max = max
@@ -181,12 +182,4 @@ extension Bounds {
         }
         return comparison
     }
-}
-
-private func min(_ lhs: Vector, _ rhs: Vector) -> Vector {
-    Vector(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z))
-}
-
-private func max(_ lhs: Vector, _ rhs: Vector) -> Vector {
-    Vector(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z))
 }

@@ -1,3 +1,47 @@
+## [0.5.3](https://github.com/nicklockwood/Euclid/releases/tag/0.5.3) (2021-07-30)
+
+- Slightly improved the performance of bounds checking during CSG operations
+- The `Polygon.bounds` is no longer a stored property, which should reduce memory footprint
+- Coincident `Line`s will now always be equal, even if initialized with a different `origin`
+- Fixed a bug where Z component was ignored when testing for `LineSegment` intersection
+- Fixed a performance regression in `Vector.distance(from: Plane)`, introduced in version 0.5.0
+- Added `min()`/`max()` functions for component-wise comparison of `Vector`s
+- Added `Line.intersection(with: Plane)` method
+
+## [0.5.2](https://github.com/nicklockwood/Euclid/releases/tag/0.5.2) (2021-07-28)
+
+- Fixed some bugs when serializing texture coordinates with a non-zero Z component
+- Fixed assertion in `shortestLineBetween()` utility function
+- Fixed spurious assertion in `LineSegment` initializer
+- The identity `Rotation` is now encoded more compactly when serializing
+- Added a more compact serialized encoding for `Line` and `LineSegment`
+- Added `Vector(size:)` initializer with better defaults for size/scale vectors
+
+## [0.5.1](https://github.com/nicklockwood/Euclid/releases/tag/0.5.1) (2021-07-25)
+
+- Added `LineSegment.containsPoint()` method
+- Added `Mesh.isWatertight` property to determine if a mesh contains holes
+- Reduced BSP construction time when performing CSG operations on convex meshes
+- Fixed edge case where `Mesh.detessellate()` function would fail to merge adjacent polygons
+- Fixed bug where CSG operations would sometimes unnecessarily tesselate polygons
+- Improved back-face insertion logic for lofted paths
+
+## [0.5.0](https://github.com/nicklockwood/Euclid/releases/tag/0.5.0) (2021-07-12)
+
+- Added `Mesh.detessellate()` method and `Mesh.uniqueEdges` property
+- `Mesh` initializer no longer tessellates non-convex polygons automatically
+- Added additional methods for computing intersections and distances between points, planes and lines
+- `Line` and `LineSegment` intersection methods now correctly work for lines in different planes 
+- `Polygon` initializer now rejects vertices that would form self-intersecting edges
+- Fixed crash when attempting to create fill or lathe meshes from self-intersecting paths
+- Fixed certain cases where `Path.edgeVertices` would produce inverted normals
+- Added method to easily create a `Path` from a `Polygon`
+- Texture coordinates with a non-zero Z component are now serialized correctly
+- Added optional `texcoord` property to `PathPoint`s
+- The `Mesh.fill()`, `Mesh.extrude()` and `Mesh.loft()` methods now work with non-planar paths
+- The `Path.faceVertices` property now works correctly for non-planar paths
+- Added `Path.facePolygons()` method for filling non-planar paths
+
 ## [0.4.7](https://github.com/nicklockwood/Euclid/releases/tag/0.4.7) (2021-07-09)
 
 - Fixed tessellation bug affecting anti-clockwise polygons

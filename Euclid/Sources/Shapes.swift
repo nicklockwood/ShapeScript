@@ -228,13 +228,27 @@ public extension Mesh {
                 material: material
             )
         }
+        let halfSize = s / 2
+        let bounds = Bounds(min: c - halfSize, max: c + halfSize)
         switch faces {
         case .front, .default:
-            return Mesh(unchecked: polygons, isConvex: true)
+            return Mesh(
+                unchecked: polygons,
+                bounds: bounds,
+                isConvex: true
+            )
         case .back:
-            return Mesh(unchecked: polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons.inverted(),
+                bounds: bounds,
+                isConvex: false
+            )
         case .frontAndBack:
-            return Mesh(unchecked: polygons + polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons + polygons.inverted(),
+                bounds: bounds,
+                isConvex: false
+            )
         }
     }
 
@@ -396,7 +410,7 @@ public extension Mesh {
         }
 
         var profile = profile
-        if profile.points.count < 2 {
+        if profile.points.count < 2 || pointsAreSelfIntersecting(profile.points.map { $0.position }) {
             return Mesh([])
         }
 
@@ -406,7 +420,6 @@ public extension Mesh {
         // normalize profile
         profile = profile.flattened().clippedToYAxis()
         guard let normal = profile.plane?.normal else {
-            assertionFailure()
             return Mesh([])
         }
         if normal.z < 0 {
@@ -540,12 +553,24 @@ public extension Mesh {
         }
 
         switch faces {
-        case .front:
-            return Mesh(unchecked: polygons, isConvex: isConvex)
+        case .default where isConvex, .front:
+            return Mesh(
+                unchecked: polygons,
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: isConvex
+            )
         case .back:
-            return Mesh(unchecked: polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons.inverted(),
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: false
+            )
         case .frontAndBack:
-            return Mesh(unchecked: polygons + polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons + polygons.inverted(),
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: false
+            )
         case .default:
             // seal loose ends
             // TODO: improve this by not adding backfaces inside closed subsectors
@@ -555,7 +580,11 @@ public extension Mesh {
             {
                 polygons += polygons.inverted()
             }
-            return Mesh(unchecked: polygons, isConvex: isConvex)
+            return Mesh(
+                unchecked: polygons,
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: false
+            )
         }
     }
 
@@ -567,7 +596,7 @@ public extension Mesh {
         material: Material? = nil
     ) -> Mesh {
         let offset = (shape.plane?.normal ?? Vector(0, 0, 1)) * (depth / 2)
-        if offset.lengthSquared < epsilon {
+        if offset.isEqual(to: .zero) {
             return fill(shape, faces: faces, material: material)
         }
         return loft(
@@ -724,11 +753,18 @@ public extension Mesh {
         }
         var polygons = [Polygon]()
         var prev = shapes[0]
-        if !isClosed, var polygon = Polygon(shape: prev, material: material) {
-            if let p0p1 = directionBetweenShapes(prev, shapes[1]), p0p1.dot(polygon.plane.normal) > 0 {
-                polygon = polygon.inverted()
+        var isCapped = true
+        if !isClosed {
+            let facePolygons = prev.facePolygons(material: material)
+            if facePolygons.isEmpty {
+                isCapped = false
+            } else if let p0p1 = directionBetweenShapes(prev, shapes[1]) {
+                polygons += facePolygons.map {
+                    p0p1.dot($0.plane.normal) > 0 ? $0.inverted() : $0
+                }
+            } else {
+                polygons += facePolygons
             }
-            polygons += polygon.tessellate()
         }
         let uvstep = Double(1) / Double(count - 1)
         var e1 = prev.edgeVertices
@@ -787,21 +823,37 @@ public extension Mesh {
             // TODO: create triangles for mismatched points
             prev = path
         }
-        if !isClosed, var polygon = Polygon(shape: prev, material: material) {
-            if let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], prev),
-               p0p1.dot(polygon.plane.normal) < 0
-            {
-                polygon = polygon.inverted()
+        if !isClosed {
+            let facePolygons = prev.facePolygons(material: material)
+            if facePolygons.isEmpty {
+                isCapped = false
+            } else if let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], prev) {
+                polygons += facePolygons.map {
+                    p0p1.dot($0.plane.normal) < 0 ? $0.inverted() : $0
+                }
+            } else {
+                polygons += facePolygons
             }
-            polygons += polygon.tessellate()
         }
         switch faces {
-        case .default where shapes.allSatisfy({ $0.isClosed }), .front:
-            return Mesh(unchecked: polygons, isConvex: isConvex)
+        case .default where isCapped, .front:
+            return Mesh(
+                unchecked: polygons,
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: isConvex
+            )
         case .back:
-            return Mesh(unchecked: polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons.inverted(),
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: false
+            )
         case .frontAndBack, .default:
-            return Mesh(unchecked: polygons + polygons.inverted(), isConvex: false)
+            return Mesh(
+                unchecked: polygons + polygons.inverted(),
+                bounds: nil, // TODO: can we calculate this efficiently?
+                isConvex: false
+            )
         }
     }
 
@@ -816,19 +868,25 @@ public extension Mesh {
             return .xor(subpaths.map { .fill($0, faces: faces, material: material) })
         }
 
-        guard let polygon = Polygon(shape: shape.closed(), material: material) else {
-            return Mesh([])
-        }
-        let polygons = polygon.tessellate()
+        let polygons = shape.closed().facePolygons(material: material)
         switch faces {
         case .front:
-            return Mesh(unchecked: polygons, isConvex: false)
+            return Mesh(
+                unchecked: polygons,
+                bounds: nil,
+                isConvex: false
+            )
         case .back:
-            return Mesh(unchecked: polygons.map { $0.inverted() }, isConvex: false)
+            return Mesh(
+                unchecked: polygons.map { $0.inverted() },
+                bounds: nil,
+                isConvex: false
+            )
         case .frontAndBack, .default:
             return Mesh(
                 unchecked: polygons + polygons.map { $0.inverted() },
-                isConvex: polygon.isConvex
+                bounds: nil,
+                isConvex: polygons.count == 1 && polygons[0].isConvex
             )
         }
     }

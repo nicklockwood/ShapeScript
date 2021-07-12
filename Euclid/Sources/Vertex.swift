@@ -58,6 +58,12 @@ public struct Vertex: Hashable {
                 Vector(values[3], values[4], values[5]),
                 Vector(values[6], values[7])
             )
+        case 9:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5]),
+                Vector(values[6], values[7], values[8])
+            )
         default:
             return nil
         }
@@ -91,15 +97,10 @@ extension Vertex: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
-        try container.encode(position.x)
-        try container.encode(position.y)
-        try container.encode(position.z)
-        try container.encode(normal.x)
-        try container.encode(normal.y)
-        try container.encode(normal.z)
+        try position.encode(to: &container)
+        try normal.encode(to: &container)
         if texcoord != .zero {
-            try container.encode(texcoord.x)
-            try container.encode(texcoord.y)
+            try texcoord.encode(to: &container, skipZ: texcoord.z == 0)
         }
     }
 }

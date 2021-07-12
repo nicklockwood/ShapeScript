@@ -12,7 +12,7 @@ let package = Package(
         .library(name: "ShapeScript", targets: ["ShapeScript"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.4.5")),
+        .package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.5.3")),
     ],
     targets: [
         .target(name: "ShapeScript", dependencies: ["Euclid"], path: "ShapeScript"),
