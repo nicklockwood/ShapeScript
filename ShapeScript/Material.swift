@@ -11,8 +11,8 @@ import Foundation
 public struct Color: Hashable {
     public let r, g, b, a: Double
 
-    public static var clear = Color(unchecked: [0, 0, 0, 0])
-    public static var white = Color(unchecked: [1])
+    public static let clear = Color(unchecked: [0, 0, 0, 0])
+    public static let white = Color(unchecked: [1])
 
     public init(unchecked components: [Double]) {
         var a = 1.0
