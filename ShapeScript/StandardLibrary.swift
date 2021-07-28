@@ -6,7 +6,6 @@
 //  Copyright © 2018 Nick Lockwood. All rights reserved.
 //
 
-import CoreText
 import Euclid
 import Foundation
 
@@ -148,6 +147,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .path(Path.square().transformed(by: context.transform))
         },
         "roundrect": .block(.custom(.primitive, ["radius": .number])) { context in
+            #if canImport(CoreGraphics)
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
             return .path(Path(
                 cgPath: CGPath(
@@ -158,13 +158,22 @@ extension Dictionary where Key == String, Value == Symbol {
                 ),
                 detail: context.detail
             ).transformed(by: context.transform))
+            #else
+            // TODO: throw error when CoreGraphics not available
+            return .path(Path.square().transformed(by: context.transform))
+            #endif
         },
         "text": .block(.text) { context in
+            #if canImport(CoreText)
             let text = context.children.map { $0.value as! String }.joined(separator: "\n")
             let font = CTFontCreateWithName((context.font ?? "Helvetica") as CFString, 1, nil)
             let attributes = [NSAttributedString.Key.font: font]
             let attributedString = NSAttributedString(string: text, attributes: attributes)
             return .paths(Path.text(attributedString, detail: context.detail / 8))
+            #else
+            // TODO: throw error when CoreText not available
+            return .paths([])
+            #endif
         },
     ]
 

@@ -7,6 +7,9 @@
 //
 
 import Euclid
+
+#if canImport(AppKit)
+
 import SceneKit
 
 #if canImport(AppKit)
@@ -224,3 +227,5 @@ public extension Geometry {
         )
     }
 }
+
+#endif
