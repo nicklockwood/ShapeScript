@@ -1,7 +1,0 @@
-language: swift
-osx_image: xcode11.7
-script:
-  - set -o pipefail
-  - xcodebuild -scheme "ShapeScript Lib" -sdk macosx clean build test
-after_success:
-  - bash <(curl -s https://codecov.io/bash) -t 7514ee4a-dfc8-4de0-9964-c2883c941ef4
