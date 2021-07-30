@@ -9,17 +9,6 @@
 import Euclid
 import Foundation
 
-public extension Vector {
-    // TODO: should tiny scale be treated as an error?
-    init(size components: [Double]) {
-        switch components.count {
-        case 1: self.init(components[0], components[0], components[0])
-        case 2: self.init(components[0], components[1], components[0])
-        default: self.init(components)
-        }
-    }
-}
-
 public enum GeometryType: Hashable, CustomStringConvertible {
     case none
     // primitives
