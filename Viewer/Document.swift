@@ -20,7 +20,7 @@ extension LexerError: ProgramError {}
 extension ParserError: ProgramError {}
 extension RuntimeError: ProgramError {}
 
-class LoadingProgress {
+final class LoadingProgress {
     public enum Status {
         case waiting
         case partial(Scene)

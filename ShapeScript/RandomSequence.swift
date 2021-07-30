@@ -6,7 +6,7 @@
 //  Copyright © 2018 Nick Lockwood. All rights reserved.
 //
 
-class RandomSequence {
+final class RandomSequence {
     private static let modulus = Double(UInt32.max) + 1
     private static let multiplier = 1664525.0
     private static let increment = 1013904223.0

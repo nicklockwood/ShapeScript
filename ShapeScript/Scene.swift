@@ -135,7 +135,7 @@ public struct Scene {
     }
 }
 
-public class Geometry {
+final public class Geometry {
     public let type: GeometryType
     public let name: String?
     public let transform: Transform

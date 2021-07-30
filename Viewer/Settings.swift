@@ -47,7 +47,7 @@ struct EditorApp: Comparable {
     }
 }
 
-class Settings {
+final class Settings {
     static let shared = Settings()
 
     private(set) lazy var defaults = UserDefaults.standard

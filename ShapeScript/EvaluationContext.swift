@@ -11,8 +11,8 @@ import Foundation
 
 // MARK: Implementation
 
-class EvaluationContext {
-    private class ImportCache {
+final class EvaluationContext {
+    private final class ImportCache {
         var store = [URL: Program]()
     }
 
