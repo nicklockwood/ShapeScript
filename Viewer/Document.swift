@@ -321,7 +321,7 @@ class Document: NSDocument, EvaluationDelegate {
         self.progress = progress
     }
 
-    private var _modified = 0
+    private var _modified: TimeInterval = 0
     private var _timer: Timer?
 
     private func startObservingFileChangesIfPossible() {
@@ -333,9 +333,9 @@ class Document: NSDocument, EvaluationDelegate {
             return
         }
 
-        func getModifiedDate(_ url: URL) -> Int? {
+        func getModifiedDate(_ url: URL) -> TimeInterval? {
             let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
-            return date.map { Int($0.timeIntervalSinceReferenceDate) }
+            return date.map { $0.timeIntervalSinceReferenceDate }
         }
 
         func fileIsModified(_ url: URL) -> Bool {
@@ -346,7 +346,7 @@ class Document: NSDocument, EvaluationDelegate {
         }
 
         // set modified date
-        _modified = Int(Date.timeIntervalSinceReferenceDate)
+        _modified = Date.timeIntervalSinceReferenceDate
 
         // start watching
         _timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -365,7 +365,7 @@ class Document: NSDocument, EvaluationDelegate {
             guard isModified else {
                 return
             }
-            self._modified = Int(Date.timeIntervalSinceReferenceDate)
+            self._modified = Date.timeIntervalSinceReferenceDate
             _ = try? self.read(from: url, ofType: url.pathExtension)
         }
     }
