@@ -1,3 +1,11 @@
+## [1.1.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.4) (2021-07-31)
+
+- Increased time precision of document file monitoring in ShapeScript Viewer app
+- Improved threading a progress logging in ShapeScript Viewer app
+- Added Linux support for ShapeScriptLib (excluding rendering and text functions)
+- Made static color constants immutable
+- Bumped Euclid version to 0.5.3
+
 ## [1.1.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.3) (2021-07-10)
 
 - Fixed assertion failure if a parsing error occurs at the last character in the .shape file

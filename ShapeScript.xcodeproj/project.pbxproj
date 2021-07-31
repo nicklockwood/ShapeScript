@@ -594,7 +594,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -620,7 +620,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -772,7 +772,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
@@ -801,7 +801,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
