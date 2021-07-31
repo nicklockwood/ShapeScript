@@ -301,7 +301,7 @@ final public class Geometry {
         }
     }
 
-    public func build(_ callback: () -> Bool) -> Bool {
+    public func build(_ callback: @escaping () -> Bool) -> Bool {
         guard mesh == nil else {
             return true
         }
@@ -315,74 +315,57 @@ final public class Geometry {
         return buildMesh(callback)
     }
 
-    private func mergeMeshes(_ builders: [() -> Mesh],
-                             with fn: (Mesh, Mesh) -> Mesh = { $0.union($1) },
-                             callback: () -> Bool) -> Bool
-    {
-        mesh = Mesh([])
-        guard !builders.isEmpty else {
-            return true
-        }
+    // Merge all the meshes into a single mesh using fn
+    private func merge(
+        _ builders: [() -> Mesh],
+        using fn: (Mesh, Mesh) -> Mesh = { $0.union($1) },
+        callback: @escaping () -> Bool
+    ) -> Mesh {
+        var mesh = Mesh([])
         var builders = builders
-        var meshes = [(Mesh, Bounds)]()
-        func _mesh(at i: Int) -> (Mesh, Bounds) {
-            if i == meshes.count {
-                let m = builders[i]()
-                meshes.append((m, m.bounds))
-            }
-            return meshes[i]
-        }
-        var i = 0, count = builders.count
-        while i < count {
-            var (m, mb) = _mesh(at: i)
-            var j = i + 1
-            while j < count {
-                let (n, nb) = _mesh(at: j)
-                if mb.intersects(nb) {
-                    if !callback() {
-                        return false
-                    }
-                    m = fn(m, n)
-                    mb = m.bounds
-                    meshes[i] = (m, mb)
-                    meshes.remove(at: j)
-                    _ = builders.remove(at: j)
-                    count -= 1
-                    continue
-                }
-                j += 1
-            }
-            mesh = mesh?.merge(m)
+        var i = 0
+        while i < builders.count {
+            mesh = mesh.merge(reduce(&builders, at: i, using: fn, callback: callback))
             i += 1
         }
-        return true
+        return mesh
     }
 
-    private func reduceMeshes(_ builders: [() -> Mesh],
-                              with fn: (Mesh, Mesh) -> Mesh,
-                              callback: () -> Bool) -> Bool
-    {
-        guard var m = builders.first?() else {
-            mesh = Mesh([])
-            return true
-        }
-        var mb = m.bounds
-        for i in 1 ..< builders.count {
-            let n = builders[i]()
-            let nb = n.bounds
-            if mb.intersects(nb) {
+    // Merge each intersecting mesh after i into the mesh at index i using fn
+    private func reduce(
+        _ builders: [() -> Mesh],
+        using fn: (Mesh, Mesh) -> Mesh,
+        callback: @escaping () -> Bool
+    ) -> Mesh {
+        var builders = builders
+        return reduce(&builders, at: 0, using: fn, callback: callback)
+    }
+
+    private func reduce(
+        _ builders: inout [() -> Mesh],
+        at i: Int,
+        using fn: (Mesh, Mesh) -> Mesh,
+        callback: @escaping () -> Bool
+    ) -> Mesh {
+        var m = builders[i]()
+        var j = i + 1
+        while j < builders.count {
+            let n = builders[j]()
+            if m.bounds.intersects(n.bounds) {
                 if !callback() {
-                    return false
+                    return m
                 }
                 m = fn(m, n)
-                mb = m.bounds
+                builders[i] = { m }
+                _ = builders.remove(at: j)
+                j = i
             }
+            j += 1
         }
-        mesh = m
-        return true
+        return m
     }
 
-    private func buildMesh(_ callback: () -> Bool) -> Bool {
+    private func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
         switch type {
         case .none, .path:
             mesh = Mesh([])
@@ -400,56 +383,43 @@ final public class Geometry {
             } : along.flatMap { along in
                 paths.map { path in { Mesh.extrude(path, along: along) } }
             }
-            if !mergeMeshes(builders, callback: callback) {
-                return false
-            }
+            mesh = merge(builders, callback: callback)
         case let .lathe(paths, segments: segments):
             let builders = paths.map { path in { Mesh.lathe(path, slices: segments) } }
-            if !mergeMeshes(builders, callback: callback) {
-                return false
-            }
+            mesh = merge(builders, callback: callback)
         case let .loft(paths):
             mesh = Mesh.loft(paths)
         case let .fill(paths):
             let builders = paths.map { path in { Mesh.fill(path.closed()) } }
-            if !mergeMeshes(builders, callback: callback) {
-                return false
-            }
+            mesh = merge(builders, callback: callback)
         case .union:
             let builders = children.map { child in { child.flatten(with: self.material) } }
-            if !mergeMeshes(builders, callback: callback) {
-                return false
-            }
+            mesh = merge(builders, callback: callback)
         case .xor:
             let builders = children.map { child in { child.flatten(with: self.material) } }
-            if !mergeMeshes(builders, with: { $0.xor($1) }, callback: callback) {
-                return false
-            }
+            mesh = merge(builders, using: { $0.xor($1) }, callback: callback)
         case .difference:
             let builders = children.map { child in { child.flatten(with: self.material) } }
-            if !reduceMeshes(builders, with: { $0.subtract($1) }, callback: callback) {
-                return false
-            }
+            mesh = reduce(builders, using: { $0.subtract($1) }, callback: callback)
         case .intersection:
             let builders = children.map { child in { child.flatten(with: self.material) } }
-            if !reduceMeshes(builders, with: { $0.intersect($1) }, callback: callback) {
-                return false
-            }
+            mesh = reduce(builders, using: { $0.intersect($1) }, callback: callback)
         case .stencil:
             var builders = children.map { child in { child.flatten(with: self.material) } }
             mesh = builders.first?()
             if let m = mesh {
                 builders[0] = { m }
             }
-            if !reduceMeshes(builders, with: { $0.stencil($1) }, callback: callback) {
-                return false
-            }
+            mesh = reduce(builders, using: { $0.stencil($1) }, callback: callback)
         case let .mesh(mesh):
             self.mesh = mesh
         }
-        let m = mesh
-        meshQueue.async { meshCache[self.cacheKey] = m }
-        return callback()
+        if callback() {
+            let m = mesh
+            meshQueue.async { meshCache[self.cacheKey] = m }
+            return true
+        }
+        return false
     }
 
     // external data, e.g. SCNGeometry
