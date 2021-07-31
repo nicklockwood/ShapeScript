@@ -319,16 +319,24 @@ class Document: NSDocument, EvaluationDelegate {
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             for geometry in scene.children {
                 // pre-generate geometry
-                guard geometry.build({ !progress.isCancelled }) else {
+                var mesh = geometry.mesh
+                guard geometry.build({
+                    if progress.isCancelled {
+                        return false
+                    }
+                    let time = CFAbsoluteTimeGetCurrent()
+                    if time - lastUpdate > minUpdatePeriod, mesh != geometry.mesh {
+                        Swift.print(String(format: "[\(progress.id)] rendering..."))
+                        geometry.scnBuild()
+                        progress.setStatus(.partial(scene.deepCopy()))
+                        lastUpdate = time
+                        mesh = geometry.mesh
+                    }
+                    return true
+                }) else {
                     break
                 }
                 geometry.scnBuild()
-                let time = CFAbsoluteTimeGetCurrent()
-                if time - lastUpdate > minUpdatePeriod {
-                    Swift.print(String(format: "[\(progress.id)] rendering..."))
-                    progress.setStatus(.partial(scene.deepCopy()))
-                    lastUpdate = time
-                }
             }
 
             if logCancelled() {
