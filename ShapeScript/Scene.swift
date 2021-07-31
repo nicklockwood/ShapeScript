@@ -365,6 +365,10 @@ final public class Geometry {
         return m
     }
 
+    private func childBuilders(_ callback: @escaping () -> Bool) -> [() -> Mesh] {
+        children.map { child in { child.flatten(with: self.material, callback: callback) } }
+    }
+
     private func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
         switch type {
         case .none, .path:
@@ -393,19 +397,15 @@ final public class Geometry {
             let builders = paths.map { path in { Mesh.fill(path.closed()) } }
             mesh = merge(builders, callback: callback)
         case .union:
-            let builders = children.map { child in { child.flatten(with: self.material) } }
-            mesh = merge(builders, callback: callback)
+            mesh = merge(childBuilders(callback), callback: callback)
         case .xor:
-            let builders = children.map { child in { child.flatten(with: self.material) } }
-            mesh = merge(builders, using: { $0.xor($1) }, callback: callback)
+            mesh = merge(childBuilders(callback), using: { $0.xor($1) }, callback: callback)
         case .difference:
-            let builders = children.map { child in { child.flatten(with: self.material) } }
-            mesh = reduce(builders, using: { $0.subtract($1) }, callback: callback)
+            mesh = reduce(childBuilders(callback), using: { $0.subtract($1) }, callback: callback)
         case .intersection:
-            let builders = children.map { child in { child.flatten(with: self.material) } }
-            mesh = reduce(builders, using: { $0.intersect($1) }, callback: callback)
+            mesh = reduce(childBuilders(callback), using: { $0.intersect($1) }, callback: callback)
         case .stencil:
-            var builders = children.map { child in { child.flatten(with: self.material) } }
+            var builders = childBuilders(callback)
             mesh = builders.first?()
             if let m = mesh {
                 builders[0] = { m }
@@ -476,11 +476,11 @@ final public class Geometry {
         self.isOpaque = isOpaque
     }
 
-    // TODO: make this more efficient, and interruptible
-    public func flatten(with material: Material?) -> Mesh {
+    public func flatten(with material: Material?, callback: @escaping () -> Bool) -> Mesh {
         var result = mesh ?? Mesh([])
         if renderChildren {
-            result = .union([result] + children.map { $0.flatten(with: material) })
+            let builders = childBuilders(callback)
+            result = merge([{ result }] + builders, callback: callback)
         }
         if material != self.material {
             result = result.replacing(nil, with: self.material)
