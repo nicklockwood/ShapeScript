@@ -397,8 +397,12 @@ final public class Geometry {
             let builders = paths.map { path in { Mesh.fill(path.closed()) } }
             mesh = merge(builders, callback: callback)
         case .union:
+            mesh = Mesh([])
+            children.forEach { mesh = mesh?.merge($0.merged()) }
             mesh = merge(childBuilders(callback), callback: callback)
         case .xor:
+            mesh = Mesh([])
+            children.forEach { mesh = mesh?.merge($0.merged()) }
             mesh = merge(childBuilders(callback), using: { $0.xor($1) }, callback: callback)
         case .difference:
             mesh = reduce(childBuilders(callback), using: { $0.subtract($1) }, callback: callback)
