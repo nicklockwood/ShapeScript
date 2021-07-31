@@ -18,8 +18,8 @@ public func parse(_ input: String) throws -> Program {
 }
 
 public struct Program: Equatable {
-    let source: String
-    let statements: [Statement]
+    public let source: String
+    public let statements: [Statement]
 }
 
 public enum StatementType: Equatable {
