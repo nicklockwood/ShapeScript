@@ -20,6 +20,8 @@ extension LexerError: ProgramError {}
 extension ParserError: ProgramError {}
 extension RuntimeError: ProgramError {}
 
+private var _processID = 0
+
 final class LoadingProgress {
     public enum Status {
         case waiting
@@ -31,12 +33,17 @@ final class LoadingProgress {
 
     public typealias Observer = (Status) -> Void
 
-    private let queue = DispatchQueue(label: "ShapeScript.Processing")
+    private let queue: DispatchQueue
     private let observer: Observer
     private(set) var status: Status = .waiting
+    private(set) var id: Int = {
+        _processID += 1
+        return _processID
+    }()
 
     init(_ observer: @escaping Observer) {
         self.observer = observer
+        self.queue = DispatchQueue(label: "shapescript.progress.\(id)")
         DispatchQueue.main.async {
             self.observer(self.status)
         }
@@ -68,22 +75,26 @@ final class LoadingProgress {
     }
 
     public func cancel() {
-        guard inProgress else { return }
         setStatus(.cancelled)
     }
 
     fileprivate func setStatus(_ status: Status) {
         guard inProgress else { return }
+        self.status = status
         DispatchQueue.main.async {
-            guard self.inProgress else { return }
-            self.status = status
             self.observer(status)
         }
     }
 
-    fileprivate func dispatch(_ block: @escaping () -> Void) {
+    fileprivate func dispatch(_ block: @escaping () throws -> Void) {
         guard inProgress else { return }
-        queue.async(execute: block)
+        queue.async { [weak self] in
+            do {
+                try block()
+            } catch {
+                self?.setStatus(.failure(error))
+            }
+        }
     }
 }
 
@@ -238,7 +249,10 @@ class Document: NSDocument, EvaluationDelegate {
     override func read(from url: URL, ofType _: String) throws {
         let input = try String(contentsOf: url, encoding: .utf8)
         linkedResources.removeAll()
-        self.progress?.cancel()
+        if let progress = self.progress, progress.inProgress {
+            Swift.print("[\(progress.id)] cancelling...")
+            progress.cancel()
+        }
         let progress = LoadingProgress { [weak self] result in
             guard let self = self else {
                 return
@@ -262,61 +276,71 @@ class Document: NSDocument, EvaluationDelegate {
                 }
                 self.updateViews()
             case .cancelled:
-                Swift.print("cancelled")
+                break
             }
         }
         progress.dispatch { [weak progress] in
-            guard let progress = progress, !progress.isCancelled else {
+            guard let progress = progress else {
                 return
             }
-            let start = CFAbsoluteTimeGetCurrent()
-            Swift.print("starting...")
-            do {
-                let program = try parse(input)
-                let parsed = CFAbsoluteTimeGetCurrent()
-                Swift.print(String(format: "parsing: %.2fs", parsed - start))
 
-                let scene = try evaluate(program, delegate: self)
-                let evaluated = CFAbsoluteTimeGetCurrent()
-                Swift.print(String(format: "evaluating: %.2fs", evaluated - parsed))
-
-                // Clear errors and previous geometry
-                progress.setStatus(.partial(.empty))
-
-                var lastUpdate = CFAbsoluteTimeGetCurrent()
-                for geometry in scene.children {
-                    // pre-generate geometry
-                    _ = geometry.build {
-                        if progress.isCancelled {
-                            return false
-                        }
-                        let time = CFAbsoluteTimeGetCurrent()
-                        if time - lastUpdate > 0.3 {
-                            geometry.scnBuild()
-                            progress.setStatus(.partial(scene.deepCopy()))
-                            lastUpdate = time
-                        }
-                        return true
-                    }
-                    if progress.isCancelled {
-                        return
-                    }
-                    geometry.scnBuild()
-                }
+            func logCancelled() -> Bool {
                 if progress.isCancelled {
-                    return
+                    Swift.print("[\(progress.id)] cancelled")
+                    return true
                 }
-                let done = CFAbsoluteTimeGetCurrent()
-                Swift.print(String(format: "geometry: %.2fs", done - evaluated))
-                progress.setStatus(.success(scene.deepCopy()))
-            } catch {
-                progress.setStatus(.failure(error))
+                return false
             }
-            if progress.isCancelled {
+
+            let start = CFAbsoluteTimeGetCurrent()
+            Swift.print("[\(progress.id)] starting...")
+            if logCancelled() {
                 return
             }
+
+            let program = try parse(input)
+            let parsed = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
+            if logCancelled() {
+                return
+            }
+
+            let scene = try evaluate(program, delegate: self)
+            let evaluated = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
+            if logCancelled() {
+                return
+            }
+
+            // Clear errors and previous geometry
+            progress.setStatus(.partial(.empty))
+
+            let minUpdatePeriod: TimeInterval = 0.1
+            var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
+            for geometry in scene.children {
+                // pre-generate geometry
+                guard geometry.build({ !progress.isCancelled }) else {
+                    break
+                }
+                geometry.scnBuild()
+                let time = CFAbsoluteTimeGetCurrent()
+                if time - lastUpdate > minUpdatePeriod {
+                    Swift.print(String(format: "[\(progress.id)] rendering..."))
+                    progress.setStatus(.partial(scene.deepCopy()))
+                    lastUpdate = time
+                }
+            }
+
+            if logCancelled() {
+                return
+            }
+
+            let done = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
+            progress.setStatus(.success(scene.deepCopy()))
+
             let end = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "total: %.2fs", end - start))
+            Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
         }
         self.progress = progress
     }
