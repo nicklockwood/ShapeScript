@@ -129,7 +129,7 @@ class Document: NSDocument, EvaluationDelegate {
         return nil
     }
 
-    var progress: LoadingProgress? {
+    weak var progress: LoadingProgress? {
         didSet {
             updateViews()
         }
@@ -161,6 +161,15 @@ class Document: NSDocument, EvaluationDelegate {
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
         addWindowController(windowController)
         updateViews()
+    }
+
+    override func close() {
+        super.close()
+        progress?.cancel()
+        _timer?.invalidate()
+        _securityScopedResources.forEach {
+            $0.stopAccessingSecurityScopedResource()
+        }
     }
 
     private func numberOfEmoji<S: StringProtocol>(in string: S) -> Int {
@@ -279,7 +288,7 @@ class Document: NSDocument, EvaluationDelegate {
                 break
             }
         }
-        progress.dispatch { [weak progress] in
+        progress.dispatch { [weak self, weak progress] in
             guard let progress = progress else {
                 return
             }
@@ -402,13 +411,6 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
-    deinit {
-        _timer?.invalidate()
-        _securityScopedResources.forEach {
-            $0.stopAccessingSecurityScopedResource()
-        }
-    }
-
     @IBAction private func didSelectEditor(_ sender: NSPopUpButton) {
         handleEditorPopupAction(for: sender, in: windowForSheet)
     }
@@ -506,7 +508,7 @@ class Document: NSDocument, EvaluationDelegate {
             let polygonCount: String
             let triangleCount: String
             let dimensions: String
-            if progress?.didSucceed == true {
+            if progress?.didSucceed != false {
                 polygonCount = String(selectedGeometry.polygonCount)
                 triangleCount = String(selectedGeometry.triangleCount)
                 dimensions = selectedGeometry.exactBounds.size.shortDescription

@@ -137,7 +137,7 @@ class SceneViewController: NSViewController {
         }
     }
 
-    private(set) var selectedGeometry: Geometry?
+    private(set) weak var selectedGeometry: Geometry?
     private func selectGeometry(_ scnGeometry: SCNGeometry?) {
         selectedGeometry = geometry?.select(with: scnGeometry)
     }
