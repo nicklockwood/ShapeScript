@@ -79,11 +79,11 @@ extension LoadingProgress {
 
     func dispatch(_ block: @escaping () throws -> Void) {
         guard inProgress else { return }
-        queue.async { [weak self] in
+        queue.async {
             do {
                 try block()
             } catch {
-                self?.setStatus(.failure(error))
+                self.setStatus(.failure(error))
             }
         }
     }
