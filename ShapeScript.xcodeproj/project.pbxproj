@@ -29,6 +29,8 @@
 		0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0190CB6E21CE300E00CE4571 /* Utilities.swift */; };
 		01977FCB215D0BD400D65D5E /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01977FCA215D0BD400D65D5E /* Scene.swift */; };
 		01AA1D8721EF31860086BF86 /* Material.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA1D8621EF31860086BF86 /* Material.swift */; };
+		01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49F926B621C1009BB2C6 /* Geometry.swift */; };
+		01AA49FE26B622B4009BB2C6 /* LoadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */; };
 		01BD9437219367D2005FFAEC /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01BD943521936514005FFAEC /* Examples */; };
 		01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BD943821936B90005FFAEC /* RandomSequence.swift */; };
 		01BFB3A021425C8500E47A7C /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
@@ -127,6 +129,8 @@
 		0190CB6E21CE300E00CE4571 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		01977FCA215D0BD400D65D5E /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
 		01AA1D8621EF31860086BF86 /* Material.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Material.swift; sourceTree = "<group>"; };
+		01AA49F926B621C1009BB2C6 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingProgress.swift; sourceTree = "<group>"; };
 		01BD943521936514005FFAEC /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
 		01BD943821936B90005FFAEC /* RandomSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSequence.swift; sourceTree = "<group>"; };
 		01BFB39621425C8500E47A7C /* ShapeScript.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShapeScript.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -175,6 +179,7 @@
 				0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */,
 				0152E5C9214500990082A5A3 /* SceneViewController.swift */,
 				013312F021CD5A7000626F1B /* PreferencesViewController.swift */,
+				01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */,
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
 				0152E5CD2145009A0082A5A3 /* Assets.xcassets */,
@@ -242,6 +247,7 @@
 				013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */,
 				01BD943821936B90005FFAEC /* RandomSequence.swift */,
 				01AA1D8621EF31860086BF86 /* Material.swift */,
+				01AA49F926B621C1009BB2C6 /* Geometry.swift */,
 				01977FCA215D0BD400D65D5E /* Scene.swift */,
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
 				01BFB39A21425C8500E47A7C /* Info.plist */,
@@ -506,6 +512,7 @@
 				0152E5CA214500990082A5A3 /* SceneViewController.swift in Sources */,
 				0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */,
 				0152E5C8214500990082A5A3 /* AppDelegate.swift in Sources */,
+				01AA49FE26B622B4009BB2C6 /* LoadingProgress.swift in Sources */,
 				013312F521CD653B00626F1B /* Settings.swift in Sources */,
 				0152E5FC2145C0420082A5A3 /* Document.swift in Sources */,
 				0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */,
@@ -526,6 +533,7 @@
 				013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */,
 				01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */,
 				013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */,
+				01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

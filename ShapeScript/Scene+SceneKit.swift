@@ -112,6 +112,12 @@ public extension SCNNode {
     }
 }
 
+public extension Scene {
+    func scnBuild() {
+        children.forEach { $0.scnBuild() }
+    }
+}
+
 public extension Geometry {
     var scnGeometry: SCNGeometry {
         associatedData as? SCNGeometry ?? SCNGeometry()

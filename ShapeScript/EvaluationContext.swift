@@ -11,6 +11,16 @@ import Foundation
 
 // MARK: Implementation
 
+public struct SourceLocation {
+    public let line: Int
+    public let file: URL?
+
+    public init(at line: Int, in file: URL?) {
+        self.line = line
+        self.file = file
+    }
+}
+
 final class EvaluationContext {
     private final class ImportCache {
         var store = [URL: Program]()

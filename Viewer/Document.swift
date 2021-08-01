@@ -20,84 +20,6 @@ extension LexerError: ProgramError {}
 extension ParserError: ProgramError {}
 extension RuntimeError: ProgramError {}
 
-private var _processID = 0
-
-final class LoadingProgress {
-    public enum Status {
-        case waiting
-        case partial(Scene)
-        case success(Scene)
-        case failure(Error)
-        case cancelled
-    }
-
-    public typealias Observer = (Status) -> Void
-
-    private let queue: DispatchQueue
-    private let observer: Observer
-    private(set) var status: Status = .waiting
-    private(set) var id: Int = {
-        _processID += 1
-        return _processID
-    }()
-
-    init(_ observer: @escaping Observer) {
-        self.observer = observer
-        self.queue = DispatchQueue(label: "shapescript.progress.\(id)")
-        DispatchQueue.main.async {
-            self.observer(self.status)
-        }
-    }
-
-    public var isCancelled: Bool {
-        if case .cancelled = status {
-            return true
-        }
-        return false
-    }
-
-    public var inProgress: Bool {
-        switch status {
-        case .waiting, .partial:
-            return true
-        case .cancelled, .success, .failure:
-            return false
-        }
-    }
-
-    public var didSucceed: Bool {
-        switch status {
-        case .success:
-            return true
-        case .waiting, .partial, .cancelled, .failure:
-            return false
-        }
-    }
-
-    public func cancel() {
-        setStatus(.cancelled)
-    }
-
-    fileprivate func setStatus(_ status: Status) {
-        guard inProgress else { return }
-        self.status = status
-        DispatchQueue.main.async {
-            self.observer(status)
-        }
-    }
-
-    fileprivate func dispatch(_ block: @escaping () throws -> Void) {
-        guard inProgress else { return }
-        queue.async { [weak self] in
-            do {
-                try block()
-            } catch {
-                self?.setStatus(.failure(error))
-            }
-        }
-    }
-}
-
 class Document: NSDocument, EvaluationDelegate {
     var sceneViewControllers: [SceneViewController] {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
@@ -326,26 +248,18 @@ class Document: NSDocument, EvaluationDelegate {
 
             let minUpdatePeriod: TimeInterval = 0.1
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
-            for geometry in scene.children {
-                // pre-generate geometry
-                var mesh = geometry.mesh
-                guard geometry.build({
-                    if progress.isCancelled {
-                        return false
-                    }
-                    let time = CFAbsoluteTimeGetCurrent()
-                    if time - lastUpdate > minUpdatePeriod, mesh != geometry.mesh {
-                        Swift.print(String(format: "[\(progress.id)] rendering..."))
-                        geometry.scnBuild()
-                        progress.setStatus(.partial(scene.deepCopy()))
-                        lastUpdate = time
-                        mesh = geometry.mesh
-                    }
-                    return true
-                }) else {
-                    break
+            _ = scene.build {
+                if progress.isCancelled {
+                    return false
                 }
-                geometry.scnBuild()
+                let time = CFAbsoluteTimeGetCurrent()
+                if time - lastUpdate > minUpdatePeriod {
+                    Swift.print(String(format: "[\(progress.id)] rendering..."))
+                    scene.scnBuild()
+                    progress.setStatus(.partial(scene.deepCopy()))
+                    lastUpdate = time
+                }
+                return true
             }
 
             if logCancelled() {
@@ -354,6 +268,7 @@ class Document: NSDocument, EvaluationDelegate {
 
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
+            scene.scnBuild()
             progress.setStatus(.success(scene.deepCopy()))
 
             let end = CFAbsoluteTimeGetCurrent()
