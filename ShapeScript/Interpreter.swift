@@ -41,20 +41,29 @@ public enum ImportError: Error, Equatable {
         }
     }
 
-    public var range: Range<String.Index>? {
-        switch self {
-        case let .lexerError(error): return error.range
-        case let .parserError(error): return error.range
-        case let .runtimeError(error): return error.range
-        default: return nil
-        }
-    }
-
-    public var message: String? {
+    public var message: String {
         switch self {
         case let .lexerError(error): return error.message
         case let .parserError(error): return error.message
         case let .runtimeError(error): return error.message
+        default: return "Unknown error"
+        }
+    }
+
+    public var range: Range<String.Index> {
+        switch self {
+        case let .lexerError(error): return error.range
+        case let .parserError(error): return error.range
+        case let .runtimeError(error): return error.range
+        default: return "".startIndex ..< "".endIndex
+        }
+    }
+
+    public var hint: String? {
+        switch self {
+        case let .lexerError(error): return error.hint
+        case let .parserError(error): return error.hint
+        case let .runtimeError(error): return error.hint
         default: return nil
         }
     }
@@ -143,8 +152,11 @@ public struct RuntimeError: Error, Equatable {
         case let .fileParsingError(for: name, _, _),
              let .fileTypeMismatch(for: name, _, _):
             return "Unable to open file '\(name)'"
-        case let .importError(_, for: name, _):
-            return "Error in imported file '\(name)'"
+        case let .importError(error, for: name, _):
+            if case let .runtimeError(error) = error, case .importError = error.type  {
+                return error.message
+            }
+            return "Error in imported file '\(name)': \(error.message)"
         }
     }
 
@@ -235,12 +247,8 @@ public struct RuntimeError: Error, Equatable {
                 return "The type of file at '\(url.path)' is not supported."
             }
             return "The file at '\(url.path)' is not a \(type) file."
-        case let .importError(error, for: _, in: source):
-            guard let message = error.message, let range = error.range else {
-                return nil
-            }
-            let line = source.lineAndColumn(at: range.lowerBound).line
-            return "\(message) at line \(line)."
+        case let .importError(error, for: _, in: _):
+            return error.hint
         }
     }
 

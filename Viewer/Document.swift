@@ -16,9 +16,31 @@ protocol ProgramError {
     var hint: String? { get }
 }
 
+extension ProgramError {
+    func rangeAndSource(with source: String) -> (Range<String.Index>?, source: String) {
+        switch self {
+        case let error as ImportError:
+            if case let .runtimeError(error) = error {
+                return error.rangeAndSource(with: source)
+            }
+            return (error.range, source)
+        case let error as ProgramError:
+            switch (error as? RuntimeError)?.type {
+            case let .importError(error, for: _, in: source)?:
+                return error.rangeAndSource(with: source)
+            default:
+                return (error.range, source)
+            }
+        default:
+            return (nil, source)
+        }
+    }
+}
+
 extension LexerError: ProgramError {}
 extension ParserError: ProgramError {}
 extension RuntimeError: ProgramError {}
+extension ImportError: ProgramError {}
 
 class Document: NSDocument, EvaluationDelegate {
     var sceneViewControllers: [SceneViewController] {
@@ -109,17 +131,19 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     private func message(for error: Error, in source: String) -> NSAttributedString {
+        var source = source
         let errorType: String
         let message: String, range: Range<String.Index>?, hint: String?
         switch error {
         case let error as ProgramError:
-            if let error = error as? RuntimeError, case .fileAccessRestricted = error.type {
+            (range, source) = error.rangeAndSource(with: source)
+            switch (error as? RuntimeError)?.type {
+            case .fileAccessRestricted?:
                 errorType = "Permission Required"
-            } else {
+            default:
                 errorType = "Error"
             }
             message = error.message
-            range = error.range
             hint = error.hint
         default:
             errorType = "Error"
