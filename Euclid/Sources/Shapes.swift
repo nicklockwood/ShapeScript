@@ -410,7 +410,7 @@ public extension Mesh {
         }
 
         var profile = profile
-        if profile.points.count < 2 || pointsAreSelfIntersecting(profile.points.map { $0.position }) {
+        if profile.points.count < 2 {
             return Mesh([])
         }
 
@@ -552,8 +552,9 @@ public extension Mesh {
             }
         }
 
+        let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map { $0.position })
         switch faces {
-        case .default where isConvex, .front:
+        case .default where isSealed, .front:
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
@@ -857,7 +858,7 @@ public extension Mesh {
         }
     }
 
-    /// Fill a path to form a polygon
+    /// Fill a path to form one or more polygons
     static func fill(
         _ shape: Path,
         faces: Faces = .default,
@@ -889,5 +890,21 @@ public extension Mesh {
                 isConvex: polygons.count == 1 && polygons[0].isConvex
             )
         }
+    }
+
+    /// Stroke a path with the specified line width, depth and material
+    static func stroke(
+        _ shape: Path,
+        width: Double = 0.01,
+        depth: Double = 0,
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        extrude(
+            .rectangle(width: width, height: depth),
+            along: shape,
+            faces: faces,
+            material: material
+        )
     }
 }

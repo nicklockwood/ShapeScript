@@ -31,6 +31,11 @@
 
 struct BSP {
     private var nodes: [BSPNode]
+    private(set) var isConvex: Bool
+}
+
+extension BSP {
+    typealias CancellationHandler = () -> Bool
 
     enum ClipRule {
         case greaterThan
@@ -39,46 +44,71 @@ struct BSP {
         case lessThanEqual
     }
 
-    init(_ mesh: Mesh) {
+    init(_ mesh: Mesh, _ isCancelled: CancellationHandler) {
         self.nodes = [BSPNode]()
-        initialize(mesh.polygons, isConvex: mesh.isConvex)
+        self.isConvex = mesh.isConvex
+        initialize(mesh.polygons, isCancelled)
     }
 
-    func clip(_ polygons: [Polygon], _ keeping: ClipRule) -> [Polygon] {
+    func clip(
+        _ polygons: [Polygon],
+        _ keeping: ClipRule,
+        _ isCancelled: CancellationHandler
+    ) -> [Polygon] {
         var id = 0
-        return clip(polygons.map { $0.with(id: 0) }, keeping, &id)
-    }
-}
-
-// See https://github.com/wangyi-fudan/wyhash/
-private struct DeterministicRNG: RandomNumberGenerator {
-    private var seed: UInt64 = 0
-
-    mutating func next() -> UInt64 {
-        seed &+= 0xA0761D6478BD642F
-        let result = seed.multipliedFullWidth(by: seed ^ 0xE7037ED1A0B428DB)
-        return result.high ^ result.low
-    }
-}
-
-private class BSPNode {
-    var front: Int = 0
-    var back: Int = 0
-    var polygons = [Polygon]()
-    var plane: Plane
-
-    init(plane: Plane) {
-        self.plane = plane
+        var out: [Polygon]?
+        return clip(polygons.map { $0.with(id: 0) }, keeping, &out, &id, isCancelled)
     }
 
-    init(polygon: Polygon) {
-        self.polygons = [polygon]
-        self.plane = polygon.plane
+    func split(
+        _ polygons: [Polygon],
+        _ left: ClipRule,
+        _ right: ClipRule,
+        _ isCancelled: CancellationHandler
+    ) -> ([Polygon], [Polygon]) {
+        var id = 0
+        var rhs: [Polygon]? = []
+        let lhs = clip(polygons.map { $0.with(id: 0) }, left, &rhs, &id, isCancelled)
+        switch (left, right) {
+        case (.lessThan, .greaterThan),
+             (.greaterThan, .lessThan):
+            var ignore: [Polygon]?
+            return (lhs, clip(rhs!, right, &ignore, &id, isCancelled))
+        default:
+            return (lhs, rhs!)
+        }
     }
 }
 
 private extension BSP {
-    mutating func initialize(_ polygons: [Polygon], isConvex: Bool) {
+    final class BSPNode {
+        var front: Int = 0
+        var back: Int = 0
+        var polygons = [Polygon]()
+        var plane: Plane
+
+        init(plane: Plane) {
+            self.plane = plane
+        }
+
+        init(polygon: Polygon) {
+            self.polygons = [polygon]
+            self.plane = polygon.plane
+        }
+    }
+
+    // See https://github.com/wangyi-fudan/wyhash/
+    struct DeterministicRNG: RandomNumberGenerator {
+        private var seed: UInt64 = 0
+
+        mutating func next() -> UInt64 {
+            seed &+= 0xA0761D6478BD642F
+            let result = seed.multipliedFullWidth(by: seed ^ 0xE7037ED1A0B428DB)
+            return result.high ^ result.low
+        }
+    }
+
+    mutating func initialize(_ polygons: [Polygon], _ isCancelled: CancellationHandler) {
         nodes.reserveCapacity(polygons.count)
         var rng = DeterministicRNG()
 
@@ -89,7 +119,7 @@ private extension BSP {
             // Randomly shuffle polygons to reduce average number of splits
             let polygons = polygons.shuffled(using: &rng)
             nodes.append(BSPNode(plane: polygons[0].plane))
-            insert(polygons)
+            insert(polygons, isCancelled)
             return
         }
 
@@ -117,9 +147,10 @@ private extension BSP {
         }
     }
 
-    mutating func insert(_ polygons: [Polygon]) {
+    mutating func insert(_ polygons: [Polygon], _ isCancelled: CancellationHandler) {
+        var isActuallyConvex = true
         var stack = [(node: nodes[0], polygons: polygons)]
-        while let (node, polygons) = stack.popLast() {
+        while let (node, polygons) = stack.popLast(), !isCancelled() {
             var front = [Polygon](), back = [Polygon]()
             for polygon in polygons {
                 switch polygon.compare(with: node.plane) {
@@ -131,11 +162,13 @@ private extension BSP {
                     }
                 case .front:
                     front.append(polygon)
+                    isActuallyConvex = false
                 case .back:
                     back.append(polygon)
                 case .spanning:
                     var id = 0
                     polygon.split(spanning: node.plane, &front, &back, &id)
+                    isActuallyConvex = false
                 }
             }
             if let first = front.first {
@@ -161,18 +194,22 @@ private extension BSP {
                 stack.append((next, back))
             }
         }
+        isConvex = isActuallyConvex
     }
 
     func clip(
         _ polygons: [Polygon],
         _ keeping: BSP.ClipRule,
-        _ id: inout Int
+        _ out: inout [Polygon]?,
+        _ id: inout Int,
+        _ isCancelled: CancellationHandler
     ) -> [Polygon] {
         guard !nodes.isEmpty else {
             return polygons
         }
         var total = [Polygon]()
-        func addPolygons(_ polygons: [Polygon]) {
+        var rejects = [Polygon]()
+        func addPolygons(_ polygons: [Polygon], to total: inout [Polygon]) {
             for a in polygons {
                 guard a.id != 0 else {
                     total.append(a)
@@ -191,7 +228,7 @@ private extension BSP {
         }
         let keepFront = [.greaterThan, .greaterThanEqual].contains(keeping)
         var stack = [(node: nodes[0], polygons: polygons)]
-        while let (node, polygons) = stack.popLast() {
+        while let (node, polygons) = stack.popLast(), !isCancelled() {
             var coplanar = [Polygon](), front = [Polygon](), back = [Polygon]()
             for polygon in polygons {
                 polygon.split(along: node.plane, &coplanar, &front, &back, &id)
@@ -211,18 +248,23 @@ private extension BSP {
             if !front.isEmpty {
                 if node.front > 0 {
                     stack.append((nodes[node.front], front))
-                } else {
-                    addPolygons(keepFront ? front : [])
+                } else if keepFront {
+                    addPolygons(front, to: &total)
+                } else if out != nil {
+                    addPolygons(front, to: &rejects)
                 }
             }
             if !back.isEmpty {
                 if node.back > 0 {
                     stack.append((nodes[node.back], back))
-                } else {
-                    addPolygons(keepFront ? [] : back)
+                } else if !keepFront {
+                    addPolygons(back, to: &total)
+                } else if out != nil {
+                    addPolygons(back, to: &rejects)
                 }
             }
         }
+        out = rejects
         return total
     }
 }
