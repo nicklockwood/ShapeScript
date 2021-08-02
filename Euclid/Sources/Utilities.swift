@@ -109,8 +109,7 @@ func triangulateVertices(
     // would be incorrectly triangulated. However it's not clear why this is
     // necessary, or if it will do the correct thing in all circumstances
     let flatteningPlane = FlatteningPlane(
-        normal: plane?.normal ??
-            faceNormalForPolygonPoints(positions, convex: false)
+        normal: plane?.normal ?? faceNormalForPolygonPoints(positions, convex: false)
     )
     let flattenedPoints = vertices.map { flatteningPlane.flattenPoint($0.position) }
     let isClockwise = flattenedPointsAreClockwise(flattenedPoints)

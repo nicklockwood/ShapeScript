@@ -430,18 +430,26 @@ private extension Geometry {
         case .xor:
             mesh = Mesh([])
             children.forEach { mesh = mesh?.merge($0.merged()) }
-            mesh = merge(childBuilders(callback), using: { $0.xor($1) }, callback: callback)
+            mesh = merge(childBuilders(callback), using: {
+                $0.xor($1, isCancelled: { !callback() })
+            }, callback: callback)
         case .difference:
-            mesh = reduce(childBuilders(callback), using: { $0.subtract($1) }, callback: callback)
+            mesh = reduce(childBuilders(callback), using: {
+                $0.subtract($1, isCancelled: { !callback() })
+            }, callback: callback)
         case .intersection:
-            mesh = reduce(childBuilders(callback), using: { $0.intersect($1) }, callback: callback)
+            mesh = reduce(childBuilders(callback), using: {
+                $0.intersect($1, isCancelled: { !callback() })
+            }, callback: callback)
         case .stencil:
             var builders = childBuilders(callback)
             mesh = builders.first?()
             if let m = mesh {
                 builders[0] = { m }
             }
-            mesh = reduce(builders, using: { $0.stencil($1) }, callback: callback)
+            mesh = reduce(builders, using: {
+                $0.stencil($1, isCancelled: { !callback() })
+            }, callback: callback)
         case let .mesh(mesh):
             self.mesh = mesh
         }
