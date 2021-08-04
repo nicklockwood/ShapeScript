@@ -135,7 +135,13 @@ public extension Geometry {
         if associatedData != nil {
             return
         } else if let path = self.path {
-            associatedData = SCNGeometry(path)
+            let linewidth = 0.005
+            associatedData = SCNGeometry(.stroke(
+                path,
+                width: linewidth,
+                depth: linewidth,
+                material: OSColor.black
+            ))
         } else if let mesh = self.mesh {
             associatedData = SCNGeometry(mesh: mesh, for: self)
         }
