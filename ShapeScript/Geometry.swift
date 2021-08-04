@@ -62,7 +62,7 @@ public enum GeometryType: Hashable, CustomStringConvertible {
             if along.isEmpty {
                 var points = [Vector]()
                 for path in paths {
-                    let offset = (path.plane?.normal ?? Vector(0, 0, 1)) / 2
+                    let offset = path.faceNormal / 2
                     for p in path.points {
                         points.append(p.position + offset)
                         points.append(p.position - offset)
