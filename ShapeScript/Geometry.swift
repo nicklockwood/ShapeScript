@@ -319,7 +319,7 @@ public extension Geometry {
     func flatten(with material: Material?, callback: @escaping () -> Bool) -> Mesh {
         var result = mesh ?? Mesh([])
         if renderChildren {
-            let builders = childBuilders(callback)
+            let builders = unrolledChildBuilders(callback)
             result = merge([{ result }] + builders, callback: callback)
         }
         if material != self.material {
@@ -392,8 +392,40 @@ private extension Geometry {
         return m
     }
 
-    func childBuilders(_ callback: @escaping () -> Bool) -> [() -> Mesh] {
+    func flattenedChildBuilders(_ callback: @escaping () -> Bool) -> [() -> Mesh] {
         children.map { child in { child.flatten(with: self.material, callback: callback) } }
+    }
+
+    func partUnrolledChildBuilders(_ callback: @escaping () -> Bool) -> [() -> Mesh] {
+        (children.first.map { m in
+            [{ m.flatten(with: self.material, callback: callback) }]
+        } ?? []) + children.dropFirst().flatMap { $0.builders(with: self.material, callback) }
+    }
+
+    func unrolledChildBuilders(_ callback: @escaping () -> Bool) -> [() -> Mesh] {
+        children.flatMap { $0.builders(with: self.material, callback) }
+    }
+
+    func builders(with material: Material?, _ callback: @escaping () -> Bool) -> [() -> Mesh] {
+        let transform = self.transform
+        let ownMaterial = self.material
+        var builders: [() -> Mesh] = mesh.map { m in [{
+            let mesh = m.transformed(by: transform)
+            if material != ownMaterial {
+                return mesh.replacing(nil, with: self.material)
+            }
+            return mesh
+        }] } ?? []
+        if renderChildren {
+            builders += unrolledChildBuilders(callback).map { builder in {
+                let mesh = builder().transformed(by: transform)
+                if material != ownMaterial {
+                    return mesh.replacing(nil, with: self.material)
+                }
+                return mesh
+            }}
+        }
+        return builders
     }
 
     func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
@@ -426,23 +458,23 @@ private extension Geometry {
         case .union:
             mesh = Mesh([])
             children.forEach { mesh = mesh?.merge($0.merged()) }
-            mesh = merge(childBuilders(callback), callback: callback)
+            mesh = merge(unrolledChildBuilders(callback), callback: callback)
         case .xor:
             mesh = Mesh([])
             children.forEach { mesh = mesh?.merge($0.merged()) }
-            mesh = merge(childBuilders(callback), using: {
+            mesh = merge(flattenedChildBuilders(callback), using: {
                 $0.xor($1, isCancelled: { !callback() })
             }, callback: callback)
         case .difference:
-            mesh = reduce(childBuilders(callback), using: {
+            mesh = reduce(partUnrolledChildBuilders(callback), using: {
                 $0.subtract($1, isCancelled: { !callback() })
             }, callback: callback)
         case .intersection:
-            mesh = reduce(childBuilders(callback), using: {
+            mesh = reduce(partUnrolledChildBuilders(callback), using: {
                 $0.intersect($1, isCancelled: { !callback() })
             }, callback: callback)
         case .stencil:
-            var builders = childBuilders(callback)
+            var builders = partUnrolledChildBuilders(callback)
             mesh = builders.first?()
             if let m = mesh {
                 builders[0] = { m }
