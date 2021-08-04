@@ -153,7 +153,7 @@ public struct RuntimeError: Error, Equatable {
              let .fileTypeMismatch(for: name, _, _):
             return "Unable to open file '\(name)'"
         case let .importError(error, for: name, _):
-            if case let .runtimeError(error) = error, case .importError = error.type  {
+            if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
             }
             return "Error in imported file '\(name)': \(error.message)"

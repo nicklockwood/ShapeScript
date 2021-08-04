@@ -1,6 +1,14 @@
+## [1.1.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.6) (2021-08-04)
+
+- Paths are now drawn using polygons strips, which looks sharper and renders more consistently
+- Made further improvements to cancelling in-progress rendering when reloading a file
+- Bumped Euclid to 0.5.4, which includes several bug fixes and performance improvements
+- Improved performance when rendering scenes with nested CSG operations or groups
+- Fixed rendering and bounds calculation of non-planar extruded shapes
+
 ## [1.1.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.5) (2021-08-02)
 
-- Info window in ShapeScript Viewer no longer included imported models in texture count
+- Info window in ShapeScript Viewer no longer includes imported models in texture count
 - Fixed a regression in ShapeScript Viewer 1.1.4 where error message wouldn't refresh correctly on reload
 - Improved error messaging for errors that occur in an imported file
 - Reloading a partially-rendered scene should now terminate the rendering more quickly, freeing up CPU

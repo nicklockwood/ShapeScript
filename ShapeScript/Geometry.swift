@@ -525,7 +525,6 @@ private extension Geometry {
         copy.isSelected = isSelected
         return copy
     }
-
 }
 
 // MARK: Stats

@@ -283,7 +283,6 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     @IBAction func openInEditor(_: AnyObject) {
-
         openFileInEditor(selectedGeometry?.sourceLocation?.file ?? fileURL)
     }
 
@@ -409,7 +408,7 @@ class Document: NSDocument, EvaluationDelegate {
             "bmp", "dib",
             "heif", "heic",
             "ind", "indd", "indt",
-            "jp2", "j2k", "jpf", "jpx", "jpm", "mj2"
+            "jp2", "j2k", "jpf", "jpx", "jpm", "mj2",
         ]
         return linkedResources.filter {
             imageExtensions.contains($0.pathExtension.lowercased())
