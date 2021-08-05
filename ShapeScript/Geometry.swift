@@ -9,6 +9,10 @@
 import Euclid
 import Foundation
 
+#if canImport(LRUCache)
+import LRUCache
+#endif
+
 public enum GeometryType: Hashable, CustomStringConvertible {
     case none
     // primitives
@@ -111,8 +115,17 @@ private struct MeshCacheKey: Hashable {
     let children: [MeshCacheKey]
 }
 
-private var meshCache = [MeshCacheKey: Mesh]()
-private let meshQueue = DispatchQueue(label: "shapescript.meshCache")
+private extension Mesh {
+    var memoryUsage: Int {
+        let vertexSize = MemoryLayout<Vertex>.stride
+        let polygonSize = 512 // Estimated
+        return polygons.reduce(0) { count, polygon in
+            count + polygonSize + polygon.vertices.count * vertexSize
+        }
+    }
+}
+
+private var meshCache = LRUCache<MeshCacheKey, Mesh>(totalCostLimit: 1_000_000_000)
 
 public final class Geometry {
     public let type: GeometryType
@@ -309,7 +322,7 @@ public extension Geometry {
         for child in children where !child.build(callback) {
             return false
         }
-        if let mesh = meshQueue.sync(execute: { meshCache[cacheKey] }) {
+        if let mesh = meshCache.value(forKey: cacheKey) {
             self.mesh = mesh
             return callback()
         }
@@ -486,8 +499,7 @@ private extension Geometry {
             self.mesh = mesh
         }
         if callback() {
-            let m = mesh
-            meshQueue.async { meshCache[self.cacheKey] = m }
+            meshCache.setValue(mesh, forKey: cacheKey, cost: mesh?.memoryUsage ?? 0)
             return true
         }
         return false

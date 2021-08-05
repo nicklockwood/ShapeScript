@@ -12,7 +12,7 @@
     "git": "https://github.com/nicklockwood/ShapeScript.git",
     "tag": "1.1.6"
   },
-  "source_files": "ShapeScript",
+  "source_files": ["ShapeScript", "LRUCache/Sources"],
   "requires_arc": true,
   "dependencies": {
       "Euclid": [

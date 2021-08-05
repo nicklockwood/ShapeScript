@@ -38,6 +38,8 @@
 		01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3A421425C8500E47A7C /* LexerTests.swift */; };
 		01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B021425C9A00E47A7C /* Lexer.swift */; };
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
+		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +92,34 @@
 			remoteGlobalIDString = 01BFB39521425C8500E47A7C;
 			remoteInfo = "ShapeScript Lib";
 		};
+		01FDE3BF26BD736700A46F66 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 016FAB2921BFE78100AF60DC;
+			remoteInfo = LRUCache;
+		};
+		01FDE3C126BD736700A46F66 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 016FAB3221BFE78100AF60DC;
+			remoteInfo = LRUCacheTests;
+		};
+		01FDE3CC26BD738C00A46F66 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
+			remoteInfo = LRUCache;
+		};
+		01FDE3D026BD73B200A46F66 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
+			remoteInfo = LRUCache;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -99,6 +129,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */,
 				01460C3B21D6406500BFC4FF /* ShapeScript.framework in Copy Frameworks */,
 				01460C3921D63FA200BFC4FF /* Euclid.framework in Copy Frameworks */,
 			);
@@ -142,6 +173,7 @@
 		01BFB3A621425C8500E47A7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		01BFB3B021425C9A00E47A7C /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
 		01BFB3B42142726100E47A7C /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
+		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -149,6 +181,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */,
 				01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */,
 				0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */,
 			);
@@ -222,6 +255,7 @@
 			isa = PBXGroup;
 			children = (
 				016FAC0221C149C300AF60DC /* Euclid */,
+				01FDE3AE26BD736700A46F66 /* LRUCache */,
 				01BFB39821425C8500E47A7C /* ShapeScript */,
 				0152E5C6214500990082A5A3 /* Viewer */,
 				01BFB3A321425C8500E47A7C /* ShapeScriptTests */,
@@ -270,6 +304,23 @@
 			path = ShapeScriptTests;
 			sourceTree = "<group>";
 		};
+		01FDE3AE26BD736700A46F66 /* LRUCache */ = {
+			isa = PBXGroup;
+			children = (
+				01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */,
+			);
+			path = LRUCache;
+			sourceTree = "<group>";
+		};
+		01FDE3B726BD736700A46F66 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				01FDE3C026BD736700A46F66 /* LRUCache.framework */,
+				01FDE3C226BD736700A46F66 /* LRUCacheTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -297,6 +348,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				01FDE3D126BD73B200A46F66 /* PBXTargetDependency */,
 				0152E5D8214500BE0082A5A3 /* PBXTargetDependency */,
 				01460C3621D63F5F00BFC4FF /* PBXTargetDependency */,
 			);
@@ -317,6 +369,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				01FDE3CD26BD738C00A46F66 /* PBXTargetDependency */,
 				016FAC2B21C14A4600AF60DC /* PBXTargetDependency */,
 			);
 			name = "ShapeScript Lib";
@@ -389,6 +442,10 @@
 					ProductGroup = 016FAC0421C149C300AF60DC /* Products */;
 					ProjectRef = 016FAC0321C149C300AF60DC /* Euclid.xcodeproj */;
 				},
+				{
+					ProductGroup = 01FDE3B726BD736700A46F66 /* Products */;
+					ProjectRef = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -419,6 +476,20 @@
 			fileType = wrapper.application;
 			path = EuclidExample.app;
 			remoteRef = 016FAC2821C149C300AF60DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		01FDE3C026BD736700A46F66 /* LRUCache.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = LRUCache.framework;
+			remoteRef = 01FDE3BF26BD736700A46F66 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		01FDE3C226BD736700A46F66 /* LRUCacheTests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = LRUCacheTests.xctest;
+			remoteRef = 01FDE3C126BD736700A46F66 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -575,6 +646,16 @@
 			target = 01BFB39521425C8500E47A7C /* ShapeScript Lib */;
 			targetProxy = 019551B121B5897500292771 /* PBXContainerItemProxy */;
 		};
+		01FDE3CD26BD738C00A46F66 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LRUCache;
+			targetProxy = 01FDE3CC26BD738C00A46F66 /* PBXContainerItemProxy */;
+		};
+		01FDE3D126BD73B200A46F66 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LRUCache;
+			targetProxy = 01FDE3D026BD73B200A46F66 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -611,6 +692,7 @@
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;

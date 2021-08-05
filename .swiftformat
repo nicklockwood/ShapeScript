@@ -3,5 +3,4 @@
 --enable isEmpty
 --ifdef no-indent
 
---exclude Euclid
---exclude **/XCTestManifests.swift
+--exclude Euclid, LRUCache, Package.swift

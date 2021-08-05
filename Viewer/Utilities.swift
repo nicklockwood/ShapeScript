@@ -20,7 +20,7 @@ let isHighSierra: Bool = {
 let useOpenGL = isHighSierra
 
 func isImageFile(_ url: URL) -> Bool {
-    return [
+    [
         "webp",
         "png",
         "jpg", "jpeg", "jpe", "jif", "jfif", "jfi",

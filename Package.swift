@@ -12,10 +12,11 @@ let package = Package(
         .library(name: "ShapeScript", targets: ["ShapeScript"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.5.3")),
+        .package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.5.4")),
+        .package(url: "https://github.com/nicklockwood/LRUCache.git", .upToNextMinor(from: "1.0.2")),
     ],
     targets: [
-        .target(name: "ShapeScript", dependencies: ["Euclid"], path: "ShapeScript"),
+        .target(name: "ShapeScript", dependencies: ["Euclid", "LRUCache"], path: "ShapeScript"),
         .testTarget(name: "ShapeScriptTests", dependencies: ["ShapeScript"], path: "ShapeScriptTests"),
     ]
 )
