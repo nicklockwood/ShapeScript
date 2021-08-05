@@ -394,25 +394,11 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     var importedFileCount: Int {
-        linkedResources.filter { $0.pathExtension == "shape" }.count
+        linkedResources.filter { !isImageFile($0) }.count
     }
 
     var textureCount: Int {
-        let imageExtensions: Set = [
-            "webp",
-            "png",
-            "jpg", "jpeg", "jpe", "jif", "jfif", "jfi",
-            "tiff", "tif",
-            "psd",
-            "raw", "arw", "cr2", "nrw", "k25",
-            "bmp", "dib",
-            "heif", "heic",
-            "ind", "indd", "indt",
-            "jp2", "j2k", "jpf", "jpx", "jpm", "mj2",
-        ]
-        return linkedResources.filter {
-            imageExtensions.contains($0.pathExtension.lowercased())
-        }.count
+        linkedResources.filter { isImageFile($0) }.count
     }
 
     // MARK: EvaluationDelegate

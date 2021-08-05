@@ -19,6 +19,21 @@ let isHighSierra: Bool = {
 
 let useOpenGL = isHighSierra
 
+func isImageFile(_ url: URL) -> Bool {
+    return [
+        "webp",
+        "png",
+        "jpg", "jpeg", "jpe", "jif", "jfif", "jfi",
+        "tiff", "tif",
+        "psd",
+        "raw", "arw", "cr2", "nrw", "k25",
+        "bmp", "dib",
+        "heif", "heic",
+        "ind", "indd", "indt",
+        "jp2", "j2k", "jpf", "jpx", "jpm", "mj2",
+    ].contains(url.pathExtension.lowercased())
+}
+
 func showSheet(_ alert: NSAlert, in window: NSWindow?,
                _ handler: ((NSApplication.ModalResponse) -> Void)? = nil)
 {
