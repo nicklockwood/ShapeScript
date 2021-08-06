@@ -12,18 +12,29 @@ import Foundation
 public final class Scene {
     public let background: MaterialProperty
     public let children: [Geometry]
+    public let cache: GeometryCache?
 
-    init(background: MaterialProperty, children: [Geometry]) {
+    public init(
+        background: MaterialProperty,
+        children: [Geometry],
+        cache: GeometryCache?
+    ) {
         self.background = background
         self.children = children
+        self.cache = cache
+        children.forEach { $0.cache = cache }
     }
 }
 
 public extension Scene {
-    static let empty = Scene(background: .color(.clear), children: [])
+    static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
     func deepCopy() -> Scene {
-        Scene(background: background, children: children.map { $0.deepCopy() })
+        Scene(
+            background: background,
+            children: children.map { $0.deepCopy() },
+            cache: cache
+        )
     }
 
     func build(_ callback: @escaping () -> Bool) -> Bool {

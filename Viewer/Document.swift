@@ -11,6 +11,8 @@ import SceneKit
 import ShapeScript
 
 class Document: NSDocument, EvaluationDelegate {
+    private let cache = GeometryCache()
+
     var sceneViewControllers: [SceneViewController] {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
     }
@@ -117,7 +119,7 @@ class Document: NSDocument, EvaluationDelegate {
                 break
             }
         }
-        progress.dispatch { [weak self, weak progress] in
+        progress.dispatch { [cache, weak progress] in
             guard let progress = progress else {
                 return
             }
@@ -143,7 +145,7 @@ class Document: NSDocument, EvaluationDelegate {
                 return
             }
 
-            let scene = try evaluate(program, delegate: self)
+            let scene = try evaluate(program, delegate: self, cache: cache)
             let evaluated = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
             if logCancelled() {

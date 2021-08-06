@@ -104,8 +104,6 @@ public enum GeometryType: Hashable, CustomStringConvertible {
     }
 }
 
-private let geometryCache = GeometryCache()
-
 public final class Geometry {
     public let type: GeometryType
     public let name: String?
@@ -116,7 +114,13 @@ public final class Geometry {
     public let sourceLocation: SourceLocation?
     public let renderChildren: Bool
     public var isSelected: Bool = false
-    internal let cacheKey: GeometryCache.Key
+
+    let cacheKey: GeometryCache.Key
+    var cache: GeometryCache? {
+        didSet {
+            children.forEach { $0.cache = cache }
+        }
+    }
 
     private(set) var mesh: Mesh? {
         didSet {
@@ -281,6 +285,7 @@ public extension Geometry {
             children: children.map { $0.deepCopy() },
             sourceLocation: sourceLocation
         )
+        copy.cache = cache
         copy.mesh = mesh
         copy.associatedData = associatedData
         copy.isSelected = isSelected
@@ -301,7 +306,7 @@ public extension Geometry {
         for child in children where !child.build(callback) {
             return false
         }
-        if let mesh = geometryCache[self] {
+        if let mesh = cache?[self] {
             self.mesh = mesh
             return callback()
         }
@@ -478,7 +483,7 @@ private extension Geometry {
             self.mesh = mesh
         }
         if callback() {
-            geometryCache[self] = mesh
+            cache?[self] = mesh
             return true
         }
         return false

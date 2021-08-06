@@ -17,12 +17,17 @@ public protocol EvaluationDelegate: AnyObject {
     func debugLog(_ values: [Any?])
 }
 
-public func evaluate(_ program: Program, delegate: EvaluationDelegate?) throws -> Scene {
+public func evaluate(
+    _ program: Program,
+    delegate: EvaluationDelegate?,
+    cache: GeometryCache? = GeometryCache()
+) throws -> Scene {
     let context = EvaluationContext(source: program.source, delegate: delegate)
     try program.evaluate(in: context)
     return Scene(
         background: context.background,
-        children: context.children.compactMap { $0.value as? Geometry }
+        children: context.children.compactMap { $0.value as? Geometry },
+        cache: cache
     )
 }
 
