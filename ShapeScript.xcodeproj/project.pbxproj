@@ -40,6 +40,7 @@
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
 		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
+		01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FDE3D426BD766C00A46F66 /* GeometryCache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -174,6 +175,7 @@
 		01BFB3B021425C9A00E47A7C /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
 		01BFB3B42142726100E47A7C /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
 		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
+		01FDE3D426BD766C00A46F66 /* GeometryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -284,6 +286,7 @@
 				013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */,
 				01BD943821936B90005FFAEC /* RandomSequence.swift */,
 				01AA1D8621EF31860086BF86 /* Material.swift */,
+				01FDE3D426BD766C00A46F66 /* GeometryCache.swift */,
 				01AA49F926B621C1009BB2C6 /* Geometry.swift */,
 				01977FCA215D0BD400D65D5E /* Scene.swift */,
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
@@ -601,6 +604,7 @@
 			files = (
 				014F85D9215B890100461FB7 /* Interpreter.swift in Sources */,
 				01AA1D8721EF31860086BF86 /* Material.swift in Sources */,
+				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
 				014F85DB215BE1A900461FB7 /* Parser.swift in Sources */,
 				01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */,

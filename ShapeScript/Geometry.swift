@@ -9,10 +9,6 @@
 import Euclid
 import Foundation
 
-#if canImport(LRUCache)
-import LRUCache
-#endif
-
 public enum GeometryType: Hashable, CustomStringConvertible {
     case none
     // primitives
@@ -108,24 +104,7 @@ public enum GeometryType: Hashable, CustomStringConvertible {
     }
 }
 
-private struct MeshCacheKey: Hashable {
-    let type: GeometryType
-    let material: Material?
-    let transform: Transform
-    let children: [MeshCacheKey]
-}
-
-private extension Mesh {
-    var memoryUsage: Int {
-        let vertexSize = MemoryLayout<Vertex>.stride
-        let polygonSize = 512 // Estimated
-        return polygons.reduce(0) { count, polygon in
-            count + polygonSize + polygon.vertices.count * vertexSize
-        }
-    }
-}
-
-private var meshCache = LRUCache<MeshCacheKey, Mesh>(totalCostLimit: 1_000_000_000)
+private let geometryCache = GeometryCache()
 
 public final class Geometry {
     public let type: GeometryType
@@ -137,7 +116,7 @@ public final class Geometry {
     public let sourceLocation: SourceLocation?
     public let renderChildren: Bool
     public var isSelected: Bool = false
-    private let cacheKey: MeshCacheKey
+    internal let cacheKey: GeometryCache.Key
 
     private(set) var mesh: Mesh? {
         didSet {
@@ -178,9 +157,9 @@ public final class Geometry {
         self.sourceLocation = sourceLocation
 
         var isOpaque = material.isOpaque
-        func flattenedCacheKey(for geometry: Geometry) -> MeshCacheKey {
+        func flattenedCacheKey(for geometry: Geometry) -> GeometryCache.Key {
             isOpaque = isOpaque && geometry.material.isOpaque
-            return MeshCacheKey(
+            return GeometryCache.Key(
                 type: geometry.type,
                 material: geometry.material == material ? nil : geometry.material,
                 transform: geometry.transform,
@@ -188,7 +167,7 @@ public final class Geometry {
             )
         }
 
-        cacheKey = MeshCacheKey(
+        cacheKey = GeometryCache.Key(
             type: type,
             material: nil,
             transform: .identity,
@@ -322,7 +301,7 @@ public extension Geometry {
         for child in children where !child.build(callback) {
             return false
         }
-        if let mesh = meshCache.value(forKey: cacheKey) {
+        if let mesh = geometryCache[self] {
             self.mesh = mesh
             return callback()
         }
@@ -499,7 +478,7 @@ private extension Geometry {
             self.mesh = mesh
         }
         if callback() {
-            meshCache.setValue(mesh, forKey: cacheKey, cost: mesh?.memoryUsage ?? 0)
+            geometryCache[self] = mesh
             return true
         }
         return false
