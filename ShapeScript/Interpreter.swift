@@ -240,45 +240,55 @@ private extension RuntimeError {
         "subtraction": ["difference"],
     ]
 
-    func bestMatches(for symbol: String, in suggestions: [String]) -> [String] {
-        func levenshtein(_ lhs: String, _ rhs: String) -> Int {
-            var dist = [[Int]]()
-            for i in 0 ... lhs.count {
-                dist.append([i])
-            }
-            for j in 1 ... rhs.count {
-                dist[0].append(j)
-            }
-            for i in 1 ... lhs.count {
-                let lhs = lhs[lhs.index(lhs.startIndex, offsetBy: i - 1)]
-                for j in 1 ... rhs.count {
-                    if lhs == rhs[rhs.index(rhs.startIndex, offsetBy: j - 1)] {
-                        dist[i].append(dist[i - 1][j - 1])
-                    } else {
-                        dist[i].append(min(min(dist[i - 1][j] + 1, dist[i][j - 1] + 1), dist[i - 1][j - 1] + 1))
-                    }
-                }
-            }
-            return dist[lhs.count][rhs.count]
-        }
-        let lowercasedSymbol = symbol.lowercased()
-        // Sort suggestions by Levenshtein distance
-        return suggestions
-            .compactMap { string -> (String, Int)? in
-                let lowercaseString = string.lowercased()
-                guard lowercaseString != lowercasedSymbol else {
+    // Find best match for a given string in a list of options
+    func bestMatches(for query: String, in options: [String]) -> [String] {
+        let lowercaseQuery = query.lowercased()
+        // Sort matches by Levenshtein edit distance
+        return options
+            .compactMap { option -> (String, distance: Int, commonPrefix: Int)? in
+                let lowercaseOption = option.lowercased()
+                let distance = editDistance(lowercaseOption, lowercaseQuery)
+                let commonPrefix = lowercaseOption.commonPrefix(with: lowercaseQuery)
+                if commonPrefix.isEmpty, distance > lowercaseQuery.count / 2 {
                     return nil
                 }
-                let distance = levenshtein(lowercaseString, lowercasedSymbol)
-                guard distance <= lowercasedSymbol.count / 2 ||
-                    !lowercaseString.commonPrefix(with: lowercasedSymbol).isEmpty
-                else {
-                    return nil
-                }
-                return (string, distance)
+                return (option, distance, commonPrefix.count)
             }
-            .sorted { $0.1 < $1.1 }
+            .sorted {
+                if $0.distance == $1.distance {
+                    return $0.commonPrefix > $1.commonPrefix
+                }
+                return $0.distance < $1.distance
+            }
             .map { $0.0 }
+    }
+
+    /// The Damerau-Levenshtein edit-distance between two strings
+    func editDistance(_ lhs: String, _ rhs: String) -> Int {
+        let lhs = Array(lhs)
+        let rhs = Array(rhs)
+        var dist = [[Int]]()
+        for i in 0 ... lhs.count {
+            dist.append([i])
+        }
+        for j in 1 ... rhs.count {
+            dist[0].append(j)
+        }
+        for i in 1 ... lhs.count {
+            for j in 1 ... rhs.count {
+                if lhs[i - 1] == rhs[j - 1] {
+                    dist[i].append(dist[i - 1][j - 1])
+                } else {
+                    dist[i].append(min(dist[i - 1][j] + 1,
+                                       dist[i][j - 1] + 1,
+                                       dist[i - 1][j - 1] + 1))
+                }
+                if i > 1, j > 1, lhs[i - 1] == rhs[j - 2], lhs[i - 2] == rhs[j - 1] {
+                    dist[i][j] = min(dist[i][j], dist[i - 2][j - 2] + 1)
+                }
+            }
+        }
+        return dist[lhs.count][rhs.count]
     }
 }
 
