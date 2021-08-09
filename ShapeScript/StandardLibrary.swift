@@ -196,7 +196,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
         // TODO: is here the right place for this?
         "font": .property(.string, { parameter, context in
-            context.font = parameter.value as? String
+            context.font = try validateFont(parameter.value as? String)
         }, { context in
             .texture(context.material.texture)
         }),
@@ -319,6 +319,27 @@ extension Geometry {
             sourceLocation: context.sourceLocation
         )
     }
+}
+
+private func validateFont(_ name: String?) throws -> String? {
+    guard let name = name?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .replacingOccurrences(of: "\t", with: " ")
+        .replacingOccurrences(of: "  ", with: " ")
+    else {
+        return nil
+    }
+    #if canImport(CoreGraphics)
+    guard CGFont(name as CFString) != nil else {
+        var options = [String]()
+        #if canImport(CoreText)
+        options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
+        options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
+        #endif
+        throw RuntimeErrorType.unknownFont(name, options: options)
+    }
+    #endif
+    return name
 }
 
 private func _merge(_ symbols: Symbols...) -> Symbols {

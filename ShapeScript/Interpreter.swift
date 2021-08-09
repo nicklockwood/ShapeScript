@@ -76,6 +76,7 @@ public enum ImportError: Error, Equatable {
 
 public enum RuntimeErrorType: Error, Equatable {
     case unknownSymbol(String, options: [String])
+    case unknownFont(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
     case unexpectedArgument(for: String, max: Int)
     case missingArgument(for: String, index: Int, type: String)
@@ -87,58 +88,21 @@ public enum RuntimeErrorType: Error, Equatable {
     indirect case importError(ImportError, for: String, in: String)
 }
 
-private func bestMatches(for symbol: String, in suggestions: [String]) -> [String] {
-    func levenshtein(_ lhs: String, _ rhs: String) -> Int {
-        var dist = [[Int]]()
-        for i in 0 ... lhs.count {
-            dist.append([i])
-        }
-        for j in 1 ... rhs.count {
-            dist[0].append(j)
-        }
-        for i in 1 ... lhs.count {
-            let lhs = lhs[lhs.index(lhs.startIndex, offsetBy: i - 1)]
-            for j in 1 ... rhs.count {
-                if lhs == rhs[rhs.index(rhs.startIndex, offsetBy: j - 1)] {
-                    dist[i].append(dist[i - 1][j - 1])
-                } else {
-                    dist[i].append(min(min(dist[i - 1][j] + 1, dist[i][j - 1] + 1), dist[i - 1][j - 1] + 1))
-                }
-            }
-        }
-        return dist[lhs.count][rhs.count]
-    }
-    let lowercasedSymbol = symbol.lowercased()
-    // Sort suggestions by Levenshtein distance
-    return suggestions
-        .compactMap { string -> (String, Int)? in
-            let lowercaseString = string.lowercased()
-            guard lowercaseString != lowercasedSymbol else {
-                return nil
-            }
-            let distance = levenshtein(lowercaseString, lowercasedSymbol)
-            guard distance <= lowercasedSymbol.count / 2 ||
-                !lowercaseString.commonPrefix(with: lowercasedSymbol).isEmpty
-            else {
-                return nil
-            }
-            return (string, distance)
-        }
-        .sorted { $0.1 < $1.1 }
-        .map { $0.0 }
-}
-
 public struct RuntimeError: Error, Equatable {
     public let type: RuntimeErrorType
     public let range: Range<String.Index>
+}
 
-    public var message: String {
+public extension RuntimeError {
+    var message: String {
         switch type {
         case let .unknownSymbol(name, _):
             if Keyword(rawValue: name) == nil, Symbols.all[name] == nil {
                 return "Unknown symbol '\(name)'"
             }
             return "Unexpected symbol '\(name)'"
+        case let .unknownFont(name, _):
+            return "Unknown font '\(name)'"
         case .typeMismatch:
             return "Type mismatch"
         case .unexpectedArgument:
@@ -165,43 +129,20 @@ public struct RuntimeError: Error, Equatable {
         }
     }
 
-    public var suggestion: String? {
-        guard case let .unknownSymbol(name, options) = type else {
+    var suggestion: String? {
+        switch type {
+        case let .unknownSymbol(name, options):
+            return Self.alternatives[name.lowercased()]?
+                .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
+                ?? bestMatches(for: name, in: options).first
+        case let .unknownFont(name, options):
+            return bestMatches(for: name, in: options).first
+        default:
             return nil
         }
-        let alternatives = [
-            "box": ["cube"],
-            "rect": ["square"],
-            "rectangle": ["square"],
-            "ellipse": ["circle"],
-            "elipse": ["circle"],
-            "squircle": ["roundrect"],
-            "rotate": ["orientation"],
-            "rotation": ["orientation"],
-            "orientation": ["rotate"],
-            "translate": ["position"],
-            "translation": ["position"],
-            "position": ["translate"],
-            "scale": ["size"],
-            "size": ["scale"],
-            "width": ["size", "x"],
-            "height": ["size", "y"],
-            "depth": ["size", "z"],
-            "length": ["size"],
-            "radius": ["size"],
-            "x": ["width", "position"],
-            "y": ["height", "position"],
-            "z": ["depth", "position"],
-            "option": ["define"],
-            "subtract": ["difference"],
-            "subtraction": ["difference"],
-        ]
-        return alternatives[name.lowercased()]?
-            .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
-            ?? bestMatches(for: name, in: options).first
     }
 
-    public var hint: String? {
+    var hint: String? {
         func nth(_ index: Int) -> String {
             switch index {
             case 1: return "second "
@@ -219,6 +160,11 @@ public struct RuntimeError: Error, Equatable {
                 hint = (hint.isEmpty ? "" : "\(hint) ") + "Did you mean '\(suggestion)'?"
             }
             return hint
+        case .unknownFont:
+            if let suggestion = suggestion {
+                return "Did you mean '\(suggestion)'?"
+            }
+            return ""
         case let .typeMismatch(for: name, index: index, expected: type, got: got):
             return "The \(nth(index))argument for \(name) should be a \(type), not a \(got)."
         case let .unexpectedArgument(for: name, max: max):
@@ -264,6 +210,77 @@ public struct RuntimeError: Error, Equatable {
 }
 
 // MARK: Implementation
+
+private extension RuntimeError {
+    static let alternatives = [
+        "box": ["cube"],
+        "rect": ["square"],
+        "rectangle": ["square"],
+        "ellipse": ["circle"],
+        "elipse": ["circle"],
+        "squircle": ["roundrect"],
+        "rotate": ["orientation"],
+        "rotation": ["orientation"],
+        "orientation": ["rotate"],
+        "translate": ["position"],
+        "translation": ["position"],
+        "position": ["translate"],
+        "scale": ["size"],
+        "size": ["scale"],
+        "width": ["size", "x"],
+        "height": ["size", "y"],
+        "depth": ["size", "z"],
+        "length": ["size"],
+        "radius": ["size"],
+        "x": ["width", "position"],
+        "y": ["height", "position"],
+        "z": ["depth", "position"],
+        "option": ["define"],
+        "subtract": ["difference"],
+        "subtraction": ["difference"],
+    ]
+
+    func bestMatches(for symbol: String, in suggestions: [String]) -> [String] {
+        func levenshtein(_ lhs: String, _ rhs: String) -> Int {
+            var dist = [[Int]]()
+            for i in 0 ... lhs.count {
+                dist.append([i])
+            }
+            for j in 1 ... rhs.count {
+                dist[0].append(j)
+            }
+            for i in 1 ... lhs.count {
+                let lhs = lhs[lhs.index(lhs.startIndex, offsetBy: i - 1)]
+                for j in 1 ... rhs.count {
+                    if lhs == rhs[rhs.index(rhs.startIndex, offsetBy: j - 1)] {
+                        dist[i].append(dist[i - 1][j - 1])
+                    } else {
+                        dist[i].append(min(min(dist[i - 1][j] + 1, dist[i][j - 1] + 1), dist[i - 1][j - 1] + 1))
+                    }
+                }
+            }
+            return dist[lhs.count][rhs.count]
+        }
+        let lowercasedSymbol = symbol.lowercased()
+        // Sort suggestions by Levenshtein distance
+        return suggestions
+            .compactMap { string -> (String, Int)? in
+                let lowercaseString = string.lowercased()
+                guard lowercaseString != lowercasedSymbol else {
+                    return nil
+                }
+                let distance = levenshtein(lowercaseString, lowercasedSymbol)
+                guard distance <= lowercasedSymbol.count / 2 ||
+                    !lowercaseString.commonPrefix(with: lowercasedSymbol).isEmpty
+                else {
+                    return nil
+                }
+                return (string, distance)
+            }
+            .sorted { $0.1 < $1.1 }
+            .map { $0.0 }
+    }
+}
 
 enum ValueType: String {
     case color
