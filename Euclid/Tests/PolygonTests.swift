@@ -9,6 +9,18 @@
 @testable import Euclid
 import XCTest
 
+extension Euclid.Polygon {
+    // Convenience constructor for testing
+    init(unchecked vertices: [Vertex], plane: Plane? = nil) {
+        self.init(
+            unchecked: vertices,
+            plane: plane,
+            isConvex: nil,
+            material: nil
+        )
+    }
+}
+
 class PolygonTests: XCTestCase {
     // MARK: initialization
 
@@ -99,6 +111,36 @@ class PolygonTests: XCTestCase {
             Vertex(Vector(1, 0), normal),
             Vertex(Vector(0, 1), normal),
         ]))
+    }
+
+    func testZeroNormals() {
+        guard let polygon = Polygon([
+            Vertex(Vector(-1, 1), .zero),
+            Vertex(Vector(-1, -1), .zero),
+            Vertex(Vector(1, -1), .zero),
+            Vertex(Vector(1, 1), .zero),
+        ]) else {
+            XCTFail()
+            return
+        }
+        XCTAssert(polygon.vertices.allSatisfy {
+            $0.normal == polygon.plane.normal
+        })
+    }
+
+    func testPolygonFromVectors() {
+        guard let polygon = Polygon([
+            Vector(-1, 1),
+            Vector(-1, -1),
+            Vector(1, -1),
+            Vector(1, 1),
+        ]) else {
+            XCTFail()
+            return
+        }
+        XCTAssert(polygon.vertices.allSatisfy {
+            $0.normal == polygon.plane.normal
+        })
     }
 
     // MARK: merging
@@ -611,10 +653,11 @@ class PolygonTests: XCTestCase {
     }
 
     func testSlightlyNonPlanarPolygonTriangulated() {
+        let offset = epsilon / 2
         let path = Path([
             .point(1.086, 0, 0.17),
             .point(1.086, 0, 0.14),
-            .point(0.95, 0.00000001, 0.14),
+            .point(0.95, offset, 0.14),
             .point(0.935, 0, 0.1),
             .point(0.935, 0, 0.17),
             .point(1.086, 0, 0.17),
@@ -635,10 +678,10 @@ class PolygonTests: XCTestCase {
             [
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
                 Vector(1.086, 0.0, 0.13999999999999999),
-                Vector(0.95, 1e-08, 0.13999999999999999),
+                Vector(0.95, offset, 0.13999999999999999),
             ],
             [
-                Vector(0.95, 1e-08, 0.13999999999999999),
+                Vector(0.95, offset, 0.13999999999999999),
                 Vector(0.9349999999999999, 0.0, 0.09999999999999999),
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
             ],
@@ -648,10 +691,11 @@ class PolygonTests: XCTestCase {
     }
 
     func testInvertedSlightlyNonPlanarPolygonTriangulated() {
+        let offset = epsilon / 2
         let path = Path([
             .point(1.086, 0, 0.17),
             .point(1.086, 0, 0.14),
-            .point(0.95, 0.00000001, 0.14),
+            .point(0.95, offset, 0.14),
             .point(0.935, 0, 0.1),
             .point(0.935, 0, 0.17),
             .point(1.086, 0, 0.17),
@@ -670,14 +714,14 @@ class PolygonTests: XCTestCase {
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
             ],
             [
-                Vector(0.95, 1e-08, 0.13999999999999999),
+                Vector(0.95, offset, 0.13999999999999999),
                 Vector(1.086, 0.0, 0.13999999999999999),
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
             ],
             [
                 Vector(0.9349999999999999, 0.0, 0.16999999999999998),
                 Vector(0.9349999999999999, 0.0, 0.09999999999999999),
-                Vector(0.95, 1e-08, 0.13999999999999999),
+                Vector(0.95, offset, 0.13999999999999999),
             ],
         ])
         let merged = triangles.detessellate(ensureConvex: false)

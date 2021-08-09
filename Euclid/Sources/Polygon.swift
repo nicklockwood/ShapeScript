@@ -49,7 +49,7 @@ extension Polygon: Codable {
         var plane: Plane?, material: Material?
         if let container = try? decoder.container(keyedBy: CodingKeys.self) {
             vertices = try container.decode([Vertex].self, forKey: .vertices)
-            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+            guard !verticesAreDegenerate(vertices) else {
                 throw DecodingError.dataCorruptedError(
                     forKey: .vertices,
                     in: container,
@@ -67,19 +67,30 @@ extension Polygon: Codable {
             } else {
                 vertices = try [Vertex](from: decoder)
             }
-            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+            guard !verticesAreDegenerate(vertices) else {
                 throw DecodingError.dataCorruptedError(
                     in: container,
                     debugDescription: "Vertices are degenerate"
                 )
             }
         }
-        self.init(unchecked: vertices, plane: plane, material: material)
+        self.init(
+            unchecked: vertices,
+            plane: plane,
+            isConvex: nil,
+            sanitizeNormals: true,
+            material: material
+        )
     }
 
     public func encode(to encoder: Encoder) throws {
-        if material == nil, plane == Plane(unchecked: vertices.map { $0.position }, convex: isConvex) {
-            try vertices.encode(to: encoder)
+        let positions = vertices.map { $0.position }
+        if material == nil, plane == Plane(unchecked: positions, convex: isConvex) {
+            if vertices.allSatisfy({ $0.texcoord == .zero && $0.normal == plane.normal }) {
+                try positions.encode(to: encoder)
+            } else {
+                try vertices.encode(to: encoder)
+            }
         } else {
             var container = encoder.unkeyedContainer()
             try container.encode(vertices)
@@ -144,19 +155,32 @@ public extension Polygon {
         let positions = vertices.map { $0.position }
         let isConvex = pointsAreConvex(positions)
         guard !pointsAreSelfIntersecting(positions),
+              // Note: Plane init includes check for degeneracy
               let plane = Plane(points: positions, convex: isConvex)
         else {
             return nil
         }
-        self.init(unchecked: vertices, plane: plane, isConvex: isConvex, material: material)
+        self.init(
+            unchecked: vertices,
+            plane: plane,
+            isConvex: isConvex,
+            sanitizeNormals: true,
+            material: material
+        )
+    }
+
+    /// Create a polygon from a set of vertex positions
+    /// Vertex normals will be set to match face normal
+    init?(_ vertices: [Vector], material: Material? = nil) {
+        self.init(vertices.map { Vertex($0) }, material: material)
     }
 
     /// Test if point lies inside the polygon
-    // https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon#218081
     func containsPoint(_ p: Vector) -> Bool {
         guard plane.containsPoint(p) else {
             return false
         }
+        // https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon#218081
         let flatteningPlane = FlatteningPlane(normal: plane.normal)
         let points = vertices.map { flatteningPlane.flattenPoint($0.position) }
         let p = flatteningPlane.flattenPoint(p)
@@ -344,25 +368,28 @@ internal extension Polygon {
         )
     }
 
-    // Create polygon from vertices and plane without performing validation
+    // Create polygon from vertices and (optional) plane without performing validation
     // Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
     // Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
     init(
         unchecked vertices: [Vertex],
-        plane: Plane? = nil,
-        isConvex: Bool? = nil,
-        material: Material? = nil,
+        plane: Plane?,
+        isConvex: Bool?,
+        sanitizeNormals: Bool = false,
+        material: Material?,
         id: Int = 0
     ) {
-        assert(vertices.count > 2)
+        assert(!verticesAreDegenerate(vertices))
         let points = vertices.map { $0.position }
-        assert(!pointsAreDegenerate(points))
-        assert(!pointsAreSelfIntersecting(points))
         assert(isConvex == nil || pointsAreConvex(points) == isConvex)
+        assert(sanitizeNormals || vertices.allSatisfy { $0.normal != .zero })
+        let plane = plane ?? Plane(unchecked: points, convex: isConvex)
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
-            vertices: vertices,
-            plane: plane ?? Plane(unchecked: points, convex: isConvex),
+            vertices: vertices.map {
+                $0.with(normal: $0.normal == .zero ? plane.normal : $0.normal)
+            },
+            plane: plane,
             isConvex: isConvex,
             material: material
         )
@@ -577,8 +604,12 @@ internal extension Polygon {
             if ti.rawValue | tj.rawValue == PlaneComparison.spanning.rawValue {
                 let t = (plane.w - plane.normal.dot(vi.position)) / plane.normal.dot(vj.position - vi.position)
                 let v = vi.lerp(vj, t)
-                f.append(v)
-                b.append(v)
+                if f.last?.position != v.position, f.first?.position != v.position {
+                    f.append(v)
+                }
+                if b.last?.position != v.position, b.first?.position != v.position {
+                    b.append(v)
+                }
             }
         }
         if !verticesAreDegenerate(f) {

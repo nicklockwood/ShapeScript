@@ -314,7 +314,7 @@ public extension Path {
             vertices.append(Vertex(unchecked: p1.position, normal, texcoord ?? .zero))
             p0 = p1
         }
-        guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+        guard !verticesAreDegenerate(vertices) else {
             return nil
         }
         if hasTexcoords {
@@ -440,7 +440,7 @@ public extension Polygon {
         self.init(
             unchecked: vertices,
             plane: plane,
-            isConvex: verticesAreConvex(vertices),
+            isConvex: nil,
             material: material
         )
     }
@@ -456,11 +456,16 @@ internal extension Path {
         self.subpathIndices = subpathIndices
         if let plane = plane {
             self.plane = plane
-            assert(points.count < 3 || Path(
-                unchecked: points,
-                plane: nil,
-                subpathIndices: subpathIndices
-            ).plane?.isEqual(to: plane) == true)
+            assert({
+                guard points.count > 2, let expectedPlane = Path(
+                    unchecked: points,
+                    plane: nil,
+                    subpathIndices: subpathIndices
+                ).plane else {
+                    return true
+                }
+                return plane.isEqual(to: expectedPlane, withPrecision: epsilon * 10)
+            }())
         } else if subpathIndices.isEmpty {
             self.plane = Plane(points: positions)
         } else {
@@ -614,14 +619,13 @@ func sanitizePoints(_ points: [PathPoint]) -> [PathPoint] {
     // Remove invalid points
     let isClosed = pointsAreClosed(unchecked: result)
     if result.count > (isClosed ? 3 : 2), let a = result.first?.position {
-        let threshold = 1e-10
         var ab = result[1].position - a
         var i = 1
         while i < result.count - 1 {
             let b = result[i].position
             let c = result[i + 1].position
             let bc = c - b
-            if ab.cross(bc).length < epsilon, ab.dot(bc) <= threshold {
+            if ab.cross(bc).length < epsilon, ab.dot(bc) <= epsilon {
                 // center point makes path degenerate - remove it
                 result.remove(at: i)
                 ab = result[i].position - result[i - 1].position

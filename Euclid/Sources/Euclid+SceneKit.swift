@@ -333,10 +333,18 @@ public extension SCNGeometry {
     convenience init(_ path: Path) {
         var indexData = Data()
         var vertexData = Data()
+        var indicesByPoint = [Vector: UInt32]()
         for path in path.subpaths {
-            for (index, vertex) in path.edgeVertices.enumerated() {
-                indexData.append(UInt32(index))
-                vertexData.append(vertex.position)
+            for vertex in path.edgeVertices {
+                let origin = vertex.position
+                if let index = indicesByPoint[origin] {
+                    indexData.append(index)
+                    continue
+                }
+                let index = UInt32(indicesByPoint.count)
+                indicesByPoint[origin] = index
+                indexData.append(index)
+                vertexData.append(origin)
             }
         }
         self.init(
@@ -503,11 +511,14 @@ public extension Mesh {
 
     /// Load a mesh from a file using any format supported by sceneKit,  with optional material mapping
     init(url: URL, materialLookup: MaterialProvider? = nil) throws {
-        let importedScene = try SCNScene(url: url, options: [
+        var options: [SCNSceneSource.LoadingOption: Any] = [
             .flattenScene: true,
             .createNormalsIfAbsent: true,
-        ])
-        // create Mesh
+        ]
+        if #available(iOS 11, tvOS 11, macOS 10.10, *) {
+            options[.convertToYUp] = true
+        }
+        let importedScene = try SCNScene(url: url, options: options)
         self.init(importedScene.rootNode, materialLookup: materialLookup)
     }
 
