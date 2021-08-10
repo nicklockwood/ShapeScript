@@ -223,7 +223,7 @@ public extension Material {
 
 public extension Geometry {
     convenience init(scnNode: SCNNode) {
-        var type = GeometryType.none
+        var type = GeometryType.group
         if let scnGeometry = scnNode.geometry, let mesh = Mesh(
             scnGeometry, materialLookup: Material.init(scnMaterial:)
         ) {

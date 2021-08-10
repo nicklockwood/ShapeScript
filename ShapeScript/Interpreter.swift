@@ -726,7 +726,7 @@ extension Definition {
                         })
                     }
                     return .mesh(Geometry(
-                        type: .none,
+                        type: .group,
                         name: context.name,
                         transform: context.transform,
                         material: .default,

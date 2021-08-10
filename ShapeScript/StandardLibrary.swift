@@ -77,7 +77,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         // container
         "group": .block(.group) { context in
-            .mesh(Geometry(type: .none, in: context))
+            .mesh(Geometry(type: .group, in: context))
         },
         // builders
         "extrude": .block(.custom(.builder, ["along": .paths])) { context in

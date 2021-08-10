@@ -10,7 +10,7 @@ import Euclid
 import Foundation
 
 public enum GeometryType: Hashable, CustomStringConvertible {
-    case none
+    case group
     // primitives
     case cone(segments: Int)
     case cylinder(segments: Int)
@@ -33,7 +33,7 @@ public enum GeometryType: Hashable, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .none: return "group"
+        case .group: return "group"
         case .cone: return "cone"
         case .cylinder: return "cylinder"
         case .sphere: return "sphere"
@@ -54,7 +54,7 @@ public enum GeometryType: Hashable, CustomStringConvertible {
 
     public var bounds: Bounds {
         switch self {
-        case .none, .union, .xor, .difference, .intersection, .stencil:
+        case .group, .union, .xor, .difference, .intersection, .stencil:
             return .empty
         case .cone, .cylinder, .sphere, .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
@@ -120,7 +120,7 @@ public final class Geometry {
         switch type {
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill,
-             .path, .mesh, .none:
+             .path, .mesh, .group:
             return true
         case .intersection, .difference, .stencil:
             return false
@@ -159,7 +159,7 @@ public final class Geometry {
         case let .mesh(mesh):
             isLeafGeometry = true
             material = mesh.polygons.first?.material as? Material ?? material
-        case .none:
+        case .group:
             isLeafGeometry = true
             material = children.first?.material ?? .default
         case .union, .xor, .difference, .intersection, .stencil:
@@ -200,7 +200,7 @@ public final class Geometry {
 public extension Geometry {
     var isEmpty: Bool {
         switch type {
-        case .none, .union, .xor, .difference, .intersection, .stencil:
+        case .group, .union, .xor, .difference, .intersection, .stencil:
             break
         case .cone, .cylinder, .sphere, .cube:
             return false
@@ -236,7 +236,7 @@ public extension Geometry {
                 bounds = bounds.intersection(child.bounds.transformed(by: child.transform))
             }
             return bounds
-        case .union, .xor, .none:
+        case .union, .xor, .group:
             var bounds = children.first.map { $0.bounds.transformed(by: $0.transform) } ?? .empty
             for child in children.dropFirst() {
                 bounds = bounds.union(child.bounds.transformed(by: child.transform))
@@ -418,7 +418,7 @@ private extension Geometry {
             return callback()
         }
         switch type {
-        case .none, .path, .mesh,
+        case .group, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(isLeafGeometry) // Leaves
@@ -449,7 +449,7 @@ private extension Geometry {
         }
         let isCancelled = { !callback() }
         switch type {
-        case .none, .path:
+        case .group, .path:
             mesh = Mesh([])
         case let .cone(segments):
             mesh = .cone(slices: segments)
@@ -536,7 +536,7 @@ private extension Geometry {
 
 public extension Geometry {
     var objectCount: Int {
-        if type == .none {
+        if type == .group {
             var count = 0
             for child in children {
                 count += child.objectCount

@@ -25,7 +25,7 @@ class Document: NSDocument, EvaluationDelegate {
 
     var geometry: Geometry {
         Geometry(
-            type: .none,
+            type: .group,
             name: nil,
             transform: .identity,
             material: .default,
