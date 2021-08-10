@@ -300,17 +300,7 @@ public extension Geometry {
     }
 
     func build(_ callback: @escaping () -> Bool) -> Bool {
-        guard mesh == nil else {
-            return true
-        }
-        for child in children where !child.build(callback) {
-            return false
-        }
-        if let mesh = cache?[self] {
-            self.mesh = mesh
-            return callback()
-        }
-        return buildMesh(callback)
+        buildLeaves(callback) && buildPreview(callback) && buildFinal(callback)
     }
 
     @available(*, deprecated, message: "Use flattened() instead")
@@ -393,7 +383,58 @@ private extension Geometry {
         return meshes
     }
 
+    // Build all geometries that don't have dependencies
+    func buildLeaves(_ callback: @escaping () -> Bool) -> Bool {
+        if renderChildren, !buildMesh(callback) {
+            return false
+        }
+        for child in children where !child.buildLeaves(callback) {
+            return false
+        }
+        return true
+    }
+
+    // With leaves built, do a rough preview
+    func buildPreview(_ callback: @escaping () -> Bool) -> Bool {
+        for child in children where !child.buildPreview(callback) {
+            return false
+        }
+        if let mesh = cache?[self] {
+            self.mesh = mesh
+            return callback()
+        }
+        switch type {
+        case .none, .path, .mesh,
+             .cone, .cylinder, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill:
+            assert(renderChildren) // Leaves
+        case .union, .xor:
+            mesh = mergedChildren(callback)
+        case .stencil, .difference:
+            mesh = children.first?.merged(callback)
+        case .intersection:
+            mesh = nil
+        }
+        return callback()
+    }
+
+    // Build final pass
+    func buildFinal(_ callback: @escaping () -> Bool) -> Bool {
+        for child in children where !child.buildFinal(callback) {
+            return false
+        }
+        if !renderChildren {
+            return buildMesh(callback)
+        }
+        return callback()
+    }
+
+    // Build mesh (without children)
     func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
+        if let mesh = cache?[self] {
+            self.mesh = mesh
+            return callback()
+        }
         let isCancelled = { !callback() }
         switch type {
         case .none, .path:
@@ -420,14 +461,11 @@ private extension Geometry {
         case let .fill(paths):
             mesh = .union(paths.map { .fill($0.closed()) }, isCancelled: isCancelled)
         case .union:
-            mesh = mergedChildren(callback)
             mesh = .union(childMeshes(callback), isCancelled: isCancelled)
         case .xor:
-            mesh = mergedChildren(callback)
             mesh = .xor(flattenedChildren(callback), isCancelled: isCancelled)
         case .difference:
             let first = flattenedFirstChild(callback)
-            mesh = first
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
             mesh = .difference(meshes, isCancelled: isCancelled)
         case .intersection:
@@ -436,7 +474,6 @@ private extension Geometry {
             mesh = .intersection(meshes, isCancelled: isCancelled)
         case .stencil:
             let first = flattenedFirstChild(callback)
-            mesh = first
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
             mesh = .stencil(meshes, isCancelled: isCancelled)
         case let .mesh(mesh):
