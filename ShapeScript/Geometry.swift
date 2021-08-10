@@ -119,12 +119,11 @@ public final class Geometry {
     public var renderChildren: Bool {
         switch type {
         case .cone, .cylinder, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill,
-             .path, .mesh, .group:
+             .lathe, .loft, .path, .mesh, .group:
             return true
         case .intersection, .difference, .stencil:
             return false
-        case .union, .xor:
+        case .union, .xor, .extrude, .fill:
             return mesh == nil
         }
     }
@@ -153,8 +152,93 @@ public final class Geometry {
                 sourceLocation: SourceLocation?)
     {
         var material = material
+        var children = children
+        var type = type
         switch type {
-        case .cone, .cylinder, .sphere, .cube, .extrude, .lathe, .loft, .fill, .path:
+        case let .extrude(paths, along):
+            switch (paths.count, along.count) {
+            case (0, 0):
+                isLeafGeometry = false
+            case (1, 1), (1, 0):
+                assert(children.isEmpty)
+                isLeafGeometry = true
+            case (_, 0):
+                assert(children.isEmpty)
+                type = .extrude([], along: [])
+                isLeafGeometry = false
+                children = paths.map { path in
+                    Geometry(
+                        type: .extrude([path], along: []),
+                        name: nil,
+                        transform: .identity,
+                        material: material,
+                        children: [],
+                        sourceLocation: sourceLocation
+                    )
+                }
+            default:
+                assert(children.isEmpty)
+                type = .extrude([], along: [])
+                isLeafGeometry = false
+                children = along.flatMap { along in
+                    paths.map { path in
+                        Geometry(
+                            type: .extrude([path], along: [along]),
+                            name: nil,
+                            transform: .identity,
+                            material: material,
+                            children: [],
+                            sourceLocation: sourceLocation
+                        )
+                    }
+                }
+            }
+        case let .lathe(paths, segments):
+            switch paths.count {
+            case 0:
+                isLeafGeometry = false
+            case 1:
+                assert(children.isEmpty)
+                isLeafGeometry = true
+            default:
+                assert(children.isEmpty)
+                type = .lathe([], segments: 0)
+                isLeafGeometry = false
+                children = paths.map {
+                    Geometry(
+                        type: .lathe([$0], segments: segments),
+                        name: nil,
+                        transform: .identity,
+                        material: material,
+                        children: [],
+                        sourceLocation: sourceLocation
+                    )
+                }
+            }
+        case let .fill(paths):
+            switch paths.count {
+            case 0:
+                isLeafGeometry = false
+            case 1:
+                assert(children.isEmpty)
+                isLeafGeometry = true
+            default:
+                assert(children.isEmpty)
+                type = .fill([])
+                isLeafGeometry = false
+                children = paths.map {
+                    Geometry(
+                        type: .fill([$0]),
+                        name: nil,
+                        transform: .identity,
+                        material: material,
+                        children: [],
+                        sourceLocation: sourceLocation
+                    )
+                }
+            }
+        case .cone, .cylinder, .sphere, .cube, .loft, .path:
+            assert(children.isEmpty)
             isLeafGeometry = true
         case let .mesh(mesh):
             isLeafGeometry = true
@@ -418,6 +502,11 @@ private extension Geometry {
             return callback()
         }
         switch type {
+        case let .extrude(paths, along) where paths.isEmpty && along.count <= 1:
+            mesh = nil
+        case let .lathe(paths, _) where paths.isEmpty,
+             let .fill(paths) where paths.isEmpty:
+            mesh = nil
         case .group, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
@@ -459,20 +548,15 @@ private extension Geometry {
             mesh = .sphere(slices: segments, stacks: segments / 2)
         case .cube:
             mesh = .cube()
-        case let .extrude(paths, along: along):
-            let meshes = along.isEmpty ? paths.map {
-                Mesh.extrude($0, depth: 1)
-            } : along.flatMap { along in
-                paths.map { Mesh.extrude($0, along: along) }
-            }
-            mesh = .union(meshes, isCancelled: isCancelled)
-        case let .lathe(paths, segments: segments):
-            mesh = .union(paths.map { .lathe($0, slices: segments) }, isCancelled: isCancelled)
+        case let .extrude(paths, along: along) where paths.count == 1 && along.count <= 1:
+            mesh = along.first.map { .extrude(paths[0], along: $0) } ?? .extrude(paths[0])
+        case let .lathe(paths, segments: segments) where paths.count == 1:
+            mesh = .lathe(paths[0], slices: segments)
         case let .loft(paths):
             mesh = Mesh.loft(paths)
-        case let .fill(paths):
-            mesh = .union(paths.map { .fill($0.closed()) }, isCancelled: isCancelled)
-        case .union:
+        case let .fill(paths) where paths.count == 1:
+            mesh = .fill(paths[0].closed())
+        case .union, .extrude, .lathe, .fill:
             mesh = .union(childMeshes(callback), isCancelled: isCancelled)
         case .xor:
             mesh = .xor(flattenedChildren(callback), isCancelled: isCancelled)
