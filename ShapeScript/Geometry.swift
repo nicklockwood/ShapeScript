@@ -112,8 +112,22 @@ public final class Geometry {
     public let children: [Geometry]
     public let isOpaque: Bool
     public let sourceLocation: SourceLocation?
-    public let renderChildren: Bool
     public var isSelected: Bool = false
+    private let isLeafGeometry: Bool
+
+    /// Whether children should be rendered separately or are included in mesh
+    public var renderChildren: Bool {
+        switch type {
+        case .cone, .cylinder, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill,
+             .path, .mesh, .none:
+            return true
+        case .intersection, .difference, .stencil:
+            return false
+        case .union, .xor:
+            return mesh == nil
+        }
+    }
 
     let cacheKey: GeometryCache.Key
     var cache: GeometryCache? {
@@ -141,15 +155,15 @@ public final class Geometry {
         var material = material
         switch type {
         case .cone, .cylinder, .sphere, .cube, .extrude, .lathe, .loft, .fill, .path:
-            renderChildren = true
+            isLeafGeometry = true
         case let .mesh(mesh):
-            renderChildren = true
+            isLeafGeometry = true
             material = mesh.polygons.first?.material as? Material ?? material
         case .none:
-            renderChildren = true
+            isLeafGeometry = true
             material = children.first?.material ?? .default
         case .union, .xor, .difference, .intersection, .stencil:
-            renderChildren = false
+            isLeafGeometry = false
             material = children.first?.material ?? .default
         }
 
@@ -175,7 +189,7 @@ public final class Geometry {
             type: type,
             material: nil,
             transform: .identity,
-            children: renderChildren ? [] : children.map(flattenedCacheKey)
+            children: isLeafGeometry ? [] : children.map(flattenedCacheKey)
         )
 
         // Must be set after cache key is generated
@@ -314,7 +328,7 @@ public extension Geometry {
 
     func merged(_ callback: @escaping () -> Bool = { true }) -> Mesh {
         var result = mesh ?? Mesh([])
-        if renderChildren {
+        if isLeafGeometry {
             result = result.merge(mergedChildren(callback))
         }
         return result
@@ -371,7 +385,7 @@ private extension Geometry {
             }
             meshes.append(mesh)
         }
-        if renderChildren {
+        if isLeafGeometry {
             meshes += childMeshes(callback).map {
                 let mesh = $0.transformed(by: transform)
                 if material != self.material {
@@ -385,7 +399,7 @@ private extension Geometry {
 
     // Build all geometries that don't have dependencies
     func buildLeaves(_ callback: @escaping () -> Bool) -> Bool {
-        if renderChildren, !buildMesh(callback) {
+        if isLeafGeometry, !buildMesh(callback) {
             return false
         }
         for child in children where !child.buildLeaves(callback) {
@@ -407,12 +421,10 @@ private extension Geometry {
         case .none, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
-            assert(renderChildren) // Leaves
-        case .union, .xor:
-            mesh = mergedChildren(callback)
+            assert(isLeafGeometry) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(callback)
-        case .intersection:
+        case .union, .xor, .intersection:
             mesh = nil
         }
         return callback()
@@ -423,7 +435,7 @@ private extension Geometry {
         for child in children where !child.buildFinal(callback) {
             return false
         }
-        if !renderChildren {
+        if !isLeafGeometry {
             return buildMesh(callback)
         }
         return callback()
