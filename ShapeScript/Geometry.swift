@@ -9,101 +9,6 @@
 import Euclid
 import Foundation
 
-public enum GeometryType: Hashable, CustomStringConvertible {
-    case group
-    // primitives
-    case cone(segments: Int)
-    case cylinder(segments: Int)
-    case sphere(segments: Int)
-    case cube
-    // builders
-    case extrude([Path], along: [Path])
-    case lathe([Path], segments: Int)
-    case loft([Path])
-    case fill([Path])
-    // csg
-    case union
-    case difference
-    case intersection
-    case xor
-    case stencil
-    // shapes
-    case path(Path)
-    case mesh(Mesh)
-
-    public var description: String {
-        switch self {
-        case .group: return "group"
-        case .cone: return "cone"
-        case .cylinder: return "cylinder"
-        case .sphere: return "sphere"
-        case .cube: return "cube"
-        case .extrude: return "extrusion"
-        case .lathe: return "lathe"
-        case .loft: return "loft"
-        case .fill: return "fill"
-        case .union: return "union"
-        case .difference: return "difference"
-        case .intersection: return "intersection"
-        case .xor: return "xor"
-        case .stencil: return "stencil"
-        case .path: return "path"
-        case .mesh: return "mesh"
-        }
-    }
-
-    public var bounds: Bounds {
-        switch self {
-        case .group, .union, .xor, .difference, .intersection, .stencil:
-            return .empty
-        case .cone, .cylinder, .sphere, .cube:
-            return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
-        case let .extrude(paths, along: along):
-            if along.isEmpty {
-                var points = [Vector]()
-                for path in paths {
-                    let offset = path.faceNormal / 2
-                    for p in path.points {
-                        points.append(p.position + offset)
-                        points.append(p.position - offset)
-                    }
-                }
-                return .init(points: points)
-            }
-            var bounds = Bounds.empty
-            for along in along {
-                let alongBounds = along.bounds
-                for path in paths {
-                    let pathBounds = path.bounds
-                    bounds = bounds.union(Bounds(
-                        min: alongBounds.min + pathBounds.min,
-                        max: alongBounds.max + pathBounds.max
-                    ))
-                }
-            }
-            return bounds
-        case let .lathe(paths, _):
-            var result = [Bounds]()
-            for path in paths {
-                var min = path.bounds.min, max = path.bounds.max
-                min.x = Swift.min(Swift.min(Swift.min(min.x, -max.x), min.z), -max.z)
-                max.x = -min.x
-                min.z = min.x
-                max.z = -min.x
-                result.append(.init(min: min, max: max))
-            }
-            return .init(bounds: result)
-        case let .loft(paths),
-             let .fill(paths):
-            return .init(bounds: Array(paths.map { $0.bounds }))
-        case let .path(path):
-            return path.bounds
-        case let .mesh(mesh):
-            return mesh.bounds
-        }
-    }
-}
-
 public final class Geometry {
     public let type: GeometryType
     public let name: String?
@@ -113,7 +18,6 @@ public final class Geometry {
     public let isOpaque: Bool
     public let sourceLocation: SourceLocation?
     public var isSelected: Bool = false
-    private let isLeafGeometry: Bool
 
     /// Whether children should be rendered separately or are included in mesh
     public var renderChildren: Bool {
@@ -158,14 +62,12 @@ public final class Geometry {
         case let .extrude(paths, along):
             switch (paths.count, along.count) {
             case (0, 0):
-                isLeafGeometry = false
+                break
             case (1, 1), (1, 0):
                 assert(children.isEmpty)
-                isLeafGeometry = true
             case (_, 0):
                 assert(children.isEmpty)
                 type = .extrude([], along: [])
-                isLeafGeometry = false
                 children = paths.map { path in
                     Geometry(
                         type: .extrude([path], along: []),
@@ -179,7 +81,6 @@ public final class Geometry {
             default:
                 assert(children.isEmpty)
                 type = .extrude([], along: [])
-                isLeafGeometry = false
                 children = along.flatMap { along in
                     paths.map { path in
                         Geometry(
@@ -196,14 +97,12 @@ public final class Geometry {
         case let .lathe(paths, segments):
             switch paths.count {
             case 0:
-                isLeafGeometry = false
+                break
             case 1:
                 assert(children.isEmpty)
-                isLeafGeometry = true
             default:
                 assert(children.isEmpty)
                 type = .lathe([], segments: 0)
-                isLeafGeometry = false
                 children = paths.map {
                     Geometry(
                         type: .lathe([$0], segments: segments),
@@ -218,14 +117,12 @@ public final class Geometry {
         case let .fill(paths):
             switch paths.count {
             case 0:
-                isLeafGeometry = false
+                break
             case 1:
                 assert(children.isEmpty)
-                isLeafGeometry = true
             default:
                 assert(children.isEmpty)
                 type = .fill([])
-                isLeafGeometry = false
                 children = paths.map {
                     Geometry(
                         type: .fill([$0]),
@@ -239,15 +136,9 @@ public final class Geometry {
             }
         case .cone, .cylinder, .sphere, .cube, .loft, .path:
             assert(children.isEmpty)
-            isLeafGeometry = true
         case let .mesh(mesh):
-            isLeafGeometry = true
             material = mesh.polygons.first?.material as? Material ?? material
-        case .group:
-            isLeafGeometry = true
-            material = children.first?.material ?? .default
-        case .union, .xor, .difference, .intersection, .stencil:
-            isLeafGeometry = false
+        case .group, .union, .xor, .difference, .intersection, .stencil:
             material = children.first?.material ?? .default
         }
 
@@ -273,7 +164,7 @@ public final class Geometry {
             type: type,
             material: nil,
             transform: .identity,
-            children: isLeafGeometry ? [] : children.map(flattenedCacheKey)
+            children: type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
         )
 
         // Must be set after cache key is generated
@@ -283,31 +174,7 @@ public final class Geometry {
 
 public extension Geometry {
     var isEmpty: Bool {
-        switch type {
-        case .group, .union, .xor, .difference, .intersection, .stencil:
-            break
-        case .cone, .cylinder, .sphere, .cube:
-            return false
-        case let .extrude(shapes, _),
-             let .lathe(shapes, _),
-             let .loft(shapes),
-             let .fill(shapes):
-            if shapes.isEmpty || shapes[0].points.count < 2 {
-                break
-            }
-            return false
-        case let .path(path):
-            if path.points.count < 2 {
-                break
-            }
-            return false
-        case let .mesh(mesh):
-            if mesh.polygons.isEmpty {
-                break
-            }
-            return false
-        }
-        return !children.contains(where: { !$0.isEmpty })
+        type.isEmpty && children.allSatisfy { $0.isEmpty }
     }
 
     var bounds: Bounds {
@@ -412,7 +279,7 @@ public extension Geometry {
 
     func merged(_ callback: @escaping () -> Bool = { true }) -> Mesh {
         var result = mesh ?? Mesh([])
-        if isLeafGeometry {
+        if type.isLeafGeometry {
             result = result.merge(mergedChildren(callback))
         }
         return result
@@ -469,7 +336,7 @@ private extension Geometry {
             }
             meshes.append(mesh)
         }
-        if isLeafGeometry {
+        if type.isLeafGeometry {
             meshes += childMeshes(callback).map {
                 let mesh = $0.transformed(by: transform)
                 if material != self.material {
@@ -483,7 +350,7 @@ private extension Geometry {
 
     // Build all geometries that don't have dependencies
     func buildLeaves(_ callback: @escaping () -> Bool) -> Bool {
-        if isLeafGeometry, !buildMesh(callback) {
+        if type.isLeafGeometry, !buildMesh(callback) {
             return false
         }
         for child in children where !child.buildLeaves(callback) {
@@ -510,7 +377,7 @@ private extension Geometry {
         case .group, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
-            assert(isLeafGeometry) // Leaves
+            assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(callback)
         case .union, .xor, .intersection:
@@ -524,7 +391,7 @@ private extension Geometry {
         for child in children where !child.buildFinal(callback) {
             return false
         }
-        if !isLeafGeometry {
+        if !type.isLeafGeometry {
             return buildMesh(callback)
         }
         return callback()
