@@ -10,11 +10,14 @@ import Foundation
 
 public struct Color: Hashable {
     public let r, g, b, a: Double
+}
 
-    public static let clear = Color(unchecked: [0, 0, 0, 0])
-    public static let white = Color(unchecked: [1])
+public extension Color {
+    static let clear = Color(unchecked: [0, 0, 0, 0])
+    static let white = Color(unchecked: [1])
+    static let black = Color(unchecked: [0])
 
-    public init(unchecked components: [Double]) {
+    init(unchecked components: [Double]) {
         var a = 1.0
         switch components.count {
         case 4:

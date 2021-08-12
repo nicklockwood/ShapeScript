@@ -152,6 +152,11 @@ class Document: NSDocument, EvaluationDelegate {
                 return
             }
 
+            // Set output options
+            var options = Scene.OutputOptions.default
+            let color = Color(nsColor: NSColor.underPageBackgroundColor)
+            options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
+
             // Clear errors and previous geometry
             progress.setStatus(.partial(.empty))
 
@@ -164,7 +169,7 @@ class Document: NSDocument, EvaluationDelegate {
                 let time = CFAbsoluteTimeGetCurrent()
                 if time - lastUpdate > minUpdatePeriod {
                     Swift.print(String(format: "[\(progress.id)] rendering..."))
-                    scene.scnBuild()
+                    scene.scnBuild(with: options)
                     progress.setStatus(.partial(scene.deepCopy()))
                     lastUpdate = time
                 }
@@ -177,7 +182,7 @@ class Document: NSDocument, EvaluationDelegate {
 
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
-            scene.scnBuild()
+            scene.scnBuild(with: options)
             progress.setStatus(.success(scene.deepCopy()))
 
             let end = CFAbsoluteTimeGetCurrent()

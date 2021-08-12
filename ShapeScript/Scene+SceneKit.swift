@@ -112,38 +112,62 @@ public extension SCNNode {
     }
 }
 
+private extension Geometry {
+    typealias SCNData = (
+        options: Scene.OutputOptions,
+        geometry: SCNGeometry
+    )
+
+    var scnData: SCNData? {
+        get { associatedData as? SCNData }
+        set { associatedData = newValue }
+    }
+}
+
 public extension Scene {
-    func scnBuild() {
-        children.forEach { $0.scnBuild() }
+    struct OutputOptions: Hashable {
+        public static let `default` = OutputOptions()
+
+        public var lineWidth: Double = 0.005
+        public var lineColor: Color = .black
+    }
+
+    func scnBuild(with options: OutputOptions) {
+        children.forEach { $0.scnBuild(with: options) }
     }
 }
 
 public extension Geometry {
     var scnGeometry: SCNGeometry {
-        associatedData as? SCNGeometry ?? SCNGeometry()
+        scnData?.geometry ?? SCNGeometry()
     }
 
-    func scnBuild() {
-        // SCNGeometry should never be constructed on the main thread
-        // TODO: should we guarantee this for paths also?
-        assert(!Thread.isMainThread)
-
+    func scnBuild(with options: Scene.OutputOptions) {
         if renderChildren {
-            children.forEach { $0.scnBuild() }
+            children.forEach { $0.scnBuild(with: options) }
         }
 
-        if associatedData != nil {
+        if let scnData = scnData, path == nil || scnData.options == options {
             return
         } else if let path = self.path {
-            let linewidth = 0.005
-            associatedData = SCNGeometry(.stroke(
-                path,
-                width: linewidth,
-                depth: linewidth,
-                material: OSColor.black
-            ))
+            scnData = (
+                options: options,
+                geometry: SCNGeometry(.stroke(
+                    path,
+                    width: options.lineWidth,
+                    depth: options.lineWidth
+                ), materialLookup: { _ in
+                    let material = SCNMaterial()
+                    material.lightingModel = .constant
+                    material.diffuse.contents = OSColor(color: options.lineColor)
+                    return material
+                })
+            )
         } else if let mesh = self.mesh {
-            associatedData = SCNGeometry(mesh: mesh, for: self)
+            scnData = (
+                options: options,
+                SCNGeometry(mesh: mesh, for: self)
+            )
         }
     }
 
