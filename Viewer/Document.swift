@@ -324,6 +324,21 @@ class Document: NSDocument, EvaluationDelegate {
         let actionSheet = NSAlert()
         var fileURL: URL?
 
+        // Geometry info
+        let geometry = selectedGeometry ?? self.geometry
+        let polygonCount: String
+        let triangleCount: String
+        let dimensions: String
+        if progress?.didSucceed ?? true {
+            polygonCount = String(geometry.polygonCount)
+            triangleCount = String(geometry.triangleCount)
+            dimensions = geometry.exactBounds.size.shortDescription
+        } else {
+            polygonCount = "calculating…"
+            triangleCount = "calculating…"
+            dimensions = "calculating…"
+        }
+
         if let selectedGeometry = self.selectedGeometry {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
@@ -332,19 +347,6 @@ class Document: NSDocument, EvaluationDelegate {
                     fileURL = url
                     locationString += " in '\(url.lastPathComponent)'"
                 }
-            }
-
-            let polygonCount: String
-            let triangleCount: String
-            let dimensions: String
-            if progress?.didSucceed != false {
-                polygonCount = String(selectedGeometry.polygonCount)
-                triangleCount = String(selectedGeometry.triangleCount)
-                dimensions = selectedGeometry.exactBounds.size.shortDescription
-            } else {
-                polygonCount = "calculating…"
-                triangleCount = "calculating…"
-                dimensions = "calculating…"
             }
             let nameString = selectedGeometry.name.flatMap {
                 $0.isEmpty ? nil : "Name: \($0)"
@@ -364,19 +366,6 @@ class Document: NSDocument, EvaluationDelegate {
             ].compactMap { $0 }.joined(separator: "\n")
 
         } else {
-            let polygonCount: String
-            let triangleCount: String
-            let dimensions: String
-            let geometry = self.geometry
-            if progress?.didSucceed == true {
-                polygonCount = String(geometry.polygonCount)
-                triangleCount = String(geometry.triangleCount)
-                dimensions = geometry.exactBounds.size.shortDescription
-            } else {
-                polygonCount = "calculating…"
-                triangleCount = "calculating…"
-                dimensions = "calculating…"
-            }
             actionSheet.messageText = "Model Info"
             actionSheet.informativeText = """
             Objects: \(geometry.objectCount)
