@@ -193,3 +193,19 @@ class SceneViewController: NSViewController {
         selectGeometry(hitResults.first?.node.geometry)
     }
 }
+
+private extension Geometry {
+    func select(with scnGeometry: SCNGeometry?) -> Geometry? {
+        let isSelected = (self.scnGeometry == scnGeometry)
+        for material in self.scnGeometry.materials {
+            material.emission.contents = isSelected ? NSColor.red : .black
+            material.multiply.contents = isSelected ? NSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1) : .white
+        }
+        var selected = isSelected ? self : nil
+        for child in children {
+            let g = child.select(with: scnGeometry)
+            selected = selected ?? g
+        }
+        return selected
+    }
+}
