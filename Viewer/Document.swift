@@ -170,7 +170,7 @@ class Document: NSDocument, EvaluationDelegate {
                 if time - lastUpdate > minUpdatePeriod {
                     Swift.print(String(format: "[\(progress.id)] rendering..."))
                     scene.scnBuild(with: options)
-                    progress.setStatus(.partial(scene.deepCopy()))
+                    progress.setStatus(.partial(scene))
                     lastUpdate = time
                 }
                 return true
@@ -183,7 +183,7 @@ class Document: NSDocument, EvaluationDelegate {
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
             scene.scnBuild(with: options)
-            progress.setStatus(.success(scene.deepCopy()))
+            progress.setStatus(.success(scene))
 
             let end = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))

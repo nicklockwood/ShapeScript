@@ -29,14 +29,6 @@ public final class Scene {
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
-    func deepCopy() -> Scene {
-        Scene(
-            background: background,
-            children: children.map { $0.deepCopy() },
-            cache: cache
-        )
-    }
-
     func build(_ callback: @escaping () -> Bool) -> Bool {
         for geometry in children where !geometry.build(callback) {
             return false

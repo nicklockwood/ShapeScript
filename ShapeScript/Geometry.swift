@@ -241,22 +241,6 @@ public extension Geometry {
         )
     }
 
-    func deepCopy() -> Geometry {
-        let copy = Geometry(
-            type: type,
-            name: name,
-            transform: transform,
-            material: material,
-            children: children.map { $0.deepCopy() },
-            sourceLocation: sourceLocation
-        )
-        copy.cache = cache
-        copy.mesh = mesh
-        copy.associatedData = associatedData
-        copy.isSelected = isSelected
-        return copy
-    }
-
     var path: Path? {
         guard case let .path(path) = type else {
             return nil
