@@ -172,7 +172,7 @@ public extension Geometry {
     }
 
     func select(with scnGeometry: SCNGeometry?) -> Geometry? {
-        isSelected = (self.scnGeometry == scnGeometry)
+        let isSelected = (self.scnGeometry == scnGeometry)
         for material in self.scnGeometry.materials {
             material.emission.contents = isSelected ? OSColor.red : .black
             material.multiply.contents = isSelected ? OSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1) : .white

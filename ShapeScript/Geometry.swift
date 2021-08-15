@@ -17,7 +17,6 @@ public final class Geometry {
     public let children: [Geometry]
     public let isOpaque: Bool
     public let sourceLocation: SourceLocation?
-    public var isSelected: Bool = false
 
     /// Whether children should be rendered separately or are included in mesh
     public var renderChildren: Bool {
@@ -484,7 +483,6 @@ private extension Geometry {
         )
         copy.mesh = mesh
         copy.associatedData = associatedData
-        copy.isSelected = isSelected
         return copy
     }
 }
