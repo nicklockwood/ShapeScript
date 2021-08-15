@@ -39,14 +39,36 @@ public final class Geometry {
         }
     }
 
+    private let lock: NSLock = .init()
+    private var _mesh: Mesh?
     private(set) var mesh: Mesh? {
-        didSet {
-            associatedData = nil
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _mesh
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _mesh = newValue
+            _associatedData = nil
         }
     }
 
-    // external data, e.g. SCNGeometry
-    var associatedData: Any?
+    // External data, e.g. SCNGeometry
+    private var _associatedData: Any?
+    var associatedData: Any? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _associatedData
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _associatedData = newValue
+        }
+    }
 
     public init(type: GeometryType,
                 name: String?,
