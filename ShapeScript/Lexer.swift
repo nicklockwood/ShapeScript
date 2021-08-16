@@ -126,7 +126,7 @@ public struct LexerError: Error, Equatable {
         switch type {
         case let .invalidNumber(digits):
             if digits.components(separatedBy: ".").count > 2 {
-                return "Numbers should contains at most one decimal point."
+                return "Numbers must contain at most one decimal point."
             }
             return nil
         case .unexpectedToken:
