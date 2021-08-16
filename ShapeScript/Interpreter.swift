@@ -325,23 +325,12 @@ enum Value {
     case pair(Double, Double)
     case void
 
-    static func colorOrTexture(_ value: Any) -> Value {
+    static func colorOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
-        case let color as Color:
+        case let .color(color):
             return .color(color)
-        case let texture as Texture:
+        case let .texture(texture):
             return .texture(texture)
-        case let materialProperty as MaterialProperty:
-            switch materialProperty {
-            case let .color(color):
-                return .color(color)
-            case let .texture(texture):
-                return .texture(texture)
-            }
-        case let value as Value:
-            return colorOrTexture(value.value)
-        default:
-            return .color(.clear)
         }
     }
 
