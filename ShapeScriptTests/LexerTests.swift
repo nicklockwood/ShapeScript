@@ -127,6 +127,40 @@ class LexerTests: XCTestCase {
         }
     }
 
+    // MARK: strings
+
+    func testSimpleString() {
+        let input = """
+        "foo"
+        """
+        let tokens: [TokenType] = [.string("foo"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testStringWithSpace() {
+        let input = """
+        "foo bar"
+        """
+        let tokens: [TokenType] = [.string("foo bar"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testStringWithEscapedQuotes() {
+        let input = """
+        "\\"foo\\""
+        """
+        let tokens: [TokenType] = [.string("\"foo\""), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testStringWithEscapedNewline() {
+        let input = """
+        "foo\\nbar"
+        """
+        let tokens: [TokenType] = [.string("foo\nbar"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     // MARK: operators
 
     func testPrefixExpression() {

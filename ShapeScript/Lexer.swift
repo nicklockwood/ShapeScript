@@ -323,6 +323,8 @@ private extension Substring {
                 return .string(string)
             case "\\" where !escaped:
                 escaped = true
+            case "n" where escaped:
+                string.append("\n")
             case "\n", "\r", "\r\n":
                 break loop
             default:
