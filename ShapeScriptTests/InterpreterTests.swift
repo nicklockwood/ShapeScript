@@ -399,7 +399,72 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    // MARK: functions
+    // MARK: For loops
+
+    func testForLoopWithIndex() {
+        let program = "for i in 1 to 3 { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 2, 3])
+    }
+
+    func testForLoopWithoutIndex() {
+        let program = "for 1 to 3 { print 0 }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0, 0, 0])
+    }
+
+    func testForLoopWithInvalidRange() {
+        let program = "for 3 to 1 { print 0 }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
+    func testForLoopWithNegativeRange() {
+        let program = "for i in -3 to -2 { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-3, -2])
+    }
+
+    func testForLoopWithFloatRange() {
+        let program = "for i in 0.5 to 1.5 { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.5, 1.5])
+    }
+
+    func testForLoopWithNonNumericStartIndex() {
+        let program = "for i in \"foo\" to 10 { print i }"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "start index",
+                index: 0,
+                expected: "number",
+                got: "string"
+            ))
+        }
+    }
+
+    func testForLoopWithNonNumericEndIndex() {
+        let program = "for i in 1 to \"bar\" { print i }"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "end index",
+                index: 0,
+                expected: "number",
+                got: "string"
+            ))
+        }
+    }
+
+    // MARK: Functions
 
     func testInvokeMonadicFunction() {
         let program = "print cos pi"
@@ -465,7 +530,7 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    // MARK: member lookup
+    // MARK: Member lookup
 
     func testTupleVectorLookup() {
         let program = "print (1 0).x"

@@ -856,14 +856,12 @@ extension Statement {
                         for: "end index",
                         index: 0,
                         expected: ValueType.number.rawValue,
-                        got: startValue.type.rawValue
+                        got: endValue.type.rawValue
                     ),
                     at: start.range
                 )
             }
-            // TODO: handle case where endIndex < startIndex
-            // TODO: throw error if indexes are out of range
-            for i in Int(startIndex) ... Int(endIndex) {
+            for i in stride(from: startIndex, through: endIndex, by: 1) {
                 try context.pushScope { context in
                     if let name = index?.name {
                         context.define(name, as: .constant(.number(Double(i))))

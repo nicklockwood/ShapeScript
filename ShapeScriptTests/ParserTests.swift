@@ -10,7 +10,7 @@
 import XCTest
 
 class ParserTests: XCTestCase {
-    // MARK: operators
+    // MARK: Operators
 
     func testLeftAssociativity() {
         let input = "print 1 - 2 + 3"
@@ -72,5 +72,98 @@ class ParserTests: XCTestCase {
                 range: colorRange.lowerBound ..< range3.upperBound
             ),
         ]))
+    }
+
+    // MARK: For loops
+
+    func testForLoopWithIndex() {
+        let input = "for i in 1 to 2 {}"
+        let forRange = input.range(of: "for")!
+        let iRange = input.range(of: "i")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let blockRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .forloop(
+                    index: Identifier(name: "i", range: iRange),
+                    from: Expression(type: .number(1), range: range1),
+                    to: Expression(type: .number(2), range: range2),
+                    Block(statements: [], range: blockRange)
+                ),
+                range: forRange.lowerBound ..< blockRange.upperBound
+            ),
+        ]))
+    }
+
+    func testForLoopWithoutIndex() {
+        let input = "for 1 to 2 {}"
+        let forRange = input.range(of: "for")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let blockRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .forloop(
+                    index: nil,
+                    from: Expression(type: .number(1), range: range1),
+                    to: Expression(type: .number(2), range: range2),
+                    Block(statements: [], range: blockRange)
+                ),
+                range: forRange.lowerBound ..< blockRange.upperBound
+            ),
+        ]))
+    }
+
+    func testForLoopWithoutCondition() {
+        let input = "for i in {}"
+        let braceRange = input.range(of: "{")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .lbrace, range: braceRange),
+                expected: "starting index"
+            ))
+        }
+    }
+
+    func testForLoopWithInvalidIndex() {
+        let input = "for 5 in {}"
+        let inRange = input.range(of: "in")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected identifier 'in'")
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .identifier("in"), range: inRange),
+                expected: "'to'"
+            ))
+        }
+    }
+
+    func testForLoopWithoutIndexOrCondition() {
+        let input = "for {}"
+        let braceRange = input.range(of: "{")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .lbrace, range: braceRange),
+                expected: "starting index"
+            ))
+        }
+    }
+
+    func testForLoopWithoutTo() {
+        let input = "for 1 {}"
+        let braceRange = input.range(of: "{")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .lbrace, range: braceRange),
+                expected: "'to'"
+            ))
+        }
     }
 }
