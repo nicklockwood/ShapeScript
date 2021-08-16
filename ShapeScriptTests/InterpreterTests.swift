@@ -329,6 +329,41 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testPositionError() throws {
+        let program = """
+        define pos 1 0 0
+        cube {
+            position pos 0
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            XCTAssertEqual((error as? RuntimeError)?.type, .typeMismatch(
+                for: "position",
+                index: 0,
+                expected: "vector",
+                got: "vector, number"
+            ))
+        }
+    }
+
+    // MARK: Colors
+
+    func testColorTupleError() throws {
+        let program = """
+        define foo 1 0 0
+        color foo 0.5
+        print color
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            XCTAssertEqual((error as? RuntimeError)?.type, .typeMismatch(
+                for: "color",
+                index: 0,
+                expected: "color",
+                got: "color, number"
+            ))
+        }
+    }
+
     // MARK: Block invocation
 
     func testInvokePrimitiveWithoutBlock() {

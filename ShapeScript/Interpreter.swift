@@ -166,7 +166,8 @@ public extension RuntimeError {
             }
             return ""
         case let .typeMismatch(for: name, index: index, expected: type, got: got):
-            return "The \(nth(index))argument for \(name) should be a \(type), not a \(got)."
+            let got = got.contains(",") ? got : "a \(got)"
+            return "The \(nth(index))argument for \(name) should be a \(type), not \(got)."
         case let .unexpectedArgument(for: name, max: max):
             if max == 0 {
                 return "The \(name) command does not expect any arguments."
@@ -566,6 +567,20 @@ private func evaluateParameter(_ parameter: Expression?,
                 throw RuntimeError(.unexpectedArgument(for: name, max: max), at: range)
             }
             values = elements
+        }
+        if values.count > 1, values[0].type == type ||
+            ((values[0].value as? [Any])?.allSatisfy { $0 is Double } == true)
+        {
+            let types = [type.rawValue] + values.dropFirst().map { $0.type.rawValue }
+            throw RuntimeError(
+                .typeMismatch(
+                    for: name,
+                    index: 0,
+                    expected: type.rawValue,
+                    got: types.joined(separator: ", ")
+                ),
+                at: parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
+            )
         }
         var numbers = [Double]()
         for (i, value) in values.enumerated() {
