@@ -59,7 +59,7 @@ public enum InfixOperator: Character {
     case divide = "/"
 }
 
-public enum TokenType: Equatable, CustomStringConvertible {
+public enum TokenType: Equatable {
     case linebreak
     case identifier(String)
     case keyword(Keyword)
@@ -73,24 +73,6 @@ public enum TokenType: Equatable, CustomStringConvertible {
     case rparen
     case dot
     case eof
-
-    public var description: String {
-        switch self {
-        case .linebreak: return "end of line"
-        case let .identifier(name): return "identifier '\(name)'"
-        case let .keyword(keyword): return "keyword '\(keyword)'"
-        case let .infix(op): return "operator '\(op.rawValue)'"
-        case let .prefix(op): return "prefix operator '\(op.rawValue)'"
-        case .number: return "numeric literal"
-        case .string: return "string literal"
-        case .lbrace: return "opening brace"
-        case .rbrace: return "closing brace"
-        case .lparen: return "opening paren"
-        case .rparen: return "closing paren"
-        case .dot: return "dot"
-        case .eof: return "end of file"
-        }
-    }
 }
 
 public struct Token: Equatable {

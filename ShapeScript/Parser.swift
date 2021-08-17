@@ -98,7 +98,7 @@ public struct ParserError: Error, Equatable {
     public var message: String {
         switch type {
         case let .unexpectedToken(token, _):
-            return "Unexpected \(token.type.description)"
+            return "Unexpected \(token.type.errorDescription)"
         }
     }
 
@@ -117,6 +117,26 @@ public struct ParserError: Error, Equatable {
 }
 
 // MARK: Implementation
+
+private extension TokenType {
+    var errorDescription: String {
+        switch self {
+        case .linebreak: return "end of line"
+        case let .identifier(name): return "identifier '\(name)'"
+        case let .keyword(keyword): return "keyword '\(keyword)'"
+        case let .infix(op): return "operator '\(op.rawValue)'"
+        case let .prefix(op): return "prefix operator '\(op.rawValue)'"
+        case .number: return "numeric literal"
+        case .string: return "string literal"
+        case .lbrace: return "opening brace"
+        case .rbrace: return "closing brace"
+        case .lparen: return "opening paren"
+        case .rparen: return "closing paren"
+        case .dot: return "dot"
+        case .eof: return "end of file"
+        }
+    }
+}
 
 private extension ArraySlice where Element == Token {
     var nextToken: Token {
@@ -142,7 +162,7 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func requireToken(_ type: TokenType) throws {
-        try requireToken(type, as: type.description)
+        try requireToken(type, as: type.errorDescription)
     }
 
     func require<T>(_ result: T?, as expected: String) throws -> T {
