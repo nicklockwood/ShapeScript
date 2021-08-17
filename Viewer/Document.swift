@@ -436,8 +436,17 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     func debugLog(_ values: [Any?]) {
-        // Note: Can't just log the entire array here or strings will be quoted
-        let line = values.map { String(logDescriptionFor: $0 as Any) }.joined(separator: " ")
+        var values = values.map { String(logDescriptionFor: $0 as Any) }
+        if let first = values.first {
+            var previous = first
+            values = [first] + values.dropFirst().map { value in
+                defer { previous = value }
+                // Determine if values should be separated with a space
+                return "$£#@([\n\t ".contains(previous.last ?? " ") ||
+                    ".,;:?!%)]\n\t ".contains(value.first ?? " ") ? value : " \(value)"
+            }
+        }
+        let line = values.joined()
         Swift.print(line)
         DispatchQueue.main.async {
             for viewController in self.sceneViewControllers {
