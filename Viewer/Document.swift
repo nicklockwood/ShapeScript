@@ -332,7 +332,7 @@ class Document: NSDocument, EvaluationDelegate {
         if progress?.didSucceed ?? true {
             polygonCount = String(geometry.polygonCount)
             triangleCount = String(geometry.triangleCount)
-            dimensions = geometry.exactBounds.size.shortDescription
+            dimensions = geometry.exactBounds.size.logDescription
         } else {
             polygonCount = "calculating…"
             triangleCount = "calculating…"
@@ -359,9 +359,9 @@ class Document: NSDocument, EvaluationDelegate {
                 "Polygons: \(polygonCount)",
                 "Triangles: \(triangleCount)",
                 "Dimensions: \(dimensions)",
-//                "Size: \(selectedGeometry.transform.scale.shortDescription)",
-//                "Position: \(selectedGeometry.transform.offset.shortDescription)",
-//                "Orientation: \(selectedGeometry.transform.rotation.shortDescription)",
+//                "Size: \(selectedGeometry.transform.scale.logDescription)",
+//                "Position: \(selectedGeometry.transform.offset.logDescription)",
+//                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
                 locationString,
             ].compactMap { $0 }.joined(separator: "\n")
 
@@ -437,7 +437,7 @@ class Document: NSDocument, EvaluationDelegate {
 
     func debugLog(_ values: [Any?]) {
         let line = values.map { $0.map {
-            ($0 as? ShortDescribable).map { $0.shortDescription } ?? "\($0)"
+            ($0 as? Loggable)?.logDescription ?? "\($0)"
         } ?? "nil" }.joined(separator: " ")
         Swift.print(line)
         DispatchQueue.main.async {

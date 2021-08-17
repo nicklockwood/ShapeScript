@@ -40,6 +40,7 @@
 		01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3A421425C8500E47A7C /* LexerTests.swift */; };
 		01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B021425C9A00E47A7C /* Lexer.swift */; };
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
+		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
 		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
 		01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FDE3D426BD766C00A46F66 /* GeometryCache.swift */; };
@@ -178,6 +179,7 @@
 		01BFB3A621425C8500E47A7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		01BFB3B021425C9A00E47A7C /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
 		01BFB3B42142726100E47A7C /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
+		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
 		01FDE3D426BD766C00A46F66 /* GeometryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -296,6 +298,7 @@
 				01AA49F926B621C1009BB2C6 /* Geometry.swift */,
 				01977FCA215D0BD400D65D5E /* Scene.swift */,
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
+				01E3AA0426CB8E8200E0B287 /* Logging.swift */,
 				01BFB39A21425C8500E47A7C /* Info.plist */,
 			);
 			path = ShapeScript;
@@ -610,6 +613,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				014F85D9215B890100461FB7 /* Interpreter.swift in Sources */,
+				01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */,
 				01AA1D8721EF31860086BF86 /* Material.swift in Sources */,
 				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
