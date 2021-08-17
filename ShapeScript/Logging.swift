@@ -10,7 +10,30 @@ import Euclid
 import Foundation
 
 public protocol Loggable {
+    /// Top-level log description
     var logDescription: String { get }
+    /// Log description when nested inside an array or tuple
+    var nestedLogDescription: String { get }
+}
+
+extension String: Loggable {
+    public init(logDescriptionFor value: Any) {
+        self.init(describing: (value as? Loggable)?.logDescription ?? value)
+    }
+
+    public init(nestedLogDescriptionFor value: Any) {
+        self.init(describing: (value as? Loggable)?.nestedLogDescription ?? value)
+    }
+
+    public var logDescription: String {
+        self
+    }
+
+    public var nestedLogDescription: String {
+        "\"" + replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n") + "\""
+    }
 }
 
 extension Double: Loggable {
@@ -18,11 +41,19 @@ extension Double: Loggable {
         self < 0.0001 ? "0" : floor(self) == self ?
             "\(Int(self))" : String(format: "%.4g", self)
     }
+
+    public var nestedLogDescription: String {
+        logDescription
+    }
 }
 
 extension Vector: Loggable {
     public var logDescription: String {
         "\(x.logDescription) \(y.logDescription) \(z.logDescription)"
+    }
+
+    public var nestedLogDescription: String {
+        "(\(logDescription))"
     }
 }
 
@@ -30,11 +61,19 @@ extension Angle: Loggable {
     public var logDescription: String {
         (radians / .pi).logDescription
     }
+
+    public var nestedLogDescription: String {
+        logDescription
+    }
 }
 
 extension Rotation: Loggable {
     public var logDescription: String {
         "\(roll.logDescription) \(yaw.logDescription) \(pitch.logDescription)"
+    }
+
+    public var nestedLogDescription: String {
+        "(\(logDescription))"
     }
 }
 
@@ -42,15 +81,28 @@ extension Color: Loggable {
     public var logDescription: String {
         "\(r.logDescription) \(g.logDescription) \(b.logDescription) \(a.logDescription)"
     }
+
+    public var nestedLogDescription: String {
+        "(\(logDescription))"
+    }
 }
 
 extension Texture: Loggable {
     public var logDescription: String {
         switch self {
         case let .file(name: _, url: url):
-            return url.path
+            return url.path.logDescription
         case .data:
             return "texture { #data }"
+        }
+    }
+
+    public var nestedLogDescription: String {
+        switch self {
+        case let .file(name: _, url: url):
+            return url.path.nestedLogDescription
+        case .data:
+            return logDescription
         }
     }
 }
@@ -64,6 +116,15 @@ extension MaterialProperty: Loggable {
             return texture.logDescription
         }
     }
+
+    public var nestedLogDescription: String {
+        switch self {
+        case let .color(color):
+            return color.nestedLogDescription
+        case let .texture(texture):
+            return texture.nestedLogDescription
+        }
+    }
 }
 
 extension Path: Loggable {
@@ -72,6 +133,10 @@ extension Path: Loggable {
             return "path { subpaths: \(subpaths.count) }"
         }
         return "path { points: \(points.count) }"
+    }
+
+    public var nestedLogDescription: String {
+        "path"
     }
 }
 
@@ -90,5 +155,29 @@ extension Geometry: Loggable {
         \(fields)
         }
         """
+    }
+
+    public var nestedLogDescription: String {
+        type.description
+    }
+}
+
+extension Optional: Loggable {
+    public var logDescription: String {
+        map { String(logDescriptionFor: $0) } ?? "nil"
+    }
+
+    public var nestedLogDescription: String {
+        map { String(nestedLogDescriptionFor: $0) } ?? "nil"
+    }
+}
+
+extension Array: Loggable {
+    public var logDescription: String {
+        map { String(nestedLogDescriptionFor: $0) }.joined(separator: " ")
+    }
+
+    public var nestedLogDescription: String {
+        "(\(logDescription))"
     }
 }

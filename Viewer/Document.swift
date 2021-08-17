@@ -436,9 +436,8 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     func debugLog(_ values: [Any?]) {
-        let line = values.map { $0.map {
-            ($0 as? Loggable)?.logDescription ?? "\($0)"
-        } ?? "nil" }.joined(separator: " ")
+        // Note: Can't just log the entire array here or strings will be quoted
+        let line = values.map { String(logDescriptionFor: $0 as Any) }.joined(separator: " ")
         Swift.print(line)
         DispatchQueue.main.async {
             for viewController in self.sceneViewControllers {
