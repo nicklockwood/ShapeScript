@@ -242,83 +242,76 @@ private extension ArraySlice where Element == Token {
     mutating func readOperand() throws -> Expression? {
         let start = self
         let token = readToken()
-        let range = token.range
-        if case .lparen = token.type {
+        var range = token.range
+        let type: ExpressionType
+        switch token.type {
+        case .lparen:
             let expression = try require(readExpressions(), as: "expression")
             let endToken = nextToken
             try requireToken(.rparen)
-            return Expression(
-                type: .subexpression(expression),
-                range: range.lowerBound ..< endToken.range.upperBound
-            )
-        }
-        if case let .prefix(op) = token.type {
+            range = range.lowerBound ..< endToken.range.upperBound
+            type = .subexpression(expression)
+        case let .prefix(op):
             let operand = try require(readOperand(), as: "operand")
-            return Expression(
-                type: .prefix(op, operand),
-                range: range.lowerBound ..< operand.range.upperBound
-            )
-        }
-        let type: ExpressionType
-        switch token.type {
+            range = range.lowerBound ..< operand.range.upperBound
+            type = .prefix(op, operand)
         case let .number(number):
             type = .number(number)
         case let .string(string):
             type = .string(string)
         case let .identifier(name):
-            type = .identifier(Identifier(name: name, range: range))
-            if readToken(.lparen) {
-                let expression = try require(readExpressions(), as: "expression")
-                let endToken = nextToken
-                try requireToken(.rparen)
-                // repackage function syntax as a lisp-style subexpression
-                // TODO: should we support this as a distinct construct?
-                var expressions = [Expression(type: type, range: range)]
-                switch expression.type {
-                case let .tuple(params):
-                    expressions += params
-                default:
-                    expressions.append(expression)
-                }
-                return Expression(
-                    type: .subexpression(
-                        Expression(
-                            type: .tuple(expressions),
-                            range: range.lowerBound ..< expression.range.upperBound
-                        )
-                    ),
-                    range: range.lowerBound ..< endToken.range.upperBound
-                )
+            let identifier = Identifier(name: name, range: range)
+            guard readToken(.lparen) else {
+                type = .identifier(identifier)
+                break
             }
-        default:
+            let expression = try require(readExpressions(), as: "expression")
+            let endToken = nextToken
+            try requireToken(.rparen)
+            // repackage function syntax as a lisp-style subexpression
+            // TODO: should we support this as a distinct construct?
+            var expressions = [Expression(
+                type: .identifier(identifier),
+                range: range
+            )]
+            if case let .tuple(params) = expression.type {
+                expressions += params
+            } else {
+                expressions.append(expression)
+            }
+            range = range.lowerBound ..< endToken.range.upperBound
+            type = .subexpression(
+                Expression(type: .tuple(expressions), range: range)
+            )
+        case .dot, .linebreak, .keyword, .infix, .lbrace, .rbrace, .rparen, .eof:
             self = start
             return nil
         }
-        return Expression(type: type, range: range)
+        let expression = Expression(type: type, range: range)
+        guard case .dot = nextToken.type else {
+            return expression
+        }
+        removeFirst()
+        let rhs = try require(readIdentifier(), as: "member name")
+        return Expression(
+            type: .member(expression, rhs),
+            range: range.lowerBound ..< rhs.range.upperBound
+        )
     }
 
     mutating func readTerm() throws -> Expression? {
         guard let lhs = try readOperand() else {
             return nil
         }
-        switch nextToken.type {
-        case .dot:
-            removeFirst()
-            let rhs = try require(readIdentifier(), as: "member name")
-            return Expression(
-                type: .member(lhs, rhs),
-                range: lhs.range.lowerBound ..< rhs.range.upperBound
-            )
-        case let .infix(op) where [.times, .divide].contains(op):
-            removeFirst()
-            let rhs = try require(readTerm(), as: "operand")
-            return Expression(
-                type: .infix(lhs, op, rhs),
-                range: lhs.range.lowerBound ..< rhs.range.upperBound
-            )
-        default:
+        guard case let .infix(op) = nextToken.type, [.times, .divide].contains(op) else {
             return lhs
         }
+        removeFirst()
+        let rhs = try require(readTerm(), as: "operand")
+        return Expression(
+            type: .infix(lhs, op, rhs),
+            range: lhs.range.lowerBound ..< rhs.range.upperBound
+        )
     }
 
     mutating func readExpression() throws -> Expression? {

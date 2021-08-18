@@ -593,4 +593,15 @@ class InterpreterTests: XCTestCase {
             }
         }
     }
+
+    func testMemberPrecedence() {
+        let program = """
+        define a 0.5 0.3
+        define b 0.2 0.4
+        print a.x * b.x + a.y * b.y
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.22])
+    }
 }
