@@ -831,6 +831,8 @@ extension Expression {
             return .number(number)
         case let .string(string):
             return .string(string)
+        case let .color(color):
+            return .color(color)
         case let .identifier(identifier):
             let (name, range) = (identifier.name, identifier.range)
             guard let symbol = context.symbol(for: name) else {

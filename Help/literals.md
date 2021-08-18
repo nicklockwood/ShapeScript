@@ -11,6 +11,8 @@ Literals are values that you type in your ShapeScript file. They could be number
 "hello" // a text literal
 
 1 0 0 // a vector literal
+
+#FF0000 // a hex color literal
 ```
 
 Text literals are delimited by double quotes (`"`) to prevent ambiguity if the text matches a keyword or [symbol](symbols.md), or contains spaces or other punctuation. 

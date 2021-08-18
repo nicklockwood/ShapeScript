@@ -34,6 +34,27 @@ Number of parameters         | Meaning
 
 <br/>
 
+Instead of numeric values, you can use web-style hex color codes to specify colors instead. These consist of a hash character (#) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255, and can be output by many popular graphics tools. Here are some examples:
+
+```swift
+color #FF0000 // pure red
+color #7F7F7F // 50% gray
+color #000000 // pure black
+```
+
+As with [web colors](https://en.wikipedia.org/wiki/Web_colors), you can use a shorthand 3-digit form as follows:
+
+```swift
+color #F00 // equivalent to #FF0000
+```
+
+And you can also use a fourth digit or pair of digits to specify alpha:
+
+```swift
+color #FF000066 // pure red with 40% opacity
+color #F006 // equivalent to #FF000066
+```
+
 Because `color` is a command rather than an option, you can use it anywhere in your program and it will affect all subsequent shapes that you create. If you use the `color` command *inside* a shape or [group](groups.md) then its effect will end at the closing `}`:
 
 ```swift

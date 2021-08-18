@@ -161,6 +161,81 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    // MARK: colors
+
+    func test0DigitColor() {
+        let input = "#"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("#"))
+        }
+    }
+
+    func test1DigitColor() {
+        let input = "#A"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("A"))
+        }
+    }
+
+    func test2DigitColor() {
+        let input = "#12"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("12"))
+        }
+    }
+
+    func test3DigitColor() {
+        let input = "#abc"
+        let tokens: [TokenType] = [.hexColor("abc"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func test4DigitColor() {
+        let input = "#123F"
+        let tokens: [TokenType] = [.hexColor("123F"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func test5DigitColor() {
+        let input = "#12345"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("12345"))
+        }
+    }
+
+    func test6DigitColor() {
+        let input = "#1A2B3C"
+        let tokens: [TokenType] = [.hexColor("1A2B3C"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func test7DigitColor() {
+        let input = "#1A2B3C4"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("1A2B3C4"))
+        }
+    }
+
+    func test8DigitColor() {
+        let input = "#1A2B3C4D"
+        let tokens: [TokenType] = [.hexColor("1A2B3C4D"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func test9DigitColor() {
+        let input = "#1A2B3C4D5"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("1A2B3C4D5"))
+        }
+    }
+
+    func testInvalidColor() {
+        let input = "#123Z"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual((error as? LexerError)?.type, .invalidColor("123Z"))
+        }
+    }
+
     // MARK: operators
 
     func testPrefixExpression() {

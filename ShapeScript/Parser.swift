@@ -57,6 +57,7 @@ public struct Definition: Equatable {
 public enum ExpressionType: Equatable {
     case number(Double)
     case string(String)
+    case color(Color)
     case identifier(Identifier)
     case block(Identifier, Block)
     indirect case tuple([Expression])
@@ -124,6 +125,7 @@ private extension TokenType {
         case .linebreak: return "end of line"
         case let .identifier(name): return "identifier '\(name)'"
         case let .keyword(keyword): return "keyword '\(keyword)'"
+        case let .hexColor(string): return "color \(string)"
         case let .infix(op): return "operator '\(op.rawValue)'"
         case let .prefix(op): return "prefix operator '\(op.rawValue)'"
         case .number: return "numeric literal"
@@ -260,6 +262,8 @@ private extension ArraySlice where Element == Token {
             type = .number(number)
         case let .string(string):
             type = .string(string)
+        case let .hexColor(string):
+            type = .color(Color(hexString: string) ?? .black)
         case let .identifier(name):
             let identifier = Identifier(name: name, range: range)
             guard readToken(.lparen) else {

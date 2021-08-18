@@ -24,7 +24,8 @@ public func tokenize(_ input: String) throws -> [Token] {
             switch lastTokenType {
             case .infix, .dot, .lparen, .lbrace, .linebreak:
                 spaceBefore = true
-            case .identifier, .keyword, .prefix, .number, .string, .rbrace, .rparen, .eof:
+            case .identifier, .keyword, .hexColor,
+                 .prefix, .number, .string, .rbrace, .rparen, .eof:
                 break
             }
         }
@@ -63,6 +64,7 @@ public enum TokenType: Equatable {
     case linebreak
     case identifier(String)
     case keyword(Keyword)
+    case hexColor(String)
     case infix(InfixOperator)
     case prefix(PrefixOperator)
     case number(Double)
@@ -84,6 +86,7 @@ public struct Token: Equatable {
 
 public enum LexerErrorType: Equatable {
     case invalidNumber(String)
+    case invalidColor(String)
     case unexpectedToken(String)
     case unterminatedString
 }
@@ -96,6 +99,8 @@ public struct LexerError: Error, Equatable {
         switch type {
         case let .invalidNumber(digits):
             return "Invalid numeric literal '\(digits)'"
+        case let .invalidColor(string):
+            return "Invalid color literal '#\(string)'"
         case let .unexpectedToken(token):
             guard token.count < 20, !token.contains("'") else {
                 return "Unexpected token"
@@ -113,6 +118,8 @@ public struct LexerError: Error, Equatable {
                 return "Numbers must contain at most one decimal point."
             }
             return nil
+        case .invalidColor:
+            return "Hex colors must be 3, 4, 6 or 8 digits in length."
         case .unexpectedToken:
             return nil
         case .unterminatedString:
@@ -171,9 +178,11 @@ public extension String {
 
 private let whitespace = " \t"
 private let linebreaks = "\n\r\r\n"
-let punctuation = "/()[]{}"
+private let punctuation = "/()[]{}"
 private let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-private let alphanumerics = "0123456789" + letters
+private let digits = "0123456789"
+private let alphanumerics = digits + letters
+private let hexadecimals = digits + "ABCDEFabcdef"
 
 private extension Character {
     var isWhitespace: Bool {
@@ -335,6 +344,31 @@ private extension Substring {
         return .identifier(name)
     }
 
+    mutating func readHexColor() throws -> TokenType? {
+        guard first == "#" else {
+            return nil
+        }
+        let start = self
+        removeFirst()
+        var string = "", isValid = true
+        while let c = first, alphanumerics.contains(c) {
+            isValid = isValid && hexadecimals.contains(c)
+            string.append(removeFirst())
+        }
+        let range = start.startIndex ..< startIndex
+        guard isValid else {
+            throw LexerError(.invalidColor(string), at: range)
+        }
+        switch string.count {
+        case 3, 4, 6, 8:
+            return .hexColor(string)
+        case 0:
+            throw LexerError(.unexpectedToken("#"), at: range)
+        default:
+            throw LexerError(.invalidColor(string), at: range)
+        }
+    }
+
     mutating func readToken(spaceBefore: Bool) throws -> Token? {
         let startIndex = self.startIndex
         guard let tokenType = try
@@ -342,7 +376,8 @@ private extension Substring {
             readOperator(spaceBefore: spaceBefore) ??
             readNumber() ??
             readString() ??
-            readIdentifier()
+            readIdentifier() ??
+            readHexColor()
         else {
             return nil
         }
