@@ -1,7 +1,7 @@
 Operators
 ---
 
-Operators are used in conjuction with values to form mathematical expressions:
+Operators are used in conjunction with values to form mathematical expressions:
 
 ```swift
 5 + 3 * 4

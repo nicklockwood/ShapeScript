@@ -26,7 +26,7 @@ define five three + two
 
 Symbols help to make your ShapeScript file more readable by assigning meaningful names to otherwise inscrutable literal values. They also make the script easier to modify and maintain by avoiding duplication of literal values throughout the code.
 
-Existing symbols can redefined by calling `define` again with the same name. If a symbol is defined inside a `{ ... }` block then it will be [scoped](scope.md) to the code inside that block (meaning that it cannot be used after the closing `}`):
+Existing symbols can be redefined by calling `define` again with the same name. If a symbol is defined inside a `{ ... }` block then it will be [scoped](scope.md) to the code inside that block (meaning that it cannot be used after the closing `}`):
 
 ```swift
 for i in 1 to 5 {

@@ -29,7 +29,7 @@ ShapeScript files are just ordinary text documents, so they can be opened in any
 
 If you have a more advanced editor such as [SubEthaEdit](https://subethaedit.net), [TextMate](https://macromates.com), [Sublime Text](https://www.sublimetext.com) or [Atom](https://atom.io) then it would be better to use one of these. An Integrated Development Environment (IDE) such as [Xcode](https://developer.apple.com/xcode/) is also a good option.
 
-No 3rd party editors currently support ShapeScript syntax directly, but if you set your editor to treat `.shape` files as another C-like language (e.g. C, Swift or Java) then it should do an acceptable job of syntax coloring and indenting. Some editors (such as Xcode) will make this association automatically, which will save you having to do it each time you edit a ShapeScript file.
+No third-party editors currently support ShapeScript syntax directly, but if you set your editor to treat `.shape` files as another C-like language (e.g. C, Swift or Java) then it should do an acceptable job of syntax coloring and indenting. Some editors (such as Xcode) will make this association automatically, which will save you having to do it each time you edit a ShapeScript file.
 
 ShapeScript will only ask you which editor you want to use the *first* time you edit a file, then it will remember your choice. If you change your mind later, you can select a different editor in Preferences (select the `ShapeScript > Preferences…` menu or press **Cmd-,**).
 
@@ -76,7 +76,7 @@ The groups of instructions after the cube are similar, but define a sphere and c
 
 ## Next Steps
 
-Change the `color 1 0 0` instruction to `color 1 1 0`, and then save the file. If you switch back to the ShapeScript app you should now see that the red cube has changes to yellow. ShapeScript tracks changes to any open files and will automatically update the view whenever they are saved.
+Change the `color 1 0 0` instruction to `color 1 1 0`, and then save the file. If you switch back to the ShapeScript app you should now see that the red cube has changed to yellow. ShapeScript tracks changes to any open files and will automatically update the view whenever they are saved.
 
 ![Yellow cube](images/yellow-cube.png)
 
