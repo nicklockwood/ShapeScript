@@ -947,19 +947,20 @@ extension Expression {
             return .string(string)
         case let .identifier(identifier):
             let (name, range) = (identifier.name, identifier.range)
-            guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(
-                    .unknownSymbol(name, options: context.expressionSymbols),
-                    at: range
-                )
-            }
             do {
+                guard let symbol = context.symbol(for: name) else {
+                    throw RuntimeErrorType.unknownSymbol(name, options: context.expressionSymbols)
+                }
                 switch symbol {
                 case let .command(parameterType, fn):
                     guard parameterType == .void else {
                         // commands can't be used as expressions
                         // TODO: make this possible
-                        throw RuntimeErrorType.unknownSymbol(name, options: context.expressionSymbols)
+                        throw RuntimeErrorType.missingArgument(
+                            for: name,
+                            index: 0,
+                            type: parameterType.rawValue
+                        )
                     }
                     return try fn(.void, context)
                 case let .property(_, _, getter):
@@ -968,7 +969,11 @@ extension Expression {
                     guard type.childTypes.isEmpty else {
                         // blocks that require children can't be used as expressions
                         // TODO: allow this if child matches next argument
-                        throw RuntimeErrorType.unknownSymbol(name, options: context.expressionSymbols)
+                        throw RuntimeErrorType.missingArgument(
+                            for: name,
+                            index: 0,
+                            type: "block"
+                        )
                     }
                     return try fn(context.push(type))
                 case let .constant(value):
@@ -1024,13 +1029,29 @@ extension Expression {
             }
         case let .tuple(expressions):
             var values = [Value]()
-            for (i, param) in expressions.enumerated() {
+            loop: for (i, param) in expressions.enumerated() {
                 if i < expressions.count - 1, case let .identifier(identifier) = param.type {
-                    if case let .command(parameterType, fn)? = context.symbol(for: identifier.name), parameterType != .void {
+                    switch context.symbol(for: identifier.name) {
+                    case let .command(parameterType, fn)? where parameterType != .void:
                         let range = expressions[i + 1].range.lowerBound ..< expressions.last!.range.upperBound
                         let param = Expression(type: .tuple(Array(expressions[(i + 1)...])), range: range)
                         let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
                         try values.append(fn(arg, context))
+                        break loop
+                    case let .block(type, _) where !type.childTypes.isEmpty:
+                        let param = expressions[i + 1]
+                        let value = try param.evaluate(in: context)
+                        // TODO: allow this if child matches next argument
+                        throw RuntimeError(
+                            .typeMismatch(
+                                for: identifier.name,
+                                index: 0,
+                                expected: "block",
+                                got: value.type.rawValue
+                            ),
+                            at: param.range
+                        )
+                    default:
                         break
                     }
                 }

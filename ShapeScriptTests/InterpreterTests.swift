@@ -399,6 +399,27 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testInvokeBlockInExpressionWithoutParens() {
+        let program = "print 1 + text 2"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(for: "text", index: 0, type: "block"))
+        }
+    }
+
+    func testInvokeBlockInExpressionWithParensButWrongArgumentType() {
+        let program = "print 1 + (text 2)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "text",
+                index: 0,
+                expected: "block",
+                got: "number"
+            ))
+        }
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
@@ -527,6 +548,66 @@ class InterpreterTests: XCTestCase {
                 XCTFail()
                 return
             }
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParens() {
+        let program = "print 1 + (sqrt 9) 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [4, 5])
+    }
+
+    func testInvokeFunctionInExpressionWithoutParens() {
+        let program = "print 1 + sqrt 9"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(for: "sqrt", index: 0, type: "number"))
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParensButWrongArgumentType() {
+        let program = "print 1 + (sqrt \"a\")"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "sqrt",
+                index: 0,
+                expected: "number",
+                got: "string"
+            ))
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParensButMissingArgument() {
+        let program = "print 1 + (pow 1)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(for: "pow", index: 1, type: "number"))
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParensButMissingArgument2() {
+        let program = "print 1 + pow(1)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(for: "pow", index: 1, type: "number"))
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParensButExtraArgument() {
+        let program = "print 1 + (pow 1 2 3)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unexpectedArgument(for: "pow", max: 2))
+        }
+    }
+
+    func testInvokeFunctionInExpressionWithParensButExtraArgument2() {
+        let program = "print 1 + pow(1 2 3)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unexpectedArgument(for: "pow", max: 2))
         }
     }
 
