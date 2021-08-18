@@ -17,8 +17,8 @@ ShapeScript Help
 - Syntax
     - [Comments](comments.md)
     - [Literals](literals.md)
-    - [Operators](operators.md)
     - [Symbols](symbols.md)
+    - [Expressions](expressions.md)
     - [Functions](functions.md)
     - [Commands](commands.md)
     - [Loops](loops.md)

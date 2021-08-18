@@ -1,7 +1,7 @@
 Literals
 ---
 
-Literals are values that you type in your ShapeScript file. They could be numbers, text or something else. Literals can be passed to [options](options.md) or [commands](commands.md) as parameters, or used in expressions. Here are some examples:
+Literals are values that you type in your ShapeScript file. They could be numbers, text or something else. Literals can be passed as parameters to [options](options.md), [functions](functions.md) or [commands](commands.md), or used in [expressions](expressions.md). Here are some examples:
 
 ```swift
 5 // an integer literal
@@ -39,4 +39,4 @@ Because `\` is used as the escape character, it must also be escaped if you want
 ```
 
 ---
-[Index](index.md) | Next: [Operators](operators.md)
+[Index](index.md) | Next: [Expressions](expressions.md)

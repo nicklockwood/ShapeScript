@@ -1,7 +1,7 @@
 Symbols
 ---
 
-A symbol is a named value (sometimes referred to as a *constant*) that can be used in an expression in place of a [literal](literals.md) value.
+A symbol is a named value (sometimes referred to as a *constant*) that can be used in place of a [literal](literals.md) value.
 
 ShapeScript includes several built-in symbols such as `detail` (the current level of detail), or `pi` (the mathematical constant used to compute angles), but you can also define your own symbols using the `define` command:
 
@@ -16,7 +16,7 @@ Symbol names consist of a letter followed by zero or more letters or numbers. Sy
 define numberOfSides 7
 ```
 
-The value assigned to a symbol can be a literal or an expression. Once defined, a symbol can be used anywhere in place of a literal value, such as inside an expression, or as a command parameter. Symbols can also be used in the definition of other symbols:
+The value assigned to a symbol can be a literal or an [expression](expressions.md). Once defined, a symbol can be used anywhere in place of a literal value, such as inside an expression, or as a [command](commands.md) or [function](functions.md) parameter. Symbols can also be used in the definition of other symbols:
 
 ```swift
 define three 3

@@ -5,7 +5,7 @@ Functions consist of a name followed by one or more values. They perform an oper
 
 Functions are *pure*, meaning that they do not have *side-effects*, and they do not depend on the current state of the program. A function called with a given set of input values will always return the same output value.
 
-Functions can be used inside expressions, and can accept expressions as inputs. Unlike [operators](operators.md), functions have no implicit precedence, so parentheses may be needed to avoid ambiguity.
+Functions can be used inside expressions, and can accept expressions as inputs. Unlike [operators](expressions.md#operators), functions have no implicit precedence, so parentheses may be needed to avoid ambiguity.
 
 In the following example, it's not clear if `y` is intended as a second argument to the `cos` function, or as the second argument to the translate command. Only the latter would technically be valid, since `cos` only accepts a single argument, but ShapeScript requires you to be explicit, and will treat this as an error:
 
@@ -27,9 +27,9 @@ translate cos(x) y
 
 Either approach is acceptable in ShapeScript. Note however that in the latter case there must be no space between the function name and the opening paren.
 
-## Math functions
+## Math Functions
 
-In addition to the standard math [operators](operators.md), ShapeScript also includes a number of built-in math *functions*:
+In addition to the standard math [operators](expressions.md#operators), ShapeScript also includes a number of built-in math *functions*:
 
 The `round` function is used to round a number to the nearest integer (whole number):
 
@@ -105,7 +105,7 @@ rotate angle / pi
 The `sin` function returns the sine of an angle (specified in radians):
 
 ```swift
-sin pi / 2 // returns 1
+sin pi // returns 0
 ``` 
 
 The `cos` function returns the cosine of an angle (specified in radians):
@@ -117,7 +117,7 @@ cos pi // returns -1
 The `tan` function returns the tangent of an angle (specified in radians):
 
 ```swift
-tan pi / 4 // returns 1
+tan pi // returns 0
 ``` 
 
 The `asin` function computes the inverse sine function (aka arc sine), returning an angle in radians:
@@ -142,7 +142,36 @@ The `atan2` function works like `atan`, but instead of a single tangent value, i
 
 ```swift
 atan2 1 -1 // returns pi * 0.75
-``` 
+```
+
+## Functions and Expressions
+
+Expressions can be passed as function arguments, for example:
+
+```swift
+sin pi / 2 // returns 1
+```
+
+Which, thanks to precedence rules, is equivalent to:
+
+```swift
+sin(pi / 2) // returns 1
+```
+
+You can also use function calls *inside* an expression, for example:
+
+```swift
+print (sqrt 9) + (sqrt 9) // prints 6
+```
+
+Or the equivalent form of:
+
+```swift
+print sqrt(9) + sqrt(9) // also prints 6
+```
+
+**Note:** When used inside an expression, parentheses around the function (or just its arguments) are required.
+
 
 ---
 [Index](index.md) | Next: [Commands](commands.md)
