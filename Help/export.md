@@ -44,6 +44,8 @@ ShapeScript can export models in STL format, used by many 3D printing applicatio
 
 When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine all the parts of your model into a single shape, eliminating internal faces.
 
+ShapeScript uses the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the ShapeScript preferences to export models in this orientation.
+
 ## Rendering an Image
 
 In addition to 3D model formats, ShapeScript can also export 2D images. The following image formats are supported:

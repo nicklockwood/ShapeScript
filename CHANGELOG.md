@@ -1,3 +1,19 @@
+## [1.2.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.0) (2021-08-15)
+
+- Improved progressive rendering logic, reducing wait before seeing first results in viewer
+- Geometry cache is now limited to ~1GB per open document instead of being unbounded
+- Cached geometry is now cleared when document is closed instead of persisting for app lifetime
+- Invalid font names now produce an error instead of silently falling back to Helvetica
+- Paths are now drawn in white when background is set to a dark color or texture
+- Fixed an index out-of-bounds crash in the Levenshtein distance function
+- Bumped Euclid to 0.5.8, which includes several bug fixes
+- Renamed `GeometryType.none` to the more descriptive `GeometryType.group`
+- Made `Geometry.mesh` and `Geometry.associatedData` properties thread-safe using `NSLock`
+- Removed `Scene.deepCopy()` and `Geometry.deepCopy()` methods as instances are now thread-safe
+- Moved selection logic out of `ShapeScriptLib` and into Viewer example application
+- Fixed bug in Viewer where geometries would be deselected during progressive loading
+- Added LRUCache dependency
+
 ## [1.1.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.6) (2021-08-04)
 
 - Paths are now drawn using polygons strips, which looks sharper and renders more consistently

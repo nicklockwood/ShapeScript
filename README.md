@@ -30,19 +30,19 @@ ShapeScript is packaged as a dynamic framework, which itself depends on the [Euc
 To install the ShapeScript framework using CocoaPods, add the following to your Podfile:
 
 ```ruby
-pod 'ShapeScript', '~> 1.1'
+pod 'ShapeScript', '~> 1.2'
 ```
 
 To install using Carthage, add this to your Cartfile:
 
 ```ogdl
-github "nicklockwood/ShapeScript" ~> 1.1
+github "nicklockwood/ShapeScript" ~> 1.2
 ```
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.1.0")),
+.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.2.0")),
 ```
 
 The repository also includes the ShapeScript Viewer application, a cut-down version of the ShapeScript app available on the [Mac App Store](https://apps.apple.com/app/id1441135869). It is not currently possible to install or run this app using CocoaPods, Carthage or Swift Package Manager, however you can run it by opening the included Xcode project and selecting the `ShapeScript Viewer` scheme.
