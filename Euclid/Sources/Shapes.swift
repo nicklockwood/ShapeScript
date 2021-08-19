@@ -653,17 +653,17 @@ public extension Mesh {
         var shape = shape
         let shapePlane = shape.flatteningPlane
         let pathPlane = along.flatteningPlane
+        let shapeNormal: Vector
         switch (shapePlane, pathPlane) {
         case (.xy, .xy):
-            shape = shape.rotated(by: .roll(.halfPi))
-        case (.yz, .yz):
-            shape = shape.rotated(by: .yaw(.halfPi))
-        case (.xz, .xz):
             shape = shape.rotated(by: .pitch(.halfPi))
+            shapeNormal = shapePlane.rawValue.normal.rotated(by: .pitch(.halfPi))
+        case (.yz, .yz), (.xz, .xz):
+            shape = shape.rotated(by: .roll(.halfPi))
+            shapeNormal = shapePlane.rawValue.normal.rotated(by: .roll(.halfPi))
         default:
-            break
+            shapeNormal = shapePlane.rawValue.normal
         }
-        let shapeNormal = (shape.plane ?? shapePlane.rawValue).normal
         var shapes = [Path]()
         let count = points.count
         var p1 = points[1]
@@ -835,9 +835,19 @@ public extension Mesh {
                     polygons.append(Polygon(
                         unchecked: invert ? vertices.reversed() : vertices,
                         plane: nil,
-                        isConvex: true,
+                        isConvex: nil,
                         material: material
                     ))
+                } else {
+                    // This is a hack to make the best of a bad edge case
+                    // TODO: find a better solution
+                    polygons += triangulateVertices(
+                        vertices,
+                        plane: nil,
+                        isConvex: nil,
+                        material: material,
+                        id: 0
+                    )
                 }
             }
             // TODO: create triangles for mismatched points
@@ -854,6 +864,10 @@ public extension Mesh {
             } else {
                 polygons += facePolygons
             }
+        }
+        if !isCapped, count > 1, let first = shapes.first, let last = shapes.last {
+            isCapped = first.isClosed && first.hasZeroArea &&
+                last.isClosed && last.hasZeroArea
         }
         switch faces {
         case .default where isCapped, .front:

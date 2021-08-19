@@ -183,6 +183,11 @@ extension Path: Codable {
             try container.encode(subpaths, forKey: .subpaths)
         }
     }
+
+    // TODO: Make this more robust, then make public
+    var hasZeroArea: Bool {
+        points.count < (isClosed ? 4 : 3)
+    }
 }
 
 public extension Path {
@@ -457,7 +462,7 @@ internal extension Path {
         if let plane = plane {
             self.plane = plane
             assert({
-                guard points.count > 2, let expectedPlane = Path(
+                guard positions.count > 2, let expectedPlane = Path(
                     unchecked: points,
                     plane: nil,
                     subpathIndices: subpathIndices
