@@ -1,3 +1,18 @@
+## [1.2.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.1) (2021-08-19)
+
+- Fixed crash when `for` loop end index < start index
+- Improved `print` log output, especially for arrays/tuples and nested values
+- Added `Loggable` protocol for stringifying values logged using the ShapeScript `print` command
+- Replaced `TokenType.description` with `TokenType.errorDescription` to aid debugging
+- Text now supports using \n for line-breaks (this was documented as working, but never implemented)
+- Fixed confusing error message when first value of tuple matches expected type
+- Fixed nonsensical error message when a command is used in an expression
+- Bumped Euclid to 0.5.9, which includes fixes for extruded paths
+- Extruding along a compound path now forms a union between the resultant shapes
+- Fixed typos and improved help documentation
+- Fixed member lookup precedence
+- Improved test coverage
+
 ## [1.2.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.0) (2021-08-15)
 
 - Improved progressive rendering logic, reducing wait before seeing first results in viewer
