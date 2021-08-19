@@ -81,6 +81,7 @@ public final class Geometry {
         var type = type
         switch type {
         case let .extrude(paths, along):
+            let along = along.flatMap { $0.subpaths }
             switch (paths.count, along.count) {
             case (0, 0):
                 break
@@ -421,6 +422,7 @@ private extension Geometry {
         case .cube:
             mesh = .cube()
         case let .extrude(paths, along: along) where paths.count == 1 && along.count <= 1:
+            assert(along.reduce(0) { $0 + $1.subpaths.count } <= 1)
             mesh = along.first.map { .extrude(paths[0], along: $0) } ?? .extrude(paths[0])
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = .lathe(paths[0], slices: segments)
