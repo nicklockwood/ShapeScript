@@ -143,7 +143,9 @@ class Document: NSDocument, EvaluationDelegate {
                     return
                 }
 
-                let scene = try evaluate(program, delegate: self, cache: cache)
+                let scene = try evaluate(program, delegate: self, cache: cache, isCancelled: {
+                    progress.isCancelled
+                })
                 let evaluated = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
                 if logCancelled() {

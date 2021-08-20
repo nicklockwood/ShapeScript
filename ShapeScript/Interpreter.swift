@@ -20,9 +20,14 @@ public protocol EvaluationDelegate: AnyObject {
 public func evaluate(
     _ program: Program,
     delegate: EvaluationDelegate?,
-    cache: GeometryCache? = GeometryCache()
+    cache: GeometryCache? = GeometryCache(),
+    isCancelled: @escaping () -> Bool = { false }
 ) throws -> Scene {
-    let context = EvaluationContext(source: program.source, delegate: delegate)
+    let context = EvaluationContext(
+        source: program.source,
+        delegate: delegate,
+        isCancelled: isCancelled
+    )
     try program.evaluate(in: context)
     return Scene(
         background: context.background,
@@ -220,6 +225,8 @@ public extension RuntimeError {
 }
 
 // MARK: Implementation
+
+private struct EvaluationCancelled: Error {}
 
 private extension RuntimeError {
     static let alternatives = [
@@ -495,7 +502,9 @@ extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
         context.source = source
-        try statements.forEach { try $0.evaluate(in: context) }
+        do {
+            try statements.forEach { try $0.evaluate(in: context) }
+        } catch is EvaluationCancelled {}
         context.source = oldSource
     }
 }
@@ -871,6 +880,9 @@ extension Statement {
                 )
             }
             for i in stride(from: startIndex, through: endIndex, by: 1) {
+                if context.isCancelled() {
+                    throw EvaluationCancelled()
+                }
                 try context.pushScope { context in
                     if let name = index?.name {
                         context.define(name, as: .constant(.number(Double(i))))
@@ -998,6 +1010,9 @@ extension Expression {
             }
             switch symbol {
             case let .block(type, fn):
+                if context.isCancelled() {
+                    throw EvaluationCancelled()
+                }
                 let sourceIndex = context.sourceIndex
                 let context = context.push(type)
                 for statement in block.statements {

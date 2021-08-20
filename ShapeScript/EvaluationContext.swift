@@ -31,6 +31,7 @@ final class EvaluationContext {
     private var userSymbols = Symbols()
     private let importCache: ImportCache
     private(set) var baseURL: URL?
+    let isCancelled: () -> Bool
 
     var source: String
     var sourceIndex: String.Index?
@@ -56,9 +57,14 @@ final class EvaluationContext {
         }
     }
 
-    init(source: String, delegate: EvaluationDelegate?) {
+    init(
+        source: String,
+        delegate: EvaluationDelegate?,
+        isCancelled: @escaping () -> Bool = { false }
+    ) {
         self.source = source
         self.delegate = delegate
+        self.isCancelled = isCancelled
         importCache = ImportCache()
         random = RandomSequence(seed: 0)
     }
@@ -69,6 +75,7 @@ final class EvaluationContext {
         sourceIndex = parent.sourceIndex
         baseURL = parent.baseURL
         delegate = parent.delegate
+        isCancelled = parent.isCancelled
         symbols = parent.symbols
         userSymbols = parent.userSymbols
         importCache = parent.importCache
