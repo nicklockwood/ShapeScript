@@ -152,6 +152,15 @@ public extension RuntimeError {
             default: return ""
             }
         }
+        func formatMessage(_ message: String) -> String? {
+            guard let last = message.last else {
+                return nil
+            }
+            if ".?!".contains(last) {
+                return message
+            }
+            return "\(message)."
+        }
         switch type {
         case let .unknownSymbol(name, _):
             var hint = Keyword(rawValue: name) == nil && Symbols.all[name] == nil ? "" :
@@ -193,7 +202,7 @@ public extension RuntimeError {
         case let .fileAccessRestricted(for: _, at: url):
             return "ShapeScript cannot read the file due to macOS security restrictions. Please open the directory at '\(url.path)' to grant access."
         case let .fileParsingError(for: _, at: _, message: message):
-            return message
+            return formatMessage(message)
         case let .fileTypeMismatch(for: _, at: url, expected: type):
             guard let type = type else {
                 return "The type of file at '\(url.path)' is not supported."
