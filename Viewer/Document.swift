@@ -94,101 +94,99 @@ class Document: NSDocument, EvaluationDelegate {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
-        let progress = LoadingProgress { [weak self] result in
-            guard let self = self else {
-                return
-            }
-            switch result {
-            case .waiting:
-                for viewController in self.sceneViewControllers {
-                    viewController.showConsole = false
-                    viewController.clearLog()
+        let progress = LoadingProgress(
+            observer: { [weak self] status in
+                guard let self = self else {
+                    return
                 }
-            case let .partial(scene), let .success(scene):
-                self.errorMessage = nil
-                self.accessErrorURL = nil
-                self.scene = scene
-            case let .failure(error):
-                self.errorMessage = error.message(with: input)
-                if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
-                    self.accessErrorURL = url
-                } else {
+                switch status {
+                case .waiting:
+                    for viewController in self.sceneViewControllers {
+                        viewController.showConsole = false
+                        viewController.clearLog()
+                    }
+                case let .partial(scene), let .success(scene):
+                    self.errorMessage = nil
                     self.accessErrorURL = nil
+                    self.scene = scene
+                case let .failure(error):
+                    self.errorMessage = error.message(with: input)
+                    if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
+                        self.accessErrorURL = url
+                    } else {
+                        self.accessErrorURL = nil
+                    }
+                    self.updateViews()
+                case .cancelled:
+                    break
                 }
-                self.updateViews()
-            case .cancelled:
-                break
-            }
-        }
-        progress.dispatch { [cache, weak progress] in
-            guard let progress = progress else {
-                return
-            }
-
-            func logCancelled() -> Bool {
-                if progress.isCancelled {
-                    Swift.print("[\(progress.id)] cancelled")
-                    return true
-                }
-                return false
-            }
-
-            let start = CFAbsoluteTimeGetCurrent()
-            Swift.print("[\(progress.id)] starting...")
-            if logCancelled() {
-                return
-            }
-
-            let program = try parse(input)
-            let parsed = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
-            if logCancelled() {
-                return
-            }
-
-            let scene = try evaluate(program, delegate: self, cache: cache)
-            let evaluated = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
-            if logCancelled() {
-                return
-            }
-
-            // Set output options
-            var options = Scene.OutputOptions.default
-            let color = Color(nsColor: NSColor.underPageBackgroundColor)
-            options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
-
-            // Clear errors and previous geometry
-            progress.setStatus(.partial(.empty))
-
-            let minUpdatePeriod: TimeInterval = 0.1
-            var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
-            _ = scene.build {
-                if progress.isCancelled {
+            },
+            task: { [cache] progress in
+                func logCancelled() -> Bool {
+                    if progress.isCancelled {
+                        Swift.print("[\(progress.id)] cancelled")
+                        return true
+                    }
                     return false
                 }
-                let time = CFAbsoluteTimeGetCurrent()
-                if time - lastUpdate > minUpdatePeriod {
-                    Swift.print(String(format: "[\(progress.id)] rendering..."))
-                    scene.scnBuild(with: options)
-                    progress.setStatus(.partial(scene))
-                    lastUpdate = time
+
+                let start = CFAbsoluteTimeGetCurrent()
+                Swift.print("[\(progress.id)] starting...")
+                if logCancelled() {
+                    return
                 }
-                return true
+
+                let program = try parse(input)
+                let parsed = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
+                if logCancelled() {
+                    return
+                }
+
+                let scene = try evaluate(program, delegate: self, cache: cache)
+                let evaluated = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
+                if logCancelled() {
+                    return
+                }
+
+                // Set output options
+                var options = Scene.OutputOptions.default
+                let color = Color(nsColor: NSColor.underPageBackgroundColor)
+                options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
+
+                // Clear errors and previous geometry
+                progress.setStatus(.partial(.empty))
+
+                let minUpdatePeriod: TimeInterval = 0.1
+                var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
+                _ = scene.build {
+                    if progress.isCancelled {
+                        return false
+                    }
+                    let time = CFAbsoluteTimeGetCurrent()
+                    if time - lastUpdate > minUpdatePeriod {
+                        Swift.print(String(format: "[\(progress.id)] rendering..."))
+                        scene.scnBuild(with: options)
+                        progress.setStatus(.partial(scene))
+                        lastUpdate = time
+                    }
+                    return true
+                }
+
+                if logCancelled() {
+                    return
+                }
+
+                let done = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
+                scene.scnBuild(with: options)
+                progress.setStatus(.success(scene))
+
+                let end = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
             }
-
-            if logCancelled() {
-                return
-            }
-
-            let done = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
-            scene.scnBuild(with: options)
-            progress.setStatus(.success(scene))
-
-            let end = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
-        }
+        )
         self.progress = progress
     }
 
