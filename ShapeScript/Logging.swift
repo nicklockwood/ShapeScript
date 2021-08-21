@@ -152,6 +152,29 @@ extension Path: Loggable {
     }
 }
 
+private extension GeometryType {
+    var logDescription: String {
+        switch self {
+        case .group: return "group"
+        case .cone: return "cone"
+        case .cylinder: return "cylinder"
+        case .sphere: return "sphere"
+        case .cube: return "cube"
+        case .extrude: return "extrusion"
+        case .lathe: return "lathe"
+        case .loft: return "loft"
+        case .fill: return "fill"
+        case .union: return "union"
+        case .difference: return "difference"
+        case .intersection: return "intersection"
+        case .xor: return "xor"
+        case .stencil: return "stencil"
+        case .path: return "path"
+        case .mesh: return "mesh"
+        }
+    }
+}
+
 extension Geometry: Loggable {
     public var logDescription: String {
         let fields = [
@@ -163,14 +186,14 @@ extension Geometry: Loggable {
         ].compactMap { $0 }.joined(separator: "\n")
 
         return """
-        \(type) {
+        \(type.logDescription) {
         \(fields)
         }
         """
     }
 
     public var nestedLogDescription: String {
-        type.description
+        type.logDescription
     }
 }
 

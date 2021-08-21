@@ -31,29 +31,6 @@ public enum GeometryType: Hashable {
     case mesh(Mesh)
 }
 
-extension GeometryType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case .group: return "group"
-        case .cone: return "cone"
-        case .cylinder: return "cylinder"
-        case .sphere: return "sphere"
-        case .cube: return "cube"
-        case .extrude: return "extrusion"
-        case .lathe: return "lathe"
-        case .loft: return "loft"
-        case .fill: return "fill"
-        case .union: return "union"
-        case .difference: return "difference"
-        case .intersection: return "intersection"
-        case .xor: return "xor"
-        case .stencil: return "stencil"
-        case .path: return "path"
-        case .mesh: return "mesh"
-        }
-    }
-}
-
 public extension GeometryType {
     var isEmpty: Bool {
         switch self {
