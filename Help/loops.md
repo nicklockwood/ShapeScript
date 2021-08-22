@@ -65,5 +65,35 @@ for i in 5 to 1 step -1 {
 }
 ```
 
+## Looping Over Values
+
+As well as looping over a numeric range, you can also loop over a list of values, such as vector or color literal:
+
+```swift
+define values 1 5 7 9
+
+for i in values {
+    print i // prints 1 5 7 9
+}
+```
+
+The values can be non-numeric, or even a mix of different types:
+
+```swift
+define values "Mambo" "No." 5
+
+for i in values {
+    print i // prints Mambo No. 5
+}
+```
+
+**Note:** To use a list of values directly in the loop definition, they must be placed in parentheses:
+
+```swift
+for i in ("parentheses" "are" "required") {
+    print i
+}
+```
+
 ---
 [Index](index.md) | Next: [Blocks](blocks.md)

@@ -831,24 +831,34 @@ extension Statement {
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
             let range = try expression.evaluate(in: context)
-            guard let value = range.value as? RangeValue else {
+            let sequence: AnySequence<Value>
+            switch range {
+            case let .range(range):
+                sequence = AnySequence(range.lazy.map { .number($0) })
+            case let .vector(vector), let .size(vector):
+                sequence = AnySequence(vector.components.map { .number($0) })
+            case let .color(color):
+                sequence = AnySequence(color.components.map { .number($0) })
+            case let .tuple(values):
+                sequence = AnySequence(values)
+            case .texture, .number, .string, .path, .mesh, .point:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
                         index: 0,
-                        expected: ValueType.range.rawValue,
+                        expected: "range or tuple",
                         got: range.type.rawValue
                     ),
                     at: expression.range
                 )
             }
-            for i in value {
+            for value in sequence {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
                 }
                 try context.pushScope { context in
                     if let name = identifier?.name {
-                        context.define(name, as: .constant(.number(Double(i))))
+                        context.define(name, as: .constant(value))
                     }
                     for statement in block.statements {
                         try statement.evaluate(in: context)

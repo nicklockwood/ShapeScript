@@ -31,6 +31,8 @@ public extension Color {
         self.a = a
     }
 
+    var components: [Double] { [r, g, b, a] }
+
     init(unchecked components: [Double]) {
         var a = 1.0
         switch components.count {

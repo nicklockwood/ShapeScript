@@ -1072,7 +1072,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "range",
                 index: 0,
-                expected: "range",
+                expected: "range or tuple",
                 got: "number"
             ), at: range))
         }
@@ -1087,10 +1087,44 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "range",
                 index: 0,
-                expected: "range",
+                expected: "range or tuple",
                 got: "string"
             ), at: range))
         }
+    }
+
+    func testForLoopWithTuple() {
+        let program = "for i in (3 1 4 1 5) { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3, 1, 4, 1, 5])
+    }
+
+    func testForLoopWithNonNumericTuple() {
+        let program = "for i in (\"hello\" \"world\") { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["hello", "world"])
+    }
+
+    func testForLoopWithTupleVariable() {
+        let program = """
+        define values 3 1 4 1 5
+        for i in values { print i }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3, 1, 4, 1, 5])
+    }
+
+    func testForLoopWithColorVariable() {
+        let program = """
+        color 1 0 0.5
+        for i in color { print i }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 0, 0.5, 1])
     }
 
     // MARK: Functions

@@ -258,4 +258,18 @@ class ParserTests: XCTestCase {
             )))
         }
     }
+
+    func testForLoopWithTupleWithoutParens() {
+        let input = "for i in 3 1 4 1 5 { print i }"
+        let range = input.range(of: "1")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected numeric literal")
+            XCTAssertEqual(error?.hint, "Expected loop body.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .number(1), range: range),
+                expected: "loop body"
+            )))
+        }
+    }
 }
