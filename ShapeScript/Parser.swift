@@ -246,7 +246,8 @@ private extension ArraySlice where Element == Token {
         let type: ExpressionType
         switch token.type {
         case .lparen:
-            let expression = try require(readExpressions(), as: "expression")
+            _ = readToken(.linebreak)
+            let expression = try require(readExpressions(allowLinebreaks: true), as: "expression")
             let endToken = nextToken
             try requireToken(.rparen)
             range = range.lowerBound ..< endToken.range.upperBound
@@ -329,7 +330,7 @@ private extension ArraySlice where Element == Token {
         return lhs
     }
 
-    mutating func readExpressions() throws -> Expression? {
+    mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {
         var expressions = [Expression]()
         while var expression = try readExpression() {
             if case let .identifier(identifier) = expression.type, let block = try readBlock() {
@@ -337,6 +338,9 @@ private extension ArraySlice where Element == Token {
                 expression = Expression(type: .node(identifier, block), range: range)
             }
             expressions.append(expression)
+            if allowLinebreaks {
+                _ = readToken(.linebreak)
+            }
         }
         switch expressions.count {
         case 0:

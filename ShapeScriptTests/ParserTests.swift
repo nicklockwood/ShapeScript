@@ -74,6 +74,19 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    // MARK: Multiline expressions
+
+    func testMultilineParentheses() {
+        let input = """
+        define matrix (
+            (1 2 3)
+            (4 5 6)
+            (7 8 9)
+        )
+        """
+        XCTAssertNoThrow(try parse(input))
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
