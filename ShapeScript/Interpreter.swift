@@ -326,6 +326,7 @@ enum ValueType {
     case color
     case texture
     case colorOrTexture // Hack to support either types
+    case font
     case number
     case vector
     case size
@@ -346,6 +347,7 @@ private extension ValueType {
         case .color: return "color"
         case .texture: return "texture"
         case .colorOrTexture: return "color or texture"
+        case .font: return "font"
         case .number: return "number"
         case .vector: return "vector"
         case .size: return "size"
@@ -1158,6 +1160,9 @@ extension Expression {
             default:
                 return try evaluate(as: .color, for: name, in: context)
             }
+        case .font where values.count == 1 && values[0].type == .string:
+            let name = values[0].value as? String
+            return try RuntimeError.wrap(.string(validateFont(name)), at: parameters[0].range)
         case .paths:
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
                 switch value {
@@ -1188,7 +1193,7 @@ extension Expression {
                     )
                 }
             })
-        case .number, .string, .texture, .path, .mesh, .point, .range:
+        case .number, .string, .texture, .font, .path, .mesh, .point, .range:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),
@@ -1223,4 +1228,25 @@ extension Expression {
             )
         }
     }
+}
+
+private func validateFont(_ name: String?) throws -> String? {
+    guard let name = name?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .replacingOccurrences(of: "\t", with: " ")
+        .replacingOccurrences(of: "  ", with: " ")
+    else {
+        return nil
+    }
+    #if canImport(CoreGraphics)
+    guard CGFont(name as CFString) != nil else {
+        var options = [String]()
+        #if canImport(CoreText)
+        options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
+        options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
+        #endif
+        throw RuntimeErrorType.unknownFont(name, options: options)
+    }
+    #endif
+    return name
 }

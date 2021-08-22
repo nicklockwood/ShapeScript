@@ -679,6 +679,56 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Font
+
+    func testSetValidFont() throws {
+        let program = try parse("font \"Courier\"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Courier")
+    }
+
+    func testSetValidFontWithUntrimmedSpace() throws {
+        let program = try parse("font \" Courier \"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Courier")
+    }
+
+    func testSetInvalidFont() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("font \"foo\"")
+        let range = program.source.range(of: "\"foo\"")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown font 'foo'")
+            XCTAssertEqual(error?.range, range)
+            guard case .unknownFont("foo", options: _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+        XCTAssertNil(context.font)
+        #endif
+    }
+
+    func testSetFontWithTuple() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("font \"Courier\" \"foo\"")
+        let range = program.source.range(of: "\"foo\"")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected argument")
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "font", max: 1), at: range
+            ))
+        }
+        XCTAssertNil(context.font)
+        #endif
+    }
+
     // MARK: Block invocation
 
     func testInvokePrimitive() {
