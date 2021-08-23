@@ -187,24 +187,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let global: Symbols = [
-        "detail": .property(.number, { parameter, context in
-            // TODO: throw error if min/max detail level exceeded
-            context.detail = Swift.max(0, parameter.intValue)
-        }, { context in
-            .number(Double(context.detail))
-        }),
-        // TODO: is here the right place for this?
-        "font": .property(.string, { parameter, context in
-            context.font = try validateFont(parameter.value as? String)
-        }, { context in
-            .texture(context.material.texture)
-        }),
-        // Debug
-        "print": .command(.tuple) { value, context in
-            context.debugLog(value.value as! [Any?])
-            return .void
-        },
+    static let functions: Symbols = [
         // Math functions
         "rnd": .command(.void) { _, context in
             .number(context.random.next())
@@ -268,6 +251,26 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
+    static let global: Symbols = _merge(functions, meshes, paths, [
+        "detail": .property(.number, { parameter, context in
+            // TODO: throw error if min/max detail level exceeded
+            context.detail = Swift.max(0, parameter.intValue)
+        }, { context in
+            .number(Double(context.detail))
+        }),
+        // TODO: is here the right place for this?
+        "font": .property(.string, { parameter, context in
+            context.font = try validateFont(parameter.value as? String)
+        }, { context in
+            .texture(context.material.texture)
+        }),
+        // Debug
+        "print": .command(.tuple) { value, context in
+            context.debugLog(value.value as! [Any?])
+            return .void
+        },
+    ])
+
     static let primitive: Symbols = _merge(global, materials, [
         "name": .property(.string, { parameter, context in
             context.name = parameter.value as? String
@@ -293,10 +296,10 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ])
 
-    static let root: Symbols = _merge(global, background, materials, transforms, meshes, paths)
-    static let builder: Symbols = _merge(primitive, transforms, paths)
-    static let group: Symbols = _merge(primitive, transforms, meshes, paths)
-    static let path: Symbols = _merge(global, transforms, points, paths)
+    static let root: Symbols = _merge(global, background, materials, transforms)
+    static let builder: Symbols = _merge(primitive, transforms)
+    static let group: Symbols = _merge(primitive, transforms)
+    static let path: Symbols = _merge(global, transforms, points)
     static let text: Symbols = global
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, primitive, points)

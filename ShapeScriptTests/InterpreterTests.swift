@@ -420,6 +420,20 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testAttemptToExtrudeMesh() throws {
+        let program = """
+        extrude {
+            cube
+        }
+        """
+        let range = program.range(of: "cube")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unused value")
+            XCTAssertEqual(error, RuntimeError(.unusedValue(type: "mesh"), at: range))
+        }
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
