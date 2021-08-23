@@ -346,7 +346,7 @@ enum Value {
     case mesh(Geometry)
     case point(PathPoint)
     case tuple([Value])
-    case range(Double, Double)
+    case range(RangeValue)
 
     static let void: Value = .tuple([])
 
@@ -373,7 +373,7 @@ enum Value {
         case let .mesh(mesh): return mesh
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
-        case let .range(start, end): return start ..< max(start, end + 1)
+        case let .range(range): return range
         }
     }
 
@@ -415,6 +415,8 @@ enum Value {
                 "width", "height", "depth",
                 "red", "green", "blue", "alpha",
             ]
+        case .range:
+            return ["start", "end", "step"]
         default:
             return []
         }
@@ -456,9 +458,30 @@ enum Value {
             default:
                 return nil
             }
+        case let .range(range):
+            switch name {
+            case "start": return .number(range.start)
+            case "end": return .number(range.end)
+            case "step": return .number(range.step)
+            default: return nil
+            }
         default:
             return nil
         }
+    }
+}
+
+struct RangeValue: Hashable, Sequence {
+    var start, end, step: Double
+
+    init(from start: Double, to end: Double, step: Double = 1) {
+        self.start = start
+        self.end = end
+        self.step = step
+    }
+
+    func makeIterator() -> StrideThrough<Double>.Iterator {
+        stride(from: start, through: end, by: step).makeIterator()
     }
 }
 
@@ -796,7 +819,7 @@ extension Statement {
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
             let range = try expression.evaluate(in: context)
-            guard case let .range(start, end) = range else {
+            guard let value = range.value as? RangeValue else {
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
@@ -807,7 +830,7 @@ extension Statement {
                     at: expression.range
                 )
             }
-            for i in stride(from: start, through: end, by: 1) {
+            for i in value {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
                 }
@@ -951,10 +974,11 @@ extension Expression {
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
             }
-        case let .range(from: start, to: end):
+        case let .range(from: start, to: end, step: step):
             let start = try start.evaluate(as: .number, for: "start value", in: context)
             let end = try end.evaluate(as: .number, for: "end value", in: context)
-            return .range(start.doubleValue, end.doubleValue)
+            let step = try step?.evaluate(as: .number, for: "step value", in: context) ?? .number(1)
+            return .range(RangeValue(from: start.doubleValue, to: end.doubleValue, step: step.doubleValue))
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let value = value[member.name] {

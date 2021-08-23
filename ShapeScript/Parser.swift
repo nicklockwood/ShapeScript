@@ -63,7 +63,7 @@ public enum ExpressionType: Equatable {
     indirect case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
-    indirect case range(from: Expression, to: Expression)
+    indirect case range(from: Expression, to: Expression, step: Expression?)
     indirect case member(Expression, Identifier)
     indirect case subexpression(Expression)
 }
@@ -329,15 +329,23 @@ private extension ArraySlice where Element == Token {
                 range: lhs.range.lowerBound ..< rhs.range.upperBound
             )
         }
-        if case .identifier("to") = nextToken.type {
-            removeFirst()
-            let rhs = try require(readExpression(), as: "end value")
-            lhs = Expression(
-                type: .range(from: lhs, to: rhs),
+        guard case .identifier("to") = nextToken.type else {
+            return lhs
+        }
+        removeFirst()
+        let rhs = try require(readExpression(), as: "end value")
+        guard case .identifier("step") = nextToken.type else {
+            return Expression(
+                type: .range(from: lhs, to: rhs, step: nil),
                 range: lhs.range.lowerBound ..< rhs.range.upperBound
             )
         }
-        return lhs
+        removeFirst()
+        let step = try require(readExpression(), as: "step value")
+        return Expression(
+            type: .range(from: lhs, to: rhs, step: step),
+            range: lhs.range.lowerBound ..< step.range.upperBound
+        )
     }
 
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {

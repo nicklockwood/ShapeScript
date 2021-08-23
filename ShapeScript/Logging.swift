@@ -217,9 +217,10 @@ extension Array: Loggable {
     }
 }
 
-extension Range: Loggable where Bound == Double {
+extension RangeValue: Loggable {
     public var logDescription: String {
-        "\(lowerBound.logDescription) to \((upperBound - 1).logDescription)"
+        let stepText = (step == 1) ? "" : " step \(step.logDescription)"
+        return "\(start.logDescription) to \(end.logDescription)\(stepText)"
     }
 
     public var nestedLogDescription: String {

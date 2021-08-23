@@ -85,11 +85,43 @@ But they can also be assigned to a [symbol](symbols.md) using the `define` comma
 define loops 1 to 5
 
 for i in loops {
-    print i   
+    print i // prints 1, 2, 3, 4, 5
 }
 ```
 
-**Note:** Ranges are inclusive of both the start and end values. A loop from `0 to 5` would therefore loop *6* times and not 5 as you might expect.
+**Note:** Ranges are inclusive of both the start and end values, so a loop from `0 to 5` would loop *6* times and not 5 as you might expect.
+
+Range values can be fractional and/or negative:
+
+```swift
+for i in 0.2 to 2.2 {
+    print i // prints 0.2, 1.2, 2.2
+}
+
+for i in -3 to -1 {
+    print i // prints -3, -2, -1
+}
+```
+
+Ranges may also include an optional `step` value to control how the range will be enumerated:
+
+```swift
+for i in 1 to 5 step 2 {
+    print i // prints 1, 3, 5 
+}
+
+for i in 0 to 1 step 0.2 {
+    print i // prints 0, 0.2, 0.4, 0.6, 1
+}
+```
+
+A negative `step` can be used to create a [backwards loop](loops.md#looping-backwards):
+
+```swift
+for i in 5 to 1 step -1 {
+    print i // prints 5, 4, 3, 2, 1
+}
+```
 
 ---
 [Index](index.md) | Next: [Functions](functions.md)

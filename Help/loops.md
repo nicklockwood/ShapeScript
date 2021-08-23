@@ -23,6 +23,8 @@ for 1 to count {
 }
 ```
 
+## Loop Index
+
 If you have used similar loops in other programming languages, you might be wondering why we don't need to use an index variable of some kind to keep track of the loop iteration?
 
 Symbols defined inside the `{ ... }` block will not persist between loops (see [scope](scope.md) for details), but changes to the world transform will, which is why the `rotate` command doesn't need to reference the index - its effect is cumulative.
@@ -38,6 +40,30 @@ for i in 1 to count {
 This defines a [symbol](symbols.md) called `i` with the value of the current loop iteration. The `i` symbol only exists within the loop body itself and can't be referenced after the loop has ended.
 
 **Note:** The index symbol does not need to be called `i`, it can be any valid symbol name that you choose.
+
+If you want to loop in increments greater or less than 1, you can use the optional `step` property:
+
+```swift
+for i in 1 to 5 step 2 {
+    print i // prints 1, 3, 5 
+}
+
+for i in 0 to 1 step 0.2 {
+    print i // prints 0, 0.2, 0.4, 0.6, 1
+}
+```
+
+If not specified, the `step` value defaults to 1.
+
+## Looping Backwards
+
+If the end value of a loop is less than the start value, the loop body will normally be skipped, but if you do wish to loop backwards you can achieve this by using a negative step value:
+
+```swift
+for i in 5 to 1 step -1 {
+    print i // prints 5, 4, 3, 2, 1
+}
+```
 
 ---
 [Index](index.md) | Next: [Blocks](blocks.md)

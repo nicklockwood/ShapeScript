@@ -278,14 +278,32 @@ class LoggingTests: XCTestCase {
     // MARK: Ranges
 
     func testIntRange() {
-        let input = 1.0 ..< 10.0
+        let input = RangeValue(from: 1, to: 9)
         XCTAssertEqual(input.logDescription, "1 to 9")
         XCTAssertEqual(input.nestedLogDescription, "(1 to 9)")
     }
 
     func testFloatRange() {
-        let input = 1.5 ..< 3.5
+        let input = RangeValue(from: 1.5, to: 2.5)
         XCTAssertEqual(input.logDescription, "1.5 to 2.5")
         XCTAssertEqual(input.nestedLogDescription, "(1.5 to 2.5)")
+    }
+
+    func testReverseRange() {
+        let input = RangeValue(from: 4, to: 2)
+        XCTAssertEqual(input.logDescription, "4 to 2")
+        XCTAssertEqual(input.nestedLogDescription, "(4 to 2)")
+    }
+
+    func testRangeWithStep() {
+        let input = RangeValue(from: 0, to: 5, step: 2)
+        XCTAssertEqual(input.logDescription, "0 to 5 step 2")
+        XCTAssertEqual(input.nestedLogDescription, "(0 to 5 step 2)")
+    }
+
+    func testRangeWithDefaultStep() {
+        let input = RangeValue(from: 0, to: 5, step: 1)
+        XCTAssertEqual(input.logDescription, "0 to 5")
+        XCTAssertEqual(input.nestedLogDescription, "(0 to 5)")
     }
 }

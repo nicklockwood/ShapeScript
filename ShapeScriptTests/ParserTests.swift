@@ -102,12 +102,38 @@ class ParserTests: XCTestCase {
                     Definition(type: .expression(Expression(
                         type: .range(
                             from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2)
+                            to: Expression(type: .number(2), range: range2),
+                            step: nil
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     )))
                 ),
                 range: defineRange.lowerBound ..< range2.upperBound
+            ),
+        ]))
+    }
+
+    func testRangeWithStep() {
+        let input = "define foo 1 to 5 step 2"
+        let defineRange = input.range(of: "define")!
+        let fooRange = input.range(of: "foo")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "5")!
+        let range3 = input.range(of: "2")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "foo", range: fooRange),
+                    Definition(type: .expression(Expression(
+                        type: .range(
+                            from: Expression(type: .number(1), range: range1),
+                            to: Expression(type: .number(5), range: range2),
+                            step: Expression(type: .number(2), range: range3)
+                        ),
+                        range: range1.lowerBound ..< range3.upperBound
+                    )))
+                ),
+                range: defineRange.lowerBound ..< range3.upperBound
             ),
         ]))
     }
@@ -121,6 +147,19 @@ class ParserTests: XCTestCase {
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .eof, range: input.endIndex ..< input.endIndex),
                 expected: "end value"
+            )))
+        }
+    }
+
+    func testRangeWithMissingStepValue() {
+        let input = "define foo 1 to 5 step"
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected step value.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: input.endIndex ..< input.endIndex),
+                expected: "step value"
             )))
         }
     }
@@ -141,7 +180,8 @@ class ParserTests: XCTestCase {
                     in: Expression(
                         type: .range(
                             from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2)
+                            to: Expression(type: .number(2), range: range2),
+                            step: nil
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     ),
@@ -165,7 +205,8 @@ class ParserTests: XCTestCase {
                     in: Expression(
                         type: .range(
                             from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2)
+                            to: Expression(type: .number(2), range: range2),
+                            step: nil
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     ),
