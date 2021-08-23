@@ -75,9 +75,11 @@ public enum TokenType: Equatable {
     case eof
 }
 
+public typealias SourceRange = Range<String.Index>
+
 public struct Token: Equatable {
     public let type: TokenType
-    public let range: Range<String.Index>
+    public let range: SourceRange
 }
 
 public enum LexerErrorType: Equatable {
@@ -88,7 +90,7 @@ public enum LexerErrorType: Equatable {
 
 public struct LexerError: Error, Equatable {
     public let type: LexerErrorType
-    public let range: Range<String.Index>
+    public let range: SourceRange
 
     public var message: String {
         switch type {
@@ -118,14 +120,14 @@ public struct LexerError: Error, Equatable {
         }
     }
 
-    init(_ type: LexerErrorType, at range: Range<String.Index>) {
+    init(_ type: LexerErrorType, at range: SourceRange) {
         self.type = type
         self.range = range
     }
 }
 
 public extension String {
-    func lineRange(at index: String.Index, includingIndent: Bool = false) -> Range<String.Index> {
+    func lineRange(at index: String.Index, includingIndent: Bool = false) -> SourceRange {
         var endIndex = self.endIndex
         var startIndex = self.startIndex
         var i = startIndex

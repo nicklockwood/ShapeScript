@@ -637,7 +637,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error?.type, .typeMismatch(
-                for: "start index",
+                for: "start value",
                 index: 0,
                 expected: "number",
                 got: "string"
@@ -651,7 +651,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error?.type, .typeMismatch(
-                for: "end index",
+                for: "end value",
                 index: 0,
                 expected: "number",
                 got: "string"

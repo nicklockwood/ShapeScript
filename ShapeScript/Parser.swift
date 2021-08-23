@@ -34,7 +34,7 @@ public enum StatementType: Equatable {
 
 public struct Statement: Equatable {
     public let type: StatementType
-    public let range: Range<String.Index>
+    public let range: SourceRange
 }
 
 public enum DefinitionType: Equatable {
@@ -44,7 +44,7 @@ public enum DefinitionType: Equatable {
 
 public struct Definition: Equatable {
     public let type: DefinitionType
-    public var range: Range<String.Index> {
+    public var range: SourceRange {
         switch type {
         case let .block(block):
             return block.range
@@ -68,17 +68,17 @@ public enum ExpressionType: Equatable {
 
 public struct Expression: Equatable {
     public let type: ExpressionType
-    public let range: Range<String.Index>
+    public let range: SourceRange
 }
 
 public struct Block: Equatable {
     public let statements: [Statement]
-    public let range: Range<String.Index>
+    public let range: SourceRange
 }
 
 public struct Identifier: Equatable {
     public let name: String
-    public let range: Range<String.Index>
+    public let range: SourceRange
 }
 
 public enum ParserErrorType: Equatable {
@@ -88,7 +88,7 @@ public enum ParserErrorType: Equatable {
 public struct ParserError: Error, Equatable {
     public let type: ParserErrorType
 
-    public var range: Range<String.Index> {
+    public var range: SourceRange {
         switch type {
         case let .unexpectedToken(token, _):
             return token.range

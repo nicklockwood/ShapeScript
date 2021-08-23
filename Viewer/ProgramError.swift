@@ -11,7 +11,7 @@ import ShapeScript
 
 protocol ProgramError {
     var message: String { get }
-    var range: Range<String.Index> { get }
+    var range: SourceRange { get }
     var hint: String? { get }
 }
 
@@ -21,7 +21,7 @@ extension RuntimeError: ProgramError {}
 extension ImportError: ProgramError {}
 
 extension ProgramError {
-    func rangeAndSource(with source: String) -> (Range<String.Index>?, source: String) {
+    func rangeAndSource(with source: String) -> (SourceRange?, source: String) {
         switch self {
         case let error as ImportError:
             if case let .runtimeError(error) = error {
@@ -45,7 +45,7 @@ extension Error {
     func message(with source: String) -> NSAttributedString {
         var source = source
         let errorType: String
-        let message: String, range: Range<String.Index>?, hint: String?
+        let message: String, range: SourceRange?, hint: String?
         switch self {
         case let error as ProgramError:
             (range, source) = error.rangeAndSource(with: source)
@@ -65,7 +65,7 @@ extension Error {
         }
 
         var location = "."
-        var lineRange: Range<String.Index>?
+        var lineRange: SourceRange?
         if let range = range {
             let (line, _) = source.lineAndColumn(at: range.lowerBound)
             location = " on line \(line)."

@@ -60,7 +60,7 @@ public enum ImportError: Error, Equatable {
         }
     }
 
-    public var range: Range<String.Index> {
+    public var range: SourceRange {
         switch self {
         case let .lexerError(error): return error.range
         case let .parserError(error): return error.range
@@ -95,7 +95,12 @@ public enum RuntimeErrorType: Error, Equatable {
 
 public struct RuntimeError: Error, Equatable {
     public let type: RuntimeErrorType
-    public let range: Range<String.Index>
+    public let range: SourceRange
+
+    public init(_ type: RuntimeErrorType, at range: SourceRange) {
+        self.type = type
+        self.range = range
+    }
 }
 
 public extension RuntimeError {
@@ -218,9 +223,12 @@ public extension RuntimeError {
         }
     }
 
-    init(_ type: RuntimeErrorType, at range: Range<String.Index>) {
-        self.type = type
-        self.range = range
+    static func wrap<T>(_ fn: @autoclosure () throws -> T, at range: SourceRange) throws -> T {
+        do {
+            return try fn()
+        } catch let error as RuntimeErrorType {
+            throw RuntimeError(error, at: range)
+        }
     }
 }
 
@@ -509,23 +517,23 @@ extension Program {
     }
 }
 
-private func evaluateParameters(_ parameters: [Expression],
-                                for range: Range<String.Index>,
-                                in context: EvaluationContext) throws -> [Value]
-{
+private func evaluateParameters(
+    _ parameters: [Expression],
+    in context: EvaluationContext
+) throws -> [Value] {
     var values = [Value]()
     loop: for (i, param) in parameters.enumerated() {
         if i < parameters.count - 1, case let .identifier(identifier) = param.type {
-            let name = identifier.name
+            let (name, range) = (identifier.name, identifier.range)
             switch context.symbol(for: name) {
             case let .command(parameterType, fn)? where parameterType != .void:
                 let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
                 let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
                 let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
-                try values.append(fn(arg, context))
+                try RuntimeError.wrap(values.append(fn(arg, context)), at: range)
                 break loop
             case let .block(type, fn) where !type.childTypes.isEmpty:
-                var childValues = [Value]()
+                let childContext = context.push(type)
                 for parameter in parameters[(i + 1)...] {
                     let child = try parameter.evaluate(in: context)
                     // TODO: find better solution
@@ -535,27 +543,24 @@ private func evaluateParameters(_ parameters: [Expression],
                     } else {
                         children = [child]
                     }
-                    guard children.allSatisfy({ type.childTypes.contains($0.type) }) else {
-                        throw RuntimeError(
-                            .typeMismatch(
-                                for: identifier.name,
-                                index: 0,
-                                expected: "block",
-                                got: child.type.rawValue
-                            ),
-                            at: parameter.range
-                        )
+                    for child in children {
+                        do {
+                            try childContext.addValue(child)
+                        } catch {
+                            throw RuntimeError(
+                                .typeMismatch(
+                                    for: identifier.name,
+                                    index: 0,
+                                    expected: "block",
+                                    got: child.type.rawValue
+                                ),
+                                at: parameter.range
+                            )
+                        }
                     }
-                    childValues += children
                 }
-                do {
-                    let childContext = context.push(type)
-                    try childValues.forEach(childContext.addValue)
-                    try values.append(fn(childContext))
-                    break loop
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                try RuntimeError.wrap(values.append(fn(childContext)), at: range)
+                break loop
             default:
                 break
             }
@@ -581,153 +586,7 @@ private func evaluateParameter(_ parameter: Expression?,
             at: range.upperBound ..< range.upperBound
         )
     }
-    var parameters = [parameter]
-    if case let .tuple(expressions) = parameter.type {
-        parameters = expressions
-    }
-    let values = try evaluateParameters(parameters, for: range, in: context)
-    func numerify(max: Int, min: Int) throws -> [Double] {
-        var values = values
-        if parameters.count > max {
-            throw RuntimeError(.unexpectedArgument(for: name, max: max), at: parameters[max].range)
-        } else if parameters.count < min {
-            let upperBound = parameters.last?.range.upperBound ?? range.upperBound
-            throw RuntimeError(
-                .missingArgument(for: name, index: min - 1, type: ValueType.number.rawValue),
-                at: upperBound ..< upperBound
-            )
-        }
-        if values.count == 1, case let .tuple(elements) = values[0] {
-            if elements.count > max {
-                let range: Range<String.Index>
-                if case let .tuple(expressions) = parameters[0].type {
-                    range = expressions[max].range
-                } else {
-                    range = parameters[0].range
-                }
-                throw RuntimeError(.unexpectedArgument(for: name, max: max), at: range)
-            }
-            values = elements
-        }
-        if values.count > 1, values[0].type == type ||
-            ((values[0].value as? [Any])?.allSatisfy { $0 is Double } == true)
-        {
-            let types = [type.rawValue] + values.dropFirst().map { $0.type.rawValue }
-            throw RuntimeError(
-                .typeMismatch(
-                    for: name,
-                    index: 0,
-                    expected: type.rawValue,
-                    got: types.joined(separator: ", ")
-                ),
-                at: parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
-            )
-        }
-        var numbers = [Double]()
-        for (i, value) in values.enumerated() {
-            guard case let .number(number) = value else {
-                let i = Swift.min(parameters.count - 1, i)
-                let type = (i == 0) ? type.rawValue : ValueType.number.rawValue
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: name,
-                        index: i,
-                        expected: type,
-                        got: value.type.rawValue
-                    ),
-                    at: parameters[i].range
-                )
-            }
-            numbers.append(number)
-        }
-        return numbers
-    }
-    if parameters.isEmpty {
-        if type != .void {
-            throw RuntimeError(
-                .missingArgument(for: name, index: 0, type: type.rawValue),
-                at: range.upperBound ..< range.upperBound
-            )
-        }
-        return .void
-    }
-    if values.count == 1, values[0].type == type {
-        return values[0]
-    }
-    switch type {
-    case .color:
-        let numbers = try numerify(max: 4, min: 1)
-        return .color(Color(unchecked: numbers))
-    case .vector:
-        let numbers = try numerify(max: 3, min: 1)
-        return .vector(Vector(numbers))
-    case .size:
-        let numbers = try numerify(max: 3, min: 1)
-        return .size(Vector(size: numbers))
-    case .pair:
-        let numbers = try numerify(max: 2, min: 2)
-        return .pair(numbers[0], numbers[1])
-    case .tuple:
-        return .tuple(values)
-    case .texture where values.count == 1 && values[0].type == .string:
-        let name = values[0].value as? String
-        do {
-            return try .texture(name.map {
-                .file(name: $0, url: try context.resolveURL(for: $0))
-            })
-        } catch let error as RuntimeErrorType {
-            throw RuntimeError(error, at: parameters[0].range)
-        }
-    case .colorOrTexture:
-        let type: ValueType
-        switch values.first {
-        case .string?, .texture?:
-            type = .texture
-        default:
-            type = .color
-        }
-        return try evaluateParameter(parameter, as: type, for: identifier, in: context)
-    case .paths:
-        return try .paths(values.enumerated().flatMap { i, value -> [Path] in
-            switch value {
-            case let .path(path):
-                return [path]
-            case let .paths(paths):
-                return paths
-            default:
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: name,
-                        index: i,
-                        expected: ValueType.path.rawValue,
-                        got: value.type.rawValue
-                    ),
-                    at: parameters[i].range
-                )
-            }
-        })
-    case .number, .string, .texture, .path, .mesh, .point:
-        if values.count > 1, parameters.count > 1 {
-            throw RuntimeError(
-                .unexpectedArgument(for: name, max: 1),
-                at: parameters[1].range
-            )
-        }
-        throw RuntimeError(
-            .typeMismatch(
-                for: name,
-                index: 0,
-                expected: type.rawValue,
-                got: values[0].type.rawValue
-            ),
-            at: parameters[0].range
-        )
-    case .void:
-        throw RuntimeError(
-            .unexpectedArgument(for: name, max: 0),
-            at: parameters[0].range
-        )
-    }
+    return try parameter.evaluate(as: type, for: identifier.name, in: context)
 }
 
 extension Definition {
@@ -893,22 +752,13 @@ extension Statement {
                                                      as: type,
                                                      for: identifier,
                                                      in: context)
-                do {
-                    try context.addValue(fn(argument, context))
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                try RuntimeError.wrap(context.addValue(fn(argument, context)), at: range)
             case let .property(type, setter, _):
                 let argument = try evaluateParameter(parameter,
                                                      as: type,
                                                      for: identifier,
                                                      in: context)
-                do {
-                    try setter(argument, context)
-                    try context.addValue(.void)
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
                 context.sourceIndex = range.lowerBound
                 if let parameter = parameter {
@@ -932,79 +782,38 @@ extension Statement {
                             at: parameter.range
                         )
                     }
-                    do {
+                    try RuntimeError.wrap({
                         let childContext = context.push(type)
                         try children.forEach(childContext.addValue)
-                        let value = try fn(childContext)
-                        try context.addValue(value)
-                    } catch let error as RuntimeErrorType {
-                        throw RuntimeError(error, at: range)
-                    }
+                        try context.addValue(fn(childContext))
+                    }(), at: range)
                 } else if !type.childTypes.isEmpty {
                     throw RuntimeError(
                         .missingArgument(for: name, index: 0, type: "block"),
                         at: range
                     )
                 } else {
-                    do {
-                        try context.addValue(fn(context.push(type)))
-                    } catch let error as RuntimeErrorType {
-                        throw RuntimeError(error, at: range)
-                    }
+                    try RuntimeError.wrap(context.addValue(fn(context.push(type))), at: range)
                 }
             case let .constant(v):
-                do {
-                    try context.addValue(v)
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                try RuntimeError.wrap(context.addValue(v), at: range)
             }
         case let .node(identifier, block):
             // TODO: better solution
             // This only works correctly if node was not imported from another file
             context.sourceIndex = range.lowerBound
             let expression = Expression(type: .node(identifier, block), range: range)
-            do {
-                try context.addValue(expression.evaluate(in: context))
-            } catch let error as RuntimeErrorType {
-                throw RuntimeError(error, at: range)
-            }
+            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .expression(expression):
-            do {
-                try context.addValue(expression.evaluate(in: context))
-            } catch let error as RuntimeErrorType {
-                throw RuntimeError(error, at: range)
-            }
+            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
             context.define(identifier.name, as: try definition.evaluate(in: context))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(index, start, end, block):
-            let startValue = try start.evaluate(in: context)
-            guard case let .number(startIndex) = startValue else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: "start index",
-                        index: 0,
-                        expected: ValueType.number.rawValue,
-                        got: startValue.type.rawValue
-                    ),
-                    at: start.range
-                )
-            }
-            let endValue = try end.evaluate(in: context)
-            guard case let .number(endIndex) = endValue else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: "end index",
-                        index: 0,
-                        expected: ValueType.number.rawValue,
-                        got: endValue.type.rawValue
-                    ),
-                    at: start.range
-                )
-            }
-            for i in stride(from: startIndex, through: endIndex, by: 1) {
+            let start = try start.evaluate(as: .number, for: "start value", in: context)
+            let end = try end.evaluate(as: .number, for: "end value", in: context)
+            for i in stride(from: start.doubleValue, through: end.doubleValue, by: 1) {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
                 }
@@ -1029,12 +838,8 @@ extension Statement {
                     at: expression.range
                 )
             }
-            do {
-                context.sourceIndex = expression.range.lowerBound
-                try context.importModel(at: path)
-            } catch let error as RuntimeErrorType {
-                throw RuntimeError(error, at: expression.range)
-            }
+            context.sourceIndex = expression.range.lowerBound
+            try RuntimeError.wrap(context.importModel(at: path), at: expression.range)
         }
     }
 }
@@ -1065,13 +870,9 @@ extension Expression {
                         type: parameterType.rawValue
                     ), at: range.upperBound ..< range.upperBound)
                 }
-                do {
-                    return try fn(.void, context)
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                return try RuntimeError.wrap(fn(.void, context), at: range)
             case let .property(_, _, getter):
-                return try getter(context)
+                return try RuntimeError.wrap(getter(context), at: range)
             case let .block(type, fn):
                 guard type.childTypes.isEmpty else {
                     // Blocks that require children can't be used in expressions without parens
@@ -1082,11 +883,7 @@ extension Expression {
                         type: "block"
                     ), at: range.upperBound ..< range.upperBound)
                 }
-                do {
-                    return try fn(context.push(type))
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                return try RuntimeError.wrap(fn(context.push(type)), at: range)
             case let .constant(value):
                 return value
             }
@@ -1122,11 +919,7 @@ extension Expression {
                     }
                 }
                 context.sourceIndex = sourceIndex
-                do {
-                    return try fn(context)
-                } catch let error as RuntimeErrorType {
-                    throw RuntimeError(error, at: range)
-                }
+                return try RuntimeError.wrap(fn(context), at: range)
             case let .command(type, _):
                 throw RuntimeError(
                     .typeMismatch(for: name, index: 0, expected: type.rawValue, got: "block"),
@@ -1139,61 +932,28 @@ extension Expression {
                 )
             }
         case let .tuple(expressions):
-            let values = try evaluateParameters(expressions, for: range, in: context)
+            let values = try evaluateParameters(expressions, in: context)
             return values.count == 1 ? values[0] : .tuple(values)
         case let .prefix(op, expression):
-            let value = try expression.evaluate(in: context)
-            guard let number = value.value as? Double else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: String(op.rawValue),
-                        index: 0,
-                        expected: ValueType.number.rawValue,
-                        got: value.type.rawValue
-                    ),
-                    at: expression.range
-                )
-            }
+            let value = try expression.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
             switch op {
             case .minus:
-                return .number(-number)
+                return .number(-value.doubleValue)
             case .plus:
-                return .number(number)
+                return .number(value.doubleValue)
             }
         case let .infix(lhs, op, rhs):
-            let lvalue = try lhs.evaluate(in: context)
-            guard let lnum = lvalue.value as? Double else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: String(op.rawValue),
-                        index: 0,
-                        expected: ValueType.number.rawValue,
-                        got: lvalue.type.rawValue
-                    ),
-                    at: lhs.range
-                )
-            }
-            let rvalue = try rhs.evaluate(in: context)
-            guard let rnum = rvalue.value as? Double else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: String(op.rawValue),
-                        index: 1,
-                        expected: ValueType.number.rawValue,
-                        got: rvalue.type.rawValue
-                    ),
-                    at: rhs.range
-                )
-            }
+            let lhs = try lhs.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
+            let rhs = try rhs.evaluate(as: .number, for: String(op.rawValue), index: 1, in: context)
             switch op {
             case .minus:
-                return .number(lnum - rnum)
+                return .number(lhs.doubleValue - rhs.doubleValue)
             case .plus:
-                return .number(lnum + rnum)
+                return .number(lhs.doubleValue + rhs.doubleValue)
             case .times:
-                return .number(lnum * rnum)
+                return .number(lhs.doubleValue * rhs.doubleValue)
             case .divide:
-                return .number(lnum / rnum)
+                return .number(lhs.doubleValue / rhs.doubleValue)
             }
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
@@ -1206,6 +966,175 @@ extension Expression {
             )
         case let .subexpression(expression):
             return try expression.evaluate(in: context)
+        }
+    }
+
+    func evaluate(as type: ValueType, for name: String, index: Int = 0, in context: EvaluationContext) throws -> Value {
+        var parameters = [self]
+        if case let .tuple(expressions) = self.type {
+            parameters = expressions
+        }
+        let values = try evaluateParameters(parameters, in: context)
+        assert(values.count <= parameters.count)
+        func numerify(max: Int, min: Int) throws -> [Double] {
+            var values = values
+            if parameters.count > max {
+                throw RuntimeError(.unexpectedArgument(for: name, max: max), at: parameters[max].range)
+            } else if parameters.count < min {
+                let upperBound = parameters.last?.range.upperBound ?? range.upperBound
+                throw RuntimeError(
+                    .missingArgument(for: name, index: min - 1, type: ValueType.number.rawValue),
+                    at: upperBound ..< upperBound
+                )
+            }
+            if values.count == 1, case let .tuple(elements) = values[0] {
+                if elements.count > max {
+                    let range: SourceRange
+                    if case let .tuple(expressions) = parameters[0].type {
+                        range = expressions[max].range
+                    } else {
+                        range = parameters[0].range
+                    }
+                    throw RuntimeError(.unexpectedArgument(for: name, max: max), at: range)
+                }
+                values = elements
+            }
+            if values.count > 1, values[0].type == type ||
+                ((values[0].value as? [Any])?.allSatisfy { $0 is Double } == true)
+            {
+                let types = [type.rawValue] + values.dropFirst().map { $0.type.rawValue }
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: index,
+                    expected: type.rawValue,
+                    got: types.joined(separator: ", ")
+                ), at: range)
+            }
+            var numbers = [Double]()
+            for (i, value) in values.enumerated() {
+                guard case let .number(number) = value else {
+                    // TODO: this seems like a hack - what's the actual solution?
+                    let i = Swift.min(parameters.count - 1, i)
+                    let type = (i == 0 ? type : .number).rawValue
+                    throw RuntimeError(
+                        .typeMismatch(
+                            for: name,
+                            index: index + i,
+                            expected: type,
+                            got: value.type.rawValue
+                        ),
+                        at: parameters[i].range
+                    )
+                }
+                numbers.append(number)
+            }
+            return numbers
+        }
+        if parameters.isEmpty {
+            // TODO: can this actually happen?
+            if type != .void {
+                throw RuntimeError(.missingArgument(
+                    for: name,
+                    index: index,
+                    type: type.rawValue
+                ), at: range)
+            }
+            return .void
+        }
+        if values.count == 1, values[0].type == type {
+            return values[0]
+        }
+        switch type {
+        case .color:
+            let numbers = try numerify(max: 4, min: 1)
+            return .color(Color(unchecked: numbers))
+        case .vector:
+            let numbers = try numerify(max: 3, min: 1)
+            return .vector(Vector(numbers))
+        case .size:
+            let numbers = try numerify(max: 3, min: 1)
+            return .size(Vector(size: numbers))
+        case .pair:
+            let numbers = try numerify(max: 2, min: 2)
+            return .pair(numbers[0], numbers[1])
+        case .tuple:
+            return .tuple(values)
+        case .texture where values.count == 1 && values[0].type == .string:
+            let name = values[0].value as? String
+            return try RuntimeError.wrap(.texture(name.map {
+                .file(name: $0, url: try context.resolveURL(for: $0))
+            }), at: parameters[0].range)
+        case .colorOrTexture where values.count == 1:
+            // TODO: find better solution
+            switch values[0] {
+            case .string, .texture:
+                return try evaluate(as: .texture, for: name, in: context)
+            default:
+                return try evaluate(as: .color, for: name, in: context)
+            }
+        case .paths:
+            return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
+                switch value {
+                case .path:
+                    return [value]
+                case let .tuple(values):
+                    guard values.allSatisfy({ $0.type == .path }) else {
+                        throw RuntimeError(
+                            .typeMismatch(
+                                for: name,
+                                index: index + i,
+                                expected: ValueType.path.rawValue,
+                                got: value.type.rawValue
+                            ),
+                            at: parameters[i].range
+                        )
+                    }
+                    return values
+                default:
+                    throw RuntimeError(
+                        .typeMismatch(
+                            for: name,
+                            index: index + i,
+                            expected: ValueType.path.rawValue,
+                            got: value.type.rawValue
+                        ),
+                        at: parameters[i].range
+                    )
+                }
+            })
+        case .number, .string, .texture, .colorOrTexture, .path, .mesh, .point:
+            if values.count > 1, parameters.count > 1 {
+                throw RuntimeError(
+                    .unexpectedArgument(for: name, max: 1),
+                    at: parameters[1].range
+                )
+            }
+            let value = values[0]
+            if value.type != type {
+                throw RuntimeError(
+                    .typeMismatch(
+                        for: name,
+                        index: index,
+                        expected: type.rawValue,
+                        got: value.type.rawValue
+                    ),
+                    at: parameters[0].range
+                )
+            }
+            throw RuntimeError(
+                .typeMismatch(
+                    for: name,
+                    index: index,
+                    expected: type.rawValue,
+                    got: values[0].type.rawValue
+                ),
+                at: parameters[0].range
+            )
+        case .void:
+            throw RuntimeError(
+                .unexpectedArgument(for: name, max: 0),
+                at: parameters[0].range
+            )
         }
     }
 }
