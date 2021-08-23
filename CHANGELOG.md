@@ -1,3 +1,11 @@
+## [1.2.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.2) (2021-08-24)
+
+- Blocks that accept child values can now be called without braces around them
+- Fixed confusing error messages caused by mesh commands being unavailable in certain scopes
+- Made script evaluation cancellable in case of infinite iteration or recursion
+- Fixed bug in Viewer app where view fails to refresh after loading geometry
+- Improved and simplified error handling logic
+
 ## [1.2.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.1) (2021-08-19)
 
 - Fixed crash when `for` loop end index < start index
