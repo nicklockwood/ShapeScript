@@ -14,7 +14,7 @@ import Foundation
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
     func importGeometry(for url: URL) throws -> Geometry?
-    func debugLog(_ values: [Any?])
+    func debugLog(_ values: [AnyHashable])
 }
 
 public func evaluate(
@@ -358,21 +358,23 @@ enum Value {
         }
     }
 
-    var value: Any {
+    var value: AnyHashable {
         switch self {
         case let .color(color): return color
-        case let .texture(texture): return texture as Any
+        case let .texture(texture):
+            return texture.map { $0 as AnyHashable } ?? texture as AnyHashable
         case let .number(number): return number
         case let .vector(vector): return vector
         case let .size(size): return size
-        case let .string(string): return string as Any
+        case let .string(string):
+            return string.map { $0 as AnyHashable } ?? string as AnyHashable
         case let .path(path): return path
         case let .paths(paths): return paths
         case let .mesh(mesh): return mesh
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
-        case let .pair(first, second): return (first, second)
-        case .void: return ()
+        case let .pair(first, second): return [first, second]
+        case .void: return VoidValue()
         }
     }
 
@@ -462,6 +464,8 @@ enum Value {
         }
     }
 }
+
+struct VoidValue: Hashable {}
 
 typealias Options = [String: ValueType]
 

@@ -169,7 +169,7 @@ extension EvaluationContext {
 // MARK: Debugging
 
 extension EvaluationContext {
-    func debugLog(_ values: [Any?]) {
+    func debugLog(_ values: [AnyHashable]) {
         delegate?.debugLog(values)
     }
 }

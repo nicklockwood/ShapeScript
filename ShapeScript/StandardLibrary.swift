@@ -198,13 +198,13 @@ extension Dictionary where Key == String, Value == Symbol {
         "ceil": .command(.number) { value, _ in
             .number(value.doubleValue.rounded(.up))
         },
-        "max": .command(.pair) { values, _ in
-            let values = values.value as! (Double, Double)
-            return .number(Swift.max(values.0, values.1))
+        "max": .command(.pair) { value, _ in
+            let values = value.value as! [Double]
+            return .number(values.max()!)
         },
-        "min": .command(.pair) { values, _ in
-            let values = values.value as! (Double, Double)
-            return .number(Swift.min(values.0, values.1))
+        "min": .command(.pair) { value, _ in
+            let values = value.value as! [Double]
+            return .number(values.min()!)
         },
         "abs": .command(.number) { value, _ in
             .number(value.doubleValue.magnitude)
@@ -212,9 +212,9 @@ extension Dictionary where Key == String, Value == Symbol {
         "sqrt": .command(.number) { value, _ in
             .number(sqrt(value.doubleValue))
         },
-        "pow": .command(.pair) { values, _ in
-            let values = values.value as! (Double, Double)
-            return .number(pow(values.0, values.1))
+        "pow": .command(.pair) { value, _ in
+            let values = value.value as! [Double]
+            return .number(pow(values[0], values[1]))
         },
         "pi": .command(.void) { _, _ in
             .number(.pi)
@@ -237,9 +237,9 @@ extension Dictionary where Key == String, Value == Symbol {
         "atan": .command(.number) { value, _ in
             .number(atan(value.doubleValue))
         },
-        "atan2": .command(.pair) { values, _ in
-            let values = values.value as! (Double, Double)
-            return .number(atan2(values.0, values.1))
+        "atan2": .command(.pair) { value, _ in
+            let values = value.value as! [Double]
+            return .number(atan2(values[0], values[1]))
         },
     ]
 
@@ -258,7 +258,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
         // Debug
         "print": .command(.tuple) { value, context in
-            context.debugLog(value.value as! [Any?])
+            context.debugLog(value.value as! [AnyHashable])
             return .void
         },
     ])

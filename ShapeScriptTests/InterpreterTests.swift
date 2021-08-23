@@ -23,8 +23,8 @@ private class TestDelegate: EvaluationDelegate {
     }
 
     var log = [AnyHashable?]()
-    func debugLog(_ values: [Any?]) {
-        log += values as! [AnyHashable?]
+    func debugLog(_ values: [AnyHashable]) {
+        log += values
     }
 }
 
@@ -1093,6 +1093,20 @@ class InterpreterTests: XCTestCase {
                 .unexpectedArgument(for: "pow", max: 2), at: range
             ))
         }
+    }
+
+    func testMinFunction() {
+        let program = "print min 1 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testMaxFunction() {
+        let program = "print max 1 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2])
     }
 
     // MARK: Member lookup

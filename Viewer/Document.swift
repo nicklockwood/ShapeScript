@@ -436,7 +436,7 @@ class Document: NSDocument, EvaluationDelegate {
         return Geometry(scnNode: scene.rootNode)
     }
 
-    func debugLog(_ values: [Any?]) {
+    func debugLog(_ values: [AnyHashable]) {
         var values = values.map { String(logDescriptionFor: $0 as Any) }
         if let first = values.first {
             var previous = first
