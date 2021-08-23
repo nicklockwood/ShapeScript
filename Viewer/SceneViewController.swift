@@ -61,6 +61,9 @@ class SceneViewController: NSViewController {
 
     var showAccessButton = false {
         didSet {
+            guard showAccessButton != oldValue else {
+                return
+            }
             grantAccessButton.isHidden = !showAccessButton
             errorTextView.backgroundColor = showAccessButton ?
                 NSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1) :
@@ -70,17 +73,21 @@ class SceneViewController: NSViewController {
 
     var isLoading = false {
         didSet {
+            guard isLoading != oldValue else {
+                return
+            }
             if isLoading {
                 loadingIndicator.startAnimation(nil)
             } else {
                 loadingIndicator.stopAnimation(nil)
+                refreshView()
             }
         }
     }
 
     public var showWireframe = false {
         didSet {
-            guard scnView.renderingAPI == .metal else {
+            guard showWireframe != oldValue, scnView.renderingAPI == .metal else {
                 return
             }
             if showWireframe {
@@ -93,6 +100,9 @@ class SceneViewController: NSViewController {
 
     public var showConsole = false {
         didSet {
+            guard showConsole != oldValue else {
+                return
+            }
             if showConsole {
                 if consoleScrollView.superview == nil {
                     containerView.insertArrangedSubview(consoleScrollView, at: 1)
@@ -134,7 +144,13 @@ class SceneViewController: NSViewController {
             cameraNode.position = SCNVector3(center.x, center.y, distance + cameraNode.camera!.zNear)
             scnView.allowsCameraControl = true
             scnView.defaultCameraController.target = SCNVector3(center)
+            refreshView()
         }
+    }
+
+    private func refreshView() {
+        scnView.rendersContinuously = true
+        scnView.rendersContinuously = false
     }
 
     private(set) weak var selectedGeometry: Geometry?
@@ -181,16 +197,19 @@ class SceneViewController: NSViewController {
         let center = geometry?.bounds.center ?? Vector.zero
         scnView.defaultCameraController.target = SCNVector3(center)
         scnView.pointOfView = cameraNode
-
-        // trigger an update
-        scnView.rendersContinuously = true
-        scnView.rendersContinuously = false
+        refreshView()
     }
 
     @objc func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
         let hitResults = scnView.hitTest(location, options: [:])
         selectGeometry(hitResults.first?.node.geometry)
+    }
+}
+
+extension SceneViewController: NSWindowDelegate {
+    func windowDidChangeOcclusionState(_: Notification) {
+        refreshView()
     }
 }
 

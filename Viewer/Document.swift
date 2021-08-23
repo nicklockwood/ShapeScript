@@ -74,6 +74,7 @@ class Document: NSDocument, EvaluationDelegate {
         let storyboard = NSStoryboard(name: NSStoryboard.Name("Main"), bundle: nil)
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
         addWindowController(windowController)
+        windowController.window?.delegate = windowController.contentViewController as? NSWindowDelegate
         updateViews()
     }
 
