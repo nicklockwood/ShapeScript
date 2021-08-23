@@ -86,6 +86,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case unexpectedArgument(for: String, max: Int)
     case missingArgument(for: String, index: Int, type: String)
     case unusedValue(type: String)
+    case assertionFailure(String)
     case fileNotFound(for: String, at: URL?)
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
@@ -121,6 +122,8 @@ public extension RuntimeError {
             return "Missing argument"
         case .unusedValue:
             return "Unused value"
+        case .assertionFailure:
+            return "Assertion failure"
         case let .fileNotFound(for: name, _):
             guard !name.isEmpty else {
                 return "Empty file name"
@@ -204,6 +207,8 @@ public extension RuntimeError {
             }
         case let .unusedValue(type: type):
             return "A \(type) value was not expected in this context."
+        case let .assertionFailure(message):
+            return formatMessage(message)
         case let .fileNotFound(for: _, at: url):
             guard let url = url else {
                 return nil
@@ -474,7 +479,14 @@ enum Value {
 struct RangeValue: Hashable, Sequence {
     var start, end, step: Double
 
-    init(from start: Double, to end: Double, step: Double = 1) {
+    init(from start: Double, to end: Double) {
+        self.init(from: start, to: end, step: 1)!
+    }
+
+    init?(from start: Double, to end: Double, step: Double) {
+        guard step != 0 else {
+            return nil
+        }
         self.start = start
         self.end = end
         self.step = step
@@ -977,8 +989,21 @@ extension Expression {
         case let .range(from: start, to: end, step: step):
             let start = try start.evaluate(as: .number, for: "start value", in: context)
             let end = try end.evaluate(as: .number, for: "end value", in: context)
-            let step = try step?.evaluate(as: .number, for: "step value", in: context) ?? .number(1)
-            return .range(RangeValue(from: start.doubleValue, to: end.doubleValue, step: step.doubleValue))
+            guard let stepParam = step else {
+                return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
+            }
+            let step = try stepParam.evaluate(as: .number, for: "step value", in: context)
+            guard let value = RangeValue(
+                from: start.doubleValue,
+                to: end.doubleValue,
+                step: step.doubleValue
+            ) else {
+                throw RuntimeError(
+                    .assertionFailure("Step value must be nonzero"),
+                    at: stepParam.range
+                )
+            }
+            return .range(value)
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let value = value[member.name] {

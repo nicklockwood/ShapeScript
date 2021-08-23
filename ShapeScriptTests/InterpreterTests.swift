@@ -1007,6 +1007,18 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testRangeWithZeroStepValue() {
+        let program = "define range 1 to 5 step 0"
+        let range = program.range(of: "0")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error, RuntimeError(
+                .assertionFailure("Step value must be nonzero"), at: range
+            ))
+        }
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
