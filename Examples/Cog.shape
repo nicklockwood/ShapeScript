@@ -4,7 +4,7 @@ define cog {
     option teeth 6
     path {
         define step 1 / teeth
-        for i in 1 to teeth {
+        for 1 to teeth {
             point -0.02 0.8
             point 0.05 1
             rotate step

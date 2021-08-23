@@ -925,6 +925,65 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Ranges
+
+    func testRange() {
+        let program = "print 0 to 3"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0 ..< 4.0])
+    }
+
+    func testInvalidRange() {
+        let program = "print 4 to 3"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [4.0 ..< 4.0])
+    }
+
+    func testNegativeRange() {
+        let program = "print -3 to -2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-3.0 ..< -1.0])
+    }
+
+    func testFloatRange() {
+        let program = "print 0.5 to 1.5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.5 ..< 2.5])
+    }
+
+    func testRangeWithNonNumericStartValue() {
+        let program = "define range \"foo\" to 10"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "start value",
+                index: 0,
+                expected: "number",
+                got: "string"
+            ))
+        }
+    }
+
+    func testRangeWithNonNumericEndValue() {
+        let program = "define range 1 to \"bar\""
+        let range = program.range(of: "\"bar\"")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "end value",
+                index: 0,
+                expected: "number",
+                got: "string"
+            ), at: range))
+        }
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
@@ -962,32 +1021,33 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.5, 1.5])
     }
 
-    func testForLoopWithNonNumericStartIndex() {
-        let program = "for i in \"foo\" to 10 { print i }"
+    func testForLoopWithNonRangeExpression() {
+        let program = "for 1 { print i }"
+        let range = program.range(of: "1")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "range",
+                index: 0,
+                expected: "range",
+                got: "number"
+            ), at: range))
+        }
+    }
+
+    func testForLoopWithNonRangeExpression2() {
+        let program = "for i in \"foo\" { print i }"
         let range = program.range(of: "\"foo\"")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "start value",
+                for: "range",
                 index: 0,
-                expected: "number",
+                expected: "range",
                 got: "string"
             ), at: range))
-        }
-    }
-
-    func testForLoopWithNonNumericEndIndex() {
-        let program = "for i in 1 to \"bar\" { print i }"
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.type, .typeMismatch(
-                for: "end value",
-                index: 0,
-                expected: "number",
-                got: "string"
-            ))
         }
     }
 

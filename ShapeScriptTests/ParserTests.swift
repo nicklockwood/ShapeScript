@@ -87,6 +87,44 @@ class ParserTests: XCTestCase {
         XCTAssertNoThrow(try parse(input))
     }
 
+    // MARK: Ranges
+
+    func testRange() {
+        let input = "define foo 1 to 2"
+        let defineRange = input.range(of: "define")!
+        let fooRange = input.range(of: "foo")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "foo", range: fooRange),
+                    Definition(type: .expression(Expression(
+                        type: .range(
+                            from: Expression(type: .number(1), range: range1),
+                            to: Expression(type: .number(2), range: range2)
+                        ),
+                        range: range1.lowerBound ..< range2.upperBound
+                    )))
+                ),
+                range: defineRange.lowerBound ..< range2.upperBound
+            ),
+        ]))
+    }
+
+    func testRangeWithMissingUpperBound() {
+        let input = "define foo 1 to"
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected end value.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: input.endIndex ..< input.endIndex),
+                expected: "end value"
+            )))
+        }
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
@@ -99,9 +137,14 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .forloop(
-                    index: Identifier(name: "i", range: iRange),
-                    from: Expression(type: .number(1), range: range1),
-                    to: Expression(type: .number(2), range: range2),
+                    Identifier(name: "i", range: iRange),
+                    in: Expression(
+                        type: .range(
+                            from: Expression(type: .number(1), range: range1),
+                            to: Expression(type: .number(2), range: range2)
+                        ),
+                        range: range1.lowerBound ..< range2.upperBound
+                    ),
                     Block(statements: [], range: blockRange)
                 ),
                 range: forRange.lowerBound ..< blockRange.upperBound
@@ -118,9 +161,14 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .forloop(
-                    index: nil,
-                    from: Expression(type: .number(1), range: range1),
-                    to: Expression(type: .number(2), range: range2),
+                    nil,
+                    in: Expression(
+                        type: .range(
+                            from: Expression(type: .number(1), range: range1),
+                            to: Expression(type: .number(2), range: range2)
+                        ),
+                        range: range1.lowerBound ..< range2.upperBound
+                    ),
                     Block(statements: [], range: blockRange)
                 ),
                 range: forRange.lowerBound ..< blockRange.upperBound
@@ -134,10 +182,10 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.hint, "Expected starting index.")
+            XCTAssertEqual(error?.hint, "Expected range.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
-                expected: "starting index"
+                expected: "range"
             )))
         }
     }
@@ -148,10 +196,10 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected identifier 'in'")
-            XCTAssertEqual(error?.hint, "Expected 'to'.")
+            XCTAssertEqual(error?.hint, "Expected loop body.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .identifier("in"), range: inRange),
-                expected: "'to'"
+                expected: "loop body"
             )))
         }
     }
@@ -162,24 +210,10 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.hint, "Expected starting index.")
+            XCTAssertEqual(error?.hint, "Expected range.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
-                expected: "starting index"
-            )))
-        }
-    }
-
-    func testForLoopWithoutTo() {
-        let input = "for 1 {}"
-        let braceRange = input.range(of: "{")!
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.hint, "Expected 'to'.")
-            XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .lbrace, range: braceRange),
-                expected: "'to'"
+                expected: "range"
             )))
         }
     }

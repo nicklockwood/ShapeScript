@@ -331,6 +331,7 @@ enum ValueType: String {
     case tuple
     case point
     case pair // Hack to support common math functions
+    case range
     case void
 }
 
@@ -345,6 +346,7 @@ enum Value {
     case mesh(Geometry)
     case point(PathPoint)
     case tuple([Value])
+    case range(Double, Double)
 
     static let void: Value = .tuple([])
 
@@ -371,6 +373,7 @@ enum Value {
         case let .mesh(mesh): return mesh
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
+        case let .range(start, end): return start ..< max(start, end + 1)
         }
     }
 
@@ -394,6 +397,7 @@ enum Value {
         case .mesh: return .mesh
         case .point: return .point
         case .tuple: return .tuple
+        case .range: return .range
         }
     }
 
@@ -790,15 +794,25 @@ extension Statement {
             context.define(identifier.name, as: try definition.evaluate(in: context))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
-        case let .forloop(index, start, end, block):
-            let start = try start.evaluate(as: .number, for: "start value", in: context)
-            let end = try end.evaluate(as: .number, for: "end value", in: context)
-            for i in stride(from: start.doubleValue, through: end.doubleValue, by: 1) {
+        case let .forloop(identifier, in: expression, block):
+            let range = try expression.evaluate(in: context)
+            guard case let .range(start, end) = range else {
+                throw RuntimeError(
+                    .typeMismatch(
+                        for: "range",
+                        index: 0,
+                        expected: ValueType.range.rawValue,
+                        got: range.type.rawValue
+                    ),
+                    at: expression.range
+                )
+            }
+            for i in stride(from: start, through: end, by: 1) {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
                 }
                 try context.pushScope { context in
-                    if let name = index?.name {
+                    if let name = identifier?.name {
                         context.define(name, as: .constant(.number(Double(i))))
                     }
                     for statement in block.statements {
@@ -937,6 +951,10 @@ extension Expression {
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
             }
+        case let .range(from: start, to: end):
+            let start = try start.evaluate(as: .number, for: "start value", in: context)
+            let end = try end.evaluate(as: .number, for: "end value", in: context)
+            return .range(start.doubleValue, end.doubleValue)
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let value = value[member.name] {
@@ -1089,7 +1107,7 @@ extension Expression {
                     )
                 }
             })
-        case .number, .string, .texture, .path, .mesh, .point:
+        case .number, .string, .texture, .path, .mesh, .point, .range:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),

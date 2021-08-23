@@ -216,3 +216,13 @@ extension Array: Loggable {
         "(\(logDescription))"
     }
 }
+
+extension Range: Loggable where Bound == Double {
+    public var logDescription: String {
+        "\(lowerBound.logDescription) to \((upperBound - 1).logDescription)"
+    }
+
+    public var nestedLogDescription: String {
+        "(\(logDescription))"
+    }
+}

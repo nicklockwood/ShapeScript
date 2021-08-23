@@ -62,5 +62,34 @@ define averageColor (color.red + color.green + color.blue) / 3
 print averageColor // 0.5667
 ```
 
+
+## Ranges
+
+Another type of expression you can create is a *range* expression. This consists of two numeric values separated by a `to` keyword:
+
+```swift
+1 to 5
+```
+
+Ranges are mostly used in [for loops](loops.md):
+
+```swift
+for i in 1 to 5 {
+    print i   
+}
+```
+
+But they can also be assigned to a [symbol](symbols.md) using the `define` command, and then used later:
+
+```swift
+define loops 1 to 5
+
+for i in loops {
+    print i   
+}
+```
+
+**Note:** Ranges are inclusive of both the start and end values. A loop from `0 to 5` would therefore loop *6* times and not 5 as you might expect.
+
 ---
 [Index](index.md) | Next: [Functions](functions.md)

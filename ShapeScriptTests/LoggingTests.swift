@@ -274,4 +274,18 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.logDescription, "\"foo\" (\"bar\" \"baz\")")
         XCTAssertEqual(input.nestedLogDescription, "(\"foo\" (\"bar\" \"baz\"))")
     }
+
+    // MARK: Ranges
+
+    func testIntRange() {
+        let input = 1.0 ..< 10.0
+        XCTAssertEqual(input.logDescription, "1 to 9")
+        XCTAssertEqual(input.nestedLogDescription, "(1 to 9)")
+    }
+
+    func testFloatRange() {
+        let input = 1.5 ..< 3.5
+        XCTAssertEqual(input.logDescription, "1.5 to 2.5")
+        XCTAssertEqual(input.nestedLogDescription, "(1.5 to 2.5)")
+    }
 }

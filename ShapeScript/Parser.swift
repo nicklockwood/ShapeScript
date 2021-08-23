@@ -27,7 +27,7 @@ public enum StatementType: Equatable {
     case block(Identifier, Block)
     case define(Identifier, Definition)
     case option(Identifier, Expression)
-    case forloop(index: Identifier?, from: Expression, to: Expression, Block)
+    case forloop(Identifier?, in: Expression, Block)
     case expression(Expression)
     case `import`(Expression)
 }
@@ -63,6 +63,7 @@ public enum ExpressionType: Equatable {
     indirect case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
+    indirect case range(from: Expression, to: Expression)
     indirect case member(Expression, Identifier)
     indirect case subexpression(Expression)
 }
@@ -220,18 +221,15 @@ private extension ArraySlice where Element == Token {
         guard readToken(.keyword(.for)) else {
             return nil
         }
-        let index = readIdentifier()
-        let start: Expression
-        if let identifier = index, !readToken(.identifier("in")) {
-            start = Expression(type: .identifier(identifier), range: identifier.range)
-            try requireToken(.identifier("to"), as: "'to' or 'in'")
+        let identifier = readIdentifier()
+        let expression: Expression
+        if let identifier = identifier, !readToken(.identifier("in")) {
+            expression = Expression(type: .identifier(identifier), range: identifier.range)
         } else {
-            start = try require(readExpression(), as: "starting index")
-            try requireToken(.identifier("to"), as: "'to'")
+            expression = try require(readExpression(), as: "range")
         }
-        let end = try require(readExpression(), as: "end index")
         let body = try require(readBlock(), as: "loop body")
-        return .forloop(index: index, from: start, to: end, body)
+        return .forloop(identifier, in: expression, body)
     }
 
     mutating func readImport() throws -> StatementType? {
@@ -328,6 +326,14 @@ private extension ArraySlice where Element == Token {
             let rhs = try require(readTerm(), as: "operand")
             lhs = Expression(
                 type: .infix(lhs, op, rhs),
+                range: lhs.range.lowerBound ..< rhs.range.upperBound
+            )
+        }
+        if case .identifier("to") = nextToken.type {
+            removeFirst()
+            let rhs = try require(readExpression(), as: "end value")
+            lhs = Expression(
+                type: .range(from: lhs, to: rhs),
                 range: lhs.range.lowerBound ..< rhs.range.upperBound
             )
         }
