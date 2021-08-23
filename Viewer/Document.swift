@@ -60,6 +60,7 @@ class Document: NSDocument, EvaluationDelegate {
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
             viewController.showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
+            viewController.showAxes = (NSApp.delegate as! AppDelegate).showAxes
         }
     }
 

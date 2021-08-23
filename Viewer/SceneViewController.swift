@@ -114,6 +114,17 @@ class SceneViewController: NSViewController {
         }
     }
 
+    public var showAxes = false {
+        didSet {
+            guard showAxes != oldValue else {
+                return
+            }
+            let geometry = self.geometry
+            self.geometry = geometry
+            resetCamera(nil)
+        }
+    }
+
     var background: MaterialProperty? {
         get { MaterialProperty(scnMaterialProperty: scnScene.background) }
         set { newValue?.configureProperty(scnScene.background) }
@@ -124,11 +135,20 @@ class SceneViewController: NSViewController {
             // clear scene
             scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
 
+            // add axes
+            let bounds = viewBounds
+            let size = bounds.size
+            let scale = max(size.x, size.y, size.z, 1)
+            if showAxes {
+                let axes = Axes(scale: scale / 2, background: background)
+                scnScene.rootNode.addChildNode(SCNNode(axes))
+            }
+
             // restore selection
             selectGeometry(selectedGeometry?.scnGeometry)
 
             guard let geometry = geometry, !geometry.bounds.isEmpty else {
-                scnView.allowsCameraControl = false
+                scnView.allowsCameraControl = showAxes
                 return
             }
 
@@ -138,10 +158,9 @@ class SceneViewController: NSViewController {
             }
 
             // update camera
-            let bounds = geometry.bounds
             let center = bounds.center
-            let distance = max(bounds.size.x, bounds.size.y) + bounds.max.z + cameraNode.camera!.zNear
-            cameraNode.position = SCNVector3(center.x, center.y, distance + cameraNode.camera!.zNear)
+            let distance = scale * 1.2 + cameraNode.camera!.zNear
+            cameraNode.position = SCNVector3(center.x, center.y, distance)
             scnView.allowsCameraControl = true
             scnView.defaultCameraController.target = SCNVector3(center)
             refreshView()
@@ -181,6 +200,15 @@ class SceneViewController: NSViewController {
     private func refreshView() {
         scnView.rendersContinuously = true
         scnView.rendersContinuously = false
+    }
+
+    private var viewBounds: Bounds {
+        let bounds = geometry?.bounds ?? .empty
+        guard showAxes else {
+            return bounds
+        }
+        let m = max(-bounds.min, bounds.max) + Vector(size: [0.1])
+        return Bounds(min: -m, max: m)
     }
 
     private(set) weak var selectedGeometry: Geometry?
@@ -224,8 +252,7 @@ class SceneViewController: NSViewController {
     }
 
     @IBAction func resetCamera(_: Any?) {
-        let center = geometry?.bounds.center ?? Vector.zero
-        scnView.defaultCameraController.target = SCNVector3(center)
+        scnView.defaultCameraController.target = SCNVector3(viewBounds.center)
         scnView.pointOfView = cameraNode
         refreshView()
     }

@@ -30,9 +30,9 @@ define wheel {
 }
 
 // wheels
-for 1 to 3 {
-    translate 0 0 0.7
+for i in -1 to 1 {
     group {
+        translate 0 0 (0.7 * i)
         rotate 0.5 rnd
         translate 0 0.5 0
         wheel
@@ -47,7 +47,7 @@ for 1 to 3 {
 // base
 union {
     rotate 0 0.5 0
-    translate -1.7 -0.06
+    translate -1 -0.06
     color black
     extrude {
         size 1 1 0.7
@@ -80,7 +80,7 @@ union {
 // face
 lathe {
     color gray
-    position 0 0.8 0.3
+    position 0 0.8 1
     orientation 0 0 0.5
     path {
         point 0 0
@@ -93,7 +93,7 @@ lathe {
 // chimney
 union {
     color black
-    position 0 0.6 0.1
+    position 0 0.6 0.8
     cube { size 0.7 0.4 0.4 }
     cylinder {
         position 0 0.2 0
@@ -122,7 +122,7 @@ union {
 // body
 union {
     color lightBlue
-    position 0 0.8 -0.5
+    position 0 0.8 0.2
     orientation 0 0 0.5
     cylinder { size 0.7 0.8 }
     translate 0 0.425 -0.085
@@ -163,7 +163,7 @@ union {
 // coal
 union {
     color black
-    position 0 0.73 -1.54
+    position 0 0.73 -0.84
     orientation 0 0 0.5
     cube { size 0.8 0.325 0.4 }
     translate 0.45 -0.1 0.2

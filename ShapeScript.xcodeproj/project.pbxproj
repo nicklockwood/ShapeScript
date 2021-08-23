@@ -42,6 +42,7 @@
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
 		01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0926CB920000E0B287 /* LoggingTests.swift */; };
+		01E4E48826D377F000F390D7 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E4E48726D377F000F390D7 /* Axes.swift */; };
 		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
 		01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FDE3D426BD766C00A46F66 /* GeometryCache.swift */; };
@@ -182,6 +183,7 @@
 		01BFB3B42142726100E47A7C /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		01E3AA0926CB920000E0B287 /* LoggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTests.swift; sourceTree = "<group>"; };
+		01E4E48726D377F000F390D7 /* Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Axes.swift; sourceTree = "<group>"; };
 		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
 		01FDE3D426BD766C00A46F66 /* GeometryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -229,6 +231,7 @@
 				01908DC726B7597F0068390E /* ProgramError.swift */,
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
+				01E4E48726D377F000F390D7 /* Axes.swift */,
 				0152E5CD2145009A0082A5A3 /* Assets.xcassets */,
 				0152E5CF2145009A0082A5A3 /* Main.storyboard */,
 				0152E5D22145009A0082A5A3 /* Info.plist */,
@@ -605,6 +608,7 @@
 				013312F521CD653B00626F1B /* Settings.swift in Sources */,
 				0152E5FC2145C0420082A5A3 /* Document.swift in Sources */,
 				0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */,
+				01E4E48826D377F000F390D7 /* Axes.swift in Sources */,
 				013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */,
 				01908DC826B7597F0068390E /* ProgramError.swift in Sources */,
 				01746BE926C49597009DADEF /* MaterialProperty+Brightness.swift in Sources */,

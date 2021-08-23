@@ -134,6 +134,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
         sender.state = showWireframe ? .on : .off
     }
 
+    public var showAxes = true {
+        didSet {
+            for case let document as Document in NSApp.orderedDocuments {
+                document.updateViews()
+            }
+        }
+    }
+
+    @IBAction func showAxes(_ sender: NSMenuItem) {
+        showAxes = !showAxes
+        sender.state = showAxes ? .on : .off
+    }
+
     // MARK: NSUserInterfaceValidations
 
     func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
