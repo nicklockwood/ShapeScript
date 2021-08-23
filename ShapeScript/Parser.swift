@@ -24,7 +24,7 @@ public struct Program: Equatable {
 
 public enum StatementType: Equatable {
     case command(Identifier, Expression?)
-    case node(Identifier, Block)
+    case block(Identifier, Block)
     case define(Identifier, Definition)
     case option(Identifier, Expression)
     case forloop(index: Identifier?, from: Expression, to: Expression, Block)
@@ -58,7 +58,7 @@ public enum ExpressionType: Equatable {
     case number(Double)
     case string(String)
     case identifier(Identifier)
-    case node(Identifier, Block)
+    case block(Identifier, Block)
     indirect case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
@@ -335,7 +335,7 @@ private extension ArraySlice where Element == Token {
         while var expression = try readExpression() {
             if case let .identifier(identifier) = expression.type, let block = try readBlock() {
                 let range = identifier.range.lowerBound ..< block.range.upperBound
-                expression = Expression(type: .node(identifier, block), range: range)
+                expression = Expression(type: .block(identifier, block), range: range)
             }
             expressions.append(expression)
             if allowLinebreaks {
@@ -364,7 +364,7 @@ private extension ArraySlice where Element == Token {
             return .expression(expression)
         }
         if let statements = try readBlock() {
-            return .node(name, statements)
+            return .block(name, statements)
         }
         return try .command(name, readExpressions())
     }

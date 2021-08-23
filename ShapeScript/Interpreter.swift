@@ -798,11 +798,11 @@ extension Statement {
             case let .constant(v):
                 try RuntimeError.wrap(context.addValue(v), at: range)
             }
-        case let .node(identifier, block):
+        case let .block(identifier, block):
             // TODO: better solution
             // This only works correctly if node was not imported from another file
             context.sourceIndex = range.lowerBound
-            let expression = Expression(type: .node(identifier, block), range: range)
+            let expression = Expression(type: .block(identifier, block), range: range)
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .expression(expression):
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
@@ -887,7 +887,7 @@ extension Expression {
             case let .constant(value):
                 return value
             }
-        case let .node(identifier, block):
+        case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
             guard let symbol = context.symbol(for: name) else {
                 throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
@@ -912,7 +912,7 @@ extension Expression {
                                               for: identifier,
                                               in: context)
                         ))
-                    case .node, .define, .forloop, .expression, .import:
+                    case .block, .define, .forloop, .expression, .import:
                         try statement.evaluate(in: context)
                     case .option:
                         throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)
