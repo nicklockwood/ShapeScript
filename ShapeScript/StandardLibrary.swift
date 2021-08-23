@@ -127,9 +127,6 @@ extension Dictionary where Key == String, Value == Symbol {
                 case let .path(path):
                     endPath()
                     subpaths.append(path)
-                case let .paths(paths):
-                    endPath()
-                    subpaths += paths
                 default:
                     preconditionFailure()
                 }
@@ -165,7 +162,8 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "text": .block(.text) { context in
             let text = context.children.map { $0.value as! String }.joined(separator: "\n")
-            return .paths(Path.text(text, font: context.font, detail: context.detail / 8))
+            let paths = Path.text(text, font: context.font, detail: context.detail / 8)
+            return .tuple(paths.map { .path($0) })
         },
     ]
 

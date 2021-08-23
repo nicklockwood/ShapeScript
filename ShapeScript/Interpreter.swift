@@ -342,12 +342,11 @@ enum Value {
     case size(Vector)
     case string(String?) // TODO: handle optionals in a better way than this
     case path(Path)
-    case paths([Path])
     case mesh(Geometry)
     case point(PathPoint)
     case tuple([Value])
-    case pair(Double, Double)
-    case void
+
+    static let void: Value = .tuple([])
 
     static func colorOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
@@ -369,12 +368,9 @@ enum Value {
         case let .string(string):
             return string.map { $0 as AnyHashable } ?? string as AnyHashable
         case let .path(path): return path
-        case let .paths(paths): return paths
         case let .mesh(mesh): return mesh
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
-        case let .pair(first, second): return [first, second]
-        case .void: return VoidValue()
         }
     }
 
@@ -395,12 +391,9 @@ enum Value {
         case .size: return .size
         case .string: return .string
         case .path: return .path
-        case .paths: return .paths
         case .mesh: return .mesh
         case .point: return .point
         case .tuple: return .tuple
-        case .pair: return .pair
-        case .void: return .void
         }
     }
 
@@ -465,8 +458,6 @@ enum Value {
     }
 }
 
-struct VoidValue: Hashable {}
-
 typealias Options = [String: ValueType]
 
 enum BlockType {
@@ -489,9 +480,9 @@ enum BlockType {
 
     var childTypes: Set<ValueType> {
         switch self {
-        case .builder: return [.path, .paths]
+        case .builder: return [.path]
         case .group: return [.mesh]
-        case .path: return [.point, .path, .paths]
+        case .path: return [.point, .path]
         case .text: return [.string]
         case let .custom(baseType, _):
             return baseType?.childTypes ?? []
@@ -650,8 +641,8 @@ extension Definition {
                     } else if context.name == nil, !children.isEmpty, !children.contains(where: {
                         if case .path = $0 { return false } else { return true }
                     }) {
-                        return .paths(children.map {
-                            ($0.value as! Path).transformed(by: context.transform)
+                        return .tuple(children.map {
+                            .path(($0.value as! Path).transformed(by: context.transform))
                         })
                     }
                     return .mesh(Geometry(
@@ -694,8 +685,6 @@ extension Definition {
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
         switch value {
-        case .void:
-            break
         case _ where childTypes.contains(value.type):
             switch value {
             case let .mesh(m):
@@ -706,10 +695,6 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
-            case let .paths(paths):
-                for path in paths {
-                    children.append(.path(path.transformed(by: childTransform)))
-                }
             default:
                 children.append(value)
             }
@@ -722,17 +707,8 @@ extension EvaluationContext {
                 children: [],
                 sourceLocation: sourceLocation
             )))
-        case let .paths(paths) where childTypes.contains(.mesh):
-            for path in paths {
-                children.append(.mesh(Geometry(
-                    type: .path(path),
-                    name: name,
-                    transform: childTransform,
-                    material: .default, // not used for paths
-                    children: [],
-                    sourceLocation: sourceLocation
-                )))
-            }
+        case let .tuple(values):
+            try values.forEach(addValue)
         default:
             throw RuntimeErrorType.unusedValue(type: value.type.rawValue)
         }
@@ -1066,7 +1042,7 @@ extension Expression {
             return .size(Vector(size: numbers))
         case .pair:
             let numbers = try numerify(max: 2, min: 2)
-            return .pair(numbers[0], numbers[1])
+            return .tuple(numbers.map { .number($0) })
         case .tuple:
             return .tuple(values)
         case .texture where values.count == 1 && values[0].type == .string:

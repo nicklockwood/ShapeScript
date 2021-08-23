@@ -116,7 +116,7 @@ final class EvaluationContext {
         new.name = name
         new.transform = transform
         new.opacity = opacity
-        new.childTypes = [.mesh, .path, .paths]
+        new.childTypes = [.mesh, .path]
         new.symbols = .definition
         return new
     }
