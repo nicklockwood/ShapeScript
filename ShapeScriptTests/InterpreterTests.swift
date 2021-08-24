@@ -896,6 +896,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for along should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "along",
                 index: 0,
@@ -916,6 +917,8 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
+            // TODO: this message isn't really ideal - need different handling for paths arguments
+            XCTAssertEqual(error?.hint, "The second argument for along should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "along",
                 index: 1,

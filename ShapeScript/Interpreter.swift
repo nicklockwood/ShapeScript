@@ -199,7 +199,7 @@ public extension RuntimeError {
                 return "\(name) command expects a maximum of \(max) arguments."
             }
         case let .missingArgument(for: name, index: index, type: type):
-            let type = (type == ValueType.pair.rawValue) ? ValueType.number.rawValue : type
+            let type = (type == ValueType.pair.errorDescription) ? ValueType.number.errorDescription : type
             if index == 0 {
                 return "The \(name) command expects an argument of type \(type)."
             } else {
@@ -322,10 +322,10 @@ private extension RuntimeError {
     }
 }
 
-enum ValueType: String {
+enum ValueType {
     case color
     case texture
-    case colorOrTexture = "color or texture"
+    case colorOrTexture // Hack to support either types
     case number
     case vector
     case size
@@ -338,6 +338,28 @@ enum ValueType: String {
     case pair // Hack to support common math functions
     case range
     case void
+}
+
+private extension ValueType {
+    var errorDescription: String {
+        switch self {
+        case .color: return "color"
+        case .texture: return "texture"
+        case .colorOrTexture: return "color or texture"
+        case .number: return "number"
+        case .vector: return "vector"
+        case .size: return "size"
+        case .string: return "string"
+        case .path: return "path"
+        case .paths: return "path"
+        case .mesh: return "mesh"
+        case .tuple: return "tuple"
+        case .point: return "point"
+        case .pair: return "pair"
+        case .range: return "range"
+        case .void: return "void"
+        }
+    }
 }
 
 enum Value {
@@ -586,7 +608,7 @@ private func evaluateParameters(
                                     for: identifier.name,
                                     index: 0,
                                     expected: "block",
-                                    got: child.type.rawValue
+                                    got: child.type.errorDescription
                                 ),
                                 at: parameter.range
                             )
@@ -616,7 +638,7 @@ private func evaluateParameter(_ parameter: Expression?,
             return .void
         }
         throw RuntimeError(
-            .missingArgument(for: name, index: 0, type: type.rawValue),
+            .missingArgument(for: name, index: 0, type: type.errorDescription),
             at: range.upperBound ..< range.upperBound
         )
     }
@@ -749,7 +771,7 @@ extension EvaluationContext {
         case let .tuple(values):
             try values.forEach(addValue)
         default:
-            throw RuntimeErrorType.unusedValue(type: value.type.rawValue)
+            throw RuntimeErrorType.unusedValue(type: value.type.errorDescription)
         }
     }
 }
@@ -796,7 +818,7 @@ extension Statement {
                                 for: name,
                                 index: 0,
                                 expected: "block",
-                                got: child.type.rawValue
+                                got: child.type.errorDescription
                             ),
                             at: parameter.range
                         )
@@ -847,7 +869,7 @@ extension Statement {
                         for: "range",
                         index: 0,
                         expected: "range or tuple",
-                        got: range.type.rawValue
+                        got: range.type.errorDescription
                     ),
                     at: expression.range
                 )
@@ -868,11 +890,11 @@ extension Statement {
         case let .import(expression):
             let pathValue = try expression.evaluate(in: context)
             guard let path = pathValue.value as? String else {
-                let got = (pathValue.type == .string) ? "nil" : pathValue.type.rawValue
+                let got = (pathValue.type == .string) ? "nil" : pathValue.type.errorDescription
                 throw RuntimeError(
                     .typeMismatch(
                         for: Keyword.import.rawValue, index: 0,
-                        expected: ValueType.string.rawValue, got: got
+                        expected: ValueType.string.errorDescription, got: got
                     ),
                     at: expression.range
                 )
@@ -908,7 +930,7 @@ extension Expression {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
-                        type: parameterType.rawValue
+                        type: parameterType.errorDescription
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(.void, context), at: range)
@@ -963,7 +985,7 @@ extension Expression {
                 return try RuntimeError.wrap(fn(context), at: range)
             case let .command(type, _):
                 throw RuntimeError(
-                    .typeMismatch(for: name, index: 0, expected: type.rawValue, got: "block"),
+                    .typeMismatch(for: name, index: 0, expected: type.errorDescription, got: "block"),
                     at: block.range
                 )
             case .property, .constant:
@@ -1042,7 +1064,7 @@ extension Expression {
             } else if parameters.count < min {
                 let upperBound = parameters.last?.range.upperBound ?? range.upperBound
                 throw RuntimeError(
-                    .missingArgument(for: name, index: min - 1, type: ValueType.number.rawValue),
+                    .missingArgument(for: name, index: min - 1, type: ValueType.number.errorDescription),
                     at: upperBound ..< upperBound
                 )
             }
@@ -1067,11 +1089,11 @@ extension Expression {
                         at: parameters[1].range
                     )
                 }
-                let types = [type.rawValue] + values.dropFirst().map { $0.type.rawValue }
+                let types = [type.errorDescription] + values.dropFirst().map { $0.type.errorDescription }
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: index,
-                    expected: type.rawValue,
+                    expected: type.errorDescription,
                     got: types.joined(separator: ", ")
                 ), at: range)
             }
@@ -1080,13 +1102,13 @@ extension Expression {
                 guard case let .number(number) = value else {
                     // TODO: this seems like a hack - what's the actual solution?
                     let i = Swift.min(parameters.count - 1, i)
-                    let type = (i == 0 ? type : .number).rawValue
+                    let type = (i == 0 ? type : .number).errorDescription
                     throw RuntimeError(
                         .typeMismatch(
                             for: name,
                             index: index + i,
                             expected: type,
-                            got: value.type.rawValue
+                            got: value.type.errorDescription
                         ),
                         at: parameters[i].range
                     )
@@ -1101,7 +1123,7 @@ extension Expression {
                 throw RuntimeError(.missingArgument(
                     for: name,
                     index: index,
-                    type: type.rawValue
+                    type: type.errorDescription
                 ), at: range)
             }
             return .void
@@ -1147,8 +1169,8 @@ extension Expression {
                             .typeMismatch(
                                 for: name,
                                 index: index + i,
-                                expected: ValueType.path.rawValue,
-                                got: value.type.rawValue
+                                expected: ValueType.path.errorDescription,
+                                got: value.type.errorDescription
                             ),
                             at: parameters[i].range
                         )
@@ -1159,8 +1181,8 @@ extension Expression {
                         .typeMismatch(
                             for: name,
                             index: index + i,
-                            expected: ValueType.path.rawValue,
-                            got: value.type.rawValue
+                            expected: ValueType.path.errorDescription,
+                            got: value.type.errorDescription
                         ),
                         at: parameters[i].range
                     )
@@ -1179,8 +1201,8 @@ extension Expression {
                     .typeMismatch(
                         for: name,
                         index: index,
-                        expected: type.rawValue,
-                        got: value.type.rawValue
+                        expected: type.errorDescription,
+                        got: value.type.errorDescription
                     ),
                     at: parameters[0].range
                 )
@@ -1189,8 +1211,8 @@ extension Expression {
                 .typeMismatch(
                     for: name,
                     index: index,
-                    expected: type.rawValue,
-                    got: values[0].type.rawValue
+                    expected: type.errorDescription,
+                    got: values[0].type.errorDescription
                 ),
                 at: parameters[0].range
             )
