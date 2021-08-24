@@ -1,3 +1,11 @@
+## [1.2.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.3) (2021-08-24)
+
+- Enabled parenthesized expressions to span multiple lines
+- Improved error message when assigning multiple values to single type
+- Fixed assigning color literal value to background without parens
+- Added Color initializers
+- Added SceneViewController.snapshot() method
+
 ## [1.2.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.2) (2021-08-24)
 
 - Blocks that accept child values can now be called without braces around them
