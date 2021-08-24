@@ -10,12 +10,26 @@ import Foundation
 
 public struct Color: Hashable {
     public let r, g, b, a: Double
+
+    public init(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) {
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+    }
 }
 
 public extension Color {
-    static let clear = Color(unchecked: [0, 0, 0, 0])
-    static let white = Color(unchecked: [1])
-    static let black = Color(unchecked: [0])
+    static let clear = Color(0, 0)
+    static let white = Color(1)
+    static let black = Color(0)
+
+    init(_ rgb: Double, _ a: Double = 1) {
+        r = rgb
+        g = rgb
+        b = rgb
+        self.a = a
+    }
 
     init(unchecked components: [Double]) {
         var a = 1.0
