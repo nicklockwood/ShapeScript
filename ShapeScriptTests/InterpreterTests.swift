@@ -6,6 +6,7 @@
 //  Copyright © 2018 Nick Lockwood. All rights reserved.
 //
 
+@testable import Euclid
 @testable import ShapeScript
 import XCTest
 
@@ -366,6 +367,11 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Block invocation
 
+    func testInvokePrimitive() {
+        let program = "cube { size 2 }"
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     func testInvokePrimitiveWithoutBlock() {
         let program = "cube"
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
@@ -399,15 +405,85 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeBlockInExpressionWithoutParens() {
-        let program = "print 1 + text 2"
+    func testInvokeExtrudeWithSingleArgument() throws {
+        let program = "extrude square"
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], along: []))
+    }
+
+    func testInvokeExtrudeWithSingleArgumentInParens() throws {
+        let program = "extrude(square)"
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], along: []))
+    }
+
+    func testInvokeExtrudeWithMultipleArguments() throws {
+        let program = "extrude square circle"
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.children.map { $0.type }, [
+            .extrude([.square()], along: []),
+            .extrude([.circle()], along: []),
+        ])
+    }
+
+    func testInvokeExtrudeWithSingleArgumentInsideExpression() throws {
+        let program = "extrude text \"foo\""
+        let scene = try evaluate(parse(program), delegate: nil)
+        #if canImport(CoreText)
+        XCTAssertEqual(
+            // Note: rendering optimization means letters get added as separate
+            // children, making it difficult to compare the entire text string
+            scene.children.first?.children.first?.type,
+            .extrude(Path.text("f"), along: [])
+        )
+        #endif
+    }
+
+    func testInvokeExtrudeWithSingleArgumentOfWrongType() {
+        let program = "extrude sphere"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "extrude",
+                index: 0,
+                expected: "block",
+                got: "mesh"
+            ))
+        }
+    }
+
+    func testInvokeXorWithMultipleArguments() throws {
+        let program = "xor cube sphere"
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.type, .xor)
+        XCTAssertEqual(scene.children.first?.children.map { $0.type }, [
+            .cube, .sphere(segments: 16),
+        ])
+    }
+
+    func testInvokeBlockInExpressionWithMultipleArgumentsWithoutParens() throws {
+        let program = "print xor cube sphere"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual((delegate.log.first as? Geometry)?.type, .xor)
+    }
+
+    func testInvokeBlockInExpressionWithMultipleArgumentsInParens() throws {
+        let program = "print (xor cube sphere)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual((delegate.log.first as? Geometry)?.type, .xor)
+    }
+
+    func testInvokeTextInExpressionWithoutParens() {
+        let program = "print 1 + text \"foo\""
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.type, .missingArgument(for: "text", index: 0, type: "block"))
         }
     }
 
-    func testInvokeBlockInExpressionWithParensButWrongArgumentType() {
+    func testInvokeTextInExpressionWithParensButWrongArgumentType() {
         let program = "print 1 + (text 2)"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -431,6 +507,90 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unused value")
             XCTAssertEqual(error, RuntimeError(.unusedValue(type: "mesh"), at: range))
+        }
+    }
+
+    func testExtrudeTextWithParens() throws {
+        let program = """
+        extrude {
+            (text "foo")
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testExtrudeTextWithoutParens() throws {
+        let program = """
+        extrude {
+            text "foo"
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testExtrudeAlongTextWithParens() throws {
+        let program = """
+        extrude {
+            square { size 0.01 }
+            along (text "foo")
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testExtrudeAlongTextWithoutParens() throws {
+        let program = """
+        extrude {
+            square { size 0.01 }
+            along text "foo"
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testExtrudeAlongMultiplePathsWithoutParens() {
+        let program = """
+        extrude {
+            square { size 0.01 }
+            along circle square
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testExtrudeAlongNumber() {
+        let program = """
+        extrude {
+            square { size 0.01 }
+            along 1
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "along",
+                index: 0,
+                expected: "path",
+                got: "number"
+            ))
+        }
+    }
+
+    func testExtrudeAlongPathAndNumber() {
+        let program = """
+        extrude {
+            square { size 0.01 }
+            along square 1
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "along",
+                index: 1,
+                expected: "path",
+                got: "number"
+            ))
         }
     }
 
@@ -574,9 +734,13 @@ class InterpreterTests: XCTestCase {
 
     func testInvokeFunctionInExpressionWithoutParens() {
         let program = "print 1 + sqrt 9"
+        let range = program.range(of: "sqrt")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .missingArgument(for: "sqrt", index: 0, type: "number"))
+            XCTAssertEqual(error, RuntimeError(
+                .missingArgument(for: "sqrt", index: 0, type: "number"),
+                at: range.upperBound ..< range.upperBound
+            ))
         }
     }
 

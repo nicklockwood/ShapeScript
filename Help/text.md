@@ -4,10 +4,16 @@ Text
 The `text` command can be used to generate individual words, lines, or whole paragraphs of text. You use the `text` command as follows:
 
 ```swift
-text { "Hello World" }
+text "Hello World"
 ```
 
-To create multiline text, place each line of text on its own line within the file, surrounded by quotes:
+To create multiline text you can use the "\n" line-break sequence:
+
+```swift
+text "The quick brown fox\njumps over the lazy dog"
+```
+
+Or place each line of text on its own line within the file, surrounded by quotes:
 
 ```swift
 text {
@@ -28,9 +34,7 @@ To adjust the text font, you can use the `font` command. like `color` and other 
 
 ```swift
 font "Zapfino"
-fill {
-    text { "Hello World" }
-}
+fill text "Hello World"
 ```
 
 ![Line](images/text-font.png)

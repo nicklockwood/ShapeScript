@@ -62,20 +62,18 @@ union {
         }
     }
     color red
-    extrude {
-        path {
-            point 1.95 0.5
-            point -0.1 0.5
-            point -0.1 0.2
-            point 0 0.2
-            point 0 0.4
-            point 1.92 0.4
-            point 2.05 0.34
-            point 2.05 0.2
-            point 2.15 0.2
-            point 2.15 0.4
-            point 1.95 0.5
-        }
+    extrude path {
+        point 1.95 0.5
+        point -0.1 0.5
+        point -0.1 0.2
+        point 0 0.2
+        point 0 0.4
+        point 1.92 0.4
+        point 2.05 0.34
+        point 2.05 0.2
+        point 2.15 0.2
+        point 2.15 0.4
+        point 1.95 0.5
     }
 }
 

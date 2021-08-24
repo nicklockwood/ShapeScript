@@ -164,16 +164,8 @@ extension Dictionary where Key == String, Value == Symbol {
             #endif
         },
         "text": .block(.text) { context in
-            #if canImport(CoreText)
             let text = context.children.map { $0.value as! String }.joined(separator: "\n")
-            let font = CTFontCreateWithName((context.font ?? "Helvetica") as CFString, 1, nil)
-            let attributes = [NSAttributedString.Key.font: font]
-            let attributedString = NSAttributedString(string: text, attributes: attributes)
-            return .paths(Path.text(attributedString, detail: context.detail / 8))
-            #else
-            // TODO: throw error when CoreText not available
-            return .paths([])
-            #endif
+            return .paths(Path.text(text, font: context.font, detail: context.detail / 8))
         },
     ]
 
@@ -321,6 +313,25 @@ extension Geometry {
             children: context.children.compactMap { $0.value as? Geometry },
             sourceLocation: context.sourceLocation
         )
+    }
+}
+
+extension Path {
+    /// Create an array of text paths with the specified font
+    static func text(
+        _ text: String,
+        font: String? = nil,
+        detail: Int = 2
+    ) -> [Path] {
+        #if canImport(CoreText)
+        let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
+        let attributes = [NSAttributedString.Key.font: font]
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        return self.text(attributedString, detail: detail)
+        #else
+        // TODO: throw error when CoreText not available
+        return []
+        #endif
     }
 }
 

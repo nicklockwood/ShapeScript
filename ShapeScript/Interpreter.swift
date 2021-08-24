@@ -509,6 +509,62 @@ extension Program {
     }
 }
 
+private func evaluateParameters(_ parameters: [Expression],
+                                for range: Range<String.Index>,
+                                in context: EvaluationContext) throws -> [Value]
+{
+    var values = [Value]()
+    loop: for (i, param) in parameters.enumerated() {
+        if i < parameters.count - 1, case let .identifier(identifier) = param.type {
+            let name = identifier.name
+            switch context.symbol(for: name) {
+            case let .command(parameterType, fn)? where parameterType != .void:
+                let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
+                let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
+                let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
+                try values.append(fn(arg, context))
+                break loop
+            case let .block(type, fn) where !type.childTypes.isEmpty:
+                var childValues = [Value]()
+                for parameter in parameters[(i + 1)...] {
+                    let child = try parameter.evaluate(in: context)
+                    // TODO: find better solution
+                    let children: [Value]
+                    if case let .tuple(values) = child {
+                        children = values
+                    } else {
+                        children = [child]
+                    }
+                    guard children.allSatisfy({ type.childTypes.contains($0.type) }) else {
+                        throw RuntimeError(
+                            .typeMismatch(
+                                for: identifier.name,
+                                index: 0,
+                                expected: "block",
+                                got: child.type.rawValue
+                            ),
+                            at: parameter.range
+                        )
+                    }
+                    childValues += children
+                }
+                do {
+                    let childContext = context.push(type)
+                    try childValues.forEach(childContext.addValue)
+                    try values.append(fn(childContext))
+                    break loop
+                } catch let error as RuntimeErrorType {
+                    throw RuntimeError(error, at: range)
+                }
+            default:
+                break
+            }
+        }
+        try values.append(param.evaluate(in: context))
+    }
+    return values
+}
+
 // TODO: find a better way to encapsulate this
 private func evaluateParameter(_ parameter: Expression?,
                                as type: ValueType,
@@ -529,29 +585,7 @@ private func evaluateParameter(_ parameter: Expression?,
     if case let .tuple(expressions) = parameter.type {
         parameters = expressions
     }
-    var values = [Value]()
-    for (i, param) in parameters.enumerated() {
-        if case let .identifier(identifier) = param.type {
-            let name = identifier.name
-            if case let .command(parameterType, fn)? = context.symbol(for: name), parameterType != .void {
-                guard i < parameters.count - 1 else {
-                    throw RuntimeError(
-                        .missingArgument(for: name, index: 0, type: parameterType.rawValue),
-                        at: param.range.upperBound ..< param.range.upperBound
-                    )
-                }
-                var range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
-                let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
-                let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
-                try values.append(fn(arg, context))
-                // collapse params
-                range = parameters[i].range.lowerBound ..< parameters.last!.range.upperBound
-                parameters[i...] = [Expression(type: .tuple(Array(parameters[i...])), range: range)]
-                break
-            }
-        }
-        try values.append(param.evaluate(in: context))
-    }
+    let values = try evaluateParameters(parameters, for: range, in: context)
     func numerify(max: Int, min: Int) throws -> [Double] {
         var values = values
         if parameters.count > max {
@@ -617,7 +651,7 @@ private func evaluateParameter(_ parameter: Expression?,
         }
         return .void
     }
-    if parameters.count == 1, values[0].type == type {
+    if values.count == 1, values[0].type == type {
         return values[0]
     }
     switch type {
@@ -633,7 +667,7 @@ private func evaluateParameter(_ parameter: Expression?,
     case .pair:
         let numbers = try numerify(max: 2, min: 2)
         return .pair(numbers[0], numbers[1])
-    case .tuple where values[0].type != .tuple:
+    case .tuple:
         return .tuple(values)
     case .texture where values.count == 1 && values[0].type == .string:
         let name = values[0].value as? String
@@ -653,31 +687,41 @@ private func evaluateParameter(_ parameter: Expression?,
             type = .color
         }
         return try evaluateParameter(parameter, as: type, for: identifier, in: context)
-    case .number, .string, .texture, .path, .paths, .mesh, .point, .tuple:
-        if parameters.count > 1 {
+    case .paths:
+        return try .paths(values.enumerated().flatMap { i, value -> [Path] in
+            switch value {
+            case let .path(path):
+                return [path]
+            case let .paths(paths):
+                return paths
+            default:
+                throw RuntimeError(
+                    .typeMismatch(
+                        for: name,
+                        index: i,
+                        expected: ValueType.path.rawValue,
+                        got: value.type.rawValue
+                    ),
+                    at: parameters[i].range
+                )
+            }
+        })
+    case .number, .string, .texture, .path, .mesh, .point:
+        if values.count > 1, parameters.count > 1 {
             throw RuntimeError(
                 .unexpectedArgument(for: name, max: 1),
                 at: parameters[1].range
             )
         }
-        let value = values[0]
-        if value.type != type {
-            switch (value, type) {
-            case (.path, .paths):
-                return Value.paths([value.value as! Path])
-            default:
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: name,
-                        index: 0,
-                        expected: type.rawValue,
-                        got: value.type.rawValue
-                    ),
-                    at: parameters[0].range
-                )
-            }
-        }
-        return value
+        throw RuntimeError(
+            .typeMismatch(
+                for: name,
+                index: 0,
+                expected: type.rawValue,
+                got: values[0].type.rawValue
+            ),
+            at: parameters[0].range
+        )
     case .void:
         throw RuntimeError(
             .unexpectedArgument(for: name, max: 0),
@@ -784,9 +828,56 @@ extension Definition {
     }
 }
 
+extension EvaluationContext {
+    func addValue(_ value: Value) throws {
+        switch value {
+        case .void:
+            break
+        case _ where childTypes.contains(value.type):
+            switch value {
+            case let .mesh(m):
+                children.append(.mesh(m.transformed(by: childTransform)))
+            case let .vector(v):
+                children.append(.vector(v.transformed(by: childTransform)))
+            case let .point(v):
+                children.append(.point(v.transformed(by: childTransform)))
+            case let .path(path):
+                children.append(.path(path.transformed(by: childTransform)))
+            case let .paths(paths):
+                for path in paths {
+                    children.append(.path(path.transformed(by: childTransform)))
+                }
+            default:
+                children.append(value)
+            }
+        case let .path(path) where childTypes.contains(.mesh):
+            children.append(.mesh(Geometry(
+                type: .path(path),
+                name: name,
+                transform: childTransform,
+                material: .default, // not used for paths
+                children: [],
+                sourceLocation: sourceLocation
+            )))
+        case let .paths(paths) where childTypes.contains(.mesh):
+            for path in paths {
+                children.append(.mesh(Geometry(
+                    type: .path(path),
+                    name: name,
+                    transform: childTransform,
+                    material: .default, // not used for paths
+                    children: [],
+                    sourceLocation: sourceLocation
+                )))
+            }
+        default:
+            throw RuntimeErrorType.unusedValue(type: value.type.rawValue)
+        }
+    }
+}
+
 extension Statement {
     func evaluate(in context: EvaluationContext) throws {
-        let value: Value
         switch type {
         case let .command(identifier, parameter):
             let (name, range) = (identifier.name, identifier.range)
@@ -803,7 +894,7 @@ extension Statement {
                                                      for: identifier,
                                                      in: context)
                 do {
-                    value = try fn(argument, context)
+                    try context.addValue(fn(argument, context))
                 } catch let error as RuntimeErrorType {
                     throw RuntimeError(error, at: range)
                 }
@@ -814,44 +905,78 @@ extension Statement {
                                                      in: context)
                 do {
                     try setter(argument, context)
-                    value = .void
+                    try context.addValue(.void)
                 } catch let error as RuntimeErrorType {
                     throw RuntimeError(error, at: range)
                 }
             case let .block(type, fn):
                 context.sourceIndex = range.lowerBound
                 if let parameter = parameter {
-                    // TODO: is this the right way to handle range?
-                    let type = try parameter.evaluate(in: context).type
-                    throw RuntimeError(
-                        .typeMismatch(for: name, index: 0, expected: "block", got: type.rawValue),
-                        at: parameter.range
-                    )
+                    let child = try parameter.evaluate(in: context)
+                    // TODO: find better solution
+                    let children: [Value]
+                    if case let .tuple(values) = child {
+                        children = values
+                    } else {
+                        children = [child]
+                    }
+                    guard children.allSatisfy({ type.childTypes.contains($0.type) }) else {
+                        // TODO: return valid child types instead of just "block"
+                        throw RuntimeError(
+                            .typeMismatch(
+                                for: name,
+                                index: 0,
+                                expected: "block",
+                                got: child.type.rawValue
+                            ),
+                            at: parameter.range
+                        )
+                    }
+                    do {
+                        let childContext = context.push(type)
+                        try children.forEach(childContext.addValue)
+                        let value = try fn(childContext)
+                        try context.addValue(value)
+                    } catch let error as RuntimeErrorType {
+                        throw RuntimeError(error, at: range)
+                    }
                 } else if !type.childTypes.isEmpty {
                     throw RuntimeError(
                         .missingArgument(for: name, index: 0, type: "block"),
                         at: range
                     )
+                } else {
+                    do {
+                        try context.addValue(fn(context.push(type)))
+                    } catch let error as RuntimeErrorType {
+                        throw RuntimeError(error, at: range)
+                    }
                 }
+            case let .constant(v):
                 do {
-                    value = try fn(context.push(type))
+                    try context.addValue(v)
                 } catch let error as RuntimeErrorType {
                     throw RuntimeError(error, at: range)
                 }
-            case let .constant(v):
-                value = v
             }
         case let .node(identifier, block):
             // TODO: better solution
             // This only works correctly if node was not imported from another file
             context.sourceIndex = range.lowerBound
-            let p = Expression(type: .node(identifier, block), range: range)
-            value = try p.evaluate(in: context)
+            let expression = Expression(type: .node(identifier, block), range: range)
+            do {
+                try context.addValue(expression.evaluate(in: context))
+            } catch let error as RuntimeErrorType {
+                throw RuntimeError(error, at: range)
+            }
         case let .expression(expression):
-            value = try expression.evaluate(in: context)
+            do {
+                try context.addValue(expression.evaluate(in: context))
+            } catch let error as RuntimeErrorType {
+                throw RuntimeError(error, at: range)
+            }
         case let .define(identifier, definition):
             context.define(identifier.name, as: try definition.evaluate(in: context))
-            return
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(index, start, end, block):
@@ -892,7 +1017,6 @@ extension Statement {
                     }
                 }
             }
-            return
         case let .import(expression):
             let pathValue = try expression.evaluate(in: context)
             guard let path = pathValue.value as? String else {
@@ -908,53 +1032,9 @@ extension Statement {
             do {
                 context.sourceIndex = expression.range.lowerBound
                 try context.importModel(at: path)
-                return
             } catch let error as RuntimeErrorType {
                 throw RuntimeError(error, at: expression.range)
             }
-        }
-        switch value {
-        case .void:
-            break
-        case _ where context.childTypes.contains(value.type):
-            switch value {
-            case let .mesh(m):
-                context.children.append(.mesh(m.transformed(by: context.childTransform)))
-            case let .vector(v):
-                context.children.append(.vector(v.transformed(by: context.childTransform)))
-            case let .point(v):
-                context.children.append(.point(v.transformed(by: context.childTransform)))
-            case let .path(path):
-                context.children.append(.path(path.transformed(by: context.childTransform)))
-            case let .paths(paths):
-                for path in paths {
-                    context.children.append(.path(path.transformed(by: context.childTransform)))
-                }
-            default:
-                context.children.append(value)
-            }
-        case let .path(path) where context.childTypes.contains(.mesh):
-            context.children.append(.mesh(Geometry(
-                type: .path(path),
-                name: context.name,
-                transform: context.childTransform,
-                material: .default, // not used for paths
-                children: [],
-                sourceLocation: context.sourceLocation
-            )))
-        case let .paths(paths) where context.childTypes.contains(.mesh):
-            for path in paths {
-                context.children.append(.mesh(Geometry(
-                    type: .path(path),
-                    name: context.name,
-                    transform: context.childTransform,
-                    material: .default, // not used for paths
-                    children: [],
-                    sourceLocation: context.sourceLocation
-                )))
-            }
-        default:
-            throw RuntimeError(.unusedValue(type: value.type.rawValue), at: range)
         }
     }
 }
@@ -968,40 +1048,47 @@ extension Expression {
             return .string(string)
         case let .identifier(identifier):
             let (name, range) = (identifier.name, identifier.range)
-            do {
-                guard let symbol = context.symbol(for: name) else {
-                    throw RuntimeErrorType.unknownSymbol(name, options: context.expressionSymbols)
+            guard let symbol = context.symbol(for: name) else {
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.expressionSymbols),
+                    at: range
+                )
+            }
+            switch symbol {
+            case let .command(parameterType, fn):
+                guard parameterType == .void else {
+                    // Commands with parameters can't be used in expressions without parens
+                    // TODO: allow this if child matches next argument
+                    throw RuntimeError(.missingArgument(
+                        for: name,
+                        index: 0,
+                        type: parameterType.rawValue
+                    ), at: range.upperBound ..< range.upperBound)
                 }
-                switch symbol {
-                case let .command(parameterType, fn):
-                    guard parameterType == .void else {
-                        // commands can't be used as expressions
-                        // TODO: make this possible
-                        throw RuntimeErrorType.missingArgument(
-                            for: name,
-                            index: 0,
-                            type: parameterType.rawValue
-                        )
-                    }
+                do {
                     return try fn(.void, context)
-                case let .property(_, _, getter):
-                    return try getter(context)
-                case let .block(type, fn):
-                    guard type.childTypes.isEmpty else {
-                        // blocks that require children can't be used as expressions
-                        // TODO: allow this if child matches next argument
-                        throw RuntimeErrorType.missingArgument(
-                            for: name,
-                            index: 0,
-                            type: "block"
-                        )
-                    }
-                    return try fn(context.push(type))
-                case let .constant(value):
-                    return value
+                } catch let error as RuntimeErrorType {
+                    throw RuntimeError(error, at: range)
                 }
-            } catch let error as RuntimeErrorType {
-                throw RuntimeError(error, at: range)
+            case let .property(_, _, getter):
+                return try getter(context)
+            case let .block(type, fn):
+                guard type.childTypes.isEmpty else {
+                    // Blocks that require children can't be used in expressions without parens
+                    // TODO: allow this if child matches next argument
+                    throw RuntimeError(.missingArgument(
+                        for: name,
+                        index: 0,
+                        type: "block"
+                    ), at: range.upperBound ..< range.upperBound)
+                }
+                do {
+                    return try fn(context.push(type))
+                } catch let error as RuntimeErrorType {
+                    throw RuntimeError(error, at: range)
+                }
+            case let .constant(value):
+                return value
             }
         case let .node(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
@@ -1052,35 +1139,7 @@ extension Expression {
                 )
             }
         case let .tuple(expressions):
-            var values = [Value]()
-            loop: for (i, param) in expressions.enumerated() {
-                if i < expressions.count - 1, case let .identifier(identifier) = param.type {
-                    switch context.symbol(for: identifier.name) {
-                    case let .command(parameterType, fn)? where parameterType != .void:
-                        let range = expressions[i + 1].range.lowerBound ..< expressions.last!.range.upperBound
-                        let param = Expression(type: .tuple(Array(expressions[(i + 1)...])), range: range)
-                        let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
-                        try values.append(fn(arg, context))
-                        break loop
-                    case let .block(type, _) where !type.childTypes.isEmpty:
-                        let param = expressions[i + 1]
-                        let value = try param.evaluate(in: context)
-                        // TODO: allow this if child matches next argument
-                        throw RuntimeError(
-                            .typeMismatch(
-                                for: identifier.name,
-                                index: 0,
-                                expected: "block",
-                                got: value.type.rawValue
-                            ),
-                            at: param.range
-                        )
-                    default:
-                        break
-                    }
-                }
-                try values.append(param.evaluate(in: context))
-            }
+            let values = try evaluateParameters(expressions, for: range, in: context)
             return values.count == 1 ? values[0] : .tuple(values)
         case let .prefix(op, expression):
             let value = try expression.evaluate(in: context)

@@ -10,13 +10,11 @@ In the [paths](paths.md) section we looked at how to define custom shapes using 
 The most basic shape builder is the `fill` command, which creates a filled polygon from a path. Using the pentagon path we defined earlier, we can use `fill` to create a solid pentagon:
 
 ```
-fill {
-    path {
-        for 0 to 5 {
-            point 0 1
-            rotate 2 / 5
-        }   
-    }
+fill path {
+    for 0 to 5 {
+        point 0 1
+        rotate 2 / 5
+    }   
 }
 ```
 
@@ -24,7 +22,16 @@ fill {
 
 Unlike a path, a filled shape can have a color and texture, but it has zero thickness.
 
-If a path contains multiple overlapping sub-paths, they will be filled using the [even-odd rule](https://en.wikipedia.org/wiki/Even–odd_rule). For example, the [overlapping circles](paths.md#nested-paths) example would be filled like this:
+If a path contains multiple overlapping sub-paths, they will be filled using the [even-odd rule](https://en.wikipedia.org/wiki/Even–odd_rule). For example, the [overlapping circles](paths.md#nested-paths) path would be filled like this:
+
+```swift
+fill path {
+    circle
+    translate 0.5
+    scale 0.5
+    circle
+}
+```
 
 ![Even-odd Fill](images/even-odd-fill.png)
 
@@ -49,20 +56,18 @@ path {
 
 ![Pawn outline](images/pawn-profile.png)
 
-When nested inside a `lathe` command, the path creates a solid 3D model:
+When passed to the `lathe` command, the path creates a solid 3D model:
 
 ```swift
-lathe {
-    path {
-        curve 0 0.78
-        curve -0.15 0.7
-        curve -0.15 0.5
-        point -0.07 0.45
-        curve -0.12 0.2
-        point -0.25 0.1
-        point -0.25 0
-        point 0 0
-    }
+lathe path {
+    curve 0 0.78
+    curve -0.15 0.7
+    curve -0.15 0.5
+    point -0.07 0.45
+    curve -0.12 0.2
+    point -0.25 0.1
+    point -0.25 0
+    point 0 0
 }
 ```
 
