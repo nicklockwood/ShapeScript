@@ -10,13 +10,16 @@
 @testable import ShapeScript
 import XCTest
 
+private let testsDirectory = URL(fileURLWithPath: #file)
+    .deletingLastPathComponent()
+
 private class TestDelegate: EvaluationDelegate {
     func importGeometry(for _: URL) throws -> Geometry? {
         preconditionFailure()
     }
 
-    func resolveURL(for _: String) -> URL {
-        preconditionFailure()
+    func resolveURL(for name: String) -> URL {
+        testsDirectory.appendingPathComponent(name)
     }
 
     var log = [AnyHashable?]()
@@ -347,21 +350,267 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    // MARK: Colors
+    // MARK: Color
 
-    func testColorTupleError() throws {
+    func testSetColorWithParens() throws {
+        let program = """
+        color (1 0 0)
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testColorWithoutParens() throws {
+        let program = """
+        color 1 0 0
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetColorWithConstant() throws {
+        let program = """
+        define red 1 0 0
+        color red
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetColorWithTooManyElements() throws {
+        let program = """
+        color 1 0 0 0.5 0.9
+        print color
+        """
+        let range = program.range(of: "0.9")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "color", max: 4), at: range
+            ))
+        }
+    }
+
+    func testSetColorWithConstantWithTooManyElements() throws {
+        let program = """
+        define foo 1 0 0 0.5 0.9
+        color foo
+        print color
+        """
+        let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "color", max: 4), at: range
+            ))
+        }
+    }
+
+    func testSetColorWithTuple() throws {
+        let program = """
+        color (1 0 0) 0.5
+        print color
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "color",
+                index: 0,
+                expected: "color",
+                got: "color, number"
+            ))
+        }
+    }
+
+    func testSetColorWithTupleConstant() throws {
         let program = """
         define foo 1 0 0
         color foo 0.5
         print color
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            XCTAssertEqual((error as? RuntimeError)?.type, .typeMismatch(
+            let error = try? XCTUnwrap(error as? RuntimeError)
+
+            XCTAssertEqual(error?.type, .typeMismatch(
                 for: "color",
                 index: 0,
                 expected: "color",
                 got: "color, number"
             ))
+        }
+    }
+
+    // MARK: Texture
+
+    func testSetTextureWithStringLiteral() throws {
+        let program = """
+        texture \"Stars.jpg\"
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+        )])
+    }
+
+    func testSetTextureWithStringConstant() throws {
+        let program = """
+        define image \"Stars.jpg\"
+        texture image
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+        )])
+    }
+
+    func testSetTextureWithNonExistentImage() throws {
+        let program = """
+        texture \"Nope.jpg\"
+        print texture
+        """
+        let range = program.range(of: "\"Nope.jpg\"")!
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.fileNotFound(
+                for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
+            ), at: range))
+        }
+    }
+
+    func testSetTextureWithTuple() throws {
+        let program = """
+        texture \"Stars.jpg\" 1
+        print texture
+        """
+        let range = program.range(of: "1")!
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "texture", max: 1), at: range
+            ))
+        }
+    }
+
+    // MARK: Background
+
+    func testSetBackgroundColorWithParens() throws {
+        let program = """
+        background (1 0 0)
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetBackgroundColorWithoutParens() throws {
+        let program = """
+        background 1 0 0
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetBackgroundColorWithConstant() throws {
+        let program = """
+        define bg 1 0 0
+        background bg
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetBackgroundColorWithColorConstant() throws {
+        let program = """
+        color 1 0 0
+        background color
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+    }
+
+    func testSetBackgroundColorWithTooManyElements() throws {
+        let program = """
+        background 1 0 0 0.5 0.9
+        print background
+        """
+        let range = program.range(of: "0.9")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "background", max: 4), at: range
+            ))
+        }
+    }
+
+    func testSetBackgroundTextureWithStringLiteral() throws {
+        let program = """
+        background \"Stars.jpg\"
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+        )])
+    }
+
+    func testSetBackgroundTextureWithStringConstant() throws {
+        let program = """
+        define image \"Stars.jpg\"
+        background image
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+        )])
+    }
+
+    func testSetBackgroundTextureWithTextureConstant() throws {
+        let program = """
+        texture \"Stars.jpg\"
+        background texture
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+        )])
+    }
+
+    func testSetBackgroundTextureWithNonExistentImage() throws {
+        let program = """
+        background \"Nope.jpg\"
+        print background
+        """
+        let range = program.range(of: "\"Nope.jpg\"")!
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.fileNotFound(
+                for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
+            ), at: range))
         }
     }
 

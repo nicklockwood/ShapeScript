@@ -1064,8 +1064,7 @@ extension Expression {
             return try RuntimeError.wrap(.texture(name.map {
                 .file(name: $0, url: try context.resolveURL(for: $0))
             }), at: parameters[0].range)
-        case .colorOrTexture where values.count == 1:
-            // TODO: find better solution
+        case .colorOrTexture:
             switch values[0] {
             case .string, .texture:
                 return try evaluate(as: .texture, for: name, in: context)
@@ -1102,7 +1101,7 @@ extension Expression {
                     )
                 }
             })
-        case .number, .string, .texture, .colorOrTexture, .path, .mesh, .point:
+        case .number, .string, .texture, .path, .mesh, .point:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),
