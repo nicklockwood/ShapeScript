@@ -1002,6 +1002,12 @@ extension Expression {
             if values.count > 1, values[0].type == type ||
                 ((values[0].value as? [Any])?.allSatisfy { $0 is Double } == true)
             {
+                if parameters.count > 1 {
+                    throw RuntimeError(
+                        .unexpectedArgument(for: name, max: 1),
+                        at: parameters[1].range
+                    )
+                }
                 let types = [type.rawValue] + values.dropFirst().map { $0.type.rawValue }
                 throw RuntimeError(.typeMismatch(
                     for: name,

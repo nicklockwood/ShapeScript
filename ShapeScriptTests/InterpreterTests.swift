@@ -321,14 +321,14 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testPositionError() throws {
+    func testSetPositionWithTupleConstant() throws {
         let program = """
-        define pos 1 0 0
+        define foo (1 0 0) 0
         cube {
-            position pos 0
+            position foo
         }
         """
-        let range = program.range(of: "pos 0")!
+        let range = program.range(of: "foo", range: program.range(of: "position foo")!)!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
@@ -337,6 +337,22 @@ class InterpreterTests: XCTestCase {
                 expected: "vector",
                 got: "vector, number"
             ), at: range))
+        }
+    }
+
+    func testSetPositionWithTupleOfConstantAndLiteral() throws {
+        let program = """
+        define pos 1 0 0
+        cube {
+            position pos 7
+        }
+        """
+        let range = program.range(of: "7")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "position", max: 1), at: range
+            ))
         }
     }
 
@@ -407,7 +423,22 @@ class InterpreterTests: XCTestCase {
         color (1 0 0) 0.5
         print color
         """
-        let range = program.range(of: "(1 0 0) 0.5")!
+        let range = program.range(of: "0.5")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "color", max: 1), at: range
+            ))
+        }
+    }
+
+    func testSetColorWithTupleConstant() throws {
+        let program = """
+        define foo (1 0 0) 0.5
+        color foo
+        print color
+        """
+        let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
@@ -419,21 +450,18 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testSetColorWithTupleConstant() throws {
+    func testSetColorWithTupleOfConstantAndLiteral() throws {
         let program = """
         define foo 1 0 0
         color foo 0.5
         print color
         """
-        let range = program.range(of: "foo 0.5")!
+        let range = program.range(of: "0.5")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "color",
-                index: 0,
-                expected: "color",
-                got: "color, number"
-            ), at: range))
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "color", max: 1), at: range
+            ))
         }
     }
 
