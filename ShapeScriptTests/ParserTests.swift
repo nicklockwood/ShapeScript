@@ -121,10 +121,11 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.type, .unexpectedToken(
+            XCTAssertEqual(error?.hint, "Expected starting index.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
                 expected: "starting index"
-            ))
+            )))
         }
     }
 
@@ -134,10 +135,11 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected identifier 'in'")
-            XCTAssertEqual(error?.type, .unexpectedToken(
+            XCTAssertEqual(error?.hint, "Expected 'to'.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .identifier("in"), range: inRange),
                 expected: "'to'"
-            ))
+            )))
         }
     }
 
@@ -147,10 +149,11 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.type, .unexpectedToken(
+            XCTAssertEqual(error?.hint, "Expected starting index.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
                 expected: "starting index"
-            ))
+            )))
         }
     }
 
@@ -160,10 +163,11 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.type, .unexpectedToken(
+            XCTAssertEqual(error?.hint, "Expected 'to'.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
                 expected: "'to'"
-            ))
+            )))
         }
     }
 }
