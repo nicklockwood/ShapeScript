@@ -148,13 +148,43 @@ class SceneViewController: NSViewController {
         }
     }
 
+    func snapshot() -> NSImage {
+        // Hide background
+        let background = scnScene.background.contents
+        scnScene.background.contents = nil
+        // Hide selection
+        let selection = selectedGeometry
+        selectGeometry(nil)
+        // Capture foreground
+        let foregroundImage = scnView.snapshot()
+        // Restore background
+        scnScene.background.contents = background
+        // Hide geometry
+        let children = scnScene.rootNode.childNodes
+        scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
+        // Capture background
+        let backgroundImage = scnView.snapshot()
+        // Restore geometry
+        children.forEach { scnScene.rootNode.addChildNode($0) }
+        // Restore selection
+        selectGeometry(selection?.scnGeometry)
+        // Combine images
+        let size = foregroundImage.size
+        let new = NSImage(size: size)
+        new.lockFocus()
+        backgroundImage.draw(in: NSRect(origin: .zero, size: size))
+        foregroundImage.draw(in: NSRect(origin: .zero, size: size))
+        new.unlockFocus()
+        return new
+    }
+
     private func refreshView() {
         scnView.rendersContinuously = true
         scnView.rendersContinuously = false
     }
 
     private(set) weak var selectedGeometry: Geometry?
-    private func selectGeometry(_ scnGeometry: SCNGeometry?) {
+    func selectGeometry(_ scnGeometry: SCNGeometry?) {
         selectedGeometry = geometry?.select(with: scnGeometry)
     }
 
