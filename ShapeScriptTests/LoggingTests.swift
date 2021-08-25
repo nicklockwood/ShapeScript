@@ -65,10 +65,28 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "4")
     }
 
+    func testLogLargeDoubleAsInt() {
+        let input = 4000000000.0
+        XCTAssertEqual(input.logDescription, "4000000000")
+        XCTAssertEqual(input.nestedLogDescription, "4000000000")
+    }
+
     func testLogNegativeDoubleAsInt() {
         let input = -4.0
         XCTAssertEqual(input.logDescription, "-4")
         XCTAssertEqual(input.nestedLogDescription, "-4")
+    }
+
+    func testLogVeryLargeDouble() {
+        let input = 1.01e20
+        XCTAssertEqual(input.logDescription, "101000000000000000000")
+        XCTAssertEqual(input.nestedLogDescription, "101000000000000000000")
+    }
+
+    func testLogSmallDouble() {
+        let input = 0.0001
+        XCTAssertEqual(input.logDescription, "0.0001")
+        XCTAssertEqual(input.nestedLogDescription, "0.0001")
     }
 
     func testLogVerySmallDouble() {
@@ -77,10 +95,58 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "0")
     }
 
+    func testLogVerySmallNegativeDouble() {
+        let input = -0.00001
+        XCTAssertEqual(input.logDescription, "0")
+        XCTAssertEqual(input.nestedLogDescription, "0")
+    }
+
+    func testLogVeryVerySmallDouble() {
+        let input = 0.000000001
+        XCTAssertEqual(input.logDescription, "0")
+        XCTAssertEqual(input.nestedLogDescription, "0")
+    }
+
+    func testLogVeryVerySmallNegativeDouble() {
+        let input = -0.000000001
+        XCTAssertEqual(input.logDescription, "0")
+        XCTAssertEqual(input.nestedLogDescription, "0")
+    }
+
     func testLogVeryPreciseDouble() {
         let input = 0.10001
         XCTAssertEqual(input.logDescription, "0.1")
         XCTAssertEqual(input.nestedLogDescription, "0.1")
+    }
+
+    func testLogLargeVeryPreciseDouble() {
+        let input = 4000.12001
+        XCTAssertEqual(input.logDescription, "4000.12")
+        XCTAssertEqual(input.nestedLogDescription, "4000.12")
+    }
+
+    func testLogInfinity() {
+        let input = Double.infinity
+        XCTAssertEqual(input.logDescription, "∞")
+        XCTAssertEqual(input.nestedLogDescription, "∞")
+    }
+
+    func testLogNegativeInfinity() {
+        let input = -Double.infinity
+        XCTAssertEqual(input.logDescription, "-∞")
+        XCTAssertEqual(input.nestedLogDescription, "-∞")
+    }
+
+    func testNegativeZero() {
+        let input = -0.0
+        XCTAssertEqual(input.logDescription, "0")
+        XCTAssertEqual(input.nestedLogDescription, "0")
+    }
+
+    func testLogNaN() {
+        let input = Double.nan
+        XCTAssertEqual(input.logDescription, "NaN")
+        XCTAssertEqual(input.nestedLogDescription, "NaN")
     }
 
     // MARK: Vectors

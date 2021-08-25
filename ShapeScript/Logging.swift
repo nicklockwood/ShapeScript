@@ -37,9 +37,21 @@ extension String: Loggable {
 }
 
 extension Double: Loggable {
+    private static let formatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 4
+        formatter.usesGroupingSeparator = false
+        formatter.positiveInfinitySymbol = "∞"
+        formatter.negativeInfinitySymbol = "-∞"
+        formatter.notANumberSymbol = "NaN"
+        return formatter
+    }()
+
     public var logDescription: String {
-        abs(self) < 0.0001 ? "0" : floor(self) == self ?
-            "\(Int(self))" : String(format: "%.4g", self)
+        let result = Self.formatter.string(from: self as NSNumber) ?? "NaN"
+        return result == "-0" ? "0" : result
     }
 
     public var nestedLogDescription: String {
