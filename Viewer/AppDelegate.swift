@@ -27,6 +27,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
     private var exampleURLs = [String: URL]()
 
     @IBOutlet private var examplesMenu: NSMenu!
+    @IBOutlet private var showWireframeMenuItem: NSMenuItem!
+    @IBOutlet private var showAxesMenuItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_: Notification) {
         let firstLaunchOfNewVersion = (Settings.shared.appVersion != NSApplication.appVersion)
@@ -44,6 +46,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
         }
+        showWireframe = Settings.shared.showWireframe
+        showWireframeMenuItem.isHidden = useOpenGL
+        showAxes = Settings.shared.showAxes
     }
 
     @IBAction func showHelp(_: Any) {
@@ -123,19 +128,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
 
     public var showWireframe = false {
         didSet {
+            Settings.shared.showWireframe = showWireframe
+            showWireframeMenuItem.state = showWireframe ? .on : .off
             for case let document as Document in NSApp.orderedDocuments {
                 document.updateViews()
             }
         }
     }
 
-    @IBAction func showWireframe(_ sender: NSMenuItem) {
+    @IBAction func showWireframe(_: NSMenuItem) {
         showWireframe = !showWireframe
-        sender.state = showWireframe ? .on : .off
     }
 
     public var showAxes = true {
         didSet {
+            Settings.shared.showAxes = showAxes
+            showAxesMenuItem.state = showAxes ? .on : .off
             for case let document as Document in NSApp.orderedDocuments {
                 document.updateViews()
             }

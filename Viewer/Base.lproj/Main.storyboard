@@ -174,7 +174,7 @@
                                                 <action selector="showWireframe:" target="Ady-hI-5gd" id="9uo-km-aSA"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Show Axes" state="on" id="7QN-OP-8q0">
+                                        <menuItem title="Show Axes" id="7QN-OP-8q0">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="showAxes:" target="Ady-hI-5gd" id="iKT-GP-LR6"/>
@@ -255,13 +255,17 @@
                         <outlet property="delegate" destination="Voe-Tx-rLC" id="PrD-fu-P6m"/>
                     </connections>
                 </application>
+                <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
+                <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
                 <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="Viewer" customModuleProvider="target">
                     <connections>
                         <outlet property="examplesMenu" destination="eqm-NN-0UU" id="vKr-oe-dGh"/>
+                        <outlet property="showAxesMenu" destination="HyV-fh-RgO" id="sLA-mw-2fQ"/>
+                        <outlet property="showAxesMenuItem" destination="7QN-OP-8q0" id="UTo-Dx-gOd"/>
+                        <outlet property="showWireframeMenu" destination="HyV-fh-RgO" id="h4D-wq-MLm"/>
+                        <outlet property="showWireframeMenuItem" destination="tqR-9n-dMx" id="NCA-zQ-nXU"/>
                     </connections>
                 </customObject>
-                <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
-                <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="75" y="0.0"/>
         </scene>

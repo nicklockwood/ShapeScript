@@ -31,7 +31,7 @@ struct EditorApp: Comparable {
 final class Settings {
     static let shared = Settings()
 
-    private(set) lazy var defaults = UserDefaults.standard
+    private var defaults = UserDefaults.standard
 
     // MARK: App version
 
@@ -162,4 +162,16 @@ final class Settings {
         "com.apple.iWork.Numbers",
         "com.charcoaldesign.ShapeScriptMac",
     ]
+
+    // MARK: View
+
+    var showWireframe: Bool {
+        get { defaults.object(forKey: #function) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: #function) }
+    }
+
+    var showAxes: Bool {
+        get { defaults.object(forKey: #function) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: #function) }
+    }
 }
