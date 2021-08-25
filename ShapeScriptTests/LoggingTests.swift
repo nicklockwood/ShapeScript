@@ -53,10 +53,22 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "4.5")
     }
 
+    func testLogNegativeDouble() {
+        let input = -4.5
+        XCTAssertEqual(input.logDescription, "-4.5")
+        XCTAssertEqual(input.nestedLogDescription, "-4.5")
+    }
+
     func testLogDoubleAsInt() {
         let input = 4.0
         XCTAssertEqual(input.logDescription, "4")
         XCTAssertEqual(input.nestedLogDescription, "4")
+    }
+
+    func testLogNegativeDoubleAsInt() {
+        let input = -4.0
+        XCTAssertEqual(input.logDescription, "-4")
+        XCTAssertEqual(input.nestedLogDescription, "-4")
     }
 
     func testLogVerySmallDouble() {

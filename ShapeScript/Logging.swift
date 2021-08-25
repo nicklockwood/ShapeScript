@@ -38,7 +38,7 @@ extension String: Loggable {
 
 extension Double: Loggable {
     public var logDescription: String {
-        self < 0.0001 ? "0" : floor(self) == self ?
+        abs(self) < 0.0001 ? "0" : floor(self) == self ?
             "\(Int(self))" : String(format: "%.4g", self)
     }
 
