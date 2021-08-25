@@ -1,3 +1,9 @@
+## [1.2.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.4) (2021-08-25)
+
+- Fixed a crash when logging large integer values
+- Fixed bug where negative numbers would be logged as zero when using the print command
+- Improved formatting of logged numeric values generally
+
 ## [1.2.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.3) (2021-08-24)
 
 - Enabled parenthesized expressions to span multiple lines

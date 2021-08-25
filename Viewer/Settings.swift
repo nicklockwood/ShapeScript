@@ -14,25 +14,6 @@ extension NSApplication {
     static let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
 }
 
-enum ExportCategory {
-    case image(NSBitmapImageRep.FileType)
-    case mesh
-    case scene
-
-    var imageType: NSBitmapImageRep.FileType? {
-        if case let .image(type) = self {
-            return type
-        }
-        return nil
-    }
-}
-
-struct ExportType {
-    var name: String
-    var fileExtensions: [String]
-    var category: ExportCategory
-}
-
 struct EditorApp: Comparable {
     var name: String
     var url: URL
