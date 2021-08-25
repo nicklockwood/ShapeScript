@@ -46,6 +46,16 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .color(context.material.color ?? .white)
         }),
+        "white": .constant(.color(.white)),
+        "black": .constant(.color(.black)),
+        "gray": .constant(.color(.gray)),
+        "red": .constant(.color(.red)),
+        "green": .constant(.color(.green)),
+        "blue": .constant(.color(.blue)),
+        "yellow": .constant(.color(.yellow)),
+        "cyan": .constant(.color(.cyan)),
+        "magenta": .constant(.color(.magenta)),
+        "orange": .constant(.color(.orange)),
     ]
 
     static let materials: Symbols = color + [

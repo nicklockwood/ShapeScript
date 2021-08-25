@@ -34,6 +34,33 @@ Number of parameters         | Meaning
 
 <br/>
 
+ShapeScript defines some built-in color constants for you to use:
+
+Name      | R   G   B   A
+:---------| :------------
+black     | 0   0   0   1
+white     | 1   1   1   1
+gray      | 0.5 0.5 0.5 1
+red       | 1   0   0   1
+green     | 0   1   0   1
+blue      | 0   0   1   1
+yellow    | 1   1   0   1
+cyan      | 0   1   1   1
+magenta   | 1   1   0   1
+orange    | 1   0.5 0   1
+
+<br/>
+
+You can override these built-in colors using the `define` command, or define your own:
+
+```swift
+color red // use built-in red color
+
+define red 1 0.3 0.1 // override the default red
+
+define lightGray 0.8 // define a new color
+```
+
 Instead of numeric values, you can use web-style hex color codes to specify colors instead. These consist of a hash character (#) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255, and can be output by many popular graphics tools. Here are some examples:
 
 ```swift

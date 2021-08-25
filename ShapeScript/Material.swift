@@ -23,6 +23,14 @@ public extension Color {
     static let clear = Color(0, 0)
     static let white = Color(1)
     static let black = Color(0)
+    static let gray = Color(0.5)
+    static let red = Color(1, 0, 0)
+    static let green = Color(0, 1, 0)
+    static let blue = Color(0, 0, 1)
+    static let yellow = Color(1, 1, 0)
+    static let cyan = Color(0, 1, 1)
+    static let magenta = Color(1, 0, 1)
+    static let orange = Color(1, 0.5, 0)
 
     init(_ rgb: Double, _ a: Double = 1) {
         r = rgb
