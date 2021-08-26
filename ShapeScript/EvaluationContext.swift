@@ -97,8 +97,14 @@ final class EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.childTypes = type.childTypes
         new.symbols = type.symbols
-        for name in type.symbols.keys {
-            new.userSymbols[name] = nil
+        for (name, symbol) in type.symbols {
+            switch symbol {
+            case .property, .command:
+                // TODO: treat redefining these as an error anyway?
+                new.userSymbols[name] = nil
+            case .block, .constant:
+                break // don't override user definitions
+            }
         }
         return new
     }

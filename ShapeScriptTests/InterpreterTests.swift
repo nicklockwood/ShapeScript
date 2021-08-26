@@ -207,6 +207,48 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Built-in symbol scope
+
+    func testOverrideColorInRootScope() {
+        let program = """
+        print black
+        define black white
+        print black
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.black, Color.white])
+    }
+
+    func testReferenceOverriddenColorInBlockScope() {
+        let program = """
+        print black
+        define black white
+        define foo {
+            print black
+        }
+        foo
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.black, Color.white])
+    }
+
+    func testeOverrideColorInBlockScope() {
+        let program = """
+        define black white
+        define foo {
+            define black red
+            print black
+        }
+        foo
+        print black
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red, Color.white])
+    }
+
     // MARK: Option scope
 
     func testOptionValidInDefine() {
