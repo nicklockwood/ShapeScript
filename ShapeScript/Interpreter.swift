@@ -407,7 +407,8 @@ enum Value {
     }
 
     var doubleValue: Double {
-        value as! Double
+        assert(value is Double)
+        return value as? Double ?? 0
     }
 
     var intValue: Int {
@@ -476,14 +477,15 @@ enum Value {
             default: return nil
             }
         case let .tuple(values):
-            let values = values.map { $0.doubleValue }
+            // TODO: treat wrong count or non-numeric values as an error
+            let values = values.map { $0.value as? Double ?? 0 }
             switch name {
             case "x", "y", "z":
                 return Value.vector(Vector(values))[name]
             case "width", "height", "depth":
                 return Value.size(Vector(size: values))[name]
             case "red", "green", "blue", "alpha":
-                return Value.color(Color(unchecked: values))[name]
+                return Value.color(Color(unchecked: Array(values.prefix(4))))[name]
             default:
                 return nil
             }

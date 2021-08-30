@@ -1430,6 +1430,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.2])
     }
 
+    func testTooLongTupleColorLookup() {
+        let program = "print (1 2 3 4 5).red"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testNonNumericColorLookup() {
+        let program = "print (\"foo\" \"bar\").red"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0])
+    }
+
     func testTupleNonexistentLookup() {
         let program = "print (1 2).foo"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in

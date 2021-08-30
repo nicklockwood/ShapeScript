@@ -34,26 +34,15 @@ public extension Color {
     var components: [Double] { [r, g, b, a] }
 
     init(unchecked components: [Double]) {
-        var a = 1.0
         switch components.count {
-        case 4:
-            a = components[3]
-            fallthrough
-        case 3:
-            r = components[0]
-            g = components[1]
-            b = components[2]
-        case 2:
-            a = components[1]
-            fallthrough
-        case 1:
-            r = components[0]
-            g = r
-            b = r
+        case 1: self.init(components[0])
+        case 2: self.init(components[0], components[1])
+        case 3: self.init(components[0], components[1], components[2])
+        case 4: self.init(components[0], components[1], components[2], components[3])
         default:
-            preconditionFailure()
+            assertionFailure()
+            self = .clear
         }
-        self.a = a
     }
 
     init?(hexString: String) {
