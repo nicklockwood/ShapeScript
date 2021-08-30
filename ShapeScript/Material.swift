@@ -39,19 +39,14 @@ public extension Color {
         self.a = a
     }
 
-    var components: [Double] { [r, g, b, a] }
-
-    init(unchecked components: [Double]) {
-        switch components.count {
-        case 1: self.init(components[0])
-        case 2: self.init(components[0], components[1])
-        case 3: self.init(components[0], components[1], components[2])
-        case 4: self.init(components[0], components[1], components[2], components[3])
-        default:
-            assertionFailure()
-            self = .clear
+    init?(_ components: [Double]) {
+        guard (1 ... 4).contains(components.count) else {
+            return nil
         }
+        self.init(unchecked: components)
     }
+
+    var components: [Double] { [r, g, b, a] }
 
     init?(hexString: String) {
         var string = hexString
@@ -86,6 +81,20 @@ public extension Color {
         let blue = Double((rgba & 0x0000_FF00) >> 8) / 255
         let alpha = Double((rgba & 0x0000_00FF) >> 0) / 255
         self.init(unchecked: [red, green, blue, alpha])
+    }
+}
+
+internal extension Color {
+    init(unchecked components: [Double]) {
+        switch components.count {
+        case 1: self.init(components[0])
+        case 2: self.init(components[0], components[1])
+        case 3: self.init(components[0], components[1], components[2])
+        case 4: self.init(components[0], components[1], components[2], components[3])
+        default:
+            assertionFailure()
+            self = .clear
+        }
     }
 }
 

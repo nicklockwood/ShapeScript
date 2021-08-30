@@ -75,11 +75,11 @@ private extension Texture {
         }
 
         context.draw(cgImage, in: NSRectToCGRect(rect))
-        return Color(unchecked: [
+        return Color(
             Double(components[0]) / 255,
             Double(components[1]) / 255,
             Double(components[2]) / 255,
-            Double(components[3]) / 255,
-        ])
+            Double(components[3]) / 255
+        )
     }
 }
