@@ -201,7 +201,7 @@ public extension RuntimeError {
             } else if max == 1 {
                 return "The \(name) command expects only a single argument."
             } else {
-                return "\(name) command expects a maximum of \(max) arguments."
+                return "The \(name) command expects a maximum of \(max) arguments."
             }
         case let .missingArgument(for: name, index: index, type: type):
             let type = (type == ValueType.pair.errorDescription) ? ValueType.number.errorDescription : type
