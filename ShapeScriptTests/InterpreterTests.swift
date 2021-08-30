@@ -1402,6 +1402,17 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.0])
     }
 
+    func testTooLongTupleVectorLookup() {
+        let program = "print (1 2 3 4).x"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("x", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     func testTupleRGBARedLookup() {
         let program = "print (0.1 0.2 0.3 0.4).red"
         let delegate = TestDelegate()
@@ -1432,16 +1443,24 @@ class InterpreterTests: XCTestCase {
 
     func testTooLongTupleColorLookup() {
         let program = "print (1 2 3 4 5).red"
-        let delegate = TestDelegate()
-        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [1])
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("red", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testNonNumericColorLookup() {
         let program = "print (\"foo\" \"bar\").red"
-        let delegate = TestDelegate()
-        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [0])
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("red", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testTupleNonexistentLookup() {

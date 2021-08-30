@@ -439,12 +439,18 @@ enum Value {
             return ["width", "height", "depth"]
         case .color:
             return ["red", "green", "blue", "alpha"]
-        case .tuple:
-            return [
-                "x", "y", "z",
-                "width", "height", "depth",
-                "red", "green", "blue", "alpha",
-            ]
+        case let .tuple(values):
+            guard values.allSatisfy({ $0.type == .number }) else {
+                return []
+            }
+            var members = [String]()
+            if values.count < 5 {
+                members = ["red", "green", "blue", "alpha"]
+                if values.count < 4 {
+                    members += ["x", "y", "z", "width", "height", "depth"]
+                }
+            }
+            return members
         case .range:
             return ["start", "end", "step"]
         default:
@@ -477,15 +483,17 @@ enum Value {
             default: return nil
             }
         case let .tuple(values):
-            // TODO: treat wrong count or non-numeric values as an error
+            guard values.allSatisfy({ $0.type == .number }) else {
+                return nil
+            }
             let values = values.map { $0.value as? Double ?? 0 }
             switch name {
             case "x", "y", "z":
-                return Value.vector(Vector(values))[name]
+                return values.count < 4 ? Value.vector(Vector(values))[name] : nil
             case "width", "height", "depth":
-                return Value.size(Vector(size: values))[name]
+                return values.count < 4 ? Value.size(Vector(size: values))[name] : nil
             case "red", "green", "blue", "alpha":
-                return Value.color(Color(unchecked: Array(values.prefix(4))))[name]
+                return values.count < 5 ? Value.color(Color(unchecked: values))[name] : nil
             default:
                 return nil
             }
@@ -1042,8 +1050,9 @@ extension Expression {
             return .range(value)
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
-            if let value = value[member.name] {
-                return value
+            if let memberValue = value[member.name] {
+                assert(value.members.contains(member.name))
+                return memberValue
             }
             throw RuntimeError(
                 .unknownSymbol(member.name, options: value.members),
