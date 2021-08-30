@@ -6,48 +6,12 @@
 //  Copyright © 2019 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
 import Foundation
 
-public struct Color: Hashable {
-    public let r, g, b, a: Double
-
-    public init(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) {
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
-    }
-}
+public typealias Color = Euclid.Color
 
 public extension Color {
-    static let clear = Color(0, 0)
-    static let white = Color(1)
-    static let black = Color(0)
-    static let gray = Color(0.5)
-    static let red = Color(1, 0, 0)
-    static let green = Color(0, 1, 0)
-    static let blue = Color(0, 0, 1)
-    static let yellow = Color(1, 1, 0)
-    static let cyan = Color(0, 1, 1)
-    static let magenta = Color(1, 0, 1)
-    static let orange = Color(1, 0.5, 0)
-
-    init(_ rgb: Double, _ a: Double = 1) {
-        r = rgb
-        g = rgb
-        b = rgb
-        self.a = a
-    }
-
-    init?(_ components: [Double]) {
-        guard (1 ... 4).contains(components.count) else {
-            return nil
-        }
-        self.init(unchecked: components)
-    }
-
-    var components: [Double] { [r, g, b, a] }
-
     init?(hexString: String) {
         var string = hexString
         if hexString.hasPrefix("#") {
@@ -86,12 +50,9 @@ public extension Color {
 
 internal extension Color {
     init(unchecked components: [Double]) {
-        switch components.count {
-        case 1: self.init(components[0])
-        case 2: self.init(components[0], components[1])
-        case 3: self.init(components[0], components[1], components[2])
-        case 4: self.init(components[0], components[1], components[2], components[3])
-        default:
+        if let color = Color(components) {
+            self = color
+        } else {
             assertionFailure()
             self = .clear
         }

@@ -8,32 +8,21 @@
 
 import Euclid
 
-#if canImport(AppKit)
+#if canImport(SceneKit)
 
 import SceneKit
 
 #if canImport(AppKit)
-private typealias OSColor = NSColor
+public typealias OSColor = NSColor
 #else
-private typealias OSColor = UIColor
+public typealias OSColor = UIColor
 #endif
-
-public extension OSColor {
-    convenience init(color: Color) {
-        self.init(
-            red: CGFloat(color.r),
-            green: CGFloat(color.g),
-            blue: CGFloat(color.b),
-            alpha: CGFloat(color.a)
-        )
-    }
-}
 
 public extension MaterialProperty {
     func configureProperty(_ property: SCNMaterialProperty) {
         switch self {
         case let .color(color):
-            property.contents = OSColor(color: color)
+            property.contents = OSColor(color)
         case let .texture(texture):
             switch texture {
             case let .file(_, url):
@@ -155,11 +144,11 @@ public extension Geometry {
                 geometry: SCNGeometry(.stroke(
                     path,
                     width: options.lineWidth,
-                    depth: options.lineWidth
+                    detail: 5
                 ), materialLookup: { _ in
                     let material = SCNMaterial()
                     material.lightingModel = .constant
-                    material.diffuse.contents = OSColor(color: options.lineColor)
+                    material.diffuse.contents = OSColor(options.lineColor)
                     return material
                 })
             )
@@ -174,36 +163,11 @@ public extension Geometry {
 
 // MARK: import
 
-public extension Color {
-    init(cgColor: CGColor) {
-        let components = cgColor.components ?? [1]
-        self.init(unchecked: components.map(Double.init))
-    }
-
-    fileprivate init(osColor: OSColor) {
-        self.init(cgColor: osColor.cgColor)
-    }
-
-    #if canImport(AppKit)
-
-    init(nsColor: NSColor) {
-        self.init(osColor: nsColor)
-    }
-
-    #else
-
-    init(uiColor: UIColor) {
-        self.init(osColor: uiColor)
-    }
-
-    #endif
-}
-
 public extension MaterialProperty {
     init?(scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let color as OSColor:
-            self = .color(Color(osColor: color))
+            self = .color(Color(color))
         case let data as Data:
             self = .texture(.data(data))
         case let url as URL:

@@ -34,6 +34,16 @@ import Foundation
 // MARK: 3D shapes
 
 public extension Path {
+    /// Create a path from a line segment
+    static func line(_ line: LineSegment) -> Path {
+        .line(line.start, line.end)
+    }
+
+    /// Create a path from a start and end point
+    static func line(_ start: Vector, _ end: Vector) -> Path {
+        Path([.point(start), .point(end)])
+    }
+
     /// Create a closed circular path
     static func circle(radius r: Double = 0.5, segments: Int = 16) -> Path {
         ellipse(width: r * 2, height: r * 2, segments: segments)
@@ -41,21 +51,30 @@ public extension Path {
 
     /// Create a closed elliptical path
     static func ellipse(width: Double, height: Double, segments: Int = 16) -> Path {
-        var points = [PathPoint]()
         let segments = max(3, segments)
-        let step = Angle.twoPi / Double(segments)
+        let step = 2 / Double(segments) * .pi
+        let to = 2 * .pi + epsilon
         let w = max(abs(width / 2), epsilon)
         let h = max(abs(height / 2), epsilon)
-        for radians in stride(from: 0, through: Angle.twoPi.radians + epsilon, by: step.radians) {
-            let angle = Angle.radians(radians)
-            points.append(.curve(w * -sin(angle), h * cos(angle)))
-        }
-        return Path(unchecked: points, plane: .xy, subpathIndices: [])
+        return Path(unchecked: stride(from: 0, through: to, by: step).map {
+            PathPoint.curve(w * -sin($0), h * cos($0))
+        }, plane: .xy, subpathIndices: [])
+    }
+
+    /// Create a closed regular polygon
+    static func polygon(radius: Double = 0.5, sides: Int) -> Path {
+        let circle = self.circle(radius: radius, segments: sides)
+        return Path(unchecked: circle.points.map { .point($0.position) })
     }
 
     /// Create a closed rectangular path
     static func rectangle(width: Double, height: Double) -> Path {
         let w = width / 2, h = height / 2
+        if height < epsilon {
+            return .line(Vector(-width / 2, 0), Vector(width / 2, 0))
+        } else if width < epsilon {
+            return .line(Vector(-width / 2, 0), Vector(width / 2, 0))
+        }
         return Path(unchecked: [
             .point(-w, h), .point(-w, -h),
             .point(w, -h), .point(w, h),
@@ -99,11 +118,19 @@ public extension Path {
             }
 
             return steps.map {
-                .curve(
+                var texcoord: Vector?
+                if let t0 = p0.texcoord, let t1 = p1.texcoord, let t2 = p2.texcoord {
+                    texcoord = Vector(
+                        quadraticBezier(t0.x, t1.x, t2.x, $0),
+                        quadraticBezier(t0.y, t1.y, t2.y, $0),
+                        quadraticBezier(t0.z, t1.z, t2.z, $0)
+                    )
+                }
+                return .curve(Vector(
                     quadraticBezier(p0.position.x, p1.position.x, p2.position.x, $0),
                     quadraticBezier(p0.position.y, p1.position.y, p2.position.y, $0),
                     quadraticBezier(p0.position.z, p1.position.z, p2.position.z, $0)
-                )
+                ), texcoord: texcoord)
             }
         }
 
@@ -926,10 +953,11 @@ public extension Mesh {
     }
 
     /// Stroke a path with the specified line width, depth and material
+    @available(*, deprecated, message: "Use `stroke(width:detail:)` instead")
     static func stroke(
         _ shape: Path,
-        width: Double = 0.01,
-        depth: Double = 0,
+        width: Double,
+        depth: Double,
         faces: Faces = .default,
         material: Material? = nil
     ) -> Mesh {
@@ -939,5 +967,24 @@ public extension Mesh {
             faces: faces,
             material: material
         )
+    }
+
+    /// Stroke a path with the specified line width, detail and material
+    static func stroke(
+        _ shape: Path,
+        width: Double = 0.01,
+        detail: Int = 2,
+        material: Material? = nil
+    ) -> Mesh {
+        let path: Path
+        let radius = width / 2
+        switch detail {
+        case 1, 2:
+            path = .line(Vector(-radius, 0), Vector(radius, 0))
+        case let sides:
+            path = .circle(radius: radius, segments: sides)
+        }
+        let faces: Faces = detail == 2 ? .frontAndBack : .front
+        return extrude(path, along: shape, faces: faces, material: material)
     }
 }

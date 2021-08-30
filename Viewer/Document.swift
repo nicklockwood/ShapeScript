@@ -154,7 +154,7 @@ class Document: NSDocument, EvaluationDelegate {
 
                 // Set output options
                 var options = Scene.OutputOptions.default
-                let color = Color(nsColor: NSColor.underPageBackgroundColor)
+                let color = Color(.underPageBackgroundColor)
                 options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
 
                 // Clear errors and previous geometry
