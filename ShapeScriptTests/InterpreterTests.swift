@@ -1406,7 +1406,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 2 3 4).x"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("x", _)? = error?.type else {
+            guard case .unknownMember("x", of: "tuple", _)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -1445,7 +1445,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 2 3 4 5).red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("red", _)? = error?.type else {
+            guard case .unknownMember("red", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
             }
@@ -1456,7 +1456,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (\"foo\" \"bar\").red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("red", _)? = error?.type else {
+            guard case .unknownMember("red", of: "tuple", _)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -1467,7 +1467,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 2).foo"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("foo", _)? = error?.type else {
+            guard case .unknownMember("foo", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
             }
@@ -1478,7 +1478,7 @@ class InterpreterTests: XCTestCase {
         let program = "color 1 0.5\nprint color.width"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("width", _)? = error?.type else {
+            guard case .unknownMember("width", of: "color", _)? = error?.type else {
                 XCTFail()
                 return
             }

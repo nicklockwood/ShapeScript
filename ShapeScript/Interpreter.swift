@@ -81,6 +81,7 @@ public enum ImportError: Error, Equatable {
 
 public enum RuntimeErrorType: Error, Equatable {
     case unknownSymbol(String, options: [String])
+    case unknownMember(String, of: String, options: [String])
     case unknownFont(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
     case unexpectedArgument(for: String, max: Int)
@@ -112,6 +113,8 @@ public extension RuntimeError {
                 return "Unknown symbol '\(name)'"
             }
             return "Unexpected symbol '\(name)'"
+        case let .unknownMember(name, type, _):
+            return "Unknown \(type) member property '\(name)'"
         case let .unknownFont(name, _):
             return "Unknown font '\(name)'"
         case .typeMismatch:
@@ -144,7 +147,7 @@ public extension RuntimeError {
 
     var suggestion: String? {
         switch type {
-        case let .unknownSymbol(name, options):
+        case let .unknownSymbol(name, options), let .unknownMember(name, _, options):
             return Self.alternatives[name.lowercased()]?
                 .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
                 ?? bestMatches(for: name, in: options).first
@@ -182,6 +185,8 @@ public extension RuntimeError {
                 hint = (hint.isEmpty ? "" : "\(hint) ") + "Did you mean '\(suggestion)'?"
             }
             return hint
+        case .unknownMember:
+            return suggestion.map { "Did you mean '\($0)'?" }
         case .unknownFont:
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
@@ -1054,10 +1059,11 @@ extension Expression {
                 assert(value.members.contains(member.name))
                 return memberValue
             }
-            throw RuntimeError(
-                .unknownSymbol(member.name, options: value.members),
-                at: member.range
-            )
+            throw RuntimeError(.unknownMember(
+                member.name,
+                of: value.type.errorDescription,
+                options: value.members
+            ), at: member.range)
         case let .subexpression(expression):
             return try expression.evaluate(in: context)
         }
