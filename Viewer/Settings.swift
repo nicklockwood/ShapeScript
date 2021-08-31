@@ -31,7 +31,7 @@ struct EditorApp: Comparable {
 final class Settings {
     static let shared = Settings()
 
-    private var defaults = UserDefaults.standard
+    let defaults = UserDefaults.standard
 
     // MARK: App version
 
