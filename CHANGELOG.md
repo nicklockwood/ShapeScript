@@ -1,3 +1,23 @@
+## [1.3.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.0) (2021-08-31)
+
+- Added new standalone range expression with optional `step` value
+- For loops can now be used with either range or tuple/vector values
+- Added support for hex color literals
+- Added standard color names as constants
+- Inherited standard library symbols no longer override user-defined constants
+- All ShapeScript value types now conform to `AnyHashable`
+- Removed `CustomStringConvertible` conformance from `GeometryType` as it made debugging harder
+- Renamed `StatementType.node` to `StatementType.block`, since the term was confusing
+- Bumped Euclid to 0.5.10, which includes several bug fixes and features
+- Fixed crash when trying to access vector or color members from a non-numeric tuple
+- Fixed crash when trying to color members from a tuple with more than 4 elements
+- Accessing vector members on a tuple with more than 3 elements now raises an error
+- Made unchecked Color initializer private
+- Removed SceneViewController.snapshot() method
+- Added option to show axes in ShapeScript Viewer
+- Wireframe view option in viewer is now rendered using lines instead of SceneKit Debug option
+- Made wireframe view option persistent across app launches
+
 ## [1.2.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.2.4) (2021-08-25)
 
 - Fixed a crash when logging large integer values
