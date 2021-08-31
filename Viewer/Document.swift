@@ -52,6 +52,20 @@ class Document: NSDocument, EvaluationDelegate {
     var errorMessage: NSAttributedString?
     var accessErrorURL: URL?
 
+    func rerender() {
+        if let progress = progress {
+            if let fileURL = fileURL {
+                progress.cancel()
+                try? read(from: fileURL, ofType: "")
+            }
+        } else if let scene = scene {
+            let showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
+            let options = Self.outputOptions(for: scene, wireframe: showWireframe)
+            scene.scnBuild(with: options)
+            updateViews()
+        }
+    }
+
     func updateViews() {
         for viewController in sceneViewControllers {
             viewController.isLoading = (progress?.inProgress == true)
@@ -59,7 +73,6 @@ class Document: NSDocument, EvaluationDelegate {
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
-            viewController.showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
             viewController.showAxes = (NSApp.delegate as! AppDelegate).showAxes
         }
     }
@@ -88,6 +101,14 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
+    private static func outputOptions(for scene: Scene, wireframe: Bool) -> Scene.OutputOptions {
+        var options = Scene.OutputOptions.default
+        let color = Color(.underPageBackgroundColor)
+        options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
+        options.wireframe = wireframe
+        return options
+    }
+
     override func read(from url: URL, ofType _: String) throws {
         let input = try String(contentsOf: url, encoding: .utf8)
         linkedResources.removeAll()
@@ -95,6 +116,7 @@ class Document: NSDocument, EvaluationDelegate {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
+        let showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
         let progress = LoadingProgress(
             observer: { [weak self] status in
                 guard let self = self else {
@@ -153,16 +175,12 @@ class Document: NSDocument, EvaluationDelegate {
                     return
                 }
 
-                // Set output options
-                var options = Scene.OutputOptions.default
-                let color = Color(.underPageBackgroundColor)
-                options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
-
                 // Clear errors and previous geometry
                 progress.setStatus(.partial(.empty))
 
                 let minUpdatePeriod: TimeInterval = 0.1
                 var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
+                let options = Self.outputOptions(for: scene, wireframe: showWireframe)
                 _ = scene.build {
                     if progress.isCancelled {
                         return false

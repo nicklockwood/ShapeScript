@@ -9,7 +9,7 @@
 import Cocoa
 
 @NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
+class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow? {
         NSApp.mainWindow
     }
@@ -47,7 +47,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
             }
         }
         showWireframe = Settings.shared.showWireframe
-        showWireframeMenuItem.isHidden = useOpenGL
         showAxes = Settings.shared.showAxes
     }
 
@@ -131,7 +130,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
             Settings.shared.showWireframe = showWireframe
             showWireframeMenuItem.state = showWireframe ? .on : .off
             for case let document as Document in NSApp.orderedDocuments {
-                document.updateViews()
+                document.rerender()
             }
         }
     }
@@ -153,14 +152,5 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserInterfaceValidations {
     @IBAction func showAxes(_ sender: NSMenuItem) {
         showAxes = !showAxes
         sender.state = showAxes ? .on : .off
-    }
-
-    // MARK: NSUserInterfaceValidations
-
-    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
-        if item.action == #selector(showWireframe(_:)) {
-            return !NSApp.orderedDocuments.isEmpty && !useOpenGL
-        }
-        return true
     }
 }

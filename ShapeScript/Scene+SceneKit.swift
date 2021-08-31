@@ -87,7 +87,6 @@ public extension SCNNode {
 //            geometry: SCNGeometry(bounds: geometry.bounds)
 //        ))
 
-        //        scnNode.geometry?.firstMaterial?.isDoubleSided = true
         if geometry.renderChildren {
             for child in geometry.children {
                 addChildNode(SCNNode(child))
@@ -119,6 +118,7 @@ public extension Scene {
 
         public var lineWidth: Double = 0.005
         public var lineColor: Color = .black
+        public var wireframe: Bool = false
     }
 
     func scnBuild(with options: OutputOptions) {
@@ -136,7 +136,7 @@ public extension Geometry {
             children.forEach { $0.scnBuild(with: options) }
         }
 
-        if let scnData = scnData, path == nil || scnData.options == options {
+        if let scnData = scnData, scnData.options == options {
             return
         } else if let path = self.path {
             scnData = (
@@ -155,7 +155,9 @@ public extension Geometry {
         } else if let mesh = self.mesh {
             scnData = (
                 options: options,
-                SCNGeometry(mesh: mesh, for: self)
+                options.wireframe ?
+                    SCNGeometry(wireframe: mesh) :
+                    SCNGeometry(mesh: mesh, for: self)
             )
         }
     }

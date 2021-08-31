@@ -85,19 +85,6 @@ class SceneViewController: NSViewController {
         }
     }
 
-    public var showWireframe = false {
-        didSet {
-            guard showWireframe != oldValue, scnView.renderingAPI == .metal else {
-                return
-            }
-            if showWireframe {
-                scnView.debugOptions.insert(.showWireframe)
-            } else {
-                scnView.debugOptions.remove(.showWireframe)
-            }
-        }
-    }
-
     public var showConsole = false {
         didSet {
             guard showConsole != oldValue else {
