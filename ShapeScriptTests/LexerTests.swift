@@ -56,20 +56,20 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
-    func testLettersAndNumbers() {
-        let input = "a1234b"
-        let tokens: [TokenType] = [.identifier("a1234b"), .eof]
+    func testLettersNumbersAndUnderscore() {
+        let input = "a123_4b"
+        let tokens: [TokenType] = [.identifier("a123_4b"), .eof]
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
     func testInvalidIdentifier() {
-        let input = "a123_4b"
+        let input = "a123$4b"
         XCTAssertThrowsError(try tokenize(input)) { error in
-            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("_4b"))
+            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("$4b"))
         }
     }
 
-    func testInvalidIdentifier2() {
+    func testLeadingUnderscore() {
         let input = "_a\n\ndefine foo 5"
         XCTAssertThrowsError(try tokenize(input)) { error in
             XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("_a"))

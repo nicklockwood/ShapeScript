@@ -335,7 +335,7 @@ private extension Substring {
             return nil
         }
         var name = String(removeFirst())
-        while let c = first, alphanumerics.contains(c) {
+        while let c = first, alphanumerics.contains(c) || c == "_" {
             name.append(removeFirst())
         }
         if let keyword = Keyword(rawValue: name) {

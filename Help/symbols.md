@@ -10,7 +10,7 @@ define sides 5
 define red 1 0 0
 ```
 
-Symbol names consist of a letter followed by zero or more letters or numbers. Symbols cannot begin with a number, and spaces or punctuation are not allowed. Symbols are case-sensitive, and by convention should begin with a lowercase letter. For multi-word symbols, the recommended convention is to capitalize the first letter of each new word (known as *camelCase* because the capital letters form "humps" in the back of the word):
+Symbol names consist of a letter followed by zero or more letters, numbers or underscore (`_`) characters. Symbols cannot begin with a number or underscore, and spaces or other punctuation are not allowed. Symbols are case-sensitive, and by convention should begin with a lowercase letter. For multi-word symbols, the recommended convention is to capitalize the first letter of each new word (known as *camelCase* because the capital letters form "humps" in the back of the word):
 
 ```swift
 define numberOfSides 7
