@@ -26,13 +26,11 @@ final class LoadingProgress {
     ) {
         self.observer = observer
         queue = DispatchQueue(label: "shapescript.progress.\(id)")
-        DispatchQueue.main.async {
-            self.observer(self.status)
-        }
         queue.async { [weak self] in
             guard let self = self else {
                 return
             }
+            self.setStatus(.waiting)
             do {
                 try task(self)
             } catch {
