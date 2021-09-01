@@ -407,7 +407,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testColorWithoutParens() throws {
@@ -417,7 +417,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetColorWithSingleNumber() throws {
@@ -438,7 +438,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetColorWithTooManyElements() throws {
@@ -553,6 +553,26 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testSetColourWithBritishSpelling() throws {
+        let program = """
+        colour red
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testGetColourWithBritishSpelling() throws {
+        let program = """
+        color grey
+        print colour
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.gray])
+    }
+
     // MARK: Texture
 
     func testSetTextureWithStringLiteral() throws {
@@ -619,7 +639,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetBackgroundColorWithoutParens() throws {
@@ -629,7 +649,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetBackgroundColorWithConstant() throws {
@@ -640,7 +660,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetBackgroundColorWithColorConstant() throws {
@@ -651,7 +671,7 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0)])
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     func testSetBackgroundColorWithTooManyElements() throws {
