@@ -171,7 +171,7 @@ final class Settings {
     }
 
     var showAxes: Bool {
-        get { defaults.object(forKey: #function) as? Bool ?? true }
+        get { defaults.object(forKey: #function) as? Bool ?? false }
         set { defaults.set(newValue, forKey: #function) }
     }
 }

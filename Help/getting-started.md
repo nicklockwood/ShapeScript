@@ -15,6 +15,10 @@ Drag your mouse cursor inside the window and you will notice that the three obje
 
 You are not actually moving the objects themselves, but rotating the camera around them. To reset the view, select `View > Reset Camera` or press **Cmd-0**.
 
+To help you orient yourself, you can use the `View > Show Axes` option, which displays the direction of the X, Y and Z axes.
+
+![Show axes](images/show-axes.png)
+
 For more information about navigating around the model, see [Camera Control](camera-control.md).
 
 ## Editing
@@ -66,7 +70,7 @@ The first instruction, `cube`, creates the cube shape. Note the `{ ... }` braces
 
 The line `position -1.5` means "position the shape 1.5 units to the left of the origin". The *origin* is the center of the world, and is the default position at which new shapes will appear. The units are arbitrary, but you should think of one unit as being approximately one meter, for the purposes of consistent model sizing.
 
-The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so `-1.5` is equivalent to writing `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
+The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so a position of `-1.5` is equivalent to `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
 
 The next line, `color 1 0 0` sets the current color. The three numbers after the keyword represent the red, green, and blue color channels, each with a range from 0 to 1. Because the red channel is 1 and the other channels are 0, the resultant color will be pure red.
 
