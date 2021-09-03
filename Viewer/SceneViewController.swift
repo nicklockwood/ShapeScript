@@ -198,6 +198,7 @@ class SceneViewController: NSViewController {
         // configure the view
         scnView.backgroundColor = .clear
         scnView.autoenablesDefaultLighting = true
+        scnView.antialiasingMode = .multisampling16X
         scnView.allowsCameraControl = geometry != nil
         resetCamera(nil)
 
