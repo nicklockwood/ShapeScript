@@ -217,19 +217,19 @@ public extension Geometry {
         case .intersection:
             var bounds = children.first.map { $0.bounds.transformed(by: $0.transform) } ?? .empty
             for child in children.dropFirst() {
-                bounds = bounds.intersection(child.bounds.transformed(by: child.transform))
+                bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
             return bounds
         case .union, .xor, .group:
-            var bounds = children.first.map { $0.bounds.transformed(by: $0.transform) } ?? .empty
-            for child in children.dropFirst() {
-                bounds = bounds.union(child.bounds.transformed(by: child.transform))
+            var bounds = Bounds.empty
+            for child in children {
+                bounds.formUnion(child.bounds.transformed(by: child.transform))
             }
             return bounds
         case .cone, .cube, .cylinder, .sphere, .extrude, .lathe, .loft, .fill, .path, .mesh:
             var bounds = type.bounds
             for child in children {
-                bounds = bounds.union(child.bounds.transformed(by: child.transform))
+                bounds.formUnion(child.bounds.transformed(by: child.transform))
             }
             return bounds
         }

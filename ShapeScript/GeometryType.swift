@@ -73,7 +73,7 @@ public extension GeometryType {
                 let alongBounds = along.bounds
                 for path in paths {
                     let pathBounds = path.bounds
-                    bounds = bounds.union(Bounds(
+                    bounds.formUnion(Bounds(
                         min: alongBounds.min + pathBounds.min,
                         max: alongBounds.max + pathBounds.max
                     ))
