@@ -411,7 +411,240 @@ public extension Mesh {
         )
     }
 
-    private static func lathe(
+    /// Extrude a path along its face normal
+    static func extrude(
+        _ shape: Path,
+        depth: Double = 1,
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        let offset = shape.faceNormal * (depth / 2)
+        if offset.isEqual(to: .zero) {
+            return fill(shape, faces: faces, material: material)
+        }
+        return loft(
+            unchecked: [
+                shape.translated(by: offset),
+                shape.translated(by: -offset),
+            ],
+            faces: faces,
+            material: material,
+            verifiedCoplanar: true,
+            isConvex: Polygon(shape: shape)?.isConvex == true
+        )
+    }
+
+    /// Extrude a path along another path
+    static func extrude(
+        _ shape: Path,
+        along: Path,
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        let subpaths = along.subpaths
+        guard subpaths.count == 1 else {
+            return .merge(subpaths.map {
+                extrude(
+                    shape,
+                    along: $0,
+                    faces: faces,
+                    material: material
+                )
+            })
+        }
+        let points = along.points
+        guard var p0 = points.first else {
+            return Mesh([])
+        }
+        var shape = shape
+        let shapePlane = shape.flatteningPlane
+        let pathPlane = along.flatteningPlane
+        let shapeNormal: Vector
+        switch (shapePlane, pathPlane) {
+        case (.xy, .xy):
+            shape = shape.rotated(by: .pitch(.halfPi))
+            shapeNormal = shapePlane.rawValue.normal.rotated(by: .pitch(.halfPi))
+        case (.yz, .yz), (.xz, .xz):
+            shape = shape.rotated(by: .roll(.halfPi))
+            shapeNormal = shapePlane.rawValue.normal.rotated(by: .roll(.halfPi))
+        default:
+            shapeNormal = shapePlane.rawValue.normal
+        }
+        var shapes = [Path]()
+        let count = points.count
+        var p1 = points[1]
+        var p0p1 = (p1.position - p0.position).normalized()
+        func addShape(_ p2: PathPoint, _ _p0p2: inout Vector?) {
+            let p1p2 = (p2.position - p1.position).normalized()
+            let p0p2 = (p0p1 + p1p2).normalized()
+            let r: Rotation
+            if let _p0p2 = _p0p2 {
+                r = rotationBetweenVectors(p0p2, _p0p2)
+            } else {
+                r = rotationBetweenVectors(p0p2, shapeNormal)
+            }
+            shape = shape.rotated(by: r)
+            if p0p1.isEqual(to: p1p2) {
+                shapes.append(shape.translated(by: p1.position))
+            } else {
+                let axis = p0p1.cross(p1p2)
+                let a = (1 / p0p1.dot(p0p2)) - 1
+                var scale = axis.cross(p0p2).normalized() * a
+                scale.x = abs(scale.x)
+                scale.y = abs(scale.y)
+                scale.z = abs(scale.z)
+                scale = scale + Vector(1, 1, 1)
+                shapes.append(shape.scaled(by: scale).translated(by: p1.position))
+            }
+            p0 = p1
+            p1 = p2
+            p0p1 = p1p2
+            _p0p2 = p0p2
+        }
+        if along.isClosed {
+            var _p0p2: Vector?
+            for i in 1 ..< count {
+                let p2 = points[(i < count - 1) ? i + 1 : 1]
+                addShape(p2, &_p0p2)
+            }
+            shapes.append(shapes[0])
+        } else {
+            var _p0p2: Vector! = p0p1
+            shape = shape.rotated(by: rotationBetweenVectors(p0p1, shapeNormal))
+            shapes.append(shape.translated(by: p0.position))
+            for i in 1 ..< count - 1 {
+                let p2 = points[i + 1]
+                addShape(p2, &_p0p2)
+            }
+            shape = shape.rotated(by: rotationBetweenVectors(p0p1, _p0p2))
+            shapes.append(shape.translated(by: points.last!.position))
+        }
+        return loft(shapes, faces: faces, material: material)
+    }
+
+    /// Connect multiple 3D paths
+    static func loft(
+        _ shapes: [Path],
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        loft(
+            unchecked: shapes,
+            faces: faces,
+            material: material,
+            verifiedCoplanar: false,
+            isConvex: false
+        )
+    }
+
+    /// Fill a path to form one or more polygons
+    static func fill(
+        _ shape: Path,
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        let subpaths = shape.subpaths
+        if subpaths.count > 1 {
+            return .xor(subpaths.map { .fill($0, faces: faces, material: material) })
+        }
+
+        let polygons = shape.closed().facePolygons(material: material)
+        switch faces {
+        case .front:
+            return Mesh(
+                unchecked: polygons,
+                bounds: nil,
+                isConvex: false
+            )
+        case .back:
+            return Mesh(
+                unchecked: polygons.map { $0.inverted() },
+                bounds: nil,
+                isConvex: false
+            )
+        case .frontAndBack, .default:
+            return Mesh(
+                unchecked: polygons + polygons.map { $0.inverted() },
+                bounds: nil,
+                isConvex: polygons.count == 1 && polygons[0].isConvex
+            )
+        }
+    }
+
+    /// Stroke a path with the specified line width, depth and material
+    @available(*, deprecated, message: "Use `stroke(width:detail:)` instead")
+    static func stroke(
+        _ shape: Path,
+        width: Double,
+        depth: Double,
+        faces: Faces = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        extrude(
+            .rectangle(width: width, height: depth),
+            along: shape,
+            faces: faces,
+            material: material
+        )
+    }
+
+    /// Stroke a path with the specified line width, detail and material
+    static func stroke(
+        _ shape: Path,
+        width: Double = 0.01,
+        detail: Int = 2,
+        material: Material? = nil
+    ) -> Mesh {
+        let path: Path
+        let radius = width / 2
+        switch detail {
+        case 1, 2:
+            path = .line(Vector(-radius, 0), Vector(radius, 0))
+        case let sides:
+            path = .circle(radius: radius, segments: sides)
+        }
+        let faces: Faces = detail == 2 ? .frontAndBack : .front
+        return extrude(path, along: shape, faces: faces, material: material)
+    }
+
+    /// Efficiently stroke a set of line segments (useful for drawing wireframes)
+    static func stroke<T: Collection>(
+        _ lines: T,
+        width: Double = 0.002,
+        detail: Int = 3,
+        material: Material? = nil
+    ) -> Mesh where T.Element == LineSegment {
+        let radius = width / 2
+        let detail = max(3, detail)
+        let path = Path.circle(radius: radius, segments: detail)
+        var bounds = Bounds.empty
+        var polygons = [Polygon]()
+        polygons.reserveCapacity(detail * lines.count)
+        for line in lines {
+            var shape = path
+            let along = Path.line(line)
+            if along.flatteningPlane == .xy {
+                shape = shape.rotated(by: .pitch(.halfPi))
+            }
+            shape = shape.rotated(by: rotationBetweenVectors(line.direction, shape.faceNormal))
+            let shape0 = shape.translated(by: line.start)
+            bounds.formUnion(shape0.bounds)
+            let shape1 = shape.translated(by: line.end)
+            bounds.formUnion(shape1.bounds)
+            loft(
+                unchecked: shape0, shape1,
+                uvstart: 0, uvend: 1,
+                verifiedCoplanar: false,
+                material: material,
+                into: &polygons
+            )
+        }
+        return Mesh(unchecked: polygons, bounds: bounds, isConvex: false)
+    }
+}
+
+private extension Mesh {
+    static func lathe(
         unchecked profile: Path,
         slices: Int = 16,
         poleDetail: Int = 0,
@@ -631,136 +864,19 @@ public extension Mesh {
         }
     }
 
-    /// Extrude a path along its face normal
-    static func extrude(
-        _ shape: Path,
-        depth: Double = 1,
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        let offset = shape.faceNormal * (depth / 2)
-        if offset.isEqual(to: .zero) {
-            return fill(shape, faces: faces, material: material)
+    static func directionBetweenShapes(_ s0: Path, _ s1: Path) -> Vector? {
+        if let p0 = s0.points.first, let p1 = s1.points.first {
+            // TODO: what if p0p1 length is zero? We should try other points
+            return (p1.position - p0.position).normalized()
         }
-        return loft(
-            unchecked: [
-                shape.translated(by: offset),
-                shape.translated(by: -offset),
-            ],
-            faces: faces,
-            material: material,
-            isConvex: Polygon(shape: shape)?.isConvex == true
-        )
+        return nil
     }
 
-    /// Extrude a path along another path
-    static func extrude(
-        _ shape: Path,
-        along: Path,
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        let subpaths = along.subpaths
-        guard subpaths.count == 1 else {
-            var mesh = Mesh([])
-            for subpath in subpaths {
-                mesh = mesh.merge(extrude(
-                    shape,
-                    along: subpath,
-                    faces: faces,
-                    material: material
-                ))
-            }
-            return mesh
-        }
-        let points = along.points
-        guard var p0 = points.first else {
-            return Mesh([])
-        }
-        var shape = shape
-        let shapePlane = shape.flatteningPlane
-        let pathPlane = along.flatteningPlane
-        let shapeNormal: Vector
-        switch (shapePlane, pathPlane) {
-        case (.xy, .xy):
-            shape = shape.rotated(by: .pitch(.halfPi))
-            shapeNormal = shapePlane.rawValue.normal.rotated(by: .pitch(.halfPi))
-        case (.yz, .yz), (.xz, .xz):
-            shape = shape.rotated(by: .roll(.halfPi))
-            shapeNormal = shapePlane.rawValue.normal.rotated(by: .roll(.halfPi))
-        default:
-            shapeNormal = shapePlane.rawValue.normal
-        }
-        var shapes = [Path]()
-        let count = points.count
-        var p1 = points[1]
-        var p0p1 = (p1.position - p0.position).normalized()
-        func addShape(_ p2: PathPoint, _ _p0p2: inout Vector?) {
-            let p1p2 = (p2.position - p1.position).normalized()
-            let p0p2 = (p0p1 + p1p2).normalized()
-            let r: Rotation
-            if let _p0p2 = _p0p2 {
-                r = rotationBetweenVectors(p0p2, _p0p2)
-            } else {
-                r = rotationBetweenVectors(p0p2, shapeNormal)
-            }
-            shape = shape.rotated(by: r)
-            if p0p1.isEqual(to: p1p2) {
-                shapes.append(shape.translated(by: p1.position))
-            } else {
-                let axis = p0p1.cross(p1p2)
-                let a = (1 / p0p1.dot(p0p2)) - 1
-                var scale = axis.cross(p0p2).normalized() * a
-                scale.x = abs(scale.x)
-                scale.y = abs(scale.y)
-                scale.z = abs(scale.z)
-                scale = scale + Vector(1, 1, 1)
-                shapes.append(shape.scaled(by: scale).translated(by: p1.position))
-            }
-            p0 = p1
-            p1 = p2
-            p0p1 = p1p2
-            _p0p2 = p0p2
-        }
-        if along.isClosed {
-            var _p0p2: Vector?
-            for i in 1 ..< count {
-                let p2 = points[(i < count - 1) ? i + 1 : 1]
-                addShape(p2, &_p0p2)
-            }
-            shapes.append(shapes[0])
-        } else {
-            var _p0p2: Vector! = p0p1
-            shape = shape.rotated(by: rotationBetweenVectors(p0p1, shapeNormal))
-            shapes.append(shape.translated(by: p0.position))
-            for i in 1 ..< count - 1 {
-                let p2 = points[i + 1]
-                addShape(p2, &_p0p2)
-            }
-            shape = shape.rotated(by: rotationBetweenVectors(p0p1, _p0p2))
-            shapes.append(shape.translated(by: points.last!.position))
-        }
-        return loft(shapes, faces: faces, material: material)
-    }
-
-    /// Connect multiple 3D paths
     static func loft(
-        _ shapes: [Path],
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        loft(
-            unchecked: shapes,
-            faces: faces,
-            material: material,
-            isConvex: false
-        )
-    }
-
-    private static func loft(
         unchecked shapes: [Path],
         faces: Faces = .default,
-        material: Material? = nil,
+        material: Material?,
+        verifiedCoplanar: Bool,
         isConvex: Bool
     ) -> Mesh {
         var subpathCount = 0
@@ -778,8 +894,6 @@ public extension Mesh {
             }
             return .xor(subshapes.map { .loft($0, faces: faces, material: material) })
         }
-
-        // TODO: handle subpaths
         let shapes = shapes
         if shapes.isEmpty {
             return Mesh([])
@@ -789,14 +903,8 @@ public extension Mesh {
         if count < 3, isClosed {
             return fill(shapes[0], faces: faces, material: material)
         }
-        func directionBetweenShapes(_ s0: Path, _ s1: Path) -> Vector? {
-            if let p0 = s0.points.first, let p1 = s1.points.first {
-                // TODO: what if p0p1 length is zero? We should try other points
-                return (p1.position - p0.position).normalized()
-            }
-            return nil
-        }
         var polygons = [Polygon]()
+        polygons.reserveCapacity(shapes.reduce(0) { $0 + $1.points.count })
         var prev = shapes[0]
         var isCapped = true
         if !isClosed {
@@ -811,74 +919,19 @@ public extension Mesh {
                 polygons += facePolygons
             }
         }
+        var uvx0 = 0.0
         let uvstep = Double(1) / Double(count - 1)
-        var e1 = prev.edgeVertices
-        for i in 1 ..< count {
-            let path = shapes[i]
-            let e0 = e1
-            e1 = path.edgeVertices
-            // TODO: better handling of case where e0 and e1 counts don't match
-            let invert: Bool
-            if let n = prev.plane?.normal,
-               let p0p1 = directionBetweenShapes(prev, path), p0p1.dot(n) > 0
-            {
-                invert = false
-            } else {
-                invert = true
-            }
-            let uvx0 = Double(i - 1) * uvstep
+        for shape in shapes.dropFirst() {
             let uvx1 = uvx0 + uvstep
-            for j in stride(from: 0, to: min(e0.count, e1.count), by: 2) {
-                var vertices = [e0[j], e0[j + 1], e1[j + 1], e1[j]]
-                vertices[0].texcoord = Vector(vertices[0].texcoord.y, uvx0)
-                vertices[1].texcoord = Vector(vertices[1].texcoord.y, uvx0)
-                vertices[2].texcoord = Vector(vertices[2].texcoord.y, uvx1)
-                vertices[3].texcoord = Vector(vertices[3].texcoord.y, uvx1)
-                if vertices[0].position == vertices[1].position {
-                    vertices.remove(at: 0)
-                } else if vertices[2].position == vertices[3].position {
-                    vertices.remove(at: 3)
-                } else {
-                    if vertices[0].position == vertices[3].position {
-                        vertices[0].normal = vertices[0].normal + vertices[3].normal // auto-normalized
-                        vertices.remove(at: 3)
-                    }
-                    if vertices[1].position == vertices[2].position {
-                        vertices[1].normal = vertices[1].normal + vertices[2].normal // auto-normalized
-                        vertices.remove(at: 2)
-                    }
-                }
-                if !verticesAreDegenerate(vertices) {
-                    if !verticesAreCoplanar(vertices) {
-                        let vertices2 = [vertices[0], vertices[2], vertices[3]]
-                        vertices.remove(at: 3)
-                        polygons.append(Polygon(
-                            unchecked: invert ? vertices2.reversed() : vertices2,
-                            plane: nil,
-                            isConvex: true,
-                            material: material
-                        ))
-                    }
-                    polygons.append(Polygon(
-                        unchecked: invert ? vertices.reversed() : vertices,
-                        plane: nil,
-                        isConvex: nil,
-                        material: material
-                    ))
-                } else {
-                    // This is a hack to make the best of a bad edge case
-                    // TODO: find a better solution
-                    polygons += triangulateVertices(
-                        vertices,
-                        plane: nil,
-                        isConvex: nil,
-                        material: material,
-                        id: 0
-                    )
-                }
-            }
-            // TODO: create triangles for mismatched points
-            prev = path
+            loft(
+                unchecked: prev, shape,
+                uvstart: uvx0, uvend: uvx1,
+                verifiedCoplanar: verifiedCoplanar,
+                material: material,
+                into: &polygons
+            )
+            prev = shape
+            uvx0 = uvx1
         }
         if !isClosed {
             let facePolygons = prev.facePolygons(material: material)
@@ -918,73 +971,73 @@ public extension Mesh {
         }
     }
 
-    /// Fill a path to form one or more polygons
-    static func fill(
-        _ shape: Path,
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        let subpaths = shape.subpaths
-        if subpaths.count > 1 {
-            return .xor(subpaths.map { .fill($0, faces: faces, material: material) })
+    static func loft(
+        unchecked p0: Path, _ p1: Path,
+        uvstart: Double, uvend: Double,
+        verifiedCoplanar: Bool,
+        material: Material?,
+        into polygons: inout [Polygon]
+    ) {
+        let invert: Bool
+        if let p0p1 = directionBetweenShapes(p0, p1), p0p1.dot(p0.faceNormal) > 0 {
+            invert = false
+        } else {
+            invert = true
         }
-
-        let polygons = shape.closed().facePolygons(material: material)
-        switch faces {
-        case .front:
-            return Mesh(
-                unchecked: polygons,
-                bounds: nil,
-                isConvex: false
-            )
-        case .back:
-            return Mesh(
-                unchecked: polygons.map { $0.inverted() },
-                bounds: nil,
-                isConvex: false
-            )
-        case .frontAndBack, .default:
-            return Mesh(
-                unchecked: polygons + polygons.map { $0.inverted() },
-                bounds: nil,
-                isConvex: polygons.count == 1 && polygons[0].isConvex
-            )
+        let e0 = p0.edgeVertices, e1 = p1.edgeVertices
+        // TODO: better handling of case where e0 and e1 counts don't match
+        for j in stride(from: 0, to: min(e0.count, e1.count), by: 2) {
+            var vertices = [e0[j], e0[j + 1], e1[j + 1], e1[j]]
+            vertices[0].texcoord = Vector(vertices[0].texcoord.y, uvstart)
+            vertices[1].texcoord = Vector(vertices[1].texcoord.y, uvstart)
+            vertices[2].texcoord = Vector(vertices[2].texcoord.y, uvend)
+            vertices[3].texcoord = Vector(vertices[3].texcoord.y, uvend)
+            if vertices[0].position == vertices[1].position {
+                vertices.remove(at: 0)
+            } else if vertices[2].position == vertices[3].position {
+                vertices.remove(at: 3)
+            } else {
+                if vertices[0].position == vertices[3].position {
+                    vertices[0].normal = vertices[0].normal + vertices[3].normal // auto-normalized
+                    vertices.remove(at: 3)
+                }
+                if vertices[1].position == vertices[2].position {
+                    vertices[1].normal = vertices[1].normal + vertices[2].normal // auto-normalized
+                    vertices.remove(at: 2)
+                }
+            }
+            let degenerate = verifiedCoplanar ? false : verticesAreDegenerate(vertices)
+            assert(!verifiedCoplanar || !verticesAreDegenerate(vertices))
+            guard !degenerate else {
+                // This is a hack to make the best of a bad edge case
+                // TODO: find a better solution
+                polygons += triangulateVertices(
+                    vertices,
+                    plane: nil,
+                    isConvex: nil,
+                    material: material,
+                    id: 0
+                )
+                continue
+            }
+            let coplanar = verifiedCoplanar || verticesAreCoplanar(vertices)
+            assert(!verifiedCoplanar || verticesAreCoplanar(vertices))
+            if !coplanar {
+                let vertices2 = [vertices[0], vertices[2], vertices[3]]
+                vertices.remove(at: 3)
+                polygons.append(Polygon(
+                    unchecked: invert ? vertices2.reversed() : vertices2,
+                    plane: nil,
+                    isConvex: true,
+                    material: material
+                ))
+            }
+            polygons.append(Polygon(
+                unchecked: invert ? vertices.reversed() : vertices,
+                plane: nil,
+                isConvex: nil,
+                material: material
+            ))
         }
-    }
-
-    /// Stroke a path with the specified line width, depth and material
-    @available(*, deprecated, message: "Use `stroke(width:detail:)` instead")
-    static func stroke(
-        _ shape: Path,
-        width: Double,
-        depth: Double,
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        extrude(
-            .rectangle(width: width, height: depth),
-            along: shape,
-            faces: faces,
-            material: material
-        )
-    }
-
-    /// Stroke a path with the specified line width, detail and material
-    static func stroke(
-        _ shape: Path,
-        width: Double = 0.01,
-        detail: Int = 2,
-        material: Material? = nil
-    ) -> Mesh {
-        let path: Path
-        let radius = width / 2
-        switch detail {
-        case 1, 2:
-            path = .line(Vector(-radius, 0), Vector(radius, 0))
-        case let sides:
-            path = .circle(radius: radius, segments: sides)
-        }
-        let faces: Faces = detail == 2 ? .frontAndBack : .front
-        return extrude(path, along: shape, faces: faces, material: material)
     }
 }

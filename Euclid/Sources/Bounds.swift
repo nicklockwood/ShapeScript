@@ -103,15 +103,15 @@ public extension Bounds {
     }
 
     var isEmpty: Bool {
-        max.x < min.x || max.y < min.y || max.z < min.z
+        size == .zero
     }
 
     var size: Vector {
-        isEmpty ? .zero : max - min
+        hasNegativeVolume ? .zero : max - min
     }
 
     var center: Vector {
-        isEmpty ? .zero : min + size / 2
+        hasNegativeVolume ? .zero : min + size / 2
     }
 
     var corners: [Vector] {
@@ -139,11 +139,19 @@ public extension Bounds {
         )
     }
 
+    mutating func formUnion(_ other: Bounds) {
+        self = union(other)
+    }
+
     func intersection(_ other: Bounds) -> Bounds {
         Bounds(
             min: Euclid.max(min, other.min),
             max: Euclid.min(max, other.max)
         )
+    }
+
+    mutating func formIntersection(_ other: Bounds) {
+        self = intersection(other)
     }
 
     func intersects(_ other: Bounds) -> Bool {
@@ -166,6 +174,10 @@ public extension Bounds {
 }
 
 extension Bounds {
+    var hasNegativeVolume: Bool {
+        max.x < min.x || max.y < min.y || max.z < min.z
+    }
+
     // Approximate equality
     func isEqual(to other: Bounds, withPrecision p: Double = epsilon) -> Bool {
         min.isEqual(to: other.min, withPrecision: p) &&

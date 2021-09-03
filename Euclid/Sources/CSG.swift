@@ -60,19 +60,19 @@ public extension Mesh {
                 isConvex: false
             )
         }
-        var aout: [Polygon]? = [], bout: [Polygon]? = []
+        var out: [Polygon]? = []
         let ap = BSP(mesh, isCancelled).clip(
-            boundsTest(intersection, polygons, &aout),
+            boundsTest(intersection, polygons, &out),
             .greaterThan,
             isCancelled
         )
         let bp = BSP(self, isCancelled).clip(
-            boundsTest(intersection, mesh.polygons, &bout),
+            boundsTest(intersection, mesh.polygons, &out),
             .greaterThanEqual,
             isCancelled
         )
         return Mesh(
-            unchecked: aout! + bout! + ap + bp,
+            unchecked: out! + ap + bp,
             bounds: bounds.union(mesh.bounds),
             isConvex: false
         )
@@ -369,14 +369,13 @@ private extension Mesh {
         using fn: (Mesh, Mesh, CancellationHandler) -> Mesh,
         _ isCancelled: @escaping CancellationHandler
     ) -> Mesh {
-        var mesh = Mesh([])
         var meshes = meshes
         var i = 0
         while i < meshes.count {
-            mesh = mesh.merge(reduce(&meshes, at: i, using: fn, isCancelled))
+            _ = reduce(&meshes, at: i, using: fn, isCancelled)
             i += 1
         }
-        return mesh
+        return .merge(meshes)
     }
 
     // Merge each intersecting mesh after i into the mesh at index i using fn
