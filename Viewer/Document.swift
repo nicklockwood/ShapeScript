@@ -43,7 +43,7 @@ class Document: NSDocument, EvaluationDelegate {
         return nil
     }
 
-    weak var progress: LoadingProgress? {
+    var progress: LoadingProgress? {
         didSet {
             updateViews()
         }
@@ -53,7 +53,7 @@ class Document: NSDocument, EvaluationDelegate {
     var accessErrorURL: URL?
 
     func rerender() {
-        if let progress = progress {
+        if let progress = progress, progress.inProgress {
             if let fileURL = fileURL {
                 progress.cancel()
                 try? read(from: fileURL, ofType: "")
@@ -117,7 +117,7 @@ class Document: NSDocument, EvaluationDelegate {
             progress.cancel()
         }
         let showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
-        let progress = LoadingProgress(
+        progress = LoadingProgress(
             observer: { [weak self] status in
                 guard let self = self else {
                     return
@@ -208,7 +208,6 @@ class Document: NSDocument, EvaluationDelegate {
                 Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
             }
         )
-        self.progress = progress
     }
 
     private var _modified: TimeInterval = 0
