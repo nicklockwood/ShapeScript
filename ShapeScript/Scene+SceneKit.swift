@@ -59,16 +59,7 @@ private extension SCNGeometry {
 
 public extension SCNNode {
     convenience init(_ geometry: Geometry) {
-        if geometry.transform.isFlipped, let mesh = geometry.mesh {
-            // TODO: less hacky solution than regenerating geometry at render time
-            // possibly something like flipping SCNMaterial.cullMode ?
-            // TODO: this doesn't take cumulative transform into account, so it won't
-            // work correctly if the parent node is flipped
-            let mesh = mesh.scaleCorrected(for: geometry.transform.scale)
-            self.init(geometry: SCNGeometry(mesh: mesh, for: geometry))
-        } else {
-            self.init(geometry: geometry.scnGeometry)
-        }
+        self.init(geometry: geometry.scnGeometry)
         setTransform(geometry.transform)
         name = geometry.name
 
