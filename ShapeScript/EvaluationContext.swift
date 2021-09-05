@@ -28,7 +28,7 @@ final class EvaluationContext {
 
     private weak var delegate: EvaluationDelegate?
     private var symbols = Symbols.root
-    private var userSymbols = Symbols()
+    var userSymbols = Symbols()
     private let importCache: ImportCache
     private(set) var baseURL: URL?
     let isCancelled: () -> Bool

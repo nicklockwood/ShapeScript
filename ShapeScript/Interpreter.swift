@@ -678,10 +678,17 @@ extension Definition {
             }
             let source = context.source
             let baseURL = context.baseURL
-            return .block(.custom(nil, options)) { context in
+            return .block(.custom(nil, options)) { _context in
                 do {
                     let context = context.pushDefinition()
-                    context.source = source
+                    for (name, symbol) in _context.userSymbols {
+                        context.define(name, as: symbol)
+                    }
+                    context.children += _context.children
+                    context.name = _context.name
+                    context.transform = _context.transform
+                    context.opacity = _context.opacity
+                    context.detail = _context.detail
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
                             if context.symbol(for: identifier.name) == nil {
@@ -842,6 +849,7 @@ extension Statement {
                     }
                     try RuntimeError.wrap({
                         let childContext = context.push(type)
+                        childContext.userSymbols.removeAll()
                         try children.forEach(childContext.addValue)
                         try context.addValue(fn(childContext))
                     }(), at: range)
@@ -851,7 +859,9 @@ extension Statement {
                         at: range
                     )
                 } else {
-                    try RuntimeError.wrap(context.addValue(fn(context.push(type))), at: range)
+                    let childContext = context.push(type)
+                    childContext.userSymbols.removeAll()
+                    try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
                 }
             case let .constant(v):
                 try RuntimeError.wrap(context.addValue(v), at: range)

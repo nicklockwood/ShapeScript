@@ -287,6 +287,61 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Block scope
+
+    func testLocalSymbolsNotPassedToCommand() {
+        let program = """
+        define foo {
+            print baz
+        }
+        define bar {
+            define baz 5
+            foo
+        }
+        bar
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, program.range(of: "baz"))
+            guard case .unknownSymbol("baz", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testOptionsPassedToCommand() {
+        let program = """
+        define foo {
+            option baz 0
+            print baz
+        }
+        define bar {
+            foo { baz 5 }
+        }
+        bar
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
+    func testGlobalSymbolsAvailablesToCommand() {
+        let program = """
+        define baz 5
+        define foo {
+            print baz
+        }
+        define bar {
+            foo
+        }
+        bar
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     // MARK: Position
 
     func testCumulativePosition() throws {
