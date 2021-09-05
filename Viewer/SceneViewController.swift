@@ -125,9 +125,8 @@ class SceneViewController: NSViewController {
             // add axes
             let bounds = viewBounds
             let size = bounds.size
-            let scale = max(size.x, size.y, size.z, 1)
             if showAxes {
-                let axes = Axes(scale: scale / 2, background: background)
+                let axes = Axes(scale: size.x / 2, background: background)
                 scnScene.rootNode.addChildNode(SCNNode(axes))
             }
 
@@ -146,8 +145,8 @@ class SceneViewController: NSViewController {
 
             // update camera
             let center = bounds.center
-            let distance = scale * 1.2 + cameraNode.camera!.zNear
-            cameraNode.position = SCNVector3(center.x, center.y, distance)
+            let distance = showAxes ? size.z * 1.1 : max(size.x * 0.75, size.y) + bounds.max.z
+            cameraNode.position = SCNVector3(center.x, center.y, center.z + distance)
             scnView.allowsCameraControl = true
             scnView.defaultCameraController.target = SCNVector3(center)
             refreshView()
@@ -164,7 +163,8 @@ class SceneViewController: NSViewController {
         guard showAxes else {
             return bounds
         }
-        let m = max(-bounds.min, bounds.max) + Vector(size: [0.1])
+        var m = max(-bounds.min, bounds.max) * 1.1
+        m = Vector(size: [max(m.x, m.y, m.z)])
         return Bounds(min: -m, max: m)
     }
 
