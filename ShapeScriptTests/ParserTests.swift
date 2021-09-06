@@ -388,4 +388,18 @@ class ParserTests: XCTestCase {
             )))
         }
     }
+
+    func testForLoopWithMissingClosingBrace() {
+        let input = "for 1 to 10 {"
+        let range = input.endIndex ..< input.endIndex
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected closing brace.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: range),
+                expected: "closing brace"
+            )))
+        }
+    }
 }

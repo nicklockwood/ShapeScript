@@ -191,7 +191,7 @@ private extension ArraySlice where Element == Token {
         }
         let statements = try readStatements()
         let end = nextToken
-        try requireToken(.rbrace, as: nil)
+        try requireToken(.rbrace)
         let range = start.nextToken.range.lowerBound ..< end.range.upperBound
         return Block(statements: statements, range: range)
     }
