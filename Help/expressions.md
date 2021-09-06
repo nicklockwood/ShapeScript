@@ -26,7 +26,7 @@ Operator precedence follows the standard [BODMAS](https://en.wikipedia.org/wiki/
 (5 + 3) * 4
 ```
 
-Because spaces are used as delimiters in [vector literals](literals.md), you need to take care with the spacing around operators to avoid ambiguity. Specifically, unary + and - must not have a space after them, and ordinary infix operators should have balanced space around them.
+Because spaces are used as delimiters in [vector literals](literals.md#vectors-and-tuples), you need to take care with the spacing around operators to avoid ambiguity. Specifically, unary + and - must not have a space after them, and ordinary infix operators should have balanced space around them.
 
 For example, these expressions would both evaluate to a single number with the value 4:
 
@@ -61,6 +61,8 @@ define color 1 0.5 0.2
 define averageColor (color.red + color.green + color.blue) / 3
 print averageColor // 0.5667
 ```
+
+For more information about the members that can be accessed on various data types, see [structured data](literals.md#structured-data).
 
 
 ## Ranges

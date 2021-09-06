@@ -7,7 +7,7 @@ Every shape has a position, orientation and size. These can be set in *absolute*
 
 When you define a shape in ShapeScript, it is created at the *point of origin*. By default, this is the zero position of the X, Y and Z axes within the current [scope](scope.md), but this can be overridden using the `position` option.
 
-The `position` option accepts a vector of up to 3 values representing a coordinate along the X Y and Z axes. If values are omitted they are assumed to be zero. The default `position` of every shape is `0 0 0`, which is located at the *origin*, aka the center of the world.
+The `position` option accepts a [vector](literals.md#vectors-and-tuples) of up to 3 values representing a coordinate along the X Y and Z axes. If values are omitted they are assumed to be zero. The default `position` of every shape is `0 0 0`, which is located at the *origin*, aka the center of the world.
 
 Positive `position` values move the shape right, up, and towards the camera respectively. Negative values move it left, down and away from the camera:
 

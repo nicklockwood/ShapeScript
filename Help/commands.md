@@ -1,7 +1,7 @@
 Commands
 ---
 
-Like [options](options.md), and [functions](functions.md), commands in ShapeScript are denoted by a keyword followed by zero or more values or expressions. Different commands accept different value types, but typically these will be a number, vector, text or a [block](blocks.md).
+Like [options](options.md), and [functions](functions.md), commands in ShapeScript are denoted by a keyword followed by zero or more values or expressions. Different commands accept different value types, but typically these will be a number, vector, text or [block](blocks.md).
 
 ```swift
 detail 5 // a numeric argument

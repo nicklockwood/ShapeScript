@@ -20,7 +20,7 @@ path {
 
 ![Line](images/line.png)
 
-In the above example we used the `point` command, which accepts a vector value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
+In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
 
 Paths can be open or closed (meaning that the points form an unbroken loop). To create a closed path, the first and last point should have the same position.
 
