@@ -1613,4 +1613,14 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [0.22])
     }
+
+    func testMemberChaining() {
+        let program = """
+        define a (1 2 3) (4 5 6)
+        print a.second.y
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
 }

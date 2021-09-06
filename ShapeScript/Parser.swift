@@ -290,16 +290,16 @@ private extension ArraySlice where Element == Token {
             self = start
             return nil
         }
-        let expression = Expression(type: type, range: range)
-        guard case .dot = nextToken.type else {
-            return expression
+        var expression = Expression(type: type, range: range)
+        while case .dot = nextToken.type {
+            removeFirst()
+            let rhs = try require(readIdentifier(), as: "member name")
+            expression = Expression(
+                type: .member(expression, rhs),
+                range: range.lowerBound ..< rhs.range.upperBound
+            )
         }
-        removeFirst()
-        let rhs = try require(readIdentifier(), as: "member name")
-        return Expression(
-            type: .member(expression, rhs),
-            range: range.lowerBound ..< rhs.range.upperBound
-        )
+        return expression
     }
 
     mutating func readTerm() throws -> Expression? {
