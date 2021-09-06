@@ -74,7 +74,38 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    // MARK: Multiline expressions
+    func testUnterminatedInfixExpression() {
+        let input = "define foo 1 +"
+        let range = input.endIndex ..< input.endIndex
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected operand.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: range),
+                expected: "operand"
+            )))
+        }
+    }
+
+    func testInfixExpressionSplitOverTwoLines() {
+        let input = """
+        define foo 1 +
+            bar
+        """
+        let range = input.range(of: "\n")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of line")
+            XCTAssertEqual(error?.hint, "Expected operand.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .linebreak, range: range),
+                expected: "operand"
+            )))
+        }
+    }
+
+    // MARK: Parentheses
 
     func testMultilineParentheses() {
         let input = """
@@ -85,6 +116,91 @@ class ParserTests: XCTestCase {
         )
         """
         XCTAssertNoThrow(try parse(input))
+    }
+
+    func testUnterminatedParenthesis() {
+        let input = "define foo (1 2 3"
+        let range = input.endIndex ..< input.endIndex
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected closing paren.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: range),
+                expected: "closing paren"
+            )))
+        }
+    }
+
+    func testUnterminatedParenthesisFollowedByForOnSameLine() {
+        let input = "define foo ( for 1 to 10 {}"
+        let range = input.range(of: "for")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
+            XCTAssertEqual(error?.hint, "Expected expression.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .keyword(.for), range: range),
+                expected: "expression"
+            )))
+        }
+    }
+
+    func testUnterminatedParenthesisFollowedByForOnNextLine() {
+        let input = """
+        define foo (1 2 3
+        for i in foo {}
+        """
+        let range = input.range(of: "for")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
+            XCTAssertEqual(error?.hint, "Expected closing paren.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .keyword(.for), range: range),
+                expected: "closing paren"
+            )))
+        }
+    }
+
+    func testUnterminatedMultilineParenthesisFollowedByForOnNextLine() {
+        let input = """
+        define foo (
+            1 2 3
+            4 5 6
+        for i in foo {}
+        """
+        let range = input.range(of: "for")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
+            XCTAssertEqual(error?.hint, "Expected closing paren.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .keyword(.for), range: range),
+                expected: "closing paren"
+            )))
+        }
+    }
+
+    func testUnterminatedMultilineParenthesisFollowedByBlock() {
+        let input = """
+        define foo (
+            1 2 3
+            4 5 6
+        cube {
+            size 1
+        }
+        """
+        let range = input.endIndex ..< input.endIndex
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected end of file")
+            XCTAssertEqual(error?.hint, "Expected closing paren.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .eof, range: range),
+                expected: "closing paren"
+            )))
+        }
     }
 
     // MARK: Ranges
