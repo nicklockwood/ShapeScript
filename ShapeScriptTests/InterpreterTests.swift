@@ -1520,6 +1520,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 2 3 4 5).red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'red'")
             guard case .unknownMember("red", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
@@ -1531,6 +1532,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (\"foo\" \"bar\").red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'red'")
             guard case .unknownMember("red", of: "tuple", _)? = error?.type else {
                 XCTFail()
                 return
@@ -1542,6 +1544,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 2).foo"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'foo'")
             guard case .unknownMember("foo", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
@@ -1553,11 +1556,51 @@ class InterpreterTests: XCTestCase {
         let program = "color 1 0.5\nprint color.width"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown color member property 'width'")
             guard case .unknownMember("width", of: "color", _)? = error?.type else {
                 XCTFail()
                 return
             }
         }
+    }
+
+    func testTupleOrdinalLookup() {
+        let program = "define col 1 0.5\nprint col.second"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.5])
+    }
+
+    func testTupleOrdinalOutOfBoundsLookup() {
+        let program = "define col 1 0.5\nprint col.third"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'third'")
+            guard case .unknownMember("third", of: "tuple", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testTupleVeryHighOrdinalLookups() {
+        let numbers = (1 ... 99).map { $0.description }.joined(separator: " ")
+        let program = """
+        define foo \(numbers)
+        print foo.tenth
+        print foo.nineteenth
+        print foo.twentythird
+        print foo.thirtyninth
+        print foo.fortyseventh
+        print foo.fiftythird
+        print foo.sixtyeighth
+        print foo.seventyfirst
+        print foo.eightysixth
+        print foo.ninetysecond
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [10, 19, 23, 39, 47, 53, 68, 71, 86, 92])
     }
 
     func testMemberPrecedence() {

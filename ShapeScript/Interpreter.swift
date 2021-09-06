@@ -445,12 +445,12 @@ enum Value {
         case .color:
             return ["red", "green", "blue", "alpha"]
         case let .tuple(values):
+            var members = Array(ordinalMembers.prefix(values.count))
             guard values.allSatisfy({ $0.type == .number }) else {
-                return []
+                return members
             }
-            var members = [String]()
             if values.count < 5 {
-                members = ["red", "green", "blue", "alpha"]
+                members += ["red", "green", "blue", "alpha"]
                 if values.count < 4 {
                     members += ["x", "y", "z", "width", "height", "depth"]
                 }
@@ -488,6 +488,9 @@ enum Value {
             default: return nil
             }
         case let .tuple(values):
+            if let index = ordinalMembers.firstIndex(of: name) {
+                return index < values.count ? values[index] : nil
+            }
             guard values.allSatisfy({ $0.type == .number }) else {
                 return nil
             }
@@ -514,6 +517,27 @@ enum Value {
         }
     }
 }
+
+private let ordinalMembers: [String] = {
+    let ordinalsToNinth = [
+        "first", "second", "third", "fourth", "fifth",
+        "sixth", "seventh", "eighth", "ninth",
+    ]
+    var result = ordinalsToNinth + [
+        "tenth",
+        "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth",
+        "sixteenth", "seventeenth", "eighteenth", "nineteenth",
+    ]
+    result += ["twentieth"] + ordinalsToNinth.map { "twenty\($0)" }
+    result += ["thirtieth"] + ordinalsToNinth.map { "thirty\($0)" }
+    result += ["fortieth"] + ordinalsToNinth.map { "forty\($0)" }
+    result += ["fiftieth"] + ordinalsToNinth.map { "fifty\($0)" }
+    result += ["sixtieth"] + ordinalsToNinth.map { "sixty\($0)" }
+    result += ["seventieth"] + ordinalsToNinth.map { "seventy\($0)" }
+    result += ["eightieth"] + ordinalsToNinth.map { "eighty\($0)" }
+    result += ["ninetieth"] + ordinalsToNinth.map { "ninety\($0)" }
+    return result
+}()
 
 struct RangeValue: Hashable, Sequence {
     var start, end, step: Double
