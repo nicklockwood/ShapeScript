@@ -1,3 +1,20 @@
+## [1.3.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.1) (2021-09-07)
+
+- Disabled axes by default and added instructions for enabling to help
+- Added ordinal members for accessing arbitrary tuple elements
+- Fixed rendering bug when using negative scale values
+- Fixed bug where functions were able to access local variables of the caller
+- Fixed dot operator (member lookup) chaining
+- Added documentation for tuples and structured data access
+- Bumped Euclid to 0.5.11, which includes several performance optimizations
+- Fixed issue where console would not clear correctly when reloading
+- Fixed hint message when missing closing brace
+- Added `colour` and `grey` as aliases for `color` and `gray`
+- Made stroke line width proportional to the scene size
+- Improved logic for default camera zoom level
+- Increase antialiasing quality in viewer
+- Updated screenshots and fixed bugs in help examples
+
 ## [1.3.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.0) (2021-08-31)
 
 - Added new standalone range expression with optional `step` value
