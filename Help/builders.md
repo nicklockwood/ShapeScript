@@ -123,17 +123,21 @@ For example, the following code produces a prism equivalent to the extrusion exa
 ```swift
 loft {
     // triangle 1
-    for 0 to 3 {
-        point 0 1
-        rotate 2 / 3
+    path {
+        for 0 to 3 {
+            point 0 1
+            rotate 2 / 3
+        }
     }
-    
+
     translate 0 0 2
-    
+
     // triangle 2
-    for 0 to 3 {
-        point 0 1
-        rotate 2 / 3
+    path {
+        for 0 to 3 {
+            point 0 1
+            rotate 2 / 3
+        }
     }
 }
 ```
@@ -146,7 +150,7 @@ define radius 1 // radius of ring
 
 loft {
     for 0 to steps {
-        circle { scale 0.25 }
+        circle { size 0.25 }
         rotate 0 0 -1/steps
         translate 0 0 (2 * pi * radius / steps)
         rotate 0 0 -1/steps
@@ -168,6 +172,7 @@ loft {
         point 0.5 -1
         point 1 0
         point 0.5 1
+        point -0.5 1
     }
     
     translate 0 0 2
@@ -180,13 +185,14 @@ loft {
         point 1 -1
         point 1 0
         point 1 1
+        point -1 1
     }
 }
 ```
 
 ![Hexacube](images/hexacube.png)
 
-You may notice that in the code above, the square face is defined using six points instead of four. In order to interpolate smoothly, it is important that all cross-sections have the same number of points. This may mean adding redundant points in some cases.
+You may notice that in the code above, the square face is defined using six points instead of four (well, seven actually, but the last point just closes the loop). In order to interpolate smoothly, it is important that all cross-sections have the same number of points. This may mean adding redundant points in some cases.
 
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)
