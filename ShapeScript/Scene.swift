@@ -29,6 +29,10 @@ public final class Scene {
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
+    var bounds: Bounds {
+        children.reduce(into: .empty) { $0.formUnion($1.bounds) }
+    }
+
     func build(_ callback: @escaping () -> Bool) -> Bool {
         for geometry in children where !geometry.build(callback) {
             return false

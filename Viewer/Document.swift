@@ -104,6 +104,8 @@ class Document: NSDocument, EvaluationDelegate {
     private static func outputOptions(for scene: Scene, wireframe: Bool) -> Scene.OutputOptions {
         var options = Scene.OutputOptions.default
         let color = Color(.underPageBackgroundColor)
+        let size = scene.bounds.size
+        options.lineWidth = 0.006 * max(size.x, size.y, size.z)
         options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
         options.wireframe = wireframe
         return options
