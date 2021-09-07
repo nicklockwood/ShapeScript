@@ -9,7 +9,7 @@ There are four basic types of CSG command in ShapeScript:
 
 The `difference` command takes 2 or more child meshes and subtracts them from one another. In this example, a green-colored cylinder is subtracted from a red cone:
 
-```
+```swift
 difference {
     cone {
         color 1 0 0
@@ -57,7 +57,7 @@ The model on the left is using a `group`, and the inner surface of the cylinder 
 
 The `xor` command (short for *Exclusive-OR*) combines its child objects using the [even-odd rule](https://en.wikipedia.org/wiki/Even–odd_rule). For example, two overlapping cylinders will produce an eye-shaped hole where the volumes intersect:
 
-```
+```swift
 xor {
     cylinder {
         color 1 0 0
@@ -77,7 +77,7 @@ The `stencil` command retains the shape of its first child, but "paints" the int
 
 In the following example, a red ball has been stenciled with the pattern of a green square:
 
-```
+```swift
 stencil {
     // ball
     sphere { color 1 0 0 }

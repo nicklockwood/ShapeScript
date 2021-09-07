@@ -11,7 +11,7 @@ An option is denoted by a name followed by one or more values or expressions ins
 cube {
     detail 5 // a numeric value
     position 1 0 -1 // a vector value
-    texture "world.png" // a text value
+    texture "Earth.png" // a text value
 }
 ```
 
@@ -37,10 +37,9 @@ As discussed in the [getting started](getting-started.md) and [primitives](primi
 ShapeScript allows you to configure that detail setting using the `detail` command:
 
 ```swift
-sphere {
-    detail 32
-}
+sphere { detail 32 }
 ```
+
 Unlike `name`, `detail` is not actually an option, but a global command. You can change detail level at any point within your ShapeScript file, and it will affect all shapes defined subsequently up to the end of the current [scope](scope.md).
 
 The detail level can be overridden hierarchically, so a `detail` command inside a shape will take precedence over a `detail` command in its containing scope:

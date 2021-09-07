@@ -72,7 +72,7 @@ path {
 
 If multiple `curve` commands (control points) are used in sequence, an end-point will be interpolated at the mid-point between them. This allows you to easily create complex curves such as an "S" shape.
 
-You can also create closed paths entirely using `curve` points. Eight `curve` points arranged in an octagon can closely approximate a circle (the 9th point is just a duplicate of the first, to close the path):
+You can also create closed paths entirely using `curve` points. Eight `curve` points arranged in an octagon can closely approximate a circle (the ninth point is just a duplicate of the first, to close the path):
 
 ```swift
 path {
@@ -88,7 +88,7 @@ path {
 }
 ```
 
-![Circle](images/circle.png)
+![Circle](images/octocircle.png)
 
 ## Circles
 

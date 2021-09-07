@@ -9,12 +9,10 @@ Comments can be used to document individual lines of code, or whole blocks. For 
 color 1 0 0 // red
 
 // this code draws a triangle
-fill {
-    path {
-        for 0 to 3 {
-            point 0 1
-            rotate 2 / 3
-        }
+fill path {
+    for 0 to 3 {
+        point 0 1
+        rotate 2 / 3
     }
 }
 ```

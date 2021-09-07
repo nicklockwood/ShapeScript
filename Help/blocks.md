@@ -24,9 +24,7 @@ define star {
 You can call it by simply referencing its name, like this:
 
 ```swift
-fill {
-    star
-}
+star
 ```
 
 ![Star](images/star.png)
@@ -74,11 +72,9 @@ define star {
 Now we can use those options to create a star with 6 points if we choose:
 
 ```swift
-fill {
-    star {
-        points 6
-        radius 2
-    }
+star {
+    points 6
+    radius 2
 }
 ```
 
