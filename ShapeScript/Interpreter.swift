@@ -855,7 +855,17 @@ extension Statement {
             case let .block(type, fn):
                 context.sourceIndex = range.lowerBound
                 if let parameter = parameter {
-                    let child = try parameter.evaluate(in: context)
+                    func unwrap(_ value: Value) -> Value {
+                        if case let .tuple(values) = value {
+                            if values.count == 1 {
+                                return unwrap(values[0])
+                            }
+                            return .tuple(values.map(unwrap))
+                        } else {
+                            return value
+                        }
+                    }
+                    let child = try unwrap(parameter.evaluate(in: context))
                     // TODO: find better solution
                     let children: [Value]
                     if case let .tuple(values) = child {
@@ -1050,8 +1060,7 @@ extension Expression {
                 )
             }
         case let .tuple(expressions):
-            let values = try evaluateParameters(expressions, in: context)
-            return values.count == 1 ? values[0] : .tuple(values)
+            return try .tuple(evaluateParameters(expressions, in: context))
         case let .prefix(op, expression):
             let value = try expression.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
             switch op {
@@ -1112,10 +1121,19 @@ extension Expression {
         if case let .tuple(expressions) = self.type {
             parameters = expressions
         }
-        let values = try evaluateParameters(parameters, in: context)
+        func unwrap(_ value: Value) -> Value {
+            if case let .tuple(values) = value {
+                if values.count == 1 {
+                    return unwrap(values[0])
+                }
+                return .tuple(values.map(unwrap))
+            } else {
+                return value
+            }
+        }
+        let values = try evaluateParameters(parameters, in: context).map(unwrap)
         assert(values.count <= parameters.count)
         func numerify(max: Int, min: Int) throws -> [Double] {
-            var values = values
             if parameters.count > max {
                 throw RuntimeError(.unexpectedArgument(for: name, max: max), at: parameters[max].range)
             } else if parameters.count < min {
@@ -1125,6 +1143,7 @@ extension Expression {
                     at: upperBound ..< upperBound
                 )
             }
+            var values = values
             if values.count == 1, case let .tuple(elements) = values[0] {
                 if elements.count > max {
                     let range: SourceRange

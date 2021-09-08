@@ -118,6 +118,11 @@ class ParserTests: XCTestCase {
         XCTAssertNoThrow(try parse(input))
     }
 
+    func testEmptyTuple() {
+        let input = "define void ()"
+        XCTAssertNoThrow(try parse(input))
+    }
+
     func testUnterminatedParenthesis() {
         let input = "define foo (1 2 3"
         let range = input.endIndex ..< input.endIndex

@@ -1270,6 +1270,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3, 1, 4, 1, 5])
     }
 
+    func testForLoopWithSingleElementTuple() {
+        let program = "for i in (5) { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
+    func testForLoopWithEmptyTuple() {
+        let program = "for i in () { print i }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
     func testForLoopWithNonNumericTuple() {
         let program = "for i in (\"hello\" \"world\") { print i }"
         let delegate = TestDelegate()

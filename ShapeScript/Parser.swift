@@ -247,11 +247,23 @@ private extension ArraySlice where Element == Token {
         switch token.type {
         case .lparen:
             _ = readToken(.linebreak)
-            let expression = try require(readExpressions(allowLinebreaks: true), as: "expression")
-            let endToken = nextToken
-            try requireToken(.rparen)
-            range = range.lowerBound ..< endToken.range.upperBound
-            type = .subexpression(expression)
+            let expression = try readExpressions(allowLinebreaks: true) ??
+                Expression(
+                    type: .tuple([]),
+                    range: range.upperBound ..< nextToken.range.lowerBound
+                )
+            range = range.lowerBound ..< nextToken.range.upperBound
+            try requireToken(.rparen, as: expression.type == .tuple([]) ?
+                "expression" : TokenType.rparen.errorDescription)
+            switch expression.type {
+            case .tuple:
+                type = .subexpression(expression)
+            default:
+                type = .subexpression(Expression(
+                    type: .tuple([expression]),
+                    range: expression.range
+                ))
+            }
         case let .prefix(op):
             let operand = try require(readOperand(), as: "operand")
             range = range.lowerBound ..< operand.range.upperBound
