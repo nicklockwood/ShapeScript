@@ -73,6 +73,9 @@ class MetadataTests: XCTestCase {
                 var url = text.substring(with: match.range(at: 1))
                 var fragment = ""
                 let parts = url.components(separatedBy: "#")
+                guard !url.hasPrefix("http") else {
+                    continue
+                }
                 if parts.count == 2 {
                     url = parts[0]
                     fragment = parts[1]
@@ -80,21 +83,21 @@ class MetadataTests: XCTestCase {
                         url = fileURL.path
                     }
                 }
-                if !url.hasPrefix("http") {
-                    let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpDirectory)
-                    if !FileManager.default.fileExists(atPath: absoluteURL.path) {
-                        XCTFail("\(url) referenced in \(file) does not exist")
-                    }
-                    if !fragment.isEmpty {
-                        let text = try XCTUnwrap(String(contentsOf: absoluteURL))
-                        let title = "## \(fragment.replacingOccurrences(of: "-", with: " "))"
-                        if text.range(of: title, options: [.regularExpression, .caseInsensitive]) == nil {
-                            if !url.hasSuffix(file) {
-                                XCTFail("anchor \(url)#\(fragment) referenced in \(file) does not exist")
-                            } else {
-                                XCTFail("anchor #\(fragment) referenced in \(file) does not exist")
-                            }
-                        }
+                let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpDirectory)
+                guard FileManager.default.fileExists(atPath: absoluteURL.path) else {
+                    XCTFail("\(url) referenced in \(file) does not exist")
+                    continue
+                }
+                guard !fragment.isEmpty else {
+                    continue
+                }
+                let text = try XCTUnwrap(String(contentsOf: absoluteURL))
+                let title = "## \(fragment.replacingOccurrences(of: "-", with: " "))"
+                if text.range(of: title, options: [.regularExpression, .caseInsensitive]) == nil {
+                    if !url.hasSuffix(file) {
+                        XCTFail("anchor \(url)#\(fragment) referenced in \(file) does not exist")
+                    } else {
+                        XCTFail("anchor #\(fragment) referenced in \(file) does not exist")
                     }
                 }
             }
