@@ -42,26 +42,26 @@ Because `\` is used as the escape character, it must also be escaped if you want
 
 ## Vectors and Tuples
 
-A sequence of values separated by spaces defines a vector or [tuple](https://en.wikipedia.org/wiki/Tuple). Many [commands](https://github.com/nicklockwood/ShapeScript/blob/develop/Help/commands.md) in ShapeScript accept a vector argument, and you can pass a vector literal to these commands directly:
+A sequence of values separated by spaces defines a [tuple](https://en.wikipedia.org/wiki/Tuple). Many [commands](https://github.com/nicklockwood/ShapeScript/blob/develop/Help/commands.md) in ShapeScript accept a vector argument, and you can pass a tuple to these commands directly:
 
 ```swift
 translate 1 0 0
 ```
 
-But you can also [define](symbols.md) a vector value to use later:
+But you can also [define](symbols.md) a tuple value to use later:
 
 ```swift
-define size 1 0 0
+define size 1 1 0.5
 ```
 
-A vector defined in this way doesn't have an explicit type - it's just a sequence of numbers. We might guess from the name "size" that it will be used to set the size of something, but there's nothing preventing you from using it as, say, a [color](materials.md#color) value:
+A tuple defined in this way doesn't know if it's going to be used as a vector - it's just a sequence of numbers. We might guess from the name "size" that it will be used to set the size of something, but there's nothing preventing you from using it as, say, a [color](materials.md#color) value:
 
 ```swift
-define size 1 0 0
-color size // sets color to red
+define size 1 1 0.5
+color size // sets color to yellow
 ```
 
-Untyped vectors like this are called *tuples*. Tuples can be comprised of any type of value, or a mix of different types, including other tuples:
+Tuples are't limited to numbers, they can be comprised of any type of value (including other tuples), or a mix of different types:
 
 ```swift
 define size 1 2 3
@@ -76,7 +76,7 @@ As well as simple values like numbers and strings, it can sometimes be useful to
 define matrix (1 2 3) (4 5 6) (7 8 9)
 ```
 
-Parentheses are used here to indicate that this is a tuple of three nested tuples, and not just a single tuple of nine numbers. To make this more readable, you can split the data over multiple lines inside outer parentheses, and even use [comments](comments.md) if you wish:
+Parentheses are used here to indicate that this is a tuple of three nested tuples, and not a single tuple of nine numbers. To make this more readable, you can wrap the data over multiple lines inside outer parentheses, and even use [comments](comments.md) if you wish:
 
 ```swift
 define matrix (
@@ -86,21 +86,28 @@ define matrix (
 )
 ```
 
-**Note:** The line breaks have no semantic meaning here, they only serve to make the code more readable. Only the parentheses are relevant in determining the grouping.
+**Note:** The line breaks have no semantic meaning here, they only serve to make the code more readable. Only the parentheses are used to determine the grouping.
 
 Since no built-in commands in ShapeScript consume structured data like this, you need a way to access individual elements. You can do this in two ways:
 
-To extract individual values from a tuple, you can use [member syntax](expressions.md#members). If the tuple is shaped like a vector, size or color then you can use the `x`/`y`/`z` or `red`/`green`/`blue`/`alpha` members:
+To extract individual values from a tuple, you can use [member syntax](expressions.md#members). If the tuple is numeric and shaped like a vector, size or color then you can use the `x`/`y`/`z`, `width`/`height`/`depth`, or `red`/`green`/`blue`/`alpha` members respectively:
 
 ```swift
-define pos 1 2 0
+define pos 1 2
+print pos.x // 1
 print pos.y // 2
+print pos.z // 0
 
 define size 3 4 5
+print size.width // 3
+print size.height // 4
 print size.depth // 5
 
 define col 1 0 0
 print col.red // 1
+print col.green // 0
+print col.blue // 0
+print col.alpha // 1
 ```
 
 For more abstract data, you can use the ordinal members (`first`, `second`, `third`, etc.) to access members by index:
@@ -120,7 +127,7 @@ print data.third // color
 Member expressions can be chained, so something like this will also work:
 
 ```swift
-print matrix.second.x // x component of the position
+print data.second.x // x component of the position
 ```
 
 For list-like data, you can use a [for loop](loops.md#looping-over-values) to loop over the top-level values:
@@ -151,6 +158,23 @@ define matrix (
 for row in matrix {
     for column in row {
         print column // prints 1 to 9
+    }
+}
+```
+
+**Note:** There is no requirement that rows in such a structure are the same type or length:
+
+```swift
+define data (
+    (1 2 3)
+    (10) // single element
+    () // empty tuple
+    ("hello" "world") // non-numeric
+)
+
+for row in data {
+    for element in row {
+        print element // prints 1, 2, 3, 10, "hello", "world"
     }
 }
 ```
