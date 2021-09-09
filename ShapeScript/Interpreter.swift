@@ -446,6 +446,9 @@ enum Value {
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
             guard values.allSatisfy({ $0.type == .number }) else {
+                if values.count == 1 {
+                    members += values[0].members
+                }
                 return members
             }
             if values.count < 5 {
@@ -491,6 +494,9 @@ enum Value {
                 return index < values.count ? values[index] : nil
             }
             guard values.allSatisfy({ $0.type == .number }) else {
+                if values.count == 1 {
+                    return values[0][name]
+                }
                 return nil
             }
             let values = values.map { $0.value as? Double ?? 0 }
@@ -669,7 +675,15 @@ extension Definition {
         switch type {
         case let .expression(expression):
             let context = context.pushDefinition()
-            return try .constant(expression.evaluate(in: context))
+            let value = try expression.evaluate(in: context)
+            switch value {
+            case .tuple:
+                return .constant(value)
+            default:
+                // Wrap all definitions as a single-value tuple
+                // so that ordinal access and looping will work
+                return .constant(.tuple([value]))
+            }
         case let .block(block):
             var options = Options()
             for statement in block.statements {
@@ -905,7 +919,12 @@ extension Statement {
             case let .color(color):
                 sequence = AnySequence(color.components.map { .number($0) })
             case let .tuple(values):
-                sequence = AnySequence(values)
+                // TODO: find less hacky way to do this unwrap
+                if values.count == 1, case let .range(range) = values[0] {
+                    sequence = AnySequence(range.lazy.map { .number($0) })
+                } else {
+                    sequence = AnySequence(values)
+                }
             case .texture, .number, .string, .path, .mesh, .point:
                 throw RuntimeError(
                     .typeMismatch(
@@ -1079,11 +1098,15 @@ extension Expression {
             }
             return .range(value)
         case let .member(expression, member):
-            let value = try expression.evaluate(in: context)
+            var value = try expression.evaluate(in: context)
             if let memberValue = value[member.name] {
                 assert(value.members.contains(member.name),
                        "\(value.type.errorDescription) does not have member '\(member.name)'")
                 return memberValue
+            }
+            // TODO: find less hacky way to do this unwrap
+            if case let .tuple(values) = value, values.count == 1 {
+                value = values[0]
             }
             throw RuntimeError(.unknownMember(
                 member.name,

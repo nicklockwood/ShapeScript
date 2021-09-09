@@ -1291,6 +1291,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["hello", "world"])
     }
 
+    func testForLoopWithRangeVariable() {
+        let program = """
+        define range 1 to 3
+        for i in range { print i }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 2, 3])
+    }
+
     func testForLoopWithTupleVariable() {
         let program = """
         define values 3 1 4 1 5
@@ -1299,6 +1309,16 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [3, 1, 4, 1, 5])
+    }
+
+    func testForLoopWithSingleElementVariable() {
+        let program = """
+        define values 3
+        for i in values { print i }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
     }
 
     func testForLoopWithColorVariable() {
@@ -1615,6 +1635,62 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [10, 19, 23, 39, 47, 53, 68, 71, 86, 92])
+    }
+
+    func testSingleValueOrdinalLookup() {
+        let program = """
+        define foo 10
+        print foo.first
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [10])
+    }
+
+    func testSingleNumberXComponentLookup() {
+        let program = """
+        define foo 10
+        print foo.x
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [10])
+    }
+
+    func testSingleVectorYComponentLookup() {
+        let program = """
+        define foo 1 2 3
+        define bar foo
+        print bar.y
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2])
+    }
+
+    func testSingleVectorColorComponentLookup() {
+        let program = """
+        define foo color
+        define bar foo
+        print bar.red
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testMeshComponentLookup() {
+        let program = """
+        print (fill { circle }).x
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown mesh member property 'x'")
+            guard case .unknownMember("x", of: "mesh", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testMemberPrecedence() {
