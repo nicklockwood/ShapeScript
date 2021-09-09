@@ -326,7 +326,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
-    func testGlobalSymbolsAvailablesToCommand() {
+    func testGlobalSymbolsAvailableToCommand() {
         let program = """
         define baz 5
         define foo {

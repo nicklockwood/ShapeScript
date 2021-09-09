@@ -161,11 +161,10 @@ public extension RuntimeError {
     var hint: String? {
         func nth(_ index: Int) -> String {
             switch index {
-            case 1: return "second "
-            case 2: return "third "
-            case 3: return "fourth "
-            case 4: return "fifth "
-            default: return ""
+            case 1 ..< String.ordinals.count:
+                return "\(String.ordinals[index]) "
+            default:
+                return ""
             }
         }
         func formatMessage(_ message: String) -> String? {
@@ -445,7 +444,7 @@ enum Value {
         case .color:
             return ["red", "green", "blue", "alpha"]
         case let .tuple(values):
-            var members = Array(ordinalMembers.prefix(values.count))
+            var members = Array(String.ordinals(upTo: values.count))
             guard values.allSatisfy({ $0.type == .number }) else {
                 return members
             }
@@ -458,7 +457,7 @@ enum Value {
             return members
         case .range:
             return ["start", "end", "step"]
-        default:
+        case .texture, .number, .string, .path, .mesh, .point:
             return []
         }
     }
@@ -488,7 +487,7 @@ enum Value {
             default: return nil
             }
         case let .tuple(values):
-            if let index = ordinalMembers.firstIndex(of: name) {
+            if let index = name.ordinalIndex {
                 return index < values.count ? values[index] : nil
             }
             guard values.allSatisfy({ $0.type == .number }) else {
@@ -512,32 +511,11 @@ enum Value {
             case "step": return .number(range.step)
             default: return nil
             }
-        default:
+        case .texture, .number, .string, .path, .mesh, .point:
             return nil
         }
     }
 }
-
-private let ordinalMembers: [String] = {
-    let ordinalsToNinth = [
-        "first", "second", "third", "fourth", "fifth",
-        "sixth", "seventh", "eighth", "ninth",
-    ]
-    var result = ordinalsToNinth + [
-        "tenth",
-        "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth",
-        "sixteenth", "seventeenth", "eighteenth", "nineteenth",
-    ]
-    result += ["twentieth"] + ordinalsToNinth.map { "twenty\($0)" }
-    result += ["thirtieth"] + ordinalsToNinth.map { "thirty\($0)" }
-    result += ["fortieth"] + ordinalsToNinth.map { "forty\($0)" }
-    result += ["fiftieth"] + ordinalsToNinth.map { "fifty\($0)" }
-    result += ["sixtieth"] + ordinalsToNinth.map { "sixty\($0)" }
-    result += ["seventieth"] + ordinalsToNinth.map { "seventy\($0)" }
-    result += ["eightieth"] + ordinalsToNinth.map { "eighty\($0)" }
-    result += ["ninetieth"] + ordinalsToNinth.map { "ninety\($0)" }
-    return result
-}()
 
 struct RangeValue: Hashable, Sequence {
     var start, end, step: Double
@@ -1103,7 +1081,8 @@ extension Expression {
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let memberValue = value[member.name] {
-                assert(value.members.contains(member.name))
+                assert(value.members.contains(member.name),
+                       "\(value.type.errorDescription) does not have member '\(member.name)'")
                 return memberValue
             }
             throw RuntimeError(.unknownMember(
