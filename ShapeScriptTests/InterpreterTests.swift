@@ -1623,4 +1623,64 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [5])
     }
+
+    // MARK: Recursion
+
+    func testRecursiveLookupInDefine() {
+        let program = """
+        define foo {
+            foo
+        }
+        foo
+        """
+        let range = program.range(of: "foo", range: program.range(of: "{\n    foo"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, range)
+            guard case .assertionFailure("Too much recursion")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testRecursiveWhenCallingBlock() {
+        let program = """
+        define foo {
+            cube {
+                position foo
+            }
+        }
+        foo
+        """
+        let range = program.range(of: "foo", range: program.range(of: "position foo"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, range)
+            guard case .assertionFailure("Too much recursion")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testRecursiveMemberLookup() {
+        let program = """
+        define foo {
+            cube {
+                position foo.x
+            }
+        }
+        foo
+        """
+        let range = program.range(of: "foo", range: program.range(of: "position foo"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, range)
+            guard case .assertionFailure("Too much recursion")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
 }

@@ -48,6 +48,8 @@ final class EvaluationContext {
     var font: String?
     var opacity = 1.0
 
+    var stackDepth = 1
+
     var sourceLocation: SourceLocation? {
         sourceIndex.map {
             SourceLocation(
@@ -91,6 +93,8 @@ final class EvaluationContext {
         transform = .identity
         childTransform = .identity
         children = []
+        // stack
+        stackDepth = parent.stackDepth + 1
     }
 
     func push(_ type: BlockType) -> EvaluationContext {

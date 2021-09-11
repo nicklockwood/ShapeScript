@@ -705,6 +705,10 @@ extension Definition {
             return .block(.custom(nil, options)) { _context in
                 do {
                     let context = context.pushDefinition()
+                    context.stackDepth = _context.stackDepth + 1
+                    if context.stackDepth > 25 {
+                        throw RuntimeErrorType.assertionFailure("Too much recursion")
+                    }
                     for (name, symbol) in _context.userSymbols {
                         context.define(name, as: symbol)
                     }
