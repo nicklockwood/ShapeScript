@@ -94,7 +94,8 @@ public extension SCNNode {
 private extension Geometry {
     typealias SCNData = (
         options: Scene.OutputOptions,
-        geometry: SCNGeometry
+        geometry: SCNGeometry,
+        wireframe: SCNGeometry?
     )
 
     var scnData: SCNData? {
@@ -107,9 +108,18 @@ public extension Scene {
     struct OutputOptions: Hashable {
         public static let `default` = OutputOptions()
 
+        /// Line width to use for path drawing
         public var lineWidth: Double = 0.005
+
+        /// Color to use for line or wireframe drawing
         public var lineColor: Color = .black
+
+        /// Should mesh be drawn using wireframe
         public var wireframe: Bool = false
+
+        /// Line width to use for wireframe drawing
+        /// The default value of zero uses native line drawing
+        public var wireframeLineWidth: Double = 0
     }
 
     func scnBuild(with options: OutputOptions) {
@@ -127,29 +137,46 @@ public extension Geometry {
             children.forEach { $0.scnBuild(with: options) }
         }
 
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = OSColor(options.lineColor)
+
         if let scnData = scnData, scnData.options == options {
             return
         } else if let path = self.path {
+            let wireframe = SCNGeometry(.stroke(
+                path,
+                width: options.lineWidth,
+                detail: 5
+            ))
+            wireframe.materials = [material]
             scnData = (
                 options: options,
-                geometry: SCNGeometry(.stroke(
-                    path,
-                    width: options.lineWidth,
-                    detail: 5
-                ), materialLookup: { _ in
-                    let material = SCNMaterial()
-                    material.lightingModel = .constant
-                    material.diffuse.contents = OSColor(options.lineColor)
-                    return material
-                })
+                geometry: wireframe,
+                wireframe: wireframe
             )
         } else if let mesh = self.mesh {
-            scnData = (
-                options: options,
-                options.wireframe ?
-                    SCNGeometry(wireframe: mesh) :
-                    SCNGeometry(mesh: mesh, for: self)
-            )
+            if options.wireframe {
+                let wireframe = scnData?.wireframe ?? (
+                    options.wireframeLineWidth > 0 ? SCNGeometry(.stroke(
+                        mesh.uniqueEdges,
+                        width: options.wireframeLineWidth,
+                        detail: 3
+                    )) : SCNGeometry(wireframe: mesh)
+                )
+                wireframe.materials = [material]
+                scnData = (
+                    options: options,
+                    geometry: wireframe,
+                    wireframe: wireframe
+                )
+            } else {
+                scnData = (
+                    options: options,
+                    geometry: SCNGeometry(mesh: mesh, for: self),
+                    wireframe: scnData?.wireframe
+                )
+            }
         }
     }
 }

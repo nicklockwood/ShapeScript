@@ -20,23 +20,10 @@ final class LoadingProgress {
         return _processID
     }()
 
-    init(
-        observer: @escaping (Status) -> Void,
-        task: @escaping (LoadingProgress) throws -> Void
-    ) {
+    init(observer: @escaping (Status) -> Void) {
         self.observer = observer
         queue = DispatchQueue(label: "shapescript.progress.\(id)")
-        queue.async { [weak self] in
-            guard let self = self else {
-                return
-            }
-            self.setStatus(.waiting)
-            do {
-                try task(self)
-            } catch {
-                self.setStatus(.failure(error))
-            }
-        }
+        queue.async { self.setStatus(.waiting) }
     }
 
     deinit {
@@ -55,6 +42,13 @@ extension LoadingProgress {
 
     var isCancelled: Bool {
         if case .cancelled = status {
+            return true
+        }
+        return false
+    }
+
+    var hasFailed: Bool {
+        if case .failure = status {
             return true
         }
         return false
@@ -83,10 +77,23 @@ extension LoadingProgress {
     }
 
     func setStatus(_ status: Status) {
-        guard inProgress else { return }
+        if isCancelled || hasFailed { return }
         self.status = status
         DispatchQueue.main.async {
             self.observer(status)
+        }
+    }
+
+    func dispatch(_ block: @escaping (LoadingProgress) throws -> Void) {
+        queue.async { [weak self] in
+            guard let self = self else {
+                return
+            }
+            do {
+                try block(self)
+            } catch {
+                self.setStatus(.failure(error))
+            }
         }
     }
 }
