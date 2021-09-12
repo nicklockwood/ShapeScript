@@ -461,7 +461,11 @@ enum Value {
             if values.count < 5 {
                 members += ["red", "green", "blue", "alpha"]
                 if values.count < 4 {
-                    members += ["x", "y", "z", "width", "height", "depth"]
+                    members += [
+                        "x", "y", "z",
+                        "width", "height", "depth",
+                        "roll", "yaw", "pitch",
+                    ]
                 }
             }
             return members

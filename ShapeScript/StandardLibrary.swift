@@ -283,19 +283,21 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .string(context.name)
         }),
-        "position": .command(.vector) { parameter, context in
+        "position": .property(.vector, { parameter, context in
             context.transform.offset = parameter.value as! Vector
-            return .void
-        },
-        "orientation": .command(.rotation) { parameter, context in
-            let rotation = parameter.value as! Rotation
-            context.transform.rotation = rotation
-            return .void
-        },
-        "size": .command(.size) { parameter, context in
+        }, { context in
+            .vector(context.transform.offset)
+        }),
+        "orientation": .property(.rotation, { parameter, context in
+            context.transform.rotation = parameter.value as! Rotation
+        }, { context in
+            .rotation(context.transform.rotation)
+        }),
+        "size": .property(.size, { parameter, context in
             context.transform.scale = parameter.value as! Vector
-            return .void
-        },
+        }, { context in
+            .size(context.transform.scale)
+        }),
     ])
 
     static let root: Symbols = _merge(global, background, materials, transforms)

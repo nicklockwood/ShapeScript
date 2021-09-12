@@ -1527,6 +1527,34 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testTupleSizeHeightLookup() {
+        let program = "print (1 0.5).height"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.5])
+    }
+
+    func testTupleSizeDepthLookup() {
+        let program = "print (1 0.5).depth"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
+    func testTupleRotationRollLookup() {
+        let program = "print (1 0.5).roll"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1.0])
+    }
+
+    func testTupleRotationPitchLookup() {
+        let program = "print (1 0.5).pitch"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
     func testTupleRGBARedLookup() {
         let program = "print (0.1 0.2 0.3 0.4).red"
         let delegate = TestDelegate()
@@ -1601,6 +1629,34 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
+    }
+
+    func testRotationXLookup() {
+        let program = """
+        cube {
+            print orientation.x
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown rotation member property 'x'")
+            guard case .unknownMember("x", of: "rotation", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testRotationYawLookup() {
+        let program = """
+        cube {
+            orientation 0.3 0.2 0.1
+            print orientation.yaw
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.2])
     }
 
     func testTupleOrdinalLookup() {
