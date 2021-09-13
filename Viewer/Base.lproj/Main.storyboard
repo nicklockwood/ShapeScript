@@ -1235,29 +1235,29 @@
             <objects>
                 <viewController id="MZh-nf-gf2" customClass="WelcomeViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="viK-IC-gmI">
-                        <rect key="frame" x="0.0" y="0.0" width="480" height="360"/>
+                        <rect key="frame" x="0.0" y="0.0" width="482" height="370"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="m6e-rY-deL">
-                                <rect key="frame" x="105" y="329" width="270" height="29"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Welcome to ShapeScript" id="xQA-71-8xc">
+                                <rect key="frame" x="18" y="339" width="446" height="29"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Welcome to ShapeScript" id="xQA-71-8xc">
                                     <font key="font" metaFont="system" size="25"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fXe-V7-5iL">
-                                <rect key="frame" x="103" y="69" width="275" height="32"/>
-                                <buttonCell key="cell" type="push" title="Open ShapeScript in the Mac App Store" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="RYB-oh-8Mo">
+                                <rect key="frame" x="158" y="69" width="167" height="32"/>
+                                <buttonCell key="cell" type="push" title="Getting Started Guide" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="RYB-oh-8Mo">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
+                                    <connections>
+                                        <action selector="openGettingStartedGuide:" target="MZh-nf-gf2" id="VIJ-Dq-bnf"/>
+                                    </connections>
                                 </buttonCell>
-                                <connections>
-                                    <action selector="openMacAppStore:" target="MZh-nf-gf2" id="udp-X6-S63"/>
-                                </connections>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uyk-FY-bZa">
-                                <rect key="frame" x="177" y="29" width="124" height="18"/>
+                                <rect key="frame" x="178" y="29" width="124" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show at Startup" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Pdw-43-3k6">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1266,30 +1266,101 @@
                                     <action selector="toggleShowAtStartup:" target="MZh-nf-gf2" id="b53-r9-2hb"/>
                                 </connections>
                             </button>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="wlV-u6-KGa">
-                                <rect key="frame" x="18" y="122" width="444" height="187"/>
-                                <textFieldCell key="cell" selectable="YES" alignment="left" allowsEditingTextAttributes="YES" id="0Gi-Tq-WvP">
-                                    <font key="font" metaFont="system" size="14"/>
-                                    <string key="title">ShapeScript is a text-based open-source 3D modelling tool. Get started by creating a new shape document from the File menu, or open one of the examples from the Help menu. To edit a model, press Cmd-E to open it in an editor of your choice.
+                            <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="acD-KD-UrP">
+                                <rect key="frame" x="20" y="122" width="442" height="197"/>
+                                <clipView key="contentView" drawsBackground="NO" id="5bW-wS-mdY">
+                                    <rect key="frame" x="0.0" y="0.0" width="442" height="197"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" smartInsertDelete="YES" id="Oke-rb-mcR">
+                                            <rect key="frame" x="0.0" y="0.0" width="442" height="197"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" red="1" green="1" blue="1" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
+                                            <size key="minSize" width="442" height="197"/>
+                                            <size key="maxSize" width="448" height="10000000"/>
+                                            <attributedString key="textStorage">
+                                                <fragment>
+                                                    <string key="content">ShapeScript is a text-based 3D modelling tool. If this is your first time using ShapeScript, we recommend you check out the Getting Started guide.</string>
+                                                    <attributes>
+                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                        <font key="NSFont" metaFont="system" size="14"/>
+                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO"/>
+                                                    </attributes>
+                                                </fragment>
+                                                <fragment>
+                                                    <string key="content" base64-UTF8="YES">
+Cg
+</string>
+                                                    <attributes>
+                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                        <font key="NSFont" metaFont="system" size="14"/>
+                                                        <real key="NSKern" value="0.0"/>
+                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO"/>
+                                                    </attributes>
+                                                </fragment>
+                                                <fragment>
+                                                    <string key="content">
+This viewer is free to use for creating and previewing models in ShapeScript's own shape file format.
 
-This viewer is free to use for previewing models in ShapeScript's own shape file format.
-
-The commercial release of ShapeScript (which you can find on the Mac App Store) includes a one-time in-app purchase to unlock the ability to export ShapeScript models for use with other applications.</string>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
+The commercial release of ShapeScript (which you can find on the </string>
+                                                    <attributes>
+                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                        <font key="NSFont" metaFont="system" size="14"/>
+                                                        <real key="NSKern" value="0.0"/>
+                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
+                                                            <tabStops/>
+                                                        </paragraphStyle>
+                                                    </attributes>
+                                                </fragment>
+                                                <fragment content="Mac App Store">
+                                                    <attributes>
+                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                        <font key="NSFont" metaFont="system" size="14"/>
+                                                        <real key="NSKern" value="0.0"/>
+                                                        <url key="NSLink" string="https://apps.apple.com/app/id1441135869"/>
+                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
+                                                            <tabStops/>
+                                                        </paragraphStyle>
+                                                    </attributes>
+                                                </fragment>
+                                                <fragment>
+                                                    <string key="content">) includes a one-time in-app purchase to unlock the ability to export ShapeScript models in various formats, for use with other applications.</string>
+                                                    <attributes>
+                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                        <font key="NSFont" metaFont="system" size="14"/>
+                                                        <real key="NSKern" value="0.0"/>
+                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
+                                                            <tabStops/>
+                                                        </paragraphStyle>
+                                                    </attributes>
+                                                </fragment>
+                                            </attributedString>
+                                            <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                        </textView>
+                                    </subviews>
+                                </clipView>
+                                <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="FM7-7O-3fb">
+                                    <rect key="frame" x="-100" y="-100" width="240" height="16"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="93U-s0-ZfT">
+                                    <rect key="frame" x="-100" y="-100" width="16" height="187"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                            </scrollView>
                         </subviews>
                         <constraints>
-                            <constraint firstAttribute="trailing" secondItem="wlV-u6-KGa" secondAttribute="trailing" constant="20" symbolic="YES" id="8xl-1h-p9r"/>
-                            <constraint firstItem="wlV-u6-KGa" firstAttribute="top" secondItem="m6e-rY-deL" secondAttribute="bottom" constant="20" id="Q7z-Fg-sbe"/>
+                            <constraint firstItem="acD-KD-UrP" firstAttribute="leading" secondItem="viK-IC-gmI" secondAttribute="leading" constant="20" symbolic="YES" id="5Ee-AH-kmG"/>
+                            <constraint firstItem="fXe-V7-5iL" firstAttribute="top" secondItem="acD-KD-UrP" secondAttribute="bottom" constant="26" id="AJQ-Dj-MY1"/>
+                            <constraint firstItem="m6e-rY-deL" firstAttribute="leading" secondItem="viK-IC-gmI" secondAttribute="leading" constant="20" id="NtQ-fA-Wu4"/>
                             <constraint firstAttribute="bottom" secondItem="Uyk-FY-bZa" secondAttribute="bottom" constant="30" id="QyA-Rq-BcJ"/>
-                            <constraint firstItem="m6e-rY-deL" firstAttribute="centerX" secondItem="wlV-u6-KGa" secondAttribute="centerX" id="Rq4-cC-RbS"/>
                             <constraint firstItem="Uyk-FY-bZa" firstAttribute="centerX" secondItem="viK-IC-gmI" secondAttribute="centerX" id="XS6-Io-bal"/>
-                            <constraint firstItem="fXe-V7-5iL" firstAttribute="centerX" secondItem="viK-IC-gmI" secondAttribute="centerX" id="b2b-E8-vfG"/>
+                            <constraint firstAttribute="trailing" secondItem="m6e-rY-deL" secondAttribute="trailing" constant="20" id="Za9-x9-8ts"/>
                             <constraint firstItem="Uyk-FY-bZa" firstAttribute="top" secondItem="fXe-V7-5iL" secondAttribute="bottom" constant="30" id="dgc-Qv-Jai"/>
-                            <constraint firstItem="fXe-V7-5iL" firstAttribute="top" secondItem="wlV-u6-KGa" secondAttribute="bottom" constant="26" id="jSg-nO-EPc"/>
-                            <constraint firstItem="wlV-u6-KGa" firstAttribute="leading" secondItem="viK-IC-gmI" secondAttribute="leading" constant="20" symbolic="YES" id="k6e-Fm-VgK"/>
+                            <constraint firstAttribute="trailing" secondItem="acD-KD-UrP" secondAttribute="trailing" constant="20" symbolic="YES" id="e8a-cp-6Au"/>
+                            <constraint firstItem="acD-KD-UrP" firstAttribute="top" secondItem="m6e-rY-deL" secondAttribute="bottom" constant="20" id="imY-tB-qzK"/>
+                            <constraint firstItem="fXe-V7-5iL" firstAttribute="centerX" secondItem="viK-IC-gmI" secondAttribute="centerX" id="rXr-fc-eYQ"/>
                             <constraint firstItem="m6e-rY-deL" firstAttribute="top" secondItem="viK-IC-gmI" secondAttribute="top" constant="2" id="vCb-Qa-FyD"/>
                         </constraints>
                     </view>
@@ -1299,7 +1370,7 @@ The commercial release of ShapeScript (which you can find on the Mac App Store) 
                 </viewController>
                 <customObject id="GWO-iI-wG3" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-544" y="906.5"/>
+            <point key="canvasLocation" x="-544" y="911"/>
         </scene>
         <!--Window Controller-->
         <scene sceneID="LSU-aV-mZI">
@@ -1333,7 +1404,10 @@ The commercial release of ShapeScript (which you can find on the Mac App Store) 
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9zx-XF-NB1">
-                                <rect key="frame" x="425" y="287" width="39" height="25"/>
+                                <rect key="frame" x="417" y="287" width="47" height="25"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="40" id="YeN-yC-Vr1"/>
+                                </constraints>
                                 <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="Him-O9-n1G">
                                     <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="menu"/>
@@ -1344,7 +1418,7 @@ The commercial release of ShapeScript (which you can find on the Mac App Store) 
                                 </connections>
                             </popUpButton>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JF9-IY-pLq">
-                                <rect key="frame" x="325" y="294" width="97" height="16"/>
+                                <rect key="frame" x="317" y="294" width="97" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="External Editor:" id="xfK-VJ-Lcd">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>

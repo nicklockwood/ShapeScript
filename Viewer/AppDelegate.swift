@@ -65,21 +65,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController.showWindow(self)
     }
 
-    private func composeEmail(subject: String, body: String, error: String) {
-        let emailService = NSSharingService(named: .composeEmail)!
-        emailService.recipients = ["support@charcoaldesign.co.uk"]
-        emailService.subject = subject
-
-        if emailService.canPerform(withItems: [body]) {
-            emailService.perform(withItems: [body])
-        } else {
-            let error = NSError(domain: "", code: 0, userInfo: [
-                NSLocalizedDescriptionKey: error,
-            ])
-            NSDocumentController.shared.presentError(error)
-        }
-    }
-
     @IBAction func showWelcomeWindow(_: Any) {
         welcomeWindowController.showWindow(self)
     }

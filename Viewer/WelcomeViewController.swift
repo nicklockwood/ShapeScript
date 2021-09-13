@@ -16,9 +16,9 @@ class WelcomeViewController: NSViewController {
         shouldShowAtStartupCheckbox.state = WelcomeViewController.shouldShowAtStartup ? .on : .off
     }
 
-    @IBAction func openMacAppStore(_: Any) {
+    @IBAction func openGettingStartedGuide(_: Any) {
         NSWorkspace.shared.open(URL(string:
-            "https://apps.apple.com/app/id1441135869")!)
+            "https://github.com/nicklockwood/ShapeScript/blob/master/Help/getting-started.md")!)
     }
 
     @IBAction func toggleShowAtStartup(_ sender: NSButton) {
