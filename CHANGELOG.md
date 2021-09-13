@@ -1,3 +1,16 @@
+## [1.3.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.2) (2021-09-13)
+
+- Added stack overflow detection, preventing crashes due to infinite recursion
+- Added support for underscores in identifiers
+- Empty and single-element tuples are now permitted (useful in loops and data structures)
+- Looping over vector, size and color values is no longer permitted (only tuples and ranges)
+- Geometry `Hashable` implementation is now based on value rather than reference
+- Bumped Euclid to 0.5.12, which fixes the getters for `Rotation.pitch`/`yaw`/`roll`
+- Shape position/orientation/size are now read/write properties instead of setters
+- Wireframes are now rendered with polygons instead of lines on x86, for better quality
+- Added open/create document prompt when opening app
+- Improved Welcome view
+
 ## [1.3.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.1) (2021-09-07)
 
 - Disabled axes by default and added instructions for enabling to help
