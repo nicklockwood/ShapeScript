@@ -68,7 +68,9 @@ These three lines (ignoring the closing `}`) represent three distinct instructio
 
 The first instruction, `cube`, creates the cube shape. Note the `{ ... }` braces after `cube`. Content inside braces relates to the instruction that precedes them. In this case, the braces contain instructions that set the  `position` and  `color` of the cube.
 
-The line `position -1.5` means "position the shape 1.5 units to the left of the origin". The *origin* is the center of the world, and is the default position at which new shapes will appear. The units are arbitrary, but you should think of one unit as being approximately one meter, for the purposes of consistent model sizing.
+The line `position -1.5` means "position the shape 1.5 spacial units to the left of the origin". The *origin* is the center of the world, and is the default position at which new shapes will appear.
+
+**Note:** The spacial units ShapeScript uses are arbitrary, and can represent anything that you wish them to: a centimeter, a meter, an inch, a mile, etc. Try to choose an appropriate scale for your models so that you avoid having to work with very large scales (thousands of units), or very small scales (thousandths of a unit). That will help to avoid rendering precision issues, as well as making your scripts easier to work with.
 
 The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so a position of `-1.5` is equivalent to `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
 
@@ -92,11 +94,13 @@ If you make a mistake, you will see a screen like this:
 
 There is no cause for alarm if you see this screen. Just fix your mistake and save again to clear the error. If you aren't sure what you did, and the error message doesn't help, use the `Edit > Undo` menu in your editor to backtrack to a working state and try again.
 
-When you are comfortable with manipulating these shapes, try deleting them and adding new ones of your own.
+When you are comfortable with manipulating the default shapes, try deleting them and adding new ones of your own.
+
+**Note:** Many text editors save automatically every few seconds, so you may find that ShapeScript applies your changes as you type, even if you haven't explicitly saved. If you are in the middle of typing a new command when the automatic refresh takes place, ShapeScript may display an error, just as if you had manually saved an incomplete file. Errors that appear while you are still typing can be safely ignored.
 
 ## Debugging and Selection
 
-You can get information about your model (such as polygon count, and overall dimensions) by selecting `View > Model Info` (**Cmd-I**) in the menu bar.
+You can get information about your model (such as polygon count and overall dimensions) by selecting `View > Model Info` (**Cmd-I**) in the menu bar.
 
 If a particular part of your model doesn't look right, you can click to select it in the viewing window, and then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the script file defines that component.
 

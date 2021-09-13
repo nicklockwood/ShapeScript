@@ -5,10 +5,16 @@ ShapeScript has a number of built-in shapes that you can use to quickly construc
 
 ## Cube
 
-The `cube` primitive creates a box. You can control the size using the `size` option, which can be used to specify the cube's dimensions individually using 3 values, or using a single value to create a cube with equal sides.
+The `cube` primitive creates a box. You can create a cube just by using the `cube` command, which defines a cube with the default size of one unit:
 
 ```swift
-cube { size 1 1 2 }
+cube
+```
+
+To alter the size of the cube, you can pass a [block](blocks.md) containing a `size` option followed by up to 3 values specifying the individual dimensions of the cube, or a single value to create a cube with equal sides.
+
+```swift
+cube { size 1 2 }
 ```
 
 ![Box](images/box.png)
@@ -48,6 +54,17 @@ sphere {
 
 ![Smoother sphere](images/smoother-sphere.png)
 
+You can also pass multiple parameters to `size` to create a *spheroid*:
+
+```swift
+sphere {
+    detail 32
+    size 1 2 3
+}
+```
+
+![Spheroid](images/spheroid.png)
+
 ## Cylinder
 
 The `cylinder` primitive creates a flat-ended cylinder. 
@@ -58,17 +75,33 @@ cylinder { size 1 }
 
 ![Cylinder](images/cylinder.png)
 
-Like the `sphere` primitive, `cylinder` uses the `detail` command to control its smoothness.
+Like the `sphere` primitive, `cylinder` uses the `detail` command to control its smoothness. If you require a cylinder that is longer or shorter, you can pass a second parameter to the `size` to control the diameter and length independently:
+
+```swift
+cylinder {
+    detail 64
+    size 1 2
+}
+```
 
 ## Cone
 
-The `cone` primitive creates a conical shape, and like `sphere` and `cylinder`, its smoothness is controlled by the `detail` command.
+The `cone` primitive creates a conical shape:
 
 ```swift
 cone { size 1 }
 ```
 
 ![Cone](images/cone.png)
+
+Like `sphere` and `cylinder`, its smoothness is controlled by the `detail` command, and the diameter and length can be controlled independently by passing additional parameters to `size`:
+
+```swift
+cone {
+    detail 48
+    size 1 2
+}
+```
 
 ---
 [Index](index.md) | Next: [Options](options.md)

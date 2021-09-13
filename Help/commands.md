@@ -17,7 +17,7 @@ The values passed to a command can be anything from simple literal values, to sy
 rotate 1 + angle 0 0
 ```
 
-In the case above, the `roll` parameter of the `rotate` command has been given a value of `1 + angle`, and the `yaw` and `pitch` parameters are zero. Expressions can be a bit confusing to read inside vector parameters due to the differing significance of spaces between values, so for clarity you may wish to add parentheses:
+In the case above, the `roll` parameter of the `rotate` command has been given a value of `1 + angle`, and the `yaw` and `pitch` parameters are zero. Expressions can be a bit confusing to read inside a tuple of parameters due to the differing significance of spaces between values, so for clarity you may wish to add parentheses:
 
 ```swift
 rotate (1 + angle) 0 0

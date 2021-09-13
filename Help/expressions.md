@@ -46,7 +46,7 @@ Whereas this expression would be interpreted as a 2D vector of 5 and -1:
 
 There are currently no vector or matrix math operators such as dot product or vector addition, but these are mostly not needed in practice due to the [relative transform](transforms.md#relative-transforms) commands.
 
-It is however possible to use vector or [color](materials.md#color) values inside expressions by using the *dot* operator to access individual components:
+It is however possible to use vector, size, rotation or [color](materials.md#color) values in expressions by using the *dot* operator to access individual components:
 
 ```swift
 define vector 0.5 0.2 0.4

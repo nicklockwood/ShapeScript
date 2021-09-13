@@ -70,7 +70,7 @@ define myTuple2 "hello" 5.3 size
 
 ## Structured Data
 
-As well as simple values like numbers and strings, it can sometimes be useful to group together sets of related data. Tuples can be nested arbitrarily, in order to create complex data structures:
+As well as simple values like numbers and text, it can sometimes be useful to group together sets of related data. Tuples can be nested arbitrarily, in order to create complex data structures:
 
 ```swift
 define matrix (1 2 3) (4 5 6) (7 8 9)
@@ -90,7 +90,7 @@ define matrix (
 
 Since no built-in commands in ShapeScript consume structured data like this, you need a way to access individual elements. You can do this in two ways:
 
-To extract individual values from a tuple, you can use [member syntax](expressions.md#members). If the tuple is numeric and shaped like a vector, size or color then you can use the `x`/`y`/`z`, `width`/`height`/`depth`, or `red`/`green`/`blue`/`alpha` members respectively:
+To extract individual values from a tuple, you can use [member syntax](expressions.md#members). If the tuple is numeric and shaped like a vector, size, rotation or color then you can use the `x`/`y`/`z`, `width`/`height`/`depth`, `roll`/`yaw`/`pitch` or `red`/`green`/`blue`/`alpha` members respectively:
 
 ```swift
 define pos 1 2
@@ -102,6 +102,11 @@ define size 3 4 5
 print size.width // 3
 print size.height // 4
 print size.depth // 5
+
+define rotation 0.5 0.25 0
+print size.roll // 0.5
+print size.yaw // 0.25
+print size.pitch // 0
 
 define col 1 0 0
 print col.red // 1
