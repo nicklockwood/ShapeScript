@@ -334,6 +334,7 @@ enum ValueType {
     case number
     case vector
     case size
+    case rotation
     case string
     case path
     case paths // Hack to support multiple paths
@@ -355,6 +356,7 @@ private extension ValueType {
         case .number: return "number"
         case .vector: return "vector"
         case .size: return "size"
+        case .rotation: return "rotation"
         case .string: return "string"
         case .path: return "path"
         case .paths: return "path"
@@ -374,6 +376,7 @@ enum Value {
     case number(Double)
     case vector(Vector)
     case size(Vector)
+    case rotation(Rotation)
     case string(String?) // TODO: handle optionals in a better way than this
     case path(Path)
     case mesh(Geometry)
@@ -400,6 +403,7 @@ enum Value {
         case let .number(number): return number
         case let .vector(vector): return vector
         case let .size(size): return size
+        case let .rotation(rotation): return rotation
         case let .string(string):
             return string.map { $0 as AnyHashable } ?? string as AnyHashable
         case let .path(path): return path
@@ -426,6 +430,7 @@ enum Value {
         case .number: return .number
         case .vector: return .vector
         case .size: return .size
+        case .rotation: return .rotation
         case .string: return .string
         case .path: return .path
         case .mesh: return .mesh
@@ -441,6 +446,8 @@ enum Value {
             return ["x", "y", "z"]
         case .size:
             return ["width", "height", "depth"]
+        case .rotation:
+            return ["roll", "yaw", "pitch"]
         case .color:
             return ["red", "green", "blue", "alpha"]
         case let .tuple(values):
@@ -481,6 +488,13 @@ enum Value {
             case "depth": return .number(size.z)
             default: return nil
             }
+        case let .rotation(rotation):
+            switch name {
+            case "roll": return .number(rotation.roll.radians / .pi)
+            case "yaw": return .number(rotation.yaw.radians / .pi)
+            case "pitch": return .number(rotation.pitch.radians / .pi)
+            default: return nil
+            }
         case let .color(color):
             switch name {
             case "red": return .number(color.r)
@@ -505,8 +519,10 @@ enum Value {
                 return values.count < 4 ? Value.vector(Vector(values))[name] : nil
             case "width", "height", "depth":
                 return values.count < 4 ? Value.size(Vector(size: values))[name] : nil
+            case "roll", "yaw", "pitch":
+                return Rotation(rollYawPitchInHalfTurns: values).map(Value.rotation)?[name]
             case "red", "green", "blue", "alpha":
-                return values.count < 5 ? Value.color(Color(unchecked: values))[name] : nil
+                return Color(values).map(Value.color)?[name]
             default:
                 return nil
             }
@@ -583,6 +599,40 @@ enum BlockType {
         case .text: return .text
         case let .custom(baseType, _):
             return baseType?.symbols ?? .primitive
+        }
+    }
+}
+
+extension Rotation {
+    init?(rollYawPitchInHalfTurns: [Double]) {
+        var roll = 0.0, yaw = 0.0, pitch = 0.0
+        switch rollYawPitchInHalfTurns.count {
+        case 3:
+            pitch = rollYawPitchInHalfTurns[2]
+            fallthrough
+        case 2:
+            yaw = rollYawPitchInHalfTurns[1]
+            fallthrough
+        case 1:
+            roll = rollYawPitchInHalfTurns[0]
+        case 0:
+            break
+        default:
+            return nil
+        }
+        self.init(
+            roll: .radians(roll * .pi),
+            yaw: .radians(yaw * .pi),
+            pitch: .radians(pitch * .pi)
+        )
+    }
+
+    init(unchecked rollYawPitchInHalfTurns: [Double]) {
+        if let rotation = Rotation(rollYawPitchInHalfTurns: rollYawPitchInHalfTurns) {
+            self = rotation
+        } else {
+            assertionFailure()
+            self = .identity
         }
     }
 }
@@ -921,7 +971,7 @@ extension Statement {
                 } else {
                     sequence = AnySequence(values)
                 }
-            case .vector, .size, .color, .texture, .number, .string, .path, .mesh, .point:
+            case .vector, .size, .rotation, .color, .texture, .number, .string, .path, .mesh, .point:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
@@ -1215,6 +1265,9 @@ extension Expression {
         case .size:
             let numbers = try numerify(max: 3, min: 1)
             return .size(Vector(size: numbers))
+        case .rotation:
+            let numbers = try numerify(max: 3, min: 1)
+            return .rotation(Rotation(unchecked: numbers))
         case .pair:
             let numbers = try numerify(max: 2, min: 2)
             return .tuple(numbers.map { .number($0) })

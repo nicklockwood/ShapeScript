@@ -20,9 +20,9 @@ extension Dictionary where Key == String, Value == Symbol {
             context.childTransform.translate(by: vector)
             return .void
         },
-        "rotate": .command(.vector) { parameter, context in
-            let vector = parameter.value as! Vector
-            context.childTransform.rotate(by: Rotation(roll: vector.x * .pi, yaw: vector.y * .pi, pitch: vector.z * .pi))
+        "rotate": .command(.rotation) { parameter, context in
+            let rotation = parameter.value as! Rotation
+            context.childTransform.rotate(by: rotation)
             return .void
         },
         "scale": .command(.size) { parameter, context in
@@ -287,13 +287,9 @@ extension Dictionary where Key == String, Value == Symbol {
             context.transform.offset = parameter.value as! Vector
             return .void
         },
-        "orientation": .command(.vector) { parameter, context in
-            let rotation = parameter.value as! Vector
-            context.transform.rotation = Rotation(
-                roll: rotation.x * .pi,
-                yaw: rotation.y * .pi,
-                pitch: rotation.z * .pi
-            )
+        "orientation": .command(.rotation) { parameter, context in
+            let rotation = parameter.value as! Rotation
+            context.transform.rotation = rotation
             return .void
         },
         "size": .command(.size) { parameter, context in
