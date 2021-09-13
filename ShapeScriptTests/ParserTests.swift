@@ -407,4 +407,18 @@ class ParserTests: XCTestCase {
             )))
         }
     }
+
+    func testForLoopWithBlockExpression() {
+        let input = "for i in cube { size 2 } { print i }"
+        let range = input.range(of: "{", range: input.range(of: "{ print")!)!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertNil(error?.hint)
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .lbrace, range: range),
+                expected: nil
+            )))
+        }
+    }
 }

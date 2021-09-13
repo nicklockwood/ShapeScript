@@ -9,14 +9,40 @@
 import Euclid
 import Foundation
 
-public final class Geometry {
+public final class Geometry: Hashable {
     public let type: GeometryType
     public let name: String?
     public let transform: Transform
     public let material: Material
     public let children: [Geometry]
-    public let isOpaque: Bool
+    public let isOpaque: Bool // Computed
     public let sourceLocation: SourceLocation?
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(type)
+        hasher.combine(name)
+        hasher.combine(transform)
+        hasher.combine(material)
+        hasher.combine(children)
+    }
+
+    public static func == (lhs: Geometry, rhs: Geometry) -> Bool {
+        if lhs === rhs {
+            return true
+        }
+        // TODO: Find a way to synthesize this logic
+        guard lhs.type == rhs.type,
+              lhs.name == rhs.name,
+              lhs.transform == rhs.transform,
+              lhs.material == rhs.material,
+              lhs.children == rhs.children,
+              lhs.isOpaque == rhs.isOpaque,
+              lhs.sourceLocation == rhs.sourceLocation
+        else {
+            return false
+        }
+        return true
+    }
 
     /// Whether children should be rendered separately or are included in mesh
     public var renderChildren: Bool {
@@ -191,17 +217,6 @@ public final class Geometry {
 
         // Must be set after cache key is generated
         self.isOpaque = isOpaque
-    }
-}
-
-// TODO: Provide a better implementation not based on identity
-extension Geometry: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self).hashValue)
-    }
-
-    public static func == (lhs: Geometry, rhs: Geometry) -> Bool {
-        lhs === rhs
     }
 }
 

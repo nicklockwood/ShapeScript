@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Implementation
 
-public struct SourceLocation {
+public struct SourceLocation: Hashable {
     public let line: Int
     public let file: URL?
 
