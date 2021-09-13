@@ -1321,14 +1321,19 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3])
     }
 
-    func testForLoopWithColorVariable() {
-        let program = """
-        color 1 0 0.5
-        for i in color { print i }
-        """
-        let delegate = TestDelegate()
-        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [1, 0, 0.5, 1])
+    func testForLoopWithColorProperty() {
+        let program = "for i in color { print i }"
+        let range = program.range(of: "color")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "range",
+                index: 0,
+                expected: "range or tuple",
+                got: "color"
+            ), at: range))
+        }
     }
 
     // MARK: Functions

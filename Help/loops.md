@@ -67,7 +67,7 @@ for i in 5 to 1 step -1 {
 
 ## Looping Over Values
 
-As well as looping over a numeric range, you can also loop over a list of values, such as vector or color literal:
+As well as looping over a numeric range, you can also loop over a tuple of values:
 
 ```swift
 define values 1 5 7 9

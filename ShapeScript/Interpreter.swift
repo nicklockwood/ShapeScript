@@ -914,10 +914,6 @@ extension Statement {
             switch range {
             case let .range(range):
                 sequence = AnySequence(range.lazy.map { .number($0) })
-            case let .vector(vector), let .size(vector):
-                sequence = AnySequence(vector.components.map { .number($0) })
-            case let .color(color):
-                sequence = AnySequence(color.components.map { .number($0) })
             case let .tuple(values):
                 // TODO: find less hacky way to do this unwrap
                 if values.count == 1, case let .range(range) = values[0] {
@@ -925,7 +921,7 @@ extension Statement {
                 } else {
                     sequence = AnySequence(values)
                 }
-            case .texture, .number, .string, .path, .mesh, .point:
+            case .vector, .size, .color, .texture, .number, .string, .path, .mesh, .point:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
