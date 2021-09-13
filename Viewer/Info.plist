@@ -16,7 +16,7 @@
 			<key>CFBundleTypeName</key>
 			<string>ShapeScript document</string>
 			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
+			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>

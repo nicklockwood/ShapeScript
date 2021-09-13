@@ -64,7 +64,7 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="File" id="bib-Uj-vzu">
                                     <items>
-                                        <menuItem title="New" keyEquivalent="n" id="Ppo-ah-vxj">
+                                        <menuItem title="New…" keyEquivalent="n" id="Ppo-ah-vxj">
                                             <connections>
                                                 <action selector="newDocument:" target="Ady-hI-5gd" id="MqT-eG-1mJ"/>
                                             </connections>

@@ -38,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if WelcomeViewController.shouldShowAtStartup {
             welcomeWindowController.showWindow(self)
+            dismissOpenSavePanel()
         }
         if let files = Bundle.main.urls(forResourcesWithExtension: "shape", subdirectory: "Examples") {
             for url in files.sorted(by: { $0.path < $1.path }) {
@@ -48,6 +49,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         showWireframe = Settings.shared.showWireframe
         showAxes = Settings.shared.showAxes
+    }
+
+    func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
+        if NSApp.windows.allSatisfy({ !$0.isVisible }) {
+            NSDocumentController.shared.openDocument(nil)
+        }
+        return false
     }
 
     @IBAction func showHelp(_: Any) {
@@ -67,47 +75,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func showWelcomeWindow(_: Any) {
         welcomeWindowController.showWindow(self)
-    }
-
-    @IBAction func newDocument(_: NSMenuItem) {
-        let dialog = NSSavePanel()
-        dialog.title = "Export Configuration"
-        dialog.showsHiddenFiles = true
-        dialog.nameFieldStringValue = "Untitled.shape"
-        dialog.begin { response in
-            guard response == .OK, let url = dialog.url else {
-                return
-            }
-            do {
-                let string = """
-                // ShapeScript document
-
-                detail 32
-
-                cube {
-                    position -1.5
-                    color 1 0 0
-                }
-
-                sphere {
-                    color 0 1 0
-                }
-
-                cone {
-                    position 1.5
-                    color 0 0 1
-                }
-                """
-                try string.write(to: url, atomically: true, encoding: .utf8)
-                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
-                    if let error = error {
-                        NSDocumentController.shared.presentError(error)
-                    }
-                }
-            } catch {
-                NSDocumentController.shared.presentError(error)
-            }
-        }
     }
 
     public var showWireframe = false {

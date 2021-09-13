@@ -56,6 +56,53 @@ func showSheet(_ dialog: NSSavePanel, in window: NSWindow?,
     }
 }
 
+func showNewDocumentPanel() {
+    let dialog = NSSavePanel()
+    dialog.title = "New Document"
+    dialog.showsHiddenFiles = true
+    dialog.nameFieldStringValue = "Untitled.shape"
+    dialog.begin { response in
+        guard response == .OK, let url = dialog.url else {
+            return
+        }
+        do {
+            let string = """
+            // ShapeScript document
+
+            detail 32
+
+            cube {
+                position -1.5
+                color 1 0 0
+            }
+
+            sphere {
+                color 0 1 0
+            }
+
+            cone {
+                position 1.5
+                color 0 0 1
+            }
+            """
+            try string.write(to: url, atomically: true, encoding: .utf8)
+            NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
+                if let error = error {
+                    NSDocumentController.shared.presentError(error)
+                }
+            }
+        } catch {
+            NSDocumentController.shared.presentError(error)
+        }
+    }
+}
+
+func dismissOpenSavePanel() {
+    for window in NSApp.windows where window is NSSavePanel {
+        window.close()
+    }
+}
+
 // MARK: Editor selection
 
 func configureEditorPopup(_ popup: NSPopUpButton) {

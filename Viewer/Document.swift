@@ -83,6 +83,13 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     override func makeWindowControllers() {
+        dismissOpenSavePanel()
+
+        if fileURL == nil {
+            showNewDocumentPanel()
+            return
+        }
+
         // Returns the Storyboard that contains your Document window.
         let storyboard = NSStoryboard(name: NSStoryboard.Name("Main"), bundle: nil)
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
@@ -317,16 +324,12 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     @IBAction func grantAccess(_: Any?) {
-        guard let window = windowForSheet else {
-            return
-        }
-
         let dialog = NSOpenPanel()
         dialog.title = "Grant Access"
         dialog.showsHiddenFiles = false
         dialog.directoryURL = accessErrorURL
         dialog.canChooseDirectories = true
-        dialog.beginSheetModal(for: window) { response in
+        showSheet(dialog, in: windowForSheet) { response in
             guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {
                 return
             }
