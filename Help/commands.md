@@ -75,7 +75,7 @@ The `text` command is used to generate individual words, lines or paragraphs of 
 
 The `fill`, `lathe`, `extrude` and `loft` commands turn paths into 3D meshes. They are documented in the [builders](builders.md) section.
 
-## Constructive Solid Geometry (CSG)
+## Constructive Solid Geometry
 
 The `difference`, `union`, `intersection` and `stencil` commands use boolean operations to merge or subtract shapes from each other to form surfaces that would be hard to model directly. They are documented in the [CSG](csg.md) section.
 

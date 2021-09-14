@@ -25,6 +25,9 @@ private let projectURL = projectDirectory
 private let helpDirectory = projectDirectory
     .appendingPathComponent("Help")
 
+private let helpIndexURL = helpDirectory
+    .appendingPathComponent("index.md")
+
 private let shapeScriptVersion: String = {
     let string = try! String(contentsOf: projectURL)
     let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
@@ -57,6 +60,83 @@ class MetadataTests: XCTestCase {
     }
 
     // MARK: Help
+
+    func testUpdateIndex() throws {
+        let geometryLinks = [
+            ("Primitives", "primitives.md"),
+            ("Options", "options.md"),
+            ("Materials", "materials.md"),
+            ("Transforms", "transforms.md"),
+            ("Groups", "groups.md"),
+            ("Paths", "paths.md"),
+            ("Text", "text.md"),
+            ("Builders", "builders.md"),
+            ("Constructive Solid Geometry", "csg.md"),
+        ]
+
+        let syntaxLinks = [
+            ("Comments", "comments.md"),
+            ("Literals", "literals.md"),
+            ("Symbols", "symbols.md"),
+            ("Expressions", "expressions.md"),
+            ("Functions", "functions.md"),
+            ("Commands", "commands.md"),
+            ("Loops", "loops.md"),
+            ("Blocks", "blocks.md"),
+            ("Scope", "scope.md"),
+            ("Import", "import.md"),
+        ]
+
+        func findSections(in string: String) -> [(String, String)] {
+            let headings = string.components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.hasPrefix("## ") }
+
+            return headings.compactMap {
+                let heading = String($0.dropFirst(3))
+                let fragment = heading.lowercased()
+                    .replacingOccurrences(of: "'", with: "")
+                    .replacingOccurrences(of: " ", with: "-")
+                XCTAssert(!fragment.contains(where: {
+                    !"abcdefghijklmnopqrstuvwxyz0123456789_-".contains($0)
+                }))
+                return (heading, fragment)
+            }
+        }
+
+        func buildLinks(_ links: [(String, String)]) throws -> String {
+            try links.map { heading, path in
+                let file = helpDirectory.appendingPathComponent(path)
+                let text = try String(contentsOf: file)
+                let links = findSections(in: text).map { subheading, fragment in
+                    "\n        - [\(subheading)](\(path)#\(fragment))"
+                }.joined()
+                return "    - [\(heading)](\(path))" + links
+            }.joined(separator: "\n")
+        }
+
+        let index = try """
+        ShapeScript Help
+        ---
+
+        - [Overview](overview.md)
+        - [Getting Started](getting-started.md)
+        - [Camera Control](camera-control.md)
+        - Geometry
+        \(buildLinks(geometryLinks))
+        - Syntax
+        \(buildLinks(syntaxLinks))
+        - [Export](export.md)
+        - [Examples](examples.md)
+        - [Glossary](glossary.md)
+
+        """
+
+        let existing = try String(contentsOf: helpIndexURL)
+        XCTAssertEqual(existing, index)
+
+        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
+    }
 
     func testHelpLinks() throws {
         let enumerator =
