@@ -342,6 +342,39 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testOptionsNotSuggestedForTypoInShapeBlock() {
+        let program = """
+        cube {
+            poption bar 0
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("poption", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertNotEqual(error?.suggestion, "option")
+        }
+    }
+
+    func testOptionsSuggestedForTypoInCustomBlock() {
+        let program = """
+        define foo {
+            poption bar 0
+        }
+        foo
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("poption", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.suggestion, "option")
+        }
+    }
+
     // MARK: Position
 
     func testCumulativePosition() throws {
@@ -415,6 +448,24 @@ class InterpreterTests: XCTestCase {
                 XCTFail()
                 return
             }
+        }
+    }
+
+    func testPositionInvalidInText() {
+        let program = """
+        text {
+            position 1 0 0
+            "Hello"
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case let .unknownSymbol("position", options)? = error?.type else {
+                XCTFail()
+                return
+            }
+            print(options)
+            XCTAssert(!options.contains("option"))
         }
     }
 

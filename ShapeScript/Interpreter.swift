@@ -773,7 +773,11 @@ extension Definition {
                         },
                         sourceLocation: context.sourceLocation
                     ))
-                } catch {
+                } catch var error {
+                    if let e = error as? RuntimeError, case let .unknownSymbol(name, options: options) = e.type {
+                        // TODO: find a less hacky way to limit the scope of option keyword
+                        error = RuntimeError(.unknownSymbol(name, options: options + ["option"]), at: e.range)
+                    }
                     if baseURL == context.baseURL {
                         throw error
                     }
