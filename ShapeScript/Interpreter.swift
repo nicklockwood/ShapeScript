@@ -116,7 +116,7 @@ public extension RuntimeError {
         case let .unknownMember(name, type, _):
             return "Unknown \(type) member property '\(name)'"
         case let .unknownFont(name, _):
-            return "Unknown font '\(name)'"
+            return name.isEmpty ? "Font name cannot be blank" : "Unknown font '\(name)'"
         case .typeMismatch:
             return "Type mismatch"
         case .unexpectedArgument:
@@ -150,9 +150,9 @@ public extension RuntimeError {
         case let .unknownSymbol(name, options), let .unknownMember(name, _, options):
             return Self.alternatives[name.lowercased()]?
                 .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
-                ?? bestMatches(for: name, in: options).first
+                ?? name.bestMatches(in: options).first
         case let .unknownFont(name, options):
-            return bestMatches(for: name, in: options).first
+            return name.bestMatches(in: options).first
         default:
             return nil
         }
@@ -273,57 +273,6 @@ private extension RuntimeError {
         "subtract": ["difference"],
         "subtraction": ["difference"],
     ]
-
-    // Find best match for a given string in a list of options
-    func bestMatches(for query: String, in options: [String]) -> [String] {
-        let lowercaseQuery = query.lowercased()
-        // Sort matches by Levenshtein edit distance
-        return options
-            .compactMap { option -> (String, distance: Int, commonPrefix: Int)? in
-                let lowercaseOption = option.lowercased()
-                let distance = editDistance(lowercaseOption, lowercaseQuery)
-                let commonPrefix = lowercaseOption.commonPrefix(with: lowercaseQuery)
-                if commonPrefix.isEmpty, distance > lowercaseQuery.count / 2 {
-                    return nil
-                }
-                return (option, distance, commonPrefix.count)
-            }
-            .sorted {
-                if $0.distance == $1.distance {
-                    return $0.commonPrefix > $1.commonPrefix
-                }
-                return $0.distance < $1.distance
-            }
-            .map { $0.0 }
-    }
-
-    /// The Damerau-Levenshtein edit-distance between two strings
-    func editDistance(_ lhs: String, _ rhs: String) -> Int {
-        let lhs = Array(lhs)
-        let rhs = Array(rhs)
-        var dist = [[Int]]()
-        for i in 0 ... lhs.count {
-            dist.append([i])
-        }
-        for j in 1 ... rhs.count {
-            dist[0].append(j)
-        }
-        for i in 1 ... lhs.count {
-            for j in 1 ... rhs.count {
-                if lhs[i - 1] == rhs[j - 1] {
-                    dist[i].append(dist[i - 1][j - 1])
-                } else {
-                    dist[i].append(min(dist[i - 1][j] + 1,
-                                       dist[i][j - 1] + 1,
-                                       dist[i - 1][j - 1] + 1))
-                }
-                if i > 1, j > 1, lhs[i - 1] == rhs[j - 2], lhs[i - 2] == rhs[j - 1] {
-                    dist[i][j] = min(dist[i][j], dist[i - 2][j - 2] + 1)
-                }
-            }
-        }
-        return dist[lhs.count][rhs.count]
-    }
 }
 
 enum ValueType {

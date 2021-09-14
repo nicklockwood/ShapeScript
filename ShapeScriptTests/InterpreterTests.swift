@@ -830,6 +830,42 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    func testSetEmptyFontString() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("font \"\"")
+        let range = program.source.range(of: "\"\"")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Font name cannot be blank")
+            XCTAssertEqual(error?.range, range)
+            guard case .unknownFont("", options: _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+        XCTAssertNil(context.font)
+        #endif
+    }
+
+    func testSetBlankFont() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("font \" \"")
+        let range = program.source.range(of: "\" \"")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Font name cannot be blank")
+            XCTAssertEqual(error?.range, range)
+            guard case .unknownFont("", options: _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+        XCTAssertNil(context.font)
+        #endif
+    }
+
     func testSetFontWithTuple() throws {
         #if canImport(CoreGraphics)
         let program = try parse("font \"Courier\" \"foo\"")
@@ -1833,5 +1869,24 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
+    }
+
+    // MARK: Edit distance
+
+    func testEditDistance() {
+        XCTAssertEqual("foo".editDistance(from: "fob"), 1)
+        XCTAssertEqual("foo".editDistance(from: "boo"), 1)
+        XCTAssertEqual("foo".editDistance(from: "bar"), 3)
+        XCTAssertEqual("aba".editDistance(from: "bbb"), 2)
+        XCTAssertEqual("foob".editDistance(from: "foo"), 1)
+        XCTAssertEqual("foo".editDistance(from: "foob"), 1)
+        XCTAssertEqual("foo".editDistance(from: "Foo"), 1)
+        XCTAssertEqual("FOO".editDistance(from: "foo"), 3)
+    }
+
+    func testEditDistanceWithEmptyStrings() {
+        XCTAssertEqual("foo".editDistance(from: ""), 3)
+        XCTAssertEqual("".editDistance(from: "foo"), 3)
+        XCTAssertEqual("".editDistance(from: ""), 0)
     }
 }
