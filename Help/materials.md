@@ -9,21 +9,41 @@ A given shape can only have either a color or texture, but not both. Setting the
 
 ## Color
 
-You can alter the color of your shapes using the `color` command.
+You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: Numeric RGB, hexadecimal or predefined:
+
+The following commands all produce a red cube:
 
 ```swift
-cube {
-    color 1 0 0
-}
+cube { color 1 0 0 }
+cube { color #FF0000 }
+cube { color #F00 }
+cube { color red }
 ```
 
-As mentioned in [Getting Started](getting-started.md), `color` expects up to 4 values that represent the red, green, blue and alpha color channels respectively. Values should be specified in the range 0 (no color) to 1 (full color).
+Because `color` is a command rather than an option, you can use it anywhere in your program and it will affect all subsequent shapes that you create. If you use the `color` command *inside* a shape or [group](groups.md) then its effect will end at the closing `}`:
 
-The red, green and blue channels control the color itself, and the alpha channel controls transparency. An alpha of 0 is fully transparent (invisible), and an alpha of 1 is fully opaque. If omitted, the alpha value defaults to 1.
+```swift
+color green
+group
+    color red
+    cube // red cube
+}
+sphere // green sphere
+```
+
+### RGB Colors
+
+As mentioned in [Getting Started](getting-started.md), `color` can accept a tuple of up to 4 values that represent the red, green, blue and alpha color channels respectively. Values should be specified in the range 0 (no color) to 1 (full color).
+
+The red, green and blue channels control the color itself, and the alpha channel controls transparency. An alpha of 0 is fully transparent (invisible), and an alpha of 1 is fully opaque. If omitted, the alpha value defaults to 1. Alpha values between 0 and 1 can be used to create *translucent* colors, which blend with the background behind them. The following code would produce a 50% transparent red sphere:
+
+```swift
+sphere { color 1 0 0 0.5 }
+```
 
 If fewer than 3 parameters are passed to the `color` command, the first parameter is treated as a luminance (brightness) value, meaning that the resultant color will be set to a shade of gray between 0 (black) and 1 (white).
 
-The table below shows how `color` values are interpreted, based on the number of components:
+The table below shows how RGBA color values are interpreted, based on the number of components:
 
 Number of parameters         | Meaning
 :--------------------------- | :--------------------------
@@ -34,34 +54,21 @@ Number of parameters         | Meaning
 
 <br/>
 
-ShapeScript defines some built-in color constants for you to use:
-
-Name      | R   G   B   A
-:---------| :------------
-black     | 0   0   0   1
-white     | 1   1   1   1
-gray      | 0.5 0.5 0.5 1
-red       | 1   0   0   1
-green     | 0   1   0   1
-blue      | 0   0   1   1
-yellow    | 1   1   0   1
-cyan      | 0   1   1   1
-magenta   | 1   1   0   1
-orange    | 1   0.5 0   1
-
-<br/>
-
-You can override these built-in colors using the `define` command, or define your own:
+For example, the following produces a light shade gray of gray, with a luminance of 0.8 (equivalent to `0.8 0.8 0.8`):
 
 ```swift
-color red // use built-in red color
-
-define red 1 0.3 0.1 // override the default red
-
-define lightGray 0.8 // define a new color
+color 0.8
 ```
 
-Instead of numeric values, you can use web-style hex color codes to specify colors instead. These consist of a hash character (#) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255, and can be output by many popular graphics tools. Here are some examples:
+And the following produces 50% a translucent white, with full luminance and 50% alpha (equivalent to `1 1 1 0.5`):
+
+```swift
+color 1 0.5
+```
+
+### Hexadecimal Colors
+
+Instead of numeric values, you can use web-style hex codes to specify colors. These consist of a hash character (`#`) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255. Hex color codes are a popular convention and are supported by many graphics tools. Here are some examples:
 
 ```swift
 color #FF0000 // pure red
@@ -69,28 +76,49 @@ color #7F7F7F // 50% gray
 color #000000 // pure black
 ```
 
-As with [web colors](https://en.wikipedia.org/wiki/Web_colors), you can use a shorthand 3-digit form as follows:
+As with numeric RGB colors, hex colors are opaque by default, but you can vary the alpha by adding a fourth pair of hexadecimal digits in the range `00` (fully transparent) to `FF` (fully opaque)`. A value of `7F` results in 50% transparency:
+
+```swift
+color #FF00007F // 50% transparent red
+```
+
+As with [web colors](https://en.wikipedia.org/wiki/Web_colors), you can use a three-digit "short hex" format as follows:
 
 ```swift
 color #F00 // equivalent to #FF0000
 ```
 
-And you can also use a fourth digit or pair of digits to specify alpha:
+And you can also use a fourth digit to specify alpha:
 
 ```swift
-color #FF000066 // pure red with 40% opacity
 color #F006 // equivalent to #FF000066
 ```
 
-Because `color` is a command rather than an option, you can use it anywhere in your program and it will affect all subsequent shapes that you create. If you use the `color` command *inside* a shape or [group](groups.md) then its effect will end at the closing `}`:
+### Predefined Colors
+
+ShapeScript defines some built-in color constants for you to use:
+
+Name      | R   G   B   | Hexadecimal | Short Hex
+:---------| :-----------| :-----------| :---------
+black     | 0   0   0   | #000000     | #000
+blue      | 0   0   1   | #0000FF     | #00F
+green     | 0   1   0   | #00FF00     | #0F0
+cyan      | 0   1   1   | #00FFFF     | #0FF
+red       | 1   0   0   | #FF0000     | #F00
+magenta   | 1   0   1   | #FF00FF     | #F0F
+yellow    | 1   1   0   | #FFFF00     | #FF0
+white     | 1   1   1   | #FFFFFF     | #FFF
+orange    | 1   0.5 0   | #FF7F00     | -
+gray/grey | 0.5 0.5 0.5 | #7F7F7F     | -
+
+<br/>
+
+You can override these built-in colors using the `define` command, or define new colors of your own:
 
 ```swift
-color 0 1 0 // green
-group {
-    color 1 0 0 0.5 // translucent red
-    cube // red cube
-}
-sphere // green sphere
+define red 1 0.3 0.1 // override the default red color with a custom shade
+
+define lightGray 0.8 // define a new color "lightGray" with 80% luminance
 ```
 
 ## Texture
