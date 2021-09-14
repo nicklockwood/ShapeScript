@@ -45,15 +45,40 @@ class SceneViewController: NSViewController {
         }
     }
 
+    private var logLength: Int = 0
+
     func clearLog() {
+        logLength = 0
         consoleTextView.textStorage?.setAttributedString(NSAttributedString(string: ""))
     }
 
-    func appendLog(_ text: NSAttributedString) {
-        if text.string.isEmpty {
+    func appendLog(_ text: String) {
+        if text.isEmpty {
             return
         }
-        consoleTextView.textStorage?.append(text)
+        let logLimit = 20000
+        let charCount = text.count
+        logLength += charCount
+        if logLength > logLimit {
+            if logLength - charCount > logLimit {
+                return
+            }
+            consoleTextView.textStorage?.append(NSAttributedString(
+                string: "Console limit exceeded. No further logs will be printed.",
+                attributes: [
+                    .foregroundColor: NSColor.red,
+                    .font: NSFont.systemFont(ofSize: 13),
+                ]
+            ))
+        } else {
+            consoleTextView.textStorage?.append(NSAttributedString(
+                string: text,
+                attributes: [
+                    .foregroundColor: NSColor.textColor,
+                    .font: NSFont.systemFont(ofSize: 13),
+                ]
+            ))
+        }
         DispatchQueue.main.async {
             self.consoleTextView.scrollToEndOfDocument(self)
         }

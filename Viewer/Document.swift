@@ -477,12 +477,7 @@ class Document: NSDocument, EvaluationDelegate {
         DispatchQueue.main.async {
             for viewController in self.sceneViewControllers {
                 viewController.showConsole = true
-                viewController.appendLog(
-                    NSAttributedString(string: line + "\n", attributes: [
-                        .foregroundColor: NSColor.textColor,
-                        .font: NSFont.systemFont(ofSize: 13),
-                    ])
-                )
+                viewController.appendLog(line + "\n")
             }
         }
     }
