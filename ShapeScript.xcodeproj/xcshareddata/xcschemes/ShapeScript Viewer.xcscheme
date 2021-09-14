@@ -29,6 +29,16 @@
       shouldUseLaunchSchemeArgsEnv = "YES"
       codeCoverageEnabled = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01BFB39E21425C8500E47A7C"
+               BuildableName = "ShapeScriptTests.xctest"
+               BlueprintName = "ShapeScriptTests"
+               ReferencedContainer = "container:ShapeScript.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

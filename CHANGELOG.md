@@ -1,3 +1,11 @@
+## [1.3.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.3) (2021-09-14)
+
+- Fixed crash when font is set to an empty string
+- Fixed incorrect suggestion of `option` for typos in contexts where it isn't available
+- Print logging in a long/infinite loop no longer freezes UI
+- Help index is now generated automatically
+- Improved help for colors and text
+
 ## [1.3.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.2) (2021-09-13)
 
 - Added stack overflow detection, preventing crashes due to infinite recursion
