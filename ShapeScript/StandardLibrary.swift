@@ -230,9 +230,6 @@ extension Dictionary where Key == String, Value == Symbol {
             let values = value.value as! [Double]
             return .number(pow(values[0], values[1]))
         },
-        "pi": .command(.void) { _, _ in
-            .number(.pi)
-        },
         "cos": .command(.number) { value, _ in
             .number(cos(value.doubleValue))
         },
@@ -255,6 +252,7 @@ extension Dictionary where Key == String, Value == Symbol {
             let values = value.value as! [Double]
             return .number(atan2(values[0], values[1]))
         },
+        "pi": .constant(.number(.pi)),
     ]
 
     static let global: Symbols = _merge(functions, meshes, paths, [
