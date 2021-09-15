@@ -563,13 +563,19 @@ class InterpreterTests: XCTestCase {
         color (1 0 0) 0.5
         print color
         """
-        let range = program.range(of: "0.5")!
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "color", max: 1), at: range
-            ))
-        }
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+    }
+
+    func testSetColorWithTuple2() throws {
+        let program = """
+        color (1 0 0 1) 0.5
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
     }
 
     func testSetColorWithTupleConstant() throws {
@@ -578,16 +584,9 @@ class InterpreterTests: XCTestCase {
         color foo
         print color
         """
-        let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "color",
-                index: 0,
-                expected: "color",
-                got: "color, number"
-            ), at: range))
-        }
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
     }
 
     func testSetColorWithTupleOfConstantAndLiteral() throws {
@@ -596,13 +595,31 @@ class InterpreterTests: XCTestCase {
         color foo 0.5
         print color
         """
-        let range = program.range(of: "0.5")!
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "color", max: 1), at: range
-            ))
-        }
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+    }
+
+    func testSetColorWithTupleOfConstantAndLiteral2() throws {
+        let program = """
+        define foo 1 0 0 1
+        color foo 0.5
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+    }
+
+    func testSetColorWithTupleOfConstantAndLiteral3() throws {
+        let program = """
+        define foo (1 0 0) 0.5
+        color foo
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
     }
 
     func testSetColorWithHexLiteral() throws {
@@ -632,13 +649,30 @@ class InterpreterTests: XCTestCase {
         color foo 0.5
         print color
         """
-        let range = program.range(of: "0.5")!
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "color", max: 1), at: range
-            ))
-        }
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 1, 1, 0.5)])
+    }
+
+    func testSetColorWithHexTuple2() throws {
+        let program = """
+        color #f000 0.5
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+    }
+
+    func testSetColorWithHexTuple3() throws {
+        let program = """
+        define foo #fff 0.5
+        color foo
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color(1, 1, 1, 0.5)])
     }
 
     func testSetColourWithBritishSpelling() throws {

@@ -33,7 +33,13 @@ sphere // green sphere
 
 ### RGB Colors
 
-As mentioned in [Getting Started](getting-started.md), `color` can accept a tuple of up to 4 values that represent the red, green, blue and alpha color channels respectively. Values should be specified in the range 0 (no color) to 1 (full color).
+As mentioned in [Getting Started](getting-started.md), `color` can accept a tuple of up to 4 values that represent the red, green, blue and alpha color channels respectively. Values should be specified in the range 0 (no color) to 1 (full color):
+
+```swift
+color 1 0 0 // bright red
+color 0.5 0 0 // a darker shade of red
+color 0.5 0.5 0 // an olive green
+```
 
 The red, green and blue channels control the color itself, and the alpha channel controls transparency. An alpha of 0 is fully transparent (invisible), and an alpha of 1 is fully opaque. If omitted, the alpha value defaults to 1. Alpha values between 0 and 1 can be used to create *translucent* colors, which blend with the background behind them. The following code would produce a 50% transparent red sphere:
 
@@ -41,7 +47,7 @@ The red, green and blue channels control the color itself, and the alpha channel
 sphere { color 1 0 0 0.5 }
 ```
 
-If fewer than 3 parameters are passed to the `color` command, the first parameter is treated as a luminance (brightness) value, meaning that the resultant color will be set to a shade of gray between 0 (black) and 1 (white).
+If fewer than 3 parameters are passed to the `color` command, the first parameter is treated as the overall luminance (brightness) value, meaning that the resultant color will be set to a shade of gray between 0 (black) and 1 (white).
 
 The table below shows how RGBA color values are interpreted, based on the number of components:
 
@@ -54,16 +60,18 @@ Number of parameters         | Meaning
 
 <br/>
 
-For example, the following produces a light shade gray of gray, with a luminance of 0.8 (equivalent to `0.8 0.8 0.8`):
+For example, the following both produce a light shade gray of gray, with a luminance of 0.8:
 
 ```swift
 color 0.8
+color 0.8 0.8 0.8
 ```
 
-And the following produces 50% a translucent white, with full luminance and 50% alpha (equivalent to `1 1 1 0.5`):
+And the following both produce 50% a translucent white, with full luminance and 50% alpha :
 
 ```swift
 color 1 0.5
+color 1 1 1 0.5
 ```
 
 ### Hexadecimal Colors
@@ -119,6 +127,26 @@ You can override these built-in colors using the `define` command, or define new
 define red 1 0.3 0.1 // override the default red color with a custom shade
 
 define lightGray 0.8 // define a new color "lightGray" with 80% luminance
+```
+
+### Alpha Override
+
+The predefined colors are all opaque (have an alpha of 1) by default, but you can override the alpha as follows:
+
+```swift
+color red 0.5 // set color to red with 50% alpha
+
+define greenGlass green 0.2
+color greenGlass // set color to green with 20% alpha
+```
+
+This approach also works for user-defined color constants, and with RGB and hexadecimal color literals:
+
+```swift
+define skyBlue 0.5 0.8 1 // opaque blue
+color skyBlue 0.5 // 50% transparent blue 
+
+color #ff0 0.5 // 50% transparent yellow
 ```
 
 ## Texture

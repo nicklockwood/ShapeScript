@@ -1223,6 +1223,26 @@ extension Expression {
         }
         switch type {
         case .color:
+            // TODO: find less hacky way to do this unwrap
+            if values.count == 1, case let .tuple(values) = values[0],
+               values.count == 2, let alpha = values[1].value as? Double
+            {
+                switch values[0] {
+                case let .color(color):
+                    return .color(color.withAlpha(alpha))
+                case let .tuple(values) where (1 ... 4).contains(values.count) &&
+                    values.allSatisfy { $0.value is Double }:
+                    let color = Color(unchecked: values.map { $0.doubleValue })
+                    return .color(color.withAlpha(alpha))
+                default:
+                    break
+                }
+            }
+            if values.count == 2, parameters.count == 2 {
+                let color = try parameters[0].evaluate(as: .color, for: name, in: context)
+                let alpha = try parameters[1].evaluate(as: .number, for: name, in: context)
+                return .color((color.value as! Color).withAlpha(alpha.doubleValue))
+            }
             let numbers = try numerify(max: 4, min: 1)
             return .color(Color(unchecked: numbers))
         case .vector:
