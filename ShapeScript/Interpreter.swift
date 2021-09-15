@@ -831,11 +831,11 @@ extension Statement {
     func evaluate(in context: EvaluationContext) throws {
         switch type {
         case let .command(identifier, parameter):
-            let (name, range) = (identifier.name, identifier.range)
+            let name = identifier.name
             guard let symbol = context.symbol(for: name) else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.commandSymbols),
-                    at: range
+                    at: identifier.range
                 )
             }
             switch symbol {
