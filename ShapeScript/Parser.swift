@@ -197,7 +197,7 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readOption() throws -> StatementType? {
-        guard readToken(.keyword(.option)) else {
+        guard readToken(.identifier("option")) else {
             return nil
         }
         let name = try require(readIdentifier(), as: "option name")

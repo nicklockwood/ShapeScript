@@ -173,11 +173,7 @@ extension EvaluationContext {
                 return nil
             }
             return $0
-        } + Keyword.allCases.map {
-            $0.rawValue
-        }.filter {
-            $0 != Keyword.option.rawValue
-        }
+        } + Keyword.allCases.map { $0.rawValue }
     }
 
     func value(for name: String) -> Value? {
