@@ -179,7 +179,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "text": .block(.text) { context in
             let text = context.children.map { $0.value as! String }.joined(separator: "\n")
             let paths = Path.text(text, font: context.font, detail: context.detail / 8)
-            return .tuple(paths.map { .path($0) })
+            return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
     ]
 
@@ -302,7 +302,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let builder: Symbols = _merge(primitive, transforms)
     static let group: Symbols = _merge(primitive, transforms)
     static let path: Symbols = _merge(global, transforms, points)
-    static let text: Symbols = global
+    static let text: Symbols = primitive
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, primitive, points)
 }

@@ -32,38 +32,51 @@ You can use the `fill` or `extrude` commands to turn these paths into a solid me
 
 ## Size
 
-To adjust the text size, you can use the [scale](transforms.md#relative-transforms) command prior to calling text:
+To adjust the text size, you can use the [size](transforms.md#size) option:
 
 ```swift
-scale 2 // increase text size by 200%
-text "Hello World"
+text {
+    size 2 // increase text size by 200%
+    text "Hello World"
+}
 ```
 
-Alternatively, for filled or extruded text, you can set the size directly in the shape block using the [size](transforms.md#size) option:
+You can resize the text non-uniformly by passing separate width and height values for the size:
+
+```swift
+text {
+    size 2 1.5 // set width to 200% and height to 150%
+    text "Hello World"
+}
+```
+
+Alternatively, for extruded text, you can set the size in the shape block instead, which allows you to also set the depth at the same time:
 
 ```swift
 extrude {
-    size 2 0.5 // 200% sized text, with 50% depth
+    size 2 2 0.5 // 200% sized text, with 50% depth
     text "Hello World"
 }
 ```
 
 ## Position and Orientation
 
-To adjust the text position and orientation, use the [translate and rotate](transforms.md#relative-transforms) commands:
+To adjust the text position and orientation, use the [position](transforms.md#position) and [orientation](transforms.md#orientation) commands:
 
 ```swift
-translate 2 1 // move text 2 units to the right and 1 unit u
-rotate 0.5 // rotate by 90 degrees
-text "Hello World"
+text {
+    position 2 1 // move text 2 units to the right and 1 unit up
+    orientation 0.5 // rotate by 90 degrees
+    "Hello World"
+}
 ```
 
-Or for filled or extruded text, you can set the [position](transforms.md#position) and [orientation](transforms.md#orientation) options inside the shape block:
+Or for filled or extruded text, you can set these on the containing shape block instead:
 
 ```swift
-extrude {
+fill {
     position 1 2 3 // set the position in 3D space
-    orientation 0.5 0 0 // set a 3D rotation
+    orientation 0 0.5 0 // rotate around the Y axis
     text "Hello World"
 }
 ```

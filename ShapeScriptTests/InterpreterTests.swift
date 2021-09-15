@@ -451,24 +451,6 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testPositionInvalidInText() {
-        let program = """
-        text {
-            position 1 0 0
-            "Hello"
-        }
-        """
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case let .unknownSymbol("position", options)? = error?.type else {
-                XCTFail()
-                return
-            }
-            print(options)
-            XCTAssert(!options.contains("option"))
-        }
-    }
-
     func testSetPositionWithTupleConstant() throws {
         let program = """
         define foo (1 0 0) 0
