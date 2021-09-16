@@ -318,6 +318,7 @@ private extension Substring {
                 escaped = true
             case "n" where escaped:
                 string.append("\n")
+                escaped = false
             case "\n", "\r", "\r\n":
                 break loop
             default:

@@ -161,6 +161,68 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    func testStringEndingWithEscapedNewline() {
+        let input = """
+        "foo\\n"
+        """
+        let tokens: [TokenType] = [.string("foo\n"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testStringWithMultipleEscapedNewlines() {
+        let input = """
+        "foo\\n\\n\\nbar"
+        """
+        let tokens: [TokenType] = [.string("foo\n\n\nbar"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testUnterminatedStringLiteral() {
+        let input = """
+        "foo
+        """
+        let range = input.range(of: "\"foo")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
+        }
+    }
+
+    func testUnterminatedStringLiteralFollowedByLinebreak() {
+        let input = """
+        "foo
+
+        """
+        let range = input.range(of: "\"foo")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
+        }
+    }
+
+    func testUnterminatedStringLiteralEndingInEscape() {
+        let input = """
+        "foo\\
+        """
+        let range = input.range(of: "\"foo\\")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
+        }
+    }
+
+    func testUnterminatedStringLiteralFollowedByEscapedLinebreak() {
+        let input = """
+        "foo\\
+
+        """
+        let range = input.range(of: "\"foo\\")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
+        }
+    }
+
     // MARK: colors
 
     func test0DigitColor() {
