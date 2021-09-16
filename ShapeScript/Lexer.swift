@@ -88,6 +88,7 @@ public enum LexerErrorType: Equatable {
     case invalidColor(String)
     case unexpectedToken(String)
     case unterminatedString
+    case invalidEscapeSequence(String)
 }
 
 public struct LexerError: Error, Equatable {
@@ -107,6 +108,11 @@ public struct LexerError: Error, Equatable {
             return "Unexpected token '\(token)'"
         case .unterminatedString:
             return "Unterminated string literal"
+        case let .invalidEscapeSequence(sequence):
+            let sequence = sequence.unicodeScalars.contains {
+                CharacterSet.whitespaces.contains($0)
+            } ? "'\(sequence)'" : sequence
+            return "Invalid escape sequence \(sequence)"
         }
     }
 
@@ -123,6 +129,8 @@ public struct LexerError: Error, Equatable {
             return nil
         case .unterminatedString:
             return "Try adding a closing \" (double quote) at the end of the line."
+        case .invalidEscapeSequence:
+            return "Supported sequences are \\\", \\n and \\\\."
         }
     }
 
@@ -337,7 +345,7 @@ private extension Substring {
                 break loop
             default:
                 let range = start.index(before: startIndex) ..< index(after: startIndex)
-                throw LexerError(.unexpectedToken(String(start[range])), at: range)
+                throw LexerError(.invalidEscapeSequence(String(start[range])), at: range)
             }
             removeFirst()
             escaped = false
