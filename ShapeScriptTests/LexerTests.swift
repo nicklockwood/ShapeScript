@@ -177,6 +177,17 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    func testStringWithInvalidEscapeSequence() {
+        let input = """
+        "foo\\'bar"
+        """
+        let range = input.range(of: "\\'")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error, LexerError(.unexpectedToken("\\'"), at: range))
+        }
+    }
+
     func testUnterminatedStringLiteral() {
         let input = """
         "foo

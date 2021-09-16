@@ -310,22 +310,34 @@ private extension Substring {
         removeFirst()
         var string = "", escaped = false
         loop: while let c = first {
-            switch c {
-            case "\"" where !escaped:
+            if !escaped {
+                switch c {
+                case "\"":
+                    removeFirst()
+                    return .string(string)
+                case "\\":
+                    escaped = true
+                case "\n", "\r", "\r\n":
+                    break loop
+                default:
+                    string.append(c)
+                }
                 removeFirst()
-                return .string(string)
-            case "\\" where !escaped:
-                escaped = true
-            case "n" where escaped:
+                continue
+            }
+            switch c {
+            case "n":
                 string.append("\n")
-                escaped = false
+            case "\\", "\"":
+                string.append(c)
             case "\n", "\r", "\r\n":
                 break loop
             default:
-                string.append(c)
-                escaped = false
+                let range = start.index(before: startIndex) ..< index(after: startIndex)
+                throw LexerError(.unexpectedToken(String(start[range])), at: range)
             }
             removeFirst()
+            escaped = false
         }
         let range = start.startIndex ..< startIndex
         throw LexerError(.unterminatedString, at: range)
