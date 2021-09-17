@@ -1219,6 +1219,13 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [RangeValue(from: 0.5, to: 1.5)])
     }
 
+    func testRangePrecedence() {
+        let program = "print 1 + 2 to 5 * 3 step 1 + 1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [RangeValue(from: 3, to: 15, step: 2)])
+    }
+
     func testRangeWithNonNumericStartValue() {
         let program = "define range \"foo\" to 10"
         let range = program.range(of: "\"foo\"")!
@@ -1406,6 +1413,16 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testForLoopWithExpressionInLoopRange() {
+        let program = """
+        define i 2
+        for i + 1 to 3 + 2 step 2 - 1 { print "a" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["a", "a", "a"])
     }
 
     func testForLoopWithColorProperty() {

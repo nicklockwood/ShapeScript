@@ -372,10 +372,10 @@ class ParserTests: XCTestCase {
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
-            XCTAssertEqual(error?.hint, "Expected range.")
+            XCTAssertEqual(error?.hint, "Expected index or range.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .lbrace, range: braceRange),
-                expected: "range"
+                expected: "index or range"
             )))
         }
     }

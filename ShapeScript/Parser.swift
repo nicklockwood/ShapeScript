@@ -221,11 +221,10 @@ private extension ArraySlice where Element == Token {
         guard readToken(.keyword(.for)) else {
             return nil
         }
-        let identifier = readIdentifier()
-        let expression: Expression
-        if let identifier = identifier, !readToken(.identifier("in")) {
-            expression = Expression(type: .identifier(identifier), range: identifier.range)
-        } else {
+        var identifier: Identifier?
+        var expression = try require(readExpression(), as: "index or range")
+        if case let .identifier(id) = expression.type, readToken(.identifier("in")) {
+            identifier = id
             expression = try require(readExpression(), as: "range")
         }
         let body = try require(readBlock(), as: "loop body")
