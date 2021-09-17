@@ -1,3 +1,11 @@
+## [1.3.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.4) (2021-09-17)
+
+- The position/size/orientation options can now be used inside `text` blocks
+- Fixed parsing error when using inline expressions in loop range
+- Unsupported string escape sequences are now treated as an error
+- Command parameters are now included in assertion failure error highlighting
+- Fixed bug with sequential escape sequences in text
+
 ## [1.3.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.3) (2021-09-14)
 
 - Fixed crash when font is set to an empty string
