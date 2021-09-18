@@ -1658,10 +1658,50 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for range should be a range or tuple, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "range",
                 index: 0,
                 expected: "range or tuple",
+                got: "color"
+            ), at: range))
+        }
+    }
+
+    // MARK: If/else
+
+    func testIfTrue() {
+        let program = "if true { print true }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testIfFalse() {
+        let program = "if false { print true }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
+    func testIfFalseElse() {
+        let program = "if false { print true } else { print false }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testIfColor() {
+        let program = "if red { print i }"
+        let range = program.range(of: "red")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for condition should be a boolean, not a color.")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "condition",
+                index: 0,
+                expected: "boolean",
                 got: "color"
             ), at: range))
         }

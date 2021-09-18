@@ -8,6 +8,8 @@ Literals are values that you type in your ShapeScript file. They could be number
 
 37.2 // a floating-point literal
 
+false // a boolean literal
+
 "hello" // a text literal
 
 1 0 0 // a vector literal

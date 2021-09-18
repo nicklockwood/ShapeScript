@@ -539,6 +539,173 @@ class ParserTests: XCTestCase {
         }
     }
 
+    // MARK: If/else
+
+    func testIfStatement() {
+        let input = "if foo {}"
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let bodyRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "foo", range: fooRange)),
+                        range: fooRange
+                    ),
+                    Block(statements: [], range: bodyRange),
+                    else: nil
+                ),
+                range: ifRange.lowerBound ..< bodyRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfFollowedByAnotherIf() {
+        let input = """
+        if foo {}
+        if bar { }
+        """
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let bodyRange = input.range(of: "{}")!
+        let if2Range = input.range(of: "if", range: input.range(of: "if bar")!)!
+        let barRange = input.range(of: "bar")!
+        let body2Range = input.range(of: "{ }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "foo", range: fooRange)),
+                        range: fooRange
+                    ),
+                    Block(statements: [], range: bodyRange),
+                    else: nil
+                ),
+                range: ifRange.lowerBound ..< bodyRange.upperBound
+            ),
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "bar", range: barRange)),
+                        range: barRange
+                    ),
+                    Block(statements: [], range: body2Range),
+                    else: nil
+                ),
+                range: if2Range.lowerBound ..< body2Range.upperBound
+            ),
+        ]))
+    }
+
+    func testIfElseStatement() {
+        let input = "if foo {} else { }"
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let bodyRange = input.range(of: "{}")!
+        let elseBodyRange = input.range(of: "{ }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "foo", range: fooRange)),
+                        range: fooRange
+                    ),
+                    Block(statements: [], range: bodyRange),
+                    else: Block(statements: [], range: elseBodyRange)
+                ),
+                range: ifRange.lowerBound ..< elseBodyRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfElseIfStatement() {
+        let input = "if foo {} else if bar { }"
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let bodyRange = input.range(of: "{}")!
+        let elseBodyRange = input.range(of: "if bar { }")!
+        let if2Range = input.range(of: "if", range: elseBodyRange)!
+        let barRange = input.range(of: "bar")!
+        let body2Range = input.range(of: "{ }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "foo", range: fooRange)),
+                        range: fooRange
+                    ),
+                    Block(statements: [], range: bodyRange),
+                    else: Block(statements: [
+                        Statement(
+                            type: .ifelse(
+                                Expression(
+                                    type: .identifier(Identifier(name: "bar", range: barRange)),
+                                    range: barRange
+                                ),
+                                Block(statements: [], range: body2Range),
+                                else: nil
+                            ),
+                            range: if2Range.lowerBound ..< body2Range.upperBound
+                        ),
+                    ], range: elseBodyRange)
+                ),
+                range: ifRange.lowerBound ..< body2Range.upperBound
+            ),
+        ]))
+    }
+
+    func testIfWithElseOnNewLine() {
+        let input = """
+        if foo {}
+        else { }
+        """
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let bodyRange = input.range(of: "{}")!
+        let elseBodyRange = input.range(of: "{ }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(
+                        type: .identifier(Identifier(name: "foo", range: fooRange)),
+                        range: fooRange
+                    ),
+                    Block(statements: [], range: bodyRange),
+                    else: Block(statements: [], range: elseBodyRange)
+                ),
+                range: ifRange.lowerBound ..< elseBodyRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfStatementWithoutCondition() {
+        let input = "if {}"
+        let braceRange = input.range(of: "{")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertEqual(error?.hint, "Expected condition.")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .lbrace, range: braceRange),
+                expected: "condition"
+            )))
+        }
+    }
+
+    func testIfStatementWithoutElse() {
+        let input = "if foo {} {}"
+        let braceRange = input.range(of: "{", range: input.range(of: "} {")!)!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected opening brace")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .lbrace, range: braceRange),
+                expected: nil
+            )))
+        }
+    }
+
     // MARK: Blocks
 
     func testTupleInBlock() {

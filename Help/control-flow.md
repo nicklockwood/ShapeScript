@@ -97,5 +97,79 @@ for i in ("parentheses" "are" "required") {
 }
 ```
 
+## If-Else
+
+Sometimes instead of repeating an action multiple times you need to perform it just once, but conditionally, based on some programmatic criteria. For example, your model might have multiple configurations that you can switch between by setting constants at the top of the file.
+
+To execute code conditionally, you can use an `if` statement:
+
+```swift
+define showCube true
+
+if showCube {
+    cube   
+}
+```
+
+The `showCube` constant here is a [boolean](https://en.wikipedia.org/wiki/Boolean_data_type) that can have the value `true` or `false`. The condition for an `if` statement must always be a boolean expression. The body of the `if` statement will only be executed if the condition is true.
+
+To perform an alternative action for when the condition is false, you can add an `else` clause:
+
+```swift
+if showCube {
+    cube   
+} else {
+    sphere   
+}
+```
+
+You can chain multiple conditional statements using the `else if` construct:
+
+```swift
+if showCube {
+    cube   
+} else if showSphere {
+    sphere   
+} else if showCone {
+    cone
+} else {
+    print "Nothing to see here!"   
+}
+```
+
+## Conditional Defines
+
+Something you might want to do with an `if` statement is to conditionally define a constant value, for example:
+
+```swift
+define highlighted true
+
+if highlighted {
+    define cubeColor red
+} else {
+    define cubeColor white  
+}
+
+cube cubeColor
+```
+
+Unfortunately this won't work, due to the [scope](scope.md) rules. The `cubeColor` symbol is only defined inside the `if` statement blocks themselves, and can't be accessed outside. So how can you set the value of `cubeColor` conditionally?
+
+The solution is to move the `if` statement *inside* the `define` itself, like this:
+
+```swift
+define highlighted true
+
+define cubeColor {
+    if highlighted {
+        red
+    } else {
+        white  
+    }
+}
+
+cube { color cubeColor }
+```
+
 ---
 [Index](index.md) | Next: [Blocks](blocks.md)

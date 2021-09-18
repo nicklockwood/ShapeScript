@@ -1070,6 +1070,19 @@ extension Statement {
                     }
                 }
             }
+        case let .ifelse(condition, body, else: elseBody):
+            let value = try condition.evaluate(as: .boolean, for: "condition", index: 0, in: context)
+            try context.pushScope { context in
+                if value.boolValue {
+                    for statement in body.statements {
+                        try statement.evaluate(in: context)
+                    }
+                } else if let elseBody = elseBody {
+                    for statement in elseBody.statements {
+                        try statement.evaluate(in: context)
+                    }
+                }
+            }
         case let .import(expression):
             let pathValue = try expression.evaluate(
                 as: .string,
@@ -1153,7 +1166,7 @@ extension Expression {
                                               for: identifier,
                                               in: context)
                         ))
-                    case .block, .define, .forloop, .expression, .import:
+                    case .block, .define, .forloop, .ifelse, .expression, .import:
                         try statement.evaluate(in: context)
                     case .option:
                         throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)

@@ -88,6 +88,8 @@ ShapeScript Help
         - [Loop Index](control-flow.md#loop-index)
         - [Looping Backwards](control-flow.md#looping-backwards)
         - [Looping Over Values](control-flow.md#looping-over-values)
+        - [If-Else](control-flow.md#if-else)
+        - [Conditional Defines](control-flow.md#conditional-defines)
     - [Blocks](blocks.md)
         - [Options](blocks.md#options)
     - [Scope](scope.md)

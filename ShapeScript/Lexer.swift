@@ -44,6 +44,8 @@ public func tokenize(_ input: String) throws -> [Token] {
 public enum Keyword: String, CaseIterable {
     case define
     case `for`
+    case `if`
+    case `else`
     case `import`
 }
 

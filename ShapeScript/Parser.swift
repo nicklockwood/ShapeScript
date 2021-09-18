@@ -28,6 +28,7 @@ public enum StatementType: Equatable {
     case define(Identifier, Definition)
     case option(Identifier, Expression)
     case forloop(Identifier?, in: Expression, Block)
+    case ifelse(Expression, Block, else: Block?)
     case expression(Expression)
     case `import`(Expression)
 }
@@ -230,6 +231,31 @@ private extension ArraySlice where Element == Token {
         return .forloop(identifier, in: expression, body)
     }
 
+    mutating func readIfElse() throws -> StatementType? {
+        guard readToken(.keyword(.if)) else {
+            return nil
+        }
+        let condition = try require(readExpression(), as: "condition")
+        let body = try require(readBlock(), as: "if body")
+        let start = self
+        _ = readToken(.linebreak)
+        guard readToken(.keyword(.else)) else {
+            self = start
+            return .ifelse(condition, body, else: nil)
+        }
+        let lowerBound = nextToken.range.lowerBound
+        if let elseBody = try readBlock() {
+            return .ifelse(condition, body, else: elseBody)
+        } else if let statementType = try readIfElse() {
+            let end = start[start.index(before: startIndex)]
+            let range = lowerBound ..< end.range.upperBound
+            return .ifelse(condition, body, else: Block(statements: [
+                Statement(type: statementType, range: range),
+            ], range: range))
+        }
+        throw ParserError(.unexpectedToken(nextToken, expected: "else body"))
+    }
+
     mutating func readImport() throws -> StatementType? {
         guard readToken(.keyword(.import)) else {
             return nil
@@ -405,7 +431,9 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readStatement() throws -> StatementType? {
-        if let statement = try readDefine() ?? readOption() ?? readForLoop() ?? readImport() {
+        if let statement = try readDefine() ?? readOption() ??
+            readForLoop() ?? readIfElse() ?? readImport()
+        {
             return statement
         }
         let start = self
