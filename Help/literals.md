@@ -104,9 +104,9 @@ print size.height // 4
 print size.depth // 5
 
 define rotation 0.5 0.25 0
-print size.roll // 0.5
-print size.yaw // 0.25
-print size.pitch // 0
+print rotation.roll // 0.5
+print rotation.yaw // 0.25
+print rotation.pitch // 0
 
 define col 1 0 0
 print col.red // 1
