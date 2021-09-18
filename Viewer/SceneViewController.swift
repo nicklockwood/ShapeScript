@@ -148,10 +148,8 @@ class SceneViewController: NSViewController {
             scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
 
             // add axes
-            let bounds = viewBounds
-            let size = bounds.size
             if showAxes {
-                let axes = Axes(scale: size.x / 2, background: background)
+                let axes = Axes(scale: axesSize, background: background)
                 scnScene.rootNode.addChildNode(SCNNode(axes))
             }
 
@@ -169,11 +167,15 @@ class SceneViewController: NSViewController {
             }
 
             // update camera
-            let center = bounds.center
-            let distance = showAxes ? size.z * 1.1 : max(size.x * 0.75, size.y) + bounds.max.z
-            cameraNode.position = SCNVector3(center.x, center.y, center.z + distance)
+            let bounds = geometry.bounds
+            let size = bounds.size
+            var distance = max(size.x * 0.75, size.y) + bounds.max.z
+            if showAxes {
+                distance = max(distance, axesSize * 2.2)
+            }
+            cameraNode.position = SCNVector3(viewCenter.x, viewCenter.y, viewCenter.z + distance)
             scnView.allowsCameraControl = true
-            scnView.defaultCameraController.target = SCNVector3(center)
+            scnView.defaultCameraController.target = SCNVector3(viewCenter)
             refreshView()
         }
     }
@@ -183,14 +185,14 @@ class SceneViewController: NSViewController {
         scnView.rendersContinuously = false
     }
 
-    private var viewBounds: Bounds {
+    private var viewCenter: Vector {
+        showAxes ? .zero : (geometry?.bounds ?? .empty).center
+    }
+
+    private var axesSize: Double {
         let bounds = geometry?.bounds ?? .empty
-        guard showAxes else {
-            return bounds
-        }
-        var m = max(-bounds.min, bounds.max) * 1.1
-        m = Vector(size: [max(m.x, m.y, m.z)])
-        return Bounds(min: -m, max: m)
+        let m = max(-bounds.min, bounds.max)
+        return max(m.x, m.y, m.z) * 1.1
     }
 
     private(set) weak var selectedGeometry: Geometry?
@@ -235,7 +237,7 @@ class SceneViewController: NSViewController {
     }
 
     @IBAction func resetCamera(_: Any?) {
-        scnView.defaultCameraController.target = SCNVector3(viewBounds.center)
+        scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.pointOfView = cameraNode
         refreshView()
     }
