@@ -377,6 +377,10 @@ enum Value {
         Int(truncating: doubleValue as NSNumber)
     }
 
+    var stringValue: String? {
+        (value as? Loggable)?.logDescription
+    }
+
     var type: ValueType {
         switch self {
         case .color: return .color
@@ -543,7 +547,7 @@ enum BlockType {
         case .builder: return [.path]
         case .group: return [.mesh]
         case .path: return [.point, .path]
-        case .text: return [.string]
+        case .text: return [.string, .number]
         case let .custom(baseType, _):
             return baseType?.childTypes ?? []
         }
@@ -959,7 +963,7 @@ extension Statement {
             }
         case let .import(expression):
             let pathValue = try expression.evaluate(in: context)
-            guard let path = pathValue.value as? String else {
+            guard let path = pathValue.stringValue else {
                 let got = (pathValue.type == .string) ? "nil" : pathValue.type.errorDescription
                 throw RuntimeError(
                     .typeMismatch(
@@ -1236,7 +1240,7 @@ extension Expression {
         case .tuple:
             return .tuple(values)
         case .texture where values.count == 1 && values[0].type == .string:
-            let name = values[0].value as? String
+            let name = values[0].stringValue
             return try RuntimeError.wrap(.texture(name.map {
                 .file(name: $0, url: try context.resolveURL(for: $0))
             }), at: parameters[0].range)
@@ -1248,7 +1252,7 @@ extension Expression {
                 return try evaluate(as: .color, for: name, in: context)
             }
         case .font where values.count == 1 && values[0].type == .string:
-            let name = values[0].value as? String
+            let name = values[0].stringValue
             return try RuntimeError.wrap(.string(validateFont(name)), at: parameters[0].range)
         case .paths:
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in

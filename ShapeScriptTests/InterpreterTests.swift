@@ -1045,8 +1045,8 @@ class InterpreterTests: XCTestCase {
     }
 
     func testInvokeTextInExpressionWithParensButWrongArgumentType() {
-        let program = "print 1 + (text 2)"
-        let range = program.range(of: "2")!
+        let program = "print 1 + (text cube)"
+        let range = program.range(of: "cube")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -1054,7 +1054,7 @@ class InterpreterTests: XCTestCase {
                 for: "text",
                 index: 0,
                 expected: "block",
-                got: "number"
+                got: "mesh"
             ), at: range))
         }
     }
@@ -1938,5 +1938,28 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual("foo".editDistance(from: ""), 3)
         XCTAssertEqual("".editDistance(from: "foo"), 3)
         XCTAssertEqual("".editDistance(from: ""), 0)
+    }
+
+    // MARK: Text command
+
+    func testNumberConvertedToText() {
+        let program = """
+        text 5
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testNumberConvertedToTextInsidePrintCommand() {
+        let program = """
+        print text 5
+        print text "5"
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        #if canImport(CoreText)
+        XCTAssert(delegate.log.first is Path)
+        XCTAssertEqual(delegate.log.count, 2)
+        XCTAssertEqual(delegate.log.first, delegate.log.last)
+        #endif
     }
 }

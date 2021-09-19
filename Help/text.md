@@ -24,11 +24,22 @@ text {
 
 The output of the `text` command is a series of [paths](paths.md), one for each character or *glyph* in the text:
 
-![Line](images/text.png)
+![Text](images/text.png)
 
 You can use the `fill` or `extrude` commands to turn these paths into a solid mesh (see [builders](builders.md) for details):
 
-![Line](images/solid-text.png)
+![Solid Text](images/solid-text.png)
+
+For your convenience, the text command will automatically convert numeric values to their character representation. The following displays the numbers 1 to 5 as 3D text:
+
+```swift
+for i in 1 to 5 {
+    extrude text i
+    translate 1
+}
+```
+
+![Numbers](images/numbers.png)
 
 ## Size
 
@@ -90,7 +101,7 @@ font "Zapfino"
 fill text "Hello World"
 ```
 
-![Line](images/text-font.png)
+![Text with font](images/text-font.png)
 
 **Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may need to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
 

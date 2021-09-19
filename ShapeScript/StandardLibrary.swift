@@ -177,7 +177,7 @@ extension Dictionary where Key == String, Value == Symbol {
             #endif
         },
         "text": .block(.text) { context in
-            let text = context.children.map { $0.value as! String }.joined(separator: "\n")
+            let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
             let paths = Path.text(text, font: context.font, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
@@ -264,7 +264,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
         // TODO: is here the right place for this?
         "font": .property(.font, { parameter, context in
-            context.font = parameter.value as? String
+            context.font = parameter.stringValue
         }, { context in
             .texture(context.material.texture)
         }),
@@ -277,7 +277,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let primitive: Symbols = _merge(global, materials, [
         "name": .property(.string, { parameter, context in
-            context.name = parameter.value as? String
+            context.name = parameter.stringValue
         }, { context in
             .string(context.name)
         }),
