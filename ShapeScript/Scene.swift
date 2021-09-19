@@ -30,7 +30,9 @@ public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
     var bounds: Bounds {
-        children.reduce(into: .empty) { $0.formUnion($1.bounds) }
+        children.reduce(into: .empty) {
+            $0.formUnion($1.bounds.transformed(by: $1.transform))
+        }
     }
 
     func build(_ callback: @escaping () -> Bool) -> Bool {
