@@ -1,3 +1,12 @@
+## [1.3.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.5) (2021-09-19)
+
+- Numbers can now be used in text blocks
+- Fixed bug with times/divide operator associativity
+- Fixed default zoom level in viewer when axes are shown
+- Fixed bug in scene bounds calculation when children have a transform applied
+- Improved error message for missing files specified by full path
+- Limited maximum lineWidth when rendering paths
+
 ## [1.3.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.4) (2021-09-17)
 
 - The position/size/orientation options can now be used inside `text` blocks
