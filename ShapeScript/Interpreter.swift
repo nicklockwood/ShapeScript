@@ -213,13 +213,18 @@ public extension RuntimeError {
             return "A \(type) value was not expected in this context."
         case let .assertionFailure(message):
             return formatMessage(message)
-        case let .fileNotFound(for: _, at: url):
+        case let .fileNotFound(for: name, at: url):
             guard let url = url else {
                 return nil
             }
-            return "ShapeScript expected to find the file at '\(url.path)'. Check that it exists and is located here."
+            if name == url.path {
+                return "Check that the file exists and is located here."
+            }
+            return "ShapeScript expected to find the file at '\(url.path)'."
+                + " Check that it exists and is located here."
         case let .fileAccessRestricted(for: _, at: url):
-            return "ShapeScript cannot read the file due to macOS security restrictions. Please open the directory at '\(url.path)' to grant access."
+            return "ShapeScript cannot read the file due to macOS security restrictions."
+                + " Please open the directory at '\(url.path)' to grant access."
         case let .fileParsingError(for: _, at: _, message: message):
             return formatMessage(message)
         case let .fileTypeMismatch(for: _, at: url, expected: type):
