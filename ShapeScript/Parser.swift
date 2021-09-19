@@ -314,18 +314,18 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readTerm() throws -> Expression? {
-        guard let lhs = try readOperand() else {
+        guard var lhs = try readOperand() else {
             return nil
         }
-        guard case let .infix(op) = nextToken.type, [.times, .divide].contains(op) else {
-            return lhs
+        while case let .infix(op) = nextToken.type, [.times, .divide].contains(op) {
+            removeFirst()
+            let rhs = try require(readOperand(), as: "operand")
+            lhs = Expression(
+                type: .infix(lhs, op, rhs),
+                range: lhs.range.lowerBound ..< rhs.range.upperBound
+            )
         }
-        removeFirst()
-        let rhs = try require(readTerm(), as: "operand")
-        return Expression(
-            type: .infix(lhs, op, rhs),
-            range: lhs.range.lowerBound ..< rhs.range.upperBound
-        )
+        return lhs
     }
 
     mutating func readExpression() throws -> Expression? {

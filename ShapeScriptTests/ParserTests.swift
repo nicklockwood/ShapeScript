@@ -74,6 +74,37 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testOperatorPrecedence2() {
+        let input = "color 1 / 2 * 3"
+        let colorRange = input.range(of: "color")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let range3 = input.range(of: "3")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "color", range: colorRange),
+                    Expression(
+                        type: .infix(
+                            Expression(
+                                type: .infix(
+                                    Expression(type: .number(1), range: range1),
+                                    .divide,
+                                    Expression(type: .number(2), range: range2)
+                                ),
+                                range: range1.lowerBound ..< range2.upperBound
+                            ),
+                            .times,
+                            Expression(type: .number(3), range: range3)
+                        ),
+                        range: range1.lowerBound ..< range3.upperBound
+                    )
+                ),
+                range: colorRange.lowerBound ..< range3.upperBound
+            ),
+        ]))
+    }
+
     func testUnterminatedInfixExpression() {
         let input = "define foo 1 +"
         let range = input.endIndex ..< input.endIndex
