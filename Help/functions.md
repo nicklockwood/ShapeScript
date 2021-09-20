@@ -27,9 +27,9 @@ translate cos(x) y
 
 Either approach is acceptable in ShapeScript. Note however that in the latter case there must be no space between the function name and the opening paren.
 
-## Math Functions
+## Arithmetic
 
-In addition to the standard math [operators](expressions.md#operators), ShapeScript also includes a number of built-in math *functions*:
+In addition to the standard arithmetic [operators](expressions.md#operators), ShapeScript also includes a number of built-in arithmetic *functions*:
 
 The `round` function is used to round a number to the nearest integer (whole number):
 
@@ -64,7 +64,7 @@ The `sqrt` function returns the square root of a value:
 
 ```swift
 sqrt 4 // returns 2
-sqrt 2 // returns 1.41421… 
+sqrt 2 // returns 1.414
 ```
 
 The `pow` function takes *two* parameters, and return the first value raised to the power of the second:
@@ -95,54 +95,73 @@ For the most part, you can avoid the need for trigonometry is ShapeScript by usi
 
 But sometimes you may wish to do something more complex (e.g. generating a path in the shape of a sign wave) that can only be achieved through explicit calculations, and to support that, ShapeScript provides a standard suite of trigonometric functions.
 
-**Note:** while ShapeScript's transform commands generally expect angles in the range 0 to 2, the trigonometric functions all use radians. To convert an angle in radians to a ShapeScript rotation value, divide it by `pi` :
+While ShapeScript's [transform](transforms.md#orientation) commands expect values in the range 0 to 2 (or 0 to -2), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
+
+For example, the `sin` (sine) function takes a radian representation of an angle and returns a ratio value of that angle. In this case 0.524 radians returns 0.5 or 1/2 - an angle of 30 degrees:
 
 ```swift
-define angle acos(0.5) // 60 degrees
-rotate angle / pi
+sin 0.524 // returns 0.5
 ``` 
 
-The `sin` function returns the sine of an angle (specified in radians):
+The `acos` (arc cosine) function takes a ratio representation of an angle and returns a radians value of that angle. In this case 1/2 or 0.5 returns 1.047 radians - equivalent to an angle of 60 degrees:
 
 ```swift
-sin pi // returns 0
+acos 0.5 // return 1.047
 ``` 
 
-The `cos` function returns the cosine of an angle (specified in radians):
+The `cos` (cosine), `sin` (sine), and `tan` (tangent) functions all take a radians value and return a ratio value, and the `asin` (arc sine), `acos` (arc cosine), and `atan` (arc tangent) functions all take a ratio value and return a radians value.
+
+Using `atan` to calculate the angle of a vector is problematic because the result that it returns can be ambiguous. You need to take the vector quadrant into account, as well as the ratio of the X and Y components.
+
+The `atan2` function works like `atan`, but instead of a single tangent value, it accepts separate Y and X inputs and returns the angle of the vector that they describe. The resultant angle correctly takes the vector quadrant into account.
 
 ```swift
-cos pi // returns -1
-``` 
-
-The `tan` function returns the tangent of an angle (specified in radians):
-
-```swift
-tan pi // returns 0
-``` 
-
-The `asin` function computes the inverse sine function (aka arc sine), returning an angle in radians:
-
-```swift
-asin 1 // returns pi / 2
-``` 
-
-The `acos` function computes the inverse cosine function (aka arc cosine), returning an angle in radians:
-
-```swift
-acos -1 // returns pi
-``` 
-
-The `atan` function computes the inverse tangent function (aka arc tangent), returning an angle in radians:
-
-```swift
-atan 1 // returns pi / 4
-``` 
-
-The `atan2` function works like `atan`, but instead of a single tangent value, it accepts an x and y value and returns the angle of the vector that they describe. The resultant angle correctly takes the vector quadrant into account:
-
-```swift
-atan2 1 -1 // returns pi * 0.75
+atan2 1 -1 // returns a radian angle of the vector Y: 1, X: -1
 ```
+
+To convert an angle in radians to a ShapeScript rotation value, divide it by the 'pi' constant:
+
+```swift
+define angle acos(0.5) // returns 1.047 radians (60 degrees)
+rotate angle / pi      // return 0.333 (1.047 / 3.141)
+```
+
+ShapeScript's `rotate` and `orientation` commands expect a value between -1 and 1, representing an angle between -180 and 180 degrees. An angle of 60 degrees would be equivalent to a rotation of 60 / 180, or 0.333.
+
+To convert a ShapeScript rotation value to radians, multiply it by `pi`.
+
+```swift
+cube {
+    orientation 0.5
+    print orientation.roll * pi // prints 1.571 (0.5 * pi)
+}
+```
+
+Angular conversion formulae:
+
+Conversion                      | Formula
+:------------------------------ | :--------------------------
+Degrees to radians              | radian = degrees / 180 * pi
+Radians to degrees              | degrees = radians / pi * 180
+Degrees to ShapeScript rotation | rotation = degrees / 180
+ShapeScript rotation to degrees | degrees = rotation * 180
+Radians to ShapeScript rotation | rotation = degrees / pi
+ShapeScript rotation to radians | radians = rotation * pi
+
+<br>
+
+Common values:
+
+Angle in degrees | Angle in radians | ShapeScript rotation 
+:--------------- | :--------------- | :------------------
+0                | 0                | 0
+30               | pi / 6 (0.524)   | 1 / 6 (0.167)
+45               | pi / 4 (0.785)   | 1 / 4 (0.25)
+60               | pi / 3 (1.047)   | 1 / 3 (0.333)
+90               | pi / 2 (1.57)    | 1 / 2 (0.5)
+
+<br>
+
 
 ## Functions and Expressions
 

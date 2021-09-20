@@ -59,7 +59,7 @@ ShapeScript Help
         - [Members](expressions.md#members)
         - [Ranges](expressions.md#ranges)
     - [Functions](functions.md)
-        - [Math Functions](functions.md#math-functions)
+        - [Arithmetic](functions.md#arithmetic)
         - [Trigonometry](functions.md#trigonometry)
         - [Functions and Expressions](functions.md#functions-and-expressions)
     - [Commands](commands.md)
