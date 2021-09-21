@@ -1016,6 +1016,16 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    func testSetFontWithFile() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("font \"EdgeOfTheGalaxyRegular-OVEa6.otf\"")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        #endif
+    }
+
     // MARK: Import
 
     func testImport() throws {

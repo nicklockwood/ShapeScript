@@ -1314,7 +1314,8 @@ extension Expression {
             }
         case .font where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
-            return try RuntimeError.wrap(.string(validateFont(name)), at: parameters[0].range)
+            let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
+            return try RuntimeError.wrap(.string(context.resolveFont(name)), at: range)
         case .paths:
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
                 switch value {
@@ -1380,25 +1381,4 @@ extension Expression {
             )
         }
     }
-}
-
-private func validateFont(_ name: String?) throws -> String? {
-    guard let name = name?
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: "\t", with: " ")
-        .replacingOccurrences(of: "  ", with: " ")
-    else {
-        return nil
-    }
-    #if canImport(CoreGraphics)
-    guard CGFont(name as CFString) != nil else {
-        var options = [String]()
-        #if canImport(CoreText)
-        options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
-        options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
-        #endif
-        throw RuntimeErrorType.unknownFont(name, options: options)
-    }
-    #endif
-    return name
 }

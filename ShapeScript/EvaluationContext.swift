@@ -214,6 +214,45 @@ extension EvaluationContext {
         return url
     }
 
+    func resolveFont(_ name: String?) throws -> String? {
+        guard let name = name?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\t", with: " ")
+            .replacingOccurrences(of: "  ", with: " ")
+        else {
+            return nil
+        }
+        #if canImport(CoreGraphics)
+        guard [".otf", ".ttf", ".ttc"].contains(where: {
+            name.lowercased().hasSuffix($0)
+        }) else {
+            guard CGFont(name as CFString) != nil else {
+                var options = [String]()
+                #if canImport(CoreText)
+                options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
+                options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
+                #endif
+                throw RuntimeErrorType.unknownFont(name, options: options)
+            }
+            return name
+        }
+        let url = try resolveURL(for: name)
+        guard let dataProvider = CGDataProvider(url: url as CFURL) else {
+            throw RuntimeErrorType.fileNotFound(for: name, at: url)
+        }
+        #if canImport(CoreText)
+        guard let cgFont = CGFont(dataProvider),
+              CTFontManagerRegisterGraphicsFont(cgFont, nil)
+        else {
+            throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
+        }
+        return cgFont.fullName as String?
+        #endif
+        #else
+        return name
+        #endif
+    }
+
     func importModel(at path: String) throws {
         let url = try resolveURL(for: path)
         let program: Program
