@@ -235,7 +235,7 @@ private extension ArraySlice where Element == Token {
         guard readToken(.keyword(.import)) else {
             return nil
         }
-        return try .import(require(readExpression(), as: "file path"))
+        return try .import(require(readExpressions(), as: "file path"))
     }
 
     mutating func readOperand() throws -> Expression? {

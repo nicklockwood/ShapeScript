@@ -736,6 +736,18 @@ class InterpreterTests: XCTestCase {
         )])
     }
 
+    func testSetTextureWithStringInterpolationWithoutParens() throws {
+        let program = """
+        texture "Stars" 1 ".jpg"
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )])
+    }
+
     func testSetTextureWithInterpolatedConstant() throws {
         let program = """
         define image "Stars" 1 ".jpg"
@@ -761,21 +773,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.fileNotFound(
                 for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
             ), at: range))
-        }
-    }
-
-    func testSetTextureWithTuple() throws {
-        let program = """
-        texture \"Stars.jpg\" 1
-        print texture
-        """
-        let range = program.range(of: "1")!
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "texture", max: 1), at: range
-            ))
         }
     }
 
@@ -931,6 +928,13 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(context.font, "Courier")
     }
 
+    func testSetValidFontWithStringInterpolationWithoutParens() throws {
+        let program = try parse("font \"Cou\" \"rier\"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Courier")
+    }
+
     func testSetValidFontWithInterpolatedConstant() throws {
         let program = try parse("""
         define name "Cou" "rier"
@@ -1002,22 +1006,6 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
-    func testSetFontWithTuple() throws {
-        #if canImport(CoreGraphics)
-        let program = try parse("font \"Courier\" \"foo\"")
-        let range = program.source.range(of: "\"foo\"")!
-        let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "font", max: 1), at: range
-            ))
-        }
-        XCTAssertNil(context.font)
-        #endif
-    }
-
     // MARK: Import
 
     func testImport() throws {
@@ -1030,6 +1018,14 @@ class InterpreterTests: XCTestCase {
 
     func testImportWithStringInterpolation() throws {
         let program = try parse("import (\"File\" 1 \".shape\")")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, ["File1.shape"])
+    }
+
+    func testImportWithStringInterpolationWithoutParens() throws {
+        let program = try parse("import \"File\" 1 \".shape\"")
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         try? program.evaluate(in: context) // Throws file not found, but we can ignore

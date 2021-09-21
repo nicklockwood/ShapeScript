@@ -168,13 +168,11 @@ The texture name can be constructed dynamically by using the [text interpolation
 ```swift
 for n in 1 to 5 {
     cube {
-        texture ("file" n ".png")
+        texture "file" n ".png"
         position n
     }
 }
 ```
-
-**Note:** Unlike the `text` command, the `texture` command requires that interpolated name components are placed inside parentheses.
 
 ### Access Permission
 

@@ -424,6 +424,9 @@ enum Value {
         case let (.tuple(values), .string):
             return values.allSatisfy { $0.isConvertible(to: .string) }
         case let (.tuple(values), .color):
+            if values.count == 1 {
+                return values[0].isConvertible(to: .color)
+            }
             return values.allSatisfy { $0.type == .number }
         default:
             return self.type == type
@@ -1296,21 +1299,21 @@ extension Expression {
             return .tuple(numbers.map { .number($0) })
         case .tuple:
             return .tuple(values)
-        case .string where values.count == 1 && values[0].isConvertible(to: .string):
-            return .string(values[0].stringValue)
-        case .texture where values.count == 1 && values[0].isConvertible(to: .string):
-            let name = values[0].stringValue
+        case .string where Value.tuple(values).isConvertible(to: .string):
+            return .string(Value.tuple(values).stringValue)
+        case .texture where Value.tuple(values).isConvertible(to: .string):
+            let name = Value.tuple(values).stringValue
             return try RuntimeError.wrap(.texture(name.map {
                 .file(name: $0, url: try context.resolveURL(for: $0))
             }), at: parameters[0].range)
         case .colorOrTexture:
-            if values.count > 1 || values[0].isConvertible(to: .color) {
+            if Value.tuple(values).isConvertible(to: .color) {
                 return try evaluate(as: .color, for: name, in: context)
             } else {
                 return try evaluate(as: .texture, for: name, in: context)
             }
-        case .font where values.count == 1 && values[0].isConvertible(to: .string):
-            let name = values[0].stringValue
+        case .font where Value.tuple(values).isConvertible(to: .string):
+            let name = Value.tuple(values).stringValue
             return try RuntimeError.wrap(.string(validateFont(name)), at: parameters[0].range)
         case .paths:
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in

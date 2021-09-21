@@ -40,11 +40,9 @@ You can do this using the [text interpolation](text.md#interpolation) feature. T
 
 ```swift
 for n in 1 to 10 {
-    import ("Shape" n ".shape")   
+    import "Shape" n ".shape"
 }
 ```
-
-**Note:** Unlike the `text` command, the `import` command requires that interpolated path name components are placed inside parentheses.
 
 ---
 [Index](index.md) | Next: [Export](export.md)
