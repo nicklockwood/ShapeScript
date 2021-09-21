@@ -99,6 +99,7 @@ Operator       | Function
 :------------- | :--------------------
 and            | Compares two values and returns `true` if they are both true
 or             | Compares two values and returns `true` if either one is true
+not            | Returns `false` if the expression to the right is true, and `true` if it's false
 
 <br>
 
@@ -113,8 +114,8 @@ if a and b {
 These can be combined into more complex expressions, and used in conjunction with parentheses for disambiguation:
 
 ```swift
-if a and (b or c) {
-    print "a was true and either b or c were true"  
+if (not a) and (b or c) {
+    print "a was false and either b or c were true"  
 }
 ```
 

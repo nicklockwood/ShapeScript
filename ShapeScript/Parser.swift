@@ -408,20 +408,41 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readComparison() throws -> Expression? {
-        guard let lhs = try readStep() else {
+        let not = nextToken.type == .identifier("not") ? readToken() : nil
+        guard var lhs = try readStep() else {
             return nil
         }
-        guard case let .infix(op) = nextToken.type, [
+        if case let .infix(op) = nextToken.type, [
             .lt, .lte, .gt, .gte, .equal, .unequal,
-        ].contains(op) else {
-            return lhs
+        ].contains(op) {
+            removeFirst()
+            // TODO: should we allow chained comparison operators?
+            let not = nextToken.type == .identifier("not") ? readToken() : nil
+            var rhs = try require(readSum(), as: "operand")
+            if let not = not {
+                rhs = Expression(type: .tuple([
+                    Expression(
+                        type: .identifier(Identifier(name: "not", range: not.range)),
+                        range: not.range
+                    ),
+                    rhs,
+                ]), range: not.range.lowerBound ..< rhs.range.upperBound)
+            }
+            lhs = Expression(
+                type: .infix(lhs, op, rhs),
+                range: lhs.range.lowerBound ..< rhs.range.upperBound
+            )
         }
-        removeFirst()
-        let rhs = try require(readSum(), as: "operand")
-        return Expression(
-            type: .infix(lhs, op, rhs),
-            range: lhs.range.lowerBound ..< rhs.range.upperBound
-        )
+        return not.map {
+            let not = Expression(
+                type: .identifier(Identifier(name: "not", range: $0.range)),
+                range: $0.range
+            )
+            return Expression(
+                type: .tuple([not, lhs]),
+                range: $0.range.lowerBound ..< lhs.range.upperBound
+            )
+        } ?? lhs
     }
 
     mutating func readBooleanLogic() throws -> Expression? {

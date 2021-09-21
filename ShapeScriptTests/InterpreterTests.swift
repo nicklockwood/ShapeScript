@@ -1707,6 +1707,13 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testIfNot() {
+        let program = "if not 3 < 1 { print true }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
     // MARK: Math functions
 
     func testInvokeMonadicFunction() {
@@ -2085,6 +2092,49 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [true, true, false])
+    }
+
+    func testNotVsComparisonOperators() {
+        let program = """
+        print not 1 > 3
+        print not 1 < 3
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false])
+    }
+
+    func testNotVsEquality() {
+        let program = """
+        print not true = false
+        print not true <> false
+        print not 5 = 6
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false, true])
+    }
+
+    func testNotVsBooleanOperators() {
+        let program = """
+        print not true or false
+        print not true or true
+        print not true and true
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false, true, false])
+    }
+
+    func testNotVsParens() {
+        let program = """
+        print (not true) = false
+        print not(true) = false
+        print true = (not false)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, true, true])
     }
 
     // MARK: Member lookup

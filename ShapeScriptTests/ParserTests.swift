@@ -105,6 +105,71 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testNotOperatorPrecedence() {
+        let input = "not a = b"
+        let notRange = input.range(of: "not")!
+        let aRange = input.range(of: "a")!
+        let bRange = input.range(of: "b")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "not", range: notRange),
+                    Expression(
+                        type: .infix(
+                            Expression(type: .identifier(Identifier(
+                                name: "a",
+                                range: aRange
+                            )), range: aRange),
+                            .equal,
+                            Expression(type: .identifier(Identifier(
+                                name: "b",
+                                range: bRange
+                            )), range: bRange)
+                        ),
+                        range: aRange.lowerBound ..< input.endIndex
+                    )
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
+    func testNotOperatorPrecedence2() {
+        let input = "not a = not b"
+        let notRange = input.range(of: "not")!
+        let aRange = input.range(of: "a")!
+        let notRange2 = input.range(of: "not", range: input.range(of: "not b")!)!
+        let bRange = input.range(of: "b")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "not", range: notRange),
+                    Expression(
+                        type: .infix(
+                            Expression(type: .identifier(Identifier(
+                                name: "a",
+                                range: aRange
+                            )), range: aRange),
+                            .equal,
+                            Expression(type: .tuple([
+                                Expression(type: .identifier(Identifier(
+                                    name: "not",
+                                    range: notRange2
+                                )), range: notRange2),
+                                Expression(type: .identifier(Identifier(
+                                    name: "b",
+                                    range: bRange
+                                )), range: bRange),
+                            ]), range: notRange2.lowerBound ..< bRange.upperBound)
+                        ),
+                        range: aRange.lowerBound ..< input.endIndex
+                    )
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
     func testUnterminatedInfixExpression() {
         let input = "define foo 1 +"
         let range = input.endIndex ..< input.endIndex
