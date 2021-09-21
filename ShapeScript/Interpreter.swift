@@ -378,7 +378,26 @@ enum Value {
     }
 
     var stringValue: String? {
-        (value as? Loggable)?.logDescription
+        switch self {
+        case let .tuple(values):
+            var spaceNeeded = false
+            let values: [String] = values.compactMap {
+                switch $0 {
+                case let .string(string):
+                    spaceNeeded = false
+                    return string
+                case let value:
+                    guard let string = value.stringValue else {
+                        return nil
+                    }
+                    defer { spaceNeeded = true }
+                    return spaceNeeded ? " \(string)" : string
+                }
+            }
+            return values.isEmpty ? nil : values.joined()
+        default:
+            return (value as? Loggable)?.logDescription
+        }
     }
 
     var type: ValueType {
@@ -395,6 +414,17 @@ enum Value {
         case .point: return .point
         case .tuple: return .tuple
         case .range: return .range
+        }
+    }
+
+    func isConvertible(to type: ValueType) -> Bool {
+        switch (self, type) {
+        case (.number, .string):
+            return true
+        case let (.tuple(values), .string):
+            return values.allSatisfy { $0.isConvertible(to: .string) }
+        case let (lhs, rhs):
+            return lhs.type == rhs
         }
     }
 
@@ -806,7 +836,7 @@ extension Definition {
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
         switch value {
-        case _ where childTypes.contains(value.type):
+        case _ where childTypes.contains { value.isConvertible(to: $0) }:
             switch value {
             case let .mesh(m):
                 children.append(.mesh(m.transformed(by: childTransform)))
@@ -876,12 +906,14 @@ extension Statement {
                     let child = try unwrap(parameter.evaluate(in: context))
                     // TODO: find better solution
                     let children: [Value]
-                    if case let .tuple(values) = child {
+                    if case let .tuple(values) = child,
+                       !type.childTypes.contains(where: child.isConvertible)
+                    {
                         children = values
                     } else {
                         children = [child]
                     }
-                    guard children.allSatisfy({ type.childTypes.contains($0.type) }) else {
+                    guard children.allSatisfy({ type.childTypes.contains(where: $0.isConvertible) }) else {
                         // TODO: return valid child types instead of just "block"
                         throw RuntimeError(
                             .typeMismatch(

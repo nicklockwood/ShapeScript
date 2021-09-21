@@ -387,10 +387,7 @@ private extension ArraySlice where Element == Token {
             return statement
         }
         guard let name = readIdentifier() else {
-            guard let expression = try readExpression() else {
-                return nil
-            }
-            return .expression(expression)
+            return try readExpressions().map { .expression($0) }
         }
         if let statements = try readBlock() {
             return .block(name, statements)

@@ -1996,4 +1996,22 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log.first, delegate.log.last)
         #endif
     }
+
+    func testNumberConvertedToTextInBlock() {
+        let program = """
+        print text { 5 2 }
+        print text { "5 2" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        #if canImport(CoreText)
+        XCTAssert(delegate.log.first is Path)
+        guard delegate.log.count == 4 else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(delegate.log[0], delegate.log[2])
+        XCTAssertEqual(delegate.log[1], delegate.log[3])
+        #endif
+    }
 }

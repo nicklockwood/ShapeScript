@@ -452,4 +452,32 @@ class ParserTests: XCTestCase {
             )))
         }
     }
+
+    // MARK: Blocks
+
+    func testTupleInBlock() {
+        let input = "text { 1 2 }"
+        let textRange = input.range(of: "text")!
+        let tupleRange = input.range(of: "1 2")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let bodyRange = input.range(of: "{ 1 2 }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .block(
+                    Identifier(name: "text", range: textRange),
+                    Block(statements: [
+                        Statement(type: .expression(
+                            Expression(type: .tuple([
+                                Expression(type: .number(1), range: range1),
+                                Expression(type: .number(2), range: range2),
+                            ]),
+                            range: tupleRange)
+                        ), range: tupleRange),
+                    ], range: bodyRange)
+                ),
+                range: textRange.lowerBound ..< bodyRange.upperBound
+            ),
+        ]))
+    }
 }

@@ -33,6 +33,7 @@ ShapeScript Help
         - [Procedural Paths](paths.md#procedural-paths)
         - [Nested Paths](paths.md#nested-paths)
     - [Text](text.md)
+        - [Interpolation](text.md#interpolation)
         - [Size](text.md#size)
         - [Position and Orientation](text.md#position-and-orientation)
         - [Font](text.md#font)

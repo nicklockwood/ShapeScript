@@ -30,6 +30,8 @@ You can use the `fill` or `extrude` commands to turn these paths into a solid me
 
 ![Solid Text](images/solid-text.png)
 
+## Interpolation
+
 For your convenience, the text command will automatically convert numeric values to their character representation. The following displays the numbers 1 to 5 as 3D text:
 
 ```swift
@@ -40,6 +42,39 @@ for i in 1 to 5 {
 ```
 
 ![Numbers](images/numbers.png)
+
+You may find that in some cases you need to compose some text dynamically from several source values. ShapeScript has a feature called [text interpolation](https://en.wikipedia.org/wiki/String_interpolation), whereby values can be inserted into a larger body of text.
+
+To use text interpolation, simply pass multiple values to the `text` command and they will be concatenated together:
+
+```swift
+define apples 5
+define pears 3
+text "Bob has " apples " apples, and " pears " pears"
+```
+
+Text values are concatenated without spaces, so if you require spaces you should include them explicitly inside quotes:
+
+```swift
+text "Good" "bye" // becomes "Goodbye"
+text "Hello " "World" "!" // becomes "Hello World!"
+```
+
+For your convenience, non-text values will be spaced-out automatically. If you wish to remove the spaces, you can place an empty text literal between them:
+
+```swift
+text 1 2 3 // becomes "1 2 3"
+text 1 "" 2 "" 3 // becomes "123"
+```
+
+**Note:** Spaces *between* values make no difference to the output, so feel free to space them as you wish. These are all equivalent:
+
+```swift
+text "We're number "1"!"
+text "We're number " 1"!"
+text "We're number " 1 "!"
+text "We're number "           1            "!"
+```
 
 ## Size
 
