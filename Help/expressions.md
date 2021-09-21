@@ -14,7 +14,18 @@ Operators are used in conjunction with individual values to perform calculations
 5 + 3 * 4
 ```
 
-ShapeScript supports common [infix](https://en.wikipedia.org/wiki/Infix_notation) math operators such as +, -, * and /. Unary + and - are also supported:
+ShapeScript supports all the standard [infix](https://en.wikipedia.org/wiki/Infix_notation) arithmetic operators:
+
+Symbol         | Name                  | Function
+:------------- | :-------------------- | :--------------------------------------------------------------------
+&plus;         | plus                  | Adds the left and right values
+&dash;         | minus                 | Subtracts the right value from the left value
+&ast;          | times                 | Multiplies the left value by the right value
+&sol;          | divide                | Divides the left value by the right value
+
+<br>
+
+Unary + and - are also supported:
 
 ```swift
 -5 * +7
@@ -41,6 +52,40 @@ Whereas this expression would be interpreted as a 2D vector of 5 and -1:
 5 -1
 ```
 
+## Equality and Comparison
+
+In addition to the standard arithmetic operators, ShapeScript also has equality and comparison operators, which can be used in [conditional logic](control-flow.md#if-else). The following infix comparison operators are supported:
+
+Symbol         | Name                  | Function
+:------------- | :-------------------- |:--------------------------------------
+=              | equal                 | Compares two values and returns `true` if they are equal
+<>             | not equal             | Compares two values and returns `false` if they are equal
+<              | less than             | Returns `true` if the left value is less than the value on the right
+<=             | less than or equal    | Returns `true` if the left value is less than or equal to the right
+&gt;           | greater than          | Returns `true` if the left value is greater than the value on the right
+&gt;=          | greater than or equal | Returns `true` if the left value is greater than or equal to the right
+
+<br>
+
+**Note:** You may have used other languages where `=` is written as `==`. This is generally because in such languages the `=` operator is used for assignment, and re-using the same symbol would cause ambiguity. This is not a problem in ShapeScript.
+
+While these operators are typically used with numeric inputs, the *output* is a boolean value (`true` or `false`). These values are most commonly used in conjunction with with the `if/else` control flow statement. For example:
+
+```swift
+if rnd > 0.5 {
+    print "heads"
+} else {
+    print "tails"
+}
+```
+
+But they can also be assigned to a symbol and passed around:
+
+```swift
+define averageColor (color.red + color.green + color.blue) / 3
+define isBrightColor averageColor >= 0.5
+print isBrightColor // true or false
+```
 
 ## Members
 
@@ -57,7 +102,7 @@ print yComponent 0.2
 Like other operators, the dot operator can be used as part of a larger expression:
 
 ```swift
-define color 1 0.5 0.2
+color 1 0.5 0.2
 define averageColor (color.red + color.green + color.blue) / 3
 print averageColor // 0.5667
 ```

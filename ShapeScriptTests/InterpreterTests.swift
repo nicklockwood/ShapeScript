@@ -1707,7 +1707,7 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    // MARK: Functions
+    // MARK: Math functions
 
     func testInvokeMonadicFunction() {
         let program = "print cos pi"
@@ -1869,6 +1869,185 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [2])
+    }
+
+    // MARK: Numeric comparison
+
+    func testGT() {
+        let program = "print 5 > 1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testGT2() {
+        let program = "print 5 > 6"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testGT3() {
+        let program = "print 5 > 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testGTE() {
+        let program = "print 2 >= 1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testGTE2() {
+        let program = "print 2 >= 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testGTE3() {
+        let program = "print -2 >= -2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testLT() {
+        let program = "print 1 < 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testLT2() {
+        let program = "print 5 < 4"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testLT3() {
+        let program = "print -2 < -2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testLTE() {
+        let program = "print 1 <= 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testLTE2() {
+        let program = "print 5 <= 4"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testLTE3() {
+        let program = "print -2 <= -2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    // MARK: Equality
+
+    func testNumbersEqual() {
+        let program = "print 5 = 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testNumbersEqual2() {
+        let program = "print 5 = 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testNumbersUnequal() {
+        let program = "print 5 <> 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testNumbersUnequal2() {
+        let program = "print 5 <> 4"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testStringsEqual() {
+        let program = "print \"foo\" = \"foo\""
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testStringsEqual2() {
+        let program = "print \"foo\" = \"bar\""
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testStringsUnequal() {
+        let program = "print \"foo\" <> \"foo\""
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testStringsUnequal2() {
+        let program = "print \"foo\" <> \"bar\""
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testTuplesEqual() {
+        let program = "print 1 2 3 = 1 2 3"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 2, false, 2, 3])
+    }
+
+    func testTuplesEqual2() {
+        let program = "print (1 2 3) = (1 2 3)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testFunctionResultsEqual() {
+        let program = "print min(1 2) = 1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testMismatchedTypesEqual() {
+        let program = "print \"foo\" = 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testMismatchedTypesUnequal() {
+        let program = "print \"foo\" <> 5"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
     }
 
     // MARK: Member lookup

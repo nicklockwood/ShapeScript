@@ -66,7 +66,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let materials: Symbols = color + [
         "opacity": .property(.number, { parameter, context in
-            context.material.opacity = (parameter.value as! Double) * context.opacity
+            context.material.opacity = parameter.doubleValue * context.opacity
         }, { context in
             .number(context.material.opacity / context.opacity)
         }),
@@ -309,7 +309,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
         // Debug
         "print": .command(.tuple) { value, context in
-            context.debugLog(value.value as! [AnyHashable])
+            context.debugLog(value.tupleValue)
             return .void
         },
     ])

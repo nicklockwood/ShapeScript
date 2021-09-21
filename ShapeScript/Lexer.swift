@@ -59,6 +59,13 @@ public enum InfixOperator: String {
     case minus = "-"
     case times = "*"
     case divide = "/"
+    // Comparison operators
+    case lt = "<"
+    case gt = ">"
+    case lte = "<="
+    case gte = ">="
+    case equal = "="
+    case unequal = "<>"
     // Range operators
     case to, step
 }

@@ -136,6 +136,32 @@ class ParserTests: XCTestCase {
         }
     }
 
+    func testComparisonOperatorChaining() {
+        let input = "print 1 < 2 < 3"
+        let range = input.range(of: "<", range: input.range(of: "< 3")!)!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected operator '<'")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .infix(.lt), range: range),
+                expected: nil
+            )))
+        }
+    }
+
+    func testEqualityOperatorChaining() {
+        let input = "print 1 = 2 = 3"
+        let range = input.range(of: "=", range: input.range(of: "= 3")!)!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected operator '='")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .infix(.equal), range: range),
+                expected: nil
+            )))
+        }
+    }
+
     // MARK: Parentheses
 
     func testMultilineParentheses() {

@@ -383,7 +383,7 @@ private extension ArraySlice where Element == Token {
         )
     }
 
-    mutating func readExpression() throws -> Expression? {
+    mutating func readStep() throws -> Expression? {
         guard let lhs = try readRange() else {
             return nil
         }
@@ -405,6 +405,27 @@ private extension ArraySlice where Element == Token {
             type: .infix(lhs, .step, rhs),
             range: lhs.range.lowerBound ..< rhs.range.upperBound
         )
+    }
+
+    mutating func readComparison() throws -> Expression? {
+        guard let lhs = try readStep() else {
+            return nil
+        }
+        guard case let .infix(op) = nextToken.type, [
+            .lt, .lte, .gt, .gte, .equal, .unequal,
+        ].contains(op) else {
+            return lhs
+        }
+        removeFirst()
+        let rhs = try require(readSum(), as: "operand")
+        return Expression(
+            type: .infix(lhs, op, rhs),
+            range: lhs.range.lowerBound ..< rhs.range.upperBound
+        )
+    }
+
+    mutating func readExpression() throws -> Expression? {
+        try readComparison()
     }
 
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {

@@ -64,6 +64,7 @@ ShapeScript Help
     - [Symbols](symbols.md)
     - [Expressions](expressions.md)
         - [Operators](expressions.md#operators)
+        - [Equality and Comparison](expressions.md#equality-and-comparison)
         - [Members](expressions.md#members)
         - [Ranges](expressions.md#ranges)
     - [Functions](functions.md)

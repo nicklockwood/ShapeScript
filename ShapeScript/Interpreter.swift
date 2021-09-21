@@ -395,6 +395,7 @@ enum Value {
         case let .path(path): return path
         case let .mesh(mesh): return mesh
         case let .point(point): return point
+        case let .tuple(values) where values.count == 1: return values[0].value
         case let .tuple(values): return values.map { $0.value }
         case let .range(range): return range
         case let .bounds(bounds): return bounds
@@ -433,6 +434,13 @@ enum Value {
         default:
             return (value as? Loggable)?.logDescription ?? ""
         }
+    }
+
+    var tupleValue: [AnyHashable] {
+        if case let .tuple(values) = self {
+            return values.map { $0.value }
+        }
+        return [value]
     }
 
     var type: ValueType {
@@ -1216,6 +1224,14 @@ extension Expression {
                 )
             }
             return .range(value)
+        case let .infix(lhs, .equal, rhs):
+            let lhs = try lhs.evaluate(in: context)
+            let rhs = try rhs.evaluate(in: context)
+            return .boolean(lhs.value == rhs.value)
+        case let .infix(lhs, .unequal, rhs):
+            let lhs = try lhs.evaluate(in: context)
+            let rhs = try rhs.evaluate(in: context)
+            return .boolean(lhs.value != rhs.value)
         case let .infix(lhs, op, rhs):
             let lhs = try lhs.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
             let rhs = try rhs.evaluate(as: .number, for: String(op.rawValue), index: 1, in: context)
@@ -1228,7 +1244,15 @@ extension Expression {
                 return .number(lhs.doubleValue * rhs.doubleValue)
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
-            case .to, .step:
+            case .lt:
+                return .boolean(lhs.doubleValue < rhs.doubleValue)
+            case .gt:
+                return .boolean(lhs.doubleValue > rhs.doubleValue)
+            case .lte:
+                return .boolean(lhs.doubleValue <= rhs.doubleValue)
+            case .gte:
+                return .boolean(lhs.doubleValue >= rhs.doubleValue)
+            case .to, .step, .equal, .unequal:
                 preconditionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):
