@@ -1,3 +1,13 @@
+## [1.3.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.6) (2021-09-21)
+
+- Added text interpolation, allowing text strings to be constructed dynamically
+- Import and textures file paths can now be constructed dynamically
+- Alpha component of colors can now be overridden with a convenient syntax
+- Removed confusing references to "string" and "identifier" from error messages
+- Added ability to load text fonts from a file name or path
+- Fixed bug where font getter returned texture instead
+- Improved help documentation
+
 ## [1.3.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.5) (2021-09-19)
 
 - Numbers can now be used in text blocks
