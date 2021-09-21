@@ -1218,7 +1218,7 @@ class InterpreterTests: XCTestCase {
                 for: "start value",
                 index: 0,
                 expected: "number",
-                got: "string"
+                got: "text"
             ), at: range))
         }
     }
@@ -1233,7 +1233,7 @@ class InterpreterTests: XCTestCase {
                 for: "end value",
                 index: 0,
                 expected: "number",
-                got: "string"
+                got: "text"
             ), at: range))
         }
     }
@@ -1248,7 +1248,7 @@ class InterpreterTests: XCTestCase {
                 for: "step value",
                 index: 0,
                 expected: "number",
-                got: "string"
+                got: "text"
             ), at: range))
         }
     }
@@ -1334,7 +1334,7 @@ class InterpreterTests: XCTestCase {
                 for: "range",
                 index: 0,
                 expected: "range or tuple",
-                got: "string"
+                got: "text"
             ), at: range))
         }
     }
@@ -1521,7 +1521,7 @@ class InterpreterTests: XCTestCase {
                 for: "sqrt",
                 index: 0,
                 expected: "number",
-                got: "string"
+                got: "text"
             ), at: range))
         }
     }

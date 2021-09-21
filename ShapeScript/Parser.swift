@@ -124,13 +124,13 @@ private extension TokenType {
     var errorDescription: String {
         switch self {
         case .linebreak: return "end of line"
-        case let .identifier(name): return "identifier '\(name)'"
+        case let .identifier(name): return "token '\(name)'"
         case let .keyword(keyword): return "keyword '\(keyword)'"
         case let .hexColor(string): return "color \(string)"
         case let .infix(op): return "operator '\(op.rawValue)'"
         case let .prefix(op): return "prefix operator '\(op.rawValue)'"
         case .number: return "numeric literal"
-        case .string: return "string literal"
+        case .string: return "text literal"
         case .lbrace: return "opening brace"
         case .rbrace: return "closing brace"
         case .lparen: return "opening paren"
@@ -209,7 +209,7 @@ private extension ArraySlice where Element == Token {
         guard readToken(.keyword(.define)) else {
             return nil
         }
-        let name = try require(readIdentifier(), as: "identifier name")
+        let name = try require(readIdentifier(), as: "symbol name")
         if let block = try readBlock() {
             return .define(name, Definition(type: .block(block)))
         }

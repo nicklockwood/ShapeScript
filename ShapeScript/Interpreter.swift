@@ -311,7 +311,7 @@ private extension ValueType {
         case .vector: return "vector"
         case .size: return "size"
         case .rotation: return "rotation"
-        case .string: return "string"
+        case .string: return "text"
         case .path: return "path"
         case .paths: return "path"
         case .mesh: return "mesh"

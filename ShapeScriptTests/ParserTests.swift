@@ -388,7 +388,7 @@ class ParserTests: XCTestCase {
         let inRange = input.range(of: "in")!
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected identifier 'in'")
+            XCTAssertEqual(error?.message, "Unexpected token 'in'")
             XCTAssertEqual(error?.hint, "Expected loop body.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
                 Token(type: .identifier("in"), range: inRange),
