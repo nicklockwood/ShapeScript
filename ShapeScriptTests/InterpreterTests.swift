@@ -2137,6 +2137,30 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true, true, true])
     }
 
+    func testMisspelledAndOperator() {
+        let program = "print true AND false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.suggestion, "and")
+            guard case .unknownSymbol("AND", _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testMisspelledOrOperator() {
+        let program = "print true OR false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.suggestion, "or")
+            guard case .unknownSymbol("OR", _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     // MARK: Member lookup
 
     func testTupleVectorLookup() {

@@ -188,6 +188,30 @@ class LexerTests: XCTestCase {
         }
     }
 
+    func testStringWithUnsupportedEscapeSequence() {
+        let input = """
+        "foo\\rbar"
+        """
+        let range = input.range(of: "\\r")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "\\n")
+            XCTAssertEqual(error, LexerError(.invalidEscapeSequence("\\r"), at: range))
+        }
+    }
+
+    func testStringWithBasicStyleQuoteEscapeSequence() {
+        let input = """
+        "foo""bar"
+        """
+        let range = input.range(of: "\"\"")!
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "\\\"")
+            XCTAssertEqual(error, LexerError(.invalidEscapeSequence("\"\""), at: range))
+        }
+    }
+
     func testUnterminatedStringLiteral() {
         let input = """
         "foo
@@ -345,6 +369,59 @@ class LexerTests: XCTestCase {
         let input = "1 -2"
         let tokens: [TokenType] = [.number(1), .prefix(.minus), .number(2), .eof]
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testMisspelledEqualOperator() {
+        let program = "print true == false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "=")
+            XCTAssertEqual(error?.type, .unexpectedToken("=="))
+        }
+    }
+
+    func testMisspelledUnequalOperator() {
+        let program = "print true != false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "<>")
+            XCTAssertEqual(error?.type, .unexpectedToken("!="))
+        }
+    }
+
+    func testMisspelledGTEOperator() {
+        let program = "print 3 => 1"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, ">=")
+            XCTAssertEqual(error?.type, .unexpectedToken("=>"))
+        }
+    }
+
+    func testMisspelledAndOperator() {
+        let program = "print true && false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "and")
+        }
+    }
+
+    func testMisspelledOrOperator() {
+        let program = "print true || false"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "or")
+            XCTAssertEqual(error?.type, .unexpectedToken("||"))
+        }
+    }
+
+    func testMisspelledNotOperator() {
+        let program = "print !(true || false)"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? LexerError)
+            XCTAssertEqual(error?.suggestion, "not")
+            XCTAssertEqual(error?.type, .unexpectedToken("!"))
+        }
     }
 
     // MARK: member access

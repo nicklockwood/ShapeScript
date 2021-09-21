@@ -54,7 +54,7 @@ public enum PrefixOperator: String {
     case minus = "-"
 }
 
-public enum InfixOperator: String {
+public enum InfixOperator: String, CaseIterable {
     case plus = "+"
     case minus = "-"
     case times = "*"
@@ -108,7 +108,14 @@ public struct LexerError: Error, Equatable {
     public let type: LexerErrorType
     public let range: SourceRange
 
-    public var message: String {
+    public init(_ type: LexerErrorType, at range: SourceRange) {
+        self.type = type
+        self.range = range
+    }
+}
+
+public extension LexerError {
+    var message: String {
         switch type {
         case let .invalidNumber(digits):
             return "Invalid numeric literal '\(digits)'"
@@ -129,7 +136,22 @@ public struct LexerError: Error, Equatable {
         }
     }
 
-    public var hint: String? {
+    var suggestion: String? {
+        switch type {
+        case let .unexpectedToken(string):
+            return Self.alternatives[string.lowercased()] ??
+                string.bestMatches(in: InfixOperator.allCases.map { $0.rawValue }).first
+        case let .invalidEscapeSequence(string):
+            return [
+                "\"\"": "\\\"",
+                "\\r": "\\n",
+            ][string]
+        default:
+            return nil
+        }
+    }
+
+    var hint: String? {
         switch type {
         case let .invalidNumber(digits):
             if digits.components(separatedBy: ".").count > 2 {
@@ -139,17 +161,19 @@ public struct LexerError: Error, Equatable {
         case .invalidColor:
             return "Hex colors must be 3, 4, 6 or 8 digits in length."
         case .unexpectedToken:
+            if let suggestion = suggestion {
+                return "Did you mean '\(suggestion)'?"
+            }
             return nil
         case .unterminatedString:
             return "Try adding a closing \" (double quote) at the end of the line."
         case .invalidEscapeSequence:
-            return "Supported sequences are \\\", \\n and \\\\."
+            let hint = "Supported sequences are \\\", \\n and \\\\."
+            if let suggestion = suggestion {
+                return "\(hint) Did you mean \(suggestion)?"
+            }
+            return hint
         }
-    }
-
-    init(_ type: LexerErrorType, at range: SourceRange) {
-        self.type = type
-        self.range = range
     }
 }
 
@@ -195,6 +219,23 @@ public extension String {
 }
 
 // MARK: Implementation
+
+private extension LexerError {
+    static let alternatives = [
+        "&&": "and",
+        "&": "and",
+        "||": "or",
+        "|": "or",
+        "!": "not",
+        "==": "=",
+        "===": "=",
+        "!=": "<>",
+        "/=": "<>",
+        "=/=": "<>",
+        "=<": "<=",
+        "=>": ">=",
+    ]
+}
 
 private let whitespace = " \t"
 private let linebreaks = "\n\r\r\n"
@@ -270,7 +311,7 @@ private extension Substring {
     }
 
     mutating func readOperator(spaceBefore: Bool) -> TokenType? {
-        var start = self
+        let start = self
         switch popFirst() {
         case "{": return .lbrace
         case "}": return .rbrace
@@ -304,18 +345,24 @@ private extension Substring {
             }
             var string = String(c)
             var op = toOp(string)
+            var end = start
             if op != nil {
-                start = self
+                end = self
             }
             while let c = first, operators.contains(c) {
                 removeFirst()
                 string.append(c)
                 if let nextOp = toOp(string) {
                     op = nextOp
-                    start = self
+                    end = self
                 }
             }
-            self = start
+            let remaining = String(end[..<startIndex])
+            if !remaining.isEmpty, PrefixOperator(rawValue: remaining) == nil {
+                self = start
+                return nil
+            }
+            self = end
             return op
         default:
             self = start
@@ -355,7 +402,7 @@ private extension Substring {
                     removeFirst()
                     if first == "\"" {
                         let range = start.index(before: startIndex) ..< index(after: startIndex)
-                        throw LexerError(.unexpectedToken(String(start[range])), at: range)
+                        throw LexerError(.invalidEscapeSequence(String(start[range])), at: range)
                     }
                     return .string(string)
                 case "\\":

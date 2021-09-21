@@ -1298,7 +1298,16 @@ extension Expression {
                 return value
             }
         }
-        let values = try evaluateParameters(parameters, in: context).map(unwrap)
+        let values: [Value]
+        do {
+            values = try evaluateParameters(parameters, in: context).map(unwrap)
+        } catch var error as RuntimeError {
+            if case .unknownSymbol(let name, var options) = error.type {
+                options += InfixOperator.allCases.map { $0.rawValue }
+                error = RuntimeError(.unknownSymbol(name, options: options), at: error.range)
+            }
+            throw error
+        }
         assert(values.count <= parameters.count)
         func numerify(max: Int, min: Int) throws -> [Double] {
             if parameters.count > max {

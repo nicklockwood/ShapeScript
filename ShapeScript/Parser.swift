@@ -90,31 +90,52 @@ public enum ParserErrorType: Equatable {
 public struct ParserError: Error, Equatable {
     public let type: ParserErrorType
 
-    public var range: SourceRange {
+    public init(_ type: ParserErrorType) {
+        self.type = type
+    }
+}
+
+public extension ParserError {
+    var range: SourceRange {
         switch type {
         case let .unexpectedToken(token, _):
             return token.range
         }
     }
 
-    public var message: String {
+    var message: String {
         switch type {
         case let .unexpectedToken(token, _):
             return "Unexpected \(token.type.errorDescription)"
         }
     }
 
-    public var hint: String? {
+    var suggestion: String? {
+        switch type {
+        case let .unexpectedToken(token, expected):
+            switch expected {
+            case "if body", "operator":
+                guard case let .identifier(string) = token.type else {
+                    return nil
+                }
+                let options = InfixOperator.allCases.map { $0.rawValue }
+                return string.bestMatches(in: options).first
+            default:
+                return nil
+            }
+        }
+    }
+
+    var hint: String? {
         switch type {
         case let .unexpectedToken(_, expected: expected?):
+            if let suggestion = suggestion {
+                return "Did you mean '\(suggestion)'?"
+            }
             return "Expected \(expected)."
         case .unexpectedToken(_, expected: nil):
             return nil
         }
-    }
-
-    init(_ type: ParserErrorType) {
-        self.type = type
     }
 }
 

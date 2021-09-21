@@ -770,6 +770,34 @@ class ParserTests: XCTestCase {
         }
     }
 
+    func testIfStatementWithMisspelledOrOperator() {
+        let input = "if foo nor bar {}"
+        let norRange = input.range(of: "nor")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected token 'nor'")
+            XCTAssertEqual(error?.hint, "Did you mean 'or'?")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .identifier("nor"), range: norRange),
+                expected: "if body"
+            )))
+        }
+    }
+
+    func testIfStatementWithMisspelledAndOperator() {
+        let input = "if foo AND bar {}"
+        let norRange = input.range(of: "AND")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected token 'AND'")
+            XCTAssertEqual(error?.hint, "Did you mean 'and'?")
+            XCTAssertEqual(error, ParserError(.unexpectedToken(
+                Token(type: .identifier("AND"), range: norRange),
+                expected: "if body"
+            )))
+        }
+    }
+
     // MARK: Blocks
 
     func testTupleInBlock() {
