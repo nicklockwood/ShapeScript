@@ -266,7 +266,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "font": .property(.font, { parameter, context in
             context.font = parameter.stringValue
         }, { context in
-            .texture(context.material.texture)
+            .string(context.font)
         }),
         // Debug
         "print": .command(.tuple) { value, context in

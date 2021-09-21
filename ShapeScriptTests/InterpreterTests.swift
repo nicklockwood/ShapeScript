@@ -921,6 +921,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(context.font, "Courier")
     }
 
+    func testGetValidFont() throws {
+        let program = """
+        font "Courier"
+        print font
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["Courier"])
+    }
+
     func testSetValidFontWithStringInterpolation() throws {
         let program = try parse("font (\"Cou\" \"rier\")")
         let context = EvaluationContext(source: program.source, delegate: nil)
