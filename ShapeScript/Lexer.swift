@@ -314,6 +314,10 @@ private extension Substring {
                 switch c {
                 case "\"":
                     removeFirst()
+                    if first == "\"" {
+                        let range = start.index(before: startIndex) ..< index(after: startIndex)
+                        throw LexerError(.unexpectedToken(String(start[range])), at: range)
+                    }
                     return .string(string)
                 case "\\":
                     escaped = true
