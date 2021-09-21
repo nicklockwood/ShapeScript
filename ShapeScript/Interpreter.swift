@@ -425,8 +425,8 @@ enum Value {
             return values.allSatisfy { $0.isConvertible(to: .string) }
         case let (.tuple(values), .color):
             return values.allSatisfy { $0.type == .number }
-        case let (lhs, rhs):
-            return lhs.type == rhs
+        default:
+            return self.type == type
         }
     }
 
@@ -1296,6 +1296,8 @@ extension Expression {
             return .tuple(numbers.map { .number($0) })
         case .tuple:
             return .tuple(values)
+        case .string where values.count == 1 && values[0].isConvertible(to: .string):
+            return .string(values[0].stringValue)
         case .texture where values.count == 1 && values[0].isConvertible(to: .string):
             let name = values[0].stringValue
             return try RuntimeError.wrap(.texture(name.map {

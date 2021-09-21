@@ -18,8 +18,10 @@ private class TestDelegate: EvaluationDelegate {
         preconditionFailure()
     }
 
+    var imports = [String]()
     func resolveURL(for name: String) -> URL {
-        testsDirectory.appendingPathComponent(name)
+        imports.append(name)
+        return testsDirectory.appendingPathComponent(name)
     }
 
     var log = [AnyHashable?]()
@@ -1014,6 +1016,24 @@ class InterpreterTests: XCTestCase {
         }
         XCTAssertNil(context.font)
         #endif
+    }
+
+    // MARK: Import
+
+    func testImport() throws {
+        let program = try parse("import \"File1.shape\"")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, ["File1.shape"])
+    }
+
+    func testImportWithStringInterpolation() throws {
+        let program = try parse("import (\"File\" 1 \".shape\")")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
 
     // MARK: Block invocation

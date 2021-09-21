@@ -30,5 +30,21 @@ define rocket {
 
 Depending on the format, imported models may include their own [materials](materials.md). Uncolored / untextured models will inherit the current ShapeScript material properties.
 
+**Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md#access-permission) warning.
+
+## Dynamic Imports
+
+It can sometimes be useful to generate the name of an imported file dynamically. For example if you have multiple numbered files to import, you might want to generate the names programatically.
+
+You can do this using the [text interpolation](text.md#interpolation) feature. The following code, for example, will load the files "Shape1.shape", "Shape2.shape"... up to "Shape10.shape":
+
+```swift
+for n in 1 to 10 {
+    import ("Shape" n ".shape")   
+}
+```
+
+**Note:** Unlike the `text` command, the `import` command requires that interpolated path name components are placed inside parentheses.
+
 ---
 [Index](index.md) | Next: [Export](export.md)

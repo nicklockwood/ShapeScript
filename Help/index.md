@@ -86,6 +86,7 @@ ShapeScript Help
         - [Block Scope](scope.md#block-scope)
         - [Loop Scope](scope.md#loop-scope)
     - [Import](import.md)
+        - [Dynamic Imports](import.md#dynamic-imports)
 - [Export](export.md)
 - [Examples](examples.md)
 - [Glossary](glossary.md)
