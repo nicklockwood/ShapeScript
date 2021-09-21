@@ -47,12 +47,12 @@ public enum Keyword: String, CaseIterable {
     case `import`
 }
 
-public enum PrefixOperator: Character {
+public enum PrefixOperator: String {
     case plus = "+"
     case minus = "-"
 }
 
-public enum InfixOperator: Character {
+public enum InfixOperator: String {
     case plus = "+"
     case minus = "-"
     case times = "*"
@@ -186,6 +186,7 @@ public extension String {
 private let whitespace = " \t"
 private let linebreaks = "\n\r\r\n"
 private let punctuation = "/()[]{}"
+private let operators = "+-*/<>=!?&|%^~"
 private let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 private let digits = "0123456789"
 private let alphanumerics = digits + letters
@@ -216,7 +217,7 @@ private extension Substring {
                     if nextIndex != endIndex, self[nextIndex] == "/" {
                         removeFirst()
                         removeFirst()
-                        while let scalar = first, !scalar.isLinebreak {
+                        while let c = first, !c.isLinebreak {
                             removeFirst()
                         }
                     }
@@ -256,7 +257,7 @@ private extension Substring {
     }
 
     mutating func readOperator(spaceBefore: Bool) -> TokenType? {
-        let start = self
+        var start = self
         switch popFirst() {
         case "{": return .lbrace
         case "}": return .rbrace
@@ -268,23 +269,41 @@ private extension Substring {
             }
             self = start
             return nil
-        case let scalar?:
-            if let op = InfixOperator(rawValue: scalar) {
-                guard let next = first else {
-                    // technically postfix, but we don't have those
+        case let c? where operators.contains(c):
+            func toOp(_ string: String) -> TokenType? {
+                if let op = InfixOperator(rawValue: string) {
+                    guard let next = first else {
+                        // technically postfix, but we don't have those
+                        return .infix(op)
+                    }
+                    if !spaceBefore || next.isWhitespace || next.isLinebreak {
+                        return .infix(op)
+                    }
+                    if let op = PrefixOperator(rawValue: string) {
+                        return .prefix(op)
+                    }
                     return .infix(op)
-                }
-                if !spaceBefore || next.isWhitespace || next.isLinebreak {
-                    return .infix(op)
-                }
-                if let op = PrefixOperator(rawValue: scalar) {
+                } else if let op = PrefixOperator(rawValue: string) {
                     return .prefix(op)
+                } else {
+                    return nil
                 }
-                return .infix(op)
-            } else if let op = PrefixOperator(rawValue: scalar) {
-                return .prefix(op)
             }
-            fallthrough
+            var string = String(c)
+            var op = toOp(string)
+            if op != nil {
+                start = self
+            }
+            while let c = first, operators.contains(c) {
+                removeFirst()
+                string.append(c)
+                if let nextOp = toOp(string) {
+                    op = nextOp
+                    start = self
+                }
+            }
+            self = start
+            return op
         default:
             self = start
             return nil
