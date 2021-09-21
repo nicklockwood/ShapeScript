@@ -423,6 +423,8 @@ enum Value {
             return true
         case let (.tuple(values), .string):
             return values.allSatisfy { $0.isConvertible(to: .string) }
+        case let (.tuple(values), .color):
+            return values.allSatisfy { $0.type == .number }
         case let (lhs, rhs):
             return lhs.type == rhs
         }
@@ -994,13 +996,16 @@ extension Statement {
                 }
             }
         case let .import(expression):
-            let pathValue = try expression.evaluate(in: context)
+            let pathValue = try expression.evaluate(
+                as: .string,
+                for: Keyword.import.rawValue,
+                in: context
+            )
             guard let path = pathValue.stringValue else {
-                let got = (pathValue.type == .string) ? "nil" : pathValue.type.errorDescription
                 throw RuntimeError(
                     .typeMismatch(
                         for: Keyword.import.rawValue, index: 0,
-                        expected: ValueType.string.errorDescription, got: got
+                        expected: ValueType.string.errorDescription, got: "nil"
                     ),
                     at: expression.range
                 )
@@ -1291,19 +1296,18 @@ extension Expression {
             return .tuple(numbers.map { .number($0) })
         case .tuple:
             return .tuple(values)
-        case .texture where values.count == 1 && values[0].type == .string:
+        case .texture where values.count == 1 && values[0].isConvertible(to: .string):
             let name = values[0].stringValue
             return try RuntimeError.wrap(.texture(name.map {
                 .file(name: $0, url: try context.resolveURL(for: $0))
             }), at: parameters[0].range)
         case .colorOrTexture:
-            switch values[0] {
-            case .string, .texture:
-                return try evaluate(as: .texture, for: name, in: context)
-            default:
+            if values.count > 1 || values[0].isConvertible(to: .color) {
                 return try evaluate(as: .color, for: name, in: context)
+            } else {
+                return try evaluate(as: .texture, for: name, in: context)
             }
-        case .font where values.count == 1 && values[0].type == .string:
+        case .font where values.count == 1 && values[0].isConvertible(to: .string):
             let name = values[0].stringValue
             return try RuntimeError.wrap(.string(validateFont(name)), at: parameters[0].range)
         case .paths:

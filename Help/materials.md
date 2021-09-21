@@ -161,13 +161,30 @@ sphere {
 }
 ```
 
-The parameter for the `texture` command is the name of an external image file to display. The name can include either an absolute or relative file path. If a relative path is used it should be specified relative to the ShapeScript file that references it. The name must be enclosed in double quotes.
+The parameter for the `texture` command is the name of an external image file to display. The name can include either an absolute or relative file path, enclosed in double quotes. If a relative path is used it should be specified relative to the ShapeScript file that references it.
 
-**Note:** The first time you try to use an image, you will see an error screen like the one below.
+The texture name can be constructed dynamically by using the [text interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple texture files with a common prefix or suffix:
+
+```swift
+for n in 1 to 5 {
+    cube {
+        texture ("file" n ".png")
+        position n
+    }
+}
+```
+
+**Note:** Unlike the `text` command, the `texture` command requires that interpolated name components are placed inside parentheses.
+
+### Access Permission
+
+The first time you try to use an image, you will see an error screen like the one below.
 
 ![Sandbox error](images/sandbox-error.png)
 
 This is because macOS employs a security feature called *sandboxing* to prevent apps from accessing files without the user's permission. Use the `Grant Access` button to open the containing folder for your images. If you prefer, you can just grant access to the specific image file, but in that case you will need to grant access individually to each new texture that you use.
+
+### Texture Wrapping
 
 How a texture is wrapped around the model depends on the shape. Different shape types have different default wrapping schemes:
 

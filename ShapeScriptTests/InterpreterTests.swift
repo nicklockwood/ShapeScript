@@ -699,32 +699,57 @@ class InterpreterTests: XCTestCase {
 
     func testSetTextureWithStringLiteral() throws {
         let program = """
-        texture \"Stars.jpg\"
+        texture \"Stars1.jpg\"
         print texture
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
 
     func testSetTextureWithStringConstant() throws {
         let program = """
-        define image \"Stars.jpg\"
+        define image \"Stars1.jpg\"
         texture image
         print texture
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )])
+    }
+
+    func testSetTextureWithStringInterpolation() throws {
+        let program = """
+        texture ("Stars" 1 ".jpg")
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )])
+    }
+
+    func testSetTextureWithInterpolatedConstant() throws {
+        let program = """
+        define image "Stars" 1 ".jpg"
+        texture image
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
 
     func testSetTextureWithNonExistentImage() throws {
         let program = """
-        texture \"Nope.jpg\"
+        texture "Nope.jpg"
         print texture
         """
         let range = program.range(of: "\"Nope.jpg\"")!
@@ -812,45 +837,70 @@ class InterpreterTests: XCTestCase {
 
     func testSetBackgroundTextureWithStringLiteral() throws {
         let program = """
-        background \"Stars.jpg\"
+        background "Stars1.jpg"
         print background
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
 
     func testSetBackgroundTextureWithStringConstant() throws {
         let program = """
-        define image \"Stars.jpg\"
+        define image "Stars1.jpg"
         background image
         print background
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )])
+    }
+
+    func testSetBackgroundTextureWithStringInterpolation() throws {
+        let program = """
+        background ("Stars" 1 ".jpg")
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )])
+    }
+
+    func testSetBackgroundTextureWithInterpolatedConstant() throws {
+        let program = """
+        define image "Stars" 1 ".jpg"
+        background image
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
 
     func testSetBackgroundTextureWithTextureConstant() throws {
         let program = """
-        texture \"Stars.jpg\"
+        texture "Stars1.jpg"
         background texture
         print background
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars.jpg", url: testsDirectory.appendingPathComponent("Stars.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
 
     func testSetBackgroundTextureWithNonExistentImage() throws {
         let program = """
-        background \"Nope.jpg\"
+        background "Nope.jpg"
         print background
         """
         let range = program.range(of: "\"Nope.jpg\"")!
@@ -867,6 +917,23 @@ class InterpreterTests: XCTestCase {
 
     func testSetValidFont() throws {
         let program = try parse("font \"Courier\"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Courier")
+    }
+
+    func testSetValidFontWithStringInterpolation() throws {
+        let program = try parse("font (\"Cou\" \"rier\")")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Courier")
+    }
+
+    func testSetValidFontWithInterpolatedConstant() throws {
+        let program = try parse("""
+        define name "Cou" "rier"
+        font name
+        """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(context.font, "Courier")
