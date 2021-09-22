@@ -24,7 +24,7 @@ Because `color` is a command rather than an option, you can use it anywhere in y
 
 ```swift
 color green
-group
+group {
     color red
     cube // red cube
 }
