@@ -97,6 +97,8 @@ But sometimes you may wish to do something more complex (e.g. generating a path 
 
 While ShapeScript's [transform](transforms.md#orientation) commands expect values in the range 0 to 2 (or 0 to -2), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
 
+While ShapeScript's [transform](transforms.md#orientation) commands expect values calculated by dividing the number of degrees by 180, the trigonometric functions all use radians, a value between 0 and 3.141 (pi).
+
 For example, the `sin` (sine) function takes a radian representation of an angle and returns a ratio value of that angle. In this case 0.524 radians returns 0.5 or 1/2 - an angle of 30 degrees:
 
 ```swift
@@ -125,8 +127,6 @@ To convert an angle in radians to a ShapeScript rotation value, divide it by the
 define angle acos(0.5) // returns 1.047 radians (60 degrees)
 rotate angle / pi      // return 0.333 (1.047 / 3.141)
 ```
-
-ShapeScript's `rotate` and `orientation` commands expect a value between -1 and 1, representing an angle between -180 and 180 degrees. An angle of 60 degrees would be equivalent to a rotation of 60 / 180, or 0.333.
 
 To convert a ShapeScript rotation value to radians, multiply it by `pi`.
 
