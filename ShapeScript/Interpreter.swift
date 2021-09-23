@@ -412,6 +412,7 @@ enum Value {
         case .path: return .path
         case .mesh: return .mesh
         case .point: return .point
+        case let .tuple(values) where values.count == 1: return values[0].type
         case .tuple: return .tuple
         case .range: return .range
         }
