@@ -179,6 +179,39 @@ class InterpreterTests: XCTestCase {
         XCTAssert(first.children.isEmpty)
     }
 
+    func testSetNumberBlockName() throws {
+        let program = """
+        define foo {
+            42
+        }
+        print foo { name "Foo" }
+        """
+        let range = program.range(of: "foo", range: program.range(of: "print foo")!)!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.assertionFailure(
+                "Blocks that return a number value cannot be assigned a name"
+            ), at: range))
+        }
+    }
+
+    func testSetTupleBlockName() throws {
+        let program = """
+        define foo {
+            "bar"
+            42
+        }
+        print foo { name "Foo" }
+        """
+        let range = program.range(of: "foo", range: program.range(of: "print foo")!)!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.assertionFailure(
+                "Blocks that return a text value cannot be assigned a name"
+            ), at: range))
+        }
+    }
+
     func testNameInvalidAtRoot() {
         let program = """
         name "Foo"

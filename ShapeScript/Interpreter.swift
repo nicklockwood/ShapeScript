@@ -304,7 +304,7 @@ private extension RuntimeErrorType {
     }
 }
 
-enum ValueType {
+enum ValueType: CaseIterable {
     case color
     case texture
     case colorOrTexture // Hack to support either types
@@ -324,7 +324,9 @@ enum ValueType {
     case void
 }
 
-private extension ValueType {
+extension ValueType {
+    static let any = Set(Self.allCases)
+
     var errorDescription: String {
         switch self {
         case .color: return "color"
@@ -784,8 +786,20 @@ extension Definition {
                     }
                     let children = context.children
                     if children.count == 1, let value = children.first {
-                        guard let path = value.value as? Path else {
-                            let geometry = value.value as! Geometry
+                        switch value {
+                        case let .path(path):
+                            guard context.name.isEmpty else {
+                                return .mesh(Geometry(
+                                    type: .path(path),
+                                    name: context.name,
+                                    transform: context.transform,
+                                    material: .default,
+                                    children: [],
+                                    sourceLocation: context.sourceLocation
+                                ))
+                            }
+                            return .path(path.transformed(by: context.transform))
+                        case let .mesh(geometry):
                             return .mesh(Geometry(
                                 type: geometry.type,
                                 name: context.name,
@@ -794,23 +808,25 @@ extension Definition {
                                 children: geometry.children,
                                 sourceLocation: context.sourceLocation
                             ))
+                        default:
+                            if context.name.isEmpty {
+                                return value
+                            }
+                            throw RuntimeErrorType.assertionFailure(
+                                "Blocks that return a \(value.type.errorDescription) " +
+                                    "value cannot be assigned a name"
+                            )
                         }
-                        guard context.name.isEmpty else {
-                            return .mesh(Geometry(
-                                type: .path(path),
-                                name: context.name,
-                                transform: context.transform,
-                                material: .default,
-                                children: [],
-                                sourceLocation: context.sourceLocation
-                            ))
-                        }
-                        return .path(path.transformed(by: context.transform))
-                    } else if context.name.isEmpty, !children.isEmpty, !children.contains(where: {
-                        if case .path = $0 { return false } else { return true }
-                    }) {
+                    } else if context.name.isEmpty {
                         return .tuple(children.map {
-                            .path(($0.value as! Path).transformed(by: context.transform))
+                            switch $0 {
+                            case let .path(path):
+                                return .path(path.transformed(by: context.transform))
+                            case let .mesh(geometry):
+                                return .mesh(geometry.transformed(by: context.transform))
+                            default:
+                                return $0
+                            }
                         })
                     }
                     return .mesh(Geometry(
@@ -818,18 +834,25 @@ extension Definition {
                         name: context.name,
                         transform: context.transform,
                         material: .default,
-                        children: children.map {
-                            guard let path = $0.value as? Path else {
-                                return $0.value as! Geometry
+                        children: try children.map {
+                            switch $0 {
+                            case let .path(path):
+                                return Geometry(
+                                    type: .path(path),
+                                    name: nil,
+                                    transform: .identity,
+                                    material: .default,
+                                    children: [],
+                                    sourceLocation: context.sourceLocation
+                                )
+                            case let .mesh(geometry):
+                                return geometry
+                            default:
+                                throw RuntimeErrorType.assertionFailure(
+                                    "Blocks that return a \($0.type.errorDescription) " +
+                                        "value cannot be assigned a name"
+                                )
                             }
-                            return Geometry(
-                                type: .path(path),
-                                name: nil,
-                                transform: .identity,
-                                material: .default,
-                                children: [],
-                                sourceLocation: context.sourceLocation
-                            )
                         },
                         sourceLocation: context.sourceLocation
                     ))
@@ -867,6 +890,8 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
+            case let .tuple(values) where values.isEmpty:
+                break
             default:
                 children.append(value)
             }
