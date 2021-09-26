@@ -109,4 +109,4 @@ The default starting value for `seed` is zero, so `seed 0` will cause the `rnd` 
 The `debug` and `print` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
 
 ---
-[Index](index.md) | Next: [Loops](loops.md)
+[Index](index.md) | Next: [Control Flow](control-flow.md)

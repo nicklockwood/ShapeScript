@@ -73,7 +73,7 @@ Another type of expression you can create is a *range* expression. This consists
 1 to 5
 ```
 
-Ranges are mostly used in [for loops](loops.md):
+Ranges are mostly used in [for loops](control-flow.md#loops):
 
 ```swift
 for i in 1 to 5 {
@@ -117,7 +117,7 @@ for i in 0 to 1 step 0.2 {
 }
 ```
 
-A negative `step` can be used to create a [backwards loop](loops.md#looping-backwards):
+A negative `step` can be used to create a [backwards loop](control-flow.md#looping-backwards):
 
 ```swift
 for i in 5 to 1 step -1 {

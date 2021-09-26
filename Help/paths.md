@@ -148,7 +148,7 @@ roundrect {
 
 The `circle` command is fine for creating complete circles, but what if you want a circular arc or semicircle? Calculating the Bézier control points for that manually would be tedious, so this is where the power of ShapeScript's procedural logic comes in handy.
 
-To create a path procedurally, you can use a [for loop](loops.md) along with [relative transform commands](transforms.md#relative-transforms) such as `rotate`. For example, the following code generates a pentagon:
+To create a path procedurally, you can use a [for loop](control-flow.md#loops) along with [relative transform commands](transforms.md#relative-transforms) such as `rotate`. For example, the following code generates a pentagon:
 
 ```swift
 path {

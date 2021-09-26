@@ -100,7 +100,7 @@ class MetadataTests: XCTestCase {
             ("Expressions", "expressions.md"),
             ("Functions", "functions.md"),
             ("Commands", "commands.md"),
-            ("Loops", "loops.md"),
+            ("Control Flow", "control-flow.md"),
             ("Blocks", "blocks.md"),
             ("Scope", "scope.md"),
             ("Debugging", "debugging.md"),
@@ -193,7 +193,7 @@ class MetadataTests: XCTestCase {
                     continue
                 }
                 let text = try XCTUnwrap(String(contentsOf: absoluteURL))
-                let title = "## \(fragment.replacingOccurrences(of: "-", with: " "))"
+                let title = "## \(fragment.replacingOccurrences(of: "-", with: "[ -]"))"
                 if text.range(of: title, options: [.regularExpression, .caseInsensitive]) == nil {
                     if !url.hasSuffix(file) {
                         XCTFail("anchor \(url)#\(fragment) referenced in \(file) does not exist")

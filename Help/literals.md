@@ -135,7 +135,7 @@ Member expressions can be chained, so something like this will also work:
 print data.second.x // x component of the position
 ```
 
-For list-like data, you can use a [for loop](loops.md#looping-over-values) to loop over the top-level values:
+For list-like data, you can use a [for loop](control-flow.md#looping-over-values) to loop over the top-level values:
 
 ```swift
 define positions (

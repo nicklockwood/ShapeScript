@@ -13,7 +13,7 @@ This is convenient, because it means that code that defines sub-objects in your 
 
 ## Loop Scope
 
-The [for loop](loops.md) also creates a local scope around its body. Unlike block scope, loop scope does not apply to transforms or materials, but only to symbols created using the `define` command.
+The [for loop](control-flow.md#loops) also creates a local scope around its body. Unlike block scope, loop scope does not apply to transforms or materials, but only to symbols created using the `define` command.
 
 Any symbols defined inside a `for` loop will be restricted to the inside of the loop body. This also applies to the optional loop index variable.
 

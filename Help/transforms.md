@@ -45,7 +45,7 @@ It it possible to apply a negative scale factor, which has the effect of flippin
 
 ## Relative Transforms
 
-When defining paths or shapes procedurally using [loops](loops.md) or other logic, you will often wish to position shapes or points using *relative* coordinates, rather than absolutely. You can do this using the `translate`, `rotate` and `scale` commands, which are counterparts to the `position`, `orientation` and `size` options.
+When defining paths or shapes procedurally using [loops](control-flow.md#loops) or other logic, you will often wish to position shapes or points using *relative* coordinates, rather than absolutely. You can do this using the `translate`, `rotate` and `scale` commands, which are counterparts to the `position`, `orientation` and `size` options.
 
 Translation is the mathematical term for directional movement. Like `position`,  `translate`  takes up to 3 values representing offsets along the X Y and Z axes. Unlike `position`, the values do not specify the position of the containing shape, but rather they move the *origin* of the current [scope](scope.md), affecting all subsequently defined shapes.
 
