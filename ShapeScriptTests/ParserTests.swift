@@ -116,15 +116,9 @@ class ParserTests: XCTestCase {
                     Identifier(name: "not", range: notRange),
                     Expression(
                         type: .infix(
-                            Expression(type: .identifier(Identifier(
-                                name: "a",
-                                range: aRange
-                            )), range: aRange),
+                            Expression(type: .identifier("a"), range: aRange),
                             .equal,
-                            Expression(type: .identifier(Identifier(
-                                name: "b",
-                                range: bRange
-                            )), range: bRange)
+                            Expression(type: .identifier("b"), range: bRange)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
                     )
@@ -146,20 +140,11 @@ class ParserTests: XCTestCase {
                     Identifier(name: "not", range: notRange),
                     Expression(
                         type: .infix(
-                            Expression(type: .identifier(Identifier(
-                                name: "a",
-                                range: aRange
-                            )), range: aRange),
+                            Expression(type: .identifier("a"), range: aRange),
                             .equal,
                             Expression(type: .tuple([
-                                Expression(type: .identifier(Identifier(
-                                    name: "not",
-                                    range: notRange2
-                                )), range: notRange2),
-                                Expression(type: .identifier(Identifier(
-                                    name: "b",
-                                    range: bRange
-                                )), range: bRange),
+                                Expression(type: .identifier("not"), range: notRange2),
+                                Expression(type: .identifier("b"), range: bRange),
                             ]), range: notRange2.lowerBound ..< bRange.upperBound)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
@@ -435,10 +420,9 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        let identifier = Identifier(name: "foo", range: range1)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .expression(Expression(type: .infix(
-                Expression(type: .identifier(identifier), range: range1),
+                Expression(type: .identifier("foo"), range: range1),
                 .plus,
                 Expression(type: .number(2), range: range2)
             ), range: range)), range: range),
@@ -450,10 +434,9 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        let identifier = Identifier(name: "foo", range: range1)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .expression(Expression(type: .infix(
-                Expression(type: .identifier(identifier), range: range1),
+                Expression(type: .identifier("foo"), range: range1),
                 .to,
                 Expression(type: .number(2), range: range2)
             ), range: range)), range: range),
@@ -465,10 +448,9 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        let identifier = Identifier(name: "foo", range: range1)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .expression(Expression(type: .infix(
-                Expression(type: .identifier(identifier), range: range1),
+                Expression(type: .identifier("foo"), range: range1),
                 .step,
                 Expression(type: .number(2), range: range2)
             ), range: range)), range: range),
@@ -480,13 +462,11 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "step")!
         let range = range1.lowerBound ..< range2.upperBound
-        let identifier1 = Identifier(name: "foo", range: range1)
-        let identifier2 = Identifier(name: "step", range: range2)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .expression(Expression(
                 type: .tuple([
-                    Expression(type: .identifier(identifier1), range: range1),
-                    Expression(type: .identifier(identifier2), range: range2),
+                    Expression(type: .identifier("foo"), range: range1),
+                    Expression(type: .identifier("step"), range: range2),
                 ]),
                 range: range
             )), range: range),
@@ -498,13 +478,11 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "true")!
         let range = range1.lowerBound ..< range2.upperBound
-        let identifier1 = Identifier(name: "foo", range: range1)
-        let identifier2 = Identifier(name: "true", range: range2)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .expression(Expression(type: .infix(
-                Expression(type: .identifier(identifier1), range: range1),
+                Expression(type: .identifier("foo"), range: range1),
                 .and,
-                Expression(type: .identifier(identifier2), range: range2)
+                Expression(type: .identifier("true"), range: range2)
             ), range: range)), range: range),
         ]))
     }
@@ -656,10 +634,7 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "foo", range: fooRange)),
-                        range: fooRange
-                    ),
+                    Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: nil
                 ),
@@ -682,10 +657,7 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "foo", range: fooRange)),
-                        range: fooRange
-                    ),
+                    Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: nil
                 ),
@@ -693,10 +665,7 @@ class ParserTests: XCTestCase {
             ),
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "bar", range: barRange)),
-                        range: barRange
-                    ),
+                    Expression(type: .identifier("bar"), range: barRange),
                     Block(statements: [], range: body2Range),
                     else: nil
                 ),
@@ -714,10 +683,7 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "foo", range: fooRange)),
-                        range: fooRange
-                    ),
+                    Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [], range: elseBodyRange)
                 ),
@@ -738,18 +704,12 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "foo", range: fooRange)),
-                        range: fooRange
-                    ),
+                    Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [
                         Statement(
                             type: .ifelse(
-                                Expression(
-                                    type: .identifier(Identifier(name: "bar", range: barRange)),
-                                    range: barRange
-                                ),
+                                Expression(type: .identifier("bar"), range: barRange),
                                 Block(statements: [], range: body2Range),
                                 else: nil
                             ),
@@ -774,10 +734,7 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
                 type: .ifelse(
-                    Expression(
-                        type: .identifier(Identifier(name: "foo", range: fooRange)),
-                        range: fooRange
-                    ),
+                    Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [], range: elseBodyRange)
                 ),

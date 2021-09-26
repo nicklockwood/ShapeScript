@@ -709,10 +709,10 @@ private func evaluateParameters(
 ) throws -> [Value] {
     var values = [Value]()
     loop: for (i, param) in parameters.enumerated() {
-        if i < parameters.count - 1, case let .identifier(identifier) = param.type {
-            let (name, range) = (identifier.name, identifier.range)
+        if i < parameters.count - 1, case let .identifier(name) = param.type {
             switch context.symbol(for: name) {
             case let .command(parameterType, fn)? where parameterType != .void:
+                let identifier = Identifier(name: name, range: param.range)
                 let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
                 let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
                 let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
@@ -740,7 +740,7 @@ private func evaluateParameters(
                         )
                     }
                 }
-                try RuntimeError.wrap(values.append(fn(childContext)), at: range)
+                try RuntimeError.wrap(values.append(fn(childContext)), at: param.range)
                 break loop
             default:
                 break
@@ -1113,8 +1113,7 @@ extension Expression {
             return .string(string)
         case let .color(color):
             return .color(color)
-        case let .identifier(identifier):
-            let (name, range) = (identifier.name, identifier.range)
+        case let .identifier(name):
             guard let symbol = context.symbol(for: name) else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),

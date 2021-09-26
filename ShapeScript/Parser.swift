@@ -59,7 +59,7 @@ public enum ExpressionType: Equatable {
     case number(Double)
     case string(String)
     case color(Color)
-    case identifier(Identifier)
+    case identifier(String)
     case block(Identifier, Block)
     indirect case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
@@ -223,8 +223,8 @@ private extension ArraySlice where Element == Token {
         }
         var identifier: Identifier?
         var expression = try require(readExpression(), as: "index or range")
-        if case let .identifier(id) = expression.type, readToken(.identifier("in")) {
-            identifier = id
+        if case let .identifier(name) = expression.type, readToken(.identifier("in")) {
+            identifier = Identifier(name: name, range: expression.range)
             expression = try require(readExpression(), as: "range")
         }
         let body = try require(readBlock(), as: "loop body")
@@ -299,9 +299,8 @@ private extension ArraySlice where Element == Token {
         case let .hexColor(string):
             type = .color(Color(hexString: string) ?? .black)
         case let .identifier(name):
-            let identifier = Identifier(name: name, range: range)
             guard readToken(.lparen) else {
-                type = .identifier(identifier)
+                type = .identifier(name)
                 break
             }
             let expression = try require(readExpressions(), as: "expression")
@@ -310,7 +309,7 @@ private extension ArraySlice where Element == Token {
             // repackage function syntax as a lisp-style subexpression
             // TODO: should we support this as a distinct construct?
             var expressions = [Expression(
-                type: .identifier(identifier),
+                type: .identifier(name),
                 range: range
             )]
             if case let .tuple(params) = expression.type {
@@ -421,10 +420,7 @@ private extension ArraySlice where Element == Token {
             var rhs = try require(readSum(), as: "operand")
             if let not = not {
                 rhs = Expression(type: .tuple([
-                    Expression(
-                        type: .identifier(Identifier(name: "not", range: not.range)),
-                        range: not.range
-                    ),
+                    Expression(type: .identifier("not"), range: not.range),
                     rhs,
                 ]), range: not.range.lowerBound ..< rhs.range.upperBound)
             }
@@ -434,10 +430,7 @@ private extension ArraySlice where Element == Token {
             )
         }
         return not.map {
-            let not = Expression(
-                type: .identifier(Identifier(name: "not", range: $0.range)),
-                range: $0.range
-            )
+            let not = Expression(type: .identifier("not"), range: $0.range)
             return Expression(
                 type: .tuple([not, lhs]),
                 range: $0.range.lowerBound ..< lhs.range.upperBound
@@ -470,8 +463,9 @@ private extension ArraySlice where Element == Token {
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {
         var expressions = [Expression]()
         while var expression = try readExpression() {
-            if case let .identifier(identifier) = expression.type, let block = try readBlock() {
-                let range = identifier.range.lowerBound ..< block.range.upperBound
+            if case let .identifier(name) = expression.type, let block = try readBlock() {
+                let range = expression.range.lowerBound ..< block.range.upperBound
+                let identifier = Identifier(name: name, range: expression.range)
                 expression = Expression(type: .block(identifier, block), range: range)
             }
             expressions.append(expression)
