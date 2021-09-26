@@ -61,5 +61,37 @@ print "x:" x "y:" y
 
 Printed values are displayed in a console area below the scene. The console can be resized and scrolled to show as much text as you need.
 
+## Assertions
+
+Rather than merely printing a value, sometimes you want to be certain that it has a particular value (or range of values). You can do that with the `assert` command:
+
+```swift
+assert color = red // no other color will do
+```
+
+The assert function accepts a single boolean value or expression, and will raise an error if it evaluates to false.
+
+So when would this be useful? Suppose that you have defined a block, like the [star example](blocks.md#options) and you want a way to specify that it must have at least 4 points and a nonzero radius. You could do that like this:
+
+```swift
+define star {
+    option radius 1
+    assert radius > 0
+    option points 5
+    assert points >= 4
+    path {
+        for 1 to points {
+            point 0 -0.5
+            rotate 1 / points
+            point 0 -radius
+            rotate 1 / points
+        }
+        point 0 -0.5
+    }
+}
+```
+
+Now, if you (or someone else) tries invoke `star` with invalid options, it will raise a meaningful error instead of just producing broken-looking geometry.
+
 ---
 [Index](index.md) | Next: [Import](import.md)

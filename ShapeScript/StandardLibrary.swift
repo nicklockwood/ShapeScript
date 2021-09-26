@@ -315,6 +315,12 @@ extension Dictionary where Key == String, Value == Symbol {
             context.debugLog(value.tupleValue)
             return .void
         },
+        "assert": .command(.boolean) { value, _ in
+            if !value.boolValue {
+                throw RuntimeErrorType.assertionFailure("")
+            }
+            return .void
+        },
     ])
 
     static let primitive: Symbols = _merge(global, materials, [

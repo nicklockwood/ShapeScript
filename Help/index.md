@@ -99,6 +99,7 @@ ShapeScript Help
         - [Loop Scope](scope.md#loop-scope)
     - [Debugging](debugging.md)
         - [Logging](debugging.md#logging)
+        - [Assertions](debugging.md#assertions)
     - [Import](import.md)
         - [Dynamic Imports](import.md#dynamic-imports)
 - [Export](export.md)
