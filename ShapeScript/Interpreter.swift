@@ -663,29 +663,20 @@ private func evaluateParameters(
                 break loop
             case let .block(type, fn) where !type.childTypes.isEmpty:
                 let childContext = context.push(type)
-                for parameter in parameters[(i + 1)...] {
-                    let child = try parameter.evaluate(in: context)
-                    // TODO: find better solution
-                    let children: [Value]
-                    if case let .tuple(values) = child {
-                        children = values
-                    } else {
-                        children = [child]
-                    }
-                    for child in children {
-                        do {
-                            try childContext.addValue(child)
-                        } catch {
-                            throw RuntimeError(
-                                .typeMismatch(
-                                    for: identifier.name,
-                                    index: 0,
-                                    expected: "block",
-                                    got: child.type.errorDescription
-                                ),
-                                at: parameter.range
-                            )
-                        }
+                let children = try evaluateParameters(Array(parameters[(i + 1)...]), in: context)
+                for (j, child) in children.enumerated() {
+                    do {
+                        try childContext.addValue(child)
+                    } catch {
+                        throw RuntimeError(
+                            .typeMismatch(
+                                for: name,
+                                index: 0,
+                                expected: "block",
+                                got: child.type.errorDescription
+                            ),
+                            at: parameters[i + 1 + j].range
+                        )
                     }
                 }
                 try RuntimeError.wrap(values.append(fn(childContext)), at: range)
