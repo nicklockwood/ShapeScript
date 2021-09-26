@@ -386,13 +386,23 @@ private extension ArraySlice where Element == Token {
         if let statement = try readDefine() ?? readOption() ?? readForLoop() ?? readImport() {
             return statement
         }
+        let start = self
         guard let name = readIdentifier() else {
             return try readExpressions().map { .expression($0) }
         }
-        if let statements = try readBlock() {
-            return .block(name, statements)
+        switch nextToken.type {
+        case .infix, .dot, .identifier("to"):
+            self = start
+            return try readExpressions().map { .expression($0) }
+        case .lbrace:
+            if let statements = try readBlock() {
+                return .block(name, statements)
+            }
+            fallthrough
+        case .number, .linebreak, .identifier, .keyword, .hexColor,
+             .prefix, .string, .rbrace, .lparen, .rparen, .eof:
+            return try .command(name, readExpressions())
         }
-        return try .command(name, readExpressions())
     }
 
     mutating func readStatements() throws -> [Statement] {

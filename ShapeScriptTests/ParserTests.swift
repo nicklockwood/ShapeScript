@@ -316,6 +316,52 @@ class ParserTests: XCTestCase {
         }
     }
 
+    // MARK: Expression statement
+
+    func testLiteralExpressionStatement() {
+        let input = "1 + 2"
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let range = range1.lowerBound ..< range2.upperBound
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(type: .infix(
+                Expression(type: .number(1), range: range1),
+                .plus,
+                Expression(type: .number(2), range: range2)
+            ), range: range)), range: range),
+        ]))
+    }
+
+    func testIdentifierExpressionStatement() {
+        let input = "foo + 2"
+        let range1 = input.range(of: "foo")!
+        let range2 = input.range(of: "2")!
+        let range = range1.lowerBound ..< range2.upperBound
+        let identifier = Identifier(name: "foo", range: range1)
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(type: .infix(
+                Expression(type: .identifier(identifier), range: range1),
+                .plus,
+                Expression(type: .number(2), range: range2)
+            ), range: range)), range: range),
+        ]))
+    }
+
+    func testRangeExpressionStatement() {
+        let input = "foo to 2"
+        let range1 = input.range(of: "foo")!
+        let range2 = input.range(of: "2")!
+        let range = range1.lowerBound ..< range2.upperBound
+        let identifier = Identifier(name: "foo", range: range1)
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(type: .range(
+                from: Expression(type: .identifier(identifier), range: range1),
+                to: Expression(type: .number(2), range: range2),
+                step: nil
+            ), range: range)), range: range),
+        ]))
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
