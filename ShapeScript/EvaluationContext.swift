@@ -42,10 +42,10 @@ final class EvaluationContext {
     var childTransform = Transform.identity
     var childTypes: Set<ValueType> = [.mesh]
     var children = [Value]()
-    var name: String?
+    var name: String = ""
     var random: RandomSequence
     var detail = 16
-    var font: String?
+    var font: String = ""
     var opacity = 1.0
 
     var stackDepth = 1
@@ -214,14 +214,11 @@ extension EvaluationContext {
         return url
     }
 
-    func resolveFont(_ name: String?) throws -> String? {
-        guard let name = name?
+    func resolveFont(_ name: String) throws -> String {
+        let name = name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\t", with: " ")
             .replacingOccurrences(of: "  ", with: " ")
-        else {
-            return nil
-        }
         #if canImport(CoreGraphics)
         guard [".otf", ".ttf", ".ttc"].contains(where: {
             name.lowercased().hasSuffix($0)
@@ -246,7 +243,7 @@ extension EvaluationContext {
         else {
             throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
         }
-        return cgFont.fullName as String?
+        return cgFont.fullName as String? ?? ""
         #endif
         #else
         return name

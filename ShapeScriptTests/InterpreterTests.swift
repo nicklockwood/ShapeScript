@@ -132,7 +132,7 @@ class InterpreterTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil)
         let first = try XCTUnwrap(scene.children.first)
         XCTAssertEqual(first.name, "Foo")
-        XCTAssertNil(first.children.first?.name)
+        XCTAssertEqual(first.children.first?.name, "")
     }
 
     func testSetCustomBlockName() throws {
@@ -162,7 +162,7 @@ class InterpreterTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil)
         let first = try XCTUnwrap(scene.children.first)
         XCTAssertEqual(first.name, "Foo")
-        XCTAssertNil(first.children.first?.name)
+        XCTAssertEqual(first.children.first?.name, "")
         XCTAssertEqual(first.children.count, 2)
     }
 
@@ -976,7 +976,7 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertNil(context.font)
+        XCTAssertEqual(context.font, "")
         #endif
     }
 
@@ -994,7 +994,7 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertNil(context.font)
+        XCTAssertEqual(context.font, "")
         #endif
     }
 
@@ -1012,7 +1012,7 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertNil(context.font)
+        XCTAssertEqual(context.font, "")
         #endif
     }
 

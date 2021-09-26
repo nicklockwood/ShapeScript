@@ -331,7 +331,7 @@ enum Value {
     case vector(Vector)
     case size(Vector)
     case rotation(Rotation)
-    case string(String?) // TODO: handle optionals in a better way than this
+    case string(String)
     case path(Path)
     case mesh(Geometry)
     case point(PathPoint)
@@ -358,8 +358,7 @@ enum Value {
         case let .vector(vector): return vector
         case let .size(size): return size
         case let .rotation(rotation): return rotation
-        case let .string(string):
-            return string.map { $0 as AnyHashable } ?? string as AnyHashable
+        case let .string(string): return string
         case let .path(path): return path
         case let .mesh(mesh): return mesh
         case let .point(point): return point
@@ -377,26 +376,23 @@ enum Value {
         Int(truncating: doubleValue as NSNumber)
     }
 
-    var stringValue: String? {
+    var stringValue: String {
         switch self {
         case let .tuple(values):
             var spaceNeeded = false
-            let values: [String] = values.compactMap {
+            return values.map {
                 switch $0 {
                 case let .string(string):
                     spaceNeeded = false
                     return string
                 case let value:
-                    guard let string = value.stringValue else {
-                        return nil
-                    }
                     defer { spaceNeeded = true }
+                    let string = value.stringValue
                     return spaceNeeded ? " \(string)" : string
                 }
-            }
-            return values.isEmpty ? nil : values.joined()
+            }.joined()
         default:
-            return (value as? Loggable)?.logDescription
+            return (value as? Loggable)?.logDescription ?? ""
         }
     }
 
@@ -771,10 +767,10 @@ extension Definition {
                                 sourceLocation: context.sourceLocation
                             ))
                         }
-                        if let name = context.name {
+                        guard context.name.isEmpty else {
                             return .mesh(Geometry(
                                 type: .path(path),
-                                name: name,
+                                name: context.name,
                                 transform: context.transform,
                                 material: .default,
                                 children: [],
@@ -782,7 +778,7 @@ extension Definition {
                             ))
                         }
                         return .path(path.transformed(by: context.transform))
-                    } else if context.name == nil, !children.isEmpty, !children.contains(where: {
+                    } else if context.name.isEmpty, !children.isEmpty, !children.contains(where: {
                         if case .path = $0 { return false } else { return true }
                     }) {
                         return .tuple(children.map {
@@ -996,15 +992,7 @@ extension Statement {
                 for: Keyword.import.rawValue,
                 in: context
             )
-            guard let path = pathValue.stringValue else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: Keyword.import.rawValue, index: 0,
-                        expected: ValueType.string.errorDescription, got: "nil"
-                    ),
-                    at: expression.range
-                )
-            }
+            let path = pathValue.stringValue
             context.sourceIndex = expression.range.lowerBound
             try RuntimeError.wrap(context.importModel(at: path), at: expression.range)
         }
@@ -1295,9 +1283,9 @@ extension Expression {
             return .string(Value.tuple(values).stringValue)
         case .texture where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
-            return try RuntimeError.wrap(.texture(name.map {
-                .file(name: $0, url: try context.resolveURL(for: $0))
-            }), at: parameters[0].range)
+            return try RuntimeError.wrap(.texture(.file(
+                name: name, url: try context.resolveURL(for: name)
+            )), at: parameters[0].range)
         case .colorOrTexture:
             if Value.tuple(values).isConvertible(to: .color) {
                 return try evaluate(as: .color, for: name, in: context)
