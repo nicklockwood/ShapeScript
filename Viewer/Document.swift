@@ -462,17 +462,19 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     func debugLog(_ values: [AnyHashable]) {
-        var values = values.map { String(logDescriptionFor: $0 as Any) }
-        if let first = values.first {
-            var previous = first
-            values = [first] + values.dropFirst().map { value in
-                defer { previous = value }
-                // Determine if values should be separated with a space
-                return "$£#@([\n\t ".contains(previous.last ?? " ") ||
-                    ".,;:?!%)]\n\t ".contains(value.first ?? " ") ? value : " \(value)"
+        var spaceNeeded = false
+        let line = values.compactMap {
+            switch $0 {
+            case let string as String:
+                spaceNeeded = false
+                return string
+            case let value:
+                let string = String(logDescriptionFor: value as Any)
+                defer { spaceNeeded = true }
+                return spaceNeeded ? " \(string)" : string
             }
-        }
-        let line = values.joined()
+        }.joined()
+
         Swift.print(line)
         DispatchQueue.main.async {
             for viewController in self.sceneViewControllers {
