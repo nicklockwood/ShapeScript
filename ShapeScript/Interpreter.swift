@@ -1173,6 +1173,25 @@ extension Expression {
             case .plus:
                 return .number(value.doubleValue)
             }
+        case let .infix(lhs, .to, rhs):
+            let start = try lhs.evaluate(as: .number, for: "start value", in: context)
+            let end = try rhs.evaluate(as: .number, for: "end value", in: context)
+            return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
+        case let .infix(lhs, .step, rhs):
+            let rangeValue = try lhs.evaluate(as: .range, for: "range value", in: context)
+            let stepValue = try rhs.evaluate(as: .number, for: "step value", in: context)
+            let range = rangeValue.value as! RangeValue
+            guard let value = RangeValue(
+                from: range.start,
+                to: range.end,
+                step: stepValue.doubleValue
+            ) else {
+                throw RuntimeError(
+                    .assertionFailure("Step value must be nonzero"),
+                    at: rhs.range
+                )
+            }
+            return .range(value)
         case let .infix(lhs, op, rhs):
             let lhs = try lhs.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
             let rhs = try rhs.evaluate(as: .number, for: String(op.rawValue), index: 1, in: context)
@@ -1185,25 +1204,9 @@ extension Expression {
                 return .number(lhs.doubleValue * rhs.doubleValue)
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
+            case .to, .step:
+                preconditionFailure("\(op.rawValue) should be handled by earlier case")
             }
-        case let .range(from: start, to: end, step: step):
-            let start = try start.evaluate(as: .number, for: "start value", in: context)
-            let end = try end.evaluate(as: .number, for: "end value", in: context)
-            guard let stepParam = step else {
-                return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
-            }
-            let step = try stepParam.evaluate(as: .number, for: "step value", in: context)
-            guard let value = RangeValue(
-                from: start.doubleValue,
-                to: end.doubleValue,
-                step: step.doubleValue
-            ) else {
-                throw RuntimeError(
-                    .assertionFailure("Step value must be nonzero"),
-                    at: stepParam.range
-                )
-            }
-            return .range(value)
         case let .member(expression, member):
             var value = try expression.evaluate(in: context)
             if let memberValue = value[member.name] {

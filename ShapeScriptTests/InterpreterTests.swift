@@ -1460,6 +1460,26 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testRangeExtendedByStepValue() {
+        let program = """
+        define range 1 to 5
+        print range step 2
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [RangeValue(from: 1, to: 5, step: 2)])
+    }
+
+    func testRangeWithStepExtendedByDifferentStepValue() {
+        let program = """
+        define range 1 to 5 step 3
+        print range step 2
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [RangeValue(from: 1, to: 5, step: 2)])
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {
@@ -1570,6 +1590,36 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [1, 2, 3])
+    }
+
+    func testForLoopWithRangeVariableAndNoIndex() {
+        let program = """
+        define range 1 to 3
+        for range { print "a" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["a", "a", "a"])
+    }
+
+    func testForLoopWithRangeVariableExtendedByStepValue() {
+        let program = """
+        define range 1 to 5
+        for i in range step 2 { print i }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 3, 5])
+    }
+
+    func testForLoopWithRangeVariableExtendedByStepValueAndNoIndex() {
+        let program = """
+        define range 1 to 5
+        for range step 2 { print "a" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["a", "a", "a"])
     }
 
     func testForLoopWithTupleVariable() {

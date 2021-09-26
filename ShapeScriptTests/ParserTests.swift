@@ -252,10 +252,10 @@ class ParserTests: XCTestCase {
                 type: .define(
                     Identifier(name: "foo", range: fooRange),
                     Definition(type: .expression(Expression(
-                        type: .range(
-                            from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2),
-                            step: nil
+                        type: .infix(
+                            Expression(type: .number(1), range: range1),
+                            .to,
+                            Expression(type: .number(2), range: range2)
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     )))
@@ -277,10 +277,17 @@ class ParserTests: XCTestCase {
                 type: .define(
                     Identifier(name: "foo", range: fooRange),
                     Definition(type: .expression(Expression(
-                        type: .range(
-                            from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(5), range: range2),
-                            step: Expression(type: .number(2), range: range3)
+                        type: .infix(
+                            Expression(
+                                type: .infix(
+                                    Expression(type: .number(1), range: range1),
+                                    .to,
+                                    Expression(type: .number(5), range: range2)
+                                ),
+                                range: range1.lowerBound ..< range2.upperBound
+                            ),
+                            .step,
+                            Expression(type: .number(2), range: range3)
                         ),
                         range: range1.lowerBound ..< range3.upperBound
                     )))
@@ -303,15 +310,15 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testRangeWithMissingStepValue() {
-        let input = "define foo 1 to 5 step"
+    func testRangeWithMultipleStepValues() {
+        let input = "define range 1 to 5 step 1 step 2"
+        let range = input.range(of: "step", range: input.range(of: "step 2")!)!
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected end of file")
-            XCTAssertEqual(error?.hint, "Expected step value.")
+            XCTAssertEqual(error?.message, "Unexpected token 'step'")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .eof, range: input.endIndex ..< input.endIndex),
-                expected: "step value"
+                Token(type: .identifier("step"), range: range),
+                expected: nil
             )))
         }
     }
@@ -354,11 +361,44 @@ class ParserTests: XCTestCase {
         let range = range1.lowerBound ..< range2.upperBound
         let identifier = Identifier(name: "foo", range: range1)
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .range(
-                from: Expression(type: .identifier(identifier), range: range1),
-                to: Expression(type: .number(2), range: range2),
-                step: nil
+            Statement(type: .expression(Expression(type: .infix(
+                Expression(type: .identifier(identifier), range: range1),
+                .to,
+                Expression(type: .number(2), range: range2)
             ), range: range)), range: range),
+        ]))
+    }
+
+    func testStepExpressionStatement() {
+        let input = "foo step 2"
+        let range1 = input.range(of: "foo")!
+        let range2 = input.range(of: "2")!
+        let range = range1.lowerBound ..< range2.upperBound
+        let identifier = Identifier(name: "foo", range: range1)
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(type: .infix(
+                Expression(type: .identifier(identifier), range: range1),
+                .step,
+                Expression(type: .number(2), range: range2)
+            ), range: range)), range: range),
+        ]))
+    }
+
+    func testNonStepExpressionStatement() {
+        let input = "foo step"
+        let range1 = input.range(of: "foo")!
+        let range2 = input.range(of: "step")!
+        let range = range1.lowerBound ..< range2.upperBound
+        let identifier1 = Identifier(name: "foo", range: range1)
+        let identifier2 = Identifier(name: "step", range: range2)
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(
+                type: .tuple([
+                    Expression(type: .identifier(identifier1), range: range1),
+                    Expression(type: .identifier(identifier2), range: range2),
+                ]),
+                range: range
+            )), range: range),
         ]))
     }
 
@@ -376,10 +416,10 @@ class ParserTests: XCTestCase {
                 type: .forloop(
                     Identifier(name: "i", range: iRange),
                     in: Expression(
-                        type: .range(
-                            from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2),
-                            step: nil
+                        type: .infix(
+                            Expression(type: .number(1), range: range1),
+                            .to,
+                            Expression(type: .number(2), range: range2)
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     ),
@@ -401,10 +441,10 @@ class ParserTests: XCTestCase {
                 type: .forloop(
                     nil,
                     in: Expression(
-                        type: .range(
-                            from: Expression(type: .number(1), range: range1),
-                            to: Expression(type: .number(2), range: range2),
-                            step: nil
+                        type: .infix(
+                            Expression(type: .number(1), range: range1),
+                            .to,
+                            Expression(type: .number(2), range: range2)
                         ),
                         range: range1.lowerBound ..< range2.upperBound
                     ),

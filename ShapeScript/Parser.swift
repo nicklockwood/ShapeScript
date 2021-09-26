@@ -63,7 +63,6 @@ public enum ExpressionType: Equatable {
     indirect case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
-    indirect case range(from: Expression, to: Expression, step: Expression?)
     indirect case member(Expression, Identifier)
     indirect case subexpression(Expression)
 }
@@ -328,11 +327,11 @@ private extension ArraySlice where Element == Token {
         return lhs
     }
 
-    mutating func readExpression() throws -> Expression? {
+    mutating func readSum() throws -> Expression? {
         guard var lhs = try readTerm() else {
             return nil
         }
-        while case let .infix(op) = nextToken.type {
+        while case let .infix(op) = nextToken.type, [.plus, .minus].contains(op) {
             removeFirst()
             let rhs = try require(readTerm(), as: "operand")
             lhs = Expression(
@@ -340,22 +339,45 @@ private extension ArraySlice where Element == Token {
                 range: lhs.range.lowerBound ..< rhs.range.upperBound
             )
         }
+        return lhs
+    }
+
+    mutating func readRange() throws -> Expression? {
+        guard let lhs = try readSum() else {
+            return nil
+        }
         guard case .identifier("to") = nextToken.type else {
             return lhs
         }
         removeFirst()
-        let rhs = try require(readExpression(), as: "end value")
-        guard case .identifier("step") = nextToken.type else {
-            return Expression(
-                type: .range(from: lhs, to: rhs, step: nil),
-                range: lhs.range.lowerBound ..< rhs.range.upperBound
-            )
-        }
-        removeFirst()
-        let step = try require(readExpression(), as: "step value")
+        let rhs = try require(readSum(), as: "end value")
         return Expression(
-            type: .range(from: lhs, to: rhs, step: step),
-            range: lhs.range.lowerBound ..< step.range.upperBound
+            type: .infix(lhs, .to, rhs),
+            range: lhs.range.lowerBound ..< rhs.range.upperBound
+        )
+    }
+
+    mutating func readExpression() throws -> Expression? {
+        guard let lhs = try readRange() else {
+            return nil
+        }
+        guard case .identifier("step") = nextToken.type else {
+            return lhs
+        }
+        let start = self
+        removeFirst()
+        guard let rhs = try readSum() else {
+            self = start
+            return lhs
+        }
+        if case .identifier("step") = nextToken.type {
+            // TODO: should multiple step values actually be permitted?
+            // TODO: or is there a better error than "unexpected token"?
+            throw ParserError(.unexpectedToken(nextToken, expected: nil))
+        }
+        return Expression(
+            type: .infix(lhs, .step, rhs),
+            range: lhs.range.lowerBound ..< rhs.range.upperBound
         )
     }
 
@@ -391,7 +413,7 @@ private extension ArraySlice where Element == Token {
             return try readExpressions().map { .expression($0) }
         }
         switch nextToken.type {
-        case .infix, .dot, .identifier("to"):
+        case .infix, .dot, .identifier("to"), .identifier("step"):
             self = start
             return try readExpressions().map { .expression($0) }
         case .lbrace:

@@ -117,6 +117,20 @@ for i in 0 to 1 step 0.2 {
 }
 ```
 
+The step value for an existing range can be set or overridden later:
+
+```swift
+define loops 1 to 5 step 3
+
+for i in loops {
+    print i // prints 1, 4
+}
+
+for i in loops step 2 {
+    print i // prints 1, 3, 5 
+}
+```
+
 A negative `step` can be used to create a [backwards loop](control-flow.md#looping-backwards):
 
 ```swift

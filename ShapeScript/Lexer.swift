@@ -57,6 +57,8 @@ public enum InfixOperator: String {
     case minus = "-"
     case times = "*"
     case divide = "/"
+    // Range operators
+    case to, step
 }
 
 public enum TokenType: Equatable {
