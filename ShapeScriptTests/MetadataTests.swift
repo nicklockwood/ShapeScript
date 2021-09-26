@@ -84,6 +84,7 @@ class MetadataTests: XCTestCase {
             ("Loops", "loops.md"),
             ("Blocks", "blocks.md"),
             ("Scope", "scope.md"),
+            ("Debugging", "debugging.md"),
             ("Import", "import.md"),
         ]
 

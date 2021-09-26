@@ -104,28 +104,9 @@ You can reset the `seed` at any point within your ShapeScript file, and it will 
 
 The default starting value for `seed` is zero, so `seed 0` will cause the `rnd` sequence to repeat from the beginning. Remember that the sequence produced from a given seed is always the same, so re-using the same seed value multiple times in your script will result in repetition of the same random sequence.
 
-## Logging
+## Debugging
 
-When creating complex scripts, it can sometimes be difficult to understand what's happening in the code. To help you debug your scripts, you can use the `print` command:
-
-```swift
-print 5 + 6
-
-print "some text"
-
-print someValue
-```
-
-The `print` command accepts one or more arguments of any type. You can use this to intersperse values and text labels for example:
-
-```swift
-print "width =" width
-
-print "x:" x "y:" y
-```
-
-Printed values are displayed in a console area below the scene. The console can be resized and scrolled to show as much text as you need.
-
+The `debug` and `print` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
 
 ---
 [Index](index.md) | Next: [Loops](loops.md)

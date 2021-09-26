@@ -2117,4 +2117,51 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log[1], delegate.log[3])
         #endif
     }
+
+    // MARK: Debug command
+
+    func testDebugCube() throws {
+        let program = try parse("debug cube")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssert((context.children.first?.value as? Geometry)?.debug == true)
+    }
+
+    func testDebugText() throws {
+        let program = try parse("debug extrude text \"M\"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssert((context.children.first?.value as? Geometry)?.debug == true)
+    }
+
+    func testDebugColorCommand() throws {
+        let program = "debug color #f00"
+        let range = program.range(of: "color #f00")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "debug",
+                index: 0,
+                expected: "block",
+                got: "color"
+            ), at: range))
+        }
+    }
+
+    func testColorDebugColor() throws {
+        let program = """
+        define r #f00
+        color debug r
+        """
+        let range = program.range(of: "r", range: program.range(of: "debug r"))!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "debug",
+                index: 0,
+                expected: "block",
+                got: "color"
+            ), at: range))
+        }
+    }
 }

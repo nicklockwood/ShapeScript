@@ -125,6 +125,20 @@ extension Dictionary where Key == String, Value == Symbol {
         "stencil": .block(.group) { context in
             .mesh(Geometry(type: .stencil, in: context))
         },
+        // debug
+        "debug": .block(.group) { context in
+            context.children.forEach {
+                if case let .mesh(geometry) = $0 {
+                    geometry.debug = true
+                }
+            }
+            if context.children.count == 1,
+               let child = context.children[0].value as? Geometry
+            {
+                return .mesh(child)
+            }
+            return .mesh(Geometry(type: .group, in: context))
+        },
     ]
 
     static let paths: Symbols = [

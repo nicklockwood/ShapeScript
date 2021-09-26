@@ -83,7 +83,7 @@ public enum MaterialProperty: Hashable {
 public struct Material: Hashable {
     public var opacity = 1.0
     public var texture: Texture?
-    public var color: Color? = .white {
+    public var color: Color? {
         // Color and texture are mutually exclusive
         didSet { texture = (color != nil) ? nil : texture }
     }
@@ -94,5 +94,7 @@ public struct Material: Hashable {
 
     public static let `default` = Material()
 
-    public init() {}
+    public init(color: Color? = .white) {
+        self.color = color
+    }
 }

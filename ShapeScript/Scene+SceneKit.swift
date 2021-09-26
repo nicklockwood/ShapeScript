@@ -78,9 +78,23 @@ public extension SCNNode {
 //            geometry: SCNGeometry(bounds: geometry.bounds)
 //        ))
 
-        if geometry.renderChildren {
-            for child in geometry.children {
+        for child in geometry.children {
+            if geometry.renderChildren || child.debug {
                 addChildNode(SCNNode(child))
+            } else if child.childDebug {
+                addChildNode(SCNNode(debug: child))
+            }
+        }
+    }
+
+    private convenience init(debug geometry: Geometry) {
+        if geometry.debug {
+            self.init(geometry)
+        } else {
+            self.init()
+            setTransform(geometry.transform)
+            for child in geometry.children where child.childDebug {
+                addChildNode(SCNNode(debug: child))
             }
         }
     }
@@ -114,6 +128,11 @@ public extension Scene {
         /// Color to use for line or wireframe drawing
         public var lineColor: Color = .black
 
+        /// Material to use for debug geometry
+        public var debugMaterial: Material? = Material(
+            color: Color.green.withAlpha(0.5)
+        )
+
         /// Should mesh be drawn using wireframe
         public var wireframe: Bool = false
 
@@ -123,7 +142,7 @@ public extension Scene {
     }
 
     func scnBuild(with options: OutputOptions) {
-        children.forEach { $0.scnBuild(with: options) }
+        children.scnBuild(with: options, renderChildren: true)
     }
 }
 
@@ -133,9 +152,7 @@ public extension Geometry {
     }
 
     func scnBuild(with options: Scene.OutputOptions) {
-        if renderChildren {
-            children.forEach { $0.scnBuild(with: options) }
-        }
+        children.scnBuild(with: options, renderChildren: renderChildren)
 
         let material = SCNMaterial()
         material.lightingModel = .constant
@@ -171,12 +188,27 @@ public extension Geometry {
                     wireframe: wireframe
                 )
             } else {
+                var geometry: SCNGeometry
+                if debug, let material = options.debugMaterial {
+                    let m = SCNMaterial(material, isOpaque: false)
+                    geometry = SCNGeometry(mesh.scaled(by: 1.001)) { _ in m }
+                } else {
+                    geometry = SCNGeometry(mesh: mesh, for: self)
+                }
                 scnData = (
                     options: options,
-                    geometry: SCNGeometry(mesh: mesh, for: self),
+                    geometry: geometry,
                     wireframe: scnData?.wireframe
                 )
             }
+        }
+    }
+}
+
+private extension Array where Element == Geometry {
+    func scnBuild(with options: Scene.OutputOptions, renderChildren: Bool) {
+        for child in self where renderChildren || child.childDebug {
+            child.scnBuild(with: options)
         }
     }
 }

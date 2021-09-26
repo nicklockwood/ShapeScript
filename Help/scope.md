@@ -18,4 +18,4 @@ The [for loop](loops.md) also creates a local scope around its body. Unlike bloc
 Any symbols defined inside a `for` loop will be restricted to the inside of the loop body. This also applies to the optional loop index variable.
 
 ---
-[Index](index.md) | Next: [Import](import.md)
+[Index](index.md) | Next: [Debugging](debugging.md)

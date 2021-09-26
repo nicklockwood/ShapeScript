@@ -896,27 +896,29 @@ extension Statement {
                             return value
                         }
                     }
-                    let child = try unwrap(parameter.evaluate(in: context))
-                    // TODO: find better solution
-                    let children: [Value]
-                    if case let .tuple(values) = child,
-                       !type.childTypes.contains(where: child.isConvertible)
-                    {
-                        children = values
+                    let parameters: [Expression]
+                    if case let .tuple(expressions) = parameter.type {
+                        parameters = expressions
                     } else {
-                        children = [child]
+                        parameters = [parameter]
                     }
-                    guard children.allSatisfy({ type.childTypes.contains(where: $0.isConvertible) }) else {
+                    var children = try evaluateParameters(
+                        parameters,
+                        in: context
+                    ).map(unwrap)
+                    if children.count == 1, case let .tuple(values) = children[0] {
+                        children = values
+                    }
+                    for child in children where !type.childTypes
+                        .contains(where: child.isConvertible)
+                    {
                         // TODO: return valid child types instead of just "block"
-                        throw RuntimeError(
-                            .typeMismatch(
-                                for: name,
-                                index: 0,
-                                expected: "block",
-                                got: child.type.errorDescription
-                            ),
-                            at: parameter.range
-                        )
+                        throw RuntimeError(.typeMismatch(
+                            for: name,
+                            index: 0,
+                            expected: "block",
+                            got: child.type.errorDescription
+                        ), at: parameter.range)
                     }
                     try RuntimeError.wrap({
                         let childContext = context.push(type)

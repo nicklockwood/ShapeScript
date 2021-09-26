@@ -57,6 +57,15 @@ public final class Geometry: Hashable {
         }
     }
 
+    // Render with debug mode
+    var debug: Bool {
+        didSet {
+            if debug {
+                children.forEach { $0.debug = true }
+            }
+        }
+    }
+
     let cacheKey: GeometryCache.Key
     var cache: GeometryCache? {
         didSet {
@@ -100,7 +109,8 @@ public final class Geometry: Hashable {
                 transform: Transform,
                 material: Material,
                 children: [Geometry],
-                sourceLocation: SourceLocation?)
+                sourceLocation: SourceLocation?,
+                debug: Bool = false)
     {
         var material = material
         var children = children
@@ -188,6 +198,9 @@ public final class Geometry: Hashable {
             material = mesh.polygons.first?.material as? Material ?? material
         case .group, .union, .xor, .difference, .intersection, .stencil:
             material = children.first?.material ?? .default
+            if debug {
+                children.forEach { $0.debug = true }
+            }
         }
 
         self.type = type
@@ -196,6 +209,7 @@ public final class Geometry: Hashable {
         self.material = material
         self.children = children
         self.sourceLocation = sourceLocation
+        self.debug = debug
 
         var isOpaque = material.isOpaque
         func flattenedCacheKey(for geometry: Geometry) -> GeometryCache.Key {
@@ -250,6 +264,10 @@ public extension Geometry {
         }
     }
 
+    var childDebug: Bool {
+        debug || children.contains(where: { $0.childDebug })
+    }
+
     func transformed(by transform: Transform) -> Geometry {
         Geometry(
             type: type,
@@ -257,7 +275,8 @@ public extension Geometry {
             transform: self.transform * transform,
             material: material,
             children: children,
-            sourceLocation: sourceLocation
+            sourceLocation: sourceLocation,
+            debug: debug
         )
     }
 
@@ -519,7 +538,7 @@ private extension Geometry {
 
 public extension Geometry {
     var objectCount: Int {
-        if type == .group {
+        if case .group = type {
             var count = 0
             for child in children {
                 count += child.objectCount
