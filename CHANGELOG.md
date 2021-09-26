@@ -1,3 +1,14 @@
+## [1.3.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.7) (2021-09-26)
+
+- Added debug command for highlighting invisible geometry
+- Custom blocks can now return any value type, not just meshes or paths
+- Infix expressions are now handled correctly when used in a statement position
+- Improved type mismatch error messages for block parameters
+- String values are no longer nullable and empty strings are handled more correctly
+- Nested command calls without parentheses are now handled correctly
+- Improved type reporting for single-value tuples in error messages
+- Updated print behavior to better match text interpolation
+
 ## [1.3.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.6) (2021-09-21)
 
 - Added text interpolation, allowing text strings to be constructed dynamically
