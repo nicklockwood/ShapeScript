@@ -280,6 +280,30 @@ private extension RuntimeError {
     ]
 }
 
+private extension RuntimeErrorType {
+    static func typeMismatch(
+        for symbol: String,
+        index: Int,
+        expected types: [String],
+        got: String
+    ) -> RuntimeErrorType {
+        var types = Set(types).sorted()
+        if let index = types.firstIndex(of: "block") {
+            types.append(types.remove(at: index))
+        }
+        let expected: String
+        switch types.count {
+        case 1:
+            expected = types[0]
+        case 2:
+            expected = "\(types[0]) or \(types[1])"
+        default:
+            expected = "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
+        }
+        return .typeMismatch(for: symbol, index: index, expected: expected, got: got)
+    }
+}
+
 enum ValueType {
     case color
     case texture
@@ -664,11 +688,15 @@ private func evaluateParameters(
                     do {
                         try childContext.addValue(child)
                     } catch {
+                        var types = type.childTypes.map { $0.errorDescription }
+                        if j == 0 {
+                            types.append("block")
+                        }
                         throw RuntimeError(
                             .typeMismatch(
                                 for: name,
-                                index: 0,
-                                expected: "block",
+                                index: j,
+                                expected: types,
                                 got: child.type.errorDescription
                             ),
                             at: parameters[i + 1 + j].range
@@ -912,11 +940,11 @@ extension Statement {
                     for child in children where !type.childTypes
                         .contains(where: child.isConvertible)
                     {
-                        // TODO: return valid child types instead of just "block"
+                        // TODO: can we highlight specific argument?
                         throw RuntimeError(.typeMismatch(
                             for: name,
                             index: 0,
-                            expected: "block",
+                            expected: type.childTypes.map { $0.errorDescription } + ["block"],
                             got: child.type.errorDescription
                         ), at: parameter.range)
                     }
@@ -969,7 +997,7 @@ extension Statement {
                     .typeMismatch(
                         for: "range",
                         index: 0,
-                        expected: "range or tuple",
+                        expected: ["range", "tuple"],
                         got: range.type.errorDescription
                     ),
                     at: expression.range
@@ -1080,10 +1108,12 @@ extension Expression {
                 context.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(context), at: range)
             case let .command(type, _):
-                throw RuntimeError(
-                    .typeMismatch(for: name, index: 0, expected: type.errorDescription, got: "block"),
-                    at: block.range
-                )
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: 0,
+                    expected: type.errorDescription,
+                    got: "block"
+                ), at: block.range)
             case .property, .constant:
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
@@ -1214,12 +1244,11 @@ extension Expression {
                 guard case let .number(number) = value else {
                     // TODO: this seems like a hack - what's the actual solution?
                     let i = Swift.min(parameters.count - 1, i)
-                    let type = (i == 0 ? type : .number).errorDescription
                     throw RuntimeError(
                         .typeMismatch(
                             for: name,
                             index: index + i,
-                            expected: type,
+                            expected: (i == 0 ? type : .number).errorDescription,
                             got: value.type.errorDescription
                         ),
                         at: parameters[i].range

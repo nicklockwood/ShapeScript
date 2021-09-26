@@ -1139,7 +1139,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "extrude",
                 index: 0,
-                expected: "block",
+                expected: "path or block",
                 got: "mesh"
             ), at: range))
         }
@@ -1190,7 +1190,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "text",
                 index: 0,
-                expected: "block",
+                expected: "number, text, or block",
                 got: "mesh"
             ), at: range))
         }
@@ -2142,7 +2142,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 index: 0,
-                expected: "block",
+                expected: "mesh or block",
                 got: "color"
             ), at: range))
         }
@@ -2159,7 +2159,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 index: 0,
-                expected: "block",
+                expected: "mesh or block",
                 got: "color"
             ), at: range))
         }
