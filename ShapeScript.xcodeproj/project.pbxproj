@@ -13,6 +13,7 @@
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312F021CD5A7000626F1B /* PreferencesViewController.swift */; };
 		013312F521CD653B00626F1B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312F421CD653B00626F1B /* Settings.swift */; };
+		013942AE27028FFF00C3B168 /* SVGPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013942AA27028FFE00C3B168 /* SVGPath.swift */; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
 		01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
 		01460C3921D63FA200BFC4FF /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -40,6 +41,7 @@
 		01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3A421425C8500E47A7C /* LexerTests.swift */; };
 		01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B021425C9A00E47A7C /* Lexer.swift */; };
 		01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BFB3B42142726100E47A7C /* ParserTests.swift */; };
+		01C606B62703249700DDF576 /* SVGPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C606B52703249700DDF576 /* SVGPathTests.swift */; };
 		01C8AAB326F0B28A0055F522 /* String+Matching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C8AAB226F0B28A0055F522 /* String+Matching.swift */; };
 		01CF787226EA36AD0097907A /* String+Ordinals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CF787126EA36AD0097907A /* String+Ordinals.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
@@ -153,6 +155,7 @@
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013312F021CD5A7000626F1B /* PreferencesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesViewController.swift; sourceTree = "<group>"; };
 		013312F421CD653B00626F1B /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		013942AA27028FFE00C3B168 /* SVGPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGPath.swift; sourceTree = "<group>"; };
 		013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibrary.swift; sourceTree = "<group>"; };
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
@@ -183,6 +186,7 @@
 		01BFB3A621425C8500E47A7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		01BFB3B021425C9A00E47A7C /* Lexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lexer.swift; sourceTree = "<group>"; };
 		01BFB3B42142726100E47A7C /* ParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParserTests.swift; sourceTree = "<group>"; };
+		01C606B52703249700DDF576 /* SVGPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGPathTests.swift; sourceTree = "<group>"; };
 		01C8AAB226F0B28A0055F522 /* String+Matching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Matching.swift"; sourceTree = "<group>"; };
 		01CF787126EA36AD0097907A /* String+Ordinals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Ordinals.swift"; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
@@ -311,6 +315,7 @@
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
 				01CF787126EA36AD0097907A /* String+Ordinals.swift */,
 				01C8AAB226F0B28A0055F522 /* String+Matching.swift */,
+				013942AA27028FFE00C3B168 /* SVGPath.swift */,
 				01E3AA0426CB8E8200E0B287 /* Logging.swift */,
 				01BFB39A21425C8500E47A7C /* Info.plist */,
 			);
@@ -325,6 +330,7 @@
 				017EE7132194ED6D0046C918 /* InterpreterTests.swift */,
 				01E3AA0926CB920000E0B287 /* LoggingTests.swift */,
 				01111309269A0AD600BE9490 /* MetadataTests.swift */,
+				01C606B52703249700DDF576 /* SVGPathTests.swift */,
 				01BFB3A621425C8500E47A7C /* Info.plist */,
 			);
 			path = ShapeScriptTests;
@@ -632,6 +638,7 @@
 				01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */,
 				01AA1D8721EF31860086BF86 /* Material.swift in Sources */,
 				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,
+				013942AE27028FFF00C3B168 /* SVGPath.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
 				014F85DB215BE1A900461FB7 /* Parser.swift in Sources */,
 				01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */,
@@ -650,6 +657,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				017EE7142194ED6D0046C918 /* InterpreterTests.swift in Sources */,
+				01C606B62703249700DDF576 /* SVGPathTests.swift in Sources */,
 				01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */,
 				0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */,
 				01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */,

@@ -189,5 +189,35 @@ path {
 
 ![Overlapping Circles](images/overlapping-circles.png)
 
+## SVG Paths
+
+[Scalable Vector Graphics (SVG)](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics) is a popular standard for defining vector graphics. SVG is a fairly complex XML-based format, but a subset of the SVG standard defines a simple text-based [path syntax](https://www.w3.org/TR/SVG11/paths.html#PathData) that uses a series of single-character instructions, each followed by one or more coordinates to define a path. For example, the following SVG path code defines a triangle:
+
+```svg
+<path d="M 100 100 L 300 100 L 200 300 z"/>
+```
+
+You can use this syntax in ShapeScript by taking just the `d` attribute from the path and passing it to the `svgpath` command, as follows:
+
+```swift
+fill svgpath "M 100 100 L 300 100 L 200 300 z"
+```
+
+You can fill or extrude an `svgpath` and adjust its size, position, etc. as follows:
+
+```swift
+fill svgpath {
+    size 0.01
+    position -2 2
+    "M 100 100 L 300 100 L 200 300 z"
+}
+```
+
+Which produces the following output:
+
+![SVG Triangle](images/svgpath.png)
+
+**Note:** SVG uses a flipped vertical coordinate system relative to that used by ShapeScript. To compensate for this, vertical (Y) coordinates passed to the `svgpath` command are treated as negative.
+
 ---
 [Index](index.md) | Next: [Text](text.md)
