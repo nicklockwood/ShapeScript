@@ -192,8 +192,15 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "text": .block(.text) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
+            let linespacing = context.value(for: "linespacing")?.doubleValue
             let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
-            let paths = Path.text(text, font: context.font, width: width, detail: context.detail / 8)
+            let paths = Path.text(
+                text,
+                font: context.font,
+                width: width,
+                linespacing: linespacing,
+                detail: context.detail / 8
+            )
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
         "svgpath": .block(.text) { context in
@@ -356,17 +363,30 @@ extension Geometry {
     }
 }
 
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
+
 extension Path {
     /// Create an array of text paths with the specified font
     static func text(
         _ text: String,
         font: String?,
         width: Double? = nil,
+        linespacing: Double? = nil,
         detail: Int = 2
     ) -> [Path] {
         #if canImport(CoreText)
+        var attributes = [NSAttributedString.Key: Any]()
         let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
-        let attributes = [NSAttributedString.Key.font: font]
+        attributes[.font] = font
+        #if canImport(AppKit) || canImport(UIKit)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
+        attributes[.paragraphStyle] = paragraphStyle
+        #endif
         let attributedString = NSAttributedString(string: text, attributes: attributes)
         return self.text(attributedString, width: width, detail: detail)
         #else

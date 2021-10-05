@@ -37,6 +37,7 @@ ShapeScript Help
         - [Interpolation](text.md#interpolation)
         - [Wrap Width](text.md#wrap-width)
         - [Size and Line Height](text.md#size-and-line-height)
+        - [Line Spacing](text.md#line-spacing)
         - [Position and Orientation](text.md#position-and-orientation)
         - [Font](text.md#font)
     - [Builders](builders.md)

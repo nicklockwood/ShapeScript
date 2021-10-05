@@ -126,6 +126,32 @@ extrude {
 }
 ```
 
+## Line Spacing
+
+By default, text has a line spacing of zero, meaning that consecutive lines of text with size 1 will be spaced exactly one unit apart, with no extra padding. You can increase or decrease this line spacing using the `linespacing` property. A value of 0.5 will add an additional space of 0.5 world units between consecutive lines:
+
+```swift
+text {
+    linespacing 0.5
+    "Hello,"
+    "World!"
+}
+```
+
+![+50% Line spacing](images/linespacing-increased.png)
+
+A value of -0.5 will reduce the spacing by 0.5 (causing the lines to overlap by 0.5 units):
+
+```swift
+text {
+    linespacing -0.5
+    "Hello,"
+    "World!"
+}
+```
+
+![+50% Line spacing](images/linespacing-decreased.png)
+
 ## Position and Orientation
 
 To adjust the text position and orientation, use the [position](transforms.md#position) and [orientation](transforms.md#orientation) commands:

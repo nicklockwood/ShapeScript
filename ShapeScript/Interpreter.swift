@@ -596,7 +596,10 @@ enum BlockType {
         case let .custom(baseType, options):
             return (baseType?.options ?? [:]).merging(options) { $1 }
         case .text:
-            return ["wrapwidth": .number]
+            return [
+                "wrapwidth": .number,
+                "linespacing": .number,
+            ]
         case .builder, .group, .path:
             return [:]
         }
