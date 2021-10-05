@@ -4,10 +4,10 @@ Text
 The `text` command can be used to generate individual words, lines, or whole paragraphs of text. You use the `text` command as follows:
 
 ```swift
-text "Hello World"
+text "Hello, World!"
 ```
 
-To create multiline text you can use the "\n" line-break sequence:
+To create multiline text you can use the `\n` line-break sequence:
 
 ```swift
 text "The quick brown fox\njumps over the lazy dog"
@@ -76,23 +76,44 @@ text "We're number " 1 "!"
 text "We're number "           1            "!"
 ```
 
-## Size
+## Wrap Width
+
+By default, text is laid out on a single line unless you explicitly add line-breaks, either by splitting the text into multiple literals or by adding `\n` escape sequences.
+
+But by using the `wrapwidth` option, you can force text to wrap automatically to fit a specified width. This is useful when working with programatically generated text, where it may be cumbersome to have to add logic to insert linebreaks at the right point.
+
+```swift
+text {
+    wrapwidth 3
+    "Hello, World!"
+}
+```
+
+![Wrapped text](images/text-wrap.png)
+
+**Note:** `wrapwidth` is specified in world units, not characters.
+
+## Size and Line Height
+
+By default, text has a line height of one world unit. The line height is not the height of the actual characters, but the distance between two consecutive lines of text. If you imagine some lined writing paper, the line height would be the distance between the lines.
 
 To adjust the text size, you can use the [size](transforms.md#size) option:
 
 ```swift
 text {
     size 2 // increase text size by 200%
-    text "Hello World"
+    text "Hello, World!"
 }
 ```
+
+The size in this case actually refers to the line height, so setting a size of 2 increases the line height to 2 (and increases the actual size and spacing of the characters in proportion to this height).
 
 You can resize the text non-uniformly by passing separate width and height values for the size:
 
 ```swift
 text {
     size 2 1.5 // set width to 200% and height to 150%
-    text "Hello World"
+    text "Hello, World!"
 }
 ```
 
@@ -101,7 +122,7 @@ Alternatively, for extruded text, you can set the size in the shape block instea
 ```swift
 extrude {
     size 2 2 0.5 // 200% sized text, with 50% depth
-    text "Hello World"
+    text "Hello, World!"
 }
 ```
 

@@ -595,7 +595,9 @@ enum BlockType {
         switch self {
         case let .custom(baseType, options):
             return (baseType?.options ?? [:]).merging(options) { $1 }
-        case .builder, .group, .path, .text:
+        case .text:
+            return ["wrapwidth": .number]
+        case .builder, .group, .path:
             return [:]
         }
     }

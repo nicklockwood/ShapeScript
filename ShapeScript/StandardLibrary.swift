@@ -191,8 +191,9 @@ extension Dictionary where Key == String, Value == Symbol {
             #endif
         },
         "text": .block(.text) { context in
+            let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
-            let paths = Path.text(text, font: context.font, detail: context.detail / 8)
+            let paths = Path.text(text, font: context.font, width: width, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
         "svgpath": .block(.text) { context in
@@ -359,14 +360,15 @@ extension Path {
     /// Create an array of text paths with the specified font
     static func text(
         _ text: String,
-        font: String? = nil,
+        font: String?,
+        width: Double? = nil,
         detail: Int = 2
     ) -> [Path] {
         #if canImport(CoreText)
         let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
         let attributes = [NSAttributedString.Key.font: font]
         let attributedString = NSAttributedString(string: text, attributes: attributes)
-        return self.text(attributedString, detail: detail)
+        return self.text(attributedString, width: width, detail: detail)
         #else
         // TODO: throw error when CoreText not available
         return []
