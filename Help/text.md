@@ -178,7 +178,7 @@ Unlike most shapes, which are positioned relative to their center, text is posit
 
 ![Default text alignment](images/text-default.png)
 
-In order to center a piece of text, you will need to know its actual dimensions. For this you can use the `bounds` member property. The following code uses the bounds to center some text:
+In order to center a piece of text, you will need to know its actual dimensions. For this you can use the [bounds](bounds.md) member property. The following code uses the bounds to center some text:
 
 ```swift
 define hello text "Hello"

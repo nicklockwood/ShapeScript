@@ -67,6 +67,7 @@ class MetadataTests: XCTestCase {
             ("Options", "options.md"),
             ("Materials", "materials.md"),
             ("Transforms", "transforms.md"),
+            ("Bounds", "bounds.md"),
             ("Groups", "groups.md"),
             ("Paths", "paths.md"),
             ("Text", "text.md"),
