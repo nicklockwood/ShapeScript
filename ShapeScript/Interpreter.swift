@@ -1399,7 +1399,7 @@ extension Expression {
             let name = Value.tuple(values).stringValue
             return try RuntimeError.wrap(.texture(.file(
                 name: name, url: try context.resolveURL(for: name)
-            )), at: parameters[0].range)
+            )), at: range)
         case .font where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
             let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
@@ -1450,9 +1450,10 @@ extension Expression {
                         expected: type.errorDescription,
                         got: value.type.errorDescription
                     ),
-                    at: parameters[0].range
+                    at: range
                 )
             }
+            // TODO: work out when/why this fallback is needed
             throw RuntimeError(
                 .typeMismatch(
                     for: name,

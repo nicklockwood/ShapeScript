@@ -955,6 +955,21 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testSetBackgroundTextureWithNonExistentInterpolatedPath() throws {
+        let program = """
+        background "Nope" 1 ".jpg"
+        print background
+        """
+        let range = program.range(of: "\"Nope\" 1 \".jpg\"")!
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.fileNotFound(
+                for: "Nope1.jpg", at: testsDirectory.appendingPathComponent("Nope1.jpg")
+            ), at: range))
+        }
+    }
+
     // MARK: Font
 
     func testSetValidFont() throws {
