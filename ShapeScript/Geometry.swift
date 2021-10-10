@@ -60,7 +60,7 @@ public final class Geometry: Hashable {
     // Render with debug mode
     var debug: Bool {
         didSet {
-            if debug {
+            if debug, type == .group {
                 children.forEach { $0.debug = true }
             }
         }
@@ -196,8 +196,9 @@ public final class Geometry: Hashable {
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
-        case .group, .union, .xor, .difference, .intersection, .stencil:
+        case .union, .xor, .difference, .intersection, .stencil:
             material = children.first?.material ?? .default
+        case .group:
             if debug {
                 children.forEach { $0.debug = true }
             }
@@ -526,7 +527,8 @@ private extension Geometry {
                     sourceLocation: sourceLocation
                 )
             },
-            sourceLocation: self.sourceLocation ?? sourceLocation
+            sourceLocation: self.sourceLocation ?? sourceLocation,
+            debug: debug
         )
         copy.mesh = mesh
         copy.associatedData = associatedData

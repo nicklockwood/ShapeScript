@@ -133,7 +133,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 }
             }
             if context.children.count == 1,
-               let child = context.children[0].value as? Geometry
+               case let .mesh(child) = context.children[0]
             {
                 return .mesh(child)
             }

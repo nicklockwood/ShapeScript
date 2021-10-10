@@ -856,7 +856,8 @@ extension Definition {
                                 transform: geometry.transform * context.transform,
                                 material: geometry.material,
                                 children: geometry.children,
-                                sourceLocation: context.sourceLocation
+                                sourceLocation: context.sourceLocation,
+                                debug: geometry.debug
                             ))
                         default:
                             if context.name.isEmpty {

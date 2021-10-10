@@ -79,23 +79,7 @@ public extension SCNNode {
 //        ))
 
         for child in geometry.children {
-            if geometry.renderChildren || child.debug {
-                addChildNode(SCNNode(child))
-            } else if child.childDebug {
-                addChildNode(SCNNode(debug: child))
-            }
-        }
-    }
-
-    private convenience init(debug geometry: Geometry) {
-        if geometry.debug {
-            self.init(geometry)
-        } else {
-            self.init()
-            setTransform(geometry.transform)
-            for child in geometry.children where child.childDebug {
-                addChildNode(SCNNode(debug: child))
-            }
+            addChildNode(SCNNode(child))
         }
     }
 
@@ -142,7 +126,7 @@ public extension Scene {
     }
 
     func scnBuild(with options: OutputOptions) {
-        children.scnBuild(with: options, renderChildren: true)
+        children.scnBuild(with: options, debug: false)
     }
 }
 
@@ -152,7 +136,9 @@ public extension Geometry {
     }
 
     func scnBuild(with options: Scene.OutputOptions) {
-        children.scnBuild(with: options, renderChildren: renderChildren)
+        if renderChildren || childDebug {
+            children.scnBuild(with: options, debug: !renderChildren)
+        }
 
         let material = SCNMaterial()
         material.lightingModel = .constant
@@ -206,9 +192,13 @@ public extension Geometry {
 }
 
 private extension Array where Element == Geometry {
-    func scnBuild(with options: Scene.OutputOptions, renderChildren: Bool) {
-        for child in self where renderChildren || child.childDebug {
-            child.scnBuild(with: options)
+    func scnBuild(with options: Scene.OutputOptions, debug: Bool) {
+        for child in self {
+            if debug, !child.debug {
+                child.children.scnBuild(with: options, debug: true)
+            } else {
+                child.scnBuild(with: options)
+            }
         }
     }
 }
