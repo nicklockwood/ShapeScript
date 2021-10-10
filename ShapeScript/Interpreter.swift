@@ -307,6 +307,7 @@ private extension RuntimeErrorType {
 enum ValueType: CaseIterable {
     case color
     case texture
+    case boolean
     case colorOrTexture // Hack to support either types
     case font
     case number
@@ -334,6 +335,7 @@ extension ValueType {
         case .texture: return "texture"
         case .colorOrTexture: return "color or texture"
         case .font: return "font"
+        case .boolean: return "boolean"
         case .number: return "number"
         case .vector: return "vector"
         case .size: return "size"
@@ -355,6 +357,7 @@ extension ValueType {
 enum Value {
     case color(Color)
     case texture(Texture?)
+    case boolean(Bool)
     case number(Double)
     case vector(Vector)
     case size(Vector)
@@ -383,6 +386,7 @@ enum Value {
         case let .color(color): return color
         case let .texture(texture):
             return texture.map { $0 as AnyHashable } ?? texture as AnyHashable
+        case let .boolean(boolean): return boolean
         case let .number(number): return number
         case let .vector(vector): return vector
         case let .size(size): return size
@@ -404,6 +408,11 @@ enum Value {
 
     var intValue: Int {
         Int(truncating: doubleValue as NSNumber)
+    }
+
+    var boolValue: Bool {
+        assert(value is Bool)
+        return value as? Bool ?? false
     }
 
     var stringValue: String {
@@ -430,6 +439,7 @@ enum Value {
         switch self {
         case .color: return .color
         case .texture: return .texture
+        case .boolean: return .boolean
         case .number: return .number
         case .vector: return .vector
         case .size: return .size
@@ -447,7 +457,8 @@ enum Value {
 
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
-        case (.number, .string),
+        case (.boolean, .string),
+             (.number, .string),
              (.number, .color):
             return true
         case let (.tuple(values), .string):
@@ -500,7 +511,7 @@ enum Value {
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
-        case .texture, .number, .string:
+        case .texture, .boolean, .number, .string:
             return []
         }
     }
@@ -598,7 +609,7 @@ enum Value {
             case "depth": return .number(bounds.size.z)
             default: return nil
             }
-        case .texture, .number, .string:
+        case .boolean, .texture, .number, .string:
             return nil
         }
     }
@@ -1022,9 +1033,9 @@ extension Statement {
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
-            let range = try expression.evaluate(in: context)
+            let value = try expression.evaluate(in: context)
             let sequence: AnySequence<Value>
-            switch range {
+            switch value {
             case let .range(range):
                 sequence = AnySequence(range.lazy.map { .number($0) })
             case let .tuple(values):
@@ -1034,14 +1045,14 @@ extension Statement {
                 } else {
                     sequence = AnySequence(values)
                 }
-            case .vector, .size, .rotation, .color, .texture,
+            case .boolean, .vector, .size, .rotation, .color, .texture,
                  .number, .string, .path, .mesh, .point, .bounds:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
                         index: 0,
                         expected: ["range", "tuple"],
-                        got: range.type.errorDescription
+                        got: value.type.errorDescription
                     ),
                     at: expression.range
                 )
@@ -1402,7 +1413,7 @@ extension Expression {
                     )
                 }
             })
-        case .number, .string, .texture, .font, .path, .mesh, .point, .range, .bounds:
+        case .boolean, .number, .string, .texture, .font, .path, .mesh, .point, .range, .bounds:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),

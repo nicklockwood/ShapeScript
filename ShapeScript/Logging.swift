@@ -59,6 +59,16 @@ extension Double: Loggable {
     }
 }
 
+extension Bool: Loggable {
+    public var logDescription: String {
+        "\(self)"
+    }
+
+    public var nestedLogDescription: String {
+        logDescription
+    }
+}
+
 extension Vector: Loggable {
     public var logDescription: String {
         "\(x.logDescription) \(y.logDescription) \(z.logDescription)"

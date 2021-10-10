@@ -231,6 +231,8 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let functions: Symbols = [
+        "true": .constant(.boolean(true)),
+        "false": .constant(.boolean(false)),
         // Math functions
         "rnd": .command(.void) { _, context in
             .number(context.random.next())
