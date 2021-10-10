@@ -322,6 +322,7 @@ enum ValueType: CaseIterable {
     case pair // Hack to support common math functions
     case range
     case void
+    case bounds
 }
 
 extension ValueType {
@@ -346,6 +347,7 @@ extension ValueType {
         case .pair: return "pair"
         case .range: return "range"
         case .void: return "void"
+        case .bounds: return "bounds"
         }
     }
 }
@@ -363,6 +365,7 @@ enum Value {
     case point(PathPoint)
     case tuple([Value])
     case range(RangeValue)
+    case bounds(Bounds)
 
     static let void: Value = .tuple([])
 
@@ -390,6 +393,7 @@ enum Value {
         case let .point(point): return point
         case let .tuple(values): return values.map { $0.value }
         case let .range(range): return range
+        case let .bounds(bounds): return bounds
         }
     }
 
@@ -437,6 +441,7 @@ enum Value {
         case let .tuple(values) where values.count == 1: return values[0].type
         case .tuple: return .tuple
         case .range: return .range
+        case .bounds: return .bounds
         }
     }
 
@@ -458,7 +463,7 @@ enum Value {
 
     var members: [String] {
         switch self {
-        case .vector:
+        case .vector, .point:
             return ["x", "y", "z"]
         case .size:
             return ["width", "height", "depth"]
@@ -469,10 +474,13 @@ enum Value {
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
             guard values.allSatisfy({ $0.type == .number }) else {
-                if values.count == 1 {
-                    members += values[0].members
+                guard values.allSatisfy({ $0.type == .path }) else {
+                    if values.count == 1 {
+                        members += values[0].members
+                    }
+                    return members
                 }
-                return members
+                return members + ["bounds"]
             }
             if values.count < 5 {
                 members += ["red", "green", "blue", "alpha"]
@@ -487,7 +495,11 @@ enum Value {
             return members
         case .range:
             return ["start", "end", "step"]
-        case .texture, .number, .string, .path, .mesh, .point:
+        case .path, .mesh:
+            return ["bounds"]
+        case .bounds:
+            return ["min", "max", "size", "center", "width", "height", "depth"]
+        case .texture, .number, .string:
             return []
         }
     }
@@ -501,6 +513,8 @@ enum Value {
             case "z": return .number(vector.z)
             default: return nil
             }
+        case let .point(point):
+            return Value.vector(point.position)[name]
         case let .size(size):
             switch name {
             case "width": return .number(size.x)
@@ -528,10 +542,20 @@ enum Value {
                 return index < values.count ? values[index] : nil
             }
             guard values.allSatisfy({ $0.type == .number }) else {
-                if values.count == 1 {
-                    return values[0][name]
+                guard values.allSatisfy({ $0.type == .path }) else {
+                    if values.count == 1 {
+                        return values[0][name]
+                    }
+                    return nil
                 }
-                return nil
+                switch name {
+                case "bounds":
+                    return .bounds(values.reduce(into: Bounds.empty) {
+                        $0.formUnion(($1.value as! Path).bounds)
+                    })
+                default:
+                    return nil
+                }
             }
             let values = values.map { $0.value as? Double ?? 0 }
             switch name {
@@ -553,7 +577,28 @@ enum Value {
             case "step": return .number(range.step)
             default: return nil
             }
-        case .texture, .number, .string, .path, .mesh, .point:
+        case let .path(path):
+            switch name {
+            case "bounds": return .bounds(path.bounds)
+            default: return nil
+            }
+        case let .mesh(mesh):
+            switch name {
+            case "bounds": return .bounds(mesh.bounds)
+            default: return nil
+            }
+        case let .bounds(bounds):
+            switch name {
+            case "min": return .vector(bounds.min)
+            case "max": return .vector(bounds.max)
+            case "size": return .size(bounds.size)
+            case "center": return .vector(bounds.center)
+            case "width": return .number(bounds.size.x)
+            case "height": return .number(bounds.size.y)
+            case "depth": return .number(bounds.size.z)
+            default: return nil
+            }
+        case .texture, .number, .string:
             return nil
         }
     }
@@ -1022,7 +1067,8 @@ extension Statement {
                 } else {
                     sequence = AnySequence(values)
                 }
-            case .vector, .size, .rotation, .color, .texture, .number, .string, .path, .mesh, .point:
+            case .vector, .size, .rotation, .color, .texture,
+                 .number, .string, .path, .mesh, .point, .bounds:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
@@ -1387,7 +1433,7 @@ extension Expression {
                     )
                 }
             })
-        case .number, .string, .texture, .font, .path, .mesh, .point, .range:
+        case .number, .string, .texture, .font, .path, .mesh, .point, .range, .bounds:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),

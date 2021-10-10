@@ -169,10 +169,24 @@ Or for filled or extruded text, you can set these on the containing shape block 
 ```swift
 fill {
     position 1 2 3 // set the position in 3D space
-    orientation 0 0.5 0 // rotate around the Y axis
+    orientation 0 0.25 0 // rotate around the Y axis
     text "Hello World"
 }
 ```
+
+Unlike most shapes, which are positioned relative to their center, text is positioned relative to its left margin and baseline.
+
+![Default text alignment](images/text-default.png)
+
+In order to center a piece of text, you will need to know its actual dimensions. For this you can use the `bounds` member property. The following code uses the bounds to center some text:
+
+```swift
+define hello text "Hello"
+translate -hello.bounds.width/2 -hello.bounds.height/2
+fill hello
+```
+
+![Centered text](images/text-centered.png)
 
 ## Font
 
