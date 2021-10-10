@@ -831,6 +831,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.red])
     }
 
+    func testSetBackgroundColorWithSingleNumber() throws {
+        let program = """
+        background 0
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.black])
+    }
+
     func testSetBackgroundColorWithConstant() throws {
         let program = """
         define bg 1 0 0

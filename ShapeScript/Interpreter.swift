@@ -447,7 +447,8 @@ enum Value {
 
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
-        case (.number, .string):
+        case (.number, .string),
+             (.number, .color):
             return true
         case let (.tuple(values), .string):
             return values.allSatisfy { $0.isConvertible(to: .string) }
@@ -1373,6 +1374,11 @@ extension Expression {
             }
             let numbers = try numerify(max: 4, min: 1)
             return .color(Color(unchecked: numbers))
+        case .colorOrTexture:
+            if Value.tuple(values).isConvertible(to: .color) {
+                return try evaluate(as: .color, for: name, in: context)
+            }
+            return try evaluate(as: .texture, for: name, in: context)
         case .vector:
             let numbers = try numerify(max: 3, min: 1)
             return .vector(Vector(numbers))
@@ -1394,12 +1400,6 @@ extension Expression {
             return try RuntimeError.wrap(.texture(.file(
                 name: name, url: try context.resolveURL(for: name)
             )), at: parameters[0].range)
-        case .colorOrTexture:
-            if Value.tuple(values).isConvertible(to: .color) {
-                return try evaluate(as: .color, for: name, in: context)
-            } else {
-                return try evaluate(as: .texture, for: name, in: context)
-            }
         case .font where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
             let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
