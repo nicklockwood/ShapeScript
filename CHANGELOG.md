@@ -1,3 +1,12 @@
+## [1.3.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.8) (2021-10-10)
+
+- Added `svgpath` command for creating paths using SVG-compatible syntax
+- Added `bounds` member property for calculating dimensions of complex shapes
+- Added `wrapwidth` and `linespacing` options for text
+- Improved debug command behavior for children of CSG containers
+- Fixed bug when setting `background` color with a single number (e.g. `0` for black)
+- Fixed bug where only first expression argument was highlighted in a type-mismatch error
+
 ## [1.3.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.7) (2021-09-26)
 
 - Added debug command for highlighting invisible geometry
