@@ -549,16 +549,15 @@ enum Value {
                     }
                     return nil
                 }
+                let values = values.compactMap { $0.value as? Path }
                 switch name {
                 case "bounds":
-                    return .bounds(values.reduce(into: Bounds.empty) {
-                        $0.formUnion(($1.value as! Path).bounds)
-                    })
+                    return .bounds(values.bounds)
                 default:
                     return nil
                 }
             }
-            let values = values.map { $0.value as? Double ?? 0 }
+            let values = values.map { $0.doubleValue }
             switch name {
             case "x", "y", "z":
                 return values.count < 4 ? Value.vector(Vector(values))[name] : nil
@@ -670,40 +669,6 @@ enum BlockType {
         case .text: return .text
         case let .custom(baseType, _):
             return baseType?.symbols ?? .primitive
-        }
-    }
-}
-
-extension Rotation {
-    init?(rollYawPitchInHalfTurns: [Double]) {
-        var roll = 0.0, yaw = 0.0, pitch = 0.0
-        switch rollYawPitchInHalfTurns.count {
-        case 3:
-            pitch = rollYawPitchInHalfTurns[2]
-            fallthrough
-        case 2:
-            yaw = rollYawPitchInHalfTurns[1]
-            fallthrough
-        case 1:
-            roll = rollYawPitchInHalfTurns[0]
-        case 0:
-            break
-        default:
-            return nil
-        }
-        self.init(
-            roll: .radians(roll * .pi),
-            yaw: .radians(yaw * .pi),
-            pitch: .radians(pitch * .pi)
-        )
-    }
-
-    init(unchecked rollYawPitchInHalfTurns: [Double]) {
-        if let rotation = Rotation(rollYawPitchInHalfTurns: rollYawPitchInHalfTurns) {
-            self = rotation
-        } else {
-            assertionFailure()
-            self = .identity
         }
     }
 }

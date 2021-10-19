@@ -363,39 +363,6 @@ extension Geometry {
     }
 }
 
-#if canImport(AppKit)
-import AppKit
-#elseif canImport(UIKit)
-import UIKit
-#endif
-
-extension Path {
-    /// Create an array of text paths with the specified font
-    static func text(
-        _ text: String,
-        font: String?,
-        width: Double? = nil,
-        linespacing: Double? = nil,
-        detail: Int = 2
-    ) -> [Path] {
-        #if canImport(CoreText)
-        var attributes = [NSAttributedString.Key: Any]()
-        let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
-        attributes[.font] = font
-        #if canImport(AppKit) || canImport(UIKit)
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
-        attributes[.paragraphStyle] = paragraphStyle
-        #endif
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
-        return self.text(attributedString, width: width, detail: detail)
-        #else
-        // TODO: throw error when CoreText not available
-        return []
-        #endif
-    }
-}
-
 private func _merge(_ symbols: Symbols...) -> Symbols {
     var result = Symbols()
     for symbols in symbols {

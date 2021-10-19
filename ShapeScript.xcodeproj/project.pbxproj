@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0104EB6F271E184000B60058 /* CameraType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB6B271E17FE00B60058 /* CameraType.swift */; };
+		0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
 		0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
@@ -151,6 +152,7 @@
 
 /* Begin PBXFileReference section */
 		0104EB6B271E17FE00B60058 /* CameraType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraType.swift; sourceTree = "<group>"; };
+		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
@@ -318,6 +320,7 @@
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
 				01CF787126EA36AD0097907A /* String+Ordinals.swift */,
 				01C8AAB226F0B28A0055F522 /* String+Matching.swift */,
+				0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */,
 				013942AA27028FFE00C3B168 /* SVGPath.swift */,
 				01E3AA0426CB8E8200E0B287 /* Logging.swift */,
 				01BFB39A21425C8500E47A7C /* Info.plist */,
@@ -642,6 +645,7 @@
 				01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */,
 				01AA1D8721EF31860086BF86 /* Material.swift in Sources */,
 				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,
+				0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */,
 				013942AE27028FFF00C3B168 /* SVGPath.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
 				014F85DB215BE1A900461FB7 /* Parser.swift in Sources */,
