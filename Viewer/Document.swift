@@ -130,7 +130,15 @@ class Document: NSDocument, EvaluationDelegate {
         let storyboard = NSStoryboard(name: NSStoryboard.Name("Main"), bundle: nil)
         let windowController = storyboard.instantiateController(withIdentifier: NSStoryboard.SceneIdentifier("Document Window Controller")) as! NSWindowController
         addWindowController(windowController)
-        windowController.window?.delegate = windowController.contentViewController as? NSWindowDelegate
+        guard let newWindow = windowController.window else {
+            return
+        }
+        newWindow.delegate = windowController.contentViewController as? NSWindowDelegate
+        if let currentWindow = NSDocumentController.shared.currentDocument?
+            .windowControllers.first?.window, currentWindow.tabbedWindows != nil
+        {
+            currentWindow.addTabbedWindow(newWindow, ordered: .above)
+        }
         updateViews()
     }
 
