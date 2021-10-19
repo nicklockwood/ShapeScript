@@ -163,32 +163,33 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="hB3-LF-h0Y"/>
-                                        <menuItem title="Reset Camera" keyEquivalent="0" id="ZIw-uR-7P2">
-                                            <connections>
-                                                <action selector="resetCamera:" target="Ady-hI-5gd" id="yv7-2T-Qte"/>
-                                            </connections>
-                                        </menuItem>
                                         <menuItem title="Camera" id="XnX-4Y-csY">
                                             <modifierMask key="keyEquivalentModifierMask"/>
-                                            <menu key="submenu" title="Camera" id="7Yo-1d-oG9"/>
+                                            <menu key="submenu" title="Camera" id="7Yo-1d-oG9">
+                                                <items>
+                                                    <menuItem isSeparatorItem="YES" id="HIi-gT-Sq7"/>
+                                                    <menuItem title="Reset" keyEquivalent="0" id="ZIw-uR-7P2">
+                                                        <connections>
+                                                            <action selector="resetCamera:" target="Ady-hI-5gd" id="yv7-2T-Qte"/>
+                                                        </connections>
+                                                    </menuItem>
+                                                </items>
+                                            </menu>
                                             <connections>
                                                 <action selector="selectCameras:" target="Ady-hI-5gd" id="oKB-mS-hiY"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Orthographic" id="tqR-9n-dMx">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                        <menuItem title="Orthographic" keyEquivalent="O" id="AN8-MX-fSN">
                                             <connections>
-                                                <action selector="setOrthographic:" target="Ady-hI-5gd" id="83n-nJ-hym"/>
+                                                <action selector="setOrthographic:" target="Ady-hI-5gd" id="lNA-oz-PDx"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Show Wireframe" id="ulz-9v-p7O">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                        <menuItem title="Show Wireframe" keyEquivalent="W" id="ulz-9v-p7O">
                                             <connections>
                                                 <action selector="showWireframe:" target="Ady-hI-5gd" id="jcB-wJ-FWD"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Show Axes" id="7QN-OP-8q0">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                        <menuItem title="Show Axes" keyEquivalent="A" id="7QN-OP-8q0">
                                             <connections>
                                                 <action selector="showAxes:" target="Ady-hI-5gd" id="iKT-GP-LR6"/>
                                             </connections>

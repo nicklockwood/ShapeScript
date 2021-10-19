@@ -13,7 +13,7 @@ You should see a new window appear containing a cube, sphere and cone. These are
 
 Drag your mouse cursor inside the window and you will notice that the three objects appear to rotate.
 
-You are not actually moving the objects themselves, but rotating the camera around them. To reset the view, select `View > Reset Camera` or press **Cmd-0**.
+You are not actually moving the objects themselves, but rotating the camera around them. To reset the view, select `View > Camera > Reset` or press **Cmd-0**.
 
 To help you orient yourself, you can use the `View > Show Axes` option, which displays the direction of the X, Y and Z axes.
 

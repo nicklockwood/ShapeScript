@@ -47,12 +47,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
         }
-        camerasMenu.removeAllItems()
+        while camerasMenu.item(at: 0)?.isSeparatorItem == false {
+            camerasMenu.removeItem(at: 0)
+        }
         for (i, cameraType) in CameraType.allCases.enumerated() {
-            let menuItem = camerasMenu.addItem(
+            let menuItem = camerasMenu.insertItem(
                 withTitle: cameraType.name,
                 action: #selector(Document.selectCamera(_:)),
-                keyEquivalent: "\(i + 1)"
+                keyEquivalent: "\(i + 1)",
+                at: i
             )
             menuItem.tag = i
             menuItem.keyEquivalentModifierMask = .command
