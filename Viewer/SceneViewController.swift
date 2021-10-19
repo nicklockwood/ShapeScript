@@ -35,6 +35,12 @@ class SceneViewController: NSViewController {
         return cameraNode
     }()
 
+    lazy var axesNode: SCNNode = .init(Axes(
+        scale: axesSize,
+        camera: camera,
+        background: background
+    ))
+
     var errorMessage: NSAttributedString? {
         didSet {
             guard let errorMessage = errorMessage else {
@@ -133,8 +139,7 @@ class SceneViewController: NSViewController {
             guard showAxes != oldValue else {
                 return
             }
-            let geometry = self.geometry
-            self.geometry = geometry
+            updateAxesNode()
             resetCamera(nil)
         }
     }
@@ -151,6 +156,7 @@ class SceneViewController: NSViewController {
 
     var camera: CameraType = .front {
         didSet {
+            updateAxesNode()
             updateCameraNode()
             resetCamera(nil)
         }
@@ -168,8 +174,7 @@ class SceneViewController: NSViewController {
 
             // add axes
             if showAxes {
-                let axes = Axes(scale: axesSize, background: background)
-                scnScene.rootNode.addChildNode(SCNNode(axes))
+                scnScene.rootNode.addChildNode(axesNode)
             }
 
             // restore selection
@@ -281,6 +286,19 @@ class SceneViewController: NSViewController {
         cameraNode.position = SCNVector3(viewCenter - camera.direction * distance + offset)
         cameraNode.eulerAngles = SCNVector3(.zero)
         cameraNode.look(at: SCNVector3(viewCenter))
+    }
+
+    func updateAxesNode() {
+        axesNode.removeFromParentNode()
+        axesNode = SCNNode(Axes(
+            scale: axesSize,
+            camera: camera,
+            background: background
+        ))
+        if showAxes {
+            scnScene.rootNode.insertChildNode(axesNode, at: 0)
+        }
+        resetCamera(nil)
     }
 
     @IBAction func resetCamera(_: Any?) {

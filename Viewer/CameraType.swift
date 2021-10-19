@@ -34,4 +34,15 @@ extension CameraType {
         case .bottom: return Vector(0, 1, 0)
         }
     }
+
+    var orientation: Rotation {
+        switch self {
+        case .front: return .identity
+        case .back: return .yaw(.pi)
+        case .left: return .yaw(.halfPi)
+        case .right: return .yaw(-.halfPi)
+        case .top: return .pitch(.halfPi)
+        case .bottom: return .pitch(-.halfPi)
+        }
+    }
 }

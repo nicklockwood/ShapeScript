@@ -13,41 +13,60 @@ import ShapeScript
 struct Axes {
     let geometry: Geometry
 
-    init(scale: Double, background: MaterialProperty?) {
+    init(scale: Double, camera: CameraType, background: MaterialProperty?) {
         let textScale = 0.1
+        let distance = 1 + textScale
         let color = Color(.underPageBackgroundColor)
         let brightness = background?.brightness(over: color) ?? color.brightness
         let lineColor = brightness > 0.5 ? Color.black : .white
         var material = Material.default
         material.color = lineColor
         geometry = Geometry(transform: Transform(scale: Vector(size: [scale])), children: [
-            Geometry(type: .path(.line(-.x, .x))),
-            Geometry(type: .fill(Path.text("+X")), transform: Transform(
-                offset: .x - Vector(-0.5, 0.25, 0) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
-            Geometry(type: .fill(Path.text("-X")), transform: Transform(
-                offset: -.x - Vector(1.5, 0.25, 0) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
-            Geometry(type: .path(.line(-.y, .y))),
-            Geometry(type: .fill(Path.text("+Y")), transform: Transform(
-                offset: .y - Vector(0.6, -0.5, 0) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
-            Geometry(type: .fill(Path.text("-Y")), transform: Transform(
-                offset: -.y - Vector(0.5, 1.25, 0) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
-            Geometry(type: .path(.line(-.z, .z))),
-            Geometry(type: .fill(Path.text("+Z")), transform: Transform(
-                offset: .z - Vector(0.6, 0.25, -0.5) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
-            Geometry(type: .fill(Path.text("-Z")), transform: Transform(
-                offset: -.z - Vector(0.5, 0.25, 0.5) * textScale,
-                scale: Vector(size: [textScale])
-            ), material: material),
+            Geometry(type: .path(.line(-.unitX, .unitX))),
+            Geometry(
+                label: "+X",
+                offset: .unitX * distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
+            Geometry(
+                label: "-X",
+                offset: .unitX * -distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
+            Geometry(type: .path(.line(-.unitY, .unitY))),
+            Geometry(
+                label: "+Y",
+                offset: .unitY * distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
+            Geometry(
+                label: "-Y",
+                offset: .unitY * -distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
+            Geometry(type: .path(.line(-.unitZ, .unitZ))),
+            Geometry(
+                label: "+Z",
+                offset: .unitZ * distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
+            Geometry(
+                label: "-Z",
+                offset: .unitZ * -distance,
+                rotation: camera.orientation,
+                scale: textScale,
+                material: material
+            ),
         ])
         _ = geometry.build { true }
         var options = Scene.OutputOptions.default
@@ -63,9 +82,9 @@ extension SCNNode {
 }
 
 private extension Vector {
-    static let x = Vector(1, 0, 0)
-    static let y = Vector(0, 1, 0)
-    static let z = Vector(0, 0, 1)
+    static let unitX = Vector(1, 0, 0)
+    static let unitY = Vector(0, 1, 0)
+    static let unitZ = Vector(0, 0, 1)
 }
 
 private extension Geometry {
@@ -83,5 +102,20 @@ private extension Geometry {
             children: children,
             sourceLocation: nil
         )
+    }
+
+    convenience init(
+        label: String,
+        offset: Vector,
+        rotation: Rotation,
+        scale: Double,
+        material: Material
+    ) {
+        let paths = Path.text(label)
+        self.init(type: .fill(paths), transform: Transform(
+            offset: offset - paths.bounds.size.rotated(by: rotation) * (scale / 2),
+            rotation: rotation,
+            scale: Vector(size: [scale])
+        ), material: material)
     }
 }
