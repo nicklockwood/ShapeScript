@@ -28,12 +28,27 @@ private let helpDirectory = projectDirectory
 private let helpIndexURL = helpDirectory
     .appendingPathComponent("index.md")
 
+private let examplesDirectory = projectDirectory
+    .appendingPathComponent("Examples")
+
+private let exampleURLs = try! FileManager.default
+    .contentsOfDirectory(atPath: examplesDirectory.path)
+    .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
+    .filter { $0.pathExtension == "shape" }
+
 private let shapeScriptVersion: String = {
     let string = try! String(contentsOf: projectURL)
     let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
     let end = string.range(of: ";", range: start ..< string.endIndex)!.lowerBound
     return String(string[start ..< end])
 }()
+
+private func findHeadings(in string: String) -> [String] {
+    string.components(separatedBy: "\n")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
+        .filter { $0.hasPrefix("## ") }
+        .map { String($0.dropFirst(3)) }
+}
 
 class MetadataTests: XCTestCase {
     // MARK: Releases
@@ -90,12 +105,7 @@ class MetadataTests: XCTestCase {
         ]
 
         func findSections(in string: String) -> [(String, String)] {
-            let headings = string.components(separatedBy: "\n")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { $0.hasPrefix("## ") }
-
-            return headings.compactMap {
-                let heading = String($0.dropFirst(3))
+            findHeadings(in: string).compactMap { heading in
                 let fragment = heading.lowercased()
                     .replacingOccurrences(of: "'", with: "")
                     .replacingOccurrences(of: " ", with: "-")
@@ -182,6 +192,51 @@ class MetadataTests: XCTestCase {
                         XCTFail("anchor #\(fragment) referenced in \(file) does not exist")
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: Examples
+
+    func testExamplesAllListedInHelp() throws {
+        let examplesHelpURL = helpDirectory.appendingPathComponent("examples.md")
+        let examplesHelp = try String(contentsOf: examplesHelpURL)
+        let exampleHeadings = findHeadings(in: examplesHelp)
+        let exampleFileNames = exampleURLs.map { $0.deletingPathExtension().lastPathComponent }
+        for name in exampleFileNames {
+            XCTAssert(exampleHeadings.contains(name),
+                      "Example '\(name)' not listed in examples.md")
+        }
+        for name in exampleHeadings {
+            XCTAssert(exampleFileNames.contains(name),
+                      "Example '\(name)' listed in examples.md does not exist")
+        }
+    }
+
+    func testExamplesAllRunWithoutError() {
+        class TestDelegate: EvaluationDelegate {
+            func importGeometry(for _: URL) throws -> Geometry? { nil }
+            func debugLog(_: [AnyHashable]) {}
+
+            func resolveURL(for name: String) -> URL {
+                examplesDirectory.appendingPathComponent(name)
+            }
+        }
+
+        for file in exampleURLs {
+            do {
+                let input = try String(contentsOf: file, encoding: .utf8)
+                let program = try parse(input)
+                let delegate = TestDelegate()
+                _ = try evaluate(program, delegate: delegate)
+            } catch let error as LexerError {
+                XCTFail("Error: \(error.message) in '\(file.lastPathComponent)'")
+            } catch let error as ParserError {
+                XCTFail("Error: \(error.message) in '\(file.lastPathComponent)'")
+            } catch let error as RuntimeError {
+                XCTFail("Error: \(error.message) in '\(file.lastPathComponent)'")
+            } catch {
+                XCTFail("Error: \(error) in '\(file.lastPathComponent)'")
             }
         }
     }
