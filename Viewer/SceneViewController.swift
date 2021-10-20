@@ -139,8 +139,7 @@ class SceneViewController: NSViewController {
             guard showAxes != oldValue else {
                 return
             }
-            updateAxesNode()
-            resetCamera(nil)
+            updateAxesAndCamera()
         }
     }
 
@@ -156,9 +155,9 @@ class SceneViewController: NSViewController {
 
     var camera: CameraType = .front {
         didSet {
-            updateAxesNode()
-            updateCameraNode()
-            resetCamera(nil)
+            if camera != oldValue {
+                updateAxesAndCamera()
+            }
         }
     }
 
@@ -169,32 +168,38 @@ class SceneViewController: NSViewController {
 
     var geometry: Geometry? {
         didSet {
-            // clear scene
-            scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
-
-            // add axes
-            if showAxes {
-                scnScene.rootNode.addChildNode(axesNode)
+            refreshGeometry()
+            if geometry?.bounds != oldValue?.bounds {
+                updateAxesAndCamera()
             }
-
-            // restore selection
-            selectGeometry(selectedGeometry?.scnGeometry)
-
-            guard let geometry = geometry, !geometry.bounds.isEmpty else {
-                scnView.allowsCameraControl = showAxes
-                return
-            }
-
-            // create geometry
-            geometry.children.forEach {
-                scnScene.rootNode.addChildNode(SCNNode($0))
-            }
-
-            // update camera
-            updateCameraNode()
-            scnView.allowsCameraControl = true
             refreshView()
         }
+    }
+
+    private func refreshGeometry() {
+        // clear scene
+        scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
+
+        // add axes
+        if showAxes {
+            scnScene.rootNode.addChildNode(axesNode)
+        }
+
+        // restore selection
+        selectGeometry(selectedGeometry?.scnGeometry)
+
+        guard let geometry = geometry, !geometry.bounds.isEmpty else {
+            scnView.allowsCameraControl = showAxes
+            return
+        }
+
+        // create geometry
+        geometry.children.forEach {
+            scnScene.rootNode.addChildNode(SCNNode($0))
+        }
+
+        // update camera
+        scnView.allowsCameraControl = true
     }
 
     private func refreshView() {
@@ -248,8 +253,7 @@ class SceneViewController: NSViewController {
         scnView.autoenablesDefaultLighting = true
         scnView.antialiasingMode = .multisampling16X
         scnView.allowsCameraControl = geometry != nil
-        updateCameraNode()
-        resetCamera(nil)
+        updateAxesAndCamera()
 
         // add a click gesture recognizer
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
@@ -258,7 +262,18 @@ class SceneViewController: NSViewController {
         scnView.gestureRecognizers = gestureRecognizers
     }
 
-    func updateCameraNode() {
+    private func updateAxesAndCamera() {
+        // Update axes
+        axesNode.removeFromParentNode()
+        axesNode = SCNNode(Axes(
+            scale: axesSize,
+            camera: camera,
+            background: background
+        ))
+        if showAxes {
+            scnScene.rootNode.insertChildNode(axesNode, at: 0)
+        }
+        // Update camera node
         guard let bounds = geometry?.bounds else {
             return
         }
@@ -286,18 +301,6 @@ class SceneViewController: NSViewController {
         cameraNode.position = SCNVector3(viewCenter - camera.direction * distance + offset)
         cameraNode.eulerAngles = SCNVector3(.zero)
         cameraNode.look(at: SCNVector3(viewCenter))
-    }
-
-    func updateAxesNode() {
-        axesNode.removeFromParentNode()
-        axesNode = SCNNode(Axes(
-            scale: axesSize,
-            camera: camera,
-            background: background
-        ))
-        if showAxes {
-            scnScene.rootNode.insertChildNode(axesNode, at: 0)
-        }
         resetCamera(nil)
     }
 
