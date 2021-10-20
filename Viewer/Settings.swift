@@ -175,7 +175,12 @@ final class Settings {
         return defaults.object(forKey: key) as? T
     }
 
-    func set<T>(_ value: T, for key: String, in document: Document,
+    func value<T: RawRepresentable>(for key: String, in document: Document) -> T? {
+        let rawValue = value(for: key, in: document) as T.RawValue?
+        return rawValue.flatMap(T.init(rawValue:))
+    }
+
+    func set<T>(_ value: T?, for key: String, in document: Document,
                 andGlobally applyGlobally: Bool = false)
     {
         if let data = Data(value) {
@@ -185,6 +190,12 @@ final class Settings {
             // Set global default
             defaults.set(value, forKey: key)
         }
+    }
+
+    func set<T: RawRepresentable>(_ value: T?, for key: String, in document: Document,
+                                  andGlobally applyGlobally: Bool = false)
+    {
+        set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
     }
 }
 

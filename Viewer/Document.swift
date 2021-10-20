@@ -77,6 +77,16 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
+    var camera: CameraType {
+        get { settings.value(for: #function, in: self) ?? .default }
+        set {
+            settings.set(newValue, for: #function, in: self)
+            for viewController in sceneViewControllers {
+                viewController.camera = camera
+            }
+        }
+    }
+
     func rerender() {
         guard let scene = scene else {
             return
@@ -98,6 +108,7 @@ class Document: NSDocument, EvaluationDelegate {
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
             viewController.showAxes = showAxes
             viewController.isOrthographic = isOrthographic
+            viewController.camera = camera
         }
     }
 
@@ -448,10 +459,22 @@ class Document: NSDocument, EvaluationDelegate {
             menuItem.state = showAxes ? .on : .off
         case #selector(setOrthographic(_:)):
             menuItem.state = isOrthographic ? .on : .off
+        case #selector(selectCamera(_:)):
+            menuItem.state = (camera == CameraType.allCases[menuItem.tag]) ? .on : .off
+        case #selector(selectCameras(_:)):
+            menuItem.title = "Camera (\(camera.name))"
         default:
             break
         }
         return super.validateMenuItem(menuItem)
+    }
+
+    @IBAction func selectCameras(_: NSMenuItem) {
+        // Does nothing
+    }
+
+    @IBAction func selectCamera(_ menuItem: NSMenuItem) {
+        camera = .allCases[menuItem.tag]
     }
 
     @IBAction func showWireframe(_: NSMenuItem) {

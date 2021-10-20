@@ -28,6 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var exampleURLs = [String: URL]()
 
     @IBOutlet private var examplesMenu: NSMenu!
+    @IBOutlet private var camerasMenu: NSMenu!
 
     func applicationDidFinishLaunching(_: Notification) {
         let firstLaunchOfNewVersion = (Settings.shared.appVersion != NSApplication.appVersion)
@@ -45,6 +46,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 exampleURLs[name] = url
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
+        }
+        camerasMenu.removeAllItems()
+        for (i, cameraType) in CameraType.allCases.enumerated() {
+            let menuItem = camerasMenu.addItem(
+                withTitle: cameraType.name,
+                action: #selector(Document.selectCamera(_:)),
+                keyEquivalent: "\(i + 1)"
+            )
+            menuItem.tag = i
+            menuItem.keyEquivalentModifierMask = .command
         }
     }
 
@@ -80,5 +91,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func showWelcomeWindow(_: Any) {
         welcomeWindowController.showWindow(self)
+    }
+}
+
+extension AppDelegate: NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(selectCameras(_:)):
+            menuItem.title = "Camera"
+            return false
+        default:
+            return true
+        }
+    }
+
+    @IBAction func selectCameras(_: NSMenuItem) {
+        // Does nothing
     }
 }

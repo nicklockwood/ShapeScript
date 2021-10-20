@@ -14,6 +14,7 @@ import ShapeScript
 class SceneViewController: NSViewController {
     let scnScene = SCNScene()
     private(set) var scnView: SCNView!
+    private var renderTimer: Timer?
 
     @IBOutlet private var containerView: NSSplitView!
     @IBOutlet private var errorScrollView: NSScrollView!
@@ -148,6 +149,13 @@ class SceneViewController: NSViewController {
         }
     }
 
+    var camera: CameraType = .front {
+        didSet {
+            updateCameraNode()
+            resetCamera(nil)
+        }
+    }
+
     var background: MaterialProperty? {
         get { MaterialProperty(scnMaterialProperty: scnScene.background) }
         set { newValue?.configureProperty(scnScene.background) }
@@ -178,25 +186,19 @@ class SceneViewController: NSViewController {
             }
 
             // update camera
-            let bounds = geometry.bounds
-            let size = bounds.size
-            var distance = max(size.x * 0.75, size.y) + bounds.max.z
-            var scale = max(size.x * 0.75, size.y, size.z * 0.75)
-            if showAxes {
-                distance = max(distance, axesSize * 2.2)
-                scale = max(scale, axesSize * 2.2)
-            }
-            cameraNode.position = SCNVector3(viewCenter.x, viewCenter.y, viewCenter.z + distance)
-            cameraNode.camera?.orthographicScale = scale / 1.8
+            updateCameraNode()
             scnView.allowsCameraControl = true
-            scnView.defaultCameraController.target = SCNVector3(viewCenter)
             refreshView()
         }
     }
 
     private func refreshView() {
+        renderTimer?.invalidate()
         scnView.rendersContinuously = true
-        scnView.rendersContinuously = false
+        renderTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { _ in
+            self.scnView.rendersContinuously = false
+            self.renderTimer = nil
+        }
     }
 
     private var viewCenter: Vector {
@@ -241,6 +243,7 @@ class SceneViewController: NSViewController {
         scnView.autoenablesDefaultLighting = true
         scnView.antialiasingMode = .multisampling16X
         scnView.allowsCameraControl = geometry != nil
+        updateCameraNode()
         resetCamera(nil)
 
         // add a click gesture recognizer
@@ -248,6 +251,36 @@ class SceneViewController: NSViewController {
         var gestureRecognizers = scnView.gestureRecognizers
         gestureRecognizers.insert(clickGesture, at: 0)
         scnView.gestureRecognizers = gestureRecognizers
+    }
+
+    func updateCameraNode() {
+        guard let bounds = geometry?.bounds else {
+            return
+        }
+        let axisScale = axesSize * 2.2
+        let size = bounds.size
+        var distance, scale: Double
+        var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
+        switch camera {
+        case .front, .back:
+            distance = max(size.x * 0.75, size.y) + bounds.size.z / 2
+            scale = max(size.x * 0.75, size.y, size.z * 0.75)
+        case .left, .right:
+            distance = max(size.z * 0.75, size.y) + bounds.size.x / 2
+            scale = max(size.x * 0.75, size.y, size.z * 0.75)
+        case .top, .bottom:
+            distance = max(size.x * 0.75, size.z) + bounds.size.y / 2
+            scale = max(size.x * 0.75, size.y * 0.75, size.z)
+            offset = Vector(0, 0, 0.000001)
+        }
+        if showAxes {
+            distance = max(distance, axisScale)
+            scale = max(scale, axisScale)
+        }
+        cameraNode.camera?.orthographicScale = scale / 1.8
+        cameraNode.position = SCNVector3(viewCenter - camera.direction * distance + offset)
+        cameraNode.eulerAngles = SCNVector3(.zero)
+        cameraNode.look(at: SCNVector3(viewCenter))
     }
 
     @IBAction func resetCamera(_: Any?) {

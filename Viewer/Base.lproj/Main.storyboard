@@ -168,6 +168,13 @@
                                                 <action selector="resetCamera:" target="Ady-hI-5gd" id="yv7-2T-Qte"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Camera" id="XnX-4Y-csY">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <menu key="submenu" title="Camera" id="7Yo-1d-oG9"/>
+                                            <connections>
+                                                <action selector="selectCameras:" target="Ady-hI-5gd" id="oKB-mS-hiY"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem title="Orthographic" id="tqR-9n-dMx">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
@@ -265,6 +272,7 @@
                 <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
                 <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="Viewer" customModuleProvider="target">
                     <connections>
+                        <outlet property="camerasMenu" destination="7Yo-1d-oG9" id="Xfm-BR-ODL"/>
                         <outlet property="examplesMenu" destination="eqm-NN-0UU" id="vKr-oe-dGh"/>
                     </connections>
                 </customObject>
