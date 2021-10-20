@@ -69,6 +69,14 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
+    var isOrthographic: Bool {
+        get { settings.value(for: #function, in: self) ?? false }
+        set {
+            settings.set(newValue, for: #function, in: self)
+            updateViews()
+        }
+    }
+
     func rerender() {
         guard let scene = scene else {
             return
@@ -89,6 +97,7 @@ class Document: NSDocument, EvaluationDelegate {
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
             viewController.showAxes = showAxes
+            viewController.isOrthographic = isOrthographic
         }
     }
 
@@ -437,6 +446,8 @@ class Document: NSDocument, EvaluationDelegate {
             menuItem.state = showWireframe ? .on : .off
         case #selector(showAxes(_:)):
             menuItem.state = showAxes ? .on : .off
+        case #selector(setOrthographic(_:)):
+            menuItem.state = isOrthographic ? .on : .off
         default:
             break
         }
@@ -449,6 +460,10 @@ class Document: NSDocument, EvaluationDelegate {
 
     @IBAction func showAxes(_: NSMenuItem) {
         showAxes.toggle()
+    }
+
+    @IBAction func setOrthographic(_: NSMenuItem) {
+        isOrthographic.toggle()
     }
 
     var importedFileCount: Int {

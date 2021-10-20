@@ -29,6 +29,7 @@ class SceneViewController: NSViewController {
         cameraNode.position = SCNVector3(0, 0, 1)
         cameraNode.camera?.zNear = 0.01
         cameraNode.camera?.automaticallyAdjustsZRange = true
+        cameraNode.camera?.usesOrthographicProjection = isOrthographic
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         return cameraNode
     }()
@@ -137,6 +138,16 @@ class SceneViewController: NSViewController {
         }
     }
 
+    var isOrthographic = false {
+        didSet {
+            guard isOrthographic != oldValue else {
+                return
+            }
+            cameraNode.camera?.usesOrthographicProjection = isOrthographic
+            resetCamera(nil)
+        }
+    }
+
     var background: MaterialProperty? {
         get { MaterialProperty(scnMaterialProperty: scnScene.background) }
         set { newValue?.configureProperty(scnScene.background) }
@@ -170,10 +181,13 @@ class SceneViewController: NSViewController {
             let bounds = geometry.bounds
             let size = bounds.size
             var distance = max(size.x * 0.75, size.y) + bounds.max.z
+            var scale = max(size.x * 0.75, size.y, size.z * 0.75)
             if showAxes {
                 distance = max(distance, axesSize * 2.2)
+                scale = max(scale, axesSize * 2.2)
             }
             cameraNode.position = SCNVector3(viewCenter.x, viewCenter.y, viewCenter.z + distance)
+            cameraNode.camera?.orthographicScale = scale / 1.8
             scnView.allowsCameraControl = true
             scnView.defaultCameraController.target = SCNVector3(viewCenter)
             refreshView()

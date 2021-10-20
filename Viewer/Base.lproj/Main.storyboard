@@ -168,10 +168,16 @@
                                                 <action selector="resetCamera:" target="Ady-hI-5gd" id="yv7-2T-Qte"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Show Wireframe" id="tqR-9n-dMx">
+                                        <menuItem title="Orthographic" id="tqR-9n-dMx">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
-                                                <action selector="showWireframe:" target="Ady-hI-5gd" id="9uo-km-aSA"/>
+                                                <action selector="setOrthographic:" target="Ady-hI-5gd" id="83n-nJ-hym"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Show Wireframe" id="ulz-9v-p7O">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showWireframe:" target="Ady-hI-5gd" id="jcB-wJ-FWD"/>
                                             </connections>
                                         </menuItem>
                                         <menuItem title="Show Axes" id="7QN-OP-8q0">
