@@ -428,6 +428,22 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testAndExpressionStatement() {
+        let input = "foo and true"
+        let range1 = input.range(of: "foo")!
+        let range2 = input.range(of: "true")!
+        let range = range1.lowerBound ..< range2.upperBound
+        let identifier1 = Identifier(name: "foo", range: range1)
+        let identifier2 = Identifier(name: "true", range: range2)
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(Expression(type: .infix(
+                Expression(type: .identifier(identifier1), range: range1),
+                .and,
+                Expression(type: .identifier(identifier2), range: range2)
+            ), range: range)), range: range),
+        ]))
+    }
+
     // MARK: For loops
 
     func testForLoopWithIndex() {

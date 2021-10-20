@@ -424,8 +424,26 @@ private extension ArraySlice where Element == Token {
         )
     }
 
+    mutating func readBooleanLogic() throws -> Expression? {
+        guard var lhs = try readComparison() else {
+            return nil
+        }
+        while case let .identifier(name) = nextToken.type,
+              let op = InfixOperator(rawValue: name),
+              [.and, .or].contains(op)
+        {
+            removeFirst()
+            let rhs = try require(readComparison(), as: "operand")
+            lhs = Expression(
+                type: .infix(lhs, op, rhs),
+                range: lhs.range.lowerBound ..< rhs.range.upperBound
+            )
+        }
+        return lhs
+    }
+
     mutating func readExpression() throws -> Expression? {
-        try readComparison()
+        try readBooleanLogic()
     }
 
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {
@@ -462,7 +480,9 @@ private extension ArraySlice where Element == Token {
             return try readExpressions().map { .expression($0) }
         }
         switch nextToken.type {
-        case .infix, .dot, .identifier("to"), .identifier("step"):
+        case let .identifier(name) where InfixOperator(rawValue: name) != nil:
+            fallthrough
+        case .infix, .dot:
             self = start
             return try readExpressions().map { .expression($0) }
         case .lbrace:

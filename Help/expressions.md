@@ -87,6 +87,37 @@ define isBrightColor averageColor >= 0.5
 print isBrightColor // true or false
 ```
 
+## Boolean Algebra
+
+In addition to the standard arithmetic operators, ShapeScript also has [boolean operators](https://en.wikipedia.org/wiki/Boolean_algebra) for implementing logical operations.
+
+Not to be confused with the [boolean geometry](csg.md) functions for working with 3D solids, ShapeScript's boolean operators work with `true` or `false` values, and are predominantly used in conjunction with `if/else` control flow statements.
+
+ShapeScript supports the common boolean operators:
+
+Operator       | Function
+:------------- | :--------------------
+and            | Compares two values and returns `true` if they are both true
+or             | Compares two values and returns `true` if either one is true
+
+<br>
+
+Unlike some languages, ShapeScript's boolean operators are implemented as keywords rather than symbols like `&&` or `||`, so control flow statements read more like sentences:
+
+```swift
+if a and b {
+  print "both a and b were true"    
+}
+```
+
+These can be combined into more complex expressions, and used in conjunction with parentheses for disambiguation:
+
+```swift
+if a and (b or c) {
+    print "a was true and either b or c were true"  
+}
+```
+
 ## Members
 
 There are currently no vector or matrix math operators such as dot product or vector addition, but these are mostly not needed in practice due to the [relative transform](transforms.md#relative-transforms) commands.

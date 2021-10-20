@@ -66,6 +66,8 @@ public enum InfixOperator: String {
     case gte = ">="
     case equal = "="
     case unequal = "<>"
+    // Boolean operators
+    case and, or
     // Range operators
     case to, step
 }

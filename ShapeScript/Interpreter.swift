@@ -1232,6 +1232,14 @@ extension Expression {
             let lhs = try lhs.evaluate(in: context)
             let rhs = try rhs.evaluate(in: context)
             return .boolean(lhs.value != rhs.value)
+        case let .infix(lhs, .and, rhs):
+            let lhs = try lhs.evaluate(as: .boolean, for: InfixOperator.and.rawValue, index: 0, in: context)
+            let rhs = try rhs.evaluate(as: .boolean, for: InfixOperator.and.rawValue, index: 1, in: context)
+            return .boolean(lhs.boolValue && rhs.boolValue)
+        case let .infix(lhs, .or, rhs):
+            let lhs = try lhs.evaluate(as: .boolean, for: InfixOperator.or.rawValue, index: 0, in: context)
+            let rhs = try rhs.evaluate(as: .boolean, for: InfixOperator.or.rawValue, index: 1, in: context)
+            return .boolean(lhs.boolValue || rhs.boolValue)
         case let .infix(lhs, op, rhs):
             let lhs = try lhs.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
             let rhs = try rhs.evaluate(as: .number, for: String(op.rawValue), index: 1, in: context)
@@ -1252,7 +1260,7 @@ extension Expression {
                 return .boolean(lhs.doubleValue <= rhs.doubleValue)
             case .gte:
                 return .boolean(lhs.doubleValue >= rhs.doubleValue)
-            case .to, .step, .equal, .unequal:
+            case .to, .step, .equal, .unequal, .and, .or:
                 preconditionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):

@@ -2050,6 +2050,43 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    // MARK: Boolean algebra
+
+    func testLogicalAnd() {
+        let program = """
+        print true and true
+        print true and false
+        print false and true
+        print false and false
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false, false, false])
+    }
+
+    func testLogicalOr() {
+        let program = """
+        print true or true
+        print true or false
+        print false or true
+        print false or false
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, true, true, false])
+    }
+
+    func testChainedLogicOperators() {
+        let program = """
+        print 1 > 3 or 1 < 3 and 2 = 2
+        print 1 = 1 and 2 = 2 or false
+        print false and true and true
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, true, false])
+    }
+
     // MARK: Member lookup
 
     func testTupleVectorLookup() {
