@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="19162"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -260,10 +260,6 @@
                 <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="Viewer" customModuleProvider="target">
                     <connections>
                         <outlet property="examplesMenu" destination="eqm-NN-0UU" id="vKr-oe-dGh"/>
-                        <outlet property="showAxesMenu" destination="HyV-fh-RgO" id="sLA-mw-2fQ"/>
-                        <outlet property="showAxesMenuItem" destination="7QN-OP-8q0" id="UTo-Dx-gOd"/>
-                        <outlet property="showWireframeMenu" destination="HyV-fh-RgO" id="h4D-wq-MLm"/>
-                        <outlet property="showWireframeMenuItem" destination="tqR-9n-dMx" id="NCA-zQ-nXU"/>
                     </connections>
                 </customObject>
             </objects>

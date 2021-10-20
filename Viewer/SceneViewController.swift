@@ -110,7 +110,7 @@ class SceneViewController: NSViewController {
         }
     }
 
-    public var showConsole = false {
+    var showConsole = false {
         didSet {
             guard showConsole != oldValue else {
                 return
@@ -126,7 +126,7 @@ class SceneViewController: NSViewController {
         }
     }
 
-    public var showAxes = false {
+    var showAxes = false {
         didSet {
             guard showAxes != oldValue else {
                 return

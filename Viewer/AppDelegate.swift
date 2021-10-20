@@ -28,8 +28,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var exampleURLs = [String: URL]()
 
     @IBOutlet private var examplesMenu: NSMenu!
-    @IBOutlet private var showWireframeMenuItem: NSMenuItem!
-    @IBOutlet private var showAxesMenuItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_: Notification) {
         let firstLaunchOfNewVersion = (Settings.shared.appVersion != NSApplication.appVersion)
@@ -48,8 +46,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
         }
-        showWireframe = Settings.shared.showWireframe
-        showAxes = Settings.shared.showAxes
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
@@ -84,34 +80,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func showWelcomeWindow(_: Any) {
         welcomeWindowController.showWindow(self)
-    }
-
-    public var showWireframe = false {
-        didSet {
-            Settings.shared.showWireframe = showWireframe
-            showWireframeMenuItem.state = showWireframe ? .on : .off
-            for case let document as Document in NSApp.orderedDocuments {
-                document.rerender()
-            }
-        }
-    }
-
-    @IBAction func showWireframe(_: NSMenuItem) {
-        showWireframe = !showWireframe
-    }
-
-    public var showAxes = true {
-        didSet {
-            Settings.shared.showAxes = showAxes
-            showAxesMenuItem.state = showAxes ? .on : .off
-            for case let document as Document in NSApp.orderedDocuments {
-                document.updateViews()
-            }
-        }
-    }
-
-    @IBAction func showAxes(_ sender: NSMenuItem) {
-        showAxes = !showAxes
-        sender.state = showAxes ? .on : .off
     }
 }

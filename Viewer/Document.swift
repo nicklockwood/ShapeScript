@@ -11,7 +11,8 @@ import SceneKit
 import ShapeScript
 
 class Document: NSDocument, EvaluationDelegate {
-    private let cache = GeometryCache()
+    let cache = GeometryCache()
+    let settings = Settings.shared
 
     var sceneViewControllers: [SceneViewController] {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
@@ -52,11 +53,26 @@ class Document: NSDocument, EvaluationDelegate {
     var errorMessage: NSAttributedString?
     var accessErrorURL: URL?
 
+    var showWireframe: Bool {
+        get { settings.value(for: #function, in: self) ?? false }
+        set {
+            settings.set(newValue, for: #function, in: self, andGlobally: true)
+            rerender()
+        }
+    }
+
+    var showAxes: Bool {
+        get { settings.value(for: #function, in: self) ?? false }
+        set {
+            settings.set(newValue, for: #function, in: self, andGlobally: true)
+            updateViews()
+        }
+    }
+
     func rerender() {
         guard let scene = scene else {
             return
         }
-        let showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
         let options = Self.outputOptions(for: scene, wireframe: showWireframe)
         progress?.dispatch { progress in
             progress.setStatus(.partial(scene))
@@ -72,7 +88,7 @@ class Document: NSDocument, EvaluationDelegate {
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
-            viewController.showAxes = (NSApp.delegate as! AppDelegate).showAxes
+            viewController.showAxes = showAxes
         }
     }
 
@@ -128,7 +144,7 @@ class Document: NSDocument, EvaluationDelegate {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
-        let showWireframe = (NSApp.delegate as! AppDelegate).showWireframe
+        let showWireframe = self.showWireframe
         progress = LoadingProgress { [weak self] status in
             guard let self = self else {
                 return
@@ -278,7 +294,7 @@ class Document: NSDocument, EvaluationDelegate {
         guard let fileURL = fileURL else {
             return
         }
-        guard Settings.shared.userDidChooseEditor, let editor = Settings.shared.selectedEditor else {
+        guard settings.userDidChooseEditor, let editor = settings.selectedEditor else {
             let popup = NSPopUpButton(title: "", target: self, action: #selector(didSelectEditor))
             configureEditorPopup(popup)
             popup.sizeToFit()
@@ -296,7 +312,7 @@ class Document: NSDocument, EvaluationDelegate {
             showSheet(actionSheet, in: windowForSheet) { response in
                 switch response {
                 case .alertFirstButtonReturn:
-                    Settings.shared.userDidChooseEditor = true
+                    self.settings.userDidChooseEditor = true
                     self.didSelectEditor(popup)
                     self.openFileInEditor(fileURL)
                 default:
@@ -314,7 +330,7 @@ class Document: NSDocument, EvaluationDelegate {
                 configuration: [:]
             )
         } catch {
-            Settings.shared.userDidChooseEditor = false
+            settings.userDidChooseEditor = false
             presentError(error)
         }
     }
@@ -413,6 +429,26 @@ class Document: NSDocument, EvaluationDelegate {
                 break
             }
         }
+    }
+
+    override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(showWireframe(_:)):
+            menuItem.state = showWireframe ? .on : .off
+        case #selector(showAxes(_:)):
+            menuItem.state = showAxes ? .on : .off
+        default:
+            break
+        }
+        return super.validateMenuItem(menuItem)
+    }
+
+    @IBAction func showWireframe(_: NSMenuItem) {
+        showWireframe.toggle()
+    }
+
+    @IBAction func showAxes(_: NSMenuItem) {
+        showAxes.toggle()
     }
 
     var importedFileCount: Int {
