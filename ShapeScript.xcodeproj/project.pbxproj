@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0104EB6F271E184000B60058 /* CameraType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB6B271E17FE00B60058 /* CameraType.swift */; };
-		0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */; };
 		0104EB77271F0A1E00B60058 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB76271F0A1E00B60058 /* WindowController.swift */; };
+		0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
 		0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
@@ -153,8 +153,8 @@
 
 /* Begin PBXFileReference section */
 		0104EB6B271E17FE00B60058 /* CameraType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraType.swift; sourceTree = "<group>"; };
-		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
 		0104EB76271F0A1E00B60058 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
+		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
@@ -741,7 +741,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -768,7 +768,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -921,7 +921,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
@@ -950,7 +950,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.8;
+				MARKETING_VERSION = 1.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;

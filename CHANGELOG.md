@@ -1,3 +1,12 @@
+## [1.3.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.9) (2021-10-22)
+
+- Added multiple camera options
+- Added orthographic view option
+- Reorganized camera menu and keyboard shortcuts
+- View settings are now saved per-document instead of globally
+- Fixed bug where camera would reset when toggling wireframe mode
+- Documents now open in tabs automatically when tab bar is shown
+
 ## [1.3.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.8) (2021-10-10)
 
 - Added `svgpath` command for creating paths using SVG-compatible syntax
