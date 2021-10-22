@@ -28,6 +28,9 @@ private let helpDirectory = projectDirectory
 private let helpIndexURL = helpDirectory
     .appendingPathComponent("index.md")
 
+private let imagesDirectory = helpDirectory
+    .appendingPathComponent("images")
+
 private let examplesDirectory = projectDirectory
     .appendingPathComponent("Examples")
 
@@ -156,6 +159,7 @@ class MetadataTests: XCTestCase {
 
         let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
 
+        var referencedImages = Set<String>()
         for case let file as String in enumerator where file.hasSuffix(".md") {
             let fileURL = helpDirectory.appendingPathComponent(file)
             let text = try XCTUnwrap(String(contentsOf: fileURL)) as NSString
@@ -168,6 +172,7 @@ class MetadataTests: XCTestCase {
                 guard !url.hasPrefix("http") else {
                     continue
                 }
+                let isImage = url.hasSuffix(".png")
                 if parts.count == 2 {
                     url = parts[0]
                     fragment = parts[1]
@@ -178,6 +183,10 @@ class MetadataTests: XCTestCase {
                 let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpDirectory)
                 guard FileManager.default.fileExists(atPath: absoluteURL.path) else {
                     XCTFail("\(url) referenced in \(file) does not exist")
+                    continue
+                }
+                if isImage {
+                    referencedImages.insert(absoluteURL.lastPathComponent)
                     continue
                 }
                 guard !fragment.isEmpty else {
@@ -192,6 +201,15 @@ class MetadataTests: XCTestCase {
                         XCTFail("anchor #\(fragment) referenced in \(file) does not exist")
                     }
                 }
+            }
+        }
+
+        let imagesEnumerator =
+            try XCTUnwrap(FileManager.default.enumerator(atPath: imagesDirectory.path))
+
+        for case let file as String in imagesEnumerator where file.hasSuffix(".png") {
+            if !referencedImages.contains(file) {
+                XCTFail("Image \(file) not referenced in help")
             }
         }
     }
