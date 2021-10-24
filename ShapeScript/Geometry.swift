@@ -205,7 +205,7 @@ public final class Geometry: Hashable {
         }
 
         self.type = type
-        self.name = name
+        self.name = name.flatMap { $0.isEmpty ? nil : $0 }
         self.transform = transform
         self.material = material
         self.children = children
