@@ -46,4 +46,4 @@ for i in 1 to 5 {
 ```
 
 ---
-[Index](index.md) | Next: [Functions](functions.md)
+[Index](index.md) | Next: [Expressions](expressions.md)

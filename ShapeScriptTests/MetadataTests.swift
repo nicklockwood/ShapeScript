@@ -53,6 +53,33 @@ private func findHeadings(in string: String) -> [String] {
         .map { String($0.dropFirst(3)) }
 }
 
+private let geometryLinks = [
+    ("Primitives", "primitives.md"),
+    ("Options", "options.md"),
+    ("Materials", "materials.md"),
+    ("Transforms", "transforms.md"),
+    ("Bounds", "bounds.md"),
+    ("Groups", "groups.md"),
+    ("Paths", "paths.md"),
+    ("Text", "text.md"),
+    ("Builders", "builders.md"),
+    ("Constructive Solid Geometry", "csg.md"),
+]
+
+private let syntaxLinks = [
+    ("Comments", "comments.md"),
+    ("Literals", "literals.md"),
+    ("Symbols", "symbols.md"),
+    ("Expressions", "expressions.md"),
+    ("Functions", "functions.md"),
+    ("Commands", "commands.md"),
+    ("Control Flow", "control-flow.md"),
+    ("Blocks", "blocks.md"),
+    ("Scope", "scope.md"),
+    ("Debugging", "debugging.md"),
+    ("Import", "import.md"),
+]
+
 class MetadataTests: XCTestCase {
     // MARK: Releases
 
@@ -80,33 +107,6 @@ class MetadataTests: XCTestCase {
     // MARK: Help
 
     func testUpdateIndex() throws {
-        let geometryLinks = [
-            ("Primitives", "primitives.md"),
-            ("Options", "options.md"),
-            ("Materials", "materials.md"),
-            ("Transforms", "transforms.md"),
-            ("Bounds", "bounds.md"),
-            ("Groups", "groups.md"),
-            ("Paths", "paths.md"),
-            ("Text", "text.md"),
-            ("Builders", "builders.md"),
-            ("Constructive Solid Geometry", "csg.md"),
-        ]
-
-        let syntaxLinks = [
-            ("Comments", "comments.md"),
-            ("Literals", "literals.md"),
-            ("Symbols", "symbols.md"),
-            ("Expressions", "expressions.md"),
-            ("Functions", "functions.md"),
-            ("Commands", "commands.md"),
-            ("Control Flow", "control-flow.md"),
-            ("Blocks", "blocks.md"),
-            ("Scope", "scope.md"),
-            ("Debugging", "debugging.md"),
-            ("Import", "import.md"),
-        ]
-
         func findSections(in string: String) -> [(String, String)] {
             findHeadings(in: string).compactMap { heading in
                 let fragment = heading.lowercased()
@@ -153,6 +153,36 @@ class MetadataTests: XCTestCase {
         try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
     }
 
+    func testHelpFooterLinks() throws {
+        let indexLinks = [
+            ("Overview", "overview.md"),
+            ("Getting Started", "getting-started.md"),
+            ("Camera Control", "camera-control.md"),
+        ] + geometryLinks + syntaxLinks + [
+            ("Export", "export.md"),
+            ("Examples", "examples.md"),
+            ("Glossary", "glossary.md"),
+        ]
+
+        let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]+)\\)", options: [])
+
+        for (i, (_, path)) in indexLinks.dropLast().enumerated() {
+            let fileURL = helpDirectory.appendingPathComponent(path)
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+            let nsText = text as NSString
+            let range = NSRange(location: 0, length: nsText.length)
+            guard let match = urlRegex.firstMatch(in: text, options: [], range: range) else {
+                XCTFail("No Next: link found in \(path)")
+                continue
+            }
+            let next: (name: String, path: String) = indexLinks[i + 1]
+            let name = nsText.substring(with: match.range(at: 1))
+            XCTAssertEqual(name, next.name, "Next link name in \(path) should be \(next.name)")
+            let path = nsText.substring(with: match.range(at: 2))
+            XCTAssertEqual(path, next.path, "Next link url in \(path) should be \(next.path)")
+        }
+    }
+
     func testHelpLinks() throws {
         let enumerator =
             try XCTUnwrap(FileManager.default.enumerator(atPath: helpDirectory.path))
@@ -162,11 +192,12 @@ class MetadataTests: XCTestCase {
         var referencedImages = Set<String>()
         for case let file as String in enumerator where file.hasSuffix(".md") {
             let fileURL = helpDirectory.appendingPathComponent(file)
-            let text = try XCTUnwrap(String(contentsOf: fileURL)) as NSString
-            var range = NSRange(location: 0, length: text.length)
-            for match in urlRegex.matches(in: text as String, options: [], range: range) {
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+            let nsText = text as NSString
+            var range = NSRange(location: 0, length: nsText.length)
+            for match in urlRegex.matches(in: text, options: [], range: range) {
                 range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
-                var url = text.substring(with: match.range(at: 1))
+                var url = nsText.substring(with: match.range(at: 1))
                 var fragment = ""
                 let parts = url.components(separatedBy: "#")
                 guard !url.hasPrefix("http") else {
