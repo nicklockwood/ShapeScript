@@ -17,6 +17,7 @@ public final class Geometry: Hashable {
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
     public let sourceLocation: SourceLocation?
+    public private(set) weak var parent: Geometry?
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(type)
@@ -232,6 +233,9 @@ public final class Geometry: Hashable {
 
         // Must be set after cache key is generated
         self.isOpaque = isOpaque
+
+        // Must be set after all other properties
+        children.forEach { $0.parent = self }
     }
 }
 
@@ -263,6 +267,10 @@ public extension Geometry {
             }
             return bounds
         }
+    }
+
+    var worldTransform: Transform {
+        (parent?.worldTransform ?? .identity) * transform
     }
 
     internal func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
