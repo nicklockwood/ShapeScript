@@ -200,11 +200,14 @@ final class Settings {
 }
 
 private extension URL {
-    func xattr(for name: String) throws -> Data {
-        try withUnsafeFileSystemRepresentation { path -> Data in
+    func xattr(for name: String) throws -> Data? {
+        try withUnsafeFileSystemRepresentation { path -> Data? in
             let length = getxattr(path, name, nil, 0, 0, 0)
             guard length > -1 else {
-                throw posixError(errno)
+                guard errno == 93 else {
+                    throw posixError(errno)
+                }
+                return nil
             }
             var data = Data(count: length)
             let result = data.withUnsafeMutableBytes {
