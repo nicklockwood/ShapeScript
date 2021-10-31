@@ -238,19 +238,25 @@ public extension Material {
 }
 
 public extension Geometry {
-    convenience init(scnNode: SCNNode) {
-        var type = GeometryType.group
-        if let scnGeometry = scnNode.geometry, let mesh = Mesh(
-            scnGeometry, materialLookup: Material.init(scnMaterial:)
-        ) {
+    convenience init(scnNode: SCNNode) throws {
+        let type: GeometryType
+        if let scnGeometry = scnNode.geometry {
+            guard let mesh = Mesh(
+                scnGeometry,
+                materialLookup: Material.init(scnMaterial:)
+            ) else {
+                throw ImportError.unknownError
+            }
             type = .mesh(mesh)
+        } else {
+            type = .group
         }
         self.init(
             type: type,
             name: scnNode.name,
             transform: .transform(from: scnNode),
             material: .default,
-            children: scnNode.childNodes.map(Geometry.init(scnNode:)),
+            children: try scnNode.childNodes.map(Geometry.init(scnNode:)),
             sourceLocation: nil
         )
     }

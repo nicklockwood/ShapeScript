@@ -282,6 +282,10 @@ extension EvaluationContext {
                     children.append(.mesh(geometry))
                     return
                 }
+            } catch let error as ImportError {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path, at: url, message: error.message
+                )
             } catch {
                 let description = (error as NSError)
                     .userInfo[NSLocalizedDescriptionKey] as? String ?? "\(error)"

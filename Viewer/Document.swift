@@ -540,7 +540,7 @@ class Document: NSDocument, EvaluationDelegate {
             .createNormalsIfAbsent: true,
             .convertToYUp: true,
         ])
-        return Geometry(scnNode: scene.rootNode)
+        return try Geometry(scnNode: scene.rootNode)
     }
 
     func debugLog(_ values: [AnyHashable]) {
