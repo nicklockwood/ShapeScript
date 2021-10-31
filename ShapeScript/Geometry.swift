@@ -265,6 +265,13 @@ public extension Geometry {
         }
     }
 
+    internal func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
+        if let name = self.name {
+            dictionary[name] = self
+        }
+        children.forEach { $0.gatherNamedObjects(&dictionary) }
+    }
+
     var childDebug: Bool {
         debug || children.contains(where: { $0.childDebug })
     }

@@ -49,8 +49,16 @@ final class EvaluationContext {
     var transform = Transform.identity
     var childTransform = Transform.identity
     var childTypes: Set<ValueType> = [.mesh]
-    var children = [Value]()
     var name: String = ""
+    var namedObjects: [String: Geometry] = [:]
+    var children = [Value]() {
+        didSet {
+            for case let .mesh(geometry) in children {
+                geometry.gatherNamedObjects(&namedObjects)
+            }
+        }
+    }
+
     var random: RandomSequence
     var detail = 16
     var font: String = ""
@@ -92,6 +100,7 @@ final class EvaluationContext {
         background = parent.background
         material = parent.material
         childTypes = parent.childTypes
+        namedObjects = parent.namedObjects
         random = parent.random
         detail = parent.detail
         font = parent.font
@@ -132,6 +141,7 @@ final class EvaluationContext {
     func pushDefinition() -> EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.name = name
+        new.namedObjects = namedObjects
         new.transform = transform
         new.opacity = opacity
         new.childTypes = ValueType.any
