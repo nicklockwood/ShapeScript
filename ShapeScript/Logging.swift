@@ -181,6 +181,7 @@ private extension GeometryType {
         case .stencil: return "stencil"
         case .path: return "path"
         case .mesh: return "mesh"
+        case .camera: return "camera"
         }
     }
 }

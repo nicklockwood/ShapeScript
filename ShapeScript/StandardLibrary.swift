@@ -141,6 +141,40 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
+    static let camera: Symbols = [
+        "camera": .block(.custom(.primitive, [
+            "position": .vector,
+            "orientation": .rotation,
+            "size": .size,
+            "fov": .number,
+        ])) { context in
+            var hasPosition = false, hasOrientation = false, hasScale = false
+            if let position = context.value(for: "position")?.value as? Vector {
+                context.transform.offset = position
+                hasPosition = true
+            }
+            if let orientation = context.value(for: "orientation")?.value as? Rotation {
+                context.transform.rotation = orientation
+                hasOrientation = true
+            }
+            if let size = context.value(for: "size")?.value as? Vector {
+                context.transform.scale = size
+                hasScale = true
+            }
+            return .mesh(Geometry(
+                type: .camera(Camera(
+                    hasPosition: hasPosition,
+                    hasOrientation: hasOrientation,
+                    hasScale: hasScale,
+                    fov: (context.value(for: "fov")?.doubleValue).map {
+                        Angle(radians: $0 * .pi)
+                    }
+                )),
+                in: context
+            ))
+        },
+    ]
+
     static let paths: Symbols = [
         "path": .block(.path) { context in
             var subpaths = [Path]()
@@ -346,7 +380,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ])
 
-    static let root: Symbols = _merge(global, background, materials, transforms)
+    static let root: Symbols = _merge(global, background, materials, transforms, camera)
     static let builder: Symbols = _merge(primitive, transforms)
     static let group: Symbols = _merge(primitive, transforms)
     static let path: Symbols = _merge(global, transforms, points)

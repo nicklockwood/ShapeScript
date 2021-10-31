@@ -51,7 +51,7 @@ public final class Geometry: Hashable {
         case .cone, .cylinder, .sphere, .cube,
              .lathe, .loft, .path, .mesh, .group:
             return true
-        case .intersection, .difference, .stencil:
+        case .intersection, .difference, .stencil, .camera:
             return false
         case .union, .xor, .extrude, .fill:
             return mesh == nil
@@ -193,7 +193,7 @@ public final class Geometry: Hashable {
                     )
                 }
             }
-        case .cone, .cylinder, .sphere, .cube, .loft, .path:
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera:
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
@@ -266,7 +266,16 @@ public extension Geometry {
                 bounds.formUnion(child.bounds.transformed(by: child.transform))
             }
             return bounds
+        case .camera:
+            return .empty
         }
+    }
+
+    var cameras: [Geometry] {
+        guard case .camera = type else {
+            return children.flatMap { $0.cameras }
+        }
+        return [self]
     }
 
     var worldTransform: Transform {
@@ -447,7 +456,7 @@ private extension Geometry {
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(callback)
-        case .union, .xor, .intersection:
+        case .union, .xor, .intersection, .camera:
             mesh = nil
         }
         return callback()
@@ -472,7 +481,7 @@ private extension Geometry {
         }
         let isCancelled = { !callback() }
         switch type {
-        case .group, .path:
+        case .group, .path, .camera:
             mesh = Mesh([])
         case let .cone(segments):
             mesh = .cone(slices: segments)

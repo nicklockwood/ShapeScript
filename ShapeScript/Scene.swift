@@ -12,6 +12,7 @@ import Foundation
 public final class Scene {
     public let background: MaterialProperty
     public let children: [Geometry]
+    public let cameras: [Geometry]
     public let cache: GeometryCache?
 
     public init(
@@ -21,6 +22,7 @@ public final class Scene {
     ) {
         self.background = background
         self.children = children
+        cameras = children.flatMap { $0.cameras }
         self.cache = cache
         children.forEach { $0.cache = cache }
     }

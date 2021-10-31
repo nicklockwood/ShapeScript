@@ -8,6 +8,13 @@
 
 import Euclid
 
+public struct Camera: Hashable {
+    public var hasPosition: Bool
+    public var hasOrientation: Bool
+    public var hasScale: Bool
+    public var fov: Angle?
+}
+
 public enum GeometryType: Hashable {
     case group
     // primitives
@@ -29,12 +36,14 @@ public enum GeometryType: Hashable {
     // shapes
     case path(Path)
     case mesh(Mesh)
+    // special
+    case camera(Camera)
 }
 
 public extension GeometryType {
     var isEmpty: Bool {
         switch self {
-        case .group, .union, .xor, .difference, .intersection, .stencil:
+        case .group, .union, .xor, .difference, .intersection, .stencil, .camera:
             return true
         case .cone, .cylinder, .sphere, .cube:
             return false
@@ -52,7 +61,7 @@ public extension GeometryType {
 
     var bounds: Bounds {
         switch self {
-        case .group, .union, .xor, .difference, .intersection, .stencil:
+        case .group, .union, .xor, .difference, .intersection, .stencil, .camera:
             return .empty
         case .cone, .cylinder, .sphere, .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
@@ -109,7 +118,7 @@ internal extension GeometryType {
             return paths.count == 1 && along.count <= 1
         case let .lathe(paths, _), let .fill(paths):
             return paths.count == 1
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .group:
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .group, .camera:
             return true
         case .union, .xor, .difference, .intersection, .stencil:
             return false

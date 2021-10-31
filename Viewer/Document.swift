@@ -20,6 +20,12 @@ class Document: NSDocument, EvaluationDelegate {
 
     var scene: Scene? {
         didSet {
+            cameras = CameraType.allCases.map {
+                Camera(type: $0)
+            } + geometry.cameras.enumerated().map { i, geometry in
+                let name = geometry.name ?? (i > 0 ? "Custom \(i + 1)" : "Custom")
+                return Camera(geometry: geometry, name: name)
+            }
             updateViews()
         }
     }
@@ -70,19 +76,24 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     var isOrthographic: Bool {
-        get { settings.value(for: #function, in: self) ?? false }
+        get {
+            settings.value(for: #function, in: self) ?? false
+        }
         set {
             settings.set(newValue, for: #function, in: self)
             updateViews()
         }
     }
 
-    var camera: CameraType {
-        get { settings.value(for: #function, in: self) ?? .default }
+    var camera: Camera {
+        get {
+            let type: CameraType? = settings.value(for: #function, in: self)
+            return cameras.first(where: { $0.type == type }) ?? .default
+        }
         set {
-            settings.set(newValue, for: #function, in: self)
+            settings.set(newValue.type, for: #function, in: self)
             for viewController in sceneViewControllers {
-                viewController.camera = camera
+                viewController.camera = newValue
             }
         }
     }
@@ -459,6 +470,9 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
+    var cameras: [Camera] = []
+    private var camerasMenu: NSMenu?
+
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
         case #selector(showWireframe(_:)):
@@ -466,11 +480,14 @@ class Document: NSDocument, EvaluationDelegate {
         case #selector(showAxes(_:)):
             menuItem.state = showAxes ? .on : .off
         case #selector(setOrthographic(_:)):
-            menuItem.state = isOrthographic ? .on : .off
-        case #selector(selectCamera(_:)):
-            menuItem.state = (camera == CameraType.allCases[menuItem.tag]) ? .on : .off
+            menuItem.state = camera.isOrthographic || isOrthographic ? .on : .off
+            return camera.fov > .zero
+        case #selector(selectCamera(_:)) where menuItem.tag < cameras.count:
+            menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
+            camerasMenu = menuItem.submenu
+            camerasMenu.map { configureCameraMenu($0, for: self) }
         default:
             break
         }
@@ -482,7 +499,11 @@ class Document: NSDocument, EvaluationDelegate {
     }
 
     @IBAction func selectCamera(_ menuItem: NSMenuItem) {
-        camera = .allCases[menuItem.tag]
+        guard menuItem.tag < cameras.count else {
+            NSSound.beep()
+            return
+        }
+        camera = cameras[menuItem.tag]
     }
 
     @IBAction func showWireframe(_: NSMenuItem) {

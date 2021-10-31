@@ -361,6 +361,25 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testDuplicateOptionsPassedToCommand() {
+        let program = """
+        define foo {
+            option baz 0
+            print baz
+        }
+        define bar {
+            foo {
+                baz 5
+                baz 6
+            }
+        }
+        bar
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [6])
+    }
+
     func testGlobalSymbolsAvailableToCommand() {
         let program = """
         define baz 5
@@ -519,6 +538,16 @@ class InterpreterTests: XCTestCase {
                 .unexpectedArgument(for: "position", max: 1), at: range
             ))
         }
+    }
+
+    func testDuplicatePositionCommand() throws {
+        let program = """
+        cube {
+            position 1
+            position 2
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
     // MARK: Color

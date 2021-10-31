@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0104EB6F271E184000B60058 /* CameraType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB6B271E17FE00B60058 /* CameraType.swift */; };
+		0104EB6F271E184000B60058 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB6B271E17FE00B60058 /* Camera.swift */; };
 		0104EB77271F0A1E00B60058 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB76271F0A1E00B60058 /* WindowController.swift */; };
 		0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
@@ -152,7 +152,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0104EB6B271E17FE00B60058 /* CameraType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraType.swift; sourceTree = "<group>"; };
+		0104EB6B271E17FE00B60058 /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		0104EB76271F0A1E00B60058 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
@@ -245,7 +245,7 @@
 				01908DC726B7597F0068390E /* ProgramError.swift */,
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
 				0104EB76271F0A1E00B60058 /* WindowController.swift */,
-				0104EB6B271E17FE00B60058 /* CameraType.swift */,
+				0104EB6B271E17FE00B60058 /* Camera.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
 				01E4E48726D377F000F390D7 /* Axes.swift */,
 				0152E5CD2145009A0082A5A3 /* Assets.xcassets */,
@@ -626,7 +626,7 @@
 			files = (
 				0152E5CA214500990082A5A3 /* SceneViewController.swift in Sources */,
 				0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */,
-				0104EB6F271E184000B60058 /* CameraType.swift in Sources */,
+				0104EB6F271E184000B60058 /* Camera.swift in Sources */,
 				0152E5C8214500990082A5A3 /* AppDelegate.swift in Sources */,
 				01AA49FE26B622B4009BB2C6 /* LoadingProgress.swift in Sources */,
 				013312F521CD653B00626F1B /* Settings.swift in Sources */,

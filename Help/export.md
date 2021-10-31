@@ -5,15 +5,13 @@ Once you've finished crafting your 3D model, you'll probably want to *do somethi
 
 **Export is a paid upgrade that can be unlocked via in-app purchase in the [ShapeScript App](https://apps.apple.com/app/id1441135869). Export is not available in the free ShapesScript Viewer.**
 
-To export your model, select the `File > Purchase Export Feature…`  menu (**Cmd-Shift-E**) to unlock the export functionality. Once unlocked, this menu will be renamed to `Export…`.
+To export your model, select the `File > Purchase Export Feature…`  menu (**Cmd-Shift-E**) to unlock the export functionality. Once unlocked, this menu will change to `Export…`.
 
 **Note:** If the `Export…` menu is grayed-out, it is most likely because your model is still being generated. Wait for the loading spinner in the top-left of the ShapeScript document window to finish before trying to export.
 
 ![Generating](images/generating.png)
 
-Some model formats do not support embedding geometry and textures or materials in a single file. In this case, ShapeScript will export a folder containing the model and associated assets as separate files.
-
-ShapeScript currently supports the following export formats:
+ShapeScript can export your model in a variety of formats, selectable from the export window:
 
 Extension             | File Type                                                       | Supports All Features
 :--------------------| :-------------------------------------------------|:------------------------------
@@ -29,6 +27,8 @@ stl                         | Standard Tessellation Language                  | 
 <br/>
 
 **Note:** Not all formats support all features of ShapeScript models, so you may need to experiment. In general, DAE is the most reliable, widely-supported format to use.
+
+Some model formats do not support embedding geometry and textures or materials in a single file; In this case, ShapeScript will export a folder containing the model and associated assets as separate files.
 
 Exported models can be used in a variety of ways:
 
@@ -48,7 +48,9 @@ ShapeScript uses the "Y-up" convention, where the Y-axis points up and the Z-axi
 
 ## Rendering an Image
 
-In addition to 3D model formats, ShapeScript can also export 2D images. The following image formats are supported:
+In addition to 3D model formats, ShapeScript can also export 2D images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window. 
+
+The following image formats are supported:
 
 Extension             | File Type                                                       | Supports Transparency
 :--------------------| :-------------------------------------------------|:------------------------------

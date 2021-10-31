@@ -55,6 +55,12 @@ ShapeScript Help
         - [Union](csg.md#union)
         - [XOR](csg.md#xor)
         - [Stencil](csg.md#stencil)
+    - [Cameras](cameras.md)
+        - [Custom Cameras](cameras.md#custom-cameras)
+        - [Position](cameras.md#position)
+        - [Orientation](cameras.md#orientation)
+        - [Field of View](cameras.md#field-of-view)
+        - [Orthographic View](cameras.md#orthographic-view)
 - Syntax
     - [Comments](comments.md)
     - [Literals](literals.md)

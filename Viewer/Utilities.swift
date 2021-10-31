@@ -144,3 +144,31 @@ func handleEditorPopupAction(for popup: NSPopUpButton, in window: NSWindow?) {
         Settings.shared.selectedEditor = EditorApp(url)
     }
 }
+
+// MARK: Camera Selection
+
+func configureCameraMenu(_ camerasMenu: NSMenu, for document: Document?) {
+    while camerasMenu.item(at: 0)?.isSeparatorItem == false {
+        camerasMenu.removeItem(at: 0)
+    }
+    let cameras: [Camera]
+    if let document = document {
+        cameras = document.cameras
+    } else {
+        cameras = CameraType.allCases.map {
+            Camera(type: $0)
+        } + (0 ..< 9 - CameraType.allCases.count).map {
+            Camera(type: CameraType(rawValue: "custom\($0)"))
+        }
+    }
+    for (i, camera) in cameras.enumerated() {
+        let menuItem = camerasMenu.insertItem(
+            withTitle: camera.name,
+            action: #selector(Document.selectCamera(_:)),
+            keyEquivalent: i < 9 ? "\(i + 1)" : "",
+            at: i
+        )
+        menuItem.tag = i
+        menuItem.keyEquivalentModifierMask = .command
+    }
+}

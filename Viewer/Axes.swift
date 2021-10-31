@@ -13,7 +13,7 @@ import ShapeScript
 struct Axes {
     let geometry: Geometry
 
-    init(scale: Double, camera: CameraType, background: MaterialProperty?) {
+    init(scale: Double, camera: Camera, background: MaterialProperty?) {
         let textScale = 0.1
         let distance = 1 + textScale
         let color = Color(.underPageBackgroundColor)

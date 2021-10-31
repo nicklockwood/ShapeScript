@@ -30,7 +30,7 @@ class SceneViewController: NSViewController {
         cameraNode.position = SCNVector3(0, 0, 1)
         cameraNode.camera?.zNear = 0.01
         cameraNode.camera?.automaticallyAdjustsZRange = true
-        cameraNode.camera?.usesOrthographicProjection = isOrthographic
+        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         return cameraNode
     }()
@@ -148,12 +148,12 @@ class SceneViewController: NSViewController {
             guard isOrthographic != oldValue else {
                 return
             }
-            cameraNode.camera?.usesOrthographicProjection = isOrthographic
+            cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
             resetCamera(nil)
         }
     }
 
-    var camera: CameraType = .front {
+    var camera: Camera = .default {
         didSet {
             if camera != oldValue {
                 updateAxesAndCamera()
@@ -281,7 +281,7 @@ class SceneViewController: NSViewController {
         let size = bounds.size
         var distance, scale: Double
         var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
-        switch camera {
+        switch camera.type {
         case .front, .back:
             distance = max(size.x * 0.75, size.y) + bounds.size.z / 2
             scale = max(size.x * 0.75, size.y, size.z * 0.75)
@@ -292,15 +292,37 @@ class SceneViewController: NSViewController {
             distance = max(size.x * 0.75, size.z) + bounds.size.y / 2
             scale = max(size.x * 0.75, size.y * 0.75, size.z)
             offset = Vector(0, 0, 0.000001)
+        default:
+            distance = max(size.x * 0.75, size.y) + bounds.size.z / 2
+            scale = max(size.x * 0.75, size.y, size.z * 0.75)
         }
         if showAxes {
             distance = max(distance, axisScale)
             scale = max(scale, axisScale)
         }
-        cameraNode.camera?.orthographicScale = scale / 1.8
-        cameraNode.position = SCNVector3(viewCenter - camera.direction * distance + offset)
-        cameraNode.eulerAngles = SCNVector3(.zero)
-        cameraNode.look(at: SCNVector3(viewCenter))
+        scale /= 1.8
+        let orientation: Rotation
+        var position = viewCenter - camera.direction * distance + offset
+        if let geometry = camera.geometry {
+            orientation = geometry.worldTransform.rotation
+            if camera.hasPosition {
+                position = geometry.worldTransform.offset
+            }
+            if camera.hasScale {
+                let v = geometry.worldTransform.scale
+                scale = max(v.x, v.y, v.z) / 2
+            }
+        } else {
+            orientation = .identity
+        }
+        cameraNode.camera?.orthographicScale = scale
+        cameraNode.position = SCNVector3(position)
+        cameraNode.orientation = SCNQuaternion(orientation)
+        if !camera.hasOrientation {
+            cameraNode.look(at: SCNVector3(viewCenter))
+        }
+        cameraNode.camera?.fieldOfView = camera.fov.degrees
+        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
         resetCamera(nil)
     }
 
