@@ -1,3 +1,12 @@
+## [0.5.14](https://github.com/nicklockwood/Euclid/releases/tag/0.5.14) (2021-11-01)
+
+- Added support for `triangeStrip` and `polygon` primitives when creating a `Mesh` from `SCNGeometry`
+- Creating a `Mesh` from an `SCNGeometry` now returns nil if the mesh can't be loaded
+
+## [0.5.13](https://github.com/nicklockwood/Euclid/releases/tag/0.5.13) (2021-10-15)
+
+- Fixed support for Mac Catalyst
+
 ## [0.5.12](https://github.com/nicklockwood/Euclid/releases/tag/0.5.12) (2021-09-12)
 
 - Added `Quaternion` type as an alternative representation for rotations

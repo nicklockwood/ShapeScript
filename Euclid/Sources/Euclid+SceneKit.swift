@@ -580,14 +580,14 @@ public extension Mesh {
         let materials = scnGeometry.materials.map(materialLookup)
         for (index, element) in scnGeometry.elements.enumerated() {
             let material = materials.isEmpty ? nil : materials[index % materials.count]
+            let indexData = element.data
+            let indexSize = element.bytesPerIndex
+            func vertex(at i: Int) -> Vertex {
+                let index = indexData.index(at: i, bytes: indexSize)
+                return vertices[Int(index)]
+            }
             switch element.primitiveType {
             case .triangles:
-                let indexData = element.data
-                let indexSize = element.bytesPerIndex
-                func vertex(at i: Int) -> Vertex {
-                    let index = indexData.index(at: i, bytes: indexSize)
-                    return vertices[Int(index)]
-                }
                 for i in 0 ..< element.primitiveCount {
                     Polygon([
                         vertex(at: i * 3),
@@ -597,8 +597,40 @@ public extension Mesh {
                         polygons.append($0)
                     }
                 }
+            case .triangleStrip:
+                for i in stride(from: 0, to: element.primitiveCount - 1, by: 2) {
+                    Polygon([
+                        vertex(at: i),
+                        vertex(at: i + 1),
+                        vertex(at: i + 2),
+                    ], material: material).map {
+                        polygons.append($0)
+                    }
+                    Polygon([
+                        vertex(at: i + 3),
+                        vertex(at: i + 2),
+                        vertex(at: i + 1),
+                    ], material: material).map {
+                        polygons.append($0)
+                    }
+                }
+            case let type where type.rawValue == 4: // polygon
+                let polyCount = element.primitiveCount
+                var index = polyCount
+                for i in 0 ..< polyCount {
+                    let vertexCount = indexData.index(at: i, bytes: indexSize)
+                    var vertices = [Vertex]()
+                    for _ in 0 ..< vertexCount {
+                        vertices.append(vertex(at: index))
+                        index += 1
+                    }
+                    Polygon(vertices, material: material).map {
+                        polygons.append($0)
+                    }
+                }
             default:
-                break // TODO:
+                // TODO: throw detailed error message instead
+                return nil
             }
         }
         let isConvex: Bool
