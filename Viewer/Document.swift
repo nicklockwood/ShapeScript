@@ -168,7 +168,7 @@ class Document: NSDocument, EvaluationDelegate {
     override func read(from url: URL, ofType _: String) throws {
         let input = try String(contentsOf: url, encoding: .utf8)
         linkedResources.removeAll()
-        if let progress = self.progress, progress.inProgress {
+        if let progress = progress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
@@ -409,7 +409,7 @@ class Document: NSDocument, EvaluationDelegate {
             dimensions = "calculating…"
         }
 
-        if let selectedGeometry = self.selectedGeometry {
+        if let selectedGeometry = selectedGeometry {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
                 locationString = "\nDefined on line \(location.line)"

@@ -9,6 +9,14 @@
 import Euclid
 import Foundation
 
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
+
+#if canImport(CoreText)
+import CoreText
+#endif
+
 // MARK: Implementation
 
 public struct SourceLocation: Hashable {

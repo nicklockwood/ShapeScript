@@ -146,7 +146,7 @@ public extension Geometry {
 
         if let scnData = scnData, scnData.options == options {
             return
-        } else if let path = self.path {
+        } else if let path = path {
             let wireframe = SCNGeometry(.stroke(
                 path,
                 width: options.lineWidth,
@@ -158,7 +158,7 @@ public extension Geometry {
                 geometry: wireframe,
                 wireframe: wireframe
             )
-        } else if let mesh = self.mesh {
+        } else if let mesh = mesh {
             if options.wireframe {
                 let wireframe = scnData?.wireframe ?? (
                     options.wireframeLineWidth > 0 ? SCNGeometry(.stroke(

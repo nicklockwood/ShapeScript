@@ -221,7 +221,7 @@ private extension URL {
     }
 
     func setXattr(_ data: Data, for name: String) throws {
-        try self.withUnsafeFileSystemRepresentation { path in
+        try withUnsafeFileSystemRepresentation { path in
             let length = data.count
             let result = data.withUnsafeBytes {
                 setxattr(path, name, $0.baseAddress, length, 0, 0)
@@ -234,7 +234,7 @@ private extension URL {
 
     func posixError(_ err: Int32) -> NSError {
         NSError(domain: NSPOSIXErrorDomain, code: Int(err), userInfo: [
-            NSLocalizedDescriptionKey: String(cString: strerror(err))
+            NSLocalizedDescriptionKey: String(cString: strerror(err)),
         ])
     }
 }

@@ -1,3 +1,10 @@
+## [1.3.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.10) (2021-11-01)
+
+- DAE files containing triangle strips or non-triangular polygons are now loaded correctly
+- Fixed empty Geometry names not being set to nil
+- Fixed broken footer links in help pages
+- Bumped Euclid to version 0.5.14
+
 ## [1.3.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.9) (2021-10-22)
 
 - Added multiple camera options
