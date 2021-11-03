@@ -20,11 +20,26 @@ class Document: NSDocument, EvaluationDelegate {
 
     var scene: Scene? {
         didSet {
-            cameras = CameraType.allCases.map {
-                Camera(type: $0)
-            } + geometry.cameras.enumerated().map { i, geometry in
-                let name = geometry.name ?? (i > 0 ? "Custom \(i + 1)" : "Custom")
-                return Camera(geometry: geometry, name: name)
+            let customCameras = geometry.cameras
+            if !customCameras.isEmpty || progress?.didSucceed != false {
+                let oldCameras = cameras
+                cameras = CameraType.allCases.map {
+                    Camera(type: $0)
+                } + customCameras.enumerated().map { i, geometry in
+                    let name = geometry.name ?? (i > 0 ? "Custom \(i + 1)" : "Custom")
+                    return Camera(geometry: geometry, name: name)
+                }
+                if !oldCameras.isEmpty {
+                    var didUpdateCamera = false
+                    for (old, new) in zip(oldCameras, cameras) where old != new {
+                        camera = new
+                        didUpdateCamera = true
+                        break
+                    }
+                    if !didUpdateCamera, cameras.count > oldCameras.count {
+                        camera = cameras[oldCameras.count]
+                    }
+                }
             }
             updateViews()
         }

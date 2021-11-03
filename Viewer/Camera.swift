@@ -24,13 +24,19 @@ extension CameraType: CaseIterable {
     static var allCases = [front, back, left, right, top, bottom]
 }
 
-struct Camera: Hashable {
+struct Camera {
     var type: CameraType
     var geometry: Geometry?
 }
 
-extension Camera {
+extension Camera: Equatable {
     static let `default` = Self(type: .front)
+
+    static func == (lhs: Camera, rhs: Camera) -> Bool {
+        lhs.type == rhs.type &&
+            lhs.settings == rhs.settings &&
+            lhs.geometry?.transform == rhs.geometry?.transform
+    }
 
     init(type: CameraType) {
         self.type = type
