@@ -1,3 +1,18 @@
+## [1.4.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.0) (2021-11-03)
+
+- Added user-defined cameras
+- Added boolean constants and operators
+- Added comparison operators (greater than, equals, etc)
+- Added `if`/`else` statements
+- Added `assert` command
+- Improved suggestions for mistyped operators
+- Replaced range expression with separate `to` and `step` operators
+- Failure to load an external model now displays an error instead of failing silently
+- Added distinct error type for invalid text escape sequences
+- Simplified identifier expression representation
+- Converted `option` keyword to contextual keyword
+- Added `Geometry.worldTransform` property
+
 ## [1.3.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.3.10) (2021-11-01)
 
 - DAE files containing triangle strips or non-triangular polygons are now loaded correctly
