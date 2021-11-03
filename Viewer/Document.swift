@@ -26,8 +26,7 @@ class Document: NSDocument, EvaluationDelegate {
                 cameras = CameraType.allCases.map {
                     Camera(type: $0)
                 } + customCameras.enumerated().map { i, geometry in
-                    let name = geometry.name ?? (i > 0 ? "Custom \(i + 1)" : "Custom")
-                    return Camera(geometry: geometry, name: name)
+                    Camera(geometry: geometry, index: i)
                 }
                 if !oldCameras.isEmpty {
                     var didUpdateCamera = false

@@ -14,14 +14,18 @@ struct CameraType: RawRepresentable, Hashable, Codable {
 }
 
 extension CameraType: CaseIterable {
-    static let front = Self(rawValue: "front")
-    static let back = Self(rawValue: "back")
-    static let left = Self(rawValue: "left")
-    static let right = Self(rawValue: "right")
-    static let top = Self(rawValue: "top")
-    static let bottom = Self(rawValue: "bottom")
+    static let front = Self(rawValue: "Front")
+    static let back = Self(rawValue: "Back")
+    static let left = Self(rawValue: "Left")
+    static let right = Self(rawValue: "Right")
+    static let top = Self(rawValue: "Top")
+    static let bottom = Self(rawValue: "Bottom")
 
     static var allCases = [front, back, left, right, top, bottom]
+
+    static func custom(_ index: Int) -> CameraType {
+        Self(rawValue: index > 0 ? "Custom \(index + 1)" : "Custom")
+    }
 }
 
 struct Camera {
@@ -34,6 +38,7 @@ extension Camera: Equatable {
 
     static func == (lhs: Camera, rhs: Camera) -> Bool {
         lhs.type == rhs.type &&
+            lhs.name == rhs.name &&
             lhs.settings == rhs.settings &&
             lhs.geometry?.transform == rhs.geometry?.transform
     }
@@ -42,13 +47,13 @@ extension Camera: Equatable {
         self.type = type
     }
 
-    init(geometry: Geometry, name: String) {
+    init(geometry: Geometry, index: Int) {
         self.geometry = geometry
-        type = CameraType(rawValue: name)
+        type = .custom(index)
     }
 
     var name: String {
-        String(type.rawValue.first!).uppercased() + type.rawValue.dropFirst()
+        geometry?.name ?? type.rawValue
     }
 
     var direction: Vector {
@@ -63,8 +68,7 @@ extension Camera: Equatable {
         case .right: return .yaw(-.halfPi)
         case .top: return .pitch(.halfPi)
         case .bottom: return .pitch(-.halfPi)
-        default:
-            return geometry?.transform.rotation ?? .identity
+        default: return geometry?.transform.rotation ?? .identity
         }
     }
 
