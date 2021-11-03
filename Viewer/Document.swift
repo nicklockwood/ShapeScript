@@ -480,8 +480,8 @@ class Document: NSDocument, EvaluationDelegate {
         case #selector(showAxes(_:)):
             menuItem.state = showAxes ? .on : .off
         case #selector(setOrthographic(_:)):
-            menuItem.state = camera.isOrthographic || isOrthographic ? .on : .off
-            return camera.fov > .zero
+            menuItem.state = camera.isOrthographic ?? isOrthographic ? .on : .off
+            return camera.isOrthographic == nil
         case #selector(selectCamera(_:)) where menuItem.tag < cameras.count:
             menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
         case #selector(selectCameras(_:)):

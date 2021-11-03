@@ -74,12 +74,12 @@ extension Camera {
         settings?.hasScale ?? false
     }
 
-    var fov: Angle {
-        settings?.fov ?? .degrees(60)
+    var fov: Angle? {
+        settings?.fov
     }
 
-    var isOrthographic: Bool {
-        fov <= .zero
+    var isOrthographic: Bool? {
+        fov.map { $0 <= .zero }
     }
 
     private var settings: ShapeScript.Camera? {

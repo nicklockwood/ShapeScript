@@ -30,7 +30,7 @@ class SceneViewController: NSViewController {
         cameraNode.position = SCNVector3(0, 0, 1)
         cameraNode.camera?.zNear = 0.01
         cameraNode.camera?.automaticallyAdjustsZRange = true
-        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
+        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         return cameraNode
     }()
@@ -148,7 +148,8 @@ class SceneViewController: NSViewController {
             guard isOrthographic != oldValue else {
                 return
             }
-            cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
+            cameraNode.camera?.usesOrthographicProjection =
+                camera.isOrthographic ?? isOrthographic
             resetCamera(nil)
         }
     }
@@ -321,8 +322,8 @@ class SceneViewController: NSViewController {
         if !camera.hasOrientation {
             cameraNode.look(at: SCNVector3(viewCenter))
         }
-        cameraNode.camera?.fieldOfView = camera.fov.degrees
-        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic || isOrthographic
+        cameraNode.camera?.fieldOfView = CGFloat(camera.fov?.degrees ?? 60)
+        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
         resetCamera(nil)
     }
 
