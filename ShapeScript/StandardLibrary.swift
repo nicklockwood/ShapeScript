@@ -97,7 +97,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         // builders
         "extrude": .block(.custom(.builder, ["along": .paths])) { context in
-            let along = context.value(for: "along")?.value as? [Path] ?? []
+            let along = context.value(for: "along")?.tupleValue as? [Path] ?? []
             return .mesh(Geometry(type: .extrude(context.paths, along: along), in: context))
         },
         "lathe": .block(.builder) { context in
