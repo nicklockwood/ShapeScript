@@ -1,3 +1,8 @@
+## [1.4.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.1) (2021-11-22)
+
+- Fixed bug where `along` property was ignored in `extrude` command
+- Fixed wireframe rendering mode in viewer
+
 ## [1.4.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.0) (2021-11-03)
 
 - Added user-defined cameras

@@ -283,7 +283,7 @@ public extension Geometry {
     }
 
     internal func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
-        if let name = self.name {
+        if let name = name {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
