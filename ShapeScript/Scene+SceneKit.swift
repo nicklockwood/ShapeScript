@@ -78,8 +78,8 @@ public extension SCNNode {
 //            geometry: SCNGeometry(bounds: geometry.bounds)
 //        ))
 
-        for child in geometry.children {
-            addChildNode(SCNNode(child))
+        if geometry.renderChildren || geometry.childDebug {
+            geometry.children.forEach { addChildNode(SCNNode($0)) }
         }
     }
 
