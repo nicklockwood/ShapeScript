@@ -12,6 +12,11 @@ import ShapeScript
 
 // MARK: General
 
+let onlineHelpURL = URL(
+    string: "https://github.com/nicklockwood/" +
+    "ShapeScript/blob/\(ShapeScript.version)/Help/index.md"
+)!
+
 let isHighSierra: Bool = {
     let os = ProcessInfo.processInfo.operatingSystemVersion
     return os.majorVersion == 10 && os.minorVersion == 13

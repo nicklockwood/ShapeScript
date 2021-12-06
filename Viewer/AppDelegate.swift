@@ -58,16 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @IBAction func showHelp(_: Any) {
-        let path: String
-        if let version = Bundle(for: ShapeScript.Scene.self)
-            .object(forInfoDictionaryKey: "CFBundleShortVersionString")
-        {
-            path = "\(version)/Help/index.md"
-        } else {
-            path = "master/Help/index.md"
-        }
-        NSWorkspace.shared.open(URL(string:
-            "https://github.com/nicklockwood/ShapeScript/blob/\(path)")!)
+        NSWorkspace.shared.open(onlineHelpURL)
     }
 
     @IBAction func openExample(sender: NSMenuItem) {

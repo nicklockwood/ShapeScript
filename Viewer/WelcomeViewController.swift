@@ -13,12 +13,14 @@ class WelcomeViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        shouldShowAtStartupCheckbox.state = WelcomeViewController.shouldShowAtStartup ? .on : .off
+        shouldShowAtStartupCheckbox.state =
+            WelcomeViewController.shouldShowAtStartup ? .on : .off
     }
 
     @IBAction func openGettingStartedGuide(_: Any) {
-        NSWorkspace.shared.open(URL(string:
-            "https://github.com/nicklockwood/ShapeScript/blob/master/Help/getting-started.md")!)
+        NSWorkspace.shared.open(onlineHelpURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("getting-started.md"))
     }
 
     @IBAction func toggleShowAtStartup(_ sender: NSButton) {
