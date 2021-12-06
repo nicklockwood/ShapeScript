@@ -60,6 +60,7 @@ func showNewDocumentPanel() {
     let dialog = NSSavePanel()
     dialog.title = "New Document"
     dialog.showsHiddenFiles = true
+    dialog.allowedFileTypes = ["shape"]
     dialog.nameFieldStringValue = "Untitled.shape"
     dialog.begin { response in
         guard response == .OK, let url = dialog.url else {
