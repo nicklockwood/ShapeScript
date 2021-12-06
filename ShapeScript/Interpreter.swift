@@ -11,6 +11,8 @@ import Foundation
 
 // MARK: Public interface
 
+public let version = "1.4.1"
+
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
     func importGeometry(for url: URL) throws -> Geometry?

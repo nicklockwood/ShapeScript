@@ -105,6 +105,10 @@ class MetadataTests: XCTestCase {
         )
     }
 
+    func testVersionConstantUpdated() {
+        XCTAssertEqual(ShapeScript.version, shapeScriptVersion)
+    }
+
     // MARK: Help
 
     func testUpdateIndex() throws {
