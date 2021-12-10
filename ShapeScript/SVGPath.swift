@@ -29,6 +29,8 @@ extension CGPath {
                 path.addQuadCurve(to: point, control: control)
             case let .cubic(control1, control2, point):
                 path.addCurve(to: point, control1: control1, control2: control2)
+            case let .arc(arc):
+                path.addArc(arc)
             case .end:
                 path.closeSubpath()
             }
@@ -37,10 +39,90 @@ extension CGPath {
     }
 }
 
+private extension CGMutablePath {
+    func addArc(_ arc: SVGArc) {
+        let px = currentPoint.x, py = currentPoint.y
+        var rx = abs(arc.radius.width), ry = abs(arc.radius.height)
+        let xr = arc.rotation
+        let largeArcFlag = arc.largeArc
+        let sweepFlag = arc.sweep
+        let cx = arc.end.x, cy = arc.end.y
+        let sinphi = sin(xr), cosphi = cos(xr)
+
+        func vectorAngle(
+            _ ux: CGFloat, _ uy: CGFloat,
+            _ vx: CGFloat, _ vy: CGFloat
+        ) -> CGFloat {
+            let sign: CGFloat = (ux * vy - uy * vx < 0) ? -1 : 1
+            let umag = sqrt(ux * ux + uy * uy), vmag = sqrt(vx * vx + vy * vy)
+            let dot = ux * vx + uy * vy
+            return sign * acos(max(-1, min(1, dot / (umag * vmag))))
+        }
+
+        func toEllipse(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            let x = x * rx, y = y * ry
+            let xp = cosphi * x - sinphi * y, yp = sinphi * x + cosphi * y
+            return CGPoint(x: xp + centerx, y: yp + centery)
+        }
+
+        let dx = (px - cx) / 2, dy = (py - cy) / 2
+        let pxp = cosphi * dx + sinphi * dy, pyp = -sinphi * dx + cosphi * dy
+        if pxp == 0, pyp == 0 {
+            return
+        }
+
+        let lambda = pow(pxp, 2) / pow(rx, 2) + pow(pyp, 2) / pow(ry, 2)
+        if lambda > 1 {
+            rx *= sqrt(lambda)
+            ry *= sqrt(lambda)
+        }
+
+        let rxsq = pow(rx, 2), rysq = pow(ry, 2)
+        let pxpsq = pow(pxp, 2), pypsq = pow(pyp, 2)
+
+        var radicant = max(0, rxsq * rysq - rxsq * pypsq - rysq * pxpsq)
+        radicant /= (rxsq * pypsq) + (rysq * pxpsq)
+        radicant = sqrt(radicant) * (largeArcFlag != sweepFlag ? -1 : 1)
+
+        let centerxp = radicant * rx / ry * pyp
+        let centeryp = radicant * -ry / rx * pxp
+
+        let centerx = cosphi * centerxp - sinphi * centeryp + (px + cx) / 2
+        let centery = sinphi * centerxp + cosphi * centeryp + (py + cy) / 2
+
+        let vx1 = (pxp - centerxp) / rx, vy1 = (pyp - centeryp) / ry
+        let vx2 = (-pxp - centerxp) / rx, vy2 = (-pyp - centeryp) / ry
+
+        var a1 = vectorAngle(1, 0, vx1, vy1)
+        var a2 = vectorAngle(vx1, vy1, vx2, vy2)
+        if sweepFlag, a2 > 0 {
+            a2 -= .pi * 2
+        } else if !sweepFlag, a2 < 0 {
+            a2 += .pi * 2
+        }
+
+        let segments = max(ceil(abs(a2) / (.pi / 2)), 1)
+        a2 /= segments
+        let a = 4 / 3 * tan(a2 / 4)
+        for _ in 0 ..< Int(segments) {
+            let x1 = cos(a1), y1 = sin(a1)
+            let x2 = cos(a1 + a2), y2 = sin(a1 + a2)
+
+            let p1 = toEllipse(x1 - y1 * a, y1 + x1 * a)
+            let p2 = toEllipse(x2 + y2 * a, y2 - x2 * a)
+            let p = toEllipse(x2, y2)
+
+            addCurve(to: p, control1: p1, control2: p2)
+            a1 += a2
+        }
+    }
+}
+
 enum SVGErrorType: Error {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
     case missingArgument(for: String, expected: Int)
+    case unsupportedEllipticalArc
 
     var message: String {
         switch self {
@@ -50,6 +132,8 @@ enum SVGErrorType: Error {
             return "Too many arguments for '\(command)'"
         case let .missingArgument(command, _):
             return "Missing argument for '\(command)'"
+        case .unsupportedEllipticalArc:
+            return "Elliptical arcs are not supported"
         }
     }
 }
@@ -149,6 +233,17 @@ struct SVGPath {
             )
         }
 
+        func arc() throws -> SVGCommand {
+            try assertArgs(7)
+            return .arc(SVGArc(
+                radius: CGSize(width: numbers[0], height: numbers[1]),
+                rotation: numbers[2] * .pi / 180,
+                largeArc: numbers[3] != 0,
+                sweep: numbers[4] != 0,
+                end: CGPoint(x: numbers[5], y: -numbers[6])
+            ))
+        }
+
         func end() throws -> SVGCommand {
             try assertArgs(0)
             return .end
@@ -177,6 +272,7 @@ struct SVGPath {
             case "t", "T": command = try quadTo()
             case "c", "C": command = try cubicCurve()
             case "s", "S": command = try cubicTo()
+            case "a", "A": command = try arc()
             case "z", "Z": command = .end
             default: throw SVGErrorType.unexpectedToken(String(token))
             }
@@ -219,11 +315,26 @@ struct SVGPath {
     }
 }
 
+struct SVGArc {
+    var radius: CGSize
+    var rotation: CGFloat
+    var largeArc: Bool
+    var sweep: Bool
+    var end: CGPoint
+
+    fileprivate func relative(to last: CGPoint) -> SVGArc {
+        var arc = self
+        arc.end = arc.end + last
+        return arc
+    }
+}
+
 enum SVGCommand {
     case moveTo(CGPoint)
     case lineTo(CGPoint)
     case cubic(CGPoint, CGPoint, CGPoint)
     case quadratic(CGPoint, CGPoint)
+    case arc(SVGArc)
     case end
 
     var point: CGPoint {
@@ -233,6 +344,8 @@ enum SVGCommand {
              let .cubic(_, _, point),
              let .quadratic(_, point):
             return point
+        case let .arc(arc):
+            return arc.end
         case .end:
             return .zero
         }
@@ -242,7 +355,7 @@ enum SVGCommand {
         switch self {
         case let .cubic(control1, _, _), let .quadratic(control1, _):
             return control1
-        case .moveTo, .lineTo, .end:
+        case .moveTo, .lineTo, .arc, .end:
             return nil
         }
     }
@@ -251,7 +364,7 @@ enum SVGCommand {
         switch self {
         case let .cubic(_, control2, _):
             return control2
-        case .moveTo, .lineTo, .quadratic, .end:
+        case .moveTo, .lineTo, .quadratic, .arc, .end:
             return nil
         }
     }
@@ -269,6 +382,8 @@ enum SVGCommand {
             return .cubic(control1 + last, control2 + last, point + last)
         case let .quadratic(control, point):
             return .quadratic(control + last, point + last)
+        case let .arc(arc):
+            return .arc(arc.relative(to: last))
         case .end:
             return .end
         }
