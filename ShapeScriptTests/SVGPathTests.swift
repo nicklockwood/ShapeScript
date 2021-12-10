@@ -62,6 +62,15 @@ class SVGPathTests: XCTestCase {
         c59.3-46.7,93.5-71.9,111.5-106.1C263.4,64.2,247.2,22.9,213.1,6.7z
         """))
     }
+
+    func testNumbersWithoutSeparator() throws {
+        let svgPath = try SVGPath("M0 0L-.57.13Z")
+        let cgPath = CGMutablePath()
+        cgPath.move(to: .zero)
+        cgPath.addLine(to: CGPoint(x: -0.57, y: -0.13))
+        cgPath.closeSubpath()
+        XCTAssertEqual(try .fromSVG(svgPath), cgPath)
+    }
 }
 
 #endif

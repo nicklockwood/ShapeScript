@@ -181,8 +181,13 @@ struct SVGPath {
 
         for char in string.unicodeScalars {
             switch char {
-            case "0" ... "9", "E", "e", "+", ".":
+            case "0" ... "9", "E", "e", "+":
                 number.append(Character(char))
+            case ".":
+                if number.contains(".") {
+                    try processNumber()
+                }
+                number.append(".")
             case "-":
                 try processNumber()
                 number = "-"
