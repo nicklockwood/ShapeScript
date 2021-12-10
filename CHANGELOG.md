@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.2) (2021-12-10)
+
+- The `svgpath` command now supports arc instructions ('A' and 'a')
+- Fixed bug in `svgpath` affecting absolute horizontal ('H') and vertical ('V') lines
+- Save panel in viewer now adds `.shape` extension to file name if not present
+- Made online documentation link logic more robust
+
 ## [1.4.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.1) (2021-11-22)
 
 - Fixed bug where `along` property was ignored in `extrude` command
