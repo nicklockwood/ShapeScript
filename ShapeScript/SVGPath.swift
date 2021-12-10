@@ -86,12 +86,18 @@ struct SVGPath {
 
         func lineToVertical() throws -> SVGCommand {
             try assertArgs(1)
-            return .lineTo(CGPoint(x: 0, y: -numbers[0]))
+            return .lineTo(CGPoint(
+                x: isRelative ? 0 : (commands.last?.point.x ?? 0),
+                y: -numbers[0]
+            ))
         }
 
         func lineToHorizontal() throws -> SVGCommand {
             try assertArgs(1)
-            return .lineTo(CGPoint(x: numbers[0], y: 0))
+            return .lineTo(CGPoint(
+                x: numbers[0],
+                y: isRelative ? 0 : (commands.last?.point.y ?? 0)
+            ))
         }
 
         func quadCurve() throws -> SVGCommand {

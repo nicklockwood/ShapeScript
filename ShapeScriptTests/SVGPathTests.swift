@@ -71,6 +71,16 @@ class SVGPathTests: XCTestCase {
         cgPath.closeSubpath()
         XCTAssertEqual(try .fromSVG(svgPath), cgPath)
     }
+
+    func testAbsoluteHorizontalRule() throws {
+        let svgPath = try SVGPath("M0 0L10 10H0Z")
+        let cgPath = CGMutablePath()
+        cgPath.move(to: .zero)
+        cgPath.addLine(to: CGPoint(x: 10, y: -10))
+        cgPath.addLine(to: CGPoint(x: 0, y: -10))
+        cgPath.closeSubpath()
+        XCTAssertEqual(try .fromSVG(svgPath), cgPath)
+    }
 }
 
 #endif
