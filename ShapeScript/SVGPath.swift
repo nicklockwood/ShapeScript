@@ -122,7 +122,6 @@ enum SVGErrorType: Error, Equatable {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
     case missingArgument(for: String, expected: Int)
-    case unsupportedEllipticalArc
 
     var message: String {
         switch self {
@@ -132,8 +131,6 @@ enum SVGErrorType: Error, Equatable {
             return "Too many arguments for '\(command)'"
         case let .missingArgument(command, _):
             return "Missing argument for '\(command)'"
-        case .unsupportedEllipticalArc:
-            return "Elliptical arcs are not supported"
         }
     }
 }
