@@ -81,6 +81,15 @@ class SVGPathTests: XCTestCase {
         cgPath.closeSubpath()
         XCTAssertEqual(try .fromSVG(svgPath), cgPath)
     }
+
+    func testTrailingNumber() throws {
+        XCTAssertThrowsError(try SVGPath("M150 0 L75 200 L225 200 Z5")) { error in
+            XCTAssertEqual(
+                error as? SVGErrorType,
+                .unexpectedArgument(for: "Z", expected: 0)
+            )
+        }
+    }
 }
 
 #endif

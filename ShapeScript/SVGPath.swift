@@ -118,7 +118,7 @@ private extension CGMutablePath {
     }
 }
 
-enum SVGErrorType: Error {
+enum SVGErrorType: Error, Equatable {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
     case missingArgument(for: String, expected: Int)
@@ -273,7 +273,7 @@ struct SVGPath {
             case "c", "C": command = try cubicCurve()
             case "s", "S": command = try cubicTo()
             case "a", "A": command = try arc()
-            case "z", "Z": command = .end
+            case "z", "Z": command = try end()
             default: throw SVGErrorType.unexpectedToken(String(token))
             }
             let last = isRelative ? commands.last : nil
