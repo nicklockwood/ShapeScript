@@ -141,32 +141,34 @@ struct SVGPath {
     public init(_ string: String) throws {
         var token: UnicodeScalar = "z"
         var commands = [SVGCommand]()
-        var numbers = [CGFloat]()
+        var numbers = ArraySlice<CGFloat>()
         var number = ""
         var isRelative = false
 
-        func assertArgs(_ count: Int) throws {
-            if numbers.count > count {
-                throw SVGErrorType
-                    .unexpectedArgument(for: String(token), expected: count)
-            } else if numbers.count < count {
+        func assertArgs(_ count: Int) throws -> [CGFloat] {
+            if numbers.count < count {
                 throw SVGErrorType
                     .missingArgument(for: String(token), expected: count)
+            } else if !numbers.count.isMultiple(of: count) {
+                throw SVGErrorType
+                    .unexpectedArgument(for: String(token), expected: count)
             }
+            defer { numbers.removeFirst(count) }
+            return Array(numbers.prefix(count))
         }
 
         func moveTo() throws -> SVGCommand {
-            try assertArgs(2)
+            let numbers = try assertArgs(2)
             return .moveTo(CGPoint(x: numbers[0], y: -numbers[1]))
         }
 
         func lineTo() throws -> SVGCommand {
-            try assertArgs(2)
+            let numbers = try assertArgs(2)
             return .lineTo(CGPoint(x: numbers[0], y: -numbers[1]))
         }
 
         func lineToVertical() throws -> SVGCommand {
-            try assertArgs(1)
+            let numbers = try assertArgs(1)
             return .lineTo(CGPoint(
                 x: isRelative ? 0 : (commands.last?.point.x ?? 0),
                 y: -numbers[0]
@@ -174,7 +176,7 @@ struct SVGPath {
         }
 
         func lineToHorizontal() throws -> SVGCommand {
-            try assertArgs(1)
+            let numbers = try assertArgs(1)
             return .lineTo(CGPoint(
                 x: numbers[0],
                 y: isRelative ? 0 : (commands.last?.point.y ?? 0)
@@ -182,7 +184,7 @@ struct SVGPath {
         }
 
         func quadCurve() throws -> SVGCommand {
-            try assertArgs(4)
+            let numbers = try assertArgs(4)
             return .quadratic(
                 CGPoint(x: numbers[0], y: -numbers[1]),
                 CGPoint(x: numbers[2], y: -numbers[3])
@@ -190,7 +192,7 @@ struct SVGPath {
         }
 
         func quadTo() throws -> SVGCommand {
-            try assertArgs(2)
+            let numbers = try assertArgs(2)
             var lastControl = commands.last?.control1 ?? .zero
             let lastPoint = commands.last?.point ?? .zero
             if case .quadratic? = commands.last {} else {
@@ -204,7 +206,7 @@ struct SVGPath {
         }
 
         func cubicCurve() throws -> SVGCommand {
-            try assertArgs(6)
+            let numbers = try assertArgs(6)
             return .cubic(
                 CGPoint(x: numbers[0], y: -numbers[1]),
                 CGPoint(x: numbers[2], y: -numbers[3]),
@@ -213,7 +215,7 @@ struct SVGPath {
         }
 
         func cubicTo() throws -> SVGCommand {
-            try assertArgs(4)
+            let numbers = try assertArgs(4)
             var lastControl = commands.last?.control2 ?? .zero
             let lastPoint = commands.last?.point ?? .zero
             if case .cubic? = commands.last {} else {
@@ -231,7 +233,7 @@ struct SVGPath {
         }
 
         func arc() throws -> SVGCommand {
-            try assertArgs(7)
+            let numbers = try assertArgs(7)
             return .arc(SVGArc(
                 radius: CGSize(width: numbers[0], height: numbers[1]),
                 rotation: numbers[2] * .pi / 180,
@@ -242,7 +244,7 @@ struct SVGPath {
         }
 
         func end() throws -> SVGCommand {
-            try assertArgs(0)
+            _ = try assertArgs(0)
             return .end
         }
 
@@ -275,7 +277,9 @@ struct SVGPath {
             }
             let last = isRelative ? commands.last : nil
             commands.append(command.relative(to: last))
-            numbers.removeAll()
+            if !numbers.isEmpty {
+                try processCommand()
+            }
         }
 
         for char in string.unicodeScalars {

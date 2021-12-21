@@ -90,6 +90,16 @@ class SVGPathTests: XCTestCase {
             )
         }
     }
+
+    func testRepeatedParams() throws {
+        let svgPath = try SVGPath("M150 0 L75 200 225 200 Z")
+        let cgPath = CGMutablePath()
+        cgPath.move(to: CGPoint(x: 150, y: 0))
+        cgPath.addLine(to: CGPoint(x: 75, y: -200))
+        cgPath.addLine(to: CGPoint(x: 225, y: -200))
+        cgPath.closeSubpath()
+        XCTAssertEqual(try .fromSVG(svgPath), cgPath)
+    }
 }
 
 #endif
