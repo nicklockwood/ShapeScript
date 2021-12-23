@@ -564,13 +564,15 @@ private extension Geometry {
 
 public extension Geometry {
     var objectCount: Int {
-        if case .group = type {
-            var count = 0
-            for child in children {
-                count += child.objectCount
-            }
-            return count
-        } else {
+        switch type {
+        case .group:
+            return children.reduce(0) { $0 + $1.objectCount }
+        case .camera:
+            return 0
+        case .cone, .cylinder, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill,
+             .union, .difference, .intersection, .xor, .stencil,
+             .path, .mesh:
             return 1
         }
     }
