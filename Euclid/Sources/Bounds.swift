@@ -33,6 +33,8 @@
 public struct Bounds: Hashable {
     public let min, max: Vector
 
+    /// Create a bounds with min and max points
+    /// If max < min, bounds is considered to be empty
     public init(min: Vector, max: Vector) {
         self.min = min
         self.max = max
@@ -67,6 +69,14 @@ extension Bounds: Codable {
 public extension Bounds {
     static let empty = Bounds()
 
+    /// Create a bounds from two points
+    /// Unlike the `init(min:max:)` constructor, the order of the points doesn't matter
+    init(_ p0: Vector, _ p1: Vector) {
+        self.min = Euclid.min(p0, p1)
+        self.max = Euclid.max(p0, p1)
+    }
+
+    /// Create a bounds from an array of points
     init(points: [Vector] = []) {
         var min = Vector(.infinity, .infinity, .infinity)
         var max = Vector(-.infinity, -.infinity, -.infinity)
@@ -170,6 +180,18 @@ public extension Bounds {
         p.x >= min.x && p.x <= max.x &&
             p.y >= min.y && p.y <= max.y &&
             p.z >= min.z && p.z <= max.z
+    }
+
+    /// Returns bounds inset by specified amount.
+    /// Use negative values to expand the bounds.
+    func inset(by v: Vector) -> Bounds {
+        Bounds(min: min + v, max: max - v)
+    }
+
+    /// Returns bounds inset by specified amount.
+    /// Use a negative value to expand the bounds.
+    func inset(by d: Double) -> Bounds {
+        inset(by: Vector(size: d))
     }
 }
 

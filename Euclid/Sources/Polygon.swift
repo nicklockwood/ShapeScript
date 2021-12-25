@@ -137,7 +137,7 @@ public extension Polygon {
         return Set(vertices.map {
             let p1 = $0.position
             defer { p0 = p1 }
-            return p0 < p1 ? LineSegment(unchecked: p0, p1) : LineSegment(unchecked: p1, p0)
+            return LineSegment(normalized: p0, p1)
         })
     }
 
@@ -154,7 +154,7 @@ public extension Polygon {
     init?(_ vertices: [Vertex], material: Material? = nil) {
         let positions = vertices.map { $0.position }
         let isConvex = pointsAreConvex(positions)
-        guard !pointsAreSelfIntersecting(positions),
+        guard positions.count > 2, !pointsAreSelfIntersecting(positions),
               // Note: Plane init includes check for degeneracy
               let plane = Plane(points: positions, convex: isConvex)
         else {
@@ -277,6 +277,31 @@ internal extension Collection where Element == Polygon {
         return edgeCounts.values.allSatisfy { $0 >= 2 && $0 % 2 == 0 }
     }
 
+    /// Insert missing vertices needed to prevent hairline cracks
+    func makeWatertight() -> [Polygon] {
+        var polygonsByEdge = [LineSegment: Int]()
+        for polygon in self {
+            for edge in polygon.undirectedEdges {
+                polygonsByEdge[edge, default: 0] += 1
+            }
+        }
+        var points = Set<Vector>()
+        let edges = polygonsByEdge.filter { !$0.value.isMultiple(of: 2) }.keys
+        for edge in edges.sorted() {
+            points.insert(edge.start)
+            points.insert(edge.end)
+        }
+        var polygons = Array(self)
+        let sortedPoints = points.sorted()
+        for i in polygons.indices {
+            let bounds = polygons[i].bounds.inset(by: -epsilon)
+            for point in sortedPoints where bounds.containsPoint(point) {
+                _ = polygons[i].insertEdgePoint(point)
+            }
+        }
+        return polygons
+    }
+
     /// Flip each polygon along its plane
     func inverted() -> [Polygon] {
         map { $0.inverted() }
@@ -325,6 +350,13 @@ internal extension Collection where Element == Polygon {
     /// Sort polygons by plane
     func sortedByPlane() -> [Polygon] {
         sorted(by: { $0.plane < $1.plane })
+    }
+
+    /// Group by material
+    func groupedByMaterial() -> [Polygon.Material?: [Polygon]] {
+        var polygonsByMaterial = [Polygon.Material?: [Polygon]]()
+        forEach { polygonsByMaterial[$0.material, default: []].append($0) }
+        return polygonsByMaterial
     }
 }
 
@@ -585,7 +617,7 @@ internal extension Polygon {
             id += 1
             polygon.id = id
         }
-        if !polygon.isConvex {
+        guard polygon.isConvex else {
             var coplanar = [Polygon]()
             polygon.tessellate().forEach {
                 $0.split(along: plane, &coplanar, &front, &back, &id)
@@ -593,20 +625,19 @@ internal extension Polygon {
             return
         }
         var f = [Vertex](), b = [Vertex]()
-        for i in polygon.vertices.indices {
-            let j = (i + 1) % polygon.vertices.count
-            let vi = polygon.vertices[i], vj = polygon.vertices[j]
-            let ti = vi.position.compare(with: plane)
-            if ti != .back {
-                f.append(vi)
+        var v0 = polygon.vertices.last!, t0 = v0.position.compare(with: plane)
+        for v1 in polygon.vertices {
+            if t0 != .back {
+                f.append(v0)
             }
-            if ti != .front {
-                b.append(vi)
+            if t0 != .front {
+                b.append(v0)
             }
-            let tj = vj.position.compare(with: plane)
-            if ti.rawValue | tj.rawValue == PlaneComparison.spanning.rawValue {
-                let t = (plane.w - plane.normal.dot(vi.position)) / plane.normal.dot(vj.position - vi.position)
-                let v = vi.lerp(vj, t)
+            let t1 = v1.position.compare(with: plane)
+            if t0.union(t1) == .spanning {
+                let t = (plane.w - plane.normal.dot(v0.position)) /
+                    plane.normal.dot(v1.position - v0.position)
+                let v = v0.lerp(v1, t)
                 if f.last?.position != v.position, f.first?.position != v.position {
                     f.append(v)
                 }
@@ -614,6 +645,8 @@ internal extension Polygon {
                     b.append(v)
                 }
             }
+            v0 = v1
+            t0 = t1
         }
         if !verticesAreDegenerate(f) {
             front.append(Polygon(
@@ -633,6 +666,80 @@ internal extension Polygon {
                 id: polygon.id
             ))
         }
+    }
+
+    // Return all intersections with the plane
+    func intersect(with plane: Plane, edges: inout Set<LineSegment>) {
+        var wasFront = false, wasBack = false
+        for edge in undirectedEdges {
+            switch edge.compare(with: plane) {
+            case .front where wasBack, .back where wasFront, .spanning:
+                intersect(spanning: plane, intersections: &edges)
+                return
+            case .coplanar:
+                edges.insert(edge)
+            case .front:
+                wasFront = true
+            case .back:
+                wasBack = true
+            }
+        }
+    }
+
+    func intersect(spanning plane: Plane, intersections: inout Set<LineSegment>) {
+        assert(compare(with: plane) == .spanning)
+        guard isConvex else {
+            tessellate().forEach {
+                $0.intersect(spanning: plane, intersections: &intersections)
+            }
+            return
+        }
+        var start: Vector?
+        var p0 = vertices.last!.position, t0 = p0.compare(with: plane)
+        for v in vertices {
+            let p1 = v.position, t1 = p1.compare(with: plane)
+            if t0 == .coplanar || t0.union(t1) == .spanning {
+                let t = (plane.w - plane.normal.dot(p0)) / plane.normal.dot(p1 - p0)
+                let p = p0.lerp(p1, t)
+                if let start = start {
+                    intersections.insert(LineSegment(normalized: start, p))
+                    return
+                }
+                start = p
+            }
+            p0 = p1
+            t0 = t1
+        }
+        assertionFailure()
+    }
+
+    mutating func insertEdgePoint(_ p: Vector) -> Bool {
+        guard var last = vertices.last else {
+            assertionFailure()
+            return false
+        }
+        if vertices.contains(where: { $0.position == p }) {
+            return false
+        }
+        for (i, v) in vertices.enumerated() {
+            let s = LineSegment(unchecked: last.position, v.position)
+            guard s.containsPoint(p) else {
+                last = v
+                continue
+            }
+            var vertices = self.vertices
+            let t = (p - s.start).length / s.length
+            vertices.insert(last.lerp(v, t), at: i)
+            self = Polygon(
+                unchecked: vertices,
+                plane: plane,
+                isConvex: isConvex,
+                material: material,
+                id: id
+            )
+            return true
+        }
+        return false
     }
 }
 
