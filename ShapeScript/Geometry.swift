@@ -497,25 +497,25 @@ private extension Geometry {
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = .lathe(paths[0], slices: segments)
         case let .loft(paths):
-            mesh = Mesh.loft(paths)
+            mesh = .loft(paths)
         case let .fill(paths) where paths.count == 1:
             mesh = .fill(paths[0].closed())
         case .union, .extrude, .lathe, .fill:
-            mesh = .union(childMeshes(callback), isCancelled: isCancelled)
+            mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
-            mesh = .xor(flattenedChildren(callback), isCancelled: isCancelled)
+            mesh = Mesh.xor(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
         case .difference:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = .difference(meshes, isCancelled: isCancelled)
+            mesh = Mesh.difference(meshes, isCancelled: isCancelled).makeWatertight()
         case .intersection:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = .intersection(meshes, isCancelled: isCancelled)
+            mesh = Mesh.intersection(meshes, isCancelled: isCancelled).makeWatertight()
         case .stencil:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = .stencil(meshes, isCancelled: isCancelled)
+            mesh = Mesh.stencil(meshes, isCancelled: isCancelled).makeWatertight()
         case let .mesh(mesh):
             self.mesh = mesh
         }
