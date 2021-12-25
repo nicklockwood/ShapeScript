@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.4.2"
+public let version = "1.4.3"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -1351,7 +1351,9 @@ extension Expression {
                         at: parameters[1].range
                     )
                 }
-                let types = [type.errorDescription] + values.dropFirst().map { $0.type.errorDescription }
+                let types = [type.errorDescription] + values.dropFirst().map {
+                    $0.type.errorDescription
+                }
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: index,

@@ -1,3 +1,13 @@
+## [1.4.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.3) (2021-12-25)
+
+- ShapeScript will now attempt to ensure generated meshes are watertight by default
+- Fixed unintended behavior change with blocks returning multiple shapes (introduced in 1.3.7)
+- Fixed precondition failure when calling a block from inside a `path` command
+- Camera nodes are no longer included in object count in model info
+- Handle repeated parameter lists without command tokens in `svgpath`
+- Added additional `svgpath` error handling
+- Bumped Euclid to version 0.5.15
+
 ## [1.4.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.2) (2021-12-10)
 
 - The `svgpath` command now supports arc instructions ('A' and 'a')
