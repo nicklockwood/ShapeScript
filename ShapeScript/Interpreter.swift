@@ -458,7 +458,9 @@ enum Value {
         case .path: return .path
         case .mesh: return .mesh
         case .point: return .point
-        case let .tuple(values) where values.count == 1: return values[0].type
+        case let .tuple(values) where values.count == 1:
+            // TODO: find better solution for this.
+            return values[0].type
         case .tuple: return .tuple
         case .range: return .range
         case .bounds: return .bounds
@@ -1262,7 +1264,8 @@ extension Expression {
             case .gte:
                 return .boolean(lhs.doubleValue >= rhs.doubleValue)
             case .to, .step, .equal, .unequal, .and, .or:
-                preconditionFailure("\(op.rawValue) should be handled by earlier case")
+                throw RuntimeErrorType
+                    .assertionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):
             var value = try expression.evaluate(in: context)

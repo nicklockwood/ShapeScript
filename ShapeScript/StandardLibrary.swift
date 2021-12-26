@@ -191,8 +191,15 @@ extension Dictionary where Key == String, Value == Symbol {
                 case let .path(path):
                     endPath()
                     subpaths.append(path)
+                case .tuple:
+                    // Special case due to tuple type returning element type
+                    throw RuntimeErrorType.assertionFailure(
+                        "Unexpected child of type tuple in path"
+                    )
                 default:
-                    preconditionFailure()
+                    throw RuntimeErrorType.assertionFailure(
+                        "Unexpected child of type \(child.type.errorDescription) in path"
+                    )
                 }
             }
             endPath()
