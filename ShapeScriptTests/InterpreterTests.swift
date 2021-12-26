@@ -1388,6 +1388,19 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testBlockReturnsGroupedMeshes() throws {
+        let program = try parse("""
+        define foo {
+            cube { size 0.5 }
+            cube { size 0.8 }
+        }
+        foo
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.children.count, 1)
+    }
+
     // MARK: Ranges
 
     func testRange() {

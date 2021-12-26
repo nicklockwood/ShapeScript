@@ -857,7 +857,12 @@ extension Definition {
                                     "value cannot be assigned a name"
                             )
                         }
-                    } else if context.name.isEmpty {
+                    } else if context.name.isEmpty,
+                              // Manage backwards compatibility for blocks that return
+                              // multiple meshes to be used inside difference block
+                              !children.contains(where: { $0.type == .mesh }) ||
+                              children.contains(where: { ![.mesh, .path].contains($0.type) })
+                    {
                         return .tuple(children.map {
                             switch $0 {
                             case let .path(path):
