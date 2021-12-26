@@ -935,8 +935,8 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
-            case let .tuple(values) where values.isEmpty:
-                break
+            case let .tuple(values) where values.count <= 1:
+                children += values
             default:
                 children.append(value)
             }

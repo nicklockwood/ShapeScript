@@ -1401,6 +1401,18 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(context.children.count, 1)
     }
 
+    func testBlockReturningPathInsidePath() throws {
+        let program = try parse("""
+        define foo path {
+            point 0 0
+            point 1 0
+            point 1 1
+        }
+        path { foo }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
     // MARK: Ranges
 
     func testRange() {
