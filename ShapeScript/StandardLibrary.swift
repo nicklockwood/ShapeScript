@@ -76,7 +76,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "orange": .constant(.color(.orange)),
     ]
 
-    static let material: Symbols = colors + [
+    static let color: Symbols = colors + [
         "color": .property(.color, { parameter, context in
             context.material.color = parameter.value as? Color
         }, { context in
@@ -87,6 +87,9 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .color(context.material.color ?? .white)
         }),
+    ]
+
+    static let material: Symbols = color + [
         "opacity": .property(.number, { parameter, context in
             context.material.opacity = parameter.doubleValue * context.opacity
         }, { context in
@@ -231,10 +234,15 @@ extension Dictionary where Key == String, Value == Symbol {
             return .path(subpaths[0].transformed(by: context.transform))
         },
         "circle": .block(.pathShape) { context in
-            .path(Path.circle(segments: context.detail).transformed(by: context.transform))
+            .path(Path.circle(
+                segments: context.detail,
+                color: context.material.color
+            ).transformed(by: context.transform))
         },
         "square": .block(.pathShape) { context in
-            .path(Path.square().transformed(by: context.transform))
+            .path(Path.square(
+                color: context.material.color
+            ).transformed(by: context.transform))
         },
         "roundrect": .block(.custom(.pathShape, ["radius": .number])) { context in
             #if canImport(CoreGraphics)
@@ -246,7 +254,8 @@ extension Dictionary where Key == String, Value == Symbol {
                     cornerHeight: CGFloat(radius),
                     transform: nil
                 ),
-                detail: context.detail
+                detail: context.detail,
+                color: context.material.color
             ).transformed(by: context.transform))
             #else
             // TODO: throw error when CoreGraphics not available
@@ -262,7 +271,8 @@ extension Dictionary where Key == String, Value == Symbol {
                 font: context.font,
                 width: width,
                 linespacing: linespacing,
-                detail: context.detail / 8
+                detail: context.detail / 8,
+                color: context.material.color
             )
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
@@ -271,25 +281,35 @@ extension Dictionary where Key == String, Value == Symbol {
             let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
             do {
                 let cgPath = try CGPath.fromSVG(text)
-                let path = Path(cgPath: cgPath, detail: context.detail / 8)
-                return .path(path.transformed(by: context.transform))
+                return .path(Path(
+                    cgPath: cgPath,
+                    detail: context.detail / 8,
+                    color: context.material.color
+                ).transformed(by: context.transform))
             } catch let error as SVGErrorType {
                 throw RuntimeErrorType.assertionFailure(error.message)
             }
             #else
-            throw RuntimeErrorType
-                .assertionFailure("The svgpath command is not available on this platform")
+            throw RuntimeErrorType.assertionFailure(
+                "The svgpath command is not available on this platform"
+            )
             #endif
         },
     ]
 
     static let points: Symbols = [
         // vertices
-        "point": .command(.vector) { parameter, _ in
-            .point(.point(parameter.value as! Vector))
+        "point": .command(.vector) { parameter, context in
+            .point(.point(
+                parameter.value as! Vector,
+                color: context.material.color
+            ))
         },
-        "curve": .command(.vector) { parameter, _ in
-            .point(.curve(parameter.value as! Vector))
+        "curve": .command(.vector) { parameter, context in
+            .point(.curve(
+                parameter.value as! Vector,
+                color: context.material.color
+            ))
         },
     ]
 
@@ -398,9 +418,9 @@ extension Dictionary where Key == String, Value == Symbol {
     static let shape: Symbols = _merge(node, material)
     static let builder: Symbols = _merge(shape, childTransform)
     static let group: Symbols = _merge(shape, childTransform)
-    static let path: Symbols = _merge(global, childTransform, points)
-    static let pathShape: Symbols = _merge(global, transform)
-    static let text: Symbols = _merge(global, transform)
+    static let path: Symbols = _merge(global, childTransform, points, color)
+    static let pathShape: Symbols = _merge(global, transform, color)
+    static let text: Symbols = _merge(global, transform, color)
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, shape, points)
 }

@@ -5,8 +5,6 @@ A path is sequence of line segments or curves joined end-to-end. The points of t
 
 Paths are not typically used directly as part of a 3D model (except possibly for something like a thin rope or antenna), but they can be used to define the contours of a 3D mesh (see [builders](builders.md) for details).
 
-Paths cannot currently have any styling such as a color or texture applied to them - they will always appear as a thin black line in the ShapeScript app.
-
 ## Points
 
 You define a path using a series of points. A path must have at least two points to be visible. The following path defines a short, horizontal line along the X axis.
@@ -188,6 +186,23 @@ path {
 ```
 
 ![Overlapping Circles](images/overlapping-circles.png)
+
+## Path Colors
+
+Paths cannot currently be textured, but they inherit the current [material color](materials.md#color). Color can also be applied to individual points within a path. When neighboring path points have different colors applied, the color will be smoothly interpolated between them, creating a gradient:
+
+```swift
+path {
+    color red
+    point 0 1
+    color green
+    point -1 -1
+    color blue
+    point 1 -1
+}
+```
+
+![Path colors](images/path-colors.png)
 
 ## SVG Paths
 

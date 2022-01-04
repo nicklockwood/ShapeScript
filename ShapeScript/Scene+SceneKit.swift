@@ -140,24 +140,53 @@ public extension Geometry {
             children.scnBuild(with: options, debug: !renderChildren)
         }
 
-        let material = SCNMaterial()
-        material.lightingModel = .constant
-        material.diffuse.contents = OSColor(options.lineColor)
-
         if let scnData = scnData, scnData.options == options {
             return
         } else if let path = path {
-            let wireframe = SCNGeometry(.stroke(
-                path,
-                width: options.lineWidth,
-                detail: 5
-            ))
-            wireframe.materials = [material]
-            scnData = (
-                options: options,
-                geometry: wireframe,
-                wireframe: wireframe
-            )
+            if options.wireframe {
+                let wireframe = scnData?.wireframe ?? SCNGeometry(.stroke(
+                    path.removingColors(),
+                    width: options.lineWidth,
+                    detail: 5
+                ))
+
+                let material = SCNMaterial()
+                material.lightingModel = .constant
+                material.diffuse.contents = OSColor(options.lineColor)
+                wireframe.materials = [material]
+
+                scnData = (
+                    options: options,
+                    geometry: wireframe,
+                    wireframe: wireframe
+                )
+            } else {
+                let geometry: SCNGeometry
+                if debug, let material = options.debugMaterial {
+                    geometry = scnData?.wireframe ?? SCNGeometry(.stroke(
+                        path.removingColors(),
+                        width: options.lineWidth,
+                        detail: 5
+                    ))
+                    geometry.materials = [SCNMaterial(material, isOpaque: false)]
+                } else {
+                    geometry = SCNGeometry(.stroke(
+                        path,
+                        width: options.lineWidth,
+                        detail: 5
+                    ))
+                    let material = SCNMaterial()
+                    material.lightingModel = .constant
+                    material.diffuse.contents = self.material.color
+                    geometry.materials = [material]
+                }
+
+                scnData = (
+                    options: options,
+                    geometry: geometry,
+                    wireframe: scnData?.wireframe
+                )
+            }
         } else if let mesh = mesh {
             if options.wireframe {
                 let wireframe = scnData?.wireframe ?? (
@@ -167,7 +196,12 @@ public extension Geometry {
                         detail: 3
                     )) : SCNGeometry(wireframe: mesh)
                 )
+
+                let material = SCNMaterial()
+                material.lightingModel = .constant
+                material.diffuse.contents = OSColor(options.lineColor)
                 wireframe.materials = [material]
+
                 scnData = (
                     options: options,
                     geometry: wireframe,

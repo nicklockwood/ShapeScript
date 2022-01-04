@@ -36,6 +36,7 @@ ShapeScript Help
         - [Rectangles](paths.md#rectangles)
         - [Procedural Paths](paths.md#procedural-paths)
         - [Nested Paths](paths.md#nested-paths)
+        - [Path Colors](paths.md#path-colors)
         - [SVG Paths](paths.md#svg-paths)
     - [Text](text.md)
         - [Interpolation](text.md#interpolation)

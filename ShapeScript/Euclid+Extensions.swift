@@ -103,14 +103,34 @@ import AppKit
 import UIKit
 #endif
 
+extension PathPoint {
+    /// Replace point color
+    func with(color: Color?) -> PathPoint {
+        var point = self
+        point.color = color
+        return point
+    }
+}
+
 extension Path {
+    /// Does path contain vertex colors
+    var hasColors: Bool {
+        points.contains(where: { $0.color != nil })
+    }
+
+    /// Remove point colors
+    func removingColors() -> Path {
+        Path(points.map { $0.with(color: nil) })
+    }
+
     /// Create an array of text paths with the specified font
     static func text(
         _ text: String,
         font: String?,
         width: Double? = nil,
         linespacing: Double? = nil,
-        detail: Int = 2
+        detail: Int = 2,
+        color: Color? = nil
     ) -> [Path] {
         #if canImport(CoreText)
         var attributes = [NSAttributedString.Key: Any]()
@@ -120,6 +140,7 @@ extension Path {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
         attributes[.paragraphStyle] = paragraphStyle
+        attributes[.foregroundColor] = color.map(OSColor.init)
         #endif
         let attributedString = NSAttributedString(string: text, attributes: attributes)
         return self.text(attributedString, width: width, detail: detail)

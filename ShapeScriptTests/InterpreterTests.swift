@@ -800,28 +800,79 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(geometry.material.color, .red)
     }
 
-    func testColorInvalidInCircle() {
-        let input = "circle { color 1 0 0 }"
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+    func testColorInCircle() throws {
+        let program = try parse("circle { color 1 0 0 }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        switch geometry.type {
+        case let .path(path):
+            XCTAssertEqual(path.points.first?.color, .red)
+        default:
+            XCTFail()
         }
     }
 
-    func testColorInvalidInPath() {
-        let input = "path { color 1 0 0 }"
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+    func testColorInPath() throws {
+        let program = try parse("""
+        path {
+            color red
+            point 0 1
+            color blue
+            point 0 -1
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        switch geometry.type {
+        case let .path(path):
+            XCTAssertEqual(path.points.first?.color, .red)
+            XCTAssertEqual(path.points.last?.color, .blue)
+        default:
+            XCTFail()
         }
     }
 
-    func testColorInvalidInText() {
-        let input = "text { color 1 0 0 }"
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+    func testNestedPathColor() throws {
+        let program = try parse("""
+        path {
+            color red
+            circle
+            color green
+            square
         }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        switch geometry.type {
+        case let .path(path):
+            XCTAssertEqual(path.subpaths.first?.points.first?.color, .red)
+            XCTAssertEqual(path.subpaths.last?.points.first?.color, .green)
+        default:
+            XCTFail()
+        }
+    }
+
+    func testColorInText() throws {
+        let program = try parse("""
+        text {
+            color 1 0 0
+            "Hello"
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        #if canImport(CoreText)
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        switch geometry.type {
+        case let .path(path):
+            XCTAssertEqual(path.points.first?.color, .red)
+        default:
+            XCTFail()
+        }
+        #endif
     }
 
     // MARK: Texture
