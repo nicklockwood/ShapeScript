@@ -94,7 +94,7 @@ class Document: NSDocument, EvaluationDelegate {
             settings.value(for: #function, in: self) ?? false
         }
         set {
-            settings.set(newValue, for: #function, in: self)
+            settings.set(newValue, for: #function, in: self, andGlobally: true)
             updateViews()
         }
     }
