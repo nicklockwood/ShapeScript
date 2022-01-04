@@ -242,6 +242,39 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testNameInvalidInCircle() {
+        let input = """
+        circle { name "Foo" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+        }
+    }
+
+    func testNameInvalidInPath() {
+        let input = """
+        path { name "Foo" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+        }
+    }
+
+    func testNameInvalidInText() {
+        let input = """
+        text { name "Foo" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+        }
+    }
+
     // MARK: Built-in symbol scope
 
     func testOverrideColorInRootScope() {
@@ -759,11 +792,43 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.gray])
     }
 
+    func testColorInCube() throws {
+        let program = try parse("cube { color 1 0 0 }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
+    }
+
+    func testColorInvalidInCircle() {
+        let input = "circle { color 1 0 0 }"
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+        }
+    }
+
+    func testColorInvalidInPath() {
+        let input = "path { color 1 0 0 }"
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+        }
+    }
+
+    func testColorInvalidInText() {
+        let input = "text { color 1 0 0 }"
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'color'")
+        }
+    }
+
     // MARK: Texture
 
     func testSetTextureWithStringLiteral() throws {
         let program = """
-        texture \"Stars1.jpg\"
+        texture "Stars1.jpg"
         print texture
         """
         let delegate = TestDelegate()
@@ -775,7 +840,7 @@ class InterpreterTests: XCTestCase {
 
     func testSetTextureWithStringConstant() throws {
         let program = """
-        define image \"Stars1.jpg\"
+        define image "Stars1.jpg"
         texture image
         print texture
         """
@@ -835,6 +900,39 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.fileNotFound(
                 for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
             ), at: range))
+        }
+    }
+
+    func testTextureInvalidInCircle() {
+        let input = """
+        circle { texture "Stars1.jpg" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'texture'")
+        }
+    }
+
+    func testTextureInvalidInPath() {
+        let input = """
+        path { texture "Stars1.jpg" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'texture'")
+        }
+    }
+
+    func testTextureInvalidInText() {
+        let input = """
+        text { texture "Stars1.jpg" }
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'texture'")
         }
     }
 

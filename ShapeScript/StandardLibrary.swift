@@ -14,7 +14,25 @@ extension Dictionary where Key == String, Value == Symbol {
         lhs.merging(rhs) { $1 }
     }
 
-    static let transforms: Symbols = [
+    static let transform: Symbols = [
+        "position": .property(.vector, { parameter, context in
+            context.transform.offset = parameter.value as! Vector
+        }, { context in
+            .vector(context.transform.offset)
+        }),
+        "orientation": .property(.rotation, { parameter, context in
+            context.transform.rotation = parameter.value as! Rotation
+        }, { context in
+            .rotation(context.transform.rotation)
+        }),
+        "size": .property(.size, { parameter, context in
+            context.transform.scale = parameter.value as! Vector
+        }, { context in
+            .size(context.transform.scale)
+        }),
+    ]
+
+    static let childTransform: Symbols = [
         "translate": .command(.vector) { parameter, context in
             let vector = parameter.value as! Vector
             context.childTransform.translate(by: vector)
@@ -40,17 +58,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ]
 
-    static let color: Symbols = [
-        "color": .property(.color, { parameter, context in
-            context.material.color = parameter.value as? Color
-        }, { context in
-            .color(context.material.color ?? .white)
-        }),
-        "colour": .property(.color, { parameter, context in
-            context.material.color = parameter.value as? Color
-        }, { context in
-            .color(context.material.color ?? .white)
-        }),
+    static let colors: Symbols = [
         "white": .constant(.color(.white)),
         "black": .constant(.color(.black)),
         "gray": .constant(.color(.gray)),
@@ -64,7 +72,17 @@ extension Dictionary where Key == String, Value == Symbol {
         "orange": .constant(.color(.orange)),
     ]
 
-    static let materials: Symbols = color + [
+    static let material: Symbols = colors + [
+        "color": .property(.color, { parameter, context in
+            context.material.color = parameter.value as? Color
+        }, { context in
+            .color(context.material.color ?? .white)
+        }),
+        "colour": .property(.color, { parameter, context in
+            context.material.color = parameter.value as? Color
+        }, { context in
+            .color(context.material.color ?? .white)
+        }),
         "opacity": .property(.number, { parameter, context in
             context.material.opacity = parameter.doubleValue * context.opacity
         }, { context in
@@ -79,16 +97,16 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let meshes: Symbols = [
         // primitives
-        "cone": .block(.primitive) { context in
+        "cone": .block(.shape) { context in
             .mesh(Geometry(type: .cone(segments: context.detail), in: context))
         },
-        "cylinder": .block(.primitive) { context in
+        "cylinder": .block(.shape) { context in
             .mesh(Geometry(type: .cylinder(segments: context.detail), in: context))
         },
-        "sphere": .block(.primitive) { context in
+        "sphere": .block(.shape) { context in
             .mesh(Geometry(type: .sphere(segments: context.detail), in: context))
         },
-        "cube": .block(.primitive) { context in
+        "cube": .block(.shape) { context in
             .mesh(Geometry(type: .cube, in: context))
         },
         // container
@@ -142,7 +160,7 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let camera: Symbols = [
-        "camera": .block(.custom(.primitive, [
+        "camera": .block(.custom(nil, [
             "position": .vector,
             "orientation": .rotation,
             "size": .size,
@@ -208,13 +226,13 @@ extension Dictionary where Key == String, Value == Symbol {
             }
             return .path(subpaths[0].transformed(by: context.transform))
         },
-        "circle": .block(.primitive) { context in
+        "circle": .block(.pathShape) { context in
             .path(Path.circle(segments: context.detail).transformed(by: context.transform))
         },
-        "square": .block(.primitive) { context in
+        "square": .block(.pathShape) { context in
             .path(Path.square().transformed(by: context.transform))
         },
-        "roundrect": .block(.custom(.primitive, ["radius": .number])) { context in
+        "roundrect": .block(.custom(.pathShape, ["radius": .number])) { context in
             #if canImport(CoreGraphics)
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
             return .path(Path(
@@ -338,7 +356,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "pi": .constant(.number(.pi)),
     ]
 
-    static let global: Symbols = _merge(functions, meshes, paths, [
+    static let global: Symbols = _merge(functions, colors, meshes, paths, [
         "detail": .property(.number, { parameter, context in
             // TODO: throw error if min/max detail level exceeded
             context.detail = Swift.max(0, parameter.intValue)
@@ -364,36 +382,23 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ])
 
-    static let primitive: Symbols = _merge(global, materials, [
+    static let node: Symbols = _merge(global, transform, [
         "name": .property(.string, { parameter, context in
             context.name = parameter.stringValue
         }, { context in
             .string(context.name)
         }),
-        "position": .property(.vector, { parameter, context in
-            context.transform.offset = parameter.value as! Vector
-        }, { context in
-            .vector(context.transform.offset)
-        }),
-        "orientation": .property(.rotation, { parameter, context in
-            context.transform.rotation = parameter.value as! Rotation
-        }, { context in
-            .rotation(context.transform.rotation)
-        }),
-        "size": .property(.size, { parameter, context in
-            context.transform.scale = parameter.value as! Vector
-        }, { context in
-            .size(context.transform.scale)
-        }),
     ])
 
-    static let root: Symbols = _merge(global, background, materials, transforms, camera)
-    static let builder: Symbols = _merge(primitive, transforms)
-    static let group: Symbols = _merge(primitive, transforms)
-    static let path: Symbols = _merge(global, transforms, points)
-    static let text: Symbols = primitive
+    static let root: Symbols = _merge(global, material, childTransform, background, camera)
+    static let shape: Symbols = _merge(node, material)
+    static let builder: Symbols = _merge(shape, childTransform)
+    static let group: Symbols = _merge(shape, childTransform)
+    static let path: Symbols = _merge(global, childTransform, points)
+    static let pathShape: Symbols = _merge(global, transform)
+    static let text: Symbols = _merge(global, transform)
     static let definition: Symbols = root
-    static let all: Symbols = _merge(root, primitive, points)
+    static let all: Symbols = _merge(root, shape, points)
 }
 
 extension EvaluationContext {

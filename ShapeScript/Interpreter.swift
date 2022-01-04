@@ -652,12 +652,12 @@ typealias Options = [String: ValueType]
 
 enum BlockType {
     case builder
+    case shape
     case group
     case path
+    case pathShape
     case text
     indirect case custom(BlockType?, Options)
-
-    static let primitive = BlockType.custom(nil, [:])
 
     var options: Options {
         switch self {
@@ -668,7 +668,7 @@ enum BlockType {
                 "wrapwidth": .number,
                 "linespacing": .number,
             ]
-        case .builder, .group, .path:
+        case .builder, .group, .path, .shape, .pathShape:
             return [:]
         }
     }
@@ -679,6 +679,7 @@ enum BlockType {
         case .group: return [.mesh]
         case .path: return [.point, .path]
         case .text: return [.string, .number]
+        case .shape, .pathShape: return []
         case let .custom(baseType, _):
             return baseType?.childTypes ?? []
         }
@@ -686,12 +687,14 @@ enum BlockType {
 
     var symbols: Symbols {
         switch self {
+        case .shape: return .shape
         case .group: return .group
         case .builder: return .builder
         case .path: return .path
+        case .pathShape: return .pathShape
         case .text: return .text
         case let .custom(baseType, _):
-            return baseType?.symbols ?? .primitive
+            return baseType?.symbols ?? .node
         }
     }
 }
