@@ -225,7 +225,7 @@ public extension RuntimeError {
             return "ShapeScript expected to find the file at '\(url.path)'."
                 + " Check that it exists and is located here."
         case let .fileAccessRestricted(for: _, at: url):
-            return "ShapeScript cannot read the file due to macOS security restrictions."
+            return "ShapeScript cannot read the file due to \(Self.osName) security restrictions."
                 + " Please open the directory at '\(url.path)' to grant access."
         case let .fileParsingError(for: _, at: _, message: message):
             return formatMessage(message)
@@ -280,6 +280,18 @@ private extension RuntimeError {
         "subtract": ["difference"],
         "subtraction": ["difference"],
     ]
+
+    static let osName: String {
+        #if os(macOS) || targetEnvironment(macCatalyst)
+        return "macOS"
+        #elseif os(tvOS)
+        return "tvOS"
+        #elseif os(iOS)
+        return "iOS"
+        #else
+        return "system"
+        #endif
+    }
 }
 
 private extension RuntimeErrorType {

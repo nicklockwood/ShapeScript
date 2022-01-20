@@ -223,12 +223,22 @@ extension EvaluationContext {
             // TODO: should this be a different error type, like "delegate not available"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
+        // TODO: move this logic out of EvaluationContext into delegate
+        // so we can more easily mock the filesystem for testing purposes
+        #if os(macOS)
+        // macOS can check for existence of files even without access permission
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw RuntimeErrorType.fileNotFound(for: path, at: url)
         }
-        guard FileManager.default.isReadableFile(atPath: url.path) else {
-            let directory = url.deletingLastPathComponent()
+        #endif
+        let directory = url.deletingLastPathComponent()
+        guard FileManager.default.isReadableFile(atPath: url.path) ||
+            FileManager.default.isReadableFile(atPath: directory.path)
+        else {
             throw RuntimeErrorType.fileAccessRestricted(for: path, at: directory)
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw RuntimeErrorType.fileNotFound(for: path, at: url)
         }
         return url
     }

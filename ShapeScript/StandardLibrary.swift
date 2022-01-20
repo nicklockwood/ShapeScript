@@ -9,6 +9,10 @@
 import Euclid
 import Foundation
 
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
+
 extension Dictionary where Key == String, Value == Symbol {
     static func + (lhs: Symbols, rhs: Symbols) -> Symbols {
         lhs.merging(rhs) { $1 }
