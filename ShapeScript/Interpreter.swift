@@ -703,10 +703,10 @@ extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
         context.source = source
+        defer { context.source = oldSource }
         do {
             try statements.forEach { try $0.evaluate(in: context) }
         } catch is EvaluationCancelled {}
-        context.source = oldSource
     }
 }
 

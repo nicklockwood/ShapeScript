@@ -133,9 +133,11 @@ final class EvaluationContext {
     func pushScope(_ block: (EvaluationContext) throws -> Void) rethrows {
         let oldSourceIndex = sourceIndex
         let oldSymbols = userSymbols
+        defer {
+            sourceIndex = oldSourceIndex
+            userSymbols = oldSymbols
+        }
         try block(self)
-        sourceIndex = oldSourceIndex
-        userSymbols = oldSymbols
     }
 
     func pushDefinition() -> EvaluationContext {
@@ -305,11 +307,10 @@ extension EvaluationContext {
         }
         let oldURL = baseURL
         baseURL = url
+        defer { baseURL = oldURL }
         do {
             try program.evaluate(in: self)
-            baseURL = oldURL
         } catch {
-            baseURL = oldURL
             throw RuntimeErrorType.importError(ImportError(error), for: path, in: program.source)
         }
     }
