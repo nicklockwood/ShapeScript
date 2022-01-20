@@ -38,11 +38,11 @@ final class EvaluationContext {
     private var symbols = Symbols.root
     var userSymbols = Symbols()
     private let importCache: ImportCache
-    private(set) var baseURL: URL?
     let isCancelled: () -> Bool
 
     var source: String
     var sourceIndex: String.Index?
+    var baseURL: URL?
 
     var background: MaterialProperty = .color(.clear)
     var material: Material = .default

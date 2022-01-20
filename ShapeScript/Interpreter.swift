@@ -816,6 +816,8 @@ extension Definition {
                     context.transform = _context.transform
                     context.opacity = _context.opacity
                     context.detail = _context.detail
+                    context.baseURL = baseURL
+                    context.source = source
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
                             if context.symbol(for: identifier.name) == nil {
@@ -909,11 +911,9 @@ extension Definition {
                         // TODO: find a less hacky way to limit the scope of option keyword
                         error = RuntimeError(.unknownSymbol(name, options: options + ["option"]), at: e.range)
                     }
-                    if baseURL == context.baseURL {
+                    if baseURL == _context.baseURL {
                         throw error
                     }
-                    // TODO: improve this error by mentioning the symbol that failed
-                    // and showing the context of the failure not just the call site
                     throw RuntimeErrorType.importError(
                         ImportError(error),
                         for: baseURL?.lastPathComponent ?? "",
