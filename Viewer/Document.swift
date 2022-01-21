@@ -449,7 +449,7 @@ class Document: NSDocument, EvaluationDelegate {
             actionSheet.messageText = "Selected Object Info"
             actionSheet.informativeText = [
                 nameString,
-                "Type: \(selectedGeometry.type)",
+                "Type: \(selectedGeometry.nestedLogDescription)",
                 "Children: \(selectedGeometry.children.count)",
                 "Polygons: \(polygonCount)",
                 "Triangles: \(triangleCount)",
