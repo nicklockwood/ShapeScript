@@ -13,6 +13,7 @@ import ShapeScript
 class Document: NSDocument, EvaluationDelegate {
     let cache = GeometryCache()
     let settings = Settings.shared
+    var securityScopedResources = Set<URL>()
 
     var sceneViewControllers: [SceneViewController] {
         windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
@@ -171,7 +172,7 @@ class Document: NSDocument, EvaluationDelegate {
         super.close()
         progress?.cancel()
         _timer?.invalidate()
-        _securityScopedResources.forEach {
+        securityScopedResources.forEach {
             $0.stopAccessingSecurityScopedResource()
         }
     }
@@ -328,7 +329,7 @@ class Document: NSDocument, EvaluationDelegate {
                 return
             }
             var isModified = false
-            for u in [url] + Array(self._securityScopedResources) {
+            for u in [url] + Array(self.securityScopedResources) {
                 isModified = isModified || fileIsModified(u)
             }
             guard isModified else {
@@ -599,70 +600,5 @@ class Document: NSDocument, EvaluationDelegate {
                 viewController.appendLog(line + "\n")
             }
         }
-    }
-
-    // MARK: Sandbox support
-
-    // For debugging purposes
-    public func clearBookmarks() {
-        UserDefaults.standard.removeObject(forKey: "SandboxBookmarks")
-    }
-
-    private var bookmarks: [String: Data] {
-        set {
-            UserDefaults.standard.set(newValue, forKey: "SandboxBookmarks")
-        }
-        get {
-            UserDefaults.standard.dictionary(forKey: "SandboxBookmarks") as? [String: Data] ?? [:]
-        }
-    }
-
-    private func bookmarkURL(_ url: URL) {
-        // Create an app-scoped bookmark for the selected file or folder
-        if let data = try? url.bookmarkData(
-            options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
-            includingResourceValuesForKeys: nil,
-            relativeTo: nil
-        ) {
-            bookmarks[url.absoluteString] = data
-        }
-    }
-
-    private var _securityScopedResources = Set<URL>()
-
-    private func accessSecurityScopedURL(_ resolvedURL: URL) -> Bool {
-        if _securityScopedResources.contains(resolvedURL) {
-            return true
-        } else if resolvedURL.startAccessingSecurityScopedResource() {
-            _securityScopedResources.insert(resolvedURL)
-            return true
-        }
-        return false
-    }
-
-    private func resolveBookMark(for url: URL) -> URL? {
-        let path = url.absoluteString
-        guard let data = bookmarks[path] else {
-            guard !url.pathExtension.isEmpty,
-                  let directoryURL = resolveBookMark(for: url.deletingLastPathComponent())
-            else {
-                return nil
-            }
-            let resolvedURL = directoryURL.appendingPathComponent(url.lastPathComponent)
-            return accessSecurityScopedURL(resolvedURL) ? resolvedURL : nil
-        }
-        var isStale = false
-        guard let resolvedURL = try? URL(
-            resolvingBookmarkData: data,
-            options: .withSecurityScope,
-            relativeTo: nil,
-            bookmarkDataIsStale: &isStale
-        ), accessSecurityScopedURL(resolvedURL) else {
-            return nil
-        }
-        if isStale {
-            bookmarkURL(resolvedURL)
-        }
-        return resolvedURL
     }
 }
