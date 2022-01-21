@@ -48,6 +48,7 @@
 		01C8AAB326F0B28A0055F522 /* String+Matching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C8AAB226F0B28A0055F522 /* String+Matching.swift */; };
 		01CF787226EA36AD0097907A /* String+Ordinals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CF787126EA36AD0097907A /* String+Ordinals.swift */; };
 		01DCD498279A15C6004DD38F /* Document+Sandbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DCD497279A15C6004DD38F /* Document+Sandbox.swift */; };
+		01DCD4B4279AC725004DD38F /* Document+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DCD4B3279AC725004DD38F /* Document+ModelInfo.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
 		01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0926CB920000E0B287 /* LoggingTests.swift */; };
 		01E4E48826D377F000F390D7 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E4E48726D377F000F390D7 /* Axes.swift */; };
@@ -197,6 +198,7 @@
 		01C8AAB226F0B28A0055F522 /* String+Matching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Matching.swift"; sourceTree = "<group>"; };
 		01CF787126EA36AD0097907A /* String+Ordinals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Ordinals.swift"; sourceTree = "<group>"; };
 		01DCD497279A15C6004DD38F /* Document+Sandbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Document+Sandbox.swift"; sourceTree = "<group>"; };
+		01DCD4B3279AC725004DD38F /* Document+ModelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Document+ModelInfo.swift"; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		01E3AA0926CB920000E0B287 /* LoggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTests.swift; sourceTree = "<group>"; };
 		01E4E48726D377F000F390D7 /* Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Axes.swift; sourceTree = "<group>"; };
@@ -247,6 +249,7 @@
 				01908DC726B7597F0068390E /* ProgramError.swift */,
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
 				01DCD497279A15C6004DD38F /* Document+Sandbox.swift */,
+				01DCD4B3279AC725004DD38F /* Document+ModelInfo.swift */,
 				0104EB76271F0A1E00B60058 /* WindowController.swift */,
 				0104EB6B271E17FE00B60058 /* Camera.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
@@ -638,6 +641,7 @@
 				0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */,
 				01E4E48826D377F000F390D7 /* Axes.swift in Sources */,
 				013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */,
+				01DCD4B4279AC725004DD38F /* Document+ModelInfo.swift in Sources */,
 				0104EB77271F0A1E00B60058 /* WindowController.swift in Sources */,
 				01908DC826B7597F0068390E /* ProgramError.swift in Sources */,
 				01746BE926C49597009DADEF /* MaterialProperty+Brightness.swift in Sources */,

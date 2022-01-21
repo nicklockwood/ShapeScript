@@ -13,6 +13,7 @@ import ShapeScript
 class Document: NSDocument, EvaluationDelegate {
     let cache = GeometryCache()
     let settings = Settings.shared
+    var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()
 
     var sceneViewControllers: [SceneViewController] {
@@ -22,7 +23,7 @@ class Document: NSDocument, EvaluationDelegate {
     var scene: Scene? {
         didSet {
             let customCameras = geometry.cameras
-            if !customCameras.isEmpty || progress?.didSucceed != false {
+            if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
                 let oldCameras = cameras
                 cameras = CameraType.allCases.map {
                     Camera(type: $0)
@@ -65,7 +66,7 @@ class Document: NSDocument, EvaluationDelegate {
         return nil
     }
 
-    var progress: LoadingProgress? {
+    var loadingProgress: LoadingProgress? {
         didSet {
             updateViews()
         }
@@ -118,7 +119,7 @@ class Document: NSDocument, EvaluationDelegate {
             return
         }
         let options = Self.outputOptions(for: scene, wireframe: showWireframe)
-        progress?.dispatch { progress in
+        loadingProgress?.dispatch { progress in
             progress.setStatus(.partial(scene))
             scene.scnBuild(with: options)
             progress.setStatus(.success(scene))
@@ -127,7 +128,7 @@ class Document: NSDocument, EvaluationDelegate {
 
     func updateViews() {
         for viewController in sceneViewControllers {
-            viewController.isLoading = (progress?.inProgress == true)
+            viewController.isLoading = (loadingProgress?.inProgress == true)
             viewController.background = scene?.background
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
@@ -170,7 +171,7 @@ class Document: NSDocument, EvaluationDelegate {
 
     override func close() {
         super.close()
-        progress?.cancel()
+        loadingProgress?.cancel()
         _timer?.invalidate()
         securityScopedResources.forEach {
             $0.stopAccessingSecurityScopedResource()
@@ -194,12 +195,12 @@ class Document: NSDocument, EvaluationDelegate {
     override func read(from url: URL, ofType _: String) throws {
         let input = try String(contentsOf: url, encoding: .utf8)
         linkedResources.removeAll()
-        if let progress = progress, progress.inProgress {
+        if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
         let showWireframe = self.showWireframe
-        progress = LoadingProgress { [weak self] status in
+        loadingProgress = LoadingProgress { [weak self] status in
             guard let self = self else {
                 return
             }
@@ -226,7 +227,7 @@ class Document: NSDocument, EvaluationDelegate {
             }
         }
 
-        progress?.dispatch { [cache] progress in
+        loadingProgress?.dispatch { [cache] progress in
             func logCancelled() -> Bool {
                 if progress.isCancelled {
                     Swift.print("[\(progress.id)] cancelled")
@@ -329,7 +330,7 @@ class Document: NSDocument, EvaluationDelegate {
                 return
             }
             var isModified = false
-            for u in [url] + Array(self.securityScopedResources) {
+            for u in [url] + Array(self.linkedResources) {
                 isModified = isModified || fileIsModified(u)
             }
             guard isModified else {
@@ -418,67 +419,17 @@ class Document: NSDocument, EvaluationDelegate {
 
     @IBAction func showModelInfo(_: AnyObject) {
         let actionSheet = NSAlert()
-        var fileURL: URL?
-
-        // Geometry info
-        let geometry = selectedGeometry ?? self.geometry
-        let polygonCount: String
-        let triangleCount: String
-        let dimensions: String
-        if progress?.didSucceed ?? true {
-            polygonCount = String(geometry.polygonCount)
-            triangleCount = String(geometry.triangleCount)
-            dimensions = geometry.exactBounds.size.logDescription
-        } else {
-            polygonCount = "calculating…"
-            triangleCount = "calculating…"
-            dimensions = "calculating…"
-        }
-
-        if let selectedGeometry = selectedGeometry {
-            var locationString = ""
-            if let location = selectedGeometry.sourceLocation {
-                locationString = "\nDefined on line \(location.line)"
-                if let url = location.file {
-                    fileURL = url
-                    locationString += " in '\(url.lastPathComponent)'"
-                }
-            }
-            let nameString = selectedGeometry.name.flatMap {
-                $0.isEmpty ? nil : "Name: \($0)"
-            }
-            actionSheet.messageText = "Selected Object Info"
-            actionSheet.informativeText = [
-                nameString,
-                "Type: \(selectedGeometry.nestedLogDescription)",
-                "Children: \(selectedGeometry.children.count)",
-                "Polygons: \(polygonCount)",
-                "Triangles: \(triangleCount)",
-                "Dimensions: \(dimensions)",
-//                "Size: \(selectedGeometry.transform.scale.logDescription)",
-//                "Position: \(selectedGeometry.transform.offset.logDescription)",
-//                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
-                locationString,
-            ].compactMap { $0 }.joined(separator: "\n")
-
-        } else {
-            actionSheet.messageText = "Model Info"
-            actionSheet.informativeText = """
-            Objects: \(geometry.objectCount)
-            Polygons: \(polygonCount)
-            Triangles: \(triangleCount)
-            Dimensions: \(dimensions)
-
-            Imports: \(importedFileCount)
-            Textures: \(textureCount)
-            """
-        }
+        actionSheet.messageText = selectedGeometry.map { _ in
+            "Selected Object Info"
+        } ?? "Model Info"
+        actionSheet.informativeText = modelInfo
         actionSheet.addButton(withTitle: "OK")
         actionSheet.addButton(withTitle: "Open in Editor")
-        showSheet(actionSheet, in: windowForSheet) { response in
+        let fileURL = selectedGeometry?.sourceLocation?.file ?? fileURL
+        showSheet(actionSheet, in: windowForSheet) { [weak self] response in
             switch response {
             case .alertSecondButtonReturn:
-                self.openFileInEditor(fileURL ?? self.fileURL)
+                self?.openFileInEditor(fileURL)
             default:
                 break
             }
@@ -533,17 +484,7 @@ class Document: NSDocument, EvaluationDelegate {
         isOrthographic.toggle()
     }
 
-    var importedFileCount: Int {
-        linkedResources.filter { !isImageFile($0) }.count
-    }
-
-    var textureCount: Int {
-        linkedResources.filter { isImageFile($0) }.count
-    }
-
     // MARK: EvaluationDelegate
-
-    var linkedResources = Set<URL>()
 
     func resolveURL(for path: String) -> URL {
         let url = URL(fileURLWithPath: path, relativeTo: fileURL)
