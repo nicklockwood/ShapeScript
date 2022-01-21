@@ -38,6 +38,7 @@ final class EvaluationContext {
     private var symbols = Symbols.root
     var userSymbols = Symbols()
     private let importCache: ImportCache
+    private var importStack: [URL]
     let isCancelled: () -> Bool
 
     var source: String
@@ -84,6 +85,7 @@ final class EvaluationContext {
         self.delegate = delegate
         self.isCancelled = isCancelled
         importCache = ImportCache()
+        importStack = []
         random = RandomSequence(seed: 0)
     }
 
@@ -97,6 +99,7 @@ final class EvaluationContext {
         symbols = parent.symbols
         userSymbols = parent.userSymbols
         importCache = parent.importCache
+        importStack = parent.importStack
         background = parent.background
         material = parent.material
         childTypes = parent.childTypes
@@ -268,6 +271,9 @@ extension EvaluationContext {
 
     func importModel(at path: String) throws {
         let url = try resolveURL(for: path)
+        if importStack.contains(url) {
+            throw RuntimeErrorType.assertionFailure("Files cannot import themselves")
+        }
         let program: Program
         if let entry = importCache.store[url] {
             program = entry
@@ -318,7 +324,11 @@ extension EvaluationContext {
         }
         let oldURL = baseURL
         baseURL = url
-        defer { baseURL = oldURL }
+        importStack.append(url)
+        defer {
+            baseURL = oldURL
+            importStack.removeLast()
+        }
         do {
             try program.evaluate(in: self)
         } catch {
