@@ -295,11 +295,22 @@ extension EvaluationContext {
                     for: path, at: url, message: error.message
                 )
             } catch {
-                let description = (error as NSError)
-                    .userInfo[NSLocalizedDescriptionKey] as? String ?? "\(error)"
-                throw RuntimeErrorType.fileParsingError(
-                    for: path, at: url, message: description
-                )
+                var error: Error? = error
+                while let nsError = error as NSError? {
+                    if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
+                        // Not a recognized model file format
+                        break
+                    }
+                    if let description = (
+                        nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
+                            nsError.userInfo[NSLocalizedDescriptionKey]
+                    ) as? String {
+                        throw RuntimeErrorType.fileParsingError(
+                            for: path, at: url, message: description
+                        )
+                    }
+                    error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
+                }
             }
             throw RuntimeErrorType.fileTypeMismatch(
                 for: path, at: url, expected: nil
