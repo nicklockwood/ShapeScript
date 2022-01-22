@@ -1,3 +1,14 @@
+## [1.4.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.4) (2021-01-21)
+
+- Fixed infinite recursion crash when a shape file tries to import itelf
+- Improved error message when imported model file is not readable
+- Fixed assertion failure when evaluating imported block due to source confusion
+- Added stricter symbol checking in stdlib so, e.g. name can't be used inside a path
+- Fixed bug in viewer where examples always open in orthographic mode
+- Imported gifs are now counted as textures rather than models in info panel
+- Model type is now displayed correctly in info panel
+- Fixed some iOS compatibility issues
+
 ## [1.4.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.3) (2021-12-25)
 
 - ShapeScript will now attempt to ensure generated meshes are watertight by default

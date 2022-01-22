@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.4.3"
+public let version = "1.4.4"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -281,7 +281,7 @@ private extension RuntimeError {
         "subtraction": ["difference"],
     ]
 
-    static let osName: String {
+    static let osName: String = {
         #if os(macOS) || targetEnvironment(macCatalyst)
         return "macOS"
         #elseif os(tvOS)
@@ -291,7 +291,7 @@ private extension RuntimeError {
         #else
         return "system"
         #endif
-    }
+    }()
 }
 
 private extension RuntimeErrorType {
