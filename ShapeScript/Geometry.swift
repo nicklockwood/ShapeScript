@@ -117,8 +117,11 @@ public final class Geometry: Hashable {
         var children = children
         var type = type
         switch type {
-        case let .extrude(paths, along):
-            let along = along.flatMap { $0.subpaths }
+        case var .extrude(paths, along):
+            (paths, material) = paths.fixupColors(material: material)
+            (along, material) = along.fixupColors(material: material)
+            type = .extrude(paths, along: along)
+            along = along.flatMap { $0.subpaths }
             switch (paths.count, along.count) {
             case (0, 0):
                 break
@@ -153,7 +156,9 @@ public final class Geometry: Hashable {
                     }
                 }
             }
-        case let .lathe(paths, segments):
+        case .lathe(var paths, let segments):
+            (paths, material) = paths.fixupColors(material: material)
+            type = .lathe(paths, segments: segments)
             switch paths.count {
             case 0:
                 break
@@ -173,7 +178,9 @@ public final class Geometry: Hashable {
                     )
                 }
             }
-        case let .fill(paths):
+        case var .fill(paths):
+            (paths, material) = paths.fixupColors(material: material)
+            type = .fill(paths)
             switch paths.count {
             case 0:
                 break
@@ -557,6 +564,29 @@ private extension Geometry {
         copy.mesh = mesh
         copy.associatedData = associatedData
         return copy
+    }
+}
+
+private extension Collection where Element == Path {
+    func fixupColors(material: Material) -> ([Path], Material) {
+        guard material.texture == nil else {
+            return (Array(self), material)
+        }
+        var current: Color?
+        for path in self {
+            for point in path.points {
+                if current == nil {
+                    current = point.color
+                } else if point.color != current {
+                    var material = material
+                    material.color = .white
+                    return (Array(self), material)
+                }
+            }
+        }
+        var material = material
+        material.color = current ?? material.color
+        return (map { $0.removingColors() }, material)
     }
 }
 
