@@ -329,6 +329,7 @@ enum ValueType: CaseIterable {
     case size
     case rotation
     case string
+    case text
     case path
     case paths // Hack to support multiple paths
     case mesh
@@ -355,6 +356,7 @@ extension ValueType {
         case .size: return "size"
         case .rotation: return "rotation"
         case .string: return "text"
+        case .text: return "text"
         case .path: return "path"
         case .paths: return "path"
         case .mesh: return "mesh"
@@ -377,6 +379,7 @@ enum Value {
     case size(Vector)
     case rotation(Rotation)
     case string(String)
+    case text(TextValue)
     case path(Path)
     case mesh(Geometry)
     case point(PathPoint)
@@ -406,6 +409,7 @@ enum Value {
         case let .size(size): return size
         case let .rotation(rotation): return rotation
         case let .string(string): return string
+        case let .text(text): return text
         case let .path(path): return path
         case let .mesh(mesh): return mesh
         case let .point(point): return point
@@ -450,6 +454,20 @@ enum Value {
         }
     }
 
+    var textValue: TextValue {
+        switch self {
+        case let .text(text):
+            return text
+        default:
+            return TextValue(
+                string: stringValue,
+                font: nil,
+                color: nil,
+                linespacing: nil
+            )
+        }
+    }
+
     var tupleValue: [AnyHashable] {
         if case let .tuple(values) = self {
             return values.map { $0.value }
@@ -467,6 +485,7 @@ enum Value {
         case .size: return .size
         case .rotation: return .rotation
         case .string: return .string
+        case .text: return .text
         case .path: return .path
         case .mesh: return .mesh
         case .point: return .point
@@ -482,11 +501,16 @@ enum Value {
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
         case (.boolean, .string),
+             (.boolean, .text),
              (.number, .string),
-             (.number, .color):
+             (.number, .text),
+             (.number, .color),
+             (.string, .text):
             return true
         case let (.tuple(values), .string):
             return values.allSatisfy { $0.isConvertible(to: .string) }
+        case let (.tuple(values), .text):
+            return values.allSatisfy { $0.isConvertible(to: .text) }
         case let (.tuple(values), .color):
             if values.count == 1 {
                 return values[0].isConvertible(to: .color)
@@ -535,6 +559,8 @@ enum Value {
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
+        case .text:
+            return ["color", "font"]
         case .texture, .boolean, .number, .string:
             return []
         }
@@ -633,6 +659,12 @@ enum Value {
             case "depth": return .number(bounds.size.z)
             default: return nil
             }
+        case let .text(text):
+            switch name {
+            case "color": return .color(text.color ?? .white)
+            case "font": return .string(text.font ?? "")
+            default: return nil
+            }
         case .boolean, .texture, .number, .string:
             return nil
         }
@@ -658,6 +690,13 @@ struct RangeValue: Hashable, Sequence {
     func makeIterator() -> StrideThrough<Double>.Iterator {
         stride(from: start, through: end, by: step).makeIterator()
     }
+}
+
+struct TextValue: Hashable {
+    var string: String
+    var font: String?
+    var color: Color?
+    var linespacing: Double?
 }
 
 typealias Options = [String: ValueType]
@@ -690,7 +729,7 @@ enum BlockType {
         case .builder: return [.path]
         case .group: return [.mesh]
         case .path: return [.point, .path]
-        case .text: return [.string, .number]
+        case .text: return [.text]
         case .shape, .pathShape: return []
         case let .custom(baseType, _):
             return baseType?.childTypes ?? []
@@ -950,6 +989,13 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
+            case _ where !childTypes.contains(value.type) && childTypes.contains(.text):
+                children.append(.text(TextValue(
+                    string: value.stringValue,
+                    font: font,
+                    color: material.color,
+                    linespacing: self.value(for: "linespacing")?.doubleValue
+                )))
             case let .tuple(values) where values.count <= 1:
                 children += values
             default:
@@ -1078,7 +1124,7 @@ extension Statement {
                     sequence = AnySequence(values)
                 }
             case .boolean, .vector, .size, .rotation, .color, .texture,
-                 .number, .string, .path, .mesh, .point, .bounds:
+                 .number, .string, .text, .path, .mesh, .point, .bounds:
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
@@ -1454,6 +1500,8 @@ extension Expression {
             return .tuple(values)
         case .string where Value.tuple(values).isConvertible(to: .string):
             return .string(Value.tuple(values).stringValue)
+        case .text where Value.tuple(values).isConvertible(to: .text):
+            return .text(Value.tuple(values).textValue)
         case .texture where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
             return try RuntimeError.wrap(.texture(.file(
@@ -1493,7 +1541,8 @@ extension Expression {
                     )
                 }
             })
-        case .boolean, .number, .string, .texture, .font, .path, .mesh, .point, .range, .bounds:
+        case .boolean, .number, .string, .text, .texture, .font, .path,
+             .mesh, .point, .range, .bounds:
             if values.count > 1, parameters.count > 1 {
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 1),

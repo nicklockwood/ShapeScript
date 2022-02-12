@@ -264,16 +264,8 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "text": .block(.text) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
-            let linespacing = context.value(for: "linespacing")?.doubleValue
-            let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
-            let paths = Path.text(
-                text,
-                font: context.font,
-                width: width,
-                linespacing: linespacing,
-                detail: context.detail / 8,
-                color: context.material.color
-            )
+            let text = context.children.map { $0.textValue }
+            let paths = Path.text(text, width: width, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
         "svgpath": .block(.text) { context in

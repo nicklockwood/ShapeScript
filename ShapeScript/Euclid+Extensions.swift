@@ -103,6 +103,22 @@ import AppKit
 import UIKit
 #endif
 
+#if canImport(CoreText)
+private extension NSAttributedString {
+    convenience init(string: String, font: String?, color: Color?, linespacing: Double?) {
+        let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
+        var attributes = [NSAttributedString.Key.font: font as Any]
+        #if canImport(AppKit) || canImport(UIKit)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
+        attributes[.paragraphStyle] = paragraphStyle
+        attributes[.foregroundColor] = color.map(OSColor.init)
+        #endif
+        self.init(string: string, attributes: attributes)
+    }
+}
+#endif
+
 extension PathPoint {
     /// Replace point color
     func with(color: Color?) -> PathPoint {
@@ -123,27 +139,27 @@ extension Path {
         Path(points.map { $0.with(color: nil) })
     }
 
-    /// Create an array of text paths with the specified font
+    /// Create an array of text paths
     static func text(
-        _ text: String,
-        font: String?,
+        _ text: [TextValue],
         width: Double? = nil,
-        linespacing: Double? = nil,
-        detail: Int = 2,
-        color: Color? = nil
+        detail: Int = 2
     ) -> [Path] {
         #if canImport(CoreText)
-        var attributes = [NSAttributedString.Key: Any]()
-        let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
-        attributes[.font] = font
-        #if canImport(AppKit) || canImport(UIKit)
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
-        attributes[.paragraphStyle] = paragraphStyle
-        attributes[.foregroundColor] = color.map(OSColor.init)
-        #endif
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
-        return self.text(attributedString, width: width, detail: detail)
+        let attributedString = NSMutableAttributedString()
+        for text in text {
+            var string = text.string
+            if attributedString.length > 0 {
+                string = "\n\(string)"
+            }
+            attributedString.append(NSAttributedString(
+                string: string,
+                font: text.font,
+                color: text.color,
+                linespacing: text.linespacing
+            ))
+        }
+        return Path.text(attributedString, width: width, detail: detail)
         #else
         // TODO: throw error when CoreText not available
         return []

@@ -860,15 +860,24 @@ class InterpreterTests: XCTestCase {
         text {
             color 1 0 0
             "Hello"
+            color 0 0 1
+            "World"
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         #if canImport(CoreText)
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        switch geometry.type {
+        let line1 = try XCTUnwrap(context.children.first?.value as? Geometry)
+        switch line1.type {
         case let .path(path):
             XCTAssertEqual(path.points.first?.color, .red)
+        default:
+            XCTFail()
+        }
+        let line2 = try XCTUnwrap(context.children.last?.value as? Geometry)
+        switch line2.type {
+        case let .path(path):
+            XCTAssertEqual(path.points.first?.color, .blue)
         default:
             XCTFail()
         }
@@ -1426,7 +1435,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "text",
                 index: 0,
-                expected: "number, text, or block",
+                expected: "text or block",
                 got: "mesh"
             ), at: range))
         }
