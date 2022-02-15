@@ -197,12 +197,13 @@ public extension RuntimeError {
             let got = got.contains(",") ? got : "a \(got)"
             return "The \(nth(index))argument for \(name) should be a \(type), not \(got)."
         case let .unexpectedArgument(for: name, max: max):
+            let name = name.isEmpty ? "Function" : "The \(name) function"
             if max == 0 {
-                return "The \(name) command does not expect any arguments."
+                return "\(name) does not expect any arguments."
             } else if max == 1 {
-                return "The \(name) command expects only a single argument."
+                return "\(name) expects only a single argument."
             } else {
-                return "The \(name) command expects a maximum of \(max) arguments."
+                return "\(name) expects a maximum of \(max) arguments."
             }
         case let .missingArgument(for: name, index: index, type: type):
             var type = type
@@ -215,10 +216,11 @@ public extension RuntimeError {
                 break
             }
             type = type.isEmpty ? "" : " of type \(type)"
+            let name = name.isEmpty ? "Function" : "The \(name) function"
             if index == 0 {
-                return "The \(name) command expects an argument\(type)."
+                return "\(name) expects an argument\(type)."
             } else {
-                return "The \(name) command expects a \(nth(index))argument\(type)."
+                return "\(name) expects a \(nth(index))argument\(type)."
             }
         case let .unusedValue(type: type):
             return "A \(type) value was not expected in this context."
