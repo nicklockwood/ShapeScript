@@ -816,7 +816,15 @@ private func evaluateParameters(
                 let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
                 let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
                 let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
-                try RuntimeError.wrap(values.append(fn(arg, context)), at: range)
+                try RuntimeError.wrap({
+                    do {
+                        try values.append(fn(arg, context))
+                    } catch let RuntimeErrorType.unexpectedArgument(for: "", max: max) {
+                        throw RuntimeErrorType.unexpectedArgument(for: name, max: max)
+                    } catch let RuntimeErrorType.missingArgument(for: "", index: index, type: type) {
+                        throw RuntimeErrorType.missingArgument(for: name, index: index, type: type)
+                    }
+                }(), at: range)
                 break loop
             case let .block(type, fn) where !type.childTypes.isEmpty:
                 let childContext = context.push(type)
@@ -883,6 +891,77 @@ extension Definition {
                 // Wrap all definitions as a single-value tuple
                 // so that ordinal access and looping will work
                 return .constant(.tuple([value]))
+            }
+        case let .function(names, block):
+            let declarationContext = context
+            return .function(names.isEmpty ? .void : .tuple) { value, context in
+                do {
+                    let oldChildren = context.children
+                    let oldChildTypes = context.childTypes
+                    let oldSymbols = context.userSymbols
+                    let oldSource = context.source
+                    let oldBaseURL = context.baseURL
+                    context.children = []
+                    context.childTypes = ValueType.any
+                    context.source = declarationContext.source
+                    context.baseURL = declarationContext.baseURL
+                    context.userSymbols = declarationContext.userSymbols
+                    context.stackDepth += 1
+                    defer {
+                        context.children = oldChildren
+                        context.childTypes = oldChildTypes
+                        context.source = oldSource
+                        context.baseURL = oldBaseURL
+                        context.userSymbols = oldSymbols
+                        context.stackDepth -= 1
+                    }
+                    if context.stackDepth > 25 {
+                        throw RuntimeErrorType.assertionFailure("Too much recursion")
+                    }
+                    let values: [Value]
+                    if case let .tuple(_values) = value {
+                        values = _values
+                    } else {
+                        values = [value]
+                    }
+                    guard values.count == names.count else {
+                        if values.count < names.count {
+                            throw RuntimeErrorType
+                                .missingArgument(for: "", index: values.count, type: "")
+                        }
+                        throw RuntimeErrorType
+                            .unexpectedArgument(for: "", max: names.count)
+                    }
+                    for (identifier, value) in zip(names, values) {
+                        context.define(identifier.name, as: .constant(value))
+                    }
+                    for statement in block.statements {
+                        try statement.evaluate(in: context)
+                    }
+                    if context.children.count == 1 {
+                        return context.children[0]
+                    }
+                    return .tuple(context.children)
+
+                } catch var error {
+                    if let e = error as? RuntimeError,
+                       case let .unknownSymbol(name, options: options) = e.type
+                    {
+                        // TODO: find a less hacky way to limit the scope of option keyword
+                        error = RuntimeError(
+                            .unknownSymbol(name, options: options + ["option"]),
+                            at: e.range
+                        )
+                    }
+                    if declarationContext.baseURL == context.baseURL {
+                        throw error
+                    }
+                    throw RuntimeErrorType.importError(
+                        ImportError(error),
+                        for: declarationContext.baseURL?.lastPathComponent ?? "",
+                        in: declarationContext.source
+                    )
+                }
             }
         case let .block(block):
             var options = Options()

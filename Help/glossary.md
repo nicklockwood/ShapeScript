@@ -7,6 +7,7 @@ Block                | A group of commands inside braces (sometimes synonymous w
 Builder              | A command for creating a 3D mesh out of one or more 2D paths
 Color                | An RGBA color to be applied to a mesh or vertex
 CSG                  | Constructive Solid Geometry - adding or subtracting meshes to make new shapes
+Function             | A named, parameterized block that returns a value
 Geometry             | A collective term for 2D or 3D shapes produced using ShapeScript
 Group                | A group of paths or meshes. May also contain nested groups
 Material             | A color or texture
@@ -19,7 +20,7 @@ Scope                | A section of code with its own symbol namespace
 Symbol               | A named constant value or function
 Texture              | An image map to be wrapped around a mesh
 Transform            | A combined translation, rotation and scale
-Translation          | A relative or absolute position in 3D space
+Translation          | A relative or absolute position or offset in 3D space
 Tuple                | A list of values that can be accessed with .first, .second, etc. 
 Vector               | A position, direction or distance in 3D space
 

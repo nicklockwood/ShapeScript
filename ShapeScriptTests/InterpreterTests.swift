@@ -2694,7 +2694,7 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Recursion
 
-    func testRecursiveLookupInDefine() {
+    func testRecursiveLookupInBlockDefinition() {
         let program = """
         define foo {
             foo
@@ -2712,7 +2712,25 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testRecursiveWhenCallingBlock() {
+    func testRecursiveLookupInFunctionDefinition() {
+        let program = """
+        define foo() {
+            foo()
+        }
+        foo
+        """
+        let range = program.range(of: "foo()", range: program.range(of: "{\n    foo()"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, range)
+            guard case .assertionFailure("Too much recursion")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testRecursionWhenCallingBlock() {
         let program = """
         define foo {
             cube {
@@ -2720,6 +2738,26 @@ class InterpreterTests: XCTestCase {
             }
         }
         foo
+        """
+        let range = program.range(of: "foo", range: program.range(of: "position foo"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.range, range)
+            guard case .assertionFailure("Too much recursion")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testRecursionWhenCallingFunction() {
+        let program = """
+        define foo() {
+            cube {
+                position foo
+            }
+        }
+        foo()
         """
         let range = program.range(of: "foo", range: program.range(of: "position foo"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
@@ -2750,6 +2788,95 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
+    }
+
+    // MARK: Custom functions
+
+    func testCustomFunctionDoesntInheritChildrenOfParentScope() {
+        let program = """
+        sphere
+        define foo(a b) { a + b }
+        print foo(1 2)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testCustomFunctionInheritsSymbolsFromParentScope() {
+        let program = """
+        define c 3
+        define foo(a b) { a + b + c }
+        print foo(1 2)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [6])
+    }
+
+    func testCustomFunctionDoesntOverrideSymbolsFromParentScope() {
+        let program = """
+        define c 3
+        define foo() {
+            define c 4
+        }
+        foo()
+        print c
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testCustomFunctionCanUseGlobalsymbols() {
+        let program = """
+        define foo(a b) { a + b + cos(pi) }
+        print foo(1 2)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2])
+    }
+
+    func testCustomFunctionCanAffectMaterial() {
+        let program = """
+        define foo() { color 1 0 0 }
+        foo()
+        print color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testCustomFunctionCanAffectTransform() throws {
+        let program = try parse("""
+        define foo() { translate 1 }
+        foo()
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.childTransform.offset, Vector(1, 0, 0))
+    }
+
+    func testValidUseOfPointInCustomFunction() {
+        let program = """
+        define foo(x y) { point x y }
+        path {
+            foo(1 0)
+            foo(1 1)
+            foo(0 1)
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testInvalidUseOfPointInCustomFunction() {
+        let program = """
+        define foo(x y) { point x y }
+        foo(1 0)
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil))
     }
 
     // MARK: Text command
@@ -3012,6 +3139,43 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "rnd",
+                index: 0,
+                expected: "void",
+                got: "block"
+            ), at: range))
+        }
+    }
+
+    func testCallCustomFunctionWithoutArguments() {
+        let program = """
+        define foo() { 2 + 3 }
+        print foo
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
+    func testCallCustomFunctionWithEmptyArguments() {
+        let program = """
+        define foo() { 2 + 3 }
+        print foo()
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
+    func testCallCustomFunctionWithEmptyBlock() {
+        let program = """
+        define foo() { 2 + 3 }
+        print foo {}
+        """
+        let range = program.range(of: "{}")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "foo",
                 index: 0,
                 expected: "void",
                 got: "block"

@@ -3,8 +3,6 @@ Functions
 
 Functions consist of a name followed by one or more values. They perform an operation on their input values and return the result.
 
-Functions are *pure*, meaning that they do not have *side-effects*, and they do not depend on the current state of the program. A function called with a given set of input values will always return the same output value.
-
 Functions can be used inside expressions, and can accept expressions as inputs. Unlike [operators](expressions.md#operators), functions have no implicit precedence, so parentheses may be needed to avoid ambiguity.
 
 In the following example, it's not clear if `y` is intended as a second argument to the `cos` function, or as the second argument to the translate command. Only the latter would technically be valid, since `cos` only accepts a single argument, but ShapeScript requires you to be explicit, and will treat this as an error:
@@ -25,7 +23,7 @@ Lisp programmers will find this syntax quite familiar, but if you have used C-li
 translate cos(x) y
 ```
 
-Either approach is acceptable in ShapeScript. Note however that in the latter case there must be no space between the function name and the opening paren.
+Either approach is acceptable in ShapeScript.
 
 ## Arithmetic
 
@@ -162,7 +160,6 @@ Angle in degrees | Angle in radians | ShapeScript rotation
 
 <br>
 
-
 ## Functions and Expressions
 
 Expressions can be passed as function arguments, for example:
@@ -191,6 +188,31 @@ print sqrt(9) + sqrt(9) // also prints 6
 
 **Note:** When used inside an expression, parentheses around the function (or just its arguments) are required.
 
+## Custom Functions
+
+You can define your own functions using the `define` command. A function definition consists of a function name followed by a list of parameter names in parentheses:
+
+```swift
+define sum(a b) {
+    a + b
+}
+
+define degreesToRadians(degrees) {
+    degrees / 180 * pi
+}
+```
+
+Like [blocks](blocks.md), functions can refer to constant values or other functions defined in their containing [scope](scope.md):
+
+```swift
+define epsilon 0.0001
+
+define almostEqual(a b) {
+    abs(a - b) < epsilon
+}
+```
+
+Unlike [block options](blocks.md#options), function inputs do not have default values. Calling a function without passing a value for every input will result in an error.
 
 ---
 [Index](index.md) | Next: [Commands](commands.md)

@@ -858,4 +858,42 @@ class ParserTests: XCTestCase {
             ), range: textRange.lowerBound ..< bodyRange.upperBound),
         ]))
     }
+
+    // MARK: Functions
+
+    func testFunctionDeclaration() {
+        let input = "define foo(a b) { a + b }"
+        let defineRange = input.range(of: "define")!
+        let fooRange = input.range(of: "foo")!
+        let aRange1 = input.range(of: "a")!
+        let bRange1 = input.range(of: "b")!
+        let bodyRange = input.range(of: "{ a + b }")!
+        let sumRange = input.range(of: "a + b")!
+        let aRange2 = input.range(of: "a", range: bodyRange)!
+        let bRange2 = input.range(of: "b", range: bodyRange)!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "foo", range: fooRange),
+                    Definition(type: .function([
+                        Identifier(name: "a", range: aRange1),
+                        Identifier(name: "b", range: bRange1),
+                    ], Block(
+                        statements: [
+                            Statement(type: .expression(
+                                Expression(type: .infix(
+                                    Expression(type: .identifier("a"), range: aRange2),
+                                    .plus,
+                                    Expression(type: .identifier("b"), range: bRange2)
+                                ),
+                                range: sumRange)
+                            ), range: sumRange),
+                        ],
+                        range: bodyRange
+                    )))
+                ),
+                range: defineRange.lowerBound ..< bodyRange.upperBound
+            ),
+        ]))
+    }
 }

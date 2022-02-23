@@ -39,6 +39,7 @@ public struct Statement: Equatable {
 
 public enum DefinitionType: Equatable {
     case block(Block)
+    case function([Identifier], Block)
     case expression(Expression)
 }
 
@@ -46,7 +47,7 @@ public struct Definition: Equatable {
     public let type: DefinitionType
     public var range: SourceRange {
         switch type {
-        case let .block(block):
+        case let .block(block), let .function(_, block):
             return block.range
         case let .expression(expression):
             return expression.range
@@ -225,16 +226,48 @@ private extension ArraySlice where Element == Token {
         return .option(name, expression)
     }
 
+    mutating func readParameters() throws -> [Identifier]? {
+        let start = self
+        guard let expression = try readExpressions() else {
+            return []
+        }
+        switch expression.type {
+        case let .identifier(name):
+            return [Identifier(name: name, range: expression.range)]
+        case let .tuple(expressions):
+            var names = [Identifier]()
+            for expression in expressions {
+                guard case let .identifier(name) = expression.type else {
+                    fallthrough
+                }
+                names.append(Identifier(name: name, range: expression.range))
+            }
+            return names
+        default:
+            self = start
+            return nil
+        }
+    }
+
     mutating func readDefine() throws -> StatementType? {
         guard readToken(.keyword(.define)) else {
             return nil
         }
         let name = try require(readIdentifier(), as: "symbol name")
-        if let block = try readBlock() {
-            return .define(name, Definition(type: .block(block)))
+        let start = self
+        guard readToken(.lparen),
+              let names = try readParameters(),
+              readToken(.rparen),
+              let block = try readBlock()
+        else {
+            self = start
+            if let block = try readBlock() {
+                return .define(name, Definition(type: .block(block)))
+            }
+            let expression = try require(readExpressions(), as: "value")
+            return .define(name, Definition(type: .expression(expression)))
         }
-        let expression = try require(readExpressions(), as: "value")
-        return .define(name, Definition(type: .expression(expression)))
+        return .define(name, Definition(type: .function(names, block)))
     }
 
     mutating func readForLoop() throws -> StatementType? {

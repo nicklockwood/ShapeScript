@@ -80,17 +80,5 @@ star {
 
 ![Star](images/six-pointed-star.png)
 
-Blocks can return any kind of value, not just 3D geometry, so you can use blocks to create your own utility [functions](functions.md):
-
-```swift
-define degreesToRadians {
-    option degrees 0
-    degrees / 180 * pi
-}
-
-define angle degreesToRadians { degrees 90 }
-print "90 degrees is " angle " radians"
-```
-
 ---
 [Index](index.md) | Next: [Scope](scope.md)
