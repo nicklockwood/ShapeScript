@@ -15,15 +15,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainWindow
     }
 
-    lazy var welcomeWindowController: NSWindowController = {
-        NSStoryboard(name: "Main", bundle: nil)
-            .instantiateController(withIdentifier: "WelcomeWindow") as! NSWindowController
-    }()
+    lazy var welcomeWindowController: NSWindowController = NSStoryboard(name: "Main", bundle: nil)
+        .instantiateController(withIdentifier: "WelcomeWindow") as! NSWindowController
 
-    lazy var preferencesWindowController: NSWindowController = {
-        NSStoryboard(name: "Main", bundle: nil)
-            .instantiateController(withIdentifier: "PreferencesWindow") as! NSWindowController
-    }()
+    lazy var preferencesWindowController: NSWindowController = NSStoryboard(name: "Main", bundle: nil)
+        .instantiateController(withIdentifier: "PreferencesWindow") as! NSWindowController
 
     private var exampleURLs = [String: URL]()
 

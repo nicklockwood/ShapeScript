@@ -1,6 +1,14 @@
+## [1.4.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.5) (2022-03-07)
+
+- Added support for setting per-vertex colors in a path
+- Font, text color and linespacing can now be specified per-line within a text block
+- Fixed underestimated bounds calculation for extrusion along a path
+- Made logic for child count calculation more consistent
+- Bumped Euclid to version 0.5.17
+
 ## [1.4.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.4) (2021-01-21)
 
-- Fixed infinite recursion crash when a shape file tries to import itelf
+- Fixed infinite recursion crash when a shape file tries to import itself
 - Improved error message when imported model file is not readable
 - Fixed assertion failure when evaluating imported block due to source confusion
 - Added stricter symbol checking in stdlib so, e.g. name can't be used inside a path

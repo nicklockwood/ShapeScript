@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.4.4"
+public let version = "1.4.5"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -43,8 +43,10 @@ public enum ImportError: Error, Equatable {
     case parserError(ParserError)
     case runtimeError(RuntimeError)
     case unknownError
+}
 
-    public init(_ error: Error) {
+public extension ImportError {
+    init(_ error: Error) {
         switch error {
         case let error as LexerError: self = .lexerError(error)
         case let error as ParserError: self = .parserError(error)
@@ -53,7 +55,7 @@ public enum ImportError: Error, Equatable {
         }
     }
 
-    public var message: String {
+    var message: String {
         switch self {
         case let .lexerError(error): return error.message
         case let .parserError(error): return error.message
@@ -62,7 +64,7 @@ public enum ImportError: Error, Equatable {
         }
     }
 
-    public var range: SourceRange {
+    var range: SourceRange {
         switch self {
         case let .lexerError(error): return error.range
         case let .parserError(error): return error.range
@@ -71,7 +73,7 @@ public enum ImportError: Error, Equatable {
         }
     }
 
-    public var hint: String? {
+    var hint: String? {
         switch self {
         case let .lexerError(error): return error.hint
         case let .parserError(error): return error.hint
