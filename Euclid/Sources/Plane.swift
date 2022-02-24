@@ -29,12 +29,17 @@
 //  SOFTWARE.
 //
 
-/// Represents a 2D plane in 3D space.
+/// An infinite 2D plane in 3D space.
 public struct Plane: Hashable {
+    /// A surface normal vector, perpendicular to the plane.
     public let normal: Vector
+    /// The perpendicular distance from the world origin to the plane.
     public let w: Double
 
-    /// Creates a plane from a surface normal and a distance from the world origin
+    /// Creates a plane from a surface normal and a distance from the world origin.
+    /// - Parameters:
+    ///   - normal: The surface normal of the plane.
+    ///   - w: The perpendicular distance from the world origin to the plane.
     init?(normal: Vector, w: Double) {
         let length = normal.length
         guard length.isFinite, length > epsilon else {
@@ -45,7 +50,8 @@ public struct Plane: Hashable {
 }
 
 extension Plane: Comparable {
-    /// Provides a stable sort order for Planes
+    /// Returns whether the leftmost plane has the lower value.
+    /// This provides a stable order when sorting collections of planes.
     public static func < (lhs: Plane, rhs: Plane) -> Bool {
         if lhs.normal == rhs.normal {
             return lhs.w < rhs.w
@@ -59,6 +65,8 @@ extension Plane: Codable {
         case normal, w
     }
 
+    /// Creates a new plane by decoding from the given decoder.
+    /// - Parameter decoder: The decoder to read data from.
     public init(from decoder: Decoder) throws {
         if var container = try? decoder.unkeyedContainer() {
             self.normal = try Vector(from: &container).normalized()
@@ -70,6 +78,8 @@ extension Plane: Codable {
         }
     }
 
+    /// Encodes this plane into the given encoder.
+    /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
         try normal.encode(to: &container)
@@ -78,11 +88,17 @@ extension Plane: Codable {
 }
 
 public extension Plane {
+    /// A plane located at the origin, aligned with the Y and Z axes.
     static let yz = Plane(unchecked: Vector(1, 0, 0), w: 0)
+    /// A plane located at the origin, aligned with the X and Z axes.
     static let xz = Plane(unchecked: Vector(0, 1, 0), w: 0)
+    /// A plane located at the origin, aligned with the X and Y axes.
     static let xy = Plane(unchecked: Vector(0, 0, 1), w: 0)
 
-    /// Creates a plane from a point and surface normal
+    /// Creates a plane from a point and surface normal.
+    /// - Parameters:
+    ///   - normal: The surface normal of the plane.
+    ///   - pointOnPlane: An arbitrary point on the plane.
     init?(normal: Vector, pointOnPlane: Vector) {
         let length = normal.length
         guard length.isFinite, length > epsilon else {
@@ -91,42 +107,75 @@ public extension Plane {
         self.init(unchecked: normal / length, pointOnPlane: pointOnPlane)
     }
 
-    /// Generate a plane from a set of coplanar points describing a polygon
-    /// The polygon can be convex or concave. The direction of the plane normal is
-    /// based on the assumption that the points are wound in an anticlockwise direction
+    /// Creates a plane from a set of points.
+    /// - Parameter points: A set of coplanar points describing a polygon.
+    ///
+    /// > Note: The polygon can be convex or concave. The direction of the plane normal is
+    /// based on the assumption that the points are wound in an anti-clockwise direction.
     init?(points: [Vector]) {
         self.init(points: points, convex: nil)
     }
 
-    /// Returns the flipside of the plane
+    /// Returns the flip-side of the plane.
     func inverted() -> Plane {
         Plane(unchecked: -normal, w: -w)
     }
 
-    /// Checks if point is on plane
-    func containsPoint(_ p: Vector) -> Bool {
-        abs(p.distance(from: self)) < epsilon
+    /// Returns a Boolean value that indicates whether a point lies on the plane.
+    /// - Parameter point: The point to test.
+    /// - Returns: `true` if the point lies on the plane and `false` otherwise.
+    func containsPoint(_ point: Vector) -> Bool {
+        abs(point.distance(from: self)) < epsilon
     }
 
-    /// Distance of the point from a plane
-    /// A positive value is returned if the point lies in front of the plane
-    /// A negative value is returned if the point lies behind the plane
-    func distance(from p: Vector) -> Double {
-        normal.dot(p) - w
+    /// Returns the distance between a point and the plane.
+    /// - Parameter point: The point to compare with.
+    /// - Returns: The distance between the point and the plane. The value is positive if the point lies
+    ///   in front of the plane, and negative if behind.
+    func distance(from point: Vector) -> Double {
+        normal.dot(point) - w
     }
 
-    /// Returns line of intersection between planes
+    /// Computes the line of intersection between two planes.
+    /// - Parameter plane: The plane to compare with.
+    /// - Returns: The line of intersection between the planes, or `nil` if the planes are parallel.
     func intersection(with p: Plane) -> Line? {
-        guard !normal.isEqual(to: p.normal),
-              let origin = solveSimultaneousEquationsWith(self, p)
-        else {
-            // Planes do not intersect
+        let direction = normal.cross(p.normal)
+        guard direction.length > epsilon else {
+            // Planes are parallel
             return nil
         }
-        return Line(origin: origin, direction: normal.cross(p.normal))
+
+        let n1 = normal.components
+        let n2 = p.normal.components
+
+        // http://geomalgorithms.com/a05-_intersect-1.html
+        func findCommonPoint(_ a: Int, _ b: Int) -> Vector {
+            let a1 = n1[a], b1 = n1[b]
+            let a2 = n2[a], b2 = n2[b]
+
+            var result: [Double] = [0, 0, 0]
+            result[a] = (b2 * w - b1 * p.w) / (a1 * b2 - a2 * b1)
+            result[b] = (a1 * p.w - a2 * w) / (a1 * b2 - a2 * b1)
+
+            return Vector(result)
+        }
+
+        let origin: Vector
+        if abs(direction.z) >= abs(direction.x), abs(direction.z) >= abs(direction.y) {
+            origin = findCommonPoint(0, 1)
+        } else if abs(direction.y) >= abs(direction.z), abs(direction.y) >= abs(direction.x) {
+            origin = findCommonPoint(2, 0)
+        } else {
+            origin = findCommonPoint(1, 2)
+        }
+
+        return Line(origin: origin, direction: direction)
     }
 
-    /// Returns point intersection between plane and line
+    /// Computes the point of intersection between a line and a place.
+    /// - Parameter line: The ``Line`` to compare with.
+    /// - Returns: The point of intersection between the line and plane, or `nil` if they are parallel.
     func intersection(with line: Line) -> Vector? {
         // https://en.wikipedia.org/wiki/Line–plane_intersection#Algebraic_form
         let lineDotPlaneNormal = line.direction.dot(normal)
@@ -175,11 +224,15 @@ internal extension Plane {
     }
 }
 
-// An enum of relationships between a group of points and a plane
+/// The relationship between a group of points and a plane.
 enum PlaneComparison: Int {
+    /// The values all reside on the same plane.
     case coplanar = 0
+    /// The values reside in front of the plane.
     case front = 1
+    /// The values reside behind the plane.
     case back = 2
+    /// The values span both the front and back of the plane.
     case spanning = 3
 
     func union(_ other: PlaneComparison) -> PlaneComparison {
@@ -231,57 +284,4 @@ enum FlatteningPlane: RawRepresentable {
         case .xy: return Vector(point.x, point.y)
         }
     }
-}
-
-// Solve simultaneous equations using Gaussian elimination
-// http://mathsfirst.massey.ac.nz/Algebra/SystemsofLinEq/EMeth.htm
-private func performGaussianElimination(v1: Vector, w1: Double, v2: Vector, w2: Double) -> Vector? {
-    if v1.x == 0 {
-        return nil
-    }
-
-    // Assume z = 0 always
-
-    // Multiply the two equations until they have an equal leading coefficient
-    let n1 = v1 * v2.x
-    let n2 = v2 * v1.x
-    let ww1 = w1 * v2.x
-    let ww2 = w2 * v1.x
-
-    // Subtract the second from the first
-    let diff = n1 - n2
-    let wdiff = ww1 - ww2
-
-    // Solve this new equation for y:
-    // diff.y * y = wdiff
-    if diff.y == 0 {
-        return nil
-    }
-    let y = wdiff / diff.y
-
-    // Substitute this back in to the first equation
-    // self.normal.x * x + self.normal.y * y = self.w
-    // self.normal.x * x = self.w - self.normal.y * y
-    // x = (self.w - self.normal.y * y) / self.normal.x
-    let x = (w1 - v1.y * y) / v1.x
-
-    return Vector(x, y, 0)
-}
-
-// Try all the permutations of the equations we could solve until we find a solvable combination
-private func solveSimultaneousEquationsWith(_ p1: Plane, _ p2: Plane) -> Vector? {
-    let n1 = p1.normal.components, n2 = p2.normal.components
-    for i in 0 ... 2 {
-        for j in 0 ... 2 where i != j {
-            for k in 0 ... 2 where i != k && j != k {
-                let v1 = Vector(n1[i], n1[j], n1[k]), v2 = Vector(n2[i], n2[j], n2[k])
-                if let point = performGaussianElimination(v1: v1, w1: p1.w, v2: v2, w2: p2.w) {
-                    let n = point.components
-                    // Rotate the variables back in to their proper place
-                    return Vector(n[i], n[j], n[k])
-                }
-            }
-        }
-    }
-    return nil
 }

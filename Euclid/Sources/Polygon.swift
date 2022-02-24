@@ -31,11 +31,14 @@
 
 import Foundation
 
-/// A planar polygon
+/// A polygon in 3D space.
+///
+/// A polygon must be composed of three or more vertices, and those vertices must all lie on the same
+/// plane. The edges of a polygon can be either convex or concave, but not self-intersecting.
 public struct Polygon: Hashable {
     private var storage: Storage
 
-    // Used to track split/join
+    // Used to track split/join.
     var id: Int
 }
 
@@ -44,6 +47,8 @@ extension Polygon: Codable {
         case vertices, plane, material
     }
 
+    /// Creates a new polygon by decoding from the given decoder.
+    /// - Parameter decoder: The decoder to read data from.
     public init(from decoder: Decoder) throws {
         let vertices: [Vertex]
         var plane: Plane?, material: Material?
@@ -83,10 +88,14 @@ extension Polygon: Codable {
         )
     }
 
+    /// Encodes this polygon into the given encoder.
+    /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: Encoder) throws {
         let positions = vertices.map { $0.position }
         if material == nil, plane == Plane(unchecked: positions, convex: isConvex) {
-            if vertices.allSatisfy({ $0.texcoord == .zero && $0.normal == plane.normal }) {
+            if vertices.allSatisfy({
+                $0.texcoord == .zero && $0.normal == plane.normal && $0.color == .white
+            }) {
                 try positions.encode(to: encoder)
             } else {
                 try vertices.encode(to: encoder)
@@ -101,14 +110,21 @@ extension Polygon: Codable {
 }
 
 public extension Polygon {
-    /// Material used by a given polygon
+    /// Material used by a given polygon.
+    /// This can be any type that conforms to `Hashable`, but encoding/decoding is only supported
+    /// for the following types: `Color`, `String`, `Int`, `Data` or any `NSCodable` type.
     typealias Material = AnyHashable
 
-    /// Public properties
+    /// The array of vertices that make up the polygon.
     var vertices: [Vertex] { storage.vertices }
+    /// The plane on which all vertices lie.
     var plane: Plane { storage.plane }
+    /// The bounding box containing the polygon.
     var bounds: Bounds { Bounds(points: vertices.map { $0.position }) }
+    /// A Boolean value that indicates whether the polygon is convex.
     var isConvex: Bool { storage.isConvex }
+
+    /// An optional ``Material-swift.typealias`` associated with the polygon.
     var material: Material? {
         get { storage.material }
         set {
@@ -125,13 +141,18 @@ public extension Polygon {
         }
     }
 
-    /// Does polygon include texture coordinates?
+    /// A Boolean value that indicates whether the polygon includes texture coordinates.
     var hasTexcoords: Bool {
         vertices.contains(where: { $0.texcoord != .zero })
     }
 
-    /// Returns a set of polygon edges
-    /// The direction of each edge is normalized relative to the origin to facilitate edge-equality comparisons
+    /// A Boolean value that indicates whether the polygon includes vertex colors.
+    var hasVertexColors: Bool {
+        vertices.contains(where: { $0.color != .white })
+    }
+
+    /// An unordered set of polygon edges.
+    /// The direction of each edge is normalized relative to the origin to simplify edge-equality comparisons.
     var undirectedEdges: Set<LineSegment> {
         var p0 = vertices.last!.position
         return Set(vertices.map {
@@ -141,16 +162,21 @@ public extension Polygon {
         })
     }
 
-    /// Create copy of polygon with specified material
+    /// Creates a copy of the polygon with the specified material.
+    /// - Parameter material: The replacement material, or `nil` to remove the material.
     func with(material: Material?) -> Polygon {
         var polygon = self
         polygon.material = material
         return polygon
     }
 
-    /// Create a polygon from a set of vertices
-    /// Polygon can be convex or concave, but vertices must be coplanar and non-degenerate
-    /// Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
+    /// Creates a polygon from an array of vertices.
+    /// - Parameters:
+    ///   - vertices: An array of ``Vertex`` that make up the polygon.
+    ///   - material: An optional ``Material-swift.typealias`` to use for the polygon.
+    ///
+    /// > Note: A polygon can be convex or concave, but vertices must be coplanar and non-degenerate.
+    /// Vertices are assumed to be in anti-clockwise order for the purpose of deriving the face normal.
     init?(_ vertices: [Vertex], material: Material? = nil) {
         let positions = vertices.map { $0.position }
         let isConvex = pointsAreConvex(positions)
@@ -169,13 +195,20 @@ public extension Polygon {
         )
     }
 
-    /// Create a polygon from a set of vertex positions
-    /// Vertex normals will be set to match face normal
+    /// Creates a polygon from a set of vertex positions.
+    /// - Parameters:
+    ///   - vertices: An array of ``Vector`` positions for the polygon vertices.
+    ///   - material: An optional ``Material-swift.typealias`` to use for the polygon.
+    ///
+    /// > Note: Vertex normals will be set to match the overall face normal of the polygon.
+    /// Texture coordinates will be set to zero. Vertex colors will be defaulted to white.
     init?(_ vertices: [Vector], material: Material? = nil) {
         self.init(vertices.map { Vertex($0) }, material: material)
     }
 
-    /// Test if point lies inside the polygon
+    /// Returns a Boolean value that indicates whether a point lies inside the polygon, on the same plane.
+    /// - Parameter point: The point to test.
+    /// - Returns: `true` if the point lies inside the polygon and `false` otherwise.
     func containsPoint(_ p: Vector) -> Bool {
         guard plane.containsPoint(p) else {
             return false
@@ -199,7 +232,11 @@ public extension Polygon {
         return c
     }
 
-    /// Merge with another polygon, removing redundant vertices if possible
+    /// Merges this polygon with another, removing redundant vertices where possible.
+    /// - Parameters:
+    ///   - other: The polygon to merge with.
+    ///   - ensureConvex: A Boolean indicating is the resultant polygon must be convex.
+    /// - Returns: The combined polygon, or `nil` if the polygons can't be merged.
     func merge(_ other: Polygon, ensureConvex: Bool = false) -> Polygon? {
         // do they have the same material?
         guard material == other.material else {
@@ -212,10 +249,11 @@ public extension Polygon {
         return merge(unchecked: other, ensureConvex: ensureConvex)
     }
 
-    /// Flip the polygon along its plane
+    /// Flips the polygon along its plane and reverses the order and surface normals of the vertices.
+    /// - Returns: The inverted polygon.
     func inverted() -> Polygon {
         Polygon(
-            unchecked: vertices.reversed().map { $0.inverted() },
+            unchecked: vertices.inverted(),
             plane: plane.inverted(),
             isConvex: isConvex,
             material: material,
@@ -223,7 +261,10 @@ public extension Polygon {
         )
     }
 
-    /// Converts a concave polygon into 2 or more convex polygons using the "ear clipping" method
+    /// Splits a concave polygon into two or more convex polygons using the "ear clipping" method.
+    /// - Returns: An array of convex polygons.
+    ///
+    /// > Note: If the polygon is already convex then the original polygon is returned unchanged.
     func tessellate() -> [Polygon] {
         if isConvex {
             return [self]
@@ -242,7 +283,10 @@ public extension Polygon {
         return polygons
     }
 
-    /// Tessellates polygon into triangles using the "ear clipping" method
+    /// Tessellates the polygon into triangles.
+    /// - Returns: An array of triangles.
+    ///
+    /// > Note: If the polygon is already a triangle then it is returned unchanged.
     func triangulate() -> [Polygon] {
         guard vertices.count > 3 else {
             return [self]
@@ -258,6 +302,16 @@ public extension Polygon {
 }
 
 internal extension Collection where Element == Polygon {
+    /// Does any polygon include texture coordinates?
+    var hasTexcoords: Bool {
+        contains(where: { $0.hasTexcoords })
+    }
+
+    /// Does any polygon have vertex colors?
+    var hasVertexColors: Bool {
+        contains(where: { $0.hasVertexColors })
+    }
+
     /// Return a set of all unique edges across all the polygons
     var uniqueEdges: Set<LineSegment> {
         var edges = Set<LineSegment>()

@@ -43,8 +43,21 @@ extension NSAttributedString.Key {
 
 #endif
 
+#if canImport(AppKit)
+import AppKit
+private typealias OSColor = NSColor
+#elseif canImport(UIKit)
+import UIKit
+private typealias OSColor = UIColor
+#endif
+
 public extension Path {
-    /// Create an array of glyph contours from a string and font
+    /// Creates an array of glyph contours from a string and font you provide.
+    /// - Parameters:
+    ///   - text: The text to convert.
+    ///   - font: The font to use for the text.
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - detail: The number line segments used to approximate glyph curves.
     static func text(
         _ text: String,
         font: CTFont? = nil,
@@ -55,7 +68,11 @@ public extension Path {
         return self.text(attributedString, width: width, detail: detail)
     }
 
-    /// Create an array of glyph contours from an attributed string
+    /// Creates an array of glyph contours from an attributed string.
+    /// - Parameters:
+    ///   - attributedString: The text to convert.
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - detail: The number line segments used to approximate glyph curves.
     static func text(
         _ attributedString: NSAttributedString,
         width: Double? = nil,
@@ -65,13 +82,20 @@ public extension Path {
             let cgPath = CGMutablePath()
             let transform = CGAffineTransform(translationX: $1.x, y: $1.y)
             cgPath.addPath($0, transform: transform)
-            return Path(cgPath: cgPath, detail: detail)
+            return Path(cgPath: cgPath, detail: detail, color: $2)
         }
     }
 }
 
 public extension Mesh {
-    /// Create an extruded text model from a String
+    /// Creates an extruded text model from a string.
+    /// - Parameters:
+    ///   - text: The text to convert into a model
+    ///   - font: The font to use for the text glyphs.
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - depth: The depth of the extruded text.
+    ///   - detail: The number line segments used to approximate glyph curves.
+    ///   - material: An optional material to apply to the mesh.
     init(
         text: String,
         font: CTFont? = nil,
@@ -91,19 +115,25 @@ public extension Mesh {
     }
 
     /// Create an extruded text model from an attributed string
+    /// - Parameters:
+    ///   - text: The text to convert into a model
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - depth: The depth of the extruded text.
+    ///   - detail: The number line segments used to approximate glyph curves.
+    ///   - material: Optional material to apply to the mesh.
     init(
         text: NSAttributedString,
         width: Double? = nil,
         depth: Double = 1,
-        detail _: Int = 2,
+        detail: Int = 2,
         material: Material? = nil
     ) {
         var meshes = [Mesh]()
         var cache = [CGPath: Mesh]()
-        for (cgPath, cgPoint) in cgPaths(for: text, width: width) {
+        for (cgPath, cgPoint, color) in cgPaths(for: text, width: width) {
             let offset = Vector(cgPoint)
             guard let mesh = cache[cgPath] else {
-                let path = Path(cgPath: cgPath)
+                let path = Path(cgPath: cgPath, detail: detail, color: color)
                 let mesh = Mesh.extrude(path, depth: depth, material: material)
                 cache[cgPath] = mesh
                 meshes.append(mesh.translated(by: offset))
@@ -116,6 +146,7 @@ public extension Mesh {
 }
 
 private extension NSAttributedString {
+    // Creates a new attributed string using text in the font you provide.
     convenience init(string: String, font: CTFont?) {
         let font = font ?? CTFontCreateWithName("Helvetica" as CFString, 1, nil)
         let attributes = [NSAttributedString.Key.font: font]
@@ -123,11 +154,12 @@ private extension NSAttributedString {
     }
 }
 
-/// Returns an array of path, position tuples for the glyphs in an attributed string
+// Returns an array of (path, position, color) tuples
+// for the glyphs in an attributed string
 private func cgPaths(
     for attributedString: NSAttributedString,
     width: Double?
-) -> [(glyph: CGPath, offset: CGPoint)] {
+) -> [(glyph: CGPath, offset: CGPoint, color: Color?)] {
     let framesetter = CTFramesetterCreateWithAttributedString(attributedString as CFAttributedString)
 
     let range = CFRangeMake(0, 0)
@@ -140,12 +172,13 @@ private func cgPaths(
     var origins = Array(repeating: CGPoint.zero, count: lines.count)
     CTFrameGetLineOrigins(frame, range, &origins)
 
-    var paths = [(CGPath, CGPoint)]()
+    var paths = [(CGPath, CGPoint, Color?)]()
     for (line, origin) in zip(lines, origins) {
         let runs = CTLineGetGlyphRuns(line) as! [CTRun]
         for run in runs {
             let attributes = CTRunGetAttributes(run) as! [NSAttributedString.Key: Any]
             let font = attributes[.font] as! CTFont
+            let color = attributes[.foregroundColor] as? OSColor
 
             var glyph = CGGlyph()
             for index in 0 ..< CTRunGetGlyphCount(run) {
@@ -159,7 +192,7 @@ private func cgPaths(
                 CTRunGetPositions(run, range, &position)
                 position.x += origin.x
                 position.y += origin.y - origins[0].y
-                paths.append((letter, position))
+                paths.append((letter, position, color.map(Color.init)))
             }
         }
     }

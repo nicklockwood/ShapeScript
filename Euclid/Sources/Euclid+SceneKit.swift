@@ -34,12 +34,27 @@
 import SceneKit
 
 public extension SCNVector3 {
+    /// Creates a 3D SceneKit vector from a vector.
+    /// - Parameter v: The vector to convert.
     init(_ v: Vector) {
         self.init(v.x, v.y, v.z)
     }
 }
 
+public extension SCNVector4 {
+    /// Creates a 4D SceneKit vector from a color.
+    /// - Parameter c: The color to convert.
+    init(_ c: Color) {
+        self.init(c.r, c.g, c.b, c.a)
+    }
+}
+
 public extension SCNQuaternion {
+    /// Creates a new SceneKit quaternion from a rotation
+    /// - Parameter m: The rotation to convert.
+    ///
+    /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
+    /// careful to avoid type ambiguity when using this value.
     init(_ m: Rotation) {
         let x = sqrt(max(0, 1 + m.m11 - m.m22 - m.m33)) / 2
         let y = sqrt(max(0, 1 - m.m11 + m.m22 - m.m33)) / 2
@@ -61,22 +76,13 @@ private extension Data {
             append(UnsafeBufferPointer(start: pointer, count: 1))
         }
     }
-
-    mutating func append(_ double: Double) {
-        var float = Float(double)
-        withUnsafeMutablePointer(to: &float) { pointer in
-            append(UnsafeBufferPointer(start: pointer, count: 1))
-        }
-    }
-
-    mutating func append(_ vector: Vector) {
-        append(vector.x)
-        append(vector.y)
-        append(vector.z)
-    }
 }
 
 public extension SCNNode {
+    /// Applies the transform to the node.
+    ///
+    /// The transform applies to the orientation, scale, and position of the node.
+    /// - Parameter transform: The transform to apply.
     func setTransform(_ transform: Transform) {
         orientation = SCNQuaternion(transform.rotation)
         scale = SCNVector3(transform.scale)
@@ -87,9 +93,11 @@ public extension SCNNode {
 #if canImport(UIKit)
 private typealias OSColor = UIColor
 private typealias OSImage = UIImage
+private typealias OSColorComponent = Float
 #elseif canImport(AppKit)
 private typealias OSColor = NSColor
 private typealias OSImage = NSImage
+private typealias OSColorComponent = Double
 #endif
 
 private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
@@ -113,35 +121,70 @@ private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial
     }
 }
 
-public extension SCNGeometry {
-    typealias SCNMaterialProvider = (Polygon.Material?) -> SCNMaterial?
+extension SCNGeometrySource {
+    convenience init(colors: [SCNVector4]) {
+        let data = Data(bytes: colors, count: colors.count * MemoryLayout<SCNVector4>.size)
 
-    /// Creates an SCNGeometry using the default tessellation method
+        self.init(
+            data: data,
+            semantic: .color,
+            vectorCount: colors.count,
+            usesFloatComponents: true,
+            componentsPerVector: 4,
+            bytesPerComponent: MemoryLayout<OSColorComponent>.size,
+            dataOffset: 0,
+            dataStride: 0
+        )
+    }
+}
+
+public extension SCNGeometry {
+    /// A closure that maps a Euclid material to a SceneKit material.
+    /// - Parameter m: A Euclid material to convert, or `nil` for the default material.
+    /// - Returns: An `SCNMaterial` used by SceneKit.
+    typealias SCNMaterialProvider = (_ m: Polygon.Material?) -> SCNMaterial?
+
+    /// Creates a geometry from a ``Mesh`` using the default tessellation method.
+    /// - Parameters:
+    ///   - mesh: The mesh to convert into a SceneKit geometry.
+    ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     convenience init(_ mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
         self.init(triangles: mesh, materialLookup: materialLookup)
     }
 
-    /// Creates an SCNGeometry from a Mesh using triangles
+    /// Creates a geometry from a ``Mesh`` using triangles.
+    /// - Parameters:
+    ///   - mesh: The mesh to convert into a SceneKit geometry.
+    ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     convenience init(triangles mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
-        var elementData = [Data]()
-        var vertexData = Data()
+        var elementIndices = [[UInt32]]()
+        var vertices = [SCNVector3]()
+        var normals = [SCNVector3]()
+        var texcoords = [CGPoint]()
+        var colors = [SCNVector4]()
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
+        let hasTexcoords = mesh.hasTexcoords
+        let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
         for (material, polygons) in mesh.polygonsByMaterial {
-            var indexData = Data()
+            var indices = [UInt32]()
             func addVertex(_ vertex: Vertex) {
                 if let index = indicesByVertex[vertex] {
-                    indexData.append(index)
+                    indices.append(index)
                     return
                 }
                 let index = UInt32(indicesByVertex.count)
                 indicesByVertex[vertex] = index
-                indexData.append(index)
-                vertexData.append(vertex.position)
-                vertexData.append(vertex.normal)
-                vertexData.append(vertex.texcoord.x)
-                vertexData.append(vertex.texcoord.y)
+                indices.append(index)
+                vertices.append(SCNVector3(vertex.position))
+                normals.append(SCNVector3(vertex.normal))
+                if hasTexcoords {
+                    texcoords.append(CGPoint(vertex.texcoord))
+                }
+                if hasVertexColors {
+                    colors.append(SCNVector4(vertex.color))
+                }
             }
             materials.append(materialLookup(material) ?? SCNMaterial())
             for polygon in polygons {
@@ -149,62 +192,42 @@ public extension SCNGeometry {
                     triangle.vertices.forEach(addVertex)
                 }
             }
-            elementData.append(indexData)
+            elementIndices.append(indices)
         }
-        let vertexStride = 12 + 12 + 8
-        let vertexCount = vertexData.count / vertexStride
+        var sources = [
+            SCNGeometrySource(vertices: vertices),
+            SCNGeometrySource(normals: normals),
+        ]
+        if hasTexcoords {
+            sources.append(SCNGeometrySource(textureCoordinates: texcoords))
+        }
+        if hasVertexColors {
+            sources.append(SCNGeometrySource(colors: colors))
+        }
         self.init(
-            sources: [
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .vertex,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 0,
-                    dataStride: vertexStride
-                ),
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .normal,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 12,
-                    dataStride: vertexStride
-                ),
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .texcoord,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 2,
-                    bytesPerComponent: 4,
-                    dataOffset: 24,
-                    dataStride: vertexStride
-                ),
-            ],
-            elements: elementData.map { indexData in
-                SCNGeometryElement(
-                    data: indexData,
-                    primitiveType: .triangles,
-                    primitiveCount: indexData.count / 12,
-                    bytesPerIndex: 4
-                )
+            sources: sources,
+            elements: elementIndices.map { indices in
+                SCNGeometryElement(indices: indices, primitiveType: .triangles)
             }
         )
         self.materials = materials
     }
 
-    /// Creates an SCNGeometry from a Mesh using convex polygons
+    /// Creates an geometry from a ``Mesh`` using convex polygons.
+    /// - Parameters:
+    ///   - mesh: The mesh to convert into a SceneKit geometry.
+    ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     @available(OSX 10.12, iOS 10.0, tvOS 10.0, *)
     convenience init(polygons mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
         var elementData = [(Int, Data)]()
-        var vertexData = Data()
+        var vertices = [SCNVector3]()
+        var normals = [SCNVector3]()
+        var texcoords = [CGPoint]()
+        var colors = [SCNVector4]()
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
+        let hasTexcoords = mesh.hasTexcoords
+        let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
         for (material, polygons) in mesh.polygonsByMaterial {
             var indexData = Data()
@@ -216,10 +239,14 @@ public extension SCNGeometry {
                 let index = UInt32(indicesByVertex.count)
                 indicesByVertex[vertex] = index
                 indexData.append(index)
-                vertexData.append(vertex.position)
-                vertexData.append(vertex.normal)
-                vertexData.append(vertex.texcoord.x)
-                vertexData.append(vertex.texcoord.y)
+                vertices.append(SCNVector3(vertex.position))
+                normals.append(SCNVector3(vertex.normal))
+                if hasTexcoords {
+                    texcoords.append(CGPoint(vertex.texcoord))
+                }
+                if hasVertexColors {
+                    colors.append(SCNVector4(vertex.color))
+                }
             }
             materials.append(materialLookup(material) ?? SCNMaterial())
             let polygons = polygons.tessellate()
@@ -231,41 +258,18 @@ public extension SCNGeometry {
             }
             elementData.append((polygons.count, indexData))
         }
-        let vertexStride = 12 + 12 + 8
-        let vertexCount = vertexData.count / vertexStride
+        var sources = [
+            SCNGeometrySource(vertices: vertices),
+            SCNGeometrySource(normals: normals),
+        ]
+        if hasTexcoords {
+            sources.append(SCNGeometrySource(textureCoordinates: texcoords))
+        }
+        if hasVertexColors {
+            sources.append(SCNGeometrySource(colors: colors))
+        }
         self.init(
-            sources: [
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .vertex,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 0,
-                    dataStride: vertexStride
-                ),
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .normal,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 12,
-                    dataStride: vertexStride
-                ),
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .texcoord,
-                    vectorCount: vertexCount,
-                    usesFloatComponents: true,
-                    componentsPerVector: 2,
-                    bytesPerComponent: 4,
-                    dataOffset: 24,
-                    dataStride: vertexStride
-                ),
-            ],
+            sources: sources,
             elements: elementData.map { count, indexData in
                 SCNGeometryElement(
                     data: indexData,
@@ -278,109 +282,90 @@ public extension SCNGeometry {
         self.materials = materials
     }
 
-    /// Creates a wireframe SCNGeometry from a collection of LineSegments
+    /// Creates a wireframe geometry from a collection of line segments.
+    /// - Parameter edges: The collection of ``LineSegment`` to convert.
     convenience init<T: Collection>(_ edges: T) where T.Element == LineSegment {
-        var indexData = Data()
-        var vertexData = Data()
+        var indices = [UInt32]()
+        var vertices = [SCNVector3]()
         var indicesByVertex = [Vector: UInt32]()
         func addVertex(_ vertex: Vector) {
             if let index = indicesByVertex[vertex] {
-                indexData.append(index)
+                indices.append(index)
                 return
             }
             let index = UInt32(indicesByVertex.count)
             indicesByVertex[vertex] = index
-            indexData.append(index)
-            vertexData.append(vertex)
+            indices.append(index)
+            vertices.append(SCNVector3(vertex))
         }
         for edge in edges {
             addVertex(edge.start)
             addVertex(edge.end)
         }
         self.init(
-            sources: [
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .vertex,
-                    vectorCount: vertexData.count / 12,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 0,
-                    dataStride: 0
-                ),
-            ],
+            sources: [SCNGeometrySource(vertices: vertices)],
             elements: [
-                SCNGeometryElement(
-                    data: indexData,
-                    primitiveType: .line,
-                    primitiveCount: indexData.count / 8,
-                    bytesPerIndex: 4
-                ),
+                SCNGeometryElement(indices: indices, primitiveType: .line),
             ]
         )
     }
 
-    /// Creates a wireframe SCNGeometry from a Mesh using line segments
+    /// Creates a wireframe geometry from a mesh.
+    /// - Parameter mesh: The ``Mesh`` to use for the wireframe geometry.
     convenience init(wireframe mesh: Mesh) {
         self.init(mesh.uniqueEdges)
     }
 
-    /// Creates line-segment SCNGeometry representing the vertex normals of a Mesh
+    /// Creates line-segment geometry representing the vertex normals of a mesh.
+    /// - Parameters:
+    ///   - mesh: The input ``Mesh``.
+    ///   - scale: The line length of the normal indicators.
     convenience init(normals mesh: Mesh, scale: Double = 1) {
         self.init(Set(mesh.polygons.flatMap { $0.vertices }.compactMap {
             LineSegment($0.position, $0.position + $0.normal * scale)
         }))
     }
 
-    /// Creates a line-segment SCNGeometry from a Path
+    /// Creates a wrieframe geometry from a path.
+    /// - Parameter path: The ``Path`` to convert into a geometry.
     convenience init(_ path: Path) {
-        var indexData = Data()
-        var vertexData = Data()
+        var indices = [UInt32]()
+        var vertices = [SCNVector3]()
+        var colors = [SCNVector4]()
         var indicesByPoint = [Vector: UInt32]()
+        let hasColors = path.hasColors
         for path in path.subpaths {
             for vertex in path.edgeVertices {
-                let origin = vertex.position
-                if let index = indicesByPoint[origin] {
-                    indexData.append(index)
+                let position = vertex.position
+                if let index = indicesByPoint[position] {
+                    indices.append(index)
                     continue
                 }
                 let index = UInt32(indicesByPoint.count)
-                indicesByPoint[origin] = index
-                indexData.append(index)
-                vertexData.append(origin)
+                indicesByPoint[position] = index
+                indices.append(index)
+                vertices.append(SCNVector3(position))
+                if hasColors {
+                    colors.append(SCNVector4(vertex.color))
+                }
             }
         }
+        var sources = [SCNGeometrySource(vertices: vertices)]
+        if hasColors {
+            sources.append(SCNGeometrySource(colors: colors))
+        }
         self.init(
-            sources: [
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .vertex,
-                    vectorCount: vertexData.count / 8,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 0,
-                    dataStride: 0
-                ),
-            ],
+            sources: sources,
             elements: [
-                SCNGeometryElement(
-                    data: indexData,
-                    primitiveType: .line,
-                    primitiveCount: indexData.count / 8,
-                    bytesPerIndex: 4
-                ),
+                SCNGeometryElement(indices: indices, primitiveType: .line),
             ]
         )
     }
 
-    /// Creates a line-segment bounding-box SCNGeometry from a Bounds
+    /// Creates a wireframe geometry from a bounding box.
+    /// - Parameter bounds: The ``Bounds`` to convert into a geometry.
     convenience init(_ bounds: Bounds) {
-        var vertexData = Data()
-        for origin in bounds.corners {
-            vertexData.append(origin)
-        }
+        let vertices = bounds.corners.map { SCNVector3($0) }
         let indices: [UInt32] = [
             // bottom
             0, 1, 1, 2, 2, 3, 3, 0,
@@ -389,28 +374,10 @@ public extension SCNGeometry {
             // columns
             0, 4, 1, 5, 2, 6, 3, 7,
         ]
-        var indexData = Data()
-        indices.forEach { indexData.append($0) }
         self.init(
-            sources: [
-                SCNGeometrySource(
-                    data: vertexData,
-                    semantic: .vertex,
-                    vectorCount: vertexData.count / 8,
-                    usesFloatComponents: true,
-                    componentsPerVector: 3,
-                    bytesPerComponent: 4,
-                    dataOffset: 0,
-                    dataStride: 0
-                ),
-            ],
+            sources: [SCNGeometrySource(vertices: vertices)],
             elements: [
-                SCNGeometryElement(
-                    data: indexData,
-                    primitiveType: .line,
-                    primitiveCount: indexData.count / 8,
-                    bytesPerIndex: 4
-                ),
+                SCNGeometryElement(indices: indices, primitiveType: .line),
             ]
         )
     }
@@ -476,12 +443,16 @@ private extension Data {
 }
 
 public extension Vector {
+    /// Creates a new vector from a SceneKit vector.
+    /// - Parameter v: The SceneKit `SCNVector3`.
     init(_ v: SCNVector3) {
         self.init(Double(v.x), Double(v.y), Double(v.z))
     }
 }
 
 public extension Rotation {
+    /// Creates a rotation from a SceneKit quaternion.
+    /// - Parameter q: The `SCNQuaternion` to convert.
     init(_ q: SCNQuaternion) {
         let d = sqrt(1 - Double(q.w * q.w))
         guard d > epsilon else {
@@ -495,6 +466,8 @@ public extension Rotation {
 }
 
 public extension Transform {
+    /// Creates a transform from the current position, scale and orientation of a SceneKit node.
+    /// - Parameter scnNode: The `SCNNode` from which to determine the transform.
     static func transform(from scnNode: SCNNode) -> Transform {
         Transform(
             offset: Vector(scnNode.position),
@@ -505,15 +478,28 @@ public extension Transform {
 }
 
 public extension Bounds {
+    /// Creates a bounds from two SceneKit vectors.
+    /// - Parameter scnBoundingBox: A tuple of two `SCNVector3` that
+    ///   represent opposite corners of the bounding box volume.
     init(_ scnBoundingBox: (min: SCNVector3, max: SCNVector3)) {
-        self.init(min: Vector(scnBoundingBox.min), max: Vector(scnBoundingBox.max))
+        self.init(
+            min: Vector(scnBoundingBox.min),
+            max: Vector(scnBoundingBox.max)
+        )
     }
 }
 
 public extension Mesh {
-    typealias MaterialProvider = (SCNMaterial) -> Material?
+    /// A closure that maps a SceneKit material to a Euclid material.
+    /// - Parameter m: An `SCNMaterial` material to convert.
+    /// - Returns: A ``Material`` instance, or `nil` for the default material.
+    typealias MaterialProvider = (_ m: SCNMaterial) -> Material?
 
-    /// Load a mesh from a file using any format supported by sceneKit,  with optional material mapping
+    /// Loads a mesh from a file using any format supported by SceneKit,  with optional material mapping.
+    /// - Parameters:
+    ///   - url: The `URL` of the file to be loaded.
+    ///   - materialLookup: An optional closure to map the SceneKit materials to Euclid materials.
+    ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
     init(url: URL, materialLookup: MaterialProvider? = nil) throws {
         var options: [SCNSceneSource.LoadingOption: Any] = [
             .flattenScene: true,
@@ -526,17 +512,29 @@ public extension Mesh {
         self.init(importedScene.rootNode, materialLookup: materialLookup)
     }
 
-    /// Create a mesh from an SCNNode with optional material mapping
+    /// Creates a mesh from an SceneKit node, with optional material mapping.
+    /// - Parameters:
+    ///   - scnNode: The `SCNNode` to convert into a mesh.
+    ///   - materialLookup: An optional closure to map the SceneKit materials to Euclid materials.
+    ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
     init(_ scnNode: SCNNode, materialLookup: MaterialProvider? = nil) {
         var meshes = [Mesh]()
-        if let mesh = scnNode.geometry.flatMap({ Mesh($0, materialLookup: materialLookup) }) {
+        if let mesh = scnNode.geometry.flatMap({
+            Mesh($0, materialLookup: materialLookup)
+        }) {
             meshes.append(mesh)
         }
-        meshes += scnNode.childNodes.map { Mesh($0, materialLookup: materialLookup) }
+        meshes += scnNode.childNodes.map {
+            Mesh($0, materialLookup: materialLookup)
+        }
         self = .merge(meshes)
     }
 
-    /// Create a mesh from an SCNGeometry object with optional material mapping
+    /// Creates a mesh from a SceneKit geometry, with optional material mapping.
+    /// - Parameters:
+    ///   - scnGeometry: The `SCNGeometry` to convert into a mesh.
+    ///   - materialLookup: An optional closure to map SceneKit materials to Euclid materials.
+    ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
     init?(_ scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
         // Force properties to update
         let scnGeometry = scnGeometry.copy() as! SCNGeometry
@@ -546,7 +544,7 @@ public extension Mesh {
         for source in scnGeometry.sources {
             let count = source.vectorCount
             if vertices.isEmpty {
-                vertices = Array(repeating: Vertex(.zero, .zero), count: count)
+                vertices = Array(repeating: Vertex(.zero), count: count)
             } else if vertices.count != source.vectorCount {
                 return nil
             }
@@ -633,36 +631,47 @@ public extension Mesh {
                 return nil
             }
         }
-        let isConvex: Bool
+        let isKnownConvex: Bool
         let isWatertight: Bool?
         switch scnGeometry {
-        case is SCNBox,
+        case is SCNPlane,
+             is SCNBox,
              is SCNPyramid,
              is SCNSphere,
              is SCNCylinder,
              is SCNCone,
              is SCNCapsule:
-            isConvex = true
+            isKnownConvex = true
+            isWatertight = true
+        case is SCNTube,
+             is SCNTorus,
+             is SCNText,
+             is SCNShape:
+            isKnownConvex = false
             isWatertight = true
         default:
-            isConvex = false
+            isKnownConvex = false
             isWatertight = nil
         }
         let bounds = Bounds(scnGeometry.boundingBox)
         self.init(
             unchecked: polygons,
             bounds: bounds,
-            isConvex: isConvex,
+            isConvex: isKnownConvex,
             isWatertight: isWatertight
         )
     }
 
-    /// Convenience function to create a mesh from an SCNGeometry with specified material
+    /// Creates a mesh from an SceneKit geometry, with the material you provide.
+    /// - Parameters:
+    ///   - scnGeometry: The `SCNGeometry` to convert.
+    ///   - material: A ``Material`` to apply to the geometry, replacing any existing materials.
+    ///     Pass `nil` to use the default Euclid material.
     init?(_ scnGeometry: SCNGeometry, material: Material?) {
         self.init(scnGeometry) { _ in material }
     }
 
-    @available(*, deprecated, message: "Use version with unnamed parameter instead")
+    @available(*, deprecated, message: "Use init(_:materialLookup:) instead")
     init?(scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }

@@ -33,188 +33,62 @@ import Foundation
 
 // MARK: 3D shapes
 
-public extension Path {
-    /// Create a path from a line segment
-    static func line(_ line: LineSegment) -> Path {
-        .line(line.start, line.end)
-    }
-
-    /// Create a path from a start and end point
-    static func line(_ start: Vector, _ end: Vector) -> Path {
-        Path([.point(start), .point(end)])
-    }
-
-    /// Create a closed circular path
-    static func circle(radius r: Double = 0.5, segments: Int = 16) -> Path {
-        ellipse(width: r * 2, height: r * 2, segments: segments)
-    }
-
-    /// Create a closed elliptical path
-    static func ellipse(width: Double, height: Double, segments: Int = 16) -> Path {
-        let segments = max(3, segments)
-        let step = 2 / Double(segments) * .pi
-        let to = 2 * .pi + epsilon
-        let w = max(abs(width / 2), epsilon)
-        let h = max(abs(height / 2), epsilon)
-        return Path(unchecked: stride(from: 0, through: to, by: step).map {
-            PathPoint.curve(w * -sin($0), h * cos($0))
-        }, plane: .xy, subpathIndices: [])
-    }
-
-    /// Create a closed regular polygon
-    static func polygon(radius: Double = 0.5, sides: Int) -> Path {
-        let circle = self.circle(radius: radius, segments: sides)
-        return Path(unchecked: circle.points.map { .point($0.position) })
-    }
-
-    /// Create a closed rectangular path
-    static func rectangle(width: Double, height: Double) -> Path {
-        let w = width / 2, h = height / 2
-        if height < epsilon {
-            return .line(Vector(-w, 0), Vector(w, 0))
-        } else if width < epsilon {
-            return .line(Vector(0, -h), Vector(0, h))
-        }
-        return Path(unchecked: [
-            .point(-w, h), .point(-w, -h),
-            .point(w, -h), .point(w, h),
-            .point(-w, h),
-        ], plane: .xy, subpathIndices: [])
-    }
-
-    /// Create a closed square path
-    static func square(size: Double = 1) -> Path {
-        rectangle(width: size, height: size)
-    }
-
-    /// Create a quadratic bezier spline
-    static func curve(_ points: [PathPoint], detail: Int = 4) -> Path {
-        enum ArcRange {
-            case lhs, rhs, all
-        }
-
-        func arc(
-            _ p0: PathPoint,
-            _ p1: PathPoint,
-            _ p2: PathPoint,
-            _ detail: Int,
-            _ range: ArcRange = .all
-        ) -> [PathPoint] {
-            let detail = detail + 1
-            assert(detail >= 2)
-            let steps: [Double]
-            switch range {
-            case .all:
-                // excludes start and end points
-                steps = (1 ..< detail).map { Double($0) / Double(detail) }
-            case .lhs:
-                // includes start and end point
-                let range = 0 ..< Int(ceil(Double(detail) / 2))
-                steps = range.map { Double($0) / Double(detail) } + [0.5]
-            case .rhs:
-                // excludes end point
-                let range = detail / 2 + 1 ..< detail
-                steps = [0.5] + range.map { Double($0) / Double(detail) }
-            }
-
-            return steps.map {
-                var texcoord: Vector?
-                if let t0 = p0.texcoord, let t1 = p1.texcoord, let t2 = p2.texcoord {
-                    texcoord = Vector(
-                        quadraticBezier(t0.x, t1.x, t2.x, $0),
-                        quadraticBezier(t0.y, t1.y, t2.y, $0),
-                        quadraticBezier(t0.z, t1.z, t2.z, $0)
-                    )
-                }
-                return .curve(Vector(
-                    quadraticBezier(p0.position.x, p1.position.x, p2.position.x, $0),
-                    quadraticBezier(p0.position.y, p1.position.y, p2.position.y, $0),
-                    quadraticBezier(p0.position.z, p1.position.z, p2.position.z, $0)
-                ), texcoord: texcoord)
-            }
-        }
-
-        let points = sanitizePoints(points)
-        guard detail > 0, !points.isEmpty else {
-            return Path(unchecked: points, plane: nil, subpathIndices: nil)
-        }
-        var result = [PathPoint]()
-        let isClosed = pointsAreClosed(unchecked: points)
-        let count = points.count
-        let start = isClosed ? 0 : 1
-        let end = count - 1
-        var p0 = isClosed ? points[count - 2] : points[0]
-        var p1 = isClosed ? points[0] : points[1]
-        if !isClosed {
-            if p0.isCurved, count >= 3 {
-                let pe = extrapolate(points[2], p1, p0)
-                if p1.isCurved {
-                    result += arc(pe.lerp(p0, 0.5), p0, p0.lerp(p1, 0.5), detail, .rhs)
-                } else {
-                    result += arc(pe, p0, p1, detail, .rhs)
-                }
-            } else {
-                result.append(p0)
-            }
-        }
-        for i in start ..< end {
-            let p2 = points[(i + 1) % count]
-            switch (p0.isCurved, p1.isCurved, p2.isCurved) {
-            case (false, true, false):
-                result += arc(p0, p1, p2, detail + 1)
-            case (true, true, true):
-                let p0p1 = p0.lerp(p1, 0.5)
-                result.append(p0p1)
-                result += arc(p0p1, p1, p1.lerp(p2, 0.5), detail)
-            case (true, true, false):
-                let p0p1 = p0.lerp(p1, 0.5)
-                result.append(p0p1)
-                result += arc(p0p1, p1, p2, detail)
-            case (false, true, true):
-                result += arc(p0, p1, p1.lerp(p2, 0.5), detail)
-            case (_, false, _):
-                result.append(p1)
-            }
-            p0 = p1
-            p1 = p2
-        }
-        if !isClosed {
-            let p2 = points.last!
-            if p2.isCurved, count >= 3 {
-                p1 = p0
-                let pe = extrapolate(points[count - 3], p1, p2)
-                if p1.isCurved {
-                    result += arc(p1.lerp(p2, 0.5), p2, p2.lerp(pe, 0.5), detail, .lhs)
-                } else {
-                    result += arc(p1, p2, pe, detail, .lhs).dropFirst()
-                }
-            } else {
-                result.append(p2)
-            }
-        } else {
-            result.append(result[0])
-        }
-        let path = Path(unchecked: result, plane: nil, subpathIndices: nil)
-        assert(path.isClosed == isClosed)
-        return path
-    }
-}
-
 public extension Mesh {
+    /// A choice of the face directions that Euclid generates for polygons.
+    ///
+    /// ## Topics
+    ///
+    /// ### Faces
+    ///
+    /// - ``Faces/default``
+    /// - ``Faces/front``
+    /// - ``Faces/back``
+    /// - ``Faces/frontAndBack``
+    ///
+    /// ### Comparing Faces
+    ///
+    /// - ``Faces/!=(_:_:)``
+    ///
     enum Faces {
+        /// The default face generation behavior. Context-dependent.
+        case `default`
+        /// Generate front faces.
         case front
+        /// Generate back faces.
         case back
+        /// Generate both the front and back faces.
         case frontAndBack
-        case `default`
     }
 
+    /// A choice of how texture coordinates should be generated.
+    ///
+    /// ## Topics
+    ///
+    /// ### Wrap Modes
+    ///
+    /// - ``WrapMode/default``
+    /// - ``WrapMode/shrink``
+    /// - ``WrapMode/tube``
+    ///
+    /// ### Comparing Wrap modes
+    ///
+    /// - ``WrapMode/!=(_:_:)``
+    ///
     enum WrapMode {
-        case shrink
-        case tube
+        /// The default wrap behavior. Context-dependent.
         case `default`
+        /// Texture is shrink-wrapped.
+        case shrink
+        /// Texture is tube-wrapped.
+        case tube
     }
 
-    /// Construct an axis-aligned cuboid mesh
+    /// Creates an axis-aligned cuboidal mesh.
+    /// - Parameters:
+    ///   - center: The center point of the mesh.
+    ///   - size: The size of the cuboid mesh.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
     static func cube(
         center c: Vector = .init(0, 0, 0),
         size s: Vector,
@@ -248,7 +122,7 @@ public extension Mesh {
                         (0 ... 1).contains(index) ? 1 : 0
                     )
                     index += 1
-                    return Vertex(pos, normal, uv)
+                    return Vertex(unchecked: pos, normal, uv, nil)
                 },
                 normal: normal,
                 isConvex: true,
@@ -282,6 +156,12 @@ public extension Mesh {
         }
     }
 
+    /// Creates an axis-aligned cubical mesh.
+    /// - Parameters:
+    ///   - center: The center point of the mesh.
+    ///   - size: The size of the mesh.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
     static func cube(
         center c: Vector = .init(0, 0, 0),
         size s: Double = 1,
@@ -291,9 +171,17 @@ public extension Mesh {
         cube(center: c, size: Vector(s, s, s), faces: faces, material: material)
     }
 
-    /// Construct a sphere mesh
+    /// Creates a spherical mesh.
+    /// - Parameters:
+    ///   - radius: The radius of the sphere.
+    ///   - slices: The number of vertical slices that make up the sphere.
+    ///   - stacks: The number of horizontal stacks that make up the sphere.
+    ///   - poleDetail: Optionally add extra detail around poles to prevent texture warping
+    ///   - faces: The direction the polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
     static func sphere(
-        radius r: Double = 0.5,
+        radius: Double = 0.5,
         slices: Int = 16,
         stacks: Int? = nil,
         poleDetail: Int = 0,
@@ -303,10 +191,10 @@ public extension Mesh {
     ) -> Mesh {
         var semicircle = [PathPoint]()
         let stacks = max(2, stacks ?? (slices / 2))
-        let r = max(abs(r), epsilon)
+        let radius = max(abs(radius), epsilon)
         for i in 0 ... stacks {
             let a = Double(i) / Double(stacks) * Angle.pi
-            semicircle.append(.curve(-sin(a) * r, cos(a) * r))
+            semicircle.append(.curve(-sin(a) * radius, cos(a) * radius))
         }
         return lathe(
             unchecked: Path(unchecked: semicircle, plane: .xy, subpathIndices: []),
@@ -320,7 +208,15 @@ public extension Mesh {
         )
     }
 
-    /// Construct a cylindrical mesh
+    /// Creates a cylindrical mesh.
+    /// - Parameters:
+    ///   - radius: The radius of the cylinder.
+    ///   - height: The height of the cylinder.
+    ///   - slices: The number of vertical slices that make up the cylinder.
+    ///   - poleDetail: Optionally add extra detail around poles to prevent texture warping.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
     static func cylinder(
         radius r: Double = 0.5,
         height h: Double = 1,
@@ -351,7 +247,19 @@ public extension Mesh {
         )
     }
 
-    /// Construct as conical mesh
+    /// Creates a conical mesh.
+    /// - Parameters:
+    ///   - radius: The radius of the cone.
+    ///   - height: The height of the cone.
+    ///   - slices: The number of vertical slices that make up the cone.
+    ///   - poleDetail: Optionally add extra detail around top pole to prevent texture warping.
+    ///   - addDetailAtBottomPole: Whether detail should be added at bottom pil.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
+    ///
+    /// > Note: The default `nil` value for poleDetail will derive value automatically.
+    /// Use zero instead if you wish to add no extra detail at the poles.
     static func cone(
         radius r: Double = 0.5,
         height h: Double = 1,
@@ -383,19 +291,25 @@ public extension Mesh {
         )
     }
 
-    /// Create a rotationally symmetrical shape by rotating the supplied path
-    /// around an axis. The path consists of an array of xy coordinate pairs
-    /// defining the profile of the shape. Some notes on path coordinates:
+    /// Creates a rotationally symmetrical mesh by turning the specified path around the Y axis.
     ///
-    /// * The path can be open or closed. Define a closed path by ending with
-    ///   the same coordinate pair that you started with
+    /// * The profile path can be open or closed. Define a closed path by ending with
+    ///   the same point that you started with.
     ///
-    /// * The path can be placed on either the left or right of the Y axis,
-    ///   however the behavior is undefined for paths that cross the Y axis
+    /// * The path can be placed on either side of the `Y` axis,
+    ///   however the behavior is undefined for paths that cross the axis
     ///
-    /// * Open paths that do not start and end on the Y axis will produce
+    /// * Open paths that do not start and end on the `Y` axis will produce
     ///   a shape with a hole in it
     ///
+    /// - Parameters:
+    ///   - profile: The path to use as the profile for the mesh.
+    ///   - slices: The number of slices that make up the lathed mesh.
+    ///   - poleDetail: The number of segments used to make the pole.
+    ///   - addDetailForFlatPoles: A Boolean value that indicates whether to add detail to the poles.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
     static func lathe(
         _ profile: Path,
         slices: Int = 16,
@@ -418,7 +332,12 @@ public extension Mesh {
         )
     }
 
-    /// Extrude a path along its face normal
+    /// Creates a mesh by extruding a path along its face normal.
+    /// - Parameters:
+    ///   - shape: The path to extrude in order to create the mesh.
+    ///   - depth: The depth of the extrusion.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
     static func extrude(
         _ shape: Path,
         depth: Double = 1,
@@ -443,7 +362,12 @@ public extension Mesh {
         )
     }
 
-    /// Extrude a path along another path
+    /// Creates a mesh by extruding one path along another path.
+    /// - Parameters:
+    ///   - shape: The shape to extrude into a mesh.
+    ///   - along: The path along which to extrude the shape.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
     static func extrude(
         _ shape: Path,
         along: Path,
@@ -493,6 +417,9 @@ public extension Mesh {
                 r = rotationBetweenVectors(p0p2, shapeNormal)
             }
             shape = shape.rotated(by: r)
+            if let color = p2.color {
+                shape = shape.with(color: color)
+            }
             if p0p1.isEqual(to: p1p2) {
                 shapes.append(shape.translated(by: p1.position))
             } else {
@@ -502,7 +429,7 @@ public extension Mesh {
                 scale.x = abs(scale.x)
                 scale.y = abs(scale.y)
                 scale.z = abs(scale.z)
-                scale = scale + Vector(1, 1, 1)
+                scale = scale + .one
                 shapes.append(shape.scaled(by: scale).translated(by: p1.position))
             }
             p0 = p1
@@ -520,18 +447,28 @@ public extension Mesh {
         } else {
             var _p0p2: Vector! = p0p1
             shape = shape.rotated(by: rotationBetweenVectors(p0p1, shapeNormal))
+            if let color = p0.color {
+                shape = shape.with(color: color)
+            }
             shapes.append(shape.translated(by: p0.position))
             for i in 1 ..< count - 1 {
                 let p2 = points[i + 1]
                 addShape(p2, &_p0p2)
             }
             shape = shape.rotated(by: rotationBetweenVectors(p0p1, _p0p2))
+            if let color = points.last?.color {
+                shape = shape.with(color: color)
+            }
             shapes.append(shape.translated(by: points.last!.position))
         }
         return loft(shapes, faces: faces, material: material)
     }
 
-    /// Connect multiple 3D paths
+    /// Creates a mesh by connecting a series of 3D paths representing the cross sections
+    /// - Parameters:
+    ///   - shapes: The paths to connect.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
     static func loft(
         _ shapes: [Path],
         faces: Faces = .default,
@@ -547,7 +484,11 @@ public extension Mesh {
         )
     }
 
-    /// Fill a path to form one or more polygons
+    /// Creates a mesh by filling a path to form one or more polygons.
+    /// - Parameters:
+    ///   - shape: The shape to be filled.
+    ///   - faces: The direction the polygon faces.
+    ///   - material: The optional material for the mesh.
     static func fill(
         _ shape: Path,
         faces: Faces = .default,
@@ -601,7 +542,12 @@ public extension Mesh {
         )
     }
 
-    /// Stroke a path with the specified line width, detail and material
+    /// Creates a mesh by stroking a path with the line width, detail, and material you provide.
+    /// - Parameters:
+    ///   - shape: The path to stroke.
+    ///   - width: The line width of the stroke.
+    ///   - detail: The number of sides to use for the cross-sectional shape of the stroked mesh.
+    ///   - material: The optional material for the mesh.
     static func stroke(
         _ shape: Path,
         width: Double = 0.01,
@@ -620,7 +566,12 @@ public extension Mesh {
         return extrude(path, along: shape, faces: faces, material: material)
     }
 
-    /// Efficiently stroke a set of line segments (useful for drawing wireframes)
+    /// Efficiently strokes a set of line segments (useful for drawing wireframes)
+    /// - Parameters:
+    ///   - lines: A collection of ``LineSegment`` to stroke.
+    ///   - width: The line width of the strokes.
+    ///   - detail: The number of sides to use for the cross-sectional shape of the stroked mesh.
+    ///   - material: The optional material for the mesh.
     static func stroke<T: Collection>(
         _ lines: T,
         width: Double = 0.002,
@@ -761,19 +712,22 @@ private extension Mesh {
                         let v0 = Vertex(
                             unchecked: v0.position,
                             Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                            Vector(v0.texcoord.x + (t0 + t1) / 2, v0.texcoord.y, 0)
+                            Vector(v0.texcoord.x + (t0 + t1) / 2, v0.texcoord.y, 0),
+                            v0.color
                         )
                         let v2 = Vertex(
                             unchecked:
                             Vector(cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x),
                             Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                            Vector(v1.texcoord.x + t0, v1.texcoord.y, 0)
+                            Vector(v1.texcoord.x + t0, v1.texcoord.y, 0),
+                            v1.color
                         )
                         let v3 = Vertex(
                             unchecked:
                             Vector(cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x),
                             Vector(cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x),
-                            Vector(v1.texcoord.x + t1, v1.texcoord.y, 0)
+                            Vector(v1.texcoord.x + t1, v1.texcoord.y, 0),
+                            v1.color
                         )
                         polygons.append(Polygon(
                             unchecked: [v0, v2, v3],
@@ -787,19 +741,22 @@ private extension Mesh {
                     let v1 = Vertex(
                         unchecked: v1.position,
                         Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                        Vector(v1.texcoord.x + (t0 + t1) / 2, v1.texcoord.y, 0)
+                        Vector(v1.texcoord.x + (t0 + t1) / 2, v1.texcoord.y, 0),
+                        v1.color
                     )
                     let v2 = Vertex(
                         unchecked:
                         Vector(cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x),
                         Vector(cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0)
+                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0),
+                        v0.color
                     )
                     let v3 = Vertex(
                         unchecked:
                         Vector(cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x),
                         Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0)
+                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0),
+                        v0.color
                     )
                     polygons.append(Polygon(
                         unchecked: [v2, v3, v1],
@@ -813,25 +770,29 @@ private extension Mesh {
                         unchecked:
                         Vector(cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x),
                         Vector(cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0)
+                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0),
+                        v0.color
                     )
                     let v3 = Vertex(
                         unchecked:
                         Vector(cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x),
                         Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0)
+                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0),
+                        v0.color
                     )
                     let v4 = Vertex(
                         unchecked:
                         Vector(cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x),
                         Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                        Vector(v1.texcoord.x + t0, v1.texcoord.y, 0)
+                        Vector(v1.texcoord.x + t0, v1.texcoord.y, 0),
+                        v1.color
                     )
                     let v5 = Vertex(
                         unchecked:
                         Vector(cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x),
                         Vector(cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x),
-                        Vector(v1.texcoord.x + t1, v1.texcoord.y, 0)
+                        Vector(v1.texcoord.x + t1, v1.texcoord.y, 0),
+                        v1.color
                     )
                     let vertices = [v2, v3, v4, v5]
                     if !verticesAreDegenerate(vertices) {

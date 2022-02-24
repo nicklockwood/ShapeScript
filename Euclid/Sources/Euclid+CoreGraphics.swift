@@ -34,12 +34,16 @@
 import CoreGraphics
 
 public extension Vector {
+    /// Creates a vector from a CoreGraphics `CGPoint`.
+    /// - Parameter cgPoint: the CoreGraphics point.
     init(_ cgPoint: CGPoint) {
         self.init(Double(cgPoint.x), Double(cgPoint.y))
     }
 }
 
 public extension Color {
+    /// Creates a color from a CoreGraphics `CGColor`.
+    /// - Parameter cgColor: The CoreGraphics color instance.
     init(_ cgColor: CGColor) {
         let components = cgColor.components ?? [1]
         self.init(unchecked: components.map(Double.init))
@@ -47,42 +51,30 @@ public extension Color {
 }
 
 public extension CGPoint {
+    /// Creates a `CGPoint` from the ``Vector/x`` and ``Vector/y`` components of a vector.
+    /// - Parameter vector: The vector to convert into a point.
     init(_ vector: Vector) {
         self.init(x: vector.x, y: vector.y)
     }
 }
 
 public extension Path {
-    /// Create a Path from a CGPath. The returned path may contain nested subpaths
-    init(cgPath: CGPath, detail: Int = 4) {
-        self.init(subpaths: cgPath.paths(detail: detail))
+    /// Creates a Path from a `CGPath`. The returned path may contain nested subpaths.
+    /// - Parameters:
+    ///   - cgPath: The CoreGraphics path to convert.
+    ///   - detail: The number of line segments used to approximate cubic or quadratic bezier curves.
+    ///   - color: An optional ``Color`` to apply to the path vertices.
+    init(cgPath: CGPath, detail: Int = 4, color: Color? = nil) {
+        self.init(subpaths: cgPath.paths(detail: detail, color: color))
     }
 }
 
 public extension CGPath {
-    private func enumerateElements(_ block: @convention(block) (CGPathElement) -> Void) {
-        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
-            applyWithBlock { block($0.pointee) }
-            return
-        }
-
-        // Fallback for earlier OSes
-        typealias Block = @convention(block) (CGPathElement) -> Void
-        let callback: @convention(c) (
-            UnsafeMutableRawPointer,
-            UnsafePointer<CGPathElement>
-        ) -> Void = { info, element in
-            unsafeBitCast(info, to: Block.self)(element.pointee)
-        }
-        withoutActuallyEscaping(block) { block in
-            let block = unsafeBitCast(block, to: UnsafeMutableRawPointer.self)
-            self.apply(info: block, function: unsafeBitCast(callback, to: CGPathApplierFunction.self))
-        }
-    }
-
-    /// Create a flat array of Paths from a CGPath. Returned paths are
-    /// guaranteed not to contain nested subpaths
-    func paths(detail: Int = 4) -> [Path] {
+    /// Creates an array of paths from a CoreGraphics path. Returned paths will not contain nested subpaths.
+    /// - Parameters
+    ///   - detail: The number of line segments used to approximate cubic or quadratic bezier curves.
+    ///   - color: An optional color to apply to the path vertices.
+    func paths(detail: Int = 4, color: Color? = nil) -> [Path] {
         typealias SafeElement = (type: CGPathElementType, points: [CGPoint])
         var paths = [Path]()
         var points = [PathPoint]()
@@ -105,13 +97,13 @@ public extension CGPath {
         }
         func updateLastPoint(nextElement: SafeElement) {
             if points.isEmpty {
-                points.append(.point(startingPoint))
+                points.append(.point(startingPoint, color: color))
                 return
             }
             guard let lastElement = lastElement else {
                 return
             }
-            let p0: CGPoint, p1: CGPoint, p2: CGPoint, isCurved: Bool
+            let p0, p1, p2: CGPoint, isCurved: Bool
             switch nextElement.type {
             case .moveToPoint:
                 points[points.count - 1].isCurved = false
@@ -170,42 +162,43 @@ public extension CGPath {
                 let origin = $0.points[0]
                 element.points = [origin]
                 updateLastPoint(nextElement: element)
-                points.append(.point(Vector(origin)))
+                points.append(.point(Vector(origin), color: color))
             case .addQuadCurveToPoint:
                 let p1 = $0.points[0], p2 = $0.points[1]
                 element.points = [p1, p2]
                 updateLastPoint(nextElement: element)
                 guard detail > 0 else {
-                    points.append(.curve(Vector(p1)))
-                    points.append(.point(Vector(p2)))
+                    points.append(.curve(Vector(p1), color: color))
+                    points.append(.point(Vector(p2), color: color))
                     break
                 }
                 let detail = max(detail, 2)
                 var t = 0.0
                 let step = 1 / Double(detail)
-                let p0 = points.last ?? .point(startingPoint)
+                let p0 = points.last ?? .point(startingPoint, color: color)
                 for _ in 1 ..< detail {
                     t += step
                     points.append(.curve(
                         quadraticBezier(p0.position.x, Double(p1.x), Double(p2.x), t),
-                        quadraticBezier(p0.position.y, Double(p1.y), Double(p2.y), t)
+                        quadraticBezier(p0.position.y, Double(p1.y), Double(p2.y), t),
+                        color: color
                     ))
                 }
-                points.append(.point(Vector(p2)))
+                points.append(.point(Vector(p2), color: color))
             case .addCurveToPoint:
                 let p1 = $0.points[0], p2 = $0.points[1], p3 = $0.points[2]
                 element.points = [p1, p2, p3]
                 updateLastPoint(nextElement: element)
                 guard detail > 0 else {
-                    points.append(.curve(Vector(p1)))
-                    points.append(.curve(Vector(p2)))
-                    points.append(.point(Vector(p3)))
+                    points.append(.curve(Vector(p1), color: color))
+                    points.append(.curve(Vector(p2), color: color))
+                    points.append(.point(Vector(p3), color: color))
                     break
                 }
                 let detail = max(detail * 2, 3)
                 var t = 0.0
                 let step = 1 / Double(detail)
-                let p0 = points.last ?? .point(startingPoint)
+                let p0 = points.last ?? .point(startingPoint, color: color)
                 for _ in 1 ..< detail {
                     t += step
                     points.append(.curve(
@@ -213,7 +206,7 @@ public extension CGPath {
                         cubicBezier(p0.position.y, Double(p1.y), Double(p2.y), Double(p3.y), t)
                     ))
                 }
-                points.append(.point(Vector(p3)))
+                points.append(.point(Vector(p3), color: color))
             @unknown default:
                 return
             }
@@ -224,6 +217,28 @@ public extension CGPath {
         }
         endPath()
         return paths
+    }
+}
+
+private extension CGPath {
+    func enumerateElements(_ block: @convention(block) (CGPathElement) -> Void) {
+        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
+            applyWithBlock { block($0.pointee) }
+            return
+        }
+
+        // Fallback for earlier OSes
+        typealias Block = @convention(block) (CGPathElement) -> Void
+        let callback: @convention(c) (
+            UnsafeMutableRawPointer,
+            UnsafePointer<CGPathElement>
+        ) -> Void = { info, element in
+            unsafeBitCast(info, to: Block.self)(element.pointee)
+        }
+        withoutActuallyEscaping(block) { block in
+            let block = unsafeBitCast(block, to: UnsafeMutableRawPointer.self)
+            self.apply(info: block, function: unsafeBitCast(callback, to: CGPathApplierFunction.self))
+        }
     }
 }
 

@@ -29,10 +29,17 @@
 //  SOFTWARE.
 //
 
+/// A finite line segment in 3D space.
 public struct LineSegment: Hashable {
-    public let start, end: Vector
+    // The starting point of the line segment.
+    public let start: Vector
+    // The end point of the line segment.
+    public let end: Vector
 
-    /// Creates a line segment from a start and end point
+    /// Creates a line segment with a start and end point.
+    /// - Parameters:
+    ///   - start: The start of the line segment.
+    ///   - end: The end of the line segment.
     public init?(_ start: Vector, _ end: Vector) {
         guard start != end else {
             return nil
@@ -43,7 +50,8 @@ public struct LineSegment: Hashable {
 }
 
 extension LineSegment: Comparable {
-    /// Provides a stable sort order for LineSegments
+    /// Returns whether the leftmost line segment has the lower value.
+    /// This provides a stable order when sorting collections of line segments.
     public static func < (lhs: LineSegment, rhs: LineSegment) -> Bool {
         if lhs.start == rhs.start {
             return lhs.end < rhs.end
@@ -57,6 +65,8 @@ extension LineSegment: Codable {
         case start, end
     }
 
+    /// Creates a new line segment by decoding from the given decoder.
+    /// - Parameter decoder: The decoder to read data from.
     public init(from decoder: Decoder) throws {
         if let container = try? decoder.container(keyedBy: CodingKeys.self) {
             guard let segment = try LineSegment(
@@ -85,6 +95,8 @@ extension LineSegment: Codable {
         }
     }
 
+    /// Encodes this line segment into the given encoder.
+    /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
         try start.encode(to: &container)
@@ -93,29 +105,37 @@ extension LineSegment: Codable {
 }
 
 public extension LineSegment {
+    /// The direction of the line segment as a normalized vector.
     var direction: Vector {
         (end - start).normalized()
     }
 
+    /// The length of the line segment.
     var length: Double {
         (end - start).length
     }
 
-    /// Check if point is on line segment
+    /// Returns a Boolean value that indicates whether the specified point lies on the line segment.
+    /// - Parameter p: The point to test.
+    /// - Returns: `true` if the point lies on the line segment and `false` otherwise.
     func containsPoint(_ p: Vector) -> Bool {
         let v = vectorFromPointToLine(p, start, direction)
-        guard v.length < epsilon else {
+        guard v.isEqual(to: .zero, withPrecision: epsilon) else {
             return false
         }
         return Bounds(start, end).containsPoint(p)
     }
 
-    /// Intersection point between lines (if any)
+    /// Returns the intersection point between the specified line segment and this one.
+    /// - Parameter segment: The line segment to compare with.
+    /// - Returns: The point of intersection, or `nil` if the line segments don't intersect.
     func intersection(with segment: LineSegment) -> Vector? {
         lineSegmentsIntersection(start, end, segment.start, segment.end)
     }
 
-    /// Returns true if the line segments intersect
+    /// Returns a Boolean value that indicates whether two line segements intersect.
+    /// - Parameter segment: The line segment to compare with.
+    /// - Returns: `true` if the line segments intersect and `false` otherwise.
     func intersects(_ segment: LineSegment) -> Bool {
         intersection(with: segment) != nil
     }
