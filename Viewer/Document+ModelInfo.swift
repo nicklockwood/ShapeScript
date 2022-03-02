@@ -44,10 +44,11 @@ extension Document {
             let nameString = selectedGeometry.name.flatMap {
                 $0.isEmpty ? nil : "Name: \($0)"
             }
+            let childCount = selectedGeometry.childCount
             return [
                 nameString,
                 "Type: \(selectedGeometry.nestedLogDescription)",
-                "Children: \(selectedGeometry.children.count)",
+                childCount == 0 ? nil : "Children: \(childCount)",
                 "Polygons: \(polygonCount)",
                 "Triangles: \(triangleCount)",
                 "Dimensions: \(dimensions)",

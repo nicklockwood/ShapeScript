@@ -190,7 +190,7 @@ extension Geometry: Loggable {
     public var logDescription: String {
         let fields = [
             name.flatMap { $0.isEmpty ? nil : "    name: \($0)" },
-            children.isEmpty ? nil : "    children: \(children.count)",
+            childCount == 0 ? nil : "    children: \(childCount)",
             "    size: \(transform.scale.logDescription)",
             "    position: \(transform.offset.logDescription)",
             "    orientation: \(transform.rotation.logDescription)",

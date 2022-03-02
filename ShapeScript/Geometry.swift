@@ -626,6 +626,17 @@ public extension Geometry {
         return count
     }
 
+    var childCount: Int {
+        switch type {
+        case .cone, .cylinder, .sphere, .cube,
+             .extrude, .lathe, .fill, .loft,
+             .mesh, .path, .camera:
+            return 0 // TODO: should paths/points be treated as children?
+        case .union, .xor, .difference, .intersection, .stencil, .group:
+            return children.count
+        }
+    }
+
     var exactBounds: Bounds {
         merged().bounds
     }
