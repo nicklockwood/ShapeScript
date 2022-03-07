@@ -67,20 +67,15 @@ public extension GeometryType {
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
         case let .extrude(paths, along: along):
             if along.isEmpty {
-                var points = [Vector]()
-                for path in paths {
+                return paths.reduce(into: .empty) { bounds, path in
                     let offset = path.faceNormal / 2
-                    for p in path.points {
-                        points.append(p.position + offset)
-                        points.append(p.position - offset)
-                    }
+                    bounds.formUnion(path.bounds.translated(by: offset))
+                    bounds.formUnion(path.bounds.translated(by: -offset))
                 }
-                return .init(points: points)
             }
-            var bounds = Bounds.empty
-            for along in along {
+            return along.reduce(into: .empty) { bounds, along in
                 let alongBounds = along.bounds
-                for path in paths {
+                bounds = paths.reduce(into: bounds) { bounds, path in
                     let pathBounds = path.bounds
                     bounds.formUnion(Bounds(
                         min: alongBounds.min + pathBounds.min,
@@ -88,21 +83,17 @@ public extension GeometryType {
                     ))
                 }
             }
-            return bounds
         case let .lathe(paths, _):
-            var result = [Bounds]()
-            for path in paths {
-                var min = path.bounds.min, max = path.bounds.max
-                min.x = Swift.min(Swift.min(Swift.min(min.x, -max.x), min.z), -max.z)
+            return .init(bounds: paths.map {
+                var min = $0.bounds.min, max = $0.bounds.max
+                min.x = Swift.min(min.x, -max.x, min.z, -max.z)
                 max.x = -min.x
                 min.z = min.x
                 max.z = -min.x
-                result.append(.init(min: min, max: max))
-            }
-            return .init(bounds: result)
-        case let .loft(paths),
-             let .fill(paths):
-            return .init(bounds: Array(paths.map { $0.bounds }))
+                return .init(min: min, max: max)
+            })
+        case let .loft(paths), let .fill(paths):
+            return .init(bounds: paths.map { $0.bounds })
         case let .path(path):
             return path.bounds
         case let .mesh(mesh):

@@ -48,10 +48,11 @@ public final class Geometry: Hashable {
     /// Whether children should be rendered separately or are included in mesh
     public var renderChildren: Bool {
         switch type {
-        case .cone, .cylinder, .sphere, .cube,
-             .lathe, .loft, .path, .mesh, .group:
+        case .group:
             return true
-        case .intersection, .difference, .stencil, .camera:
+        case .cone, .cylinder, .sphere, .cube,
+             .lathe, .loft, .path, .mesh, .camera,
+             .intersection, .difference, .stencil:
             return false
         case .union, .xor, .extrude, .fill:
             return mesh == nil
@@ -254,25 +255,21 @@ public extension Geometry {
     var bounds: Bounds {
         switch type {
         case .difference, .stencil:
-            return children.first.map { $0.bounds.transformed(by: $0.transform) } ?? .empty
+            return children.first.map {
+                $0.bounds.transformed(by: $0.transform)
+            } ?? .empty
         case .intersection:
-            var bounds = children.first.map { $0.bounds.transformed(by: $0.transform) } ?? .empty
-            for child in children.dropFirst() {
+            return children.dropFirst().reduce(into: children.first.map {
+                $0.bounds.transformed(by: $0.transform)
+            } ?? .empty) { bounds, child in
                 bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
-            return bounds
-        case .union, .xor, .group:
-            var bounds = Bounds.empty
-            for child in children {
+        case .union, .xor, .group, .extrude, .lathe, .loft, .fill:
+            return children.reduce(into: type.bounds) { bounds, child in
                 bounds.formUnion(child.bounds.transformed(by: child.transform))
             }
-            return bounds
-        case .cone, .cube, .cylinder, .sphere, .extrude, .lathe, .loft, .fill, .path, .mesh:
-            var bounds = type.bounds
-            for child in children {
-                bounds.formUnion(child.bounds.transformed(by: child.transform))
-            }
-            return bounds
+        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
+            return type.bounds
         case .camera:
             return .empty
         }
