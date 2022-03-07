@@ -77,9 +77,13 @@ public extension GeometryType {
                 let alongBounds = along.bounds
                 bounds = paths.reduce(into: bounds) { bounds, path in
                     let pathBounds = path.bounds
+                    let pathRadius = Swift.max(
+                        pathBounds.min.length,
+                        pathBounds.max.length
+                    )
                     bounds.formUnion(Bounds(
-                        min: alongBounds.min + pathBounds.min,
-                        max: alongBounds.max + pathBounds.max
+                        min: alongBounds.min - Vector(size: pathRadius),
+                        max: alongBounds.max + Vector(size: pathRadius)
                     ))
                 }
             }
