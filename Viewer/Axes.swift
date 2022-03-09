@@ -19,10 +19,9 @@ struct Axes {
         let color = Color(.underPageBackgroundColor)
         let brightness = background?.brightness(over: color) ?? color.brightness
         let lineColor = brightness > 0.5 ? Color.black : .white
-        var material = Material.default
-        material.color = lineColor
+        let material = Material(color: lineColor)
         geometry = Geometry(transform: Transform(scale: Vector(size: [scale])), children: [
-            Geometry(type: .path(.line(-.unitX, .unitX))),
+            Geometry(type: .path(.line(-.unitX, .unitX, color: lineColor))),
             Geometry(
                 label: "+X",
                 offset: .unitX * distance,
@@ -37,7 +36,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitY, .unitY))),
+            Geometry(type: .path(.line(-.unitY, .unitY, color: lineColor))),
             Geometry(
                 label: "+Y",
                 offset: .unitY * distance,
@@ -52,7 +51,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitZ, .unitZ))),
+            Geometry(type: .path(.line(-.unitZ, .unitZ, color: lineColor))),
             Geometry(
                 label: "+Z",
                 offset: .unitZ * distance,
