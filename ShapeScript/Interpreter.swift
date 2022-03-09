@@ -489,6 +489,21 @@ enum Value {
         return [value]
     }
 
+    var sequenceValue: AnySequence<Value>? {
+        switch self {
+        case let .range(range):
+            return AnySequence(range.lazy.map { .number($0) })
+        case let .tuple(values):
+            if values.count == 1, let value = values.first?.sequenceValue {
+                return value
+            }
+            return AnySequence(values)
+        case .boolean, .vector, .size, .rotation, .color, .texture,
+             .number, .string, .text, .path, .mesh, .point, .bounds:
+            return nil
+        }
+    }
+
     var type: ValueType {
         switch self {
         case .color: return .color
@@ -1133,19 +1148,7 @@ extension Statement {
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
-            let sequence: AnySequence<Value>
-            switch value {
-            case let .range(range):
-                sequence = AnySequence(range.lazy.map { .number($0) })
-            case let .tuple(values):
-                // TODO: find less hacky way to do this unwrap
-                if values.count == 1, case let .range(range) = values[0] {
-                    sequence = AnySequence(range.lazy.map { .number($0) })
-                } else {
-                    sequence = AnySequence(values)
-                }
-            case .boolean, .vector, .size, .rotation, .color, .texture,
-                 .number, .string, .text, .path, .mesh, .point, .bounds:
+            guard let sequence = value.sequenceValue else {
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
