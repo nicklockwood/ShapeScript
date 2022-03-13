@@ -637,4 +637,8 @@ public extension Geometry {
     var exactBounds: Bounds {
         merged().bounds
     }
+
+    var isWatertight: Bool {
+        merged().isWatertight
+    }
 }

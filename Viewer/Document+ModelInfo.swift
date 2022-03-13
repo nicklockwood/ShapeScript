@@ -52,12 +52,14 @@ extension Document {
                 "Polygons: \(polygonCount)",
                 "Triangles: \(triangleCount)",
                 "Dimensions: \(dimensions)",
+                "Watertight: \(selectedGeometry.isWatertight)",
 //                "Size: \(selectedGeometry.transform.scale.logDescription)",
 //                "Position: \(selectedGeometry.transform.offset.logDescription)",
 //                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
                 locationString,
             ].compactMap { $0 }.joined(separator: "\n")
         }
+
         return """
         Objects: \(geometry.objectCount)
         Polygons: \(polygonCount)
