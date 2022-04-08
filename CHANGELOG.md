@@ -1,3 +1,12 @@
+## [1.4.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.6) (2022-04-08)
+
+- Fixed `svgpath` command (broken in 1.4.5)
+- Fixed bug where axes were rendered in the wrong color
+- Watertight status is now displayed in object info panel
+- The `roundrect` command now works on Linux
+- Bumped LRUCache to version 1.0.3
+- Bumped Euclid to version 0.5.18
+
 ## [1.4.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.5) (2022-03-07)
 
 - Added support for setting per-vertex colors in a path
