@@ -245,22 +245,14 @@ extension Dictionary where Key == String, Value == Symbol {
             ).transformed(by: context.transform))
         },
         "roundrect": .block(.custom(.pathShape, ["radius": .number])) { context in
-            #if canImport(CoreGraphics)
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
-            return .path(Path(
-                CGPath(
-                    roundedRect: CGRect(x: -0.5, y: -0.5, width: 1, height: 1),
-                    cornerWidth: CGFloat(radius),
-                    cornerHeight: CGFloat(radius),
-                    transform: nil
-                ),
+            return .path(Path.roundedRectangle(
+                width: 1,
+                height: 1,
+                radius: radius,
                 detail: context.detail,
                 color: context.material.color
             ).transformed(by: context.transform))
-            #else
-            // TODO: throw error when CoreGraphics not available
-            return .path(Path.square().transformed(by: context.transform))
-            #endif
         },
         "text": .block(.text) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
