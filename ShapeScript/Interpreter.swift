@@ -463,6 +463,7 @@ enum Value {
                 }
             }.joined()
         default:
+            assert(value is Loggable)
             return (value as? Loggable)?.logDescription ?? ""
         }
     }

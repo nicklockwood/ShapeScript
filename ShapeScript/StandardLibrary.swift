@@ -270,7 +270,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "svgpath": .block(.text) { context in
             #if canImport(CoreGraphics)
-            let text = context.children.compactMap { $0.stringValue }.joined(separator: "\n")
+            let text = context.children.map { $0.stringValue }.joined(separator: "\n")
             do {
                 let cgPath = try CGPath.fromSVG(text)
                 return .path(Path(

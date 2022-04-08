@@ -36,6 +36,16 @@ extension String: Loggable {
     }
 }
 
+extension TextValue: Loggable {
+    public var logDescription: String {
+        string
+    }
+
+    var nestedLogDescription: String {
+        string.nestedLogDescription
+    }
+}
+
 extension Double: Loggable {
     private static let formatter: NumberFormatter = {
         let formatter = NumberFormatter()

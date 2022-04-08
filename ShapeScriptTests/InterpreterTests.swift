@@ -2768,6 +2768,22 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    // MARK: SVGPath command
+
+    func testSVGPath() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("fill svgpath \"M150 0 L75 200 225 200 Z\"")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        guard case let .fill(paths) = geometry.type else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(paths.first?.points.count, 4)
+        #endif
+    }
+
     // MARK: Debug command
 
     func testDebugCube() throws {
