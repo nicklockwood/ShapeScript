@@ -39,6 +39,12 @@ public extension Vector {
     init(_ cgPoint: CGPoint) {
         self.init(Double(cgPoint.x), Double(cgPoint.y))
     }
+
+    /// Creates a new vector from a CoreGraphics size.
+    /// - Parameter cgSize: the CoreGraphics size.
+    init(_ cgSize: CGSize) {
+        self.init(Double(cgSize.width), Double(cgSize.height))
+    }
 }
 
 public extension Color {
@@ -58,12 +64,25 @@ public extension CGPoint {
     }
 }
 
+public extension CGSize {
+    /// Creates a `CGSize` from the X and Y components of a vector.
+    /// - Parameter vector: The vector to convert into a point.
+    init(_ vector: Vector) {
+        self.init(width: vector.x, height: vector.y)
+    }
+}
+
 public extension Path {
     /// Creates a Path from a `CGPath`. The returned path may contain nested subpaths.
     /// - Parameters:
     ///   - cgPath: The CoreGraphics path to convert.
     ///   - detail: The number of line segments used to approximate cubic or quadratic bezier curves.
     ///   - color: An optional ``Color`` to apply to the path vertices.
+    init(_ cgPath: CGPath, detail: Int = 4, color: Color? = nil) {
+        self.init(subpaths: cgPath.paths(detail: detail, color: color))
+    }
+
+    @available(*, deprecated, message: "Use init(_:detail:color:) instead")
     init(cgPath: CGPath, detail: Int = 4, color: Color? = nil) {
         self.init(subpaths: cgPath.paths(detail: detail, color: color))
     }

@@ -248,7 +248,7 @@ extension Dictionary where Key == String, Value == Symbol {
             #if canImport(CoreGraphics)
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
             return .path(Path(
-                cgPath: CGPath(
+                CGPath(
                     roundedRect: CGRect(x: -0.5, y: -0.5, width: 1, height: 1),
                     cornerWidth: CGFloat(radius),
                     cornerHeight: CGFloat(radius),
@@ -274,7 +274,7 @@ extension Dictionary where Key == String, Value == Symbol {
             do {
                 let cgPath = try CGPath.fromSVG(text)
                 return .path(Path(
-                    cgPath: cgPath,
+                    cgPath,
                     detail: context.detail / 8,
                     color: context.material.color
                 ).transformed(by: context.transform))

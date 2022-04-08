@@ -149,165 +149,67 @@ class PathShapeTests: XCTestCase {
         XCTAssert(path.isClosed)
     }
 
-    // MARK: Fill
+    // MARK: Rounded rect
 
-    func testFillClockwiseQuad() {
-        let shape = Path([
-            .point(0, 0),
-            .point(1, 0),
-            .point(1, 1),
-            .point(0, 1),
-            .point(0, 0),
-        ])
-        let mesh = Mesh.fill(shape)
-        XCTAssertEqual(mesh.polygons.count, 2)
-        XCTAssertEqual(mesh.polygons.first?.plane.normal, .unitZ)
+    func testSimpleRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 1, radius: 0.25)
+        XCTAssert(path.isClosed)
+        XCTAssertEqual(path.points.count, 21)
+        XCTAssertEqual(path.bounds, Bounds(
+            min: Vector(-0.5, -0.5),
+            max: Vector(0.5, 0.5)
+        ))
     }
 
-    func testFillAnticlockwiseQuad() {
-        let shape = Path([
-            .point(1, 0),
-            .point(0, 0),
-            .point(0, 1),
-            .point(1, 1),
-            .point(1, 0),
-        ])
-        let mesh = Mesh.fill(shape)
-        XCTAssertEqual(mesh.polygons.count, 2)
-        XCTAssertEqual(mesh.polygons.first?.plane.normal, -.unitZ)
+    func testCircularRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 1, radius: 0.5)
+        XCTAssert(path.isClosed)
+        XCTAssertEqual(path.points.count, 17)
+        XCTAssertEqual(path.bounds, Bounds(
+            min: Vector(-0.5, -0.5),
+            max: Vector(0.5, 0.5)
+        ))
     }
 
-    func testFillSelfIntersectingPath() {
-        let path = Path([
-            .point(0, 0),
-            .point(1, 1),
-            .point(1, 0),
-            .point(0, 1),
-        ])
-        let mesh = Mesh.fill(path)
-        XCTAssert(mesh.polygons.isEmpty)
+    func testPortraitRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 2, radius: 0.5)
+        XCTAssert(path.isClosed)
+        XCTAssertEqual(path.points.count, 19)
+        XCTAssertEqual(path.bounds, Bounds(
+            min: Vector(-0.5, -1),
+            max: Vector(0.5, 1)
+        ))
     }
 
-    func testFillNonPlanarQuad() {
-        let shape = Path([
-            .point(0, 0),
-            .point(1, 0),
-            .point(1, 1, 1),
-            .point(0, 1),
-            .point(0, 0),
-        ])
-        let mesh = Mesh.fill(shape)
-        XCTAssertEqual(mesh.polygons.count, 4)
+    func testLandscapeRoundedRect() {
+        let path = Path.roundedRectangle(width: 2, height: 1, radius: 0.5)
+        XCTAssert(path.isClosed)
+        XCTAssertEqual(path.points.count, 19)
+        XCTAssertEqual(path.bounds, Bounds(
+            min: Vector(-1, -0.5),
+            max: Vector(1, 0.5)
+        ))
     }
 
-    // MARK: Lathe
-
-    func testLatheSelfIntersectingPath() {
-        let path = Path([
-            .point(0, 0),
-            .point(1, 1),
-            .point(1, 0),
-            .point(0, 1),
-        ])
-        let mesh = Mesh.lathe(path)
-        XCTAssert(!mesh.polygons.isEmpty)
+    func testLowResRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 1, radius: 0.25, detail: 1)
+        XCTAssert(path.isClosed)
+        XCTAssertEqual(path.points.count, 9)
+        XCTAssertEqual(path.bounds, Bounds(
+            min: Vector(-0.5, -0.5),
+            max: Vector(0.5, 0.5)
+        ))
     }
 
-    // MARK: Loft
-
-    func testLoftParallelEdges() {
-        let shapes = [
-            Path.square(),
-            Path.square().translated(by: Vector(0.0, 1.0, 0.0)),
-        ]
-
-        let loft = Mesh.loft(shapes)
-
-        // Every vertex in the loft should be contained by one of our shapes
-        let vertices = loft.polygons.flatMap { $0.vertices }
-        XCTAssert(vertices.allSatisfy { vertex in
-            shapes.contains(where: { $0.points.contains(where: { $0.position == vertex.position }) })
-        })
+    func testZeroDetailRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 1, radius: 0.5, detail: 0)
+        XCTAssertEqual(path, Path(Path.rectangle(width: 1, height: 1).points.map {
+            PathPoint.curve($0.position)
+        }))
     }
 
-    func testLoftNonParallelEdges() {
-        let shapes = [
-            Path.square(),
-            Path([
-                PathPoint.point(-2.0, 1.0, 1.0),
-                PathPoint.point(-2.0, 1.0, -1.0),
-                PathPoint.point(2.0, 1.0, -1.0),
-                PathPoint.point(2.0, 1.0, 1.0),
-                PathPoint.point(-2.0, 1.0, 1.0),
-            ]),
-        ]
-
-        let loft = Mesh.loft(shapes)
-
-        XCTAssert(loft.polygons.allSatisfy { pointsAreCoplanar($0.vertices.map { $0.position }) })
-
-        // Every vertex in the loft should be contained by one of our shapes
-        let vertices = loft.polygons.flatMap { $0.vertices }
-        XCTAssert(vertices.allSatisfy { vertex in
-            shapes.contains(where: { $0.points.contains(where: { $0.position == vertex.position }) })
-        })
-    }
-
-    func testExtrudeSelfIntersectingPath() {
-        let path = Path([
-            .point(0, 0),
-            .point(1, 1),
-            .point(1, 0),
-            .point(0, 1),
-        ])
-        let mesh = Mesh.extrude(path)
-        XCTAssertFalse(mesh.polygons.isEmpty)
-        XCTAssertEqual(mesh, .extrude(path, faces: .frontAndBack))
-    }
-
-    func testExtrudeClosedLine() {
-        let path = Path([
-            .point(0, 0),
-            .point(0, 1),
-            .point(0, 0),
-        ])
-        let mesh = Mesh.extrude(path)
-        XCTAssertEqual(mesh.polygons.count, 2)
-        XCTAssertEqual(mesh, .extrude(path, faces: .front))
-    }
-
-    func testExtrudeOpenLine() {
-        let path = Path([
-            .point(0, 0),
-            .point(0, 1),
-        ])
-        let mesh = Mesh.extrude(path)
-        XCTAssertEqual(mesh.polygons.count, 2)
-        XCTAssertEqual(mesh, .extrude(path, faces: .frontAndBack))
-    }
-
-    // MARK: Stroke
-
-    func testStrokeLine() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
-        let mesh = Mesh.stroke(path, detail: 2)
-        XCTAssertEqual(mesh.polygons.count, 2)
-    }
-
-    func testStrokeLineSingleSided() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
-        let mesh = Mesh.stroke(path, detail: 1)
-        XCTAssertEqual(mesh.polygons.count, 1)
-    }
-
-    func testStrokeLineWithTriangle() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
-        let mesh = Mesh.stroke(path, detail: 3)
-        XCTAssertEqual(mesh.polygons.count, 5)
-    }
-
-    func testStrokeSqaureWithTriangle() {
-        let mesh = Mesh.stroke(.square(), detail: 3)
-        XCTAssertEqual(mesh.polygons.count, 12)
+    func testZeroRadiusRoundedRect() {
+        let path = Path.roundedRectangle(width: 1, height: 1, radius: 0)
+        XCTAssertEqual(path, .rectangle(width: 1, height: 1))
     }
 }

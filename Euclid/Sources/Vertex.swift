@@ -33,7 +33,7 @@
 public struct Vertex: Hashable {
     /// The position of the vertex.
     public var position: Vector {
-        didSet { position = position.quantized() }
+        didSet { position = position._quantized() }
     }
 
     /// The surface normal of the vertex, used to calculate lighting.
@@ -62,6 +62,12 @@ public struct Vertex: Hashable {
         _ color: Color? = nil
     ) {
         self.init(unchecked: position, normal?.normalized(), texcoord, color)
+    }
+
+    /// Creates a new vertex from a position with default values for normal, texcoord and color.
+    /// - Parameter position: The position of the vertex in 3D space.
+    public init(_ position: Vector) {
+        self.init(unchecked: position, nil, nil, nil)
     }
 
     /// Creates a vertex from a flat array of values.
@@ -194,7 +200,7 @@ internal extension Vertex {
         _ texcoord: Vector?,
         _ color: Color?
     ) {
-        self.position = position.quantized()
+        self.position = position._quantized()
         self.normal = normal ?? .zero
         self.texcoord = texcoord ?? .zero
         self.color = color ?? .white
