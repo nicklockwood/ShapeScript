@@ -336,6 +336,7 @@ internal extension Collection where Element == Polygon {
 
     /// Insert missing vertices needed to prevent hairline cracks
     func makeWatertight() -> [Polygon] {
+        var polygons = mergingSimilarVertices()
         var polygonsByEdge = [LineSegment: Int]()
         for polygon in self {
             for edge in polygon.undirectedEdges {
@@ -348,7 +349,6 @@ internal extension Collection where Element == Polygon {
             points.insert(edge.start)
             points.insert(edge.end)
         }
-        var polygons = Array(self)
         let sortedPoints = points.sorted()
         for i in polygons.indices {
             let bounds = polygons[i].bounds.inset(by: -epsilon)
@@ -356,7 +356,63 @@ internal extension Collection where Element == Polygon {
                 _ = polygons[i].insertEdgePoint(point)
             }
         }
-        return polygons
+        return polygons.mergingSimilarVertices() // TODO: why is this needed?
+    }
+
+    /// Merge vertices with similar positions.
+    func mergingSimilarVertices() -> [Polygon] {
+        var positions = VectorSet()
+        return compactMap {
+            var vertices = [Vertex]()
+            for v in $0.vertices {
+                let u = v.with(position: positions.insert(v.position))
+                if let w = vertices.last, w.position == u.position {
+                    vertices[vertices.count - 1] = w.lerp(u, 0.5)
+                } else {
+                    vertices.append(u)
+                }
+            }
+            if let w = vertices.first, w.position == vertices.last?.position {
+                vertices[0] = w.lerp(vertices.removeLast(), 0.5)
+            }
+            return Polygon(vertices, material: $0.material)
+        }
+    }
+
+    /// Smooth vertex normals
+    func smoothNormals(_ threshold: Angle) -> [Polygon] {
+        guard threshold > .zero else {
+            return map { p0 in
+                let n0 = p0.plane.normal
+                return Polygon(
+                    unchecked: p0.vertices.map { $0.with(normal: n0) },
+                    plane: p0.plane,
+                    isConvex: p0.isConvex,
+                    material: p0.material
+                )
+            }
+        }
+        var polygonsByVertex = [Vector: [Polygon]]()
+        forEach { polygon in
+            polygon.vertices.forEach { vertex in
+                polygonsByVertex[vertex.position, default: []].append(polygon)
+            }
+        }
+        return map { p0 in
+            let n0 = p0.plane.normal
+            return Polygon(
+                unchecked: p0.vertices.map { v0 in
+                    let polygons = polygonsByVertex[v0.position] ?? []
+                    return v0.with(normal: polygons.compactMap { p1 in
+                        let n1 = p1.plane.normal
+                        return .acos(n0.dot(n1)) < threshold ? n1 : nil
+                    }.reduce(.zero) { $0 + $1 })
+                },
+                plane: p0.plane,
+                isConvex: p0.isConvex,
+                material: p0.material
+            )
+        }
     }
 
     /// Flip each polygon along its plane
@@ -775,7 +831,7 @@ internal extension Polygon {
             assertionFailure()
             return false
         }
-        if vertices.contains(where: { $0.position == p }) {
+        if vertices.contains(where: { $0.position.isEqual(to: p) }) {
             return false
         }
         for (i, v) in vertices.enumerated() {
@@ -790,7 +846,7 @@ internal extension Polygon {
             self = Polygon(
                 unchecked: vertices,
                 plane: plane,
-                isConvex: isConvex,
+                isConvex: nil, // Inserting a point can sometimes affect this
                 material: material,
                 id: id
             )

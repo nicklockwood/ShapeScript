@@ -306,6 +306,17 @@ public extension Mesh {
         )
     }
 
+    /// Merges coplanar polygons that share one or more edges, provided the result will be convex.
+    /// - Returns: A new mesh containing the merged polygons.
+    func detriangulate() -> Mesh {
+        Mesh(
+            unchecked: polygons.sortedByPlane().detessellate(ensureConvex: true),
+            bounds: boundsIfSet,
+            isConvex: isKnownConvex,
+            isWatertight: nil // TODO: can this be done without introducing holes?
+        )
+    }
+
     /// Removes hairline cracks by inserting additional vertices without altering the shape.
     /// - Returns: A new mesh with new vertices inserted if needed.
     ///
@@ -316,6 +327,18 @@ public extension Mesh {
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
             isWatertight: nil
+        )
+    }
+
+    /// Smooth vertex normals for corners with angles greater than the specified threshold.
+    /// - Parameter threshold: The minimum edge angle that should appear smooth.
+    ///   Values should be in the range zero (no smoothing) to pi (smooth all edges).
+    func smoothNormals(_ threshold: Angle) -> Mesh {
+        Mesh(
+            unchecked: polygons.smoothNormals(threshold),
+            bounds: boundsIfSet,
+            isConvex: isKnownConvex,
+            isWatertight: watertightIfSet
         )
     }
 }
@@ -397,7 +420,10 @@ private extension Mesh {
             isConvex: Bool,
             isWatertight: Bool?
         ) {
-            assert(isWatertight == nil || isWatertight == polygons.areWatertight)
+            assert(
+                isWatertight == nil || isWatertight == polygons.areWatertight &&
+                    polygons == polygons.mergingSimilarVertices()
+            )
             self.polygons = polygons
             self.boundsIfSet = polygons.isEmpty ? .empty : bounds
             self.isConvex = isConvex || polygons.isEmpty

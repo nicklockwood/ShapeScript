@@ -247,7 +247,7 @@ public extension Path {
         }
         var min = Vector(.infinity, .infinity)
         var max = Vector(-.infinity, -.infinity)
-        let flatteningPlane = FlatteningPlane(normal: faceNormal)
+        let flatteningPlane = self.flatteningPlane
         vertices = vertices.map {
             let uv = flatteningPlane.flattenPoint($0.position)
             min.x = Swift.min(min.x, uv.x)
@@ -401,7 +401,7 @@ internal extension Path {
                 ).plane else {
                     return true
                 }
-                return plane.isEqual(to: expectedPlane, withPrecision: epsilon * 10)
+                return plane.isEqual(to: expectedPlane, withPrecision: epsilon)
             }())
         } else if subpathIndices.isEmpty {
             self.plane = Plane(points: positions)
@@ -442,11 +442,7 @@ internal extension Path {
 
     // Returns the most suitable FlatteningPlane for the path
     var flatteningPlane: FlatteningPlane {
-        if let plane = plane {
-            return FlatteningPlane(normal: plane.normal)
-        }
-        let positions = isClosed ? points.dropLast().map { $0.position } : points.map { $0.position }
-        return FlatteningPlane(points: positions, convex: nil)
+        FlatteningPlane(normal: faceNormal)
     }
 
     // TODO: Make this more robust, then make public

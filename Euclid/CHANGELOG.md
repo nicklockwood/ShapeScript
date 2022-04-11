@@ -1,3 +1,17 @@
+## [0.5.20](https://github.com/nicklockwood/Euclid/releases/tag/0.5.20) (2022-04-12)
+
+- Added input sanitization to `Angle.acos()` and `Angle.asin()` (fixes `Mesh.smoothNormals()`)
+- Changed `Mesh.smoothNormals()` threshold check from `<=` to `<`
+- Improved `Mesh.smoothNormals()` performance
+
+## [0.5.19](https://github.com/nicklockwood/Euclid/releases/tag/0.5.19) (2022-04-11)
+
+- Improved `Mesh.makeWatertight()` reliability
+- Meshes created from SceneKit primitives are now watertight
+- Increased `LineSegment.containsPoint()` tolerance 
+- Added `Mesh.detriangulate()` method
+- Added `Mesh.smoothNormals()` function
+
 ## [0.5.18](https://github.com/nicklockwood/Euclid/releases/tag/0.5.18) (2022-04-08)
 
 - Added `Mesh.empty` constant
