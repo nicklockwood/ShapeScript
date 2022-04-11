@@ -9,6 +9,7 @@
 #if canImport(CoreGraphics)
 
 import CoreGraphics
+import Euclid
 @testable import ShapeScript
 import XCTest
 
@@ -33,7 +34,7 @@ class SVGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 75, y: -200))
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
-        XCTAssertEqual(.fromSVG(svgPath), cgPath)
+        XCTAssertEqual(Path(svgPath), Path(cgPath))
     }
 
     func testCross() throws {
@@ -52,7 +53,7 @@ class SVGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 1, y: -2))
         cgPath.addLine(to: CGPoint(x: 2, y: -2))
         cgPath.closeSubpath()
-        XCTAssertEqual(.fromSVG(svgPath), cgPath)
+        XCTAssertEqual(Path(svgPath), Path(cgPath))
     }
 
     func testHeart() throws {
@@ -69,7 +70,7 @@ class SVGPathTests: XCTestCase {
         cgPath.move(to: .zero)
         cgPath.addLine(to: CGPoint(x: -0.57, y: -0.13))
         cgPath.closeSubpath()
-        XCTAssertEqual(.fromSVG(svgPath), cgPath)
+        XCTAssertEqual(Path(svgPath), Path(cgPath))
     }
 
     func testAbsoluteHorizontalRule() throws {
@@ -79,7 +80,7 @@ class SVGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 10, y: -10))
         cgPath.addLine(to: CGPoint(x: 0, y: -10))
         cgPath.closeSubpath()
-        XCTAssertEqual(.fromSVG(svgPath), cgPath)
+        XCTAssertEqual(Path(svgPath), Path(cgPath))
     }
 
     func testTrailingNumber() throws {
@@ -98,7 +99,7 @@ class SVGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 75, y: -200))
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
-        XCTAssertEqual(.fromSVG(svgPath), cgPath)
+        XCTAssertEqual(Path(svgPath), Path(cgPath))
     }
 }
 

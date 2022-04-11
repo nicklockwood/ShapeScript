@@ -261,23 +261,18 @@ extension Dictionary where Key == String, Value == Symbol {
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
         "svgpath": .block(.text) { context in
-            #if canImport(CoreGraphics)
             let text = context.children.map { $0.stringValue }.joined(separator: "\n")
+            let svgPath: SVGPath
             do {
-                let cgPath = try CGPath.fromSVG(text)
-                return .path(Path(
-                    cgPath,
-                    detail: context.detail / 8,
-                    color: context.material.color
-                ).transformed(by: context.transform))
+                svgPath = try SVGPath(text)
             } catch let error as SVGErrorType {
                 throw RuntimeErrorType.assertionFailure(error.message)
             }
-            #else
-            throw RuntimeErrorType.assertionFailure(
-                "The svgpath command is not available on this platform"
-            )
-            #endif
+            return .path(Path(
+                svgPath,
+                detail: context.detail / 8,
+                color: context.material.color
+            ).transformed(by: context.transform))
         },
     ]
 
