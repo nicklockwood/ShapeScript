@@ -896,6 +896,7 @@ extension Definition {
                     context.transform = _context.transform
                     context.opacity = _context.opacity
                     context.detail = _context.detail
+                    context.smoothing = _context.smoothing
                     context.baseURL = baseURL
                     context.source = source
                     for statement in block.statements {
@@ -920,6 +921,7 @@ extension Definition {
                                     name: context.name,
                                     transform: context.transform,
                                     material: .default,
+                                    smoothing: nil,
                                     children: [],
                                     sourceLocation: context.sourceLocation
                                 ))
@@ -931,6 +933,7 @@ extension Definition {
                                 name: context.name,
                                 transform: geometry.transform * context.transform,
                                 material: geometry.material,
+                                smoothing: geometry.smoothing,
                                 children: geometry.children,
                                 sourceLocation: context.sourceLocation,
                                 debug: geometry.debug
@@ -966,6 +969,7 @@ extension Definition {
                         name: context.name,
                         transform: context.transform,
                         material: .default,
+                        smoothing: context.smoothing,
                         children: try children.map {
                             switch $0 {
                             case let .path(path):
@@ -974,6 +978,7 @@ extension Definition {
                                     name: nil,
                                     transform: .identity,
                                     material: .default,
+                                    smoothing: nil,
                                     children: [],
                                     sourceLocation: context.sourceLocation
                                 )
@@ -1043,6 +1048,7 @@ extension EvaluationContext {
                 name: name,
                 transform: childTransform,
                 material: .default, // not used for paths
+                smoothing: nil,
                 children: [],
                 sourceLocation: sourceLocation
             )))

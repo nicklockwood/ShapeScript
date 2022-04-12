@@ -366,6 +366,13 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .number(Double(context.detail))
         }),
+        "smoothing": .property(.number, { parameter, context in
+            // TODO: find a better way to represent null/auto
+            let angle = Swift.min(.pi, parameter.doubleValue * .pi)
+            context.smoothing = angle < 0 ? nil : .radians(angle)
+        }, { context in
+            .number((context.smoothing?.radians).map { $0 / .pi } ?? -1)
+        }),
         // TODO: is here the right place for this?
         "font": .property(.font, { parameter, context in
             context.font = parameter.stringValue
@@ -417,6 +424,7 @@ extension Geometry {
             name: context.name,
             transform: context.transform,
             material: context.material,
+            smoothing: context.smoothing,
             children: context.children.compactMap { $0.value as? Geometry },
             sourceLocation: context.sourceLocation
         )

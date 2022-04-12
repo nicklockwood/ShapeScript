@@ -45,16 +45,42 @@ Unlike `name`, `detail` is not actually an option, but a global command. You can
 The detail level can be overridden hierarchically, so a `detail` command inside a shape will take precedence over a `detail` command in its containing scope:
 
 ```swift
-detail 32
+detail 8
 
-sphere { detail 48 } // has detail of 48
+sphere { detail 32 } // has detail of 32
 
-cylinder // has detail of 32
+cylinder { position 1 } // has detail of 8
 ```
+
+![Detail](images/detail.png)
 
 The `detail` command accepts a single integer value, which represents the number of straight sections used to approximate a circle. This is directly applicable to shapes that have circular sections, such as a sphere or cylinder, as well as to circular [paths](paths.md).
 
 For curved shapes that are not circular, such as a custom [path](paths.md), the relationship between the `detail` value and the number of sections is not quite so straightforward, but typically 1/4 of the `detail` value will be applied to each curved section of the path.
+
+## Smoothing
+
+Similar to `detail`, `smoothing` is used to control the appearance of curved shapes.
+
+As mentioned above, all shapes in ShapeScript are formed from flat triangles. To create the illusion of a curved surface, lighting can be smoothly interpolated across polygon faces to give the appearance of curvature. Lighting is calculated using [surface normals](https://en.wikipedia.org/wiki/Normal_(geometry)) - vectors  pointing outwards from each [vertex](https://en.wikipedia.org/wiki/Vertex_(geometry)) in a model that are used to indicate when the simulated curvature differs from the geometric reality.
+
+[Primitive shapes](primitives.md) in ShapeScript all have appropriate normals set by default, and when creating [paths](paths.md) you can use the `curve` command to specify when a corner should appear curved rather than sharp. However, there are times when you may wish to override the default behavior, e.g. to deliberately create a more angular appearance, or to smooth an [imported](import.md) model that does not already include appropriate surface normal data.
+
+The `smoothing` command accepts a numeric value in the range 0 to 1. This represents an angle between 0 and 180 degrees (see the [trigonometry section](functions.md#trigonometry) for more about how angles are represented in ShapeScript). This angle is the threshold at which ShapeScript will apply normal-based smoothing. Edges that meet at a greater angle than this threshold will be rendered as a sharp seam, and those that meet at lesser angle will appear as a smooth curve.
+
+On that basis, a `smoothing` value of 0 means all edges will appear sharp. A value of 1 means all edges will appear rounded (this may look a little strange). A value of 0.5 (90 degrees) means that [obtuse](https://en.wikipedia.org/wiki/Angle#Types_of_angles) edges will appear rounded and acute ones will appear sharp.
+
+Like `detail`, `smoothing` is a global option that applies hierarchically. You set it once at the top of the file, individually inside each shape, or any combination:
+
+```swift
+smoothing 0 // flat shading
+
+cylinder { smoothing 0.5 } // smooth shading
+
+sphere { position 1 } // inherits flat-shading from file scope
+```
+
+![Smoothing](images/smoothing.png)
 
 ## Transform
 

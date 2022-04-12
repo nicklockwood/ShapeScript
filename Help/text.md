@@ -199,7 +199,7 @@ fill text "Hello World"
 
 ![Text with font](images/text-font.png)
 
-**Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may need to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
+**Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may want to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
 
 The font name you provide must match a font that is already installed on your system. If no matching fonts are found then an error will be raised. If you wish to load a font file directly, without installing it, you can pass the filename or path to the `font` command instead of the font name:
 

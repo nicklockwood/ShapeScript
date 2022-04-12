@@ -91,6 +91,7 @@ private extension Geometry {
         type: GeometryType = .group,
         transform: Transform = .identity,
         material: Material = .default,
+        smoothing: Angle? = nil,
         children: [Geometry] = []
     ) {
         self.init(
@@ -98,6 +99,7 @@ private extension Geometry {
             name: nil,
             transform: transform,
             material: material,
+            smoothing: smoothing,
             children: children,
             sourceLocation: nil
         )

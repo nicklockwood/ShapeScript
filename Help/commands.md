@@ -47,6 +47,10 @@ This affects how the scene appears in the ShapeScript viewer, as well as the bac
 
 The `detail` command can be used anywhere in the ShapeScript file to override the local detail level used for approximating curved geometry. It is documented in the [options](options.md#detail) section.
 
+## Smoothing
+
+The `smoothing` command can be used anywhere in the ShapeScript file to override the local smoothing level used for calculating surface normals. It is documented in the [options](options.md#smoothing) section.
+
 ## Materials
 
 The `color`, `texture` and `opacity` commands are used to specify the appearance of shapes when rendered. These commands are documents in the [materials](materials.md) section.

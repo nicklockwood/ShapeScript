@@ -52,6 +52,7 @@ class Document: NSDocument, EvaluationDelegate {
             name: nil,
             transform: .identity,
             material: .default,
+            smoothing: nil,
             children: scene?.children ?? [],
             sourceLocation: nil
         )

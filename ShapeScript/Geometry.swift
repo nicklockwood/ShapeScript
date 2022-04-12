@@ -14,6 +14,7 @@ public final class Geometry: Hashable {
     public let name: String?
     public let transform: Transform
     public let material: Material
+    public let smoothing: Angle?
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
     public let sourceLocation: SourceLocation?
@@ -110,6 +111,7 @@ public final class Geometry: Hashable {
                 name: String?,
                 transform: Transform,
                 material: Material,
+                smoothing: Angle?,
                 children: [Geometry],
                 sourceLocation: SourceLocation?,
                 debug: Bool = false)
@@ -137,6 +139,7 @@ public final class Geometry: Hashable {
                         name: nil,
                         transform: .identity,
                         material: material,
+                        smoothing: smoothing,
                         children: [],
                         sourceLocation: sourceLocation
                     )
@@ -151,6 +154,7 @@ public final class Geometry: Hashable {
                             name: nil,
                             transform: .identity,
                             material: material,
+                            smoothing: smoothing,
                             children: [],
                             sourceLocation: sourceLocation
                         )
@@ -174,6 +178,7 @@ public final class Geometry: Hashable {
                         name: nil,
                         transform: .identity,
                         material: material,
+                        smoothing: smoothing,
                         children: [],
                         sourceLocation: sourceLocation
                     )
@@ -196,6 +201,7 @@ public final class Geometry: Hashable {
                         name: nil,
                         transform: .identity,
                         material: material,
+                        smoothing: smoothing,
                         children: [],
                         sourceLocation: sourceLocation
                     )
@@ -217,6 +223,7 @@ public final class Geometry: Hashable {
         self.name = name.flatMap { $0.isEmpty ? nil : $0 }
         self.transform = transform
         self.material = material
+        self.smoothing = smoothing
         self.children = children
         self.sourceLocation = sourceLocation
         self.debug = debug
@@ -227,6 +234,7 @@ public final class Geometry: Hashable {
             return GeometryCache.Key(
                 type: geometry.type,
                 material: geometry.material == material ? nil : geometry.material,
+                smoothing: geometry.smoothing,
                 transform: geometry.transform,
                 children: geometry.children.map(flattenedCacheKey)
             )
@@ -235,6 +243,7 @@ public final class Geometry: Hashable {
         cacheKey = GeometryCache.Key(
             type: type,
             material: nil,
+            smoothing: smoothing,
             transform: .identity,
             children: type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
         )
@@ -303,6 +312,7 @@ public extension Geometry {
             name: name,
             transform: self.transform * transform,
             material: material,
+            smoothing: smoothing,
             children: children,
             sourceLocation: sourceLocation,
             debug: debug
@@ -524,6 +534,9 @@ private extension Geometry {
             self.mesh = mesh
         }
         if callback() {
+            if let smoothing = smoothing {
+                mesh = mesh?.smoothNormals(smoothing)
+            }
             cache?[self] = mesh
             return true
         }
@@ -548,6 +561,7 @@ private extension Geometry {
             name: name,
             transform: self.transform * transform,
             material: m,
+            smoothing: smoothing,
             children: children.map {
                 $0._with(
                     transform: .identity,

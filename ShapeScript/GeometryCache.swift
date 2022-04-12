@@ -24,6 +24,7 @@ extension GeometryCache {
     struct Key: Hashable {
         let type: GeometryType
         let material: Material?
+        let smoothing: Angle?
         let transform: Transform
         let children: [Key]
     }

@@ -62,6 +62,7 @@ final class EvaluationContext {
 
     var random: RandomSequence
     var detail = 16
+    var smoothing: Angle?
     var font: String = ""
     var opacity = 1.0
 
@@ -106,6 +107,7 @@ final class EvaluationContext {
         namedObjects = parent.namedObjects
         random = parent.random
         detail = parent.detail
+        smoothing = parent.smoothing
         font = parent.font
         // opacity is cumulative
         opacity = parent.material.opacity

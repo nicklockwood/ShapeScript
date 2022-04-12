@@ -290,6 +290,7 @@ public extension Geometry {
             name: scnNode.name,
             transform: .transform(from: scnNode),
             material: .default,
+            smoothing: nil,
             children: try scnNode.childNodes.map(Geometry.init(scnNode:)),
             sourceLocation: nil
         )
