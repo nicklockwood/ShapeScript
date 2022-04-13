@@ -144,12 +144,12 @@ class SceneViewController: NSViewController {
 
     var isOrthographic = false {
         didSet {
-            guard isOrthographic != oldValue else {
-                return
+            if isOrthographic != oldValue {
+                let ortho = camera.isOrthographic ?? isOrthographic
+                cameraNode.camera?.usesOrthographicProjection = ortho
+                scnView.pointOfView?.camera?.usesOrthographicProjection = ortho
+                refreshView()
             }
-            cameraNode.camera?.usesOrthographicProjection =
-                camera.isOrthographic ?? isOrthographic
-            resetCamera(nil)
         }
     }
 
@@ -157,6 +157,7 @@ class SceneViewController: NSViewController {
         didSet {
             if camera != oldValue {
                 updateAxesAndCamera()
+                resetView()
             }
         }
     }
@@ -166,16 +167,20 @@ class SceneViewController: NSViewController {
         set { newValue?.configureProperty(scnScene.background) }
     }
 
-    private var lastBoundsSet: Bounds?
+    private var lastBounds: Bounds = .empty
 
     var geometry: Geometry? {
         didSet {
             refreshGeometry()
-            if geometry?.isEmpty == false, geometry?.bounds != lastBoundsSet {
-                lastBoundsSet = geometry?.bounds
+            if let bounds = geometry?.bounds, !bounds.isEmpty,
+               !bounds.intersects(lastBounds)
+            {
+                lastBounds = bounds
                 updateAxesAndCamera()
+                resetView()
+            } else {
+                refreshView()
             }
-            refreshView()
         }
     }
 
@@ -203,6 +208,12 @@ class SceneViewController: NSViewController {
 
         // update camera
         scnView.allowsCameraControl = true
+    }
+
+    private func resetView() {
+        scnView.defaultCameraController.target = SCNVector3(viewCenter)
+        scnView.pointOfView = cameraNode
+        refreshView()
     }
 
     private func refreshView() {
@@ -326,13 +337,11 @@ class SceneViewController: NSViewController {
         }
         cameraNode.camera?.fieldOfView = CGFloat(camera.fov?.degrees ?? 60)
         cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
-        resetCamera(nil)
     }
 
     @IBAction func resetCamera(_: Any?) {
-        scnView.defaultCameraController.target = SCNVector3(viewCenter)
-        scnView.pointOfView = cameraNode
-        refreshView()
+        updateAxesAndCamera()
+        resetView()
     }
 
     @objc func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
