@@ -102,6 +102,10 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
+    var cameras: [Camera] = CameraType.allCases.map {
+        Camera(type: $0)
+    }
+
     var camera: Camera {
         get {
             let type: CameraType? = settings.value(for: #function, in: self)
@@ -437,7 +441,6 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
-    var cameras: [Camera] = []
     private var camerasMenu: NSMenu?
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
