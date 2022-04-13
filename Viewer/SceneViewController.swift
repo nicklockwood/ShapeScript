@@ -136,10 +136,9 @@ class SceneViewController: NSViewController {
 
     var showAxes = false {
         didSet {
-            guard showAxes != oldValue else {
-                return
+            if showAxes != oldValue {
+                updateAxesAndCamera()
             }
-            updateAxesAndCamera()
         }
     }
 
@@ -167,10 +166,13 @@ class SceneViewController: NSViewController {
         set { newValue?.configureProperty(scnScene.background) }
     }
 
+    private var lastBoundsSet: Bounds?
+
     var geometry: Geometry? {
         didSet {
             refreshGeometry()
-            if geometry?.bounds != oldValue?.bounds {
+            if geometry?.isEmpty == false, geometry?.bounds != lastBoundsSet {
+                lastBoundsSet = geometry?.bounds
                 updateAxesAndCamera()
             }
             refreshView()
