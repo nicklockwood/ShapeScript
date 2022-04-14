@@ -175,9 +175,11 @@ public extension Geometry {
                         width: options.lineWidth,
                         detail: 5
                     ))
+                    let lineColor = path.hasColors ?
+                        Color.white : self.material.color ?? options.lineColor
                     let material = SCNMaterial()
                     material.lightingModel = .constant
-                    material.diffuse.contents = self.material.color
+                    material.diffuse.contents = OSColor(lineColor)
                     geometry.materials = [material]
                 }
 

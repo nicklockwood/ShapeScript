@@ -46,7 +46,7 @@ public struct Material: Hashable {
 
     public static let `default` = Material()
 
-    public init(color: Color? = .white) {
+    public init(color: Color? = nil) {
         self.color = color
     }
 }
