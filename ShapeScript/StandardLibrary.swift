@@ -54,14 +54,6 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let background: Symbols = [
-        "background": .property(.colorOrTexture, { parameter, context in
-            context.background = MaterialProperty(parameter.value) ?? .color(.clear)
-        }, { context in
-            .colorOrTexture(context.background)
-        }),
-    ]
-
     static let colors: Symbols = [
         "white": .constant(.color(.white)),
         "black": .constant(.color(.black)),
@@ -166,40 +158,6 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let camera: Symbols = [
-        "camera": .block(.custom(nil, [
-            "position": .vector,
-            "orientation": .rotation,
-            "size": .size,
-            "fov": .number,
-        ])) { context in
-            var hasPosition = false, hasOrientation = false, hasScale = false
-            if let position = context.value(for: "position")?.value as? Vector {
-                context.transform.offset = position
-                hasPosition = true
-            }
-            if let orientation = context.value(for: "orientation")?.value as? Rotation {
-                context.transform.rotation = orientation
-                hasOrientation = true
-            }
-            if let size = context.value(for: "size")?.value as? Vector {
-                context.transform.scale = size
-                hasScale = true
-            }
-            return .mesh(Geometry(
-                type: .camera(Camera(
-                    hasPosition: hasPosition,
-                    hasOrientation: hasOrientation,
-                    hasScale: hasScale,
-                    fov: (context.value(for: "fov")?.doubleValue).map {
-                        Angle(radians: $0 * .pi)
-                    }
-                )),
-                in: context
-            ))
-        },
-    ]
-
     static let paths: Symbols = [
         "path": .block(.path) { context in
             var subpaths = [Path]()
@@ -293,12 +251,24 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let functions: Symbols = [
+        // Debug
+        "print": .command(.tuple) { value, context in
+            context.debugLog(value.tupleValue)
+            return .void
+        },
+        "assert": .command(.boolean) { value, _ in
+            if !value.boolValue {
+                throw RuntimeErrorType.assertionFailure("")
+            }
+            return .void
+        },
+        // Logic
         "true": .constant(.boolean(true)),
         "false": .constant(.boolean(false)),
         "not": .command(.boolean) { value, _ in
             .boolean(!value.boolValue)
         },
-        // Math functions
+        // Math
         "rnd": .command(.void) { _, context in
             .number(context.random.next())
         },
@@ -359,38 +329,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "pi": .constant(.number(.pi)),
     ]
 
-    static let global: Symbols = _merge(functions, colors, meshes, paths, [
-        "detail": .property(.number, { parameter, context in
-            // TODO: throw error if min/max detail level exceeded
-            context.detail = Swift.max(0, parameter.intValue)
-        }, { context in
-            .number(Double(context.detail))
-        }),
-        "smoothing": .property(.number, { parameter, context in
-            // TODO: find a better way to represent null/auto
-            let angle = Swift.min(.pi, parameter.doubleValue * .pi)
-            context.smoothing = angle < 0 ? nil : .radians(angle)
-        }, { context in
-            .number((context.smoothing?.radians).map { $0 / .pi } ?? -1)
-        }),
-        // TODO: is here the right place for this?
-        "font": .property(.font, { parameter, context in
-            context.font = parameter.stringValue
-        }, { context in
-            .string(context.font)
-        }),
-        // Debug
-        "print": .command(.tuple) { value, context in
-            context.debugLog(value.tupleValue)
-            return .void
-        },
-        "assert": .command(.boolean) { value, _ in
-            if !value.boolValue {
-                throw RuntimeErrorType.assertionFailure("")
-            }
-            return .void
-        },
-    ])
+    static let global: Symbols = _merge(functions, colors, meshes, paths)
 
     static let node: Symbols = _merge(global, transform, [
         "name": .property(.string, { parameter, context in
@@ -400,15 +339,80 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ])
 
-    static let root: Symbols = _merge(global, material, childTransform, background, camera)
-    static let shape: Symbols = _merge(node, material)
-    static let builder: Symbols = _merge(shape, childTransform)
-    static let group: Symbols = _merge(shape, childTransform)
-    static let path: Symbols = _merge(global, childTransform, points, color)
-    static let pathShape: Symbols = _merge(global, transform, color)
-    static let text: Symbols = _merge(global, transform, color)
+    static let font: Symbols = [
+        "font": .property(.font, { parameter, context in
+            context.font = parameter.stringValue
+        }, { context in
+            .string(context.font)
+        }),
+    ]
+
+    static let detail: Symbols = [
+        "detail": .property(.number, { parameter, context in
+            // TODO: throw error if min/max detail level exceeded
+            context.detail = Swift.max(0, parameter.intValue)
+        }, { context in
+            .number(Double(context.detail))
+        }),
+    ]
+
+    static let smoothing: Symbols = [
+        "smoothing": .property(.number, { parameter, context in
+            // TODO: find a better way to represent null/auto
+            let angle = Swift.min(.pi, parameter.doubleValue * .pi)
+            context.smoothing = angle < 0 ? nil : .radians(angle)
+        }, { context in
+            .number((context.smoothing?.radians).map { $0 / .pi } ?? -1)
+        }),
+    ]
+
+    static let root: Symbols = _merge(global, font, detail, smoothing, material, childTransform, [
+        "camera": .block(.custom(nil, [
+            "position": .vector,
+            "orientation": .rotation,
+            "size": .size,
+            "fov": .number,
+        ])) { context in
+            var hasPosition = false, hasOrientation = false, hasScale = false
+            if let position = context.value(for: "position")?.value as? Vector {
+                context.transform.offset = position
+                hasPosition = true
+            }
+            if let orientation = context.value(for: "orientation")?.value as? Rotation {
+                context.transform.rotation = orientation
+                hasOrientation = true
+            }
+            if let size = context.value(for: "size")?.value as? Vector {
+                context.transform.scale = size
+                hasScale = true
+            }
+            return .mesh(Geometry(
+                type: .camera(Camera(
+                    hasPosition: hasPosition,
+                    hasOrientation: hasOrientation,
+                    hasScale: hasScale,
+                    fov: (context.value(for: "fov")?.doubleValue).map {
+                        Angle(radians: $0 * .pi)
+                    }
+                )),
+                in: context
+            ))
+        },
+        "background": .property(.colorOrTexture, { parameter, context in
+            context.background = MaterialProperty(parameter.value) ?? .color(.clear)
+        }, { context in
+            .colorOrTexture(context.background)
+        }),
+    ])
+
+    static let shape: Symbols = _merge(node, detail, smoothing, material)
+    static let group: Symbols = _merge(shape, childTransform, font)
+    static let builder: Symbols = group
+    static let path: Symbols = _merge(global, childTransform, font, detail, points, color)
+    static let pathShape: Symbols = _merge(global, transform, detail, color)
+    static let text: Symbols = _merge(pathShape, font)
     static let definition: Symbols = root
-    static let all: Symbols = _merge(root, shape, points)
+    static let all: Symbols = _merge(root, shape, path)
 }
 
 extension EvaluationContext {
