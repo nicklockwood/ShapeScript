@@ -1,3 +1,12 @@
+## [1.4.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.7) (2022-04-14)
+
+- Camera is no longer reset on every reload
+- Fixed camera snapback if moved during initial model load
+- Added `smoothing` command for controlling surface normal generation
+- Disallowed used of `detail` and `font` commands in scopes where they have no effect
+- The `svgpath` command now works on Linux
+- Bumped Euclid to version 0.5.20
+
 ## [1.4.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.6) (2022-04-08)
 
 - Fixed `svgpath` command (broken in 1.4.5)
