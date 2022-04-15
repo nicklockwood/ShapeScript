@@ -113,9 +113,7 @@ class Document: NSDocument, EvaluationDelegate {
         }
         set {
             settings.set(newValue.type, for: #function, in: self)
-            for viewController in sceneViewControllers {
-                viewController.camera = newValue
-            }
+            updateViews()
         }
     }
 
