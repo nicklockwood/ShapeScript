@@ -54,6 +54,7 @@
 		01E4E48826D377F000F390D7 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E4E48726D377F000F390D7 /* Axes.swift */; };
 		01F01A4D2804CC5300FA1EBB /* SVGPath+Path.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F01A4C2804CC5300FA1EBB /* SVGPath+Path.swift */; };
 		01F1A6182806BD1A00A1621B /* StandardLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1A6172806BD1A00A1621B /* StandardLibraryTests.swift */; };
+		01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */; };
 		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
 		01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FDE3D426BD766C00A46F66 /* GeometryCache.swift */; };
@@ -206,6 +207,7 @@
 		01E4E48726D377F000F390D7 /* Axes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Axes.swift; sourceTree = "<group>"; };
 		01F01A4C2804CC5300FA1EBB /* SVGPath+Path.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SVGPath+Path.swift"; sourceTree = "<group>"; };
 		01F1A6172806BD1A00A1621B /* StandardLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibraryTests.swift; sourceTree = "<group>"; };
+		01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringMatchingTests.swift; sourceTree = "<group>"; };
 		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
 		01FDE3D426BD766C00A46F66 /* GeometryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -349,6 +351,7 @@
 				01BFB3B42142726100E47A7C /* ParserTests.swift */,
 				017EE7132194ED6D0046C918 /* InterpreterTests.swift */,
 				01F1A6172806BD1A00A1621B /* StandardLibraryTests.swift */,
+				01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */,
 				01E3AA0926CB920000E0B287 /* LoggingTests.swift */,
 				01111309269A0AD600BE9490 /* MetadataTests.swift */,
 				01C606B52703249700DDF576 /* SVGPathTests.swift */,
@@ -687,6 +690,7 @@
 				01C606B62703249700DDF576 /* SVGPathTests.swift in Sources */,
 				01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */,
 				0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */,
+				01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */,
 				01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */,
 				01F1A6182806BD1A00A1621B /* StandardLibraryTests.swift in Sources */,
 				01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */,
