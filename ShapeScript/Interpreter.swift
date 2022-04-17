@@ -873,10 +873,19 @@ extension Definition {
             }
         case let .block(block):
             var options = Options()
-            for statement in block.statements {
-                if case let .option(identifier, expression) = statement.type {
-                    let value = try expression.evaluate(in: context) // TODO: get static type w/o evaluating
-                    options[identifier.name] = value.type
+            try context.pushScope { context in
+                for statement in block.statements {
+                    switch statement.type {
+                    case let .option(identifier, expression):
+                        let value = try expression.evaluate(in: context) // TODO: get static type w/o evaluating
+                        options[identifier.name] = value.type
+                    case .define:
+                        try statement.evaluate(in: context)
+                    case .command, .block,
+                         .forloop, .ifelse,
+                         .expression, .import:
+                        break
+                    }
                 }
             }
             let source = context.source

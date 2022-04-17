@@ -413,6 +413,36 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [6])
     }
 
+    func testOptionDefaultValueFromGlobalConstant() {
+        let program = """
+        define baz 5
+        define foo {
+            option bar baz
+            print bar
+        }
+        foo
+        foo { bar 6 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5, 6])
+    }
+
+    func testOptionDefaultValueFromLocalConstant() {
+        let program = """
+        define foo {
+            define baz 5
+            option bar baz
+            print bar
+        }
+        foo
+        foo { bar 6 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5, 6])
+    }
+
     func testGlobalSymbolsAvailableToCommand() {
         let program = """
         define baz 5
