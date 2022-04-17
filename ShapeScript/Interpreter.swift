@@ -873,7 +873,9 @@ extension Definition {
             }
         case let .block(block):
             var options = Options()
-            try context.pushScope { context in
+            do {
+                let context = context.push(.custom(nil, [:]))
+                context.random = RandomSequence(seed: context.random.seed)
                 for statement in block.statements {
                     switch statement.type {
                     case let .option(identifier, expression):

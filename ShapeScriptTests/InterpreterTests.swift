@@ -443,6 +443,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5, 6])
     }
 
+    func testOptionTypeEvaluationDoesNotChangeSeed() {
+        let program = """
+        seed 1
+        define foo {
+            option bar rnd
+            print bar
+        }
+        foo
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.23645552527159452])
+    }
+
     func testGlobalSymbolsAvailableToCommand() {
         let program = """
         define baz 5
