@@ -84,6 +84,10 @@ extension Camera: Equatable {
         settings?.hasScale ?? false
     }
 
+    var background: MaterialProperty? {
+        settings?.background
+    }
+
     var fov: Angle? {
         settings?.fov
     }

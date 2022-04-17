@@ -9,6 +9,7 @@
 import Cocoa
 import ShapeScript
 
+// TODO: move this into ShapeScript core
 extension MaterialProperty {
     var brightness: Double {
         averageColor.brightness

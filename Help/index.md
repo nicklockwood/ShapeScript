@@ -63,6 +63,7 @@ ShapeScript Help
         - [Orientation](cameras.md#orientation)
         - [Field of View](cameras.md#field-of-view)
         - [Orthographic View](cameras.md#orthographic-view)
+        - [Background](cameras.md#background)
 - Syntax
     - [Comments](comments.md)
     - [Literals](literals.md)

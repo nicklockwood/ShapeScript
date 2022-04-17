@@ -43,6 +43,8 @@ background "filename.png" // set background image
 
 This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md#rendering-an-image). By default, the background is transparent.
 
+**Note:** the `background` command can only be used at the root level of a ShapeScript file, or inside a [camera](cameras.md) node:
+
 ## Detail
 
 The `detail` command can be used anywhere in the ShapeScript file to override the local detail level used for approximating curved geometry. It is documented in the [options](options.md#detail) section.

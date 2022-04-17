@@ -12,6 +12,7 @@ public struct Camera: Hashable {
     public var hasPosition: Bool
     public var hasOrientation: Bool
     public var hasScale: Bool
+    public var background: MaterialProperty?
     public var fov: Angle?
 }
 

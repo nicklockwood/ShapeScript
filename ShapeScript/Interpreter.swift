@@ -504,6 +504,18 @@ enum Value {
         }
     }
 
+    var colorOrTextureValue: MaterialProperty? {
+        switch self {
+        case let .color(color):
+            return .color(color)
+        case let .texture(texture):
+            return texture.map { .texture($0) }
+        case .boolean, .vector, .size, .rotation, .range, .tuple,
+             .number, .string, .text, .path, .mesh, .point, .bounds:
+            return nil
+        }
+    }
+
     var type: ValueType {
         switch self {
         case .color: return .color

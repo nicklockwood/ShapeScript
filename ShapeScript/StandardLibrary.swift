@@ -371,6 +371,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "position": .vector,
             "orientation": .rotation,
             "size": .size,
+            "background": .colorOrTexture,
             "fov": .number,
         ])) { context in
             var hasPosition = false, hasOrientation = false, hasScale = false
@@ -391,6 +392,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     hasPosition: hasPosition,
                     hasOrientation: hasOrientation,
                     hasScale: hasScale,
+                    background: context.background,
                     fov: (context.value(for: "fov")?.doubleValue).map {
                         Angle(radians: $0 * .pi)
                     }

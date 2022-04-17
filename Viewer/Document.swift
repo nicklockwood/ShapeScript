@@ -121,7 +121,7 @@ class Document: NSDocument, EvaluationDelegate {
         guard let scene = scene else {
             return
         }
-        let options = Self.outputOptions(for: scene, wireframe: showWireframe)
+        let options = scene.outputOptions(for: camera, wireframe: showWireframe)
         loadingProgress?.dispatch { progress in
             progress.setStatus(.partial(scene))
             scene.scnBuild(with: options)
@@ -132,7 +132,7 @@ class Document: NSDocument, EvaluationDelegate {
     func updateViews() {
         for viewController in sceneViewControllers {
             viewController.isLoading = (loadingProgress?.inProgress == true)
-            viewController.background = scene?.background
+            viewController.background = camera.background ?? scene?.background
             viewController.geometry = geometry
             viewController.errorMessage = errorMessage
             viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
@@ -181,20 +181,6 @@ class Document: NSDocument, EvaluationDelegate {
         }
     }
 
-    private static func outputOptions(for scene: Scene, wireframe: Bool) -> Scene.OutputOptions {
-        var options = Scene.OutputOptions.default
-        let color = Color(.underPageBackgroundColor)
-        let size = scene.bounds.size
-        options.lineWidth = min(0.05, 0.002 * max(size.x, size.y, size.z))
-        options.lineColor = scene.background.brightness(over: color) > 0.5 ? .black : .white
-        options.wireframe = wireframe
-        #if arch(x86_64)
-        // Use stroke on x86 as line rendering looks bad
-        options.wireframeLineWidth = options.lineWidth / 2
-        #endif
-        return options
-    }
-
     override func read(from url: URL, ofType _: String) throws {
         let input = try String(contentsOf: url, encoding: .utf8)
         linkedResources.removeAll()
@@ -202,6 +188,7 @@ class Document: NSDocument, EvaluationDelegate {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
+        let camera = self.camera
         let showWireframe = self.showWireframe
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self = self else {
@@ -266,7 +253,7 @@ class Document: NSDocument, EvaluationDelegate {
 
             let minUpdatePeriod: TimeInterval = 0.1
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
-            let options = Self.outputOptions(for: scene, wireframe: showWireframe)
+            let options = scene.outputOptions(for: camera, wireframe: showWireframe)
             _ = scene.build {
                 if progress.isCancelled {
                     return false
@@ -428,7 +415,7 @@ class Document: NSDocument, EvaluationDelegate {
         actionSheet.informativeText = modelInfo
         actionSheet.addButton(withTitle: "OK")
         actionSheet.addButton(withTitle: "Open in Editor")
-        let fileURL = selectedGeometry?.sourceLocation?.file ?? fileURL
+        let fileURL = selectedGeometry?.sourceLocation?.file ?? self.fileURL
         showSheet(actionSheet, in: windowForSheet) { [weak self] response in
             switch response {
             case .alertSecondButtonReturn:
@@ -543,5 +530,23 @@ class Document: NSDocument, EvaluationDelegate {
                 viewController.appendLog(line + "\n")
             }
         }
+    }
+}
+
+extension Scene {
+    // TODO: move this into ShapeScript core
+    func outputOptions(for camera: Camera, wireframe: Bool) -> OutputOptions {
+        var options = OutputOptions.default
+        let color = Color(.underPageBackgroundColor)
+        let size = bounds.size
+        options.lineWidth = min(0.05, 0.002 * max(size.x, size.y, size.z))
+        let background = camera.background ?? self.background
+        options.lineColor = background.brightness(over: color) > 0.5 ? .black : .white
+        options.wireframe = wireframe
+        #if arch(x86_64)
+        // Use stroke on x86 as line rendering looks bad
+        options.wireframeLineWidth = options.lineWidth / 2
+        #endif
+        return options
     }
 }

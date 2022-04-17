@@ -45,8 +45,12 @@ final class EvaluationContext {
     var sourceIndex: String.Index?
     var baseURL: URL?
 
-    var background: MaterialProperty = .color(.clear)
     var material: Material = .default
+    var background: MaterialProperty {
+        get { value(for: #function)?.colorOrTextureValue ?? .color(.clear) }
+        set { define(#function, as: .constant(.colorOrTexture(newValue))) }
+    }
+
     var transform = Transform.identity
     var childTransform = Transform.identity
     var childTypes: Set<ValueType> = [.mesh]
@@ -101,7 +105,6 @@ final class EvaluationContext {
         userSymbols = parent.userSymbols
         importCache = parent.importCache
         importStack = parent.importStack
-        background = parent.background
         material = parent.material
         childTypes = parent.childTypes
         namedObjects = parent.namedObjects

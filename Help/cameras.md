@@ -103,5 +103,17 @@ camera {
 
 As with `position` and `orientation`, if the `size` property is omitted then a suitable orthographic scale will be determined automatically.
 
+## Background
+
+The [background color or texture](commands.md#background) for the scene can be overridden for each camera. This opens up some useful possibilities such as setting orthographic sketches as background for different cameras to use as reference images when modeling:
+
+```swift
+camera {
+    name "Side View"
+    position 5 0 0
+    background "side-view.jpg"
+}
+```
+
 ---
 [Index](index.md) | Next: [Comments](comments.md)
