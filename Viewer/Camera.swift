@@ -96,7 +96,7 @@ extension Camera: Equatable {
         fov.map { $0 <= .zero }
     }
 
-    private var settings: ShapeScript.Camera? {
+    var settings: ShapeScript.Camera? {
         if case let .camera(settings) = geometry?.type {
             return settings
         }

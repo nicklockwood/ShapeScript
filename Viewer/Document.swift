@@ -121,7 +121,11 @@ class Document: NSDocument, EvaluationDelegate {
         guard let scene = scene else {
             return
         }
-        let options = scene.outputOptions(for: camera, wireframe: showWireframe)
+        let options = scene.outputOptions(
+            for: camera.settings,
+            backgroundColor: Color(.underPageBackgroundColor),
+            wireframe: showWireframe
+        )
         loadingProgress?.dispatch { progress in
             progress.setStatus(.partial(scene))
             scene.scnBuild(with: options)
@@ -253,7 +257,11 @@ class Document: NSDocument, EvaluationDelegate {
 
             let minUpdatePeriod: TimeInterval = 0.1
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
-            let options = scene.outputOptions(for: camera, wireframe: showWireframe)
+            let options = scene.outputOptions(
+                for: camera.settings,
+                backgroundColor: Color(.underPageBackgroundColor),
+                wireframe: showWireframe
+            )
             _ = scene.build {
                 if progress.isCancelled {
                     return false
@@ -530,23 +538,5 @@ class Document: NSDocument, EvaluationDelegate {
                 viewController.appendLog(line + "\n")
             }
         }
-    }
-}
-
-extension Scene {
-    // TODO: move this into ShapeScript core
-    func outputOptions(for camera: Camera, wireframe: Bool) -> OutputOptions {
-        var options = OutputOptions.default
-        let color = Color(.underPageBackgroundColor)
-        let size = bounds.size
-        options.lineWidth = min(0.05, 0.002 * max(size.x, size.y, size.z))
-        let background = camera.background ?? self.background
-        options.lineColor = background.brightness(over: color) > 0.5 ? .black : .white
-        options.wireframe = wireframe
-        #if arch(x86_64)
-        // Use stroke on x86 as line rendering looks bad
-        options.wireframeLineWidth = options.lineWidth / 2
-        #endif
-        return options
     }
 }

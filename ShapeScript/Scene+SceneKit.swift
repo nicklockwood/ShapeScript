@@ -125,6 +125,25 @@ public extension Scene {
         public var wireframeLineWidth: Double = 0
     }
 
+    func outputOptions(
+        for camera: Camera?,
+        backgroundColor: Color?,
+        wireframe: Bool
+    ) -> OutputOptions {
+        var options = OutputOptions.default
+        let color = backgroundColor ?? .gray
+        let size = bounds.size
+        options.lineWidth = min(0.05, 0.002 * max(size.x, size.y, size.z))
+        let background = camera?.background ?? self.background
+        options.lineColor = background.brightness(over: color) > 0.5 ? .black : .white
+        options.wireframe = wireframe
+        #if arch(x86_64)
+        // Use stroke on x86 as line rendering looks bad
+        options.wireframeLineWidth = options.lineWidth / 2
+        #endif
+        return options
+    }
+
     func scnBuild(with options: OutputOptions) {
         children.scnBuild(with: options, debug: false)
     }
