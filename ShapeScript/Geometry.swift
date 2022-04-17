@@ -52,7 +52,7 @@ public final class Geometry: Hashable {
         case .group:
             return true
         case .cone, .cylinder, .sphere, .cube,
-             .lathe, .loft, .path, .mesh, .camera,
+             .lathe, .loft, .path, .mesh, .camera, .light,
              .intersection, .difference, .stencil:
             return false
         case .union, .xor, .extrude, .fill:
@@ -207,7 +207,7 @@ public final class Geometry: Hashable {
                     )
                 }
             }
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera:
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
@@ -279,7 +279,7 @@ public extension Geometry {
             }
         case .cone, .cube, .cylinder, .sphere, .path, .mesh:
             return type.bounds
-        case .camera:
+        case .camera, .light:
             return .empty
         }
     }
@@ -289,6 +289,13 @@ public extension Geometry {
             return children.flatMap { $0.cameras }
         }
         return [self]
+    }
+
+    var light: Light? {
+        guard case let .light(light) = type else {
+            return nil
+        }
+        return light
     }
 
     var worldTransform: Transform {
@@ -470,7 +477,7 @@ private extension Geometry {
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(callback)
-        case .union, .xor, .intersection, .camera:
+        case .union, .xor, .intersection, .camera, .light:
             mesh = nil
         }
         return callback()
@@ -495,7 +502,7 @@ private extension Geometry {
         }
         let isCancelled = { !callback() }
         switch type {
-        case .group, .path, .camera:
+        case .group, .path, .camera, .light:
             mesh = Mesh([])
         case let .cone(segments):
             mesh = .cone(slices: segments)
@@ -608,7 +615,7 @@ public extension Geometry {
         switch type {
         case .group:
             return children.reduce(0) { $0 + $1.objectCount }
-        case .camera:
+        case .camera, .light:
             return 0
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill,
@@ -641,7 +648,7 @@ public extension Geometry {
         switch type {
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .fill, .loft,
-             .mesh, .path, .camera:
+             .mesh, .path, .camera, .light:
             return 0 // TODO: should paths/points be treated as children?
         case .union, .xor, .difference, .intersection, .stencil, .group:
             return children.count

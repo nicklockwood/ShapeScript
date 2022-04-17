@@ -192,6 +192,7 @@ private extension GeometryType {
         case .path: return "path"
         case .mesh: return "mesh"
         case .camera: return "camera"
+        case .light: return "light"
         }
     }
 }

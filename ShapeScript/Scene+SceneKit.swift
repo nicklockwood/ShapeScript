@@ -63,6 +63,10 @@ public extension SCNNode {
         setTransform(geometry.transform)
         name = geometry.name
 
+        if let light = geometry.light {
+            self.light = SCNLight(light)
+        }
+
         // debug wireframe
 //        geometry.mesh.map { self.addChildNode(SCNNode(
 //            geometry: SCNGeometry(wireframe: $0)
@@ -315,6 +319,26 @@ public extension Geometry {
             children: try scnNode.childNodes.map(Geometry.init(scnNode:)),
             sourceLocation: nil
         )
+    }
+}
+
+public extension SCNLight {
+    convenience init(_ light: Light) {
+        self.init()
+        switch (light.hasPosition, light.hasOrientation) {
+        case (false, false):
+            type = .ambient
+        case (false, true):
+            type = .directional
+        case (true, false):
+            type = .omni
+        case (true, true):
+            type = .spot
+        }
+        color = OSColor(light.color)
+        intensity = CGFloat(light.color.a * 1000)
+        spotOuterAngle = CGFloat(light.spread.degrees)
+        spotInnerAngle = CGFloat(1 - max(0, min(1, light.penumbra))) * spotOuterAngle
     }
 }
 

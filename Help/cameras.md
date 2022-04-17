@@ -65,7 +65,7 @@ camera {
 }
 ```
 
-Note the `position 0` and `orientation 0` here are required, because if these are not specified then the camera position and orientation will be set to their default values.
+**Note:** the `position 0` and `orientation 0` here are required, because if these are not specified then the camera position and orientation will be set to their default values.
  
 ## Field of View
 

@@ -512,6 +512,11 @@ enum Value {
         }
     }
 
+    var colorValue: Color {
+        assert(value is Color)
+        return value as? Color ?? .white
+    }
+
     var colorOrTextureValue: MaterialProperty? {
         switch self {
         case let .color(color):
@@ -1605,7 +1610,7 @@ extension Expression {
             if values.count == 2, parameters.count == 2 {
                 let color = try parameters[0].evaluate(as: .color, for: name, in: context)
                 let alpha = try parameters[1].evaluate(as: .number, for: name, in: context)
-                return .color((color.value as! Color).withAlpha(alpha.doubleValue))
+                return .color(color.colorValue.withAlpha(alpha.doubleValue))
             }
             let numbers = try numerify(max: 4, min: 1)
             return .color(Color(unchecked: numbers))

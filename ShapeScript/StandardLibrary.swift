@@ -70,12 +70,12 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let color: Symbols = colors + [
         "color": .property(.color, { parameter, context in
-            context.material.color = parameter.value as? Color
+            context.material.color = parameter.colorValue
         }, { context in
             .color(context.material.color ?? .white)
         }),
         "colour": .property(.color, { parameter, context in
-            context.material.color = parameter.value as? Color
+            context.material.color = parameter.colorValue
         }, { context in
             .color(context.material.color ?? .white)
         }),
@@ -141,6 +141,34 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "stencil": .block(.group) { context in
             .mesh(Geometry(type: .stencil, in: context))
+        },
+        // lights
+        "light": .block(.custom(nil, [
+            "position": .vector,
+            "orientation": .rotation,
+            "color": .color,
+            "spread": .number,
+            "penumbra": .number,
+        ])) { context in
+            var hasPosition = false, hasOrientation = false
+            if let position = context.value(for: "position")?.value as? Vector {
+                context.transform.offset = position
+                hasPosition = true
+            }
+            if let orientation = context.value(for: "orientation")?.value as? Rotation {
+                context.transform.rotation = orientation
+                hasOrientation = true
+            }
+            return .mesh(Geometry(
+                type: .light(Light(
+                    hasPosition: hasPosition,
+                    hasOrientation: hasOrientation,
+                    color: context.value(for: "color")?.colorValue ?? .white,
+                    spread: context.value(for: "spread")?.angleValue ?? (.pi / 4),
+                    penumbra: context.value(for: "penumbra")?.doubleValue ?? 1
+                )),
+                in: context
+            ))
         },
         // debug
         "debug": .block(.group) { context in

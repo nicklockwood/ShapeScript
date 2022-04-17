@@ -2807,6 +2807,88 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(paths.first?.points.count, 4)
     }
 
+    // MARK: Lights
+
+    func testDefaultLight() throws {
+        let program = try parse("light")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let light = try XCTUnwrap(geometry.light)
+        XCTAssertEqual(light.color, .white)
+        XCTAssertFalse(light.hasPosition)
+        XCTAssertFalse(light.hasOrientation)
+    }
+
+    func testAmbientLight() throws {
+        let program = try parse("light { color yellow }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let light = try XCTUnwrap(geometry.light)
+        XCTAssertEqual(light.color, .yellow)
+        XCTAssertFalse(light.hasPosition)
+        XCTAssertFalse(light.hasOrientation)
+    }
+
+    func testDirectionalLight() throws {
+        let program = try parse("""
+        light {
+            color yellow
+            orientation 0.5
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        guard case let .light(light) = geometry.type else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(light.color, .yellow)
+        XCTAssertFalse(light.hasPosition)
+        XCTAssert(light.hasOrientation)
+        XCTAssertEqual(geometry.transform, .init(rotation: .roll(.halfPi)))
+    }
+
+    func testPointLight() throws {
+        let program = try parse("""
+        light {
+            color yellow
+            position 1
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let light = try XCTUnwrap(geometry.light)
+        XCTAssertEqual(light.color, .yellow)
+        XCTAssert(light.hasPosition)
+        XCTAssertFalse(light.hasOrientation)
+        XCTAssertEqual(geometry.transform, .init(offset: .init(1, 0, 0)))
+    }
+
+    func testSpotlight() throws {
+        let program = try parse("""
+        light {
+            color yellow
+            position 1
+            orientation 0.5
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let light = try XCTUnwrap(geometry.light)
+        XCTAssertEqual(light.color, .yellow)
+        XCTAssert(light.hasPosition)
+        XCTAssert(light.hasOrientation)
+        XCTAssertEqual(geometry.transform, .init(
+            offset: .init(1, 0, 0),
+            rotation: .roll(.halfPi)
+        ))
+    }
+
     // MARK: Debug command
 
     func testDebugCube() throws {
