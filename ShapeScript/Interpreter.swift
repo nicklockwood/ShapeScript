@@ -879,8 +879,9 @@ extension Definition {
                 for statement in block.statements {
                     switch statement.type {
                     case let .option(identifier, expression):
-                        let value = try expression.evaluate(in: context) // TODO: get static type w/o evaluating
-                        options[identifier.name] = value.type
+                        let type = try expression.staticType(in: context) ??
+                            expression.evaluate(in: context).type
+                        options[identifier.name] = type
                     case .define:
                         try statement.evaluate(in: context)
                     case .command, .block,
@@ -1216,6 +1217,74 @@ extension Statement {
 }
 
 extension Expression {
+    func staticType(in context: EvaluationContext) throws -> ValueType? {
+        switch type {
+        case .number:
+            return .number
+        case .string:
+            return .string
+        case .color:
+            return .color
+        case let .identifier(name):
+            guard let symbol = context.symbol(for: name) else {
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.expressionSymbols),
+                    at: range
+                )
+            }
+            switch symbol {
+            case .command, .block:
+                return nil
+            case let .property(type, _, _):
+                return type
+            case let .constant(value):
+                return value.type
+            }
+        case let .block(identifier, block):
+            let (name, range) = (identifier.name, identifier.range)
+            guard let symbol = context.symbol(for: name) else {
+                throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
+            }
+            switch symbol {
+            case .block, .command:
+                return nil
+            case .property, .constant:
+                throw RuntimeError(
+                    .unexpectedArgument(for: name, max: 0),
+                    at: block.range
+                )
+            }
+        case let .tuple(expressions) where expressions.count == 1:
+            // TODO: find better solution for this
+            return try expressions[0].staticType(in: context)
+        case .tuple:
+            return .tuple
+        case .prefix(.minus, _),
+             .prefix(.plus, _),
+             .infix(_, .minus, _),
+             .infix(_, .plus, _),
+             .infix(_, .times, _),
+             .infix(_, .divide, _):
+            return .number
+        case .infix(_, .to, _), .infix(_, .step, _):
+            return .range
+        case .infix(_, .equal, _),
+             .infix(_, .unequal, _),
+             .infix(_, .lt, _),
+             .infix(_, .gt, _),
+             .infix(_, .lte, _),
+             .infix(_, .gte, _),
+             .infix(_, .and, _),
+             .infix(_, .or, _):
+            return .boolean
+        case .member:
+            // TODO: This should be possible to get
+            return nil
+        case let .subexpression(expression):
+            return try expression.staticType(in: context)
+        }
+    }
+
     func evaluate(in context: EvaluationContext) throws -> Value {
         switch type {
         case let .number(number):
