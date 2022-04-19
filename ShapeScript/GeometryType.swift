@@ -14,6 +14,8 @@ public struct Camera: Hashable {
     public var hasScale: Bool
     public var background: MaterialProperty?
     public var fov: Angle?
+    public var width: Double?
+    public var height: Double?
 }
 
 public struct Light: Hashable {

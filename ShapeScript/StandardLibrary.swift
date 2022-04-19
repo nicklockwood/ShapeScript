@@ -407,6 +407,8 @@ extension Dictionary where Key == String, Value == Symbol {
             "size": .size,
             "background": .colorOrTexture,
             "fov": .number,
+            "width": .number,
+            "height": .number,
         ])) { context in
             var hasPosition = false, hasOrientation = false, hasScale = false
             if let position = context.value(for: "position")?.value as? Vector {
@@ -427,7 +429,9 @@ extension Dictionary where Key == String, Value == Symbol {
                     hasOrientation: hasOrientation,
                     hasScale: hasScale,
                     background: context.background,
-                    fov: context.value(for: "fov")?.angleValue
+                    fov: context.value(for: "fov")?.angleValue,
+                    width: context.value(for: "width")?.doubleValue,
+                    height: context.value(for: "height")?.doubleValue
                 )),
                 in: context
             ))

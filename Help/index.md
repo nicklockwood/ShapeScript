@@ -71,6 +71,7 @@ ShapeScript Help
         - [Field of View](cameras.md#field-of-view)
         - [Orthographic View](cameras.md#orthographic-view)
         - [Background](cameras.md#background)
+        - [Pixel Dimensions](cameras.md#pixel-dimensions)
 - Syntax
     - [Comments](comments.md)
     - [Literals](literals.md)

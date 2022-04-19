@@ -115,5 +115,16 @@ camera {
 }
 ```
 
+## Pixel Dimensions
+
+You can add an optional `width` and/or `height` to your camera block to control the pixel dimensions of the captured image. This has no effect on how the camera view is displayed in the app, but determines the size of [exported images](export.md#rendering-an-image):
+
+```swift
+camera {
+    width 1024
+    height 768   
+}
+```
+
 ---
 [Index](index.md) | Next: [Comments](comments.md)
