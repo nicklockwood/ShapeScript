@@ -8,6 +8,10 @@
 
 import Euclid
 
+#if canImport(SVGPath)
+import SVGPath
+#endif
+
 extension Vector {
     init(_ svgPoint: SVGPoint) {
         self.init(svgPoint.x, svgPoint.y)

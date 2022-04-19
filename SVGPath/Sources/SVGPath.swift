@@ -1,21 +1,44 @@
 //
 //  SVGPath.swift
-//  ShapeScript
+//  SVGPath
 //
 //  Created by Nick Lockwood on 27/09/2021.
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
+//  Distributed under the permissive MIT license
+//  Get the latest version from here:
+//
+//  https://github.com/nicklockwood/SVGPath
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in all
+//  copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//  SOFTWARE.
+//
 
 import Foundation
 
-struct SVGPath: Hashable {
-    var commands: [SVGCommand]
+public struct SVGPath: Hashable {
+    public var commands: [SVGCommand]
 
-    init(commands: [SVGCommand]) {
+    public init(commands: [SVGCommand]) {
         self.commands = commands
     }
 
-    init(_ string: String) throws {
+    public init(string: String) throws {
         var token: UnicodeScalar = " "
         var commands = [SVGCommand]()
         var numbers = ArraySlice<Double>()
@@ -24,10 +47,10 @@ struct SVGPath: Hashable {
 
         func assertArgs(_ count: Int) throws -> [Double] {
             if numbers.count < count {
-                throw SVGErrorType
+                throw SVGError
                     .missingArgument(for: String(token), expected: count)
             } else if !numbers.count.isMultiple(of: count) {
-                throw SVGErrorType
+                throw SVGError
                     .unexpectedArgument(for: String(token), expected: count)
             }
             defer { numbers.removeFirst(count) }
@@ -134,7 +157,7 @@ struct SVGPath: Hashable {
                 number = ""
                 return
             }
-            throw SVGErrorType.unexpectedToken(number)
+            throw SVGError.unexpectedToken(number)
         }
 
         func appendCommand(_ command: SVGCommand) {
@@ -162,7 +185,7 @@ struct SVGPath: Hashable {
             case "a", "A": command = try arc()
             case "z", "Z": command = try end()
             case " ": return
-            default: throw SVGErrorType.unexpectedToken(String(token))
+            default: throw SVGError.unexpectedToken(String(token))
             }
             appendCommand(command)
             if !numbers.isEmpty {
@@ -194,7 +217,7 @@ struct SVGPath: Hashable {
             case " ", "\r", "\n", "\t", ",":
                 try processNumber()
             default:
-                throw SVGErrorType.unexpectedToken(String(char))
+                throw SVGError.unexpectedToken(String(char))
             }
         }
         try processNumber()
@@ -203,12 +226,12 @@ struct SVGPath: Hashable {
     }
 }
 
-enum SVGErrorType: Error, Hashable {
+public enum SVGError: Error, Hashable {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
     case missingArgument(for: String, expected: Int)
 
-    var message: String {
+    public var message: String {
         switch self {
         case let .unexpectedToken(string):
             return "Unexpected token '\(string)'"
@@ -220,7 +243,7 @@ enum SVGErrorType: Error, Hashable {
     }
 }
 
-enum SVGCommand: Hashable {
+public enum SVGCommand: Hashable {
     case moveTo(SVGPoint)
     case lineTo(SVGPoint)
     case cubic(SVGPoint, SVGPoint, SVGPoint)
@@ -229,7 +252,7 @@ enum SVGCommand: Hashable {
     case end
 }
 
-extension SVGCommand {
+public extension SVGCommand {
     var point: SVGPoint {
         switch self {
         case let .moveTo(point),
@@ -283,16 +306,16 @@ extension SVGCommand {
     }
 }
 
-struct SVGPoint: Hashable {
-    var x, y: Double
+public struct SVGPoint: Hashable {
+    public var x, y: Double
 
-    init(x: Double, y: Double) {
+    public init(x: Double, y: Double) {
         self.x = x
         self.y = y
     }
 }
 
-extension SVGPoint {
+public extension SVGPoint {
     static let zero = SVGPoint(x: 0, y: 0)
 
     static func + (lhs: SVGPoint, rhs: SVGPoint) -> SVGPoint {
@@ -304,15 +327,15 @@ extension SVGPoint {
     }
 }
 
-struct SVGArc: Hashable {
-    var radius: SVGPoint
-    var rotation: Double
-    var largeArc: Bool
-    var sweep: Bool
-    var end: SVGPoint
+public struct SVGArc: Hashable {
+    public var radius: SVGPoint
+    public var rotation: Double
+    public var largeArc: Bool
+    public var sweep: Bool
+    public var end: SVGPoint
 }
 
-extension SVGArc {
+public extension SVGArc {
     func asBezierPath(from currentPoint: SVGPoint) -> [SVGCommand] {
         let px = currentPoint.x, py = currentPoint.y
         var rx = abs(radius.x), ry = abs(radius.y)

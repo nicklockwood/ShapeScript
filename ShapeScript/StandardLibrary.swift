@@ -9,8 +9,8 @@
 import Euclid
 import Foundation
 
-#if canImport(CoreGraphics)
-import CoreGraphics
+#if canImport(SVGPath)
+import SVGPath
 #endif
 
 extension Dictionary where Key == String, Value == Symbol {
@@ -256,8 +256,8 @@ extension Dictionary where Key == String, Value == Symbol {
             let text = context.children.map { $0.stringValue }.joined(separator: "\n")
             let svgPath: SVGPath
             do {
-                svgPath = try SVGPath(text)
-            } catch let error as SVGErrorType {
+                svgPath = try SVGPath(string: text)
+            } catch let error as SVGError {
                 throw RuntimeErrorType.assertionFailure(error.message)
             }
             return .path(Path(
