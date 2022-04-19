@@ -402,6 +402,10 @@ enum Value {
 
     static let void: Value = .tuple([])
 
+    static func angle(_ value: Angle) -> Value {
+        .number(value.radians / .pi)
+    }
+
     static func colorOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
         case let .color(color):
@@ -436,6 +440,10 @@ enum Value {
     var doubleValue: Double {
         assert(value is Double)
         return value as? Double ?? 0
+    }
+
+    var angleValue: Angle {
+        .radians(doubleValue * .pi)
     }
 
     var intValue: Int {

@@ -359,10 +359,10 @@ extension Dictionary where Key == String, Value == Symbol {
     static let smoothing: Symbols = [
         "smoothing": .property(.number, { parameter, context in
             // TODO: find a better way to represent null/auto
-            let angle = Swift.min(.pi, parameter.doubleValue * .pi)
-            context.smoothing = angle < 0 ? nil : .radians(angle)
+            let angle = Swift.min(.pi, parameter.angleValue)
+            context.smoothing = angle < .zero ? nil : angle
         }, { context in
-            .number((context.smoothing?.radians).map { $0 / .pi } ?? -1)
+            context.smoothing.map { .angle($0) } ?? .number(-1)
         }),
     ]
 
@@ -393,9 +393,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     hasOrientation: hasOrientation,
                     hasScale: hasScale,
                     background: context.background,
-                    fov: (context.value(for: "fov")?.doubleValue).map {
-                        Angle(radians: $0 * .pi)
-                    }
+                    fov: context.value(for: "fov")?.angleValue
                 )),
                 in: context
             ))
