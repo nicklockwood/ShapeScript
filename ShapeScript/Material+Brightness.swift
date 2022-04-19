@@ -1,16 +1,12 @@
 //
 //  MaterialProperty+Brightness.swift
-//  ShapeScript Viewer
+//  ShapeScript Lib
 //
-//  Created by Nick Lockwood on 11/08/2021.
-//  Copyright © 2021 Nick Lockwood. All rights reserved.
+//  Created by Nick Lockwood on 17/04/2022.
+//  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
-import Cocoa
-import ShapeScript
-
-// TODO: move this into ShapeScript core
-extension MaterialProperty {
+public extension MaterialProperty {
     var brightness: Double {
         averageColor.brightness
     }
@@ -24,12 +20,12 @@ extension MaterialProperty {
         case let .color(color):
             return color
         case let .texture(texture):
-            return texture.getAverageColor() ?? .clear
+            return texture.averageColor ?? .clear
         }
     }
 }
 
-extension Color {
+public extension Color {
     var brightness: Double {
         (r + g + b) / 3
     }
@@ -39,8 +35,12 @@ extension Color {
     }
 }
 
-private extension Texture {
-    func getAverageColor() -> Color? {
+#if canImport(AppKit)
+
+import AppKit
+
+public extension Texture {
+    var averageColor: Color? {
         let image: NSImage?
         switch self {
         case let .data(data):
@@ -49,24 +49,60 @@ private extension Texture {
             image = NSImage(contentsOf: url)
         }
         var rect = NSRect(x: 0, y: 0, width: 1, height: 1)
-        guard let cgImage = image?.cgImage(
+        return image?.cgImage(
             forProposedRect: &rect,
             context: nil,
             hints: nil
-        ) else {
-            return nil
-        }
+        )?.averageColor
+    }
+}
 
-        let width = 1, height = 1
+#elseif canImport(UIKit)
+
+import UIKit
+
+public extension Texture {
+    var averageColor: Color? {
+        let image: UIImage?
+        switch self {
+        case let .data(data):
+            image = UIImage(data: data)
+        case let .file(name: _, url: url):
+            image = UIImage(contentsOfFile: url.path)
+        }
+        let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        UIGraphicsBeginImageContext(rect.size)
+        defer { UIGraphicsEndImageContext() }
+        image?.draw(in: rect)
+        return UIGraphicsGetImageFromCurrentImageContext()?.cgImage?.averageColor
+    }
+}
+
+#else
+
+public extension Texture {
+    var averageColor: Color? {
+        Color(0.5, 0.5, 0.5)
+    }
+}
+
+#endif
+
+#if canImport(CoreGraphics)
+
+import CoreGraphics
+
+extension CGImage {
+    var averageColor: Color? {
         let alphaInfo = CGImageAlphaInfo.premultipliedLast
         let bytesPerPixel = 4
-        let bytesPerRow = width * bytesPerPixel
+        let bytesPerRow = bytesPerPixel
 
         var components = [UInt8](repeating: 0, count: 4)
         guard let context = CGContext(
             data: &components,
-            width: width,
-            height: height,
+            width: 1,
+            height: 1,
             bitsPerComponent: 8,
             bytesPerRow: bytesPerRow,
             space: CGColorSpaceCreateDeviceRGB(),
@@ -75,7 +111,8 @@ private extension Texture {
             return nil
         }
 
-        context.draw(cgImage, in: NSRectToCGRect(rect))
+        let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        context.draw(self, in: rect)
         return Color(
             Double(components[0]) / 255,
             Double(components[1]) / 255,
@@ -84,3 +121,5 @@ private extension Texture {
         )
     }
 }
+
+#endif
