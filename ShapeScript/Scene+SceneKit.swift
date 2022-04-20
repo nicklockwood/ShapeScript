@@ -165,6 +165,29 @@ public extension Geometry {
 
         if let scnData = scnData, scnData.options == options {
             return
+        } else if let light = light {
+            if debug, let material = options.debugMaterial, !options.wireframe {
+                let mesh: Mesh
+                switch (light.hasPosition, light.hasOrientation) {
+                case (false, _):
+                    return
+                case (true, false):
+                    mesh = .sphere(radius: 0.1)
+                case (true, true):
+                    let adjacent = 10000.0
+                    let opposite = tan(light.spread / 2) * adjacent
+                    mesh = Mesh.lathe(Path([
+                        .point(0, 0, 0),
+                        .point(0, -opposite, adjacent),
+                        .point(0, 0, adjacent),
+                    ]), slices: 64).rotated(by: transform.rotation)
+                }
+                let geometry = SCNGeometry(mesh)
+                let material = SCNMaterial(material, isOpaque: false)
+                material.lightingModel = .constant
+                geometry.materials = [material]
+                scnData = (options: options, geometry: geometry, wireframe: nil)
+            }
         } else if let path = path {
             if options.wireframe {
                 let wireframe = scnData?.wireframe ?? SCNGeometry(.stroke(

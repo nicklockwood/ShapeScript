@@ -35,7 +35,7 @@ difference {
 }
 ```
 
-This makes the cylinder visible in the editor and allows it to be selected like any other shape.
+This makes the cylinder visible in the ShapeScript viewer and allows it to be selected like any other shape.
 
 ![Moon debug](images/moon-debug.png)
 

@@ -157,5 +157,19 @@ The `penumbra` is specified as a value between 0 and 1 representing the proporti
 
 ![Sharp spotlight](images/spotlight-sharp.png)
 
+## Debugging
+
+Since it can be hard to visualize the position of a spot or point light, you can use the [debug command](debugging.md) to make the light temporarily visible in the ShapeScript viewer:
+
+```swift
+debug light {
+    color yellow
+    position -0.75 0 0
+    orientation -0.15 0 0.5
+}
+```swift
+
+![Debugging a spotlight](images/spotlight-debug.png)
+
 ---
 [Index](index.md) | Next: [Cameras](cameras.md)
