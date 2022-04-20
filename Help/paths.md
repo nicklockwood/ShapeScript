@@ -142,24 +142,47 @@ roundrect {
 
 ![Roundrect](images/roundrect.png)
 
-## Procedural Paths
+## Regular Polygons
 
-The `circle` command is fine for creating complete circles, but what if you want a circular arc or semicircle? Calculating the Bézier control points for that manually would be tedious, so this is where the power of ShapeScript's procedural logic comes in handy.
-
-To create a path procedurally, you can use a [for loop](control-flow.md#loops) along with [relative transform commands](transforms.md#relative-transforms) such as `rotate`. For example, the following code generates a pentagon:
+To create a regular polygon you can use the `polygon` command. The following creates a pentagon:
 
 ```swift
-path {
-    for 0 to 5 {
-        point 0 1
-        rotate 2 / 5
-    }   
+polygon {
+    sides 5
 }
 ```
 
 ![Pentagon](images/pentagon.png)
 
-To generate a semicircle, we can use a similar approach:
+The output for this is similar to using the `circle` command with a specific detail value:
+
+```swift
+circle {
+    detail 5
+}
+```
+
+The difference is only apparent if you extrude the result, because in the circle's case the extruded sides are [smoothed](options.md#smoothing) by default, whereas for the polygon they are sharply defined:
+
+```swift
+extrude polygon {
+    position -1
+    sides 6
+}
+
+extrude circle {
+    position 1
+    detail 6
+}
+```
+
+![Polygon vs circle](images/polygon-vs-circle.png)
+
+## Procedural Paths
+
+The `circle` command is fine for creating complete circles, but what if you want a circular arc or semicircle? Calculating the Bézier control points for that manually would be tedious, so this is where the power of ShapeScript's procedural logic comes in handy.
+
+To create a path procedurally, you can use a [for loop](control-flow.md#loops) along with [relative transform commands](transforms.md#relative-transforms) such as `rotate`. For example, the following code generates a semicircle:
 
 ```swift
 path {

@@ -202,6 +202,13 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
+        "polygon": .block(.custom(.pathShape, ["sides": .number])) { context in
+            let sides = context.value(for: "sides")?.intValue ?? 5
+            return .path(Path.polygon(
+                sides: sides,
+                color: context.material.color
+            ).transformed(by: context.transform))
+        },
         "roundrect": .block(.custom(.pathShape, ["radius": .number])) { context in
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
             return .path(Path.roundedRectangle(

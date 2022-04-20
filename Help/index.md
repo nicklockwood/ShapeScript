@@ -35,6 +35,7 @@ ShapeScript Help
         - [Curves](paths.md#curves)
         - [Circles](paths.md#circles)
         - [Rectangles](paths.md#rectangles)
+        - [Regular Polygons](paths.md#regular-polygons)
         - [Procedural Paths](paths.md#procedural-paths)
         - [Nested Paths](paths.md#nested-paths)
         - [Path Colors](paths.md#path-colors)
