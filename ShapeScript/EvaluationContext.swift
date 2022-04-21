@@ -176,7 +176,15 @@ typealias Symbols = [String: Symbol]
 
 extension EvaluationContext {
     func symbol(for name: String) -> Symbol? {
-        userSymbols[name] ?? symbols[name]
+        if let symbol = userSymbols[name] ?? symbols[name] {
+            return symbol
+        }
+        switch name {
+        case "colour":
+            return symbol(for: "color")
+        default:
+            return nil
+        }
     }
 
     func define(_ name: String, as symbol: Symbol) {

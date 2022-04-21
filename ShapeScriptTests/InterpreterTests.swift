@@ -2889,6 +2889,15 @@ class InterpreterTests: XCTestCase {
         ))
     }
 
+    func testLightWithColour() throws {
+        let program = try parse("light { colour yellow }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let light = try XCTUnwrap(geometry.light)
+        XCTAssertEqual(light.color, .yellow)
+    }
+
     // MARK: Debug command
 
     func testDebugCube() throws {

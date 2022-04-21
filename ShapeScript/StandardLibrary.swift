@@ -74,11 +74,6 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .color(context.material.color ?? .white)
         }),
-        "colour": .property(.color, { parameter, context in
-            context.material.color = parameter.colorValue
-        }, { context in
-            .color(context.material.color ?? .white)
-        }),
     ]
 
     static let material: Symbols = color + [

@@ -613,9 +613,7 @@ enum Value {
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
-        case .text:
-            return ["color", "font"]
-        case .texture, .boolean, .number, .string:
+        case .texture, .boolean, .number, .string, .text:
             return []
         }
     }
@@ -713,13 +711,7 @@ enum Value {
             case "depth": return .number(bounds.size.z)
             default: return nil
             }
-        case let .text(text):
-            switch name {
-            case "color": return .color(text.color ?? .white)
-            case "font": return .string(text.font ?? "")
-            default: return nil
-            }
-        case .boolean, .texture, .number, .string:
+        case .boolean, .texture, .number, .string, .text:
             return nil
         }
     }
@@ -1368,8 +1360,16 @@ extension Expression {
                 for statement in block.statements {
                     switch statement.type {
                     case let .command(identifier, parameter):
-                        let name = identifier.name
-                        guard let type = type.options[name] else {
+                        var name = identifier.name
+                        guard let type = type.options[name] ?? {
+                            switch name {
+                            case "colour":
+                                name = "color"
+                                return type.options[name]
+                            default:
+                                return nil
+                            }
+                        }() else {
                             fallthrough
                         }
                         context.define(name, as: try .constant(
