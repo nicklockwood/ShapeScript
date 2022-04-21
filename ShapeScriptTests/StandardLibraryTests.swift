@@ -101,6 +101,17 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    func testColorInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            color red
+            "M150 0 L75 200 225 200 Z"
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
     func testColorInText() throws {
         let program = try parse("""
         text {
@@ -241,6 +252,24 @@ class StandardLibraryTests: XCTestCase {
         }
     }
 
+    func testTextureInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            texture "Stars1.jpg"
+            "M150 0 L75 200 225 200 Z"
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("texture", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     func testTextureInText() throws {
         let program = try parse("""
         text {
@@ -355,6 +384,17 @@ class StandardLibraryTests: XCTestCase {
             path {
                 detail 8
             }
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testDetailInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            detail 4
+            "M150 0 L75 200 225 200 Z"
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
@@ -478,6 +518,23 @@ class StandardLibraryTests: XCTestCase {
             path {
                 smoothing 0
             }
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("smoothing", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testSmoothingInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            smoothing 0
+            "M150 0 L75 200 225 200 Z"
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
@@ -621,6 +678,23 @@ class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testFontInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            font "Helvetica"
+            "M150 0 L75 200 225 200 Z"
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("font", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testFontInText() throws {

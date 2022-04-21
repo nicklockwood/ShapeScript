@@ -242,7 +242,11 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "text": .block(.text) { context in
+        "text": .block(.custom(.text, [
+            "font": .font,
+            "wrapwidth": .number,
+            "linespacing": .number,
+        ])) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.children.map { $0.textValue }
             let paths = Path.text(text, width: width, detail: context.detail / 8)
@@ -440,7 +444,6 @@ extension Dictionary where Key == String, Value == Symbol {
     static let builder: Symbols = group
     static let path: Symbols = _merge(global, childTransform, font, detail, points, color)
     static let pathShape: Symbols = _merge(global, transform, detail, color)
-    static let text: Symbols = _merge(pathShape, font)
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, shape, path)
 }

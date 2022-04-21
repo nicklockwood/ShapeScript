@@ -760,12 +760,7 @@ enum BlockType {
         switch self {
         case let .custom(baseType, options):
             return (baseType?.options ?? [:]).merging(options) { $1 }
-        case .text:
-            return [
-                "wrapwidth": .number,
-                "linespacing": .number,
-            ]
-        case .builder, .group, .path, .shape, .pathShape:
+        case .builder, .group, .path, .shape, .pathShape, .text:
             return [:]
         }
     }
@@ -788,8 +783,7 @@ enum BlockType {
         case .group: return .group
         case .builder: return .builder
         case .path: return .path
-        case .pathShape: return .pathShape
-        case .text: return .text
+        case .pathShape, .text: return .pathShape
         case let .custom(baseType, _):
             return baseType?.symbols ?? .node
         }
