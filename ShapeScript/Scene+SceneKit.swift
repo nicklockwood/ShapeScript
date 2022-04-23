@@ -13,9 +13,9 @@ import Euclid
 import SceneKit
 
 #if canImport(AppKit)
-public typealias OSColor = NSColor
+typealias OSColor = NSColor
 #else
-public typealias OSColor = UIColor
+typealias OSColor = UIColor
 #endif
 
 public extension MaterialProperty {
