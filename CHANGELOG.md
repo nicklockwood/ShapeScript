@@ -1,3 +1,21 @@
+## [1.5.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.0) (2022-04-29)
+
+- Added support for custom light sources using the `light` command
+- Added user-defined functions/commands (previously only blocks could be defined)
+- The width and/or height for exported images can now be set on a per-camera basis
+- Added `polygon` command for more easily creating regular polygon paths
+- The scene background can now be set individually for each camera
+- Using `position`, `orientation` and `size` inside a `path` now works again (broken since 1.4.4)
+- Using `rnd` command in option default expressions no longer has a knock-on effect on the sequence
+- Options can now reference local constants in their default values
+- Material brightness logic used in Viewer app is now part of the ShapeScript core
+- Using `wrapwidth` or `linespacing` text commands inside an `svgpath` block now raises an error
+- Fixed blank screen when scene contains empty `camera` node
+- Removed `StatementType.block` case in favor of expression form
+- Fixed some bugs in path generation relating to point colors
+- The `OSColor` typealias is now private
+- Added SVGPath dependency
+
 ## [1.4.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.7) (2022-04-14)
 
 - Camera is no longer reset on every reload
