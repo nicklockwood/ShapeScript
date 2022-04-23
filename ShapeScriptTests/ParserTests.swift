@@ -463,13 +463,10 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "step")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(
-                type: .tuple([
-                    Expression(type: .identifier("foo"), range: range1),
-                    Expression(type: .identifier("step"), range: range2),
-                ]),
-                range: range
-            )), range: range),
+            Statement(type: .command(
+                Identifier(name: "foo", range: range1),
+                Expression(type: .identifier("step"), range: range2)
+            ), range: range),
         ]))
     }
 

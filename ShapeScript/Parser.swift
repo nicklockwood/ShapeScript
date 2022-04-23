@@ -516,17 +516,31 @@ private extension ArraySlice where Element == Token {
             return try readExpressions().map { .expression($0) }
         }
         switch nextToken.type {
-        case let .identifier(name) where InfixOperator(rawValue: name) != nil:
-            fallthrough
-        case .infix, .dot:
+        case .infix, .dot, .identifier:
             self = start
-            return try readExpressions().map { .expression($0) }
+            guard let expression = try readExpressions() else {
+                return nil
+            }
+            switch expression.type {
+            case var .tuple(expressions) where expressions[0].type == .identifier(name.name):
+                expressions.removeFirst()
+                let expression: Expression
+                if expressions.count > 1 {
+                    let range = expressions[0].range.lowerBound ..< expressions.last!.range.upperBound
+                    expression = Expression(type: .tuple(expressions), range: range)
+                } else {
+                    expression = expressions[0]
+                }
+                return .command(name, expression)
+            default:
+                return .expression(expression)
+            }
         case .lbrace:
             if let statements = try readBlock() {
                 return .block(name, statements)
             }
             fallthrough
-        case .number, .linebreak, .identifier, .keyword, .hexColor,
+        case .number, .linebreak, .keyword, .hexColor,
              .prefix, .string, .rbrace, .lparen, .rparen, .eof:
             return try .command(name, readExpressions())
         }
