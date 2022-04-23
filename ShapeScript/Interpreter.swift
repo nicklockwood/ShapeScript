@@ -895,9 +895,7 @@ extension Definition {
                         options[identifier.name] = type
                     case .define:
                         try statement.evaluate(in: context)
-                    case .command, .block,
-                         .forloop, .ifelse,
-                         .expression, .import:
+                    case .command, .forloop, .ifelse, .expression, .import:
                         break
                     }
                 }
@@ -1163,12 +1161,6 @@ extension Statement {
             case let .constant(v):
                 try RuntimeError.wrap(context.addValue(v), at: range)
             }
-        case let .block(identifier, block):
-            // TODO: better solution
-            // This only works correctly if node was not imported from another file
-            context.sourceIndex = range.lowerBound
-            let expression = Expression(type: .block(identifier, block), range: range)
-            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .expression(expression):
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
@@ -1372,7 +1364,7 @@ extension Expression {
                                               for: identifier,
                                               in: context)
                         ))
-                    case .block, .define, .forloop, .ifelse, .expression, .import:
+                    case .define, .forloop, .ifelse, .expression, .import:
                         try statement.evaluate(in: context)
                     case .option:
                         throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)

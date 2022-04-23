@@ -24,7 +24,6 @@ public struct Program: Equatable {
 
 public enum StatementType: Equatable {
     case command(Identifier, Expression?)
-    case block(Identifier, Block)
     case define(Identifier, Definition)
     case option(Identifier, Expression)
     case forloop(Identifier?, in: Expression, Block)
@@ -516,7 +515,7 @@ private extension ArraySlice where Element == Token {
             return try readExpressions().map { .expression($0) }
         }
         switch nextToken.type {
-        case .infix, .dot, .identifier:
+        case .infix, .dot, .identifier, .lbrace:
             self = start
             guard let expression = try readExpressions() else {
                 return nil
@@ -535,11 +534,6 @@ private extension ArraySlice where Element == Token {
             default:
                 return .expression(expression)
             }
-        case .lbrace:
-            if let statements = try readBlock() {
-                return .block(name, statements)
-            }
-            fallthrough
         case .number, .linebreak, .keyword, .hexColor,
              .prefix, .string, .rbrace, .lparen, .rparen, .eof:
             return try .command(name, readExpressions())
