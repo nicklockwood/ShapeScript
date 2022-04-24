@@ -37,17 +37,17 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let childTransform: Symbols = [
-        "translate": .command(.vector) { parameter, context in
+        "translate": .function(.vector) { parameter, context in
             let vector = parameter.value as! Vector
             context.childTransform.translate(by: vector)
             return .void
         },
-        "rotate": .command(.rotation) { parameter, context in
+        "rotate": .function(.rotation) { parameter, context in
             let rotation = parameter.value as! Rotation
             context.childTransform.rotate(by: rotation)
             return .void
         },
-        "scale": .command(.size) { parameter, context in
+        "scale": .function(.size) { parameter, context in
             let scale = parameter.value as! Vector
             context.childTransform.scale(by: scale)
             return .void
@@ -270,13 +270,13 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let points: Symbols = [
         // vertices
-        "point": .command(.vector) { parameter, context in
+        "point": .function(.vector) { parameter, context in
             .point(.point(
                 parameter.value as! Vector,
                 color: context.material.color
             ))
         },
-        "curve": .command(.vector) { parameter, context in
+        "curve": .function(.vector) { parameter, context in
             .point(.curve(
                 parameter.value as! Vector,
                 color: context.material.color
@@ -286,11 +286,11 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let functions: Symbols = [
         // Debug
-        "print": .command(.tuple) { value, context in
+        "print": .function(.tuple) { value, context in
             context.debugLog(value.tupleValue)
             return .void
         },
-        "assert": .command(.boolean) { value, _ in
+        "assert": .function(.boolean) { value, _ in
             if !value.boolValue {
                 throw RuntimeErrorType.assertionFailure("")
             }
@@ -299,11 +299,11 @@ extension Dictionary where Key == String, Value == Symbol {
         // Logic
         "true": .constant(.boolean(true)),
         "false": .constant(.boolean(false)),
-        "not": .command(.boolean) { value, _ in
+        "not": .function(.boolean) { value, _ in
             .boolean(!value.boolValue)
         },
         // Math
-        "rnd": .command(.void) { _, context in
+        "rnd": .function(.void) { _, context in
             .number(context.random.next())
         },
         "seed": .property(.number, { value, context in
@@ -311,52 +311,52 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .number(Double(context.random.seed))
         }),
-        "round": .command(.number) { value, _ in
+        "round": .function(.number) { value, _ in
             .number(value.doubleValue.rounded())
         },
-        "floor": .command(.number) { value, _ in
+        "floor": .function(.number) { value, _ in
             .number(value.doubleValue.rounded(.down))
         },
-        "ceil": .command(.number) { value, _ in
+        "ceil": .function(.number) { value, _ in
             .number(value.doubleValue.rounded(.up))
         },
-        "max": .command(.pair) { value, _ in
+        "max": .function(.pair) { value, _ in
             let values = value.value as! [Double]
             return .number(values.max()!)
         },
-        "min": .command(.pair) { value, _ in
+        "min": .function(.pair) { value, _ in
             let values = value.value as! [Double]
             return .number(values.min()!)
         },
-        "abs": .command(.number) { value, _ in
+        "abs": .function(.number) { value, _ in
             .number(value.doubleValue.magnitude)
         },
-        "sqrt": .command(.number) { value, _ in
+        "sqrt": .function(.number) { value, _ in
             .number(sqrt(value.doubleValue))
         },
-        "pow": .command(.pair) { value, _ in
+        "pow": .function(.pair) { value, _ in
             let values = value.value as! [Double]
             return .number(pow(values[0], values[1]))
         },
-        "cos": .command(.number) { value, _ in
+        "cos": .function(.number) { value, _ in
             .number(cos(value.doubleValue))
         },
-        "acos": .command(.number) { value, _ in
+        "acos": .function(.number) { value, _ in
             .number(acos(value.doubleValue))
         },
-        "sin": .command(.number) { value, _ in
+        "sin": .function(.number) { value, _ in
             .number(sin(value.doubleValue))
         },
-        "asin": .command(.number) { value, _ in
+        "asin": .function(.number) { value, _ in
             .number(asin(value.doubleValue))
         },
-        "tan": .command(.number) { value, _ in
+        "tan": .function(.number) { value, _ in
             .number(tan(value.doubleValue))
         },
-        "atan": .command(.number) { value, _ in
+        "atan": .function(.number) { value, _ in
             .number(atan(value.doubleValue))
         },
-        "atan2": .command(.pair) { value, _ in
+        "atan2": .function(.pair) { value, _ in
             let values = value.value as! [Double]
             return .number(atan2(values[0], values[1]))
         },

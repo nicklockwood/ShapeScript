@@ -128,7 +128,7 @@ final class EvaluationContext {
         new.symbols = type.symbols
         for (name, symbol) in type.symbols {
             switch symbol {
-            case .property, .command:
+            case .property, .function:
                 // TODO: treat redefining these as an error anyway?
                 new.userSymbols[name] = nil
             case .block, .constant:
@@ -166,7 +166,7 @@ typealias Getter = (EvaluationContext) throws -> Value
 typealias Setter = (Value, EvaluationContext) throws -> Void
 
 enum Symbol {
-    case command(ValueType, (Value, EvaluationContext) throws -> Value)
+    case function(ValueType, (Value, EvaluationContext) throws -> Value)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)
     case constant(Value)

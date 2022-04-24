@@ -809,7 +809,7 @@ private func evaluateParameters(
     loop: for (i, param) in parameters.enumerated() {
         if i < parameters.count - 1, case let .identifier(name) = param.type {
             switch context.symbol(for: name) {
-            case let .command(parameterType, fn)? where parameterType != .void:
+            case let .function(parameterType, fn)? where parameterType != .void:
                 let identifier = Identifier(name: name, range: param.range)
                 let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
                 let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
@@ -1093,7 +1093,7 @@ extension Statement {
                 )
             }
             switch symbol {
-            case let .command(type, fn):
+            case let .function(type, fn):
                 let argument = try evaluateParameter(parameter,
                                                      as: type,
                                                      for: identifier,
@@ -1236,7 +1236,7 @@ extension Expression {
                 )
             }
             switch symbol {
-            case .command, .block:
+            case .function, .block:
                 return nil
             case let .property(type, _, _):
                 return type
@@ -1249,7 +1249,7 @@ extension Expression {
                 throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
             }
             switch symbol {
-            case .block, .command:
+            case .block, .function:
                 return nil
             case .property, .constant:
                 throw RuntimeError(
@@ -1304,7 +1304,7 @@ extension Expression {
                 )
             }
             switch symbol {
-            case let .command(parameterType, fn):
+            case let .function(parameterType, fn):
                 guard parameterType == .void else {
                     // Commands with parameters can't be used in expressions without parens
                     // TODO: allow this if child matches next argument
@@ -1372,7 +1372,7 @@ extension Expression {
                 }
                 context.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(context), at: range)
-            case let .command(type, _):
+            case let .function(type, _):
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: 0,
