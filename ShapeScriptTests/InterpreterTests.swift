@@ -2944,4 +2944,108 @@ class InterpreterTests: XCTestCase {
             ), at: range))
         }
     }
+
+    // MARK: Empty arguments
+
+    func testCallVoidCommandWithoutArgs() throws {
+        let program = """
+        define foo {
+            rnd
+        }
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallVoidCommandWithEmptyParens() throws {
+        let program = """
+        define foo {
+            rnd()
+        }
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallVoidCommandWithEmptyBlock() throws {
+        let program = """
+        define foo {
+            rnd {}
+        }
+        print foo
+        """
+        let range = program.range(of: "{}")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "rnd",
+                index: 0,
+                expected: "void",
+                got: "block"
+            ), at: range))
+        }
+    }
+
+    func testCallVoidFunctionWithoutArgs() throws {
+        let program = """
+        define foo rnd
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallVoidFunctionWithEmptyParens() throws {
+        let program = """
+        define foo rnd()
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallVoidFunctionWithEmptyBlock() throws {
+        let program = """
+        define foo rnd {}
+        print foo
+        """
+        let range = program.range(of: "{}")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "rnd",
+                index: 0,
+                expected: "void",
+                got: "block"
+            ), at: range))
+        }
+    }
+
+    func testCallBlockWithoutArgs() throws {
+        let program = """
+        define foo {
+            sphere
+        }
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallBlockWithEmptyParens() throws {
+        let program = """
+        define foo {
+            sphere
+        }
+        print foo()
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCallBlockWithEmptyBlock() throws {
+        let program = """
+        define foo {
+            sphere
+        }
+        print foo {}
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
 }

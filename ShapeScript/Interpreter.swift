@@ -570,6 +570,8 @@ enum Value {
                 return values[0].isConvertible(to: .color)
             }
             return values.allSatisfy { $0.type == .number }
+        case let (.tuple(values), .void):
+            return values.isEmpty
         default:
             return self.type == type
         }
@@ -1693,6 +1695,9 @@ extension Expression {
                 at: parameters[0].range
             )
         case .void:
+            if values.isEmpty || values.count == 1 && values[0].isConvertible(to: .void) {
+                return .void
+            }
             throw RuntimeError(
                 .unexpectedArgument(for: name, max: 0),
                 at: parameters[0].range
