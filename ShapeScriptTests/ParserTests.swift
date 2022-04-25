@@ -230,6 +230,40 @@ class ParserTests: XCTestCase {
         XCTAssertNoThrow(try parse(input))
     }
 
+    func testEmptyCommandArguments() {
+        let input = "foo()"
+        let fooRange = input.range(of: "foo")!
+        let parensRange = input.range(of: "()")!
+        let paramsIndex = input.range(of: ")")!.lowerBound
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .command(
+                Identifier(name: "foo", range: fooRange),
+                Expression(type: .subexpression(Expression(
+                    type: .tuple([]),
+                    range: paramsIndex ..< paramsIndex
+                )), range: parensRange)
+            ), range: fooRange.lowerBound ..< parensRange.upperBound),
+        ]))
+    }
+
+    func testEmptyFunctionArguments() {
+        let input = "foo bar()"
+        let fooRange = input.range(of: "foo")!
+        let barRange = input.range(of: "bar")!
+        let parensRange = input.range(of: "()")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .command(
+                Identifier(name: "foo", range: fooRange),
+                Expression(type: .subexpression(Expression(
+                    type: .tuple([
+                        Expression(type: .identifier("bar"), range: barRange),
+                    ]),
+                    range: barRange
+                )), range: barRange.lowerBound ..< parensRange.upperBound)
+            ), range: fooRange.lowerBound ..< parensRange.upperBound),
+        ]))
+    }
+
     func testUnterminatedParenthesis() {
         let input = "define foo (1 2 3"
         let range = input.endIndex ..< input.endIndex

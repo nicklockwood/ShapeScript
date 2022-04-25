@@ -323,24 +323,26 @@ private extension ArraySlice where Element == Token {
                 type = .identifier(name)
                 break
             }
-            let expression = try require(readExpressions(), as: "expression")
+            let expression = try readExpressions()
             let endToken = nextToken
-            try requireToken(.rparen)
+            try requireToken(.rparen, as: "expression or \(TokenType.rparen.errorDescription)")
             // repackage function syntax as a lisp-style subexpression
             // TODO: should we support this as a distinct construct?
             var expressions = [Expression(
                 type: .identifier(name),
                 range: range
             )]
-            if case let .tuple(params) = expression.type {
-                expressions += params
-            } else {
-                expressions.append(expression)
+            if let expression = expression {
+                if case let .tuple(params) = expression.type {
+                    expressions += params
+                } else {
+                    expressions.append(expression)
+                }
             }
-            range = range.lowerBound ..< endToken.range.upperBound
             type = .subexpression(
                 Expression(type: .tuple(expressions), range: range)
             )
+            range = range.lowerBound ..< endToken.range.upperBound
         case .dot, .linebreak, .keyword, .infix, .lbrace, .rbrace, .rparen, .eof:
             self = start
             return nil
