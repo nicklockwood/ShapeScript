@@ -175,7 +175,7 @@ public extension Geometry {
                     mesh = .sphere(radius: 0.1)
                 case (true, true):
                     let adjacent = 10000.0
-                    let opposite = tan(light.spread / 2) * adjacent
+                    let opposite = tan(min(light.spread, .pi * 0.999) / 2) * adjacent
                     mesh = Mesh.lathe(Path([
                         .point(0, 0, 0),
                         .point(0, -opposite, adjacent),
