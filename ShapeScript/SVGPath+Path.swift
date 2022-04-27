@@ -142,7 +142,8 @@ extension SVGPath {
                     t += step
                     points.append(.curve(
                         cubicBezier(p0.x, p1.x, p2.x, p3.x, t),
-                        cubicBezier(p0.y, p1.y, p2.y, p3.y, t)
+                        cubicBezier(p0.y, p1.y, p2.y, p3.y, t),
+                        color: color
                     ))
                 }
                 points.append(.point(Vector(p3), color: color))

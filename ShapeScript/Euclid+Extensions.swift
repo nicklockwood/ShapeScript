@@ -136,7 +136,10 @@ extension Path {
 
     /// Remove point colors
     func removingColors() -> Path {
-        Path(points.map { $0.with(color: nil) })
+        if subpaths.count > 1 {
+            return Path(subpaths: subpaths.map { $0.removingColors() })
+        }
+        return Path(points.map { $0.with(color: nil) })
     }
 
     /// Create an array of text paths
