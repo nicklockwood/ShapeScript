@@ -9,10 +9,12 @@
 import Cocoa
 
 class WelcomeViewController: NSViewController {
-    @IBOutlet var shouldShowAtStartupCheckbox: NSButton!
+    @IBOutlet private var welcomeView: NSTextView!
+    @IBOutlet private var shouldShowAtStartupCheckbox: NSButton!
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        welcomeView.textStorage?.setAttributedString(loadRTF("Welcome"))
         shouldShowAtStartupCheckbox.state =
             WelcomeViewController.shouldShowAtStartup ? .on : .off
     }

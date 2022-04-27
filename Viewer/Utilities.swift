@@ -24,6 +24,12 @@ let isHighSierra: Bool = {
 
 let useOpenGL = isHighSierra
 
+func loadRTF(_ file: String) -> NSAttributedString {
+    let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
+    let data = try! Data(contentsOf: file)
+    return NSAttributedString(rtf: data, documentAttributes: nil)!
+}
+
 func isImageFile(_ url: URL) -> Bool {
     [
         "webp",

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="19162"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -1193,7 +1193,7 @@
                     <autoresizingMask key="autoresizingMask"/>
                     <clipView key="contentView" drawsBackground="NO" id="s63-TB-AyE">
                         <rect key="frame" x="0.0" y="0.0" width="240" height="135"/>
-                        <autoresizingMask key="autoresizingMask"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" smartInsertDelete="YES" id="OaV-Ak-1uT">
                                 <rect key="frame" x="0.0" y="0.0" width="240" height="135"/>
@@ -1268,7 +1268,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uyk-FY-bZa">
-                                <rect key="frame" x="178" y="29" width="124" height="18"/>
+                                <rect key="frame" x="179" y="29" width="123" height="18"/>
                                 <buttonCell key="cell" type="check" title="Show at Startup" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Pdw-43-3k6">
                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                     <font key="font" metaFont="system"/>
@@ -1290,63 +1290,6 @@
                                             <color key="backgroundColor" red="1" green="1" blue="1" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                                             <size key="minSize" width="442" height="197"/>
                                             <size key="maxSize" width="448" height="10000000"/>
-                                            <attributedString key="textStorage">
-                                                <fragment>
-                                                    <string key="content">ShapeScript is a text-based 3D modelling tool. If this is your first time using ShapeScript, we recommend you check out the Getting Started guide.</string>
-                                                    <attributes>
-                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                                                        <font key="NSFont" metaFont="system" size="14"/>
-                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO"/>
-                                                    </attributes>
-                                                </fragment>
-                                                <fragment>
-                                                    <string key="content" base64-UTF8="YES">
-Cg
-</string>
-                                                    <attributes>
-                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                                                        <font key="NSFont" metaFont="system" size="14"/>
-                                                        <real key="NSKern" value="0.0"/>
-                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO"/>
-                                                    </attributes>
-                                                </fragment>
-                                                <fragment>
-                                                    <string key="content">
-This viewer is free to use for creating and previewing models in ShapeScript's own shape file format.
-
-The commercial release of ShapeScript (which you can find on the </string>
-                                                    <attributes>
-                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                                                        <font key="NSFont" metaFont="system" size="14"/>
-                                                        <real key="NSKern" value="0.0"/>
-                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
-                                                            <tabStops/>
-                                                        </paragraphStyle>
-                                                    </attributes>
-                                                </fragment>
-                                                <fragment content="Mac App Store">
-                                                    <attributes>
-                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                                                        <font key="NSFont" metaFont="system" size="14"/>
-                                                        <real key="NSKern" value="0.0"/>
-                                                        <url key="NSLink" string="https://apps.apple.com/app/id1441135869"/>
-                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
-                                                            <tabStops/>
-                                                        </paragraphStyle>
-                                                    </attributes>
-                                                </fragment>
-                                                <fragment>
-                                                    <string key="content">) includes a one-time in-app purchase to unlock the ability to export ShapeScript models in various formats, for use with other applications.</string>
-                                                    <attributes>
-                                                        <color key="NSColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                                                        <font key="NSFont" metaFont="system" size="14"/>
-                                                        <real key="NSKern" value="0.0"/>
-                                                        <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36" tighteningFactorForTruncation="0.0" allowsDefaultTighteningForTruncation="NO">
-                                                            <tabStops/>
-                                                        </paragraphStyle>
-                                                    </attributes>
-                                                </fragment>
-                                            </attributedString>
                                             <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                         </textView>
                                     </subviews>
@@ -1377,6 +1320,7 @@ The commercial release of ShapeScript (which you can find on the </string>
                     </view>
                     <connections>
                         <outlet property="shouldShowAtStartupCheckbox" destination="Uyk-FY-bZa" id="V2P-ka-699"/>
+                        <outlet property="welcomeView" destination="Oke-rb-mcR" id="6Ne-p3-G49"/>
                     </connections>
                 </viewController>
                 <customObject id="GWO-iI-wG3" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
