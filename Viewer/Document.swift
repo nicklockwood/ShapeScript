@@ -466,7 +466,12 @@ class Document: NSDocument, EvaluationDelegate {
             NSSound.beep()
             return
         }
-        camera = cameras[menuItem.tag]
+        let camera = cameras[menuItem.tag]
+        if camera == self.camera {
+            sceneViewControllers.forEach { $0.resetCamera(nil) }
+        } else {
+            self.camera = camera
+        }
     }
 
     @IBAction func showWireframe(_: NSMenuItem) {
