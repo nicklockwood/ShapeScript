@@ -183,9 +183,7 @@ final class Settings {
     func set<T>(_ value: T?, for key: String, in document: Document,
                 andGlobally applyGlobally: Bool = false)
     {
-        if let data = Data(value) {
-            try? document.fileURL?.setXattr(data, for: key.xattrName)
-        }
+        try? document.fileURL?.setXattr(Data(value), for: key.xattrName)
         if applyGlobally {
             // Set global default
             defaults.set(value, forKey: key)
@@ -220,8 +218,12 @@ private extension URL {
         }
     }
 
-    func setXattr(_ data: Data, for name: String) throws {
+    func setXattr(_ data: Data?, for name: String) throws {
         try withUnsafeFileSystemRepresentation { path in
+            guard let data = data else {
+                _ = removexattr(path, name, 0)
+                return
+            }
             let length = data.count
             let result = data.withUnsafeBytes {
                 setxattr(path, name, $0.baseAddress, length, 0, 0)
