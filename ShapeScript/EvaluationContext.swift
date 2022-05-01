@@ -160,20 +160,6 @@ final class EvaluationContext {
     }
 }
 
-// MARK: Symbols
-
-typealias Getter = (EvaluationContext) throws -> Value
-typealias Setter = (Value, EvaluationContext) throws -> Void
-
-enum Symbol {
-    case function(ValueType, (Value, EvaluationContext) throws -> Value)
-    case property(ValueType, Setter, Getter)
-    case block(BlockType, Getter)
-    case constant(Value)
-}
-
-typealias Symbols = [String: Symbol]
-
 extension EvaluationContext {
     func symbol(for name: String) -> Symbol? {
         if let symbol = userSymbols[name] ?? symbols[name] {

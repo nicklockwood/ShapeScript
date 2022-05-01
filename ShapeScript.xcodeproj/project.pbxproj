@@ -56,6 +56,7 @@
 		01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */; };
 		01F1A7A5280F724600A1621B /* Material+Brightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1A7A1280F724600A1621B /* Material+Brightness.swift */; };
 		01F1A8AD2819C37000A1621B /* Welcome.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01F1A8A82819C37000A1621B /* Welcome.rtf */; };
+		01F1A9B7281F41DE00A1621B /* Symbols.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F1A9B2281F41DE00A1621B /* Symbols.swift */; };
 		01FDE3CE26BD73A000A46F66 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
 		01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FDE3D426BD766C00A46F66 /* GeometryCache.swift */; };
@@ -238,6 +239,7 @@
 		01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringMatchingTests.swift; sourceTree = "<group>"; };
 		01F1A7A1280F724600A1621B /* Material+Brightness.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Material+Brightness.swift"; sourceTree = "<group>"; };
 		01F1A8A82819C37000A1621B /* Welcome.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Welcome.rtf; sourceTree = "<group>"; };
+		01F1A9B2281F41DE00A1621B /* Symbols.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Symbols.swift; sourceTree = "<group>"; };
 		01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = LRUCache.xcodeproj; sourceTree = "<group>"; };
 		01FDE3D426BD766C00A46F66 /* GeometryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -372,6 +374,7 @@
 			children = (
 				01BFB3B021425C9A00E47A7C /* Lexer.swift */,
 				014F85DA215BE1A900461FB7 /* Parser.swift */,
+				01F1A9B2281F41DE00A1621B /* Symbols.swift */,
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
 				013312D221C9BBCC00626F1B /* EvaluationContext.swift */,
 				013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */,
@@ -738,6 +741,7 @@
 				0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
 				014F85DB215BE1A900461FB7 /* Parser.swift in Sources */,
+				01F1A9B7281F41DE00A1621B /* Symbols.swift in Sources */,
 				01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */,
 				01F01A4D2804CC5300FA1EBB /* SVGPath+Path.swift in Sources */,
 				01977FCB215D0BD400D65D5E /* Scene.swift in Sources */,
