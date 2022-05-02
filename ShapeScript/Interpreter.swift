@@ -60,7 +60,7 @@ public extension ImportError {
         case let .lexerError(error): return error.message
         case let .parserError(error): return error.message
         case let .runtimeError(error): return error.message
-        default: return "Unknown error"
+        case .unknownError: return "Unknown error"
         }
     }
 
@@ -69,7 +69,7 @@ public extension ImportError {
         case let .lexerError(error): return error.range
         case let .parserError(error): return error.range
         case let .runtimeError(error): return error.range
-        default: return "".startIndex ..< "".endIndex
+        case .unknownError: return "".startIndex ..< "".endIndex
         }
     }
 
@@ -78,7 +78,7 @@ public extension ImportError {
         case let .lexerError(error): return error.hint
         case let .parserError(error): return error.hint
         case let .runtimeError(error): return error.hint
-        default: return nil
+        case .unknownError: return nil
         }
     }
 }
@@ -157,7 +157,16 @@ public extension RuntimeError {
                 ?? name.bestMatches(in: options).first
         case let .unknownFont(name, options):
             return name.bestMatches(in: options).first
-        default:
+        case .typeMismatch,
+             .unexpectedArgument,
+             .missingArgument,
+             .unusedValue,
+             .assertionFailure,
+             .fileNotFound,
+             .fileAccessRestricted,
+             .fileTypeMismatch,
+             .fileParsingError,
+             .importError:
             return nil
         }
     }
