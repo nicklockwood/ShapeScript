@@ -191,10 +191,14 @@ public extension RuntimeError {
         }
         switch type {
         case let .unknownSymbol(name, _):
-            var hint = Keyword(rawValue: name) == nil && Symbols.all[name] == nil ? "" :
-                "The \(name) command is not available in this context."
+            var hint = ""
+            if let symbol = Symbols.all[name] {
+                hint = "The \(name) \(symbol.errorDescription) is not available in this context."
+            } else if Keyword(rawValue: name) != nil {
+                hint = "The \(name) command is not available in this context."
+            }
             if let suggestion = suggestion {
-                hint = (hint.isEmpty ? "" : "\(hint) ") + "Did you mean '\(suggestion)'?"
+                hint += (hint.isEmpty ? "" : " ") + "Did you mean '\(suggestion)'?"
             }
             return hint
         case .unknownMember:
@@ -357,52 +361,55 @@ private func evaluateParameters(
 ) throws -> [Value] {
     var values = [Value]()
     loop: for (i, param) in parameters.enumerated() {
-        if i < parameters.count - 1, case let .identifier(name) = param.type {
-            switch context.symbol(for: name) {
-            case let .function(parameterType, fn)? where parameterType != .void:
-                let identifier = Identifier(name: name, range: param.range)
-                let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
-                let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
-                let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
-                try RuntimeError.wrap({
-                    do {
-                        try values.append(fn(arg, context))
-                    } catch let RuntimeErrorType.unexpectedArgument(for: "", max: max) {
-                        throw RuntimeErrorType.unexpectedArgument(for: name, max: max)
-                    } catch let RuntimeErrorType.missingArgument(for: "", index: index, type: type) {
-                        throw RuntimeErrorType.missingArgument(for: name, index: index, type: type)
-                    }
-                }(), at: range)
-                break loop
-            case let .block(type, fn) where !type.childTypes.isEmpty:
-                let childContext = context.push(type)
-                let children = try evaluateParameters(Array(parameters[(i + 1)...]), in: context)
-                for (j, child) in children.enumerated() {
-                    do {
-                        try childContext.addValue(child)
-                    } catch {
-                        var types = type.childTypes.map { $0.errorDescription }
-                        if j == 0 {
-                            types.append("block")
-                        }
-                        throw RuntimeError(
-                            .typeMismatch(
-                                for: name,
-                                index: j,
-                                expected: types,
-                                got: child.type.errorDescription
-                            ),
-                            at: parameters[i + 1 + j].range
-                        )
-                    }
-                }
-                try RuntimeError.wrap(values.append(fn(childContext)), at: param.range)
-                break loop
-            default:
-                break
-            }
+        guard i < parameters.count - 1, case let .identifier(name) = param.type,
+              let symbol = context.symbol(for: name)
+        else {
+            try values.append(param.evaluate(in: context))
+            continue
         }
-        try values.append(param.evaluate(in: context))
+        switch symbol {
+        case let .function(parameterType, fn) where parameterType != .void:
+            let identifier = Identifier(name: name, range: param.range)
+            let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
+            let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
+            let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
+            try RuntimeError.wrap({
+                do {
+                    try values.append(fn(arg, context))
+                } catch let RuntimeErrorType.unexpectedArgument(for: "", max: max) {
+                    throw RuntimeErrorType.unexpectedArgument(for: name, max: max)
+                } catch let RuntimeErrorType.missingArgument(for: "", index: index, type: type) {
+                    throw RuntimeErrorType.missingArgument(for: name, index: index, type: type)
+                }
+            }(), at: range)
+            break loop
+        case let .block(type, fn) where !type.childTypes.isEmpty:
+            let childContext = context.push(type)
+            let children = try evaluateParameters(Array(parameters[(i + 1)...]), in: context)
+            for (j, child) in children.enumerated() {
+                do {
+                    try childContext.addValue(child)
+                } catch {
+                    var types = type.childTypes.map { $0.errorDescription }
+                    if j == 0 {
+                        types.append("block")
+                    }
+                    throw RuntimeError(
+                        .typeMismatch(
+                            for: name,
+                            index: j,
+                            expected: types,
+                            got: child.type.errorDescription
+                        ),
+                        at: parameters[i + 1 + j].range
+                    )
+                }
+            }
+            try RuntimeError.wrap(values.append(fn(childContext)), at: param.range)
+            break loop
+        case .command, .function, .block, .property, .constant:
+            try values.append(param.evaluate(in: context))
+        }
     }
     return values
 }
@@ -724,6 +731,12 @@ extension Statement {
                 )
             }
             switch symbol {
+            case let .command(type, fn):
+                let argument = try evaluateParameter(parameter,
+                                                     as: type,
+                                                     for: identifier,
+                                                     in: context)
+                try RuntimeError.wrap(fn(argument, context), at: range)
             case let .function(type, fn):
                 let argument = try evaluateParameter(parameter,
                                                      as: type,
@@ -867,6 +880,8 @@ extension Expression {
                 )
             }
             switch symbol {
+            case .command:
+                return .void
             case .function, .block:
                 return nil
             case let .property(type, _, _):
@@ -880,6 +895,8 @@ extension Expression {
                 throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
             }
             switch symbol {
+            case .command:
+                return .void
             case .block, .function:
                 return nil
             case .property, .constant:
@@ -935,10 +952,15 @@ extension Expression {
                 )
             }
             switch symbol {
+            case .command:
+                // Commands can't be used in expressions
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.expressionSymbols),
+                    at: range
+                )
             case let .function(parameterType, fn):
                 guard parameterType == .void else {
-                    // Commands with parameters can't be used in expressions without parens
-                    // TODO: allow this if child matches next argument
+                    // Functions with parameters can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
@@ -950,8 +972,7 @@ extension Expression {
                 return try RuntimeError.wrap(getter(context), at: range)
             case let .block(type, fn):
                 guard type.childTypes.isEmpty else {
-                    // Blocks that require children can't be used in expressions without parens
-                    // TODO: allow this if child matches next argument
+                    // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
@@ -1003,7 +1024,7 @@ extension Expression {
                 }
                 context.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(context), at: range)
-            case let .function(type, _):
+            case let .function(type, _), let .command(type, _):
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: 0,

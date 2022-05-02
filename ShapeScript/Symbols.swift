@@ -15,10 +15,22 @@ typealias Getter = (EvaluationContext) throws -> Value
 typealias Setter = (Value, EvaluationContext) throws -> Void
 
 enum Symbol {
+    case command(ValueType, Setter)
     case function(ValueType, (Value, EvaluationContext) throws -> Value)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)
     case constant(Value)
+}
+
+extension Symbol {
+    var errorDescription: String {
+        switch self {
+        case .command, .block: return "command"
+        case .function: return "function"
+        case .property: return "property"
+        case .constant: return "constant"
+        }
+    }
 }
 
 typealias Symbols = [String: Symbol]

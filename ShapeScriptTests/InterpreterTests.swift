@@ -1341,6 +1341,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
 
+    // MARK: Command invocation
+
+    func testInvokeCommandInsideExpression() {
+        let program = "print print 4"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'print'")
+            guard case .unknownSymbol("print", _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     // MARK: Block invocation
 
     func testInvokePrimitive() {

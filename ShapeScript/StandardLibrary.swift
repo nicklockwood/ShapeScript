@@ -37,20 +37,17 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let childTransform: Symbols = [
-        "translate": .function(.vector) { parameter, context in
+        "translate": .command(.vector) { parameter, context in
             let vector = parameter.value as! Vector
             context.childTransform.translate(by: vector)
-            return .void
         },
-        "rotate": .function(.rotation) { parameter, context in
+        "rotate": .command(.rotation) { parameter, context in
             let rotation = parameter.value as! Rotation
             context.childTransform.rotate(by: rotation)
-            return .void
         },
-        "scale": .function(.size) { parameter, context in
+        "scale": .command(.size) { parameter, context in
             let scale = parameter.value as! Vector
             context.childTransform.scale(by: scale)
-            return .void
         },
     ]
 
@@ -286,15 +283,13 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let functions: Symbols = [
         // Debug
-        "print": .function(.tuple) { value, context in
+        "print": .command(.tuple) { value, context in
             context.debugLog(value.tupleValue)
-            return .void
         },
-        "assert": .function(.boolean) { value, _ in
+        "assert": .command(.boolean) { value, _ in
             if !value.boolValue {
                 throw RuntimeErrorType.assertionFailure("")
             }
-            return .void
         },
         // Logic
         "true": .constant(.boolean(true)),

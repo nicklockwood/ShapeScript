@@ -128,7 +128,7 @@ final class EvaluationContext {
         new.symbols = type.symbols
         for (name, symbol) in type.symbols {
             switch symbol {
-            case .property, .function:
+            case .property, .function, .command:
                 // TODO: treat redefining these as an error anyway?
                 new.userSymbols[name] = nil
             case .block, .constant:
@@ -178,7 +178,14 @@ extension EvaluationContext {
     }
 
     var expressionSymbols: [String] {
-        Array(symbols.merging(userSymbols) { $1 }.keys)
+        Array(symbols.merging(userSymbols) { $1 }.filter {
+            switch $1 {
+            case .command:
+                return false
+            case .function, .property, .block, .constant:
+                return true
+            }
+        }.keys)
     }
 
     var commandSymbols: [String] {
