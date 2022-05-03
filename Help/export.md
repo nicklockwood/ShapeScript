@@ -13,16 +13,15 @@ To export your model, select the `File > Purchase Export Feature…`  menu (**Cm
 
 ShapeScript can export your model in a variety of formats, selectable from the export window:
 
-Extension             | File Type                                                       | Supports All Features
-:--------------------| :-------------------------------------------------|:------------------------------
-abc                       | Alembic                                                         | No 
-dae                       | Collada DAE                                                 | Yes
-obj                        | Wavefront Object                                         | No
-scn                       | SceneKit Scene Document                          | Yes
-scnz                     | Compressed SceneKit Scene Document     | Yes
-usd                       | Universal Scene Description                        | No
-ply                        | Polygon File Format                                     | No
-stl                         | Standard Tessellation Language                  | No
+Extension             | File Type                                        | Supports All Features
+:-------------------- | :------------------------------------------------|:------------------------------
+abc                   | Alembic                                          | No 
+dae                   | Collada DAE                                      | Yes
+obj                   | Wavefront Object                                 | No
+scn / scnz            | SceneKit Scene Document                          | Yes
+usd / usdz            | Universal Scene Description                      | No
+ply                   | Polygon File Format                              | No
+stl                   | Stereolithography                                | No
 
 <br/>
 
@@ -52,14 +51,14 @@ In addition to 3D model formats, ShapeScript can also export 2D images. By defau
 
 The following image formats are supported:
 
-Extension             | File Type                                                       | Supports Transparency
-:--------------------| :-------------------------------------------------|:------------------------------
-gif                         | Graphics Interchange Format                      | Yes
-png                       | Portable Network Graphics                         | Yes
-jpg / jpeg              | Joint Photographic Experts Group              | No
-jpf / jp2                 | JPEG 2000                                                   | Yes
-tif / tiff                   | Tagged Image File Format                           | Yes 
-bmp                      | Bitmap                                                         | No
+Extension             | File Type                                         | Supports Transparency
+:---------------------| :-------------------------------------------------|:------------------------------
+gif                   | Graphics Interchange Format                       | Yes
+png                   | Portable Network Graphics                         | Yes
+jpg / jpeg            | Joint Photographic Experts Group                  | No
+jpf / jp2             | JPEG 2000                                         | Yes
+tif / tiff            | Tagged Image File Format                          | Yes 
+bmp                   | Bitmap                                            | No
 
 <br/>
 
