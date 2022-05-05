@@ -133,6 +133,8 @@ class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
     }
 
     func testColorInBlockCall() throws {
@@ -145,13 +147,9 @@ class StandardLibraryTests: XCTestCase {
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("color", _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
     }
 
     // MARK: Texture
@@ -312,13 +310,7 @@ class StandardLibraryTests: XCTestCase {
         """)
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("texture", _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
     // MARK: Detail
@@ -434,13 +426,7 @@ class StandardLibraryTests: XCTestCase {
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("detail", _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
     // MARK: Smoothing
@@ -586,13 +572,7 @@ class StandardLibraryTests: XCTestCase {
         }
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("smoothing", _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
     // MARK: Font
