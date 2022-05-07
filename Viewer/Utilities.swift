@@ -30,21 +30,6 @@ func loadRTF(_ file: String) -> NSAttributedString {
     return NSAttributedString(rtf: data, documentAttributes: nil)!
 }
 
-func isImageFile(_ url: URL) -> Bool {
-    [
-        "webp",
-        "png", "gif",
-        "jpg", "jpeg", "jpe", "jif", "jfif", "jfi",
-        "tiff", "tif",
-        "psd",
-        "raw", "arw", "cr2", "nrw", "k25",
-        "bmp", "dib",
-        "heif", "heic",
-        "ind", "indd", "indt",
-        "jp2", "j2k", "jpf", "jpx", "jpm", "mj2",
-    ].contains(url.pathExtension.lowercased())
-}
-
 func showSheet(_ alert: NSAlert, in window: NSWindow?,
                _ handler: ((NSApplication.ModalResponse) -> Void)? = nil)
 {
