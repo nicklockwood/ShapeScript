@@ -2417,6 +2417,32 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testLogicalOrShortCircuits() {
+        let program = """
+        define foo() {
+            print "foo"
+            true
+        }
+        print foo() or foo()
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["foo", true])
+    }
+
+    func testLogicalAndShortCircuits() {
+        let program = """
+        define foo() {
+            print "foo"
+            false
+        }
+        print foo() and foo()
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["foo", false])
+    }
+
     // MARK: Member lookup
 
     func testTupleVectorLookup() {
