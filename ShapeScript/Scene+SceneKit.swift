@@ -12,10 +12,12 @@ import Euclid
 
 import SceneKit
 
-#if canImport(AppKit)
-typealias OSColor = NSColor
-#else
+#if canImport(UIKit)
 typealias OSColor = UIColor
+typealias OSImage = UIImage
+#else
+typealias OSColor = NSColor
+typealias OSImage = NSImage
 #endif
 
 public extension MaterialProperty {
@@ -285,13 +287,16 @@ private extension Array where Element == Geometry {
     }
 }
 
-// MARK: import
-
 public extension MaterialProperty {
     init?(scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let color as OSColor:
             self = .color(Color(color))
+        case let image as OSImage:
+            guard let texture = Texture(image) else {
+                return nil
+            }
+            self = .texture(texture)
         case let data as Data:
             self = .texture(.data(data))
         case let url as URL:
@@ -362,6 +367,36 @@ public extension SCNLight {
         intensity = CGFloat(light.color.a * 1000)
         spotOuterAngle = CGFloat(light.spread.degrees)
         spotInnerAngle = CGFloat(1 - max(0, min(1, light.penumbra))) * spotOuterAngle
+    }
+}
+
+extension Texture {
+    init?(_ image: OSImage) {
+        #if canImport(UIKit)
+        guard let data = image.pngData() else {
+            return nil
+        }
+        #else
+        guard let cgImage = image
+            .cgImage(forProposedRect: nil, context: nil, hints: nil),
+            let data = NSBitmapImageRep(cgImage: cgImage)
+            .representation(using: .png, properties: [:])
+        else {
+            return nil
+        }
+        #endif
+        self = .data(data)
+    }
+}
+
+extension OSImage {
+    convenience init?(_ texture: Texture) {
+        switch texture {
+        case let .data(data):
+            self.init(data: data)
+        case let .file(name: _, url: url):
+            self.init(contentsOfFile: url.path)
+        }
     }
 }
 

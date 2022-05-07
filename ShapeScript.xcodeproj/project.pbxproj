@@ -32,6 +32,7 @@
 		0152E5FC2145C0420082A5A3 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0152E5FB2145C0420082A5A3 /* Document.swift */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
 		017EE7142194ED6D0046C918 /* InterpreterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017EE7132194ED6D0046C918 /* InterpreterTests.swift */; };
+		017F72FE28270F290023231C /* PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017F72FD28270F290023231C /* PlatformTests.swift */; };
 		01908DC826B7597F0068390E /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01908DC726B7597F0068390E /* ProgramError.swift */; };
 		0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0190CB6E21CE300E00CE4571 /* Utilities.swift */; };
 		01977FCB215D0BD400D65D5E /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01977FCA215D0BD400D65D5E /* Scene.swift */; };
@@ -212,6 +213,7 @@
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
 		01746BF126C5D226009DADEF /* GeometryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryType.swift; sourceTree = "<group>"; };
 		017EE7132194ED6D0046C918 /* InterpreterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterpreterTests.swift; sourceTree = "<group>"; };
+		017F72FD28270F290023231C /* PlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformTests.swift; sourceTree = "<group>"; };
 		01908DC726B7597F0068390E /* ProgramError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramError.swift; sourceTree = "<group>"; };
 		0190CB6E21CE300E00CE4571 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		01977FCA215D0BD400D65D5E /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
@@ -405,6 +407,7 @@
 				01F1A6172806BD1A00A1621B /* StandardLibraryTests.swift */,
 				01F1A702280AD2BA00A1621B /* StringMatchingTests.swift */,
 				01E3AA0926CB920000E0B287 /* LoggingTests.swift */,
+				017F72FD28270F290023231C /* PlatformTests.swift */,
 				01111309269A0AD600BE9490 /* MetadataTests.swift */,
 				01BFB3A621425C8500E47A7C /* Info.plist */,
 			);
@@ -764,6 +767,7 @@
 				01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */,
 				01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */,
 				01F1A6182806BD1A00A1621B /* StandardLibraryTests.swift in Sources */,
+				017F72FE28270F290023231C /* PlatformTests.swift in Sources */,
 				01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
