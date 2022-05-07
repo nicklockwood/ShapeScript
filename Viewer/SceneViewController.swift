@@ -7,7 +7,6 @@
 //
 
 import Euclid
-import QuartzCore
 import SceneKit
 import ShapeScript
 
@@ -35,11 +34,7 @@ class SceneViewController: NSViewController {
         return cameraNode
     }()
 
-    lazy var axesNode: SCNNode = .init(Axes(
-        scale: axesSize,
-        camera: camera,
-        background: background
-    ))
+    weak var axesNode: SCNNode?
 
     var errorMessage: NSAttributedString? {
         didSet {
@@ -189,9 +184,7 @@ class SceneViewController: NSViewController {
         scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
 
         // add axes
-        if showAxes {
-            scnScene.rootNode.addChildNode(axesNode)
-        }
+        updateAxes()
 
         // restore selection
         selectGeometry(selectedGeometry?.scnGeometry)
@@ -276,17 +269,22 @@ class SceneViewController: NSViewController {
         scnView.gestureRecognizers = gestureRecognizers
     }
 
-    private func updateAxesAndCamera() {
-        // Update axes
-        axesNode.removeFromParentNode()
-        axesNode = SCNNode(Axes(
-            scale: axesSize,
-            camera: camera,
-            background: background
-        ))
+    private func updateAxes() {
+        axesNode?.removeFromParentNode()
         if showAxes {
+            let axesNode = SCNNode(Axes(
+                scale: axesSize,
+                camera: camera,
+                background: background,
+                backgroundColor: Color(.underPageBackgroundColor)
+            ))
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
+            self.axesNode = axesNode
         }
+    }
+
+    private func updateAxesAndCamera() {
+        updateAxes()
         // Update camera node
         guard let bounds = geometry?.bounds else {
             return

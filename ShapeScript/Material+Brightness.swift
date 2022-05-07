@@ -35,46 +35,34 @@ public extension Color {
     }
 }
 
-#if canImport(AppKit)
+#if canImport(UIKit)
+
+import UIKit
+
+public extension Texture {
+    var averageColor: Color? {
+        let image = UIImage(self)
+        let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        UIGraphicsBeginImageContext(rect.size)
+        defer { UIGraphicsEndImageContext() }
+        image?.draw(in: rect)
+        return UIGraphicsGetImageFromCurrentImageContext()?.cgImage?.averageColor
+    }
+}
+
+#elseif canImport(AppKit)
 
 import AppKit
 
 public extension Texture {
     var averageColor: Color? {
-        let image: NSImage?
-        switch self {
-        case let .data(data):
-            image = NSImage(data: data)
-        case let .file(name: _, url: url):
-            image = NSImage(contentsOf: url)
-        }
+        let image = NSImage(self)
         var rect = NSRect(x: 0, y: 0, width: 1, height: 1)
         return image?.cgImage(
             forProposedRect: &rect,
             context: nil,
             hints: nil
         )?.averageColor
-    }
-}
-
-#elseif canImport(UIKit)
-
-import UIKit
-
-public extension Texture {
-    var averageColor: Color? {
-        let image: UIImage?
-        switch self {
-        case let .data(data):
-            image = UIImage(data: data)
-        case let .file(name: _, url: url):
-            image = UIImage(contentsOfFile: url.path)
-        }
-        let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
-        UIGraphicsBeginImageContext(rect.size)
-        defer { UIGraphicsEndImageContext() }
-        image?.draw(in: rect)
-        return UIGraphicsGetImageFromCurrentImageContext()?.cgImage?.averageColor
     }
 }
 

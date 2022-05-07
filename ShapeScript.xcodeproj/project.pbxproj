@@ -14,6 +14,7 @@
 		010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
 		0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */; };
+		012A4A382828859A002AC1FF /* Settings+Editor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012A4A372828859A002AC1FF /* Settings+Editor.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312F021CD5A7000626F1B /* PreferencesViewController.swift */; };
@@ -195,6 +196,7 @@
 		010A904F27FB222400D54A6F /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SVGPath.xcodeproj; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeViewController.swift; sourceTree = "<group>"; };
+		012A4A372828859A002AC1FF /* Settings+Editor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Settings+Editor.swift"; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013312F021CD5A7000626F1B /* PreferencesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesViewController.swift; sourceTree = "<group>"; };
@@ -310,6 +312,7 @@
 				0104EB76271F0A1E00B60058 /* WindowController.swift */,
 				0104EB6B271E17FE00B60058 /* Camera.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
+				012A4A372828859A002AC1FF /* Settings+Editor.swift */,
 				01E4E48726D377F000F390D7 /* Axes.swift */,
 				0152E5CD2145009A0082A5A3 /* Assets.xcassets */,
 				0152E5CF2145009A0082A5A3 /* Main.storyboard */,
@@ -726,6 +729,7 @@
 				01E4E48826D377F000F390D7 /* Axes.swift in Sources */,
 				013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */,
 				01DCD4B4279AC725004DD38F /* Document+ModelInfo.swift in Sources */,
+				012A4A382828859A002AC1FF /* Settings+Editor.swift in Sources */,
 				0104EB77271F0A1E00B60058 /* WindowController.swift in Sources */,
 				01908DC826B7597F0068390E /* ProgramError.swift in Sources */,
 			);

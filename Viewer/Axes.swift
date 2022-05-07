@@ -13,10 +13,15 @@ import ShapeScript
 struct Axes {
     let geometry: Geometry
 
-    init(scale: Double, camera: Camera, background: MaterialProperty?) {
+    init(
+        scale: Double,
+        camera: Camera,
+        background: MaterialProperty?,
+        backgroundColor: Color?
+    ) {
         let textScale = 0.1
         let distance = 1 + textScale
-        let color = Color(.underPageBackgroundColor)
+        let color = backgroundColor ?? .gray
         let background = camera.background ?? background
         let brightness = background?.brightness(over: color) ?? color.brightness
         let lineColor = brightness > 0.5 ? Color.black : .white

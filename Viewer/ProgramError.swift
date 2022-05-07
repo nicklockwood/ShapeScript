@@ -6,8 +6,17 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-import Cocoa
 import ShapeScript
+
+#if canImport(UIKit)
+import UIKit
+typealias OSColor = UIColor
+typealias OSFont = UIFont
+#else
+import Cocoa
+typealias OSColor = NSColor
+typealias OSFont = NSFont
+#endif
 
 protocol ProgramError {
     var message: String { get }
@@ -77,16 +86,16 @@ extension Error {
 
         let errorMessage = NSMutableAttributedString()
         errorMessage.append(NSAttributedString(string: "\(errorType)\n\n", attributes: [
-            .foregroundColor: NSColor.white,
-            .font: NSFont.systemFont(ofSize: 17, weight: .bold),
+            .foregroundColor: OSColor.white,
+            .font: OSFont.systemFont(ofSize: 17, weight: .bold),
         ]))
         let body = message + location
         errorMessage.append(NSAttributedString(string: "\(body)\n\n", attributes: [
-            .foregroundColor: NSColor.white.withAlphaComponent(0.7),
-            .font: NSFont.systemFont(ofSize: 15, weight: .regular),
+            .foregroundColor: OSColor.white.withAlphaComponent(0.7),
+            .font: OSFont.systemFont(ofSize: 15, weight: .regular),
         ]))
         if let lineRange = lineRange, let range = range,
-           let font = NSFont(name: "Courier", size: 15)
+           let font = OSFont(name: "Courier", size: 15)
         {
             let sourceLine = String(source[lineRange])
             let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound) +
@@ -99,15 +108,15 @@ extension Error {
             errorMessage.append(NSAttributedString(
                 string: "\(sourceLine)\n\(underline)\n\n",
                 attributes: [
-                    .foregroundColor: NSColor.white,
+                    .foregroundColor: OSColor.white,
                     .font: font,
                 ]
             ))
         }
         if let hint = hint {
             errorMessage.append(NSAttributedString(string: "\(hint)\n\n", attributes: [
-                .foregroundColor: NSColor.white.withAlphaComponent(0.7),
-                .font: NSFont.systemFont(ofSize: 15, weight: .regular),
+                .foregroundColor: OSColor.white.withAlphaComponent(0.7),
+                .font: OSFont.systemFont(ofSize: 15, weight: .regular),
             ]))
         }
         return errorMessage
