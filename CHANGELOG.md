@@ -1,3 +1,16 @@
+## [1.5.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.1) (2022-05-07)
+
+- Add implicit `detail/smoothing`, `color/texture`, `position/orientation/size` and `font` options to custom blocks 
+- Logical `and/or` expressions now short circuit (don't evaluate their second parameter unless needed)
+- Added support for creating `MaterialProperty` from `SCNMaterials` using `NS/UIImage`
+- Fixed setting camera position on locked documents (such as the Example projects)
+- Added slightly stronger type safety when calling commands
+- Fixed axes contrast when using per-camera backgrounds
+- Fixed font inheritance for user-defined blocks
+- Added custom fonts to model info display
+- Added USDZ to list of supported export types
+- Improved iOS compatibility
+
 ## [1.5.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.0) (2022-04-29)
 
 - Added support for custom light sources using the `light` command
