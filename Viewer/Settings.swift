@@ -165,11 +165,17 @@ final class Settings {
 
     // MARK: Document
 
+    private var documentSettings = [URL: [String: Any]]()
+
     func value<T>(for key: String, in document: Document) -> T? {
-        if let data = try? document.fileURL?.xattr(for: key.xattrName),
-           let value = data.as(T.self)
-        {
-            return value
+        if let url = document.fileURL {
+            if let value = documentSettings[url]?[key] as? T {
+                return value
+            }
+            if let data = try? url.xattr(for: key.xattrName), let value = data.as(T.self) {
+                documentSettings[url]?[key] = value
+                return value
+            }
         }
         // Return global default
         return defaults.object(forKey: key) as? T
@@ -183,7 +189,10 @@ final class Settings {
     func set<T>(_ value: T?, for key: String, in document: Document,
                 andGlobally applyGlobally: Bool = false)
     {
-        try? document.fileURL?.setXattr(Data(value), for: key.xattrName)
+        if let url = document.fileURL {
+            documentSettings[url, default: [:]][key] = value
+            try? url.setXattr(Data(value), for: key.xattrName)
+        }
         if applyGlobally {
             // Set global default
             defaults.set(value, forKey: key)
