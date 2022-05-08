@@ -37,15 +37,34 @@ extension URL {
             "jp2", "j2k", "jpf", "jpx", "jpm", "mj2",
         ].contains(pathExtension.lowercased())
     }
+
+    var isFontFile: Bool {
+        #if canImport(UniformTypeIdentifiers)
+        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+            let contentType = try? resourceValues(
+                forKeys: [.contentTypeKey]
+            ).contentType ?? UTType(
+                filenameExtension: pathExtension
+            )
+            return contentType?.conforms(to: .font) ?? false
+        }
+        #endif
+        // NOTE: these values are also hard-coded in EvaluationContext
+        return [".otf", ".ttf", ".ttc"].contains(pathExtension.lowercased())
+    }
 }
 
 extension Document {
     var importedFileCount: Int {
-        linkedResources.filter { !$0.isImageFile }.count
+        linkedResources.filter { !$0.isImageFile && !$0.isFontFile }.count
     }
 
     var textureCount: Int {
         linkedResources.filter { $0.isImageFile }.count
+    }
+
+    var fontCount: Int {
+        linkedResources.filter { $0.isFontFile }.count
     }
 
     var modelInfo: String {
@@ -91,14 +110,15 @@ extension Document {
             ].compactMap { $0 }.joined(separator: "\n")
         }
 
-        return """
-        Objects: \(geometry.objectCount)
-        Polygons: \(polygonCount)
-        Triangles: \(triangleCount)
-        Dimensions: \(dimensions)
-
-        Imports: \(importedFileCount)
-        Textures: \(textureCount)
-        """
+        return [
+            "Objects: \(geometry.objectCount)",
+            "Polygons: \(polygonCount)",
+            "Triangles: \(triangleCount)",
+            "Dimensions: \(dimensions)",
+            "",
+            "Imports: \(importedFileCount)",
+            "Textures: \(textureCount)",
+            fontCount == 0 ? nil : "Fonts: \(fontCount)",
+        ].compactMap { $0 }.joined(separator: "\n")
     }
 }
