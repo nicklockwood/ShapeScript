@@ -544,6 +544,7 @@ extension Definition {
                     context.children += _context.children
                     context.name = _context.name
                     context.material = _context.material
+                    context.font = _context.font
                     context.transform = _context.transform
                     context.opacity = _context.opacity
                     context.detail = _context.detail

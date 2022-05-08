@@ -691,13 +691,31 @@ class StandardLibraryTests: XCTestCase {
     func testFontInBlock() throws {
         let program = try parse("""
         define foo {
-            font "Helvetica"
-            text "Hello"
+            font "Times"
+            print font
         }
         foo
         """)
-        let context = EvaluationContext(source: program.source, delegate: nil)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["Times"])
+    }
+
+    func testFontInBlockCallScope() throws {
+        let program = try parse("""
+        define foo {
+            print font
+        }
+        group {
+            font "Times"
+            foo
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["Times"])
     }
 
     func testFontInBlockCall() throws {
