@@ -288,7 +288,7 @@ private extension Array where Element == Geometry {
 }
 
 public extension MaterialProperty {
-    init?(scnMaterialProperty: SCNMaterialProperty) {
+    init?(_ scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let color as OSColor:
             self = .color(Color(color))
@@ -305,12 +305,17 @@ public extension MaterialProperty {
             return nil
         }
     }
+
+    @available(*, deprecated, message: "Use init?(_:) instead")
+    init?(scnMaterialProperty: SCNMaterialProperty) {
+        self.init(scnMaterialProperty)
+    }
 }
 
 public extension Material {
-    init?(scnMaterial: SCNMaterial) {
+    init?(_ scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
-        switch MaterialProperty(scnMaterialProperty: scnMaterial.diffuse) {
+        switch MaterialProperty(scnMaterial.diffuse) {
         case let .color(color)?:
             self.color = color
             texture = nil
@@ -322,6 +327,11 @@ public extension Material {
             texture = nil
         }
     }
+
+    @available(*, deprecated, message: "Use init?(_:) instead")
+    init?(scnMaterial: SCNMaterial) {
+        self.init(scnMaterial)
+    }
 }
 
 public extension Geometry {
@@ -330,7 +340,7 @@ public extension Geometry {
         if let scnGeometry = scnNode.geometry {
             guard let mesh = Mesh(
                 scnGeometry,
-                materialLookup: Material.init(scnMaterial:)
+                materialLookup: Material.init(_:)
             ) else {
                 throw ImportError.unknownError
             }

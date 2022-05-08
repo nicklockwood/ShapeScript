@@ -158,7 +158,7 @@ class SceneViewController: NSViewController {
     }
 
     var background: MaterialProperty? {
-        get { MaterialProperty(scnMaterialProperty: scnScene.background) }
+        get { MaterialProperty(scnScene.background) }
         set { newValue?.configureProperty(scnScene.background) }
     }
 
