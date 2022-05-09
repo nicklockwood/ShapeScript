@@ -440,6 +440,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let shape: Symbols = _merge(node, detail, smoothing, material)
     static let group: Symbols = _merge(shape, childTransform, font)
+    static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
     static let pathShape: Symbols = _merge(global, transform, detail, color)
     static let path: Symbols = _merge(pathShape, childTransform, font, points)

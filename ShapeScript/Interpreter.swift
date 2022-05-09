@@ -521,7 +521,7 @@ extension Definition {
         case let .block(block):
             var options = Options()
             do {
-                let context = context.push(.custom(.shape, [:]))
+                let context = context.push(.custom(.user, [:]))
                 context.random = RandomSequence(seed: context.random.seed)
                 for statement in block.statements {
                     switch statement.type {
@@ -538,7 +538,7 @@ extension Definition {
             }
             let source = context.source
             let baseURL = context.baseURL
-            return .block(.custom(.shape, options)) { _context in
+            return .block(.custom(.user, options)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
