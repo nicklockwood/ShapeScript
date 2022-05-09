@@ -30,6 +30,18 @@ private class TestDelegate: EvaluationDelegate {
     }
 }
 
+private func expressionType(_ expression: String) throws -> ValueType? {
+    let program = try parse("define foo \(expression)")
+    guard case let .define(_, definition) = program.statements.last?.type,
+          case let .expression(expression) = definition.type
+    else {
+        XCTFail()
+        return nil
+    }
+    let context = EvaluationContext(source: "", delegate: nil)
+    return try expression.staticType(in: context)
+}
+
 class InterpreterTests: XCTestCase {
     // MARK: Random numbers
 
@@ -3251,5 +3263,51 @@ class InterpreterTests: XCTestCase {
         print foo {}
         """
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    // MARK: Static type
+
+    func testNumericLiteralType() throws {
+        XCTAssertEqual(try expressionType("5"), .number)
+    }
+
+    func testArithmeticExpressionType() {
+        XCTAssertEqual(try expressionType("1 + 2"), .number)
+    }
+
+    func testArithmeticExpressionType2() {
+        XCTAssertEqual(try expressionType("(1 + 2) * 3"), .number)
+    }
+
+    func testBooleanLiteral() {
+        XCTAssertEqual(try expressionType("true"), .boolean)
+    }
+
+    func testBooleanExpression() {
+        XCTAssertEqual(try expressionType("1 < 2"), .boolean)
+    }
+
+    func testStringLiteralType() {
+        XCTAssertEqual(try expressionType("\"foo\""), .string)
+    }
+
+    func testTupleExpressionType() throws {
+        XCTAssertEqual(try expressionType("1 5"), .tuple)
+    }
+
+    func testTupleExpressionType2() throws {
+        XCTAssertEqual(try expressionType("(1 5)"), .tuple)
+    }
+
+    func testTupleExpressionType3() {
+        XCTAssertEqual(try expressionType("(pi 5)"), .tuple)
+    }
+
+    func testFunctionExpressionType() {
+        XCTAssertNil(try expressionType("(cos pi)")) // TODO: number
+    }
+
+    func testFunctionExpressionType2() {
+        XCTAssertNil(try expressionType("cos(pi)")) // TODO: number
     }
 }

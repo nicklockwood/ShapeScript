@@ -905,11 +905,31 @@ extension Expression {
                     at: block.range
                 )
             }
-        case let .tuple(expressions) where expressions.count == 1:
-            // TODO: find better solution for this
-            return try expressions[0].staticType(in: context)
-        case .tuple:
-            return .tuple
+        case let .tuple(expressions):
+            switch expressions.count {
+            case 0:
+                return .void
+            case 1:
+                return try expressions[0].staticType(in: context)
+            default:
+                guard case let .identifier(name) = expressions[0].type else {
+                    return .tuple
+                }
+                guard let symbol = context.symbol(for: name) else {
+                    throw RuntimeError(
+                        .unknownSymbol(name, options: context.expressionSymbols),
+                        at: range
+                    )
+                }
+                switch symbol {
+                case .command:
+                    return .void
+                case .function, .block:
+                    return nil
+                case .property, .constant:
+                    return .tuple
+                }
+            }
         case .prefix(.minus, _),
              .prefix(.plus, _),
              .infix(_, .minus, _),
