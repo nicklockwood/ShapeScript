@@ -3604,4 +3604,41 @@ class InterpreterTests: XCTestCase {
     func testFunctionExpressionType2() {
         XCTAssertEqual(try expressionType("cos(pi)"), .any) // TODO: number
     }
+
+    // MARK: Type conversion
+
+    func testCastNumberToColor() {
+        XCTAssert(Value.number(1).isConvertible(to: .color))
+    }
+
+    func testCastCoupletToColor() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+        ]).isConvertible(to: .color))
+    }
+
+    func testCastTripletToColor() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+            .number(0.1),
+        ]).isConvertible(to: .color))
+    }
+
+    func testCastQuadrupletToColor() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+            .number(0.1),
+            .number(0.2),
+        ]).isConvertible(to: .color))
+    }
+
+    func testCastColorWithAlphaToColor() {
+        XCTAssert(Value.tuple([
+            .color(.red),
+            .number(0.5),
+        ]).isConvertible(to: .color))
+    }
 }
