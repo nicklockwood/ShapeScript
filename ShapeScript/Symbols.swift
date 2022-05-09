@@ -391,26 +391,35 @@ extension Value {
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
         case (_, .any),
+             (_, .tuple),
              (.boolean, .string),
              (.boolean, .text),
              (.number, .string),
              (.number, .text),
              (.number, .color),
+             (.number, .vector),
+             (.number, .size),
+             (.number, .rotation),
              (.string, .text),
              (.string, .texture),
              (.string, .font):
             return true
         case let (_, .union(types)):
             return types.contains(where: isConvertible(to:))
-        case let (.tuple(values), _) where values.count == 1:
+        case let (.tuple(values), type) where values.count == 1:
             return values[0].isConvertible(to: type)
+        case let (.tuple(values), .color) where values.count == 2:
+            return values[0].isConvertible(to: .color) && values[1].type == .number
+        case let (.tuple(values), .color),
+             let (.tuple(values), .vector),
+             let (.tuple(values), .size),
+             let (.tuple(values), .rotation):
+            return values.allSatisfy { $0.type == .number }
         case let (.tuple(values), .string),
              let (.tuple(values), .text),
              let (.tuple(values), .texture),
              let (.tuple(values), .font):
             return values.allSatisfy { $0.isConvertible(to: .string) }
-        case let (.tuple(values), .color):
-            return values.allSatisfy { $0.type == .number }
         case let (.tuple(values), .void):
             return values.isEmpty
         default:
