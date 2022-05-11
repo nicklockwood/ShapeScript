@@ -50,6 +50,7 @@ enum ValueType: Hashable {
     case text
     case path
     case mesh
+    case polygon
     case point
     case pair // Hack to support common math functions
     case range
@@ -86,6 +87,7 @@ extension ValueType {
         case .text: return "text"
         case .path: return "path"
         case .mesh: return "mesh"
+        case .polygon: return "polygon"
         case .list: return "tuple"
         case .point: return "point"
         case .pair: return "pair"
@@ -181,6 +183,8 @@ extension BlockType {
 
 // MARK: Values
 
+typealias Polygon = Euclid.Polygon
+
 enum Value {
     case color(Color)
     case texture(Texture?)
@@ -193,6 +197,7 @@ enum Value {
     case text(TextValue)
     case path(Path)
     case mesh(Geometry)
+    case polygon(Polygon)
     case point(PathPoint)
     case tuple([Value])
     case range(RangeValue)
@@ -257,6 +262,7 @@ extension Value {
         case let .text(text): return text
         case let .path(path): return path
         case let .mesh(mesh): return mesh
+        case let .polygon(polygon): return polygon
         case let .point(point): return point
         case let .tuple(values) where values.count == 1: return values[0].value
         case let .tuple(values): return values.map { $0.value }
@@ -332,8 +338,8 @@ extension Value {
                 return value
             }
             return AnySequence(values)
-        case .boolean, .vector, .size, .rotation, .color, .texture,
-             .number, .string, .text, .path, .mesh, .point, .bounds:
+        case .boolean, .vector, .size, .rotation, .color, .texture, .number,
+             .string, .text, .path, .mesh, .polygon, .point, .bounds:
             return nil
         }
     }
@@ -359,8 +365,8 @@ extension Value {
             return .color(color)
         case let .texture(texture):
             return texture.map { .texture($0) }
-        case .boolean, .vector, .size, .rotation, .range, .tuple,
-             .number, .string, .text, .path, .mesh, .point, .bounds:
+        case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
+             .string, .text, .path, .mesh, .polygon, .point, .bounds:
             return nil
         }
     }
@@ -378,6 +384,7 @@ extension Value {
         case .text: return .text
         case .path: return .path
         case .mesh: return .mesh
+        case .polygon: return .polygon
         case .point: return .point
         case .range: return .range
         case .bounds: return .bounds
@@ -485,7 +492,7 @@ extension Value {
             return members
         case .range:
             return ["start", "end", "step"]
-        case .path, .mesh:
+        case .path, .mesh, .polygon:
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
@@ -588,6 +595,11 @@ extension Value {
         case let .mesh(mesh):
             switch name {
             case "bounds": return .bounds(mesh.bounds)
+            default: return nil
+            }
+        case let .polygon(polygon):
+            switch name {
+            case "bounds": return .bounds(polygon.bounds)
             default: return nil
             }
         case let .bounds(bounds):
