@@ -824,8 +824,13 @@ extension EvaluationContext {
                 children.append(.mesh(m.transformed(by: childTransform)))
             case let .vector(v):
                 children.append(.vector(v.transformed(by: childTransform)))
-            case let .point(v):
-                children.append(.point(v.transformed(by: childTransform)))
+            case let .point(p):
+                children.append(.point(p.transformed(by: childTransform)))
+            case let .polygon(p):
+                children.append(.polygon(p
+                        .transformed(by: childTransform)
+                        .with(material: material)
+                ))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
             case _ where childTypes.subtypes.contains(.text):
@@ -1503,7 +1508,7 @@ extension Expression {
                 }
             })
         case .boolean, .number, .string, .text, .texture, .font, .path,
-             .mesh, .point, .range, .bounds:
+             .mesh, .polygon, .point, .range, .bounds:
             let value = values[0]
             if value.type != type {
                 throw RuntimeError(
