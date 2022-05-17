@@ -21,7 +21,7 @@ public let stdlibSymbols: Set<String> = {
         switch symbol {
         case let .block(type, _):
             keys.formUnion(type.options.keys)
-        case .command, .function, .property, .constant, .placeholder:
+        case .function, .property, .constant, .placeholder:
             break
         }
     }
