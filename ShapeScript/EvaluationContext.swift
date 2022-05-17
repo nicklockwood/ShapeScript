@@ -136,8 +136,7 @@ final class EvaluationContext {
         new.symbols = type.symbols
         for (name, symbol) in type.symbols {
             switch symbol {
-            case .property, .function, .command:
-                // TODO: treat redefining these as an error anyway?
+            case .property, .function:
                 new.userSymbols[name] = nil
             case .block, .constant, .placeholder:
                 break // don't override user definitions
@@ -188,7 +187,7 @@ extension EvaluationContext {
     var expressionSymbols: [String] {
         Array(symbols.merging(userSymbols) { $1 }.filter {
             switch $1 {
-            case .command:
+            case let .function(type, _) where type.returnType == .void:
                 return false
             case .function, .property, .block, .constant, .placeholder:
                 return true
@@ -199,7 +198,7 @@ extension EvaluationContext {
     var commandSymbols: [String] {
         Array(symbols.merging(userSymbols) { $1 }.filter {
             switch $1 {
-            case .command, .function, .property, .block:
+            case .function, .property, .block:
                 return true
             case .constant, .placeholder:
                 return false

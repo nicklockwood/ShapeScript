@@ -506,7 +506,8 @@ private func evaluateParameters(
             continue
         }
         switch symbol {
-        case let .function((parameterType, _), fn) where parameterType != .void:
+        case let .function((parameterType, returnType), fn)
+            where parameterType != .void && returnType != .void:
             let identifier = Identifier(name: name, range: param.range)
             let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
             let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
@@ -537,7 +538,7 @@ private func evaluateParameters(
             )
             try RuntimeError.wrap(values.append((i, fn(childContext))), at: param.range)
             break loop
-        case .command, .function, .block, .property, .constant, .placeholder:
+        case .function, .block, .property, .constant, .placeholder:
             try values.append((i, param.evaluate(in: context)))
         }
     }
@@ -912,12 +913,6 @@ extension Statement {
                 )
             }
             switch symbol {
-            case let .command(type, fn):
-                let argument = try evaluateParameter(parameter,
-                                                     as: type,
-                                                     for: identifier,
-                                                     in: context)
-                try RuntimeError.wrap(fn(argument, context), at: range)
             case let .function((parameterType, _), fn):
                 let argument = try evaluateParameter(parameter,
                                                      as: parameterType,
@@ -1044,20 +1039,20 @@ extension Expression {
                 throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
             }
             switch symbol {
-            case .command, .block:
+            case .block:
                 return symbol.type
-            case let .function(type, _) where type.parameterType != .void:
-                throw RuntimeError(.typeMismatch(
-                    for: name,
-                    index: 0,
-                    expected: type.parameterType.errorDescription,
-                    got: "block"
-                ), at: block.range)
-            case .property, .constant, .placeholder, .function:
+            case .property, .constant, .placeholder, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
                     at: block.range
                 )
+            case let .function((parameterType, _), _):
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: 0,
+                    expected: parameterType.errorDescription,
+                    got: "block"
+                ), at: block.range)
             }
         case let .tuple(expressions):
             switch expressions.count {
@@ -1074,8 +1069,6 @@ extension Expression {
                         )
                     }
                     switch symbol {
-                    case .command: // TODO: do we need to consider arguments?
-                        return .void
                     case let .function(type, _) where type.parameterType != .void:
                         return type.returnType
                     case let .block(type, _) where type.childTypes != .void:
@@ -1127,8 +1120,6 @@ extension Expression {
             }
             let value: Value
             switch symbol {
-            case .command:
-                return .void
             case .function, .block, .placeholder:
                 // TODO: This should be possible to get
                 return .any
@@ -1166,22 +1157,21 @@ extension Expression {
                 )
             }
             switch symbol {
-            case .command:
+            case .function((_, .void), _):
                 // Commands can't be used in expressions
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
                     at: range
                 )
-            case let .function((parameterType, _), fn):
-                guard parameterType == .void else {
-                    // Functions with parameters can't be called without arguments
-                    throw RuntimeError(.missingArgument(
-                        for: name,
-                        index: 0,
-                        type: parameterType
-                    ), at: range.upperBound ..< range.upperBound)
-                }
+            case let .function((.void, _), fn):
                 return try RuntimeError.wrap(fn(.void, context), at: range)
+            case let .function((parameterType, _), _):
+                // Functions with parameters can't be called without arguments
+                throw RuntimeError(.missingArgument(
+                    for: name,
+                    index: 0,
+                    type: parameterType
+                ), at: range.upperBound ..< range.upperBound)
             case let .property(_, _, getter):
                 return try RuntimeError.wrap(getter(context), at: range)
             case let .block(type, fn):
@@ -1241,18 +1231,18 @@ extension Expression {
                 }
                 context.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(context), at: range)
-            case let .function((type, _), _), let .command(type, _):
+            case .property, .constant, .placeholder, .function((.void, _), _):
+                throw RuntimeError(
+                    .unexpectedArgument(for: name, max: 0),
+                    at: block.range
+                )
+            case let .function((type, _), _):
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: 0,
                     expected: type.errorDescription,
                     got: "block"
                 ), at: block.range)
-            case .property, .constant, .placeholder:
-                throw RuntimeError(
-                    .unexpectedArgument(for: name, max: 0),
-                    at: block.range
-                )
             }
         case let .tuple(expressions):
             return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })

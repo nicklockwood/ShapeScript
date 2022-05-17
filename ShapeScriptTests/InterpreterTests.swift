@@ -3716,14 +3716,12 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The rnd function does not expect a block argument.")
-            XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "rnd",
-                index: 0,
-                expected: "tuple",
-                got: "block"
-            ), at: range))
+            XCTAssertEqual(error?.message, "Unexpected argument")
+            XCTAssertEqual(error?.hint, "The rnd function does not expect any arguments.")
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "rnd", max: 0),
+                at: range
+            ))
         }
     }
 
@@ -3761,14 +3759,12 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The rnd function does not expect a block argument.")
-            XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "rnd",
-                index: 0,
-                expected: "tuple",
-                got: "block"
-            ), at: range))
+            XCTAssertEqual(error?.message, "Unexpected argument")
+            XCTAssertEqual(error?.hint, "The rnd function does not expect any arguments.")
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "rnd", max: 0),
+                at: range
+            ))
         }
     }
 
@@ -3800,14 +3796,12 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The foo function does not expect a block argument.")
-            XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "foo",
-                index: 0,
-                expected: "tuple",
-                got: "block"
-            ), at: range))
+            XCTAssertEqual(error?.message, "Unexpected argument")
+            XCTAssertEqual(error?.hint, "The foo function does not expect any arguments.")
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "foo", max: 0),
+                at: range
+            ))
         }
     }
 
