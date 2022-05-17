@@ -16,7 +16,6 @@ typealias Setter = (Value, EvaluationContext) throws -> Void
 typealias FunctionType = (parameterType: ValueType, returnType: ValueType)
 
 enum Symbol {
-    case command(ValueType, Setter)
     case function(FunctionType, (Value, EvaluationContext) throws -> Value)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)
@@ -33,9 +32,19 @@ extension Symbol {
         .function((parameterType, returnType), fn)
     }
 
+    static func command(
+        _ parameterType: ValueType,
+        _ fn: @escaping Setter
+    ) -> Symbol {
+        .function(parameterType, .void) {
+            try fn($0, $1)
+            return .void
+        }
+    }
+
     var errorDescription: String {
         switch self {
-        case .command, .block: return "command"
+        case .block, .function((_, .void), _): return "command"
         case .function: return "function"
         case .property: return "property"
         case .constant: return "constant"
@@ -45,8 +54,6 @@ extension Symbol {
 
     var type: ValueType {
         switch self {
-        case .command:
-            return .void
         case let .function(type, _):
             return type.returnType
         case let .block(type, _):
