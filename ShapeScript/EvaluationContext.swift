@@ -189,12 +189,14 @@ extension EvaluationContext {
     }
 
     var commandSymbols: [String] {
-        expressionSymbols.compactMap {
-            if case .constant? = symbol(for: $0) {
-                return nil
+        Array(symbols.merging(userSymbols) { $1 }.filter {
+            switch $1 {
+            case .command, .function, .property, .block:
+                return true
+            case .constant:
+                return false
             }
-            return $0
-        } + Keyword.allCases.map { $0.rawValue }
+        }.keys) + Keyword.allCases.map { $0.rawValue }
     }
 
     func value(for name: String) -> Value? {
