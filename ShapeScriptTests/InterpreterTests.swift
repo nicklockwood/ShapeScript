@@ -3685,6 +3685,25 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Empty arguments
 
+    func testPrintNothing() {
+        let program = "print"
+        let range = program.endIndex ..< program.endIndex
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Missing argument")
+            XCTAssertEqual(error?.hint, "The print command expects an argument.")
+            XCTAssertEqual(error, RuntimeError(
+                .missingArgument(for: "print", index: 0, type: "any"),
+                at: range
+            ))
+        }
+    }
+
+    func testPrintEmptyTuple() {
+        let program = "print ()"
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     func testCallVoidCommandWithoutArgs() throws {
         let program = """
         define foo {
@@ -3924,7 +3943,7 @@ class InterpreterTests: XCTestCase {
     }
 
     func testBlockMemberType() {
-        XCTAssertEqual(try expressionType("cube.bounds"), .any) // TODO: bounds
+        XCTAssertEqual(try expressionType("cube.bounds"), .bounds)
     }
 
     func testCustomConstantMemberType() {
@@ -3938,14 +3957,14 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(try expressionType("""
         define foo { cube }
         foo.bounds
-        """), .any) // TODO: bounds
+        """), .bounds)
     }
 
     func testCustomFunctionResultMemberType() {
         XCTAssertEqual(try expressionType("""
         define foo() { red }
         foo.blue
-        """), .any) // TODO: number
+        """), .number)
     }
 
     // MARK: Type conversion

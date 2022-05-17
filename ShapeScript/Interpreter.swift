@@ -1107,34 +1107,8 @@ extension Expression {
              .infix(_, .or, _):
             return .boolean
         case let .member(expression, member):
-            guard case let .identifier(name) = expression.type else {
-                // TODO: This should be possible to get
-                return .any
-            }
-            guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(
-                    .unknownSymbol(name, options: context.expressionSymbols),
-                    at: range
-                )
-            }
-            let value: Value
-            switch symbol {
-            case .function, .block, .placeholder:
-                // TODO: This should be possible to get
-                return .any
-            case let .property(_, _, getter):
-                value = try getter(context)
-            case let .constant(const):
-                value = const
-            }
-            guard let memberValue = value[member.name] else {
-                throw RuntimeError(.unknownMember(
-                    member.name,
-                    of: value.type.errorDescription,
-                    options: value.members
-                ), at: member.range)
-            }
-            return memberValue.type
+            let type = try expression.staticType(in: context)
+            return type.memberType(member.name) ?? .any
         case let .subexpression(expression):
             return try expression.staticType(in: context)
         }
