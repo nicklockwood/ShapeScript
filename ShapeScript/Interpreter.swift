@@ -498,16 +498,7 @@ extension Definition {
                     }
                     return .tuple(context.children)
 
-                } catch var error {
-                    if let e = error as? RuntimeError,
-                       case let .unknownSymbol(name, options: options) = e.type
-                    {
-                        // TODO: find a less hacky way to limit the scope of option keyword
-                        error = RuntimeError(
-                            .unknownSymbol(name, options: options + ["option"]),
-                            at: e.range
-                        )
-                    }
+                } catch {
                     if declarationContext.baseURL == context.baseURL {
                         throw error
                     }
