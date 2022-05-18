@@ -120,7 +120,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .group, in: context))
         },
         // builders
-        "extrude": .block(.custom(.builder, ["along": .list(.path)])) { context in
+        "extrude": .block(.custom(.builder, ["along": .list(.path)], .path, .mesh)) { context in
             let along = context.value(for: "along")?.tupleValue as? [Path] ?? []
             return .mesh(Geometry(type: .extrude(context.paths, along: along), in: context))
         },
@@ -150,13 +150,13 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .stencil, in: context))
         },
         // lights
-        "light": .block(.custom(nil, [
+        "light": .block(.custom(.node, [
             "position": .vector,
             "orientation": .rotation,
             "color": .color,
             "spread": .number,
             "penumbra": .number,
-        ])) { context in
+        ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
             position.map { context.transform.offset = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
@@ -232,14 +232,18 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "polygon": .block(.custom(.pathShape, ["sides": .number])) { context in
+        "polygon": .block(.custom(.pathShape, [
+            "sides": .number,
+        ], .void, .path)) { context in
             let sides = context.value(for: "sides")?.intValue ?? 5
             return .path(Path.polygon(
                 sides: sides,
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "roundrect": .block(.custom(.pathShape, ["radius": .number])) { context in
+        "roundrect": .block(.custom(.pathShape, [
+            "radius": .number,
+        ], .void, .path)) { context in
             let radius = context.value(for: "radius")?.doubleValue ?? 0.25
             return .path(Path.roundedRectangle(
                 width: 1,
@@ -249,17 +253,17 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "text": .block(.custom(.text, [
+        "text": .block(.custom(.pathShape, [
             "font": .font,
             "wrapwidth": .number,
             "linespacing": .number,
-        ])) { context in
+        ], .text, .list(.path))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.children.compactMap { $0.value as? TextValue }
             let paths = Path.text(text, width: width, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
-        "svgpath": .block(.text) { context in
+        "svgpath": .block(.custom(.pathShape, [:], .string, .path)) { context in
             let text = context.children.map { $0.stringValue }.joined(separator: "\n")
             let svgPath: SVGPath
             do {
@@ -404,7 +408,7 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let root: Symbols = _merge(global, font, detail, smoothing, material, childTransform, [
-        "camera": .block(.custom(nil, [
+        "camera": .block(.custom(.node, [
             "position": .vector,
             "orientation": .rotation,
             "size": .size,
@@ -412,7 +416,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "fov": .number,
             "width": .number,
             "height": .number,
-        ])) { context in
+        ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
             position.map { context.transform.offset = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation

@@ -161,17 +161,15 @@ enum BlockType {
     case group
     case path
     case pathShape
-    case text
-    case user
-    indirect case custom(BlockType?, Options)
+    case custom(Symbols, Options, _ childTypes: ValueType, _ returns: ValueType)
 }
 
 extension BlockType {
     var options: Options {
         switch self {
-        case let .custom(baseType, options):
-            return (baseType?.options ?? [:]).merging(options) { $1 }
-        case .builder, .group, .path, .shape, .pathShape, .text, .user:
+        case let .custom(_, options, _, _):
+            return options
+        case .builder, .group, .path, .shape, .pathShape:
             return [:]
         }
     }
@@ -181,10 +179,8 @@ extension BlockType {
         case .builder: return .path
         case .group: return .mesh
         case .path: return .union([.point, .path])
-        case .text: return .text
-        case .shape, .pathShape, .user: return .void
-        case let .custom(baseType, _):
-            return baseType?.childTypes ?? .void
+        case .shape, .pathShape: return .void
+        case let .custom(_, _, childTypes, _): return childTypes
         }
     }
 
@@ -192,10 +188,7 @@ extension BlockType {
         switch self {
         case .builder, .group, .shape: return .mesh
         case .path, .pathShape: return .path
-        case .text: return .list(.path)
-        case .user: return .any
-        case let .custom(baseType, _):
-            return baseType?.returnType ?? .any
+        case let .custom(_, _, _, returnType): return returnType
         }
     }
 
@@ -205,10 +198,8 @@ extension BlockType {
         case .group: return .group
         case .builder: return .builder
         case .path: return .path
-        case .pathShape, .text: return .pathShape
-        case .user: return .user
-        case let .custom(baseType, _):
-            return baseType?.symbols ?? .node
+        case .pathShape: return .pathShape
+        case let .custom(symbols, _, _, _): return symbols
         }
     }
 }
