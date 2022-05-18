@@ -696,7 +696,7 @@ extension Definition {
         case let .block(block):
             var options = Options()
             do {
-                let context = context.push(.custom(.user, [:]))
+                let context = context.push(.custom(.user, [:], .void, .any))
                 for statement in block.statements {
                     switch statement.type {
                     case let .option(identifier, expression):
@@ -714,7 +714,7 @@ extension Definition {
             let source = context.source
             let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
-            return .block(.custom(.user, options)) { _context in
+            return .block(.custom(.user, options, .void, .any)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
