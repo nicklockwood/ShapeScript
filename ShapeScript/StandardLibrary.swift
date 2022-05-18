@@ -101,6 +101,25 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ]
 
+    static let mesh: Symbols = _merge(node, smoothing, color, childTransform, [
+        "polygon": .block(.polygons) { context in
+            .polygon(Polygon(context.children.compactMap {
+                guard let point = $0.value as? PathPoint else {
+                    return nil
+                }
+                return Vertex(
+                    point.position,
+                    nil,
+                    point.texcoord,
+                    point.color
+                ).transformed(by: context.transform)
+            })!)
+        },
+//        "triangles": .block(.custom(nil, geometry)) { context in
+//
+//        },
+    ])
+
     static let meshes: Symbols = [
         // primitives
         "cone": .block(.shape) { context in
@@ -132,6 +151,11 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "fill": .block(.builder) { context in
             .mesh(Geometry(type: .fill(context.paths), in: context))
+        },
+        // mesh
+        "mesh": .block(.mesh) { context in
+            let polygons = context.children.compactMap { $0.value as? Polygon }
+            return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },
         // csg
         "union": .block(.group) { context in
@@ -481,6 +505,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
+    static let polygons: Symbols = _merge(childTransform, points, color)
     static let pathShape: Symbols = _merge(transform, detail, color)
     static let path: Symbols = _merge(pathShape, childTransform, font, points)
     static let definition: Symbols = root
