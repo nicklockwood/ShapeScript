@@ -624,7 +624,15 @@ extension Definition {
         case let .function(names, block):
             let declarationContext = context
             let paramTypes = [ValueType](repeating: .any, count: names.count)
-            return .function(.tuple(paramTypes), .any) { value, context in
+            let returnType: ValueType
+            do {
+                let context = context.push(.custom(.all, [:], .any, .any))
+                for identifier in names {
+                    context.define(identifier.name, as: .placeholder(.any))
+                }
+                returnType = try block.staticType(in: context)
+            }
+            return .function(.tuple(paramTypes), returnType) { value, context in
                 do {
                     let oldChildren = context.children
                     let oldChildTypes = context.childTypes
