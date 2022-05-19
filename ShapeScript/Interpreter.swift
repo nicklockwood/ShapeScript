@@ -671,26 +671,24 @@ extension Definition {
                 }
             }
         case let .block(block):
-            var options = Options()
+            var options: Options? = [:]
+            let returnType: ValueType
             do {
-                let context = context.push(.custom(.user, [:], .void, .any))
-                for statement in block.statements {
-                    switch statement.type {
-                    case let .option(identifier, expression):
-                        let type = try expression.staticType(in: context)
-                        options[identifier.name] = type
-                        context.define(identifier.name, as: .placeholder(type))
-                    case let .define(identifier, definition):
-                        let symbol = try definition.staticSymbol(in: context)
-                        context.define(identifier.name, as: symbol)
-                    case .command, .forloop, .ifelse, .expression, .import:
-                        break
-                    }
+                let context = context.push(.custom(.definition, [:], .void, .any))
+                returnType = try block.staticType(in: context, options: &options)
+            } catch var error as RuntimeError {
+                if case let .unknownSymbol(name, options: options) = error.type {
+                    // TODO: find a less hacky way to limit the scope of option keyword
+                    error = RuntimeError(
+                        .unknownSymbol(name, options: options + ["option"]),
+                        at: error.range
+                    )
                 }
+                throw error
             }
             let source = context.source
             let baseURL = context.baseURL
-            return .block(.custom(.user, options, .void, .any)) { _context in
+            return .block(.custom(.user, options ?? [:], .void, returnType)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
@@ -952,6 +950,18 @@ extension Statement {
         case let .expression(expression):
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
+            switch definition.type {
+            case let .function(names, _):
+                // In case of recursion
+                let parameterType: ValueType = names.count == 1 ?
+                    .any : .tuple(names.map { _ in .any })
+                context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
+            case .block:
+                // In case of recursion
+                context.define(identifier.name, as: .block(.custom([:], [:], .void, .any)) { _ in .void })
+            case .expression:
+                break
+            }
             context.define(identifier.name, as: try definition.evaluate(in: context))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
