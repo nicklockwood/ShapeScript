@@ -9,19 +9,11 @@
 @testable import ShapeScript
 import XCTest
 
-private func expressionType(_ expression: String) throws -> ValueType {
-    let lines = expression.split(separator: "\n")
-    let source = "\(lines.dropLast().joined(separator: "\n"))\ndefine foo_ \(lines.last!)"
+private func expressionType(_ source: String) throws -> ValueType {
     let program = try parse(source)
-    guard case let .define(_, definition) = program.statements.last?.type,
-          case let .expression(expression) = definition.type
-    else {
-        XCTFail()
-        return .any
-    }
     let context = EvaluationContext(source: "", delegate: nil)
-    try program.evaluate(in: context)
-    return try expression.staticType(in: context)
+    try? program.evaluate(in: context)
+    return try program.statements.last?.staticType(in: context) ?? .void
 }
 
 private func evaluate(_ expression: String, as type: ValueType) throws -> Value {
@@ -68,15 +60,11 @@ class TypesystemTests: XCTestCase {
     }
 
     func testNumericTupleExpressionType2() throws {
-        XCTAssertEqual(try expressionType("pi 5"), .list(.number))
+        XCTAssertEqual(try expressionType("(pi 5)"), .list(.number))
     }
 
     func testNumericTupleExpressionType3() throws {
         XCTAssertEqual(try expressionType("(1 5)"), .list(.number))
-    }
-
-    func testNumericTupleExpressionType4() {
-        XCTAssertEqual(try expressionType("(pi 5)"), .list(.number))
     }
 
     func testMixedTupleExpressionType() throws {
@@ -188,6 +176,34 @@ class TypesystemTests: XCTestCase {
         }
         foo { count 5 }
         """), .union([.list(.any), .void])) // TODO: .list(.number)
+    }
+
+    func testCustomFunctionReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo() { 5 + 1 }
+        foo
+        """), .number)
+    }
+
+    func testCustomFunctionReturnType2() {
+        XCTAssertEqual(try expressionType("""
+        define foo(bar) { bar + 1 }
+        foo(1)
+        """), .number)
+    }
+
+    func testCustomFunctionReturnType3() {
+        XCTAssertEqual(try expressionType("""
+        define foo(bar baz) { bar < baz }
+        (foo 1 2)
+        """), .boolean)
+    }
+
+    func testPropertySetterReturnsVoid() {
+        XCTAssertEqual(try expressionType("""
+        define foo() { color red }
+        foo()
+        """), .void)
     }
 
     func testColorPropertyMemberType() {
