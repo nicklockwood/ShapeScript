@@ -113,7 +113,7 @@ public extension RuntimeError {
     var message: String {
         switch type {
         case let .unknownSymbol(name, _):
-            if Keyword(rawValue: name) == nil, Symbols.all[name] == nil {
+            if Keyword(rawValue: name) == nil, Symbols.all[name] == nil, name != "option" {
                 return "Unknown symbol '\(name)'"
             }
             return "Unexpected symbol '\(name)'"
@@ -194,7 +194,7 @@ public extension RuntimeError {
             var hint = ""
             if let symbol = Symbols.all[name] {
                 hint = "The \(name) \(symbol.errorDescription) is not available in this context."
-            } else if Keyword(rawValue: name) != nil {
+            } else if Keyword(rawValue: name) != nil || name == "option" {
                 hint = "The \(name) command is not available in this context."
             }
             if let suggestion = suggestion {

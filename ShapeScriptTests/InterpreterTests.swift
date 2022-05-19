@@ -331,7 +331,7 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Option scope
 
-    func testOptionValidInDefine() {
+    func testOptionValidInBlockDefine() {
         let program = """
         define foo {
             option bar 5
@@ -339,6 +339,43 @@ class InterpreterTests: XCTestCase {
         foo { bar 5 }
         """
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testOptionInvalidInFunctionDefine() {
+        let program = """
+        define foo() {
+            option bar 5
+        }
+        foo()
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'option'")
+            XCTAssertEqual(error?.hint, "The option command is not available in"
+                + " this context. Did you mean 'define'?")
+            guard case .unknownSymbol("option", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testOptionInvalidInConditionalScope() {
+        let program = """
+        define foo {
+            if true {
+                option bar 5
+            }
+        }
+        foo {}
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("option", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testOptionInvalidInPrimitive() {
