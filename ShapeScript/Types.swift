@@ -12,6 +12,7 @@ import Foundation
 // MARK: Types
 
 enum ValueType: Hashable {
+    case any
     case color
     case texture
     case boolean
@@ -28,10 +29,60 @@ enum ValueType: Hashable {
     case point
     case range
     case bounds
-    case any
-    indirect case union([ValueType])
+    indirect case union(Set<ValueType>)
     indirect case tuple([ValueType])
     indirect case list(ValueType)
+}
+
+extension ValueType: Comparable {
+    private var sortIndex: Int {
+        switch self {
+        case .any: return 0
+        case .color: return 1
+        case .texture: return 2
+        case .boolean: return 3
+        case .font: return 4
+        case .number: return 5
+        case .vector: return 6
+        case .size: return 7
+        case .rotation: return 8
+        case .string: return 9
+        case .text: return 10
+        case .path: return 11
+        case .mesh: return 12
+        case .polygon: return 13
+        case .point: return 14
+        case .range: return 15
+        case .bounds: return 16
+        case .union: return 17
+        case .tuple: return 18
+        case .list: return 19
+        }
+    }
+
+    static func < (lhs: ValueType, rhs: ValueType) -> Bool {
+        switch (lhs, rhs) {
+        case let (.union(lhs), .union(rhs)):
+            for (lhs, rhs) in zip(lhs.sorted(), rhs.sorted()) where lhs != rhs {
+                return lhs < rhs
+            }
+            return lhs.count < rhs.count
+        case let (.tuple(lhs), .tuple(rhs)):
+            for (lhs, rhs) in zip(lhs, rhs) where lhs != rhs {
+                return lhs < rhs
+            }
+            return lhs.count < rhs.count
+        case let (.list(lhs), .list(rhs)):
+            return lhs < rhs
+        case let (lhs, rhs):
+            switch lhs {
+            case .any, .color, .texture, .boolean, .font, .number, .vector,
+                 .size, .rotation, .string, .text, .path, .mesh, .polygon,
+                 .point, .range, .bounds, .union, .tuple, .list:
+                return lhs.sortIndex < rhs.sortIndex
+            }
+        }
+    }
 }
 
 extension ValueType {
@@ -39,13 +90,54 @@ extension ValueType {
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
 
-    var subtypes: [ValueType] {
+    var subtypes: Set<ValueType> {
         switch self {
         case let .union(types):
             return types
         default:
             return [self]
         }
+    }
+
+    func simplified() -> ValueType {
+        switch self {
+        case let .union(types):
+            let types = types.sorted()
+            guard var result = types.first.map({ [$0] }) else {
+                return self
+            }
+            for type in types.dropFirst() {
+                result.removeAll(where: { $0.isSubtype(of: type) })
+                if result.contains(where: { type.isSubtype(of: $0) }) {
+                    continue
+                }
+                result.append(type)
+            }
+            return result.count == 1 ? result[0] : .union(Set(result))
+        case .any, .color, .texture, .boolean, .font, .number, .vector, .size,
+             .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
+             .bounds, .tuple, .list:
+            return self
+        }
+    }
+
+    mutating func simplify() {
+        self = simplified()
+    }
+
+    func union(_ type: ValueType) -> ValueType {
+        switch (self, type) {
+        case let (.union(lhs), .union(rhs)):
+            return Self.union(lhs.union(rhs)).simplified()
+        case let (.union(lhs), rhs):
+            return Self.union(lhs.union([rhs])).simplified()
+        case let (lhs, rhs):
+            return Self.union([lhs, rhs]).simplified()
+        }
+    }
+
+    mutating func formUnion(_ type: ValueType) {
+        self = union(type)
     }
 
     var errorDescription: String {
@@ -71,7 +163,7 @@ extension ValueType {
             return types[0].errorDescription
         case .tuple, .list: return "tuple"
         case let .union(types):
-            return types.errorDescription
+            return types.sorted().errorDescription
         }
     }
 
@@ -104,7 +196,7 @@ extension ValueType {
             return name == "last" ? types.last : Self.memberTypes[name]
         case let .union(types):
             let types = types.compactMap { $0.memberType(name) }
-            return types.isEmpty ? nil : .union(types)
+            return types.isEmpty ? nil : .union(Set(types))
         case .color, .texture, .boolean, .font, .number, .vector, .size,
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
              .bounds, .any:
@@ -138,7 +230,7 @@ extension ValueType {
     ]
 }
 
-extension Sequence where Element == ValueType {
+extension Array where Element == ValueType {
     var errorDescription: String {
         let types = map { $0.errorDescription }
         switch types.count {
@@ -274,7 +366,7 @@ extension Value {
             if types.contains(where: { self.type.isSubtype(of: $0) }) {
                 return self
             }
-            for type in types {
+            for type in types.sorted() {
                 if let value = try self.as(type, in: context) {
                     return value
                 }
@@ -489,6 +581,111 @@ extension Expression {
             return type.memberType(member.name) ?? .any
         case let .subexpression(expression):
             return try expression.staticType(in: context)
+        }
+    }
+}
+
+extension Block {
+    func staticType(in context: EvaluationContext) throws -> ValueType {
+        var options: Options?
+        return try staticType(in: context, options: &options)
+    }
+
+    func staticType(
+        in context: EvaluationContext,
+        options: inout Options?
+    ) throws -> ValueType {
+        var types = [ValueType]()
+        for statement in statements {
+            if options != nil, case let .option(identifier, expression) = statement.type {
+                let type = try expression.staticType(in: context)
+                context.define(identifier.name, as: .placeholder(type))
+                options?[identifier.name] = type
+            } else {
+                let type = try statement.staticType(in: context)
+                if type != .void {
+                    types.append(type)
+                }
+            }
+        }
+        switch types.count {
+        case 0: return .void
+        case 1: return types[0]
+        default:
+            return .list(types.dropFirst().reduce(types[0]) { $0.union($1) })
+        }
+    }
+}
+
+extension Statement {
+    func staticType(in context: EvaluationContext) throws -> ValueType {
+        switch type {
+        case let .command(identifier, _):
+            let name = identifier.name
+            guard let symbol = context.symbol(for: name) else {
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.commandSymbols),
+                    at: identifier.range
+                )
+            }
+            return symbol.type
+        case let .expression(expression):
+            return try expression.staticType(in: context)
+        case .option:
+            throw RuntimeError(.unknownSymbol("option", options: []), at: range)
+        case let .define(identifier, definition):
+            switch definition.type {
+            case let .function(names, _):
+                // In case of recursion
+                let parameterType: ValueType = names.count == 1 ?
+                    .any : .tuple(names.map { _ in .any })
+                context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
+            case .block:
+                // In case of recursion
+                context.define(identifier.name, as: .block(.custom([:], [:], .void, .any)) { _ in .void })
+            case .expression:
+                break
+            }
+            let symbol = try definition.staticSymbol(in: context)
+            context.define(identifier.name, as: symbol)
+            return .void
+        case let .forloop(identifier, in: expression, block):
+            var type: ValueType = .void
+            try context.pushScope { context in
+                if let identifier = identifier {
+                    let elementType: ValueType
+                    switch try expression.staticType(in: context) {
+                    case let .tuple(types):
+                        elementType = .union(Set(types))
+                    case let .list(type):
+                        elementType = type
+                    case .range:
+                        elementType = .number
+                    default:
+                        // TODO: can we do better here?
+                        elementType = .any
+                    }
+                    context.define(identifier.name, as: .placeholder(elementType))
+                }
+                type = try block.staticType(in: context)
+            }
+            return .list(type)
+        case let .ifelse(_, body, else: elseBody):
+            var type: ValueType = .void
+            try context.pushScope { context in
+                type = try body.staticType(in: context)
+            }
+            if let elseBody = elseBody {
+                try context.pushScope { context in
+                    try type.formUnion(elseBody.staticType(in: context))
+                }
+            } else {
+                type.formUnion(.void)
+            }
+            return type
+        case .import:
+            // TODO: how can we handle imports statically?
+            return .void
         }
     }
 }

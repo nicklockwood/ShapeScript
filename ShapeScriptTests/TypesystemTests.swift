@@ -103,6 +103,93 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("cos(pi)"), .number)
     }
 
+    func testCustomBlockReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo { 5 }
+        foo
+        """), .number)
+    }
+
+    func testCustomBlockExpressionReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo { 5 + 1 }
+        foo
+        """), .number)
+    }
+
+    func testCustomBlockDefineReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            define bar "hello"
+            bar
+        }
+        foo
+        """), .string)
+    }
+
+    func testCustomBlockOptionReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            option bar "hello"
+            bar
+        }
+        foo { bar "goodbye" }
+        """), .string)
+    }
+
+    func testCustomBlockCallReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            define bar "hello"
+            bar
+        }
+        define bar {
+            define baz foo()
+            "dog" baz
+        }
+        bar
+        """), .list(.string))
+    }
+
+    func testCustomBlockConditionalReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            option bar true
+            if bar {
+                "Hello"
+            } else {
+                55
+            }
+        }
+        foo { bar true }
+        """), .union([.string, .number]))
+    }
+
+    func testCustomBlockLoopReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            option count 1
+            for i in 1 to count {
+                i
+            }
+        }
+        foo { count 5 }
+        """), .list(.number))
+    }
+
+    func testCustomBlockRecursiveReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            option count 1
+            if count > 0 {
+                count
+                foo { count count - 1 }
+            }
+        }
+        foo { count 5 }
+        """), .union([.list(.any), .void])) // TODO: .list(.number)
+    }
+
     func testColorPropertyMemberType() {
         XCTAssertEqual(try expressionType("color.red"), .number)
     }
@@ -130,6 +217,46 @@ class TypesystemTests: XCTestCase {
         define foo() { red }
         foo.blue
         """), .number)
+    }
+
+    // MARK: Type unions
+
+    func testTypeUnionIsOrderIndependent() {
+        let type = ValueType.union([.string, .number])
+        XCTAssertEqual(type, .union([.number, .string]))
+    }
+
+    func testSimpleTypeUnion() {
+        let type = ValueType.string.union(.number)
+        XCTAssertEqual(type, .union([.string, .number]))
+    }
+
+    func testSubtypeUnion() {
+        let type = ValueType.string.union(.any)
+        XCTAssertEqual(type, .any)
+    }
+
+    func testSubtypeUnion2() {
+        let type = ValueType.any.union(.number)
+        XCTAssertEqual(type, .any)
+    }
+
+    func testSimpleTypeUnionWithUnion() {
+        var type = ValueType.string.union(.number)
+        type.formUnion(.boolean)
+        XCTAssertEqual(type, .union([.string, .number, .boolean]))
+    }
+
+    func testMergeSimpleTypeUnions() {
+        var type = ValueType.union([.string, .number])
+        type.formUnion(.union([.number, .boolean]))
+        XCTAssertEqual(type, .union([.string, .number, .boolean]))
+    }
+
+    func testMergeTypeUnionsWithSubtypes() {
+        var type = ValueType.union([.number, .any])
+        type.formUnion(.union([.number, .boolean]))
+        XCTAssertEqual(type, .any)
     }
 
     // MARK: Type conversion
