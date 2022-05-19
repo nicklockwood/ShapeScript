@@ -628,7 +628,12 @@ extension Statement {
                     at: identifier.range
                 )
             }
-            return symbol.type
+            switch symbol {
+            case .property:
+                return .void
+            case .function, .block, .constant, .placeholder:
+                return symbol.type
+            }
         case let .expression(expression):
             return try expression.staticType(in: context)
         case .option:
