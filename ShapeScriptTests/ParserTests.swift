@@ -249,14 +249,10 @@ class ParserTests: XCTestCase {
         let input = "foo()"
         let fooRange = input.range(of: "foo")!
         let parensRange = input.range(of: "()")!
-        let paramsIndex = input.range(of: ")")!.lowerBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .command(
                 Identifier(name: "foo", range: fooRange),
-                Expression(type: .subexpression(Expression(
-                    type: .tuple([]),
-                    range: paramsIndex ..< paramsIndex
-                )), range: parensRange)
+                Expression(type: .tuple([]), range: parensRange)
             ), range: fooRange.lowerBound ..< parensRange.upperBound),
         ]))
     }
@@ -269,12 +265,9 @@ class ParserTests: XCTestCase {
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .command(
                 Identifier(name: "foo", range: fooRange),
-                Expression(type: .subexpression(Expression(
-                    type: .tuple([
-                        Expression(type: .identifier("bar"), range: barRange),
-                    ]),
-                    range: barRange
-                )), range: barRange.lowerBound ..< parensRange.upperBound)
+                Expression(type: .tuple([
+                    Expression(type: .identifier("bar"), range: barRange),
+                ]), range: barRange.lowerBound ..< parensRange.upperBound)
             ), range: fooRange.lowerBound ..< parensRange.upperBound),
         ]))
     }
