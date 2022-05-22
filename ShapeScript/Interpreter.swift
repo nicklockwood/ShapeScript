@@ -1261,8 +1261,6 @@ extension Expression {
                 of: value.type.errorDescription,
                 options: value.members
             ), at: member.range)
-        case let .subexpression(expression):
-            return try expression.evaluate(in: context)
         }
     }
 
@@ -1304,8 +1302,6 @@ extension Expression {
             return value
         }
         switch (self.type, type) {
-        case let (.subexpression(expression), _):
-            return try expression.evaluate(as: type, for: name, index: index, in: context)
         case let (.tuple(expressions), .tuple(types)):
             if values.count > types.count {
                 throw RuntimeError(.unexpectedArgument(

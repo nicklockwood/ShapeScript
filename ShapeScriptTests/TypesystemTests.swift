@@ -372,6 +372,25 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(type.returnType, .void)
     }
 
+    func testErrorThrowingArgumentHasCorrectRange() throws {
+        let name = "Nope.jpg"
+        let program = try parse("""
+        define foo(bar baz) {
+            if baz {
+                texture bar
+            }
+        }
+        foo("\(name)" true)
+        """)
+        let range = program.source.range(of: "\"\(name)\"")
+        let context = EvaluationContext(source: "", delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .fileNotFound(for: name, at: nil))
+            XCTAssertEqual(error?.range, range)
+        }
+    }
+
     // MARK: Type unions
 
     func testTypeUnionIsOrderIndependent() {
