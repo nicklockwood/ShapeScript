@@ -67,7 +67,6 @@ public enum ExpressionType: Equatable {
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
     indirect case member(Expression, Identifier)
-    indirect case subexpression(Expression)
 }
 
 public struct Expression: Equatable {
@@ -336,12 +335,9 @@ private extension ArraySlice where Element == Token {
                 "expression" : TokenType.rparen.errorDescription)
             switch expression.type {
             case .tuple:
-                type = .subexpression(expression)
+                type = expression.type
             default:
-                type = .subexpression(Expression(
-                    type: .tuple([expression]),
-                    range: expression.range
-                ))
+                type = .tuple([expression])
             }
         case let .prefix(op):
             let operand = try require(readOperand(), as: "operand")
@@ -374,9 +370,7 @@ private extension ArraySlice where Element == Token {
                     expressions.append(expression)
                 }
             }
-            type = .subexpression(
-                Expression(type: .tuple(expressions), range: range)
-            )
+            type = .tuple(expressions)
             range = range.lowerBound ..< endToken.range.upperBound
         case .dot, .linebreak, .keyword, .infix, .lbrace, .rbrace, .rparen, .eof:
             self = start
