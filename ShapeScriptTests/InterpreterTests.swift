@@ -1703,7 +1703,7 @@ class InterpreterTests: XCTestCase {
 
     func testTupleArgumentInMathExpression() {
         let program = "print 3 * (3 5)"
-        let range = program.range(of: "3 5")
+        let range = program.range(of: "(3 5)")
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")

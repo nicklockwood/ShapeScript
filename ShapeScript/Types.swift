@@ -545,8 +545,6 @@ extension Expression {
         case let .infix(lhs, .and, rhs), let .infix(lhs, .or, rhs):
             lhs.inferTypes(for: &params, in: context, with: .boolean)
             rhs.inferTypes(for: &params, in: context, with: .boolean)
-        case let .subexpression(expression):
-            expression.inferTypes(for: &params, in: context, with: type)
         case .infix(_, .equal, _), .infix(_, .unequal, _),
              .number, .string, .color, .member:
             return
@@ -646,8 +644,6 @@ extension Expression {
         case let .member(expression, member):
             let type = try expression.staticType(in: context)
             return type.memberType(member.name) ?? .any
-        case let .subexpression(expression):
-            return try expression.staticType(in: context)
         }
     }
 }
