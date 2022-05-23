@@ -1588,6 +1588,34 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testInvokeCommandInsideExpression2() {
+        let program = "print scale 4"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'scale'")
+            guard case .unknownSymbol("scale", _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testInvokeCustomVoidFunctionInsideExpression() {
+        let program = """
+        define foo() {}
+        print foo
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testInvokeCustomVoidFunctionWithParamInsideExpression() {
+        let program = """
+        define foo(bar) {}
+        print foo(3)
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     // MARK: Block invocation
 
     func testInvokePrimitive() {

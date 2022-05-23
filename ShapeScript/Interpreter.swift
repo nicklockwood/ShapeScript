@@ -506,13 +506,16 @@ private func evaluateParameters(
             continue
         }
         switch symbol {
-        case let .function((parameterType, returnType), fn)
-            where parameterType != .void && returnType != .void:
+        case let .function((parameterType, returnType), fn) where parameterType != .void:
             let identifier = Identifier(name: name, range: param.range)
             let range = parameters[i + 1].range.lowerBound ..< parameters.last!.range.upperBound
             let param = Expression(type: .tuple(Array(parameters[(i + 1)...])), range: range)
             let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
             try RuntimeError.wrap({
+                if returnType == .void, Symbols.all[name] != nil {
+                    // Commands can't be used in expressions
+                    throw RuntimeErrorType.unknownSymbol(name, options: context.expressionSymbols)
+                }
                 do {
                     switch try fn(arg, context) {
                     case let .tuple(tuple):
@@ -1157,7 +1160,7 @@ extension Expression {
                 )
             }
             switch symbol {
-            case .function((_, .void), _):
+            case .function((.void, .void), _) where Symbols.all[name] != nil:
                 // Commands can't be used in expressions
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
