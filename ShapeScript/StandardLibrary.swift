@@ -318,6 +318,15 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
+        "inset": .block(.custom(.path, [
+            "by": .number,
+        ], .path, .list(.path))) { context in
+            let by = context.value(for: "by")?.doubleValue ?? 0
+            let paths = context.children.compactMap { $0.value as? Path }
+            return .tuple(paths.compactMap {
+                $0.inset(by: by).map { .path($0.transformed(by: context.transform)) }
+            })
+        },
     ]
 
     static let points: Symbols = [
