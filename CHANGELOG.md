@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.2) (2022-05-28)
+
+- Fixed bug where path lines were drawn too thin for large models
+- Improved error messaging for invalid use of option
+- Fixed suggestions for misspelled commands
+- Bumped Euclid to version 0.5.21
+
 ## [1.5.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.1) (2022-05-07)
 
 - Add implicit `detail/smoothing`, `color/texture`, `position/orientation/size` and `font` options to custom blocks 
