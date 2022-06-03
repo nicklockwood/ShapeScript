@@ -408,7 +408,7 @@ extension Value {
                 let name = $0.stringValue
                 return try .string(context?.resolveFont(name) ?? name)
             }
-        case (.boolean, .string), (.number, .string):
+        case (.boolean, .string), (.number, .string), (.texture(.file), .string):
             return .string(stringValue)
         case let (.tuple(values), .string):
             let stringifyable = values.allSatisfy { $0.as(.string) != nil }
