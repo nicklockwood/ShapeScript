@@ -29,15 +29,20 @@ private func functionType(_ definition: String) throws -> FunctionType {
     return functionType
 }
 
-private func evaluate(_ expression: String, as type: ValueType) throws -> Value {
-    let program = try parse("define foo \(expression)")
+private func evaluate(_ source: String, as type: ValueType) throws -> Value {
+    var lines = source.split(separator: "\n")
+    lines[lines.count - 1] = "define foo_ \(lines[lines.count - 1])"
+    let source = lines.joined(separator: "\n")
+    let program = try parse(source)
     guard case let .define(_, definition) = program.statements.last?.type,
           case let .expression(expression) = definition.type
     else {
         XCTFail()
         return .void
     }
-    let context = EvaluationContext(source: "", delegate: nil)
+    let delegate = TestDelegate()
+    let context = EvaluationContext(source: source, delegate: delegate)
+    try program.evaluate(in: context)
     return try expression.evaluate(as: type, for: "", in: context)
 }
 
@@ -534,5 +539,16 @@ class TypesystemTests: XCTestCase {
         XCTAssert(Value("foo", Value(0.5, 1), "bar", true).isConvertible(to: .string))
         XCTAssertEqual(try evaluate("\"foo\" (0.5 1) \"bar\" true", as: .string),
                        "foo0.5 1bartrue")
+    }
+
+    func testCastTextureToString() throws {
+        let url = TestDelegate().resolveURL(for: "Stars1.jpg")
+        let texture = Texture.file(name: "Stars1.jpg", url: url)
+        XCTAssert(Value.texture(texture).isConvertible(to: .string))
+        XCTAssertEqual(try evaluate("""
+        texture "Stars1.jpg"
+        define foo texture
+        foo
+        """, as: .string), .string(url.path))
     }
 }
