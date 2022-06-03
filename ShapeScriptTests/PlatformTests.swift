@@ -11,9 +11,6 @@ import XCTest
 
 #if canImport(UIKit) || canImport(AppKit)
 
-private let testsDirectory = URL(fileURLWithPath: #file)
-    .deletingLastPathComponent()
-
 class PlatformTests: XCTestCase {
     // MARK: Texture conversion
 

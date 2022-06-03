@@ -10,26 +10,6 @@
 @testable import ShapeScript
 import XCTest
 
-private let testsDirectory = URL(fileURLWithPath: #file)
-    .deletingLastPathComponent()
-
-private class TestDelegate: EvaluationDelegate {
-    func importGeometry(for _: URL) throws -> Geometry? {
-        preconditionFailure()
-    }
-
-    var imports = [String]()
-    func resolveURL(for name: String) -> URL {
-        imports.append(name)
-        return testsDirectory.appendingPathComponent(name)
-    }
-
-    var log = [AnyHashable?]()
-    func debugLog(_ values: [AnyHashable]) {
-        log += values
-    }
-}
-
 class StandardLibraryTests: XCTestCase {
     // MARK: Color
 
