@@ -2662,14 +2662,14 @@ class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [0.2])
+        XCTAssertEqual(delegate.log.first as? Double ?? 0, 0.2, accuracy: epsilon)
     }
 
     func testTupleOrdinalLookup() {
         let program = "define col 1 0.5\nprint col.second"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [0.5])
+        XCTAssertEqual(delegate.log.first as? Double ?? 0, 0.5, accuracy: epsilon)
     }
 
     func testTupleOrdinalOutOfBoundsLookup() {
