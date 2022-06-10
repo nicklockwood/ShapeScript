@@ -436,6 +436,18 @@ class PolygonTests: XCTestCase {
         XCTAssertTrue(polygon.containsPoint(Vector(0.25, -0.5)))
     }
 
+    // MARK: merging
+
+    func testMergingVerticesCrash() throws {
+        let polygon = try XCTUnwrap(Polygon([
+            Vector(0.01478207252, 0.006122934918, 0.04),
+            Vector(0.014782086265, 0.006122896504, 0.04),
+            Vector(0.01478208, 0.006122928, 0.04),
+            Vector(0.014782069226, 0.0061229441239999995, 0.04),
+        ]))
+        XCTAssert([polygon].mergingVertices(withPrecision: 1e-7).isEmpty)
+    }
+
     // MARK: tessellation
 
     func testConcaveAnticlockwisePolygonCorrectlyTessellated() {
@@ -584,26 +596,27 @@ class PolygonTests: XCTestCase {
             XCTFail()
             return
         }
-        let triangles = polygon.triangulate()
-        guard triangles.count == 3 else {
+        var triangles = polygon.triangulate()
+        XCTAssertEqual(triangles.count, 3)
+        triangles = polygon.inverted().triangulate()
+        XCTAssertEqual(triangles.count, 3)
+    }
+
+    func testPolygonWithCollinearPointsCorrectlyTriangulated2() {
+        guard let polygon = Polygon([
+            Vector(0.461939766256, 0.191341716182, -0.25),
+            Vector(0.441341716184, 0.294895106774, -0.25),
+            Vector(0.417044659481, 0.417044659481, -0.25),
+            Vector(0.576640741219, 0.385299025038, -0.25),
+            Vector(0.5, -0.0, -0.25),
+        ]) else {
             XCTFail()
             return
         }
-        XCTAssertEqual(triangles[0], Polygon([
-            Vertex(Vector(0, 0), normal),
-            Vertex(Vector(0.5, 0), normal),
-            Vertex(Vector(0.5, 1), normal),
-        ]))
-        XCTAssertEqual(triangles[1], Polygon([
-            Vertex(Vector(0, 0), normal),
-            Vertex(Vector(0.5, 1), normal),
-            Vertex(Vector(-0.5, 1), normal),
-        ]))
-        XCTAssertEqual(triangles[2], Polygon([
-            Vertex(Vector(0, 0), normal),
-            Vertex(Vector(-0.5, 1), normal),
-            Vertex(Vector(-0.5, 0), normal),
-        ]))
+        var triangles = polygon.triangulate()
+        XCTAssertEqual(triangles.count, 3)
+        triangles = polygon.inverted().triangulate()
+        XCTAssertEqual(triangles.count, 3)
     }
 
     func testHouseShapedPolygonCorrectlyTriangulated() {
@@ -622,25 +635,7 @@ class PolygonTests: XCTestCase {
             return
         }
         let triangles = polygon.triangulate()
-        guard triangles.count == 3 else {
-            XCTFail()
-            return
-        }
-        XCTAssertEqual(triangles[0], Polygon([
-            Vertex(Vector(-1, 0), normal),
-            Vertex(Vector(0, 0.5), normal),
-            Vertex(Vector(1, 0), normal),
-        ]))
-        XCTAssertEqual(triangles[1], Polygon([
-            Vertex(Vector(0.5, -epsilon), normal),
-            Vertex(Vector(0.5, -1), normal),
-            Vertex(Vector(-0.5, -1), normal),
-        ]))
-        XCTAssertEqual(triangles[2], Polygon([
-            Vertex(Vector(0.5, -epsilon), normal),
-            Vertex(Vector(-0.5, -1), normal),
-            Vertex(Vector(-0.5, -epsilon), normal),
-        ]))
+        XCTAssertEqual(triangles.count, 5)
     }
 
     func testPathWithZeroAreaCollinearPointTriangulated() {

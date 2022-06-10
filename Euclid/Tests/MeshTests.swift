@@ -70,6 +70,22 @@ class MeshTests: XCTestCase {
         XCTAssertFalse(mesh.polygons.areWatertight)
     }
 
+    func testMergedMeshNotAssumedToBeWatertight() {
+        let cube = Mesh.cube()
+        XCTAssert(cube.isWatertight)
+        let mesh = cube.merge(.sphere())
+        XCTAssertNil(mesh.watertightIfSet)
+        XCTAssert(mesh.isWatertight)
+    }
+
+    func testMultimergedMeshesNotAssumedToBeWatertight() {
+        let cube = Mesh.cube()
+        XCTAssert(cube.isWatertight)
+        let mesh = Mesh.merge([cube, .sphere(), .cylinder()])
+        XCTAssertNil(mesh.watertightIfSet)
+        XCTAssert(mesh.isWatertight)
+    }
+
     // MARK: makeWatertight
 
     func testAddMissingTriangleVertex() {
@@ -93,11 +109,15 @@ class MeshTests: XCTestCase {
         let b = Mesh.sphere(slices: 16)
         let c = a.subtract(b)
         XCTAssertFalse(c.isWatertight)
+        #if !arch(wasm32)
         XCTAssertEqual(c.triangulate().polygons.count, 330)
+        #endif
         let d = c.makeWatertight()
         XCTAssertTrue(d.isWatertight)
         XCTAssertTrue(d.polygons.areWatertight)
-        XCTAssertEqual(d.triangulate().polygons.count, 429)
+        #if !arch(wasm32)
+        XCTAssertEqual(d.triangulate().polygons.count, 502)
+        #endif
     }
 
     // MARK: plane intersection

@@ -417,14 +417,20 @@ public extension Mesh {
             if let scale = s {
                 shape = shape.scaled(by: scale)
             }
-            shapes.append(shape.rotated(by: r).translated(by: p.position))
+            shape = shape.rotated(by: r).translated(by: p.position)
+            shapes.append(shape)
+            if !p.isCurved, s != nil {
+                shapes.append(shape)
+            }
         }
 
         func addShape(_ p2: PathPoint) {
             let p1p2 = (p2.position - p1.position).normalized()
-
             let angle = p1p2.angle(with: p0p1) / 2
-            let axis = p1p2.cross(p0p1).normalized()
+            var axis = p1p2.cross(p0p1).normalized()
+            if axis == .zero {
+                axis = along.faceNormal
+            }
             let rotation = Rotation(unchecked: axis, angle: angle)
             r *= rotation
             addShape(p1, Vector(1 / cos(angle), 1, 1))
@@ -582,8 +588,9 @@ public extension Mesh {
             bounds.formUnion(shape1.bounds)
             loft(
                 unchecked: shape0, shape1,
+                curvestart: true, curveend: true,
                 uvstart: 0, uvend: 1,
-                verifiedCoplanar: false,
+                verifiedCoplanar: true,
                 material: material,
                 into: &polygons
             )
@@ -837,12 +844,8 @@ private extension Mesh {
         }
     }
 
-    static func directionBetweenShapes(_ s0: Path, _ s1: Path) -> Vector? {
-        if let p0 = s0.points.first, let p1 = s1.points.first {
-            // TODO: what if p0p1 length is zero? We should try other points
-            return (p1.position - p0.position).normalized()
-        }
-        return nil
+    static func directionBetweenShapes(_ s0: Path, _ s1: Path) -> Vector {
+        (s1.bounds.center - s0.bounds.center).normalized()
     }
 
     static func loft(
@@ -868,64 +871,79 @@ private extension Mesh {
             }
             return .xor(subshapes.map { .loft($0, faces: faces, material: material) })
         }
-        let shapes = shapes
-        if shapes.isEmpty {
+        let shapes = shapes.filter { !$0.points.isEmpty }
+        guard let first = shapes.first, let last = shapes.last else {
             return .empty
         }
-        let count = shapes.count
-        let isClosed = (shapes.first == shapes.last)
+        var count = 1
+        var prev = first
+        for shape in shapes.dropFirst() where shape != prev {
+            count += 1
+            prev = shape
+        }
+        let isClosed = (shapes.first == shapes.last) && shapes.allSatisfy { $0.isClosed }
         if count < 3, isClosed {
-            return fill(shapes[0], faces: faces, material: material)
+            return fill(first, faces: faces, material: material)
         }
         var polygons = [Polygon]()
         polygons.reserveCapacity(shapes.reduce(0) { $0 + $1.points.count })
-        var prev = shapes[0]
         var isCapped = true
         if !isClosed {
-            let facePolygons = prev.facePolygons(material: material)
+            let facePolygons = first.facePolygons(material: material)
             if facePolygons.isEmpty {
                 isCapped = false
-            } else if let p0p1 = directionBetweenShapes(prev, shapes[1]) {
+            } else {
+                let p0p1 = directionBetweenShapes(first, shapes[1])
                 polygons += facePolygons.map {
                     p0p1.dot($0.plane.normal) > 0 ? $0.inverted() : $0
                 }
-            } else {
-                polygons += facePolygons
             }
         }
         var uvx0 = 0.0
         let uvstep = Double(1) / Double(count - 1)
-        for shape in shapes.dropFirst() {
+        prev = first
+        var curvestart = true
+        for (i, shape) in shapes.enumerated().dropFirst() {
             let uvx1 = uvx0 + uvstep
+            if shape == prev {
+                curvestart = false
+                continue
+            }
+            var curveend = true
+            if i < shapes.count - 1, shape == shapes[i + 1] {
+                curveend = false
+            }
             loft(
                 unchecked: prev, shape,
+                curvestart: curvestart, curveend: curveend,
                 uvstart: uvx0, uvend: uvx1,
                 verifiedCoplanar: verifiedCoplanar,
                 material: material,
                 into: &polygons
             )
             prev = shape
+            curvestart = true
             uvx0 = uvx1
         }
         if !isClosed {
-            let facePolygons = prev.facePolygons(material: material)
+            let facePolygons = last.facePolygons(material: material)
             if facePolygons.isEmpty {
                 isCapped = false
-            } else if let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], prev) {
+            } else {
+                let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], last)
                 polygons += facePolygons.map {
                     p0p1.dot($0.plane.normal) < 0 ? $0.inverted() : $0
                 }
-            } else {
-                polygons += facePolygons
             }
         }
-        let isWatertight = isCapped ? true : isWatertight
-        if !isCapped, count > 1, let first = shapes.first, let last = shapes.last {
+        if !isCapped, count > 1 {
             isCapped = first.isClosed && first.hasZeroArea &&
                 last.isClosed && last.hasZeroArea
         }
+        let isWatertight = isWatertight ?? isCapped && shapes
+            .dropFirst().dropLast().allSatisfy { $0.isClosed }
         switch faces {
-        case .default where isCapped, .front:
+        case .default where isWatertight, .front:
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
@@ -944,28 +962,46 @@ private extension Mesh {
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight
+                isWatertight: isWatertight ? true : nil
             )
         }
     }
 
     static func loft(
         unchecked p0: Path, _ p1: Path,
+        curvestart: Bool, curveend: Bool,
         uvstart: Double, uvend: Double,
         verifiedCoplanar: Bool,
         material: Material?,
         into polygons: inout [Polygon]
     ) {
-        let invert: Bool
-        if let p0p1 = directionBetweenShapes(p0, p1), p0p1.dot(p0.faceNormal) > 0 {
-            invert = false
-        } else {
-            invert = true
+        var direction = directionBetweenShapes(p0, p1)
+        var invert = direction.dot(p0.faceNormal) <= 0
+        if invert {
+            direction = -direction
         }
-        let e0 = p0.edgeVertices, e1 = p1.edgeVertices
-        // TODO: better handling of case where e0 and e1 counts don't match
-        for j in stride(from: 0, to: min(e0.count, e1.count), by: 2) {
-            var vertices = [e0[j], e0[j + 1], e1[j + 1], e1[j]]
+        var uvstart = uvstart, uvend = uvend
+        var e0 = p0.edgeVertices, e1 = p1.edgeVertices
+        if !curvestart {
+            let r = rotationBetweenVectors(direction, p0.faceNormal)
+            e0 = e0.map { $0.with(normal: $0.normal.rotated(by: r)) }
+        }
+        if !curveend {
+            let r = rotationBetweenVectors(direction, p1.faceNormal)
+            e1 = e1.map { $0.with(normal: $0.normal.rotated(by: r)) }
+        }
+        var t0 = -p0.bounds.center, t1 = -p1.bounds.center
+        var r = rotationBetweenVectors(p0.faceNormal, p1.faceNormal)
+        func makePolygon(_ vertices: [Vertex]) -> Polygon {
+            Polygon(
+                unchecked: invert ? vertices.reversed() : vertices,
+                plane: nil,
+                isConvex: true,
+                material: material
+            )
+        }
+        func addFace(_ a: Vertex, _ b: Vertex, _ c: Vertex, _ d: Vertex) {
+            var vertices = [a, b, c, d]
             vertices[0].texcoord = Vector(vertices[0].texcoord.y, uvstart)
             vertices[1].texcoord = Vector(vertices[1].texcoord.y, uvstart)
             vertices[2].texcoord = Vector(vertices[2].texcoord.y, uvend)
@@ -996,26 +1032,87 @@ private extension Mesh {
                     material: material,
                     id: 0
                 )
-                continue
+                return
             }
-            let coplanar = verifiedCoplanar || verticesAreCoplanar(vertices)
-            assert(!verifiedCoplanar || verticesAreCoplanar(vertices))
-            if !coplanar {
-                let vertices2 = [vertices[0], vertices[2], vertices[3]]
-                vertices.remove(at: 3)
-                polygons.append(Polygon(
-                    unchecked: invert ? vertices2.reversed() : vertices2,
-                    plane: nil,
-                    isConvex: true,
-                    material: material
-                ))
+            if vertices.count == 4 {
+                let c = vertices[0], d = vertices[1], b = vertices[2], a = vertices[3]
+                let bcd = makePolygon([b, c, d])
+                switch a.position.compare(with: bcd.plane) {
+                case .coplanar, .spanning:
+                    polygons.append(makePolygon([c, d, b, a]))
+                case .back:
+                    polygons += [makePolygon([c, b, a]), bcd]
+                case .front:
+                    polygons += [makePolygon([c, d, a]), makePolygon([b, a, d])]
+                }
+            } else {
+                polygons.append(makePolygon(vertices))
             }
-            polygons.append(Polygon(
-                unchecked: invert ? vertices.reversed() : vertices,
-                plane: nil,
-                isConvex: nil,
-                material: material
-            ))
+        }
+        func nearestIndex(to a: Vector, in e: [Vertex]) -> Int {
+            let a = a.translated(by: t1).rotated(by: r)
+            let e = e.map { $0.with(position: $0.position.translated(by: t0)) }
+            var closestIndex = 0
+            var best = Double.infinity
+            for i in stride(from: 0, to: e.count, by: 2) {
+                let b = e[i]
+                let d = (b.position - a).length
+                if d < best {
+                    closestIndex = i
+                    best = d
+                }
+            }
+            return closestIndex
+        }
+        if verifiedCoplanar || e0.count == e1.count {
+            for j in stride(from: 0, to: e0.count, by: 2) {
+                addFace(e0[j], e0[j + 1], e1[j + 1], e1[j])
+            }
+            return
+        }
+        // ensure e1 count > e0
+        if e0.count > e1.count {
+            (t0, t1, r, invert) = (t1, t0, -r, !invert)
+            (e0, e1, uvstart, uvend) = (e1, e0, uvend, uvstart)
+        }
+        // ensure points are have same orientation
+        let fp0 = p0.flatteningPlane, fp1 = p1.flatteningPlane
+        if flattenedPointsAreClockwise(e0.map {
+            fp0.flattenPoint($0.position)
+        }) != flattenedPointsAreClockwise(e1.map {
+            fp1.flattenPoint($0.position)
+        }) {
+            e0.reverse()
+            // TODO: fix mirrored texture coords
+        }
+        // map nearest e1 edges to e0 points
+        var prev: Int?
+        for i in stride(from: 0, to: e1.count, by: 2) {
+            let a = e1[i], b = e1[i + 1]
+            let ai = nearestIndex(to: a.position, in: e0)
+            if let prev = prev {
+                var ai = ai
+                if ai == 0, prev == e0.count - 2 {
+                    ai += e0.count
+                }
+                if ai > prev {
+                    for j in stride(from: prev, to: ai, by: 2) {
+                        let c = e0[j % e0.count], d = e0[(j + 1) % e0.count]
+                        addFace(c, d, a, a)
+                    }
+                }
+            }
+            let bi = nearestIndex(to: b.position, in: e0)
+            let c = e0[ai]
+            if ai == bi || (ai == e0.count - 1 && bi == 0) {
+                addFace(c, c, b, a)
+                prev = ai
+            } else {
+                assert((ai + 2) % e0.count == bi || ai + 1 == bi)
+                let d = e0[(ai + 1) % e0.count]
+                addFace(c, d, b, a)
+                prev = ai + 2
+            }
         }
     }
 }

@@ -100,8 +100,13 @@ public extension Mesh {
     /// All materials used by the mesh.
     /// The array may contain `nil` if some or all of the mesh uses the default material.
     var materials: [Material?] { storage.materials }
+
     /// The polygons that make up the mesh.
     var polygons: [Polygon] { storage.polygons }
+
+    /// The distinct (disconnected) submeshes that make up the mesh.
+    var submeshes: [Mesh] { storage.submeshes }
+
     /// The bounds of the mesh.
     var bounds: Bounds { storage.bounds }
 
@@ -175,7 +180,7 @@ public extension Mesh {
             unchecked: polygons + mesh.polygons,
             bounds: boundsIfSet,
             isConvex: false,
-            isWatertight: watertightIfSet
+            isWatertight: nil
         )
     }
 
@@ -291,7 +296,7 @@ public extension Mesh {
             unchecked: polygons.triangulate(),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: nil // TODO: work out why this sometimes introduces holes
+            isWatertight: watertightIfSet
         )
     }
 
@@ -322,11 +327,23 @@ public extension Mesh {
     ///
     /// > Note: This method is not always successful. Check ``Mesh/isWatertight`` after to verify.
     func makeWatertight() -> Mesh {
-        isWatertight ? self : Mesh(
-            unchecked: polygons.makeWatertight(),
+        if watertightIfSet == true {
+            return self
+        }
+        let holeEdges = polygons.holeEdges
+        let polygons: [Polygon], isWatertight: Bool?
+        if holeEdges.isEmpty {
+            polygons = self.polygons
+            isWatertight = true
+        } else {
+            polygons = self.polygons.makeWatertight(with: holeEdges)
+            isWatertight = nil
+        }
+        return Mesh(
+            unchecked: polygons,
             bounds: boundsIfSet,
-            isConvex: isKnownConvex,
-            isWatertight: nil
+            isConvex: false,
+            isWatertight: isWatertight
         )
     }
 
@@ -406,6 +423,23 @@ private extension Mesh {
             return watertightIfSet!
         }
 
+        private var submeshesIfSet: [Mesh]?
+        var submeshes: [Mesh] {
+            if submeshesIfSet == nil {
+                if isConvex {
+                    submeshesIfSet = [Mesh(storage: self)]
+                } else {
+                    let groups = polygons.groupedBySubmesh()
+                    if groups.count == 1 {
+                        submeshesIfSet = [Mesh(storage: self)]
+                    } else {
+                        submeshesIfSet = groups.map(Mesh.init)
+                    }
+                }
+            }
+            return submeshesIfSet!
+        }
+
         static func == (lhs: Storage, rhs: Storage) -> Bool {
             lhs === rhs || lhs.polygons == rhs.polygons
         }
@@ -420,10 +454,7 @@ private extension Mesh {
             isConvex: Bool,
             isWatertight: Bool?
         ) {
-            assert(
-                isWatertight == nil || isWatertight == polygons.areWatertight &&
-                    polygons == polygons.mergingSimilarVertices()
-            )
+            assert(isWatertight == nil || isWatertight == polygons.areWatertight)
             self.polygons = polygons
             self.boundsIfSet = polygons.isEmpty ? .empty : bounds
             self.isConvex = isConvex || polygons.isEmpty

@@ -686,7 +686,10 @@ public extension Mesh {
         }
         let bounds = Bounds(scnGeometry.boundingBox)
         if isWatertight == true {
-            polygons = polygons.mergingSimilarVertices()
+            let holeEdges = polygons.holeEdges
+            let distance = holeEdges.separationDistance
+            let endPoints = holeEdges.endPoints
+            polygons = polygons.mergingVertices(endPoints, withPrecision: distance)
         }
         self.init(
             unchecked: polygons,

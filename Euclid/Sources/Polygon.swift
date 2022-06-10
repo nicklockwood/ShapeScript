@@ -304,6 +304,37 @@ public extension Polygon {
     }
 }
 
+internal extension Collection where Element == LineSegment {
+    /// Set of all unique start/end points in edge collection.
+    var endPoints: Set<Vector> {
+        var endPoints = Set<Vector>()
+        for edge in self {
+            endPoints.insert(edge.start)
+            endPoints.insert(edge.end)
+        }
+        return endPoints
+    }
+
+    /// Returns the largest separation distance between a set of edges endpoints.
+    /// Useful for calculating the threshold to use when merging vertex coordinates to eliminate holes.
+    var separationDistance: Double {
+        var distance = 0.0
+        for (i, a) in dropLast().enumerated() {
+            var best = Double.infinity
+            for b in dropFirst(i) {
+                let d = Swift.max((b.start - a.start).length, (b.end - a.end).length)
+                if d > 0, d < best {
+                    best = d
+                }
+            }
+            if best.isFinite, best > distance {
+                distance = best
+            }
+        }
+        return distance
+    }
+}
+
 internal extension Collection where Element == Polygon {
     /// Does any polygon include texture coordinates?
     var hasTexcoords: Bool {
@@ -325,30 +356,32 @@ internal extension Collection where Element == Polygon {
     /// Check if polygons form a watertight mesh, i.e. every edge is attached to at least 2 polygons.
     /// Note: doesn't verify that mesh is not self-intersecting or inside-out.
     var areWatertight: Bool {
-        var edgeCounts = [LineSegment: Int]()
-        for polygon in self {
-            for edge in polygon.undirectedEdges {
-                edgeCounts[edge, default: 0] += 1
-            }
-        }
-        return edgeCounts.values.allSatisfy { $0.isMultiple(of: 2) }
+        holeEdges.isEmpty
     }
 
-    /// Insert missing vertices needed to prevent hairline cracks
-    func makeWatertight() -> [Polygon] {
-        var polygons = mergingSimilarVertices()
-        var polygonsByEdge = [LineSegment: Int]()
+    /// Returns all edges that exist at the boundary of a hole.
+    var holeEdges: Set<LineSegment> {
+        var edges = Set<LineSegment>()
         for polygon in self {
             for edge in polygon.undirectedEdges {
-                polygonsByEdge[edge, default: 0] += 1
+                if let index = edges.firstIndex(of: edge) {
+                    edges.remove(at: index)
+                } else {
+                    edges.insert(edge)
+                }
             }
         }
+        return edges
+    }
+
+    /// Insert missing vertices needed to prevent hairline cracks.
+    func makeWatertight(with holeEdges: Set<LineSegment>) -> [Polygon] {
         var points = Set<Vector>()
-        let edges = polygonsByEdge.filter { !$0.value.isMultiple(of: 2) }.keys
-        for edge in edges.sorted() {
+        for edge in holeEdges {
             points.insert(edge.start)
             points.insert(edge.end)
         }
+        var polygons = Array(self)
         let sortedPoints = points.sorted()
         for i in polygons.indices {
             let bounds = polygons[i].bounds.inset(by: -epsilon)
@@ -356,26 +389,52 @@ internal extension Collection where Element == Polygon {
                 _ = polygons[i].insertEdgePoint(point)
             }
         }
-        return polygons.mergingSimilarVertices() // TODO: why is this needed?
+        // TODO: why is this needed?
+        return polygons.mergingVertices(withPrecision: epsilon)
     }
 
     /// Merge vertices with similar positions.
-    func mergingSimilarVertices() -> [Polygon] {
-        var positions = VectorSet()
+    /// - Parameter precision: The maximum distance between vertices.
+    func mergingVertices(withPrecision precision: Double) -> [Polygon] {
+        mergingVertices(nil, withPrecision: precision)
+    }
+
+    /// Merge vertices with similar positions.
+    /// - Parameters
+    ///   - vertices: The vertices to merge. If nil then all vertices are merged.
+    ///   - precision: The maximum distance between vertices.
+    func mergingVertices(
+        _ vertices: Set<Vector>?,
+        withPrecision precision: Double
+    ) -> [Polygon] {
+        var positions = PointSet(precision: precision)
         return compactMap {
-            var vertices = [Vertex]()
+            var merged = [Vertex]()
+            var modified = false
             for v in $0.vertices {
-                let u = v.with(position: positions.insert(v.position))
-                if let w = vertices.last, w.position == u.position {
-                    vertices[vertices.count - 1] = w.lerp(u, 0.5)
-                } else {
-                    vertices.append(u)
+                if let vertices = vertices, !vertices.contains(v.position) {
+                    merged.append(v)
+                    continue
                 }
+                let u = v.with(position: positions.insert(v.position))
+                if modified || v.position != u.position {
+                    modified = true
+                    if let w = merged.last, w.position == u.position {
+                        merged[merged.count - 1] = w.lerp(u, 0.5)
+                        continue
+                    }
+                }
+                merged.append(u)
             }
-            if let w = vertices.first, w.position == vertices.last?.position {
-                vertices[0] = w.lerp(vertices.removeLast(), 0.5)
+            if !modified {
+                return $0
             }
-            return Polygon(vertices, material: $0.material)
+            if merged.count > 1, let w = merged.first,
+               w.position == merged.last?.position
+            {
+                merged[0] = w.lerp(merged.removeLast(), 0.5)
+            }
+            return Polygon(merged, material: $0.material)
         }
     }
 
@@ -470,6 +529,27 @@ internal extension Collection where Element == Polygon {
         var polygonsByMaterial = [Polygon.Material?: [Polygon]]()
         forEach { polygonsByMaterial[$0.material, default: []].append($0) }
         return polygonsByMaterial
+    }
+
+    /// Group by touching vertices
+    func groupedBySubmesh() -> [[Polygon]] {
+        var unsorted = Array(self)
+        var meshes = [[Polygon]]()
+        while let p = unsorted.popLast() {
+            var mesh = [p], temp = [Polygon]()
+            var vertices = Set(p.vertices.map { $0.position })
+            while let p = unsorted.popLast() {
+                if p.vertices.contains(where: { vertices.contains($0.position) }) {
+                    vertices.formUnion(p.vertices.map { $0.position })
+                    mesh.append(p)
+                } else {
+                    temp.append(p)
+                }
+            }
+            unsorted = temp
+            meshes.append(mesh)
+        }
+        return meshes
     }
 }
 
@@ -824,6 +904,12 @@ internal extension Polygon {
             t0 = t1
         }
         assertionFailure()
+    }
+
+    func hasVerticesInCommon(with p: Polygon) -> Bool {
+        p.vertices.contains(where: { v in
+            vertices.contains(where: { $0.position == v.position })
+        })
     }
 
     mutating func insertEdgePoint(_ p: Vector) -> Bool {
