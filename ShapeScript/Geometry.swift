@@ -626,22 +626,17 @@ public extension Geometry {
     }
 
     var polygonCount: Int {
-        var count = mesh?.polygons.count ?? 0
-        for child in children {
-            count += child.polygonCount
+        if let mesh = mesh, !mesh.polygons.isEmpty {
+            return mesh.polygons.count
         }
-        return count
+        return children.reduce(0) { $0 + $1.polygonCount }
     }
 
     var triangleCount: Int {
-        var count = 0
-        for polygon in mesh?.polygons ?? [] {
-            count += polygon.triangulate().count
+        if let mesh = mesh, !mesh.polygons.isEmpty {
+            return mesh.triangulate().polygons.count
         }
-        for child in children {
-            count += child.triangleCount
-        }
-        return count
+        return children.reduce(0) { $0 + $1.triangleCount }
     }
 
     var childCount: Int {
