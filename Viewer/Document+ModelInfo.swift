@@ -73,14 +73,17 @@ extension Document {
         let polygonCount: String
         let triangleCount: String
         let dimensions: String
+        let watertight: String
         if loadingProgress?.didSucceed ?? true {
             polygonCount = String(geometry.polygonCount)
             triangleCount = String(geometry.triangleCount)
             dimensions = geometry.exactBounds.size.logDescription
+            watertight = String(geometry.isWatertight)
         } else {
             polygonCount = "calculating…"
             triangleCount = "calculating…"
             dimensions = "calculating…"
+            watertight = "calculating…"
         }
 
         if let selectedGeometry = selectedGeometry {
@@ -99,10 +102,10 @@ extension Document {
                 nameString,
                 "Type: \(selectedGeometry.nestedLogDescription)",
                 childCount == 0 ? nil : "Children: \(childCount)",
-                "Polygons: \(polygonCount)",
+                triangleCount == polygonCount ? nil : "Polygons: \(polygonCount)",
                 "Triangles: \(triangleCount)",
                 "Dimensions: \(dimensions)",
-                "Watertight: \(selectedGeometry.isWatertight)",
+                "Watertight: \(watertight)",
 //                "Size: \(selectedGeometry.transform.scale.logDescription)",
 //                "Position: \(selectedGeometry.transform.offset.logDescription)",
 //                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
@@ -110,11 +113,13 @@ extension Document {
             ].compactMap { $0 }.joined(separator: "\n")
         }
 
+        let objectCount = geometry.objectCount
         return [
-            "Objects: \(geometry.objectCount)",
-            "Polygons: \(polygonCount)",
+            "Objects: \(objectCount)",
+            triangleCount == polygonCount ? nil : "Polygons: \(polygonCount)",
             "Triangles: \(triangleCount)",
             "Dimensions: \(dimensions)",
+            objectCount != 1 ? nil : "Watertight: \(watertight)",
             "",
             "Imports: \(importedFileCount)",
             "Textures: \(textureCount)",
