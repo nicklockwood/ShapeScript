@@ -1,3 +1,12 @@
+## [1.5.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.3) (2022-07-03)
+
+- The `loft` command now supports joining shapes with unequal numbers of sides or points
+- The `fill`, `lathe` and `extrude` commands now more reliably produce watertight output
+- Fixed incorrect polygon/triangle counts in model info
+- Fixed line numbers in selected object info
+- Bumped Euclid to version 0.5.25
+- Fixed some flaky tests
+
 ## [1.5.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.2) (2022-05-28)
 
 - Fixed bug where path lines were drawn too thin for large models
