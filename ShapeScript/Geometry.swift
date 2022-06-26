@@ -514,13 +514,13 @@ private extension Geometry {
             mesh = .cube()
         case let .extrude(paths, along: along) where paths.count == 1 && along.count <= 1:
             assert(along.reduce(0) { $0 + $1.subpaths.count } <= 1)
-            mesh = along.first.map { .extrude(paths[0], along: $0) } ?? .extrude(paths[0])
+            mesh = along.first.map { .extrude(paths[0], along: $0) } ?? Mesh.extrude(paths[0]).makeWatertight()
         case let .lathe(paths, segments: segments) where paths.count == 1:
-            mesh = .lathe(paths[0], slices: segments)
+            mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
         case let .loft(paths):
-            mesh = .loft(paths)
+            mesh = Mesh.loft(paths).makeWatertight()
         case let .fill(paths) where paths.count == 1:
-            mesh = .fill(paths[0].closed())
+            mesh = Mesh.fill(paths[0].closed()).makeWatertight()
         case .union, .extrude, .lathe, .fill:
             mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
