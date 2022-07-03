@@ -160,39 +160,17 @@ loft {
 
 ![Torus](images/torus.png)
 
-However, the real power of the `loft` command comes from the fact that you can use *different* cross-sections, and the resultant surface will be interpolated between them. For example, here is a shape whose cross-section is square at one end and hexagonal at the other:
+However, the real power of the `loft` command comes from the fact that you can use *different* cross-sections, and the resultant surface will be interpolated between them. For example, here is a shape whose cross-section is square at one end and circular at the other:
 
 ```swift
 loft {
-    // hexagon
-    path {
-        point -0.5 1
-        point -1 0
-        point -0.5 -1
-        point 0.5 -1
-        point 1 0
-        point 0.5 1
-        point -0.5 1
-    }
-    
-    translate 0 0 2
-    
-    // square
-    path {
-        point -1 1
-        point -1 0
-        point -1 -1
-        point 1 -1
-        point 1 0
-        point 1 1
-        point -1 1
-    }
+    square
+    translate 0 0 1
+    circle
 }
 ```
 
-![Hexacube](images/hexacube.png)
-
-You may notice that in the code above, the square face is defined using six points instead of four (well, seven actually, but the last point just closes the loop). In order to interpolate smoothly, it is important that all cross-sections have the same number of points. This may mean adding redundant points in some cases.
+![Loft shape](images/loftshape.png)
 
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)
