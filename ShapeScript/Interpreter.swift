@@ -712,6 +712,11 @@ extension EvaluationContext {
 
 extension Statement {
     func evaluate(in context: EvaluationContext) throws {
+        let sourceIndex = context.sourceIndex
+        context.sourceIndex = range.lowerBound
+        defer {
+            context.sourceIndex = sourceIndex
+        }
         switch type {
         case let .command(identifier, parameter):
             let name = identifier.name
@@ -741,7 +746,6 @@ extension Statement {
                                                      in: context)
                 try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
-                context.sourceIndex = range.lowerBound
                 if let parameter = parameter {
                     func unwrap(_ value: Value) -> Value {
                         if case let .tuple(values) = value {
