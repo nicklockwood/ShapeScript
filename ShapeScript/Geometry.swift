@@ -514,7 +514,9 @@ private extension Geometry {
             mesh = .cube()
         case let .extrude(paths, along: along) where paths.count == 1 && along.count <= 1:
             assert(along.reduce(0) { $0 + $1.subpaths.count } <= 1)
-            mesh = along.first.map { .extrude(paths[0], along: $0) } ?? Mesh.extrude(paths[0]).makeWatertight()
+            mesh = along.first.map {
+                Mesh.extrude(paths[0], along: $0).makeWatertight()
+            } ?? Mesh.extrude(paths[0]).makeWatertight()
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
         case let .loft(paths):
