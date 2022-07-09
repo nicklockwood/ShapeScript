@@ -797,7 +797,10 @@ extension Statement {
                     childContext.userSymbols.removeAll()
                     try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
                 }
-            case let .constant(v):
+            case var .constant(v):
+                if let parameter = parameter {
+                    v = .tuple([v, try parameter.evaluate(in: context)])
+                }
                 try RuntimeError.wrap(context.addValue(v), at: range)
             }
         case let .expression(expression):

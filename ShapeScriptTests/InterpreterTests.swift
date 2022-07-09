@@ -3009,6 +3009,29 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    func testNumericLiteralFollowedByText() {
+        let program = """
+        text { 5 "foo" }
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        XCTAssertEqual(context.children.count, 4)
+        #endif
+    }
+
+    func testNumericVariableFollowedByText() {
+        let program = """
+        define apples 5
+        text { apples "foo" }
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        XCTAssertEqual(context.children.count, 4)
+        #endif
+    }
+
     // MARK: SVGPath command
 
     func testSVGPath() throws {
