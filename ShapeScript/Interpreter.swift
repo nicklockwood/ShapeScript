@@ -275,16 +275,7 @@ public extension RuntimeError {
                 return "\(name) expects a maximum of \(max) arguments."
             }
         case let .missingArgument(for: name, index: index, type: type):
-            var type = type
-            switch type {
-            case ValueType.pair.errorDescription:
-                type = ValueType.number.errorDescription
-            case ValueType.tuple.errorDescription:
-                type = ""
-            default:
-                break
-            }
-            type = ["", "any"].contains(type) ? "" : " of type \(type)"
+            let type = ["", "any"].contains(type) ? "" : " of type \(type)"
             let name = name.isEmpty ? "Function" : "The \(name) function"
             if index == 0 {
                 return "\(name) expects an argument\(type)."
@@ -398,6 +389,8 @@ extension RuntimeErrorType {
     ) -> RuntimeErrorType {
         let typeDescription: String
         switch expected {
+        case let .list(type):
+            typeDescription = type.errorDescription
         case .pair:
             typeDescription = ValueType.number.errorDescription
         default:
@@ -418,6 +411,8 @@ extension RuntimeErrorType {
     ) -> RuntimeErrorType {
         let typeDescription: String
         switch type {
+        case let .list(type):
+            typeDescription = type.errorDescription
         case .pair:
             typeDescription = ValueType.number.errorDescription
         default:
@@ -429,6 +424,8 @@ extension RuntimeErrorType {
     static func unusedValue(type: ValueType) -> RuntimeErrorType {
         let typeDescription: String
         switch type {
+        case let .list(type):
+            typeDescription = type.errorDescription
         case .pair:
             typeDescription = ValueType.number.errorDescription
         default:
@@ -626,7 +623,7 @@ extension Definition {
             }
         case let .function(names, block):
             let declarationContext = context
-            return .function(names.isEmpty ? .void : .tuple) { value, context in
+            return .function(names.isEmpty ? .void : .list(.any)) { value, context in
                 do {
                     let oldChildren = context.children
                     let oldChildTypes = context.childTypes
@@ -974,7 +971,7 @@ extension Statement {
                     .typeMismatch(
                         for: "range",
                         index: 0,
-                        expected: .union([.range, .tuple]),
+                        expected: .union([.range, .list(.any)]),
                         got: value.type
                     ),
                     at: expression.range
@@ -1067,23 +1064,33 @@ extension Expression {
             case 1:
                 return try expressions[0].staticType(in: context)
             default:
-                guard case let .identifier(name) = expressions[0].type else {
-                    return .tuple
+                if case let .identifier(name) = expressions[0].type {
+                    guard let symbol = context.symbol(for: name) else {
+                        throw RuntimeError(
+                            .unknownSymbol(name, options: context.expressionSymbols),
+                            at: range
+                        )
+                    }
+                    switch symbol {
+                    case .command, .property:
+                        return .void
+                    case .function, .block:
+                        return .any
+                    case .constant:
+                        break
+                    }
                 }
-                guard let symbol = context.symbol(for: name) else {
-                    throw RuntimeError(
-                        .unknownSymbol(name, options: context.expressionSymbols),
-                        at: range
-                    )
+                var type: ValueType?
+                for expression in expressions {
+                    let staticType = try expression.staticType(in: context)
+                    if type == nil {
+                        type = staticType
+                    } else if type != staticType {
+                        type = nil
+                        break
+                    }
                 }
-                switch symbol {
-                case .command:
-                    return .void
-                case .function, .block:
-                    return .any
-                case .property, .constant:
-                    return .tuple
-                }
+                return .list(type ?? .any)
             }
         case .prefix(.minus, _),
              .prefix(.plus, _),
@@ -1139,7 +1146,7 @@ extension Expression {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
-                        type: parameterType.errorDescription
+                        type: parameterType
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(.void, context), at: range)
@@ -1416,7 +1423,7 @@ extension Expression {
             }
             return .void
         }
-        if values.count == 1, values[0].type == type {
+        if values.count == 1, values[0].type.isSubtype(of: type) {
             return values[0]
         }
         switch type {
@@ -1457,8 +1464,6 @@ extension Expression {
         case .pair:
             let numbers = try numerify(max: 2, min: 2)
             return .tuple(numbers.map { .number($0) })
-        case .tuple:
-            return .tuple(values)
         case .string where Value.tuple(values).isConvertible(to: .string):
             return .string(Value.tuple(values).stringValue)
         case .text where Value.tuple(values).isConvertible(to: .text):
