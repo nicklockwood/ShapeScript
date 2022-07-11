@@ -120,7 +120,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .group, in: context))
         },
         // builders
-        "extrude": .block(.custom(.builder, ["along": .paths])) { context in
+        "extrude": .block(.custom(.builder, ["along": .list(.path)])) { context in
             let along = context.value(for: "along")?.tupleValue as? [Path] ?? []
             return .mesh(Geometry(type: .extrude(context.paths, along: along), in: context))
         },
