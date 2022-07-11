@@ -55,7 +55,7 @@ final class EvaluationContext {
 
     var transform = Transform.identity
     var childTransform = Transform.identity
-    var childTypes: Set<ValueType> = [.mesh]
+    var childTypes: ValueType = .mesh
     var name: String = ""
     var namedObjects: [String: Geometry] = [:]
     var children = [Value]() {
