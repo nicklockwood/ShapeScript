@@ -293,7 +293,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let functions: Symbols = [
         // Debug
-        "print": .command(.tuple) { value, context in
+        "print": .command(.list(.any)) { value, context in
             context.debugLog(value.tupleValue)
         },
         "assert": .command(.boolean) { value, _ in

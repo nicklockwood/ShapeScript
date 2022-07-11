@@ -50,7 +50,6 @@ enum ValueType: Hashable {
     case text
     case path
     case mesh
-    case tuple
     case point
     case pair // Hack to support common math functions
     case range
@@ -87,7 +86,7 @@ extension ValueType {
         case .text: return "text"
         case .path: return "path"
         case .mesh: return "mesh"
-        case .tuple: return "tuple"
+        case .list: return "tuple"
         case .point: return "point"
         case .pair: return "pair"
         case .range: return "range"
@@ -96,17 +95,6 @@ extension ValueType {
         case .any: return "any"
         case let .union(types):
             return types.errorDescription
-        case let .list(type):
-            switch type {
-            case .mesh:
-                return "meshes"
-            case .bounds:
-                return "bounds"
-            case .union:
-                return "list of \(type.errorDescription)"
-            default:
-                return "\(type.errorDescription)s"
-            }
         }
     }
 
@@ -391,19 +379,32 @@ extension Value {
         case .path: return .path
         case .mesh: return .mesh
         case .point: return .point
-        case let .tuple(values) where values.count == 1:
-            // TODO: find better solution for this.
-            return values[0].type
-        case .tuple: return .tuple
         case .range: return .range
         case .bounds: return .bounds
+        case let .tuple(values):
+            switch values.count {
+            case 0: return .void
+            case 1: return values[0].type
+            default:
+                var type: ValueType?
+                for value in values {
+                    let valueType = value.type
+                    if type == nil {
+                        type = valueType
+                    } else if type != valueType {
+                        type = nil
+                        break
+                    }
+                }
+                return .list(type ?? .any)
+            }
         }
     }
 
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
         case (_, .any),
-             (_, .tuple),
+             (_, .list(.any)),
              (.boolean, .string),
              (.boolean, .text),
              (.number, .string),
@@ -434,6 +435,8 @@ extension Value {
             return values.allSatisfy { $0.isConvertible(to: .string) }
         case let (.tuple(values), .void):
             return values.isEmpty
+        case let (.tuple(values), .list(type)) where !values.isEmpty:
+            return values.allSatisfy { $0.isConvertible(to: type) }
         default:
             return self.type == type
         }
