@@ -377,8 +377,8 @@ extension RuntimeErrorType {
         switch expected {
         case let .list(type):
             typeDescription = type.errorDescription
-        case .pair:
-            typeDescription = ValueType.number.errorDescription
+        case let .tuple(types) where !types.isEmpty:
+            typeDescription = types[0].errorDescription
         default:
             typeDescription = expected.errorDescription
         }
@@ -399,8 +399,8 @@ extension RuntimeErrorType {
         switch type {
         case let .list(type):
             typeDescription = type.errorDescription
-        case .pair:
-            typeDescription = ValueType.number.errorDescription
+        case let .tuple(types) where !types.isEmpty:
+            typeDescription = types[0].errorDescription
         default:
             typeDescription = type.errorDescription
         }
@@ -1445,9 +1445,6 @@ extension Expression {
         case .rotation:
             let numbers = try numerify(max: 3, min: 1)
             return .rotation(Rotation(unchecked: numbers))
-        case .pair:
-            let numbers = try numerify(max: 2, min: 2)
-            return .tuple(numbers.map { .number($0) })
         case .string where Value.tuple(values).isConvertible(to: .string):
             return .string(Value.tuple(values).stringValue)
         case .text where Value.tuple(values).isConvertible(to: .text):
@@ -1469,6 +1466,35 @@ extension Expression {
             let name = Value.tuple(values).stringValue
             let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
             return try RuntimeError.wrap(.string(context.resolveFont(name)), at: range)
+        case let .tuple(types):
+            if values.count < types.count {
+                throw RuntimeError(.missingArgument(
+                    for: name,
+                    index: index + values.count,
+                    type: types[values.count]
+                ), at: range.upperBound ..< range.upperBound)
+            }
+            if values.count > types.count {
+                throw RuntimeError(
+                    .unexpectedArgument(for: name, max: types.count),
+                    at: parameters.count > types.count ? parameters[types.count].range : range
+                )
+            }
+            return try .tuple(zip(values, types).enumerated().map { i, pair in
+                let (value, type) = pair
+                guard value.isConvertible(to: type) else {
+                    throw RuntimeError(
+                        .typeMismatch(
+                            for: name,
+                            index: index + i,
+                            expected: type,
+                            got: value.type
+                        ),
+                        at: parameters[i].range
+                    )
+                }
+                return value
+            })
         case let .list(type):
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
                 switch value {

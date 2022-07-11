@@ -3845,4 +3845,34 @@ class InterpreterTests: XCTestCase {
             .boolean(true),
         ]).isConvertible(to: .list(.string)))
     }
+
+    func testCastNumericCoupletToNumberTuple() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+        ]).isConvertible(to: .tuple([.number, .number])))
+    }
+
+    func testCastNumericCoupletToAnyTuple() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+        ]).isConvertible(to: .tuple([.any, .any])))
+    }
+
+    func testCastMixedCoupletToMixedTuple() {
+        XCTAssert(Value.tuple([
+            .string("foo"),
+            .number(0.5),
+            .boolean(true),
+        ]).isConvertible(to: .tuple([.string, .number, .boolean])))
+    }
+
+    func testCastMixedCoupletToMixedStringTuple() {
+        XCTAssert(Value.tuple([
+            .string("foo"),
+            .number(0.5),
+            .boolean(true),
+        ]).isConvertible(to: .tuple([.string, .string, .string])))
+    }
 }
