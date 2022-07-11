@@ -2127,7 +2127,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "pow", index: 0, type: "pair"), at: range
+                .missingArgument(for: "pow", index: 0, type: "number"), at: range
             ))
         }
     }
@@ -2260,7 +2260,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "min", index: 0, type: "numbers"),
+                .missingArgument(for: "min", index: 0, type: "number"),
                 at: range.upperBound ..< range.upperBound
             ))
         }
@@ -2726,9 +2726,9 @@ class InterpreterTests: XCTestCase {
         let program = "print ().blue"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'blue'")
+            XCTAssertEqual(error?.message, "Unknown void member property 'blue'")
             XCTAssertNotEqual(error?.suggestion, "blue")
-            guard case .unknownMember("blue", of: "tuple", _) = error?.type else {
+            guard case .unknownMember("blue", of: "void", _) = error?.type else {
                 XCTFail()
                 return
             }
@@ -3650,16 +3650,24 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(try expressionType("\"foo\""), .string)
     }
 
-    func testTupleExpressionType() throws {
-        XCTAssertEqual(try expressionType("1 5"), .tuple)
+    func testNumericTupleExpressionType() throws {
+        XCTAssertEqual(try expressionType("1 5"), .list(.number))
     }
 
-    func testTupleExpressionType2() throws {
-        XCTAssertEqual(try expressionType("(1 5)"), .tuple)
+    func testNumericTupleExpressionType2() throws {
+        XCTAssertEqual(try expressionType("pi 5"), .list(.number))
     }
 
-    func testTupleExpressionType3() {
-        XCTAssertEqual(try expressionType("(pi 5)"), .tuple)
+    func testNumericTupleExpressionType3() throws {
+        XCTAssertEqual(try expressionType("(1 5)"), .list(.number))
+    }
+
+    func testNumericTupleExpressionType4() {
+        XCTAssertEqual(try expressionType("(pi 5)"), .list(.number))
+    }
+
+    func testMixedTupleExpressionType() throws {
+        XCTAssertEqual(try expressionType("1 red"), .list(.any))
     }
 
     func testFunctionExpressionType() {
@@ -3705,5 +3713,27 @@ class InterpreterTests: XCTestCase {
             .color(.red),
             .number(0.5),
         ]).isConvertible(to: .color))
+    }
+
+    func testCastNumericCoupletToNumberList() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+        ]).isConvertible(to: .list(.number)))
+    }
+
+    func testCastNumericCoupletToAnyList() {
+        XCTAssert(Value.tuple([
+            .number(1),
+            .number(0.5),
+        ]).isConvertible(to: .list(.any)))
+    }
+
+    func testCastMixedCoupletToStringList() {
+        XCTAssert(Value.tuple([
+            .string("foo"),
+            .number(0.5),
+            .boolean(true),
+        ]).isConvertible(to: .list(.string)))
     }
 }
