@@ -64,6 +64,10 @@ extension Color {
 }
 
 extension Rotation {
+    var rollYawPitchInHalfTurns: [Double] {
+        [roll.radians / .pi, yaw.radians / .pi, pitch.radians / .pi]
+    }
+
     init?(rollYawPitchInHalfTurns: [Double]) {
         var roll = 0.0, yaw = 0.0, pitch = 0.0
         switch rollYawPitchInHalfTurns.count {
