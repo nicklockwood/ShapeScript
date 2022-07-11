@@ -278,6 +278,44 @@ public extension RuntimeError {
 
 private struct EvaluationCancelled: Error {}
 
+private extension Array where Element == String {
+    var typesDescription: String {
+        var types = Set(self).sorted()
+        if let index = types.firstIndex(of: "block") {
+            types.append(types.remove(at: index))
+        }
+        switch types.count {
+        case 1:
+            return types[0]
+        case 2:
+            return "\(types[0]) or \(types[1])"
+        default:
+            return "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
+        }
+    }
+}
+
+private extension RuntimeErrorType {
+    static func typeMismatch(
+        for symbol: String,
+        index: Int,
+        expected types: [String],
+        got: String
+    ) -> RuntimeErrorType {
+        let expected = types.typesDescription
+        return .typeMismatch(for: symbol, index: index, expected: expected, got: got)
+    }
+
+    static func missingArgument(
+        for symbol: String,
+        index: Int,
+        types: [String]
+    ) -> RuntimeErrorType {
+        let expected = types.typesDescription
+        return .missingArgument(for: symbol, index: index, type: expected)
+    }
+}
+
 private extension RuntimeError {
     static let alternatives = [
         "box": ["cube"],
@@ -318,30 +356,6 @@ private extension RuntimeError {
         return "system"
         #endif
     }()
-}
-
-private extension RuntimeErrorType {
-    static func typeMismatch(
-        for symbol: String,
-        index: Int,
-        expected types: [String],
-        got: String
-    ) -> RuntimeErrorType {
-        var types = Set(types).sorted()
-        if let index = types.firstIndex(of: "block") {
-            types.append(types.remove(at: index))
-        }
-        let expected: String
-        switch types.count {
-        case 1:
-            expected = types[0]
-        case 2:
-            expected = "\(types[0]) or \(types[1])"
-        default:
-            expected = "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
-        }
-        return .typeMismatch(for: symbol, index: index, expected: expected, got: got)
-    }
 }
 
 extension Program {
@@ -788,10 +802,11 @@ extension Statement {
                     )
                     try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
                 } else if !type.childTypes.isEmpty {
-                    throw RuntimeError(
-                        .missingArgument(for: name, index: 0, type: "block"),
-                        at: range
-                    )
+                    throw RuntimeError(.missingArgument(
+                        for: name,
+                        index: 0,
+                        types: type.childTypes.map { $0.errorDescription } + ["block"]
+                    ), at: range)
                 } else {
                     let childContext = context.push(type)
                     childContext.userSymbols.removeAll()
@@ -994,7 +1009,7 @@ extension Expression {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
-                        type: "block"
+                        types: type.childTypes.map { $0.errorDescription } + ["block"]
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(context.push(type)), at: range)

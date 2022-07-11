@@ -1431,7 +1431,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "lathe", index: 0, type: "block"), at: range
+                .missingArgument(for: "lathe", index: 0, type: "path or block"), at: range
             ))
         }
     }
@@ -1443,7 +1443,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "group", index: 0, type: "block"), at: range
+                .missingArgument(for: "group", index: 0, type: "mesh or block"), at: range
             ))
         }
     }
@@ -1527,7 +1527,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "text", index: 0, type: "block"),
+                .missingArgument(for: "text", index: 0, type: "text or block"),
                 at: range.upperBound ..< range.upperBound
             ))
         }
