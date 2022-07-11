@@ -49,7 +49,6 @@ enum ValueType: Hashable {
     case string
     case text
     case path
-    case paths // Hack to support multiple paths
     case mesh
     case tuple
     case point
@@ -59,6 +58,7 @@ enum ValueType: Hashable {
     case bounds
     case any
     indirect case union([ValueType])
+    indirect case list(ValueType)
 }
 
 extension ValueType {
@@ -86,7 +86,6 @@ extension ValueType {
         case .string: return "string"
         case .text: return "text"
         case .path: return "path"
-        case .paths: return "path"
         case .mesh: return "mesh"
         case .tuple: return "tuple"
         case .point: return "point"
@@ -97,6 +96,17 @@ extension ValueType {
         case .any: return "any"
         case let .union(types):
             return types.errorDescription
+        case let .list(type):
+            switch type {
+            case .mesh:
+                return "meshes"
+            case .bounds:
+                return "bounds"
+            case .union:
+                return "list of \(type.errorDescription)"
+            default:
+                return "\(type.errorDescription)s"
+            }
         }
     }
 
@@ -108,6 +118,8 @@ extension ValueType {
             return lhs.allSatisfy { $0.isSubtype(of: rhs) }
         case let (_, .union(types)):
             return types.contains(where: isSubtype(of:))
+        case let (.list(lhs), .list(rhs)):
+            return lhs.isSubtype(of: rhs)
         default:
             return self == type
         }
