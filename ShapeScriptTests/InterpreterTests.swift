@@ -3838,7 +3838,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
                 index: 0,
-                expected: "any",
+                expected: "number",
                 got: "block"
             ), at: range))
         }
