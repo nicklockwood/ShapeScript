@@ -415,13 +415,18 @@ extension Value {
              (.number, .rotation),
              (.string, .text),
              (.string, .texture),
-             (.string, .font):
+             (.string, .font),
+             (.color, .list(.number)),
+             (.vector, .list(.number)),
+             (.size, .list(.number)),
+             (.rotation, .list(.number)):
             return true
         case let (_, .union(types)):
             return types.contains(where: isConvertible(to:))
         case let (.tuple(values), type) where values.count == 1:
             return values[0].isConvertible(to: type)
-        case let (.tuple(values), .color) where values.count == 2:
+        case let (.tuple(values), .color) where values.count == 2,
+             let (.tuple(values), .list(.number)) where values.count == 2:
             return values[0].isConvertible(to: .color) && values[1].type == .number
         case let (.tuple(values), .color),
              let (.tuple(values), .vector),

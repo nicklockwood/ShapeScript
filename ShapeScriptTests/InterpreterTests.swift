@@ -876,6 +876,104 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color(1, 1, 1, 0.5)])
     }
 
+    func testSetColorOptionSpecifiedAsTupleWithConstant() throws {
+        let program = try parse("""
+        define foo {
+            option c 0 1
+            color c
+            cube
+        }
+        foo { c red }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
+    }
+
+    func testSetColorOptionSpecifiedAsTupleWithTuple() throws {
+        let program = try parse("""
+        define foo {
+            option c 0 1
+            color c
+            cube
+        }
+        foo { c 1 0 0 }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
+    }
+
+    func testSetColorOptionSpecifiedAsConstantWithTuple() throws {
+        let program = try parse("""
+        define foo {
+            option c green
+            color c
+            cube
+        }
+        foo { c 1 0 0 }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red)
+    }
+
+    func testSetColorOptionSpecifiedAsTupleWithColorAlphaTuple() throws {
+        let program = try parse("""
+        define foo {
+            option c 0 1
+            color c
+            cube
+        }
+        foo { c red 0.5 }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, Color.red.withAlpha(0.5))
+    }
+
+    func testSetNonColorWithColorConstant() throws {
+        let program = try parse("""
+        define foo {
+            option c "foo"
+            color c
+            cube
+        }
+        foo { c red }
+        """)
+        let range = program.source.range(of: "red")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "c", index: 0, expected: "string", got: "color"
+            ), at: range))
+        }
+    }
+
+    func testSetNonColorWithColorAlphaTuple() throws {
+        let program = try parse("""
+        define foo {
+            option c "foo"
+            color c
+            cube
+        }
+        foo { c red 0.5 }
+        """)
+        let range = program.source.range(of: "red 0.5")!
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "c", index: 0, expected: "string", got: "color"
+            ), at: range))
+        }
+    }
+
     func testSetColourWithBritishSpelling() throws {
         let program = """
         colour red
@@ -3655,14 +3753,14 @@ class InterpreterTests: XCTestCase {
         XCTAssert(Value.number(1).isConvertible(to: .color))
     }
 
-    func testCastCoupletToColor() {
+    func testCastNumericCoupletToColor() {
         XCTAssert(Value.tuple([
             .number(1),
             .number(0.5),
         ]).isConvertible(to: .color))
     }
 
-    func testCastTripletToColor() {
+    func testCastNumericTripletToColor() {
         XCTAssert(Value.tuple([
             .number(1),
             .number(0.5),
@@ -3670,7 +3768,7 @@ class InterpreterTests: XCTestCase {
         ]).isConvertible(to: .color))
     }
 
-    func testCastQuadrupletToColor() {
+    func testCastNumericQuadrupletToColor() {
         XCTAssert(Value.tuple([
             .number(1),
             .number(0.5),
@@ -3684,6 +3782,17 @@ class InterpreterTests: XCTestCase {
             .color(.red),
             .number(0.5),
         ]).isConvertible(to: .color))
+    }
+
+    func testCastColorToNumberList() {
+        XCTAssert(Value.color(.red).isConvertible(to: .list(.number)))
+    }
+
+    func testCastColorWithAlphaToNumberList() {
+        XCTAssert(Value.tuple([
+            .color(.red),
+            .number(0.5),
+        ]).isConvertible(to: .list(.number)))
     }
 
     func testCastNumericCoupletToNumberList() {
