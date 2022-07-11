@@ -295,7 +295,7 @@ private extension Array where Element == String {
     }
 }
 
-private extension RuntimeErrorType {
+extension RuntimeErrorType {
     static func typeMismatch(
         for symbol: String,
         index: Int,
@@ -313,6 +313,53 @@ private extension RuntimeErrorType {
     ) -> RuntimeErrorType {
         let expected = types.typesDescription
         return .missingArgument(for: symbol, index: index, type: expected)
+    }
+
+    static func typeMismatch(
+        for name: String,
+        index: Int,
+        expected: ValueType,
+        got: ValueType
+    ) -> RuntimeErrorType {
+        let typeDescription: String
+        switch expected {
+        case .pair:
+            typeDescription = ValueType.number.errorDescription
+        default:
+            typeDescription = expected.errorDescription
+        }
+        return typeMismatch(
+            for: name,
+            index: index,
+            expected: typeDescription,
+            got: got.errorDescription
+        )
+    }
+
+    static func missingArgument(
+        for name: String,
+        index: Int,
+        type: ValueType
+    ) -> RuntimeErrorType {
+        let typeDescription: String
+        switch type {
+        case .pair:
+            typeDescription = ValueType.number.errorDescription
+        default:
+            typeDescription = type.errorDescription
+        }
+        return missingArgument(for: name, index: index, type: typeDescription)
+    }
+
+    static func unusedValue(type: ValueType) -> RuntimeErrorType {
+        let typeDescription: String
+        switch type {
+        case .pair:
+            typeDescription = ValueType.number.errorDescription
+        default:
+            typeDescription = type.errorDescription
+        }
+        return unusedValue(type: typeDescription)
     }
 }
 
@@ -467,7 +514,7 @@ private func evaluateParameter(_ parameter: Expression?,
             return .void
         }
         throw RuntimeError(
-            .missingArgument(for: name, index: 0, type: type.errorDescription),
+            .missingArgument(for: name, index: 0, type: type),
             at: range.upperBound ..< range.upperBound
         )
     }
@@ -746,7 +793,7 @@ extension EvaluationContext {
         case let .tuple(values):
             try values.forEach(addValue)
         default:
-            throw RuntimeErrorType.unusedValue(type: value.type.errorDescription)
+            throw RuntimeErrorType.unusedValue(type: value.type)
         }
     }
 }
@@ -1208,7 +1255,7 @@ extension Expression {
             } else if parameters.count < min {
                 let upperBound = parameters.last?.range.upperBound ?? range.upperBound
                 throw RuntimeError(
-                    .missingArgument(for: name, index: min - 1, type: ValueType.number.errorDescription),
+                    .missingArgument(for: name, index: min - 1, type: .number),
                     at: upperBound ..< upperBound
                 )
             }
@@ -1253,8 +1300,8 @@ extension Expression {
                         .typeMismatch(
                             for: name,
                             index: index + i,
-                            expected: (i == 0 ? type : .number).errorDescription,
-                            got: value.type.errorDescription
+                            expected: i == 0 ? type : .number,
+                            got: value.type
                         ),
                         at: parameters[i].range
                     )
@@ -1269,7 +1316,7 @@ extension Expression {
                 throw RuntimeError(.missingArgument(
                     for: name,
                     index: index,
-                    type: type.errorDescription
+                    type: type
                 ), at: range)
             }
             return .void
@@ -1344,8 +1391,8 @@ extension Expression {
                             .typeMismatch(
                                 for: name,
                                 index: index + i,
-                                expected: ValueType.path.errorDescription,
-                                got: value.type.errorDescription
+                                expected: type,
+                                got: value.type
                             ),
                             at: parameters[i].range
                         )
@@ -1356,8 +1403,8 @@ extension Expression {
                         .typeMismatch(
                             for: name,
                             index: index + i,
-                            expected: ValueType.path.errorDescription,
-                            got: value.type.errorDescription
+                            expected: type,
+                            got: value.type
                         ),
                         at: parameters[i].range
                     )
@@ -1377,8 +1424,8 @@ extension Expression {
                     .typeMismatch(
                         for: name,
                         index: index,
-                        expected: type.errorDescription,
-                        got: value.type.errorDescription
+                        expected: type,
+                        got: value.type
                     ),
                     at: range
                 )
@@ -1388,8 +1435,8 @@ extension Expression {
                 .typeMismatch(
                     for: name,
                     index: index,
-                    expected: type.errorDescription,
-                    got: values[0].type.errorDescription
+                    expected: type,
+                    got: values[0].type
                 ),
                 at: parameters[0].range
             )
