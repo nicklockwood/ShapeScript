@@ -63,7 +63,7 @@ enum ValueType: Hashable {
 extension ValueType {
     static let colorOrTexture: ValueType = .union([.color, .texture])
 
-    static let any: Set<ValueType> = [
+    static let any: ValueType = .union([
         .color,
         .texture,
         .boolean,
@@ -83,7 +83,16 @@ extension ValueType {
         .range,
         .void,
         .bounds,
-    ]
+    ])
+
+    var subtypes: [ValueType] {
+        switch self {
+        case let .union(types):
+            return types
+        default:
+            return [self]
+        }
+    }
 
     var errorDescription: String {
         switch self {
@@ -151,15 +160,15 @@ extension BlockType {
         }
     }
 
-    var childTypes: Set<ValueType> {
+    var childTypes: ValueType {
         switch self {
-        case .builder: return [.path]
-        case .group: return [.mesh]
-        case .path: return [.point, .path]
-        case .text: return [.text]
-        case .shape, .pathShape, .user: return []
+        case .builder: return .path
+        case .group: return .mesh
+        case .path: return .union([.point, .path])
+        case .text: return .text
+        case .shape, .pathShape, .user: return .void
         case let .custom(baseType, _):
-            return baseType?.childTypes ?? []
+            return baseType?.childTypes ?? .void
         }
     }
 
