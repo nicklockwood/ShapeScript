@@ -52,16 +52,17 @@ enum ValueType: Hashable {
     case mesh
     case polygon
     case point
-    case pair // Hack to support common math functions
     case range
     case void
     case bounds
     case any
     indirect case union([ValueType])
+    indirect case tuple([ValueType])
     indirect case list(ValueType)
 }
 
 extension ValueType {
+    static let pair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
 
     var subtypes: [ValueType] {
@@ -88,9 +89,8 @@ extension ValueType {
         case .path: return "path"
         case .mesh: return "mesh"
         case .polygon: return "polygon"
-        case .list: return "tuple"
+        case .list, .tuple: return "tuple"
         case .point: return "point"
-        case .pair: return "pair"
         case .range: return "range"
         case .void: return "void"
         case .bounds: return "bounds"
@@ -449,6 +449,8 @@ extension Value {
             return values.isEmpty
         case let (.tuple(values), .list(type)) where !values.isEmpty:
             return values.allSatisfy { $0.isConvertible(to: type) }
+        case let (.tuple(values), .tuple(types)) where values.count == types.count:
+            return zip(values, types).allSatisfy { $0.isConvertible(to: $1) }
         default:
             return self.type == type
         }
