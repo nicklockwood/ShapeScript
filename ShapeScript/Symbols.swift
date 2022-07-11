@@ -37,11 +37,10 @@ typealias Symbols = [String: Symbol]
 
 // MARK: Types
 
-enum ValueType: CaseIterable {
+enum ValueType: Hashable {
     case color
     case texture
     case boolean
-    case colorOrTexture // Hack to support either types
     case font
     case number
     case vector
@@ -58,16 +57,38 @@ enum ValueType: CaseIterable {
     case range
     case void
     case bounds
+    indirect case union([ValueType])
 }
 
 extension ValueType {
-    static let any = Set(Self.allCases)
+    static let colorOrTexture: ValueType = .union([.color, .texture])
+
+    static let any: Set<ValueType> = [
+        .color,
+        .texture,
+        .boolean,
+        .font,
+        .number,
+        .vector,
+        .size,
+        .rotation,
+        .string,
+        .text,
+        .path,
+        .paths,
+        .mesh,
+        .tuple,
+        .point,
+        .pair,
+        .range,
+        .void,
+        .bounds,
+    ]
 
     var errorDescription: String {
         switch self {
         case .color: return "color"
         case .texture: return "texture"
-        case .colorOrTexture: return "color or texture"
         case .font: return "font"
         case .boolean: return "boolean"
         case .number: return "number"
@@ -85,6 +106,22 @@ extension ValueType {
         case .range: return "range"
         case .void: return "void"
         case .bounds: return "bounds"
+        case let .union(types):
+            return types.errorDescription
+        }
+    }
+}
+
+extension Sequence where Element == ValueType {
+    var errorDescription: String {
+        let types = map { $0.errorDescription }
+        switch types.count {
+        case 1:
+            return types[0]
+        case 2:
+            return "\(types[0]) or \(types[1])"
+        default:
+            return "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
         }
     }
 }
@@ -356,16 +393,20 @@ extension Value {
              (.number, .string),
              (.number, .text),
              (.number, .color),
-             (.string, .text):
+             (.string, .text),
+             (.string, .texture),
+             (.string, .font):
             return true
-        case let (.tuple(values), .string):
+        case let (_, .union(types)):
+            return types.contains(where: isConvertible(to:))
+        case let (.tuple(values), _) where values.count == 1:
+            return values[0].isConvertible(to: type)
+        case let (.tuple(values), .string),
+             let (.tuple(values), .text),
+             let (.tuple(values), .texture),
+             let (.tuple(values), .font):
             return values.allSatisfy { $0.isConvertible(to: .string) }
-        case let (.tuple(values), .text):
-            return values.allSatisfy { $0.isConvertible(to: .text) }
         case let (.tuple(values), .color):
-            if values.count == 1 {
-                return values[0].isConvertible(to: .color)
-            }
             return values.allSatisfy { $0.type == .number }
         case let (.tuple(values), .void):
             return values.isEmpty
