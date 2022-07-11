@@ -953,8 +953,8 @@ extension Statement {
                     .typeMismatch(
                         for: "range",
                         index: 0,
-                        expected: ["range", "tuple"],
-                        got: value.type.errorDescription
+                        expected: .union([.range, .tuple]),
+                        got: value.type
                     ),
                     at: expression.range
                 )
@@ -1422,11 +1422,6 @@ extension Expression {
             }
             let numbers = try numerify(max: 4, min: 1)
             return .color(Color(unchecked: numbers))
-        case .colorOrTexture:
-            if Value.tuple(values).isConvertible(to: .color) {
-                return try evaluate(as: .color, for: name, in: context)
-            }
-            return try evaluate(as: .texture, for: name, in: context)
         case .vector:
             let numbers = try numerify(max: 3, min: 1)
             return .vector(Vector(numbers))
@@ -1528,6 +1523,24 @@ extension Expression {
             }
             throw RuntimeError(
                 .unexpectedArgument(for: name, max: 0),
+                at: parameters[0].range
+            )
+        case let .union(types):
+            let value = values.count == 1 ? values[0] : .tuple(values)
+            if let type = types.first(where: {
+                value.type == $0
+            }) ?? types.first(where: {
+                value.isConvertible(to: $0)
+            }) {
+                return try evaluate(as: type, for: name, in: context)
+            }
+            throw RuntimeError(
+                .typeMismatch(
+                    for: name,
+                    index: index,
+                    expected: type,
+                    got: values[0].type
+                ),
                 at: parameters[0].range
             )
         }
