@@ -16,6 +16,19 @@ private func expressionType(_ source: String) throws -> ValueType {
     return try program.statements.last?.staticType(in: context) ?? .void
 }
 
+private func functionType(_ definition: String) throws -> FunctionType {
+    let program = try parse(definition)
+    let context = EvaluationContext(source: "", delegate: nil)
+    try program.evaluate(in: context)
+    guard case let .define(identifier, _) = program.statements.last?.type,
+          case let .function(functionType, _) = context.symbol(for: identifier.name)
+    else {
+        XCTFail()
+        return (.any, .any)
+    }
+    return functionType
+}
+
 private func evaluate(_ expression: String, as type: ValueType) throws -> Value {
     let program = try parse("define foo \(expression)")
     guard case let .define(_, definition) = program.statements.last?.type,
@@ -175,7 +188,7 @@ class TypesystemTests: XCTestCase {
             }
         }
         foo { count 5 }
-        """), .union([.list(.any), .void])) // TODO: .list(.number)
+        """), .list(.any)) // TODO: .list(.number)
     }
 
     func testCustomFunctionReturnType() {
@@ -233,6 +246,125 @@ class TypesystemTests: XCTestCase {
         define foo() { red }
         foo.blue
         """), .number)
+    }
+
+    // MARK: Function parameter inference
+
+    func testInferSimpleFunctionParameter() throws {
+        let type = try functionType("define foo(bar) { bar + 1 }")
+        XCTAssertEqual(type.parameterType, .tuple([.number]))
+        XCTAssertEqual(type.returnType, .number)
+    }
+
+    func testInferSimpleFunctionParameters() throws {
+        let type = try functionType("define foo(bar baz) { bar + baz }")
+        XCTAssertEqual(type.parameterType, .tuple([.number, .number]))
+        XCTAssertEqual(type.returnType, .number)
+    }
+
+    func testInferFunctionParameterInBlock() throws {
+        let type = try functionType("""
+        define foo(bar) {
+            cube {
+                color bar
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.color]))
+        XCTAssertEqual(type.returnType, .mesh)
+    }
+
+    func testComplexNestedFunctionParameters() throws {
+        let type = try functionType("""
+        define foo(bar) { bar + 1 }
+        define bar(baz quux) {
+            foo(baz) + 1
+            print quux
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.number, .list(.any)]))
+        XCTAssertEqual(type.returnType, .number)
+    }
+
+    func testConditionalFunctionParameter() throws {
+        let type = try functionType("""
+        define foo(bar) {
+            if bar {
+                "hello"
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.boolean]))
+        XCTAssertEqual(type.returnType, .union([.string, .void]))
+    }
+
+    func testConditionalFunctionParameter2() throws {
+        let type = try functionType("""
+        define foo(bar) {
+            if bar < 3 {
+                "hello"
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.number]))
+        XCTAssertEqual(type.returnType, .union([.string, .void]))
+    }
+
+    func testConditionalFunctionParameters() throws {
+        let type = try functionType("""
+        define foo(bar baz) {
+            if bar = baz {
+                bar + 1
+            } else {
+                print baz
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.number, .list(.any)]))
+        XCTAssertEqual(type.returnType, .union([.number, .void]))
+    }
+
+    func testConditionalFunctionParameters2() throws {
+        let type = try functionType("""
+        define foo(bar baz) {
+            if bar > 1 {
+                print bar + 1
+            } else {
+                print not baz
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.number, .any]))
+        XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testConditionalFunctionParameters3() throws {
+        let type = try functionType("""
+        define foo(bar baz) {
+            if baz > 1 {
+                print bar
+            } else {
+                print bar + 1
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .list(.any)]), .number]))
+        XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testConditionalFunctionParameters4() throws {
+        let type = try functionType("""
+        define foo(bar) {
+            if true {
+                print bar + 1
+                texture bar
+            } else {
+                print bar + 1
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .texture])]))
+        XCTAssertEqual(type.returnType, .void)
     }
 
     // MARK: Type unions
