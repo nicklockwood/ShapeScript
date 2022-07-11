@@ -514,7 +514,7 @@ private func evaluateParameters(
                 }
             }(), at: range)
             break loop
-        case let .block(type, fn) where !type.childTypes.isEmpty:
+        case let .block(type, fn) where type.childTypes != .void:
             let parameters = Array(parameters[(i + 1)...])
             let childContext = context.push(type)
             childContext.userSymbols.removeAll()
@@ -541,7 +541,7 @@ private func evaluateBlockParameters(
 ) throws {
     let range = parameters[0].range.lowerBound ..< parameters.last!.range.upperBound
     let children: [Value]
-    if type.childTypes.contains(.text) {
+    if type.childTypes.subtypes.contains(.text) {
         let param = Expression(type: .tuple(parameters), range: range)
         do {
             children = try [param.evaluate(as: .text, for: identifier.name, in: context)]
@@ -555,7 +555,7 @@ private func evaluateBlockParameters(
         do {
             try childContext.addValue(child)
         } catch {
-            var types = type.childTypes.map { $0.errorDescription }
+            var types = type.childTypes.subtypes.map { $0.errorDescription }
             if j == 0 {
                 types.append("block")
             }
@@ -615,7 +615,7 @@ extension Definition {
                     let oldSource = context.source
                     let oldBaseURL = context.baseURL
                     context.children = []
-                    context.childTypes = ValueType.any
+                    context.childTypes = .any
                     context.source = declarationContext.source
                     context.baseURL = declarationContext.baseURL
                     context.userSymbols = declarationContext.userSymbols
@@ -825,7 +825,7 @@ extension Definition {
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
         switch value {
-        case _ where childTypes.contains { value.isConvertible(to: $0) }:
+        case _ where value.isConvertible(to: childTypes):
             switch value {
             case let .mesh(m):
                 children.append(.mesh(m.transformed(by: childTransform)))
@@ -835,7 +835,8 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
-            case _ where !childTypes.contains(value.type) && childTypes.contains(.text):
+            case _ where !childTypes.subtypes.contains(value.type) &&
+                childTypes.subtypes.contains(.text):
                 children.append(.text(TextValue(
                     string: value.stringValue,
                     font: self.value(for: "font")?.stringValue ?? font,
@@ -847,7 +848,7 @@ extension EvaluationContext {
             default:
                 children.append(value)
             }
-        case let .path(path) where childTypes.contains(.mesh):
+        case let .path(path) where childTypes.subtypes.contains(.mesh):
             children.append(.mesh(Geometry(
                 type: .path(path),
                 name: name,
@@ -923,11 +924,11 @@ extension Statement {
                         in: context, childContext
                     )
                     try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
-                } else if !type.childTypes.isEmpty {
+                } else if type.childTypes != .void {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
-                        types: type.childTypes.map { $0.errorDescription } + ["block"]
+                        types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
                     ), at: range)
                 } else {
                     let childContext = context.push(type)
@@ -1125,12 +1126,12 @@ extension Expression {
             case let .property(_, _, getter):
                 return try RuntimeError.wrap(getter(context), at: range)
             case let .block(type, fn):
-                guard type.childTypes.isEmpty else {
+                guard type.childTypes == .void else {
                     // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
-                        types: type.childTypes.map { $0.errorDescription } + ["block"]
+                        types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(context.push(type)), at: range)
