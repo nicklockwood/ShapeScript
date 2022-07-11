@@ -409,7 +409,17 @@ private func evaluateBlockParameters(
     _ childContext: EvaluationContext
 ) throws {
     let range = parameters[0].range.lowerBound ..< parameters.last!.range.upperBound
-    let children = try evaluateParameters(parameters, in: context)
+    let children: [Value]
+    if type.childTypes.contains(.text) {
+        let param = Expression(type: .tuple(parameters), range: range)
+        do {
+            children = try [param.evaluate(as: .text, for: identifier.name, in: context)]
+        } catch {
+            children = try evaluateParameters(parameters, in: context)
+        }
+    } else {
+        children = try evaluateParameters(parameters, in: context)
+    }
     for (j, child) in children.enumerated() {
         do {
             try childContext.addValue(child)

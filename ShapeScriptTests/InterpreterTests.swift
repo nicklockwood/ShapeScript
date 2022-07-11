@@ -3032,6 +3032,20 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    func testUnbracedTextCoalesced() {
+        let program = """
+        define apples 1
+        text apples "111"
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 4)
+        XCTAssertEqual(chars.first?.bounds.min.y, chars.last?.bounds.min.y)
+        #endif
+    }
+
     // MARK: SVGPath command
 
     func testSVGPath() throws {
