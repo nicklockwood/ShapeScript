@@ -1490,6 +1490,18 @@ extension Expression {
                 switch value {
                 case _ where value.isConvertible(to: type):
                     return [value]
+                case let .color(color) where type == .number:
+                    var components = color.components
+                    if values.count == 2, components.count == 4 {
+                        components.removeLast()
+                    }
+                    return components.map { .number($0) }
+                case let .vector(vector) where type == .number:
+                    return vector.components.map { .number($0) }
+                case let .size(size) where type == .number:
+                    return size.components.map { .number($0) }
+                case let .rotation(rotation) where type == .number:
+                    return rotation.rollYawPitchInHalfTurns.map { .number($0) }
                 case let .tuple(values):
                     guard values.allSatisfy({ $0.isConvertible(to: type) }) else {
                         throw RuntimeError(
@@ -1517,12 +1529,6 @@ extension Expression {
             })
         case .boolean, .number, .string, .text, .texture, .font, .path,
              .mesh, .point, .range, .bounds:
-            if values.count > 1, parameters.count > 1 {
-                throw RuntimeError(
-                    .unexpectedArgument(for: name, max: 1),
-                    at: parameters[1].range
-                )
-            }
             let value = values[0]
             if value.type != type {
                 throw RuntimeError(
@@ -1535,15 +1541,20 @@ extension Expression {
                     at: range
                 )
             }
-            // TODO: work out when/why this fallback is needed
+            if values.count > 1, parameters.count > 1 {
+                throw RuntimeError(
+                    .unexpectedArgument(for: name, max: 1),
+                    at: parameters[1].range
+                )
+            }
             throw RuntimeError(
                 .typeMismatch(
                     for: name,
                     index: index,
                     expected: type,
-                    got: values[0].type
+                    got: Value.tuple(values).type
                 ),
-                at: parameters[0].range
+                at: range
             )
         case .void:
             if values.isEmpty || values.count == 1 && values[0].isConvertible(to: .void) {
