@@ -3155,7 +3155,7 @@ class InterpreterTests: XCTestCase {
 
     func testDebugColorCommand() throws {
         let program = "debug color #f00"
-        let range = program.range(of: "color #f00")!
+        let range = program.range(of: "color")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(

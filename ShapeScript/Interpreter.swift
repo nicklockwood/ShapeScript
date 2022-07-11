@@ -384,27 +384,14 @@ private func evaluateParameters(
             }(), at: range)
             break loop
         case let .block(type, fn) where !type.childTypes.isEmpty:
+            let parameters = Array(parameters[(i + 1)...])
             let childContext = context.push(type)
-            let children = try evaluateParameters(Array(parameters[(i + 1)...]), in: context)
-            for (j, child) in children.enumerated() {
-                do {
-                    try childContext.addValue(child)
-                } catch {
-                    var types = type.childTypes.map { $0.errorDescription }
-                    if j == 0 {
-                        types.append("block")
-                    }
-                    throw RuntimeError(
-                        .typeMismatch(
-                            for: name,
-                            index: j,
-                            expected: types,
-                            got: child.type.errorDescription
-                        ),
-                        at: parameters[i + 1 + j].range
-                    )
-                }
-            }
+            childContext.userSymbols.removeAll()
+            let identifier = Identifier(name: name, range: param.range)
+            try evaluateBlockParameters(
+                parameters, for: identifier,
+                type: type, in: context, childContext
+            )
             try RuntimeError.wrap(values.append(fn(childContext)), at: param.range)
             break loop
         case .command, .function, .block, .property, .constant:
@@ -412,6 +399,36 @@ private func evaluateParameters(
         }
     }
     return values
+}
+
+private func evaluateBlockParameters(
+    _ parameters: [Expression],
+    for identifier: Identifier,
+    type: BlockType,
+    in context: EvaluationContext,
+    _ childContext: EvaluationContext
+) throws {
+    let range = parameters[0].range.lowerBound ..< parameters.last!.range.upperBound
+    let children = try evaluateParameters(parameters, in: context)
+    for (j, child) in children.enumerated() {
+        do {
+            try childContext.addValue(child)
+        } catch {
+            var types = type.childTypes.map { $0.errorDescription }
+            if j == 0 {
+                types.append("block")
+            }
+            throw RuntimeError(
+                .typeMismatch(
+                    for: identifier.name,
+                    index: j,
+                    expected: types,
+                    got: child.type.errorDescription
+                ),
+                at: j < parameters.count ? parameters[j].range : range
+            )
+        }
+    }
 }
 
 // TODO: find a better way to encapsulate this
@@ -747,46 +764,19 @@ extension Statement {
                 try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
                 if let parameter = parameter {
-                    func unwrap(_ value: Value) -> Value {
-                        if case let .tuple(values) = value {
-                            if values.count == 1 {
-                                return unwrap(values[0])
-                            }
-                            return .tuple(values.map(unwrap))
-                        } else {
-                            return value
-                        }
-                    }
                     let parameters: [Expression]
                     if case let .tuple(expressions) = parameter.type {
                         parameters = expressions
                     } else {
                         parameters = [parameter]
                     }
-                    var children = try evaluateParameters(
-                        parameters,
-                        in: context
-                    ).map(unwrap)
-                    if children.count == 1, case let .tuple(values) = children[0] {
-                        children = values
-                    }
-                    for child in children where !type.childTypes
-                        .contains(where: child.isConvertible)
-                    {
-                        // TODO: can we highlight specific argument?
-                        throw RuntimeError(.typeMismatch(
-                            for: name,
-                            index: 0,
-                            expected: type.childTypes.map { $0.errorDescription } + ["block"],
-                            got: child.type.errorDescription
-                        ), at: parameter.range)
-                    }
-                    try RuntimeError.wrap({
-                        let childContext = context.push(type)
-                        childContext.userSymbols.removeAll()
-                        try children.forEach(childContext.addValue)
-                        try context.addValue(fn(childContext))
-                    }(), at: range)
+                    let childContext = context.push(type)
+                    childContext.userSymbols.removeAll()
+                    try evaluateBlockParameters(
+                        parameters, for: identifier, type: type,
+                        in: context, childContext
+                    )
+                    try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
                 } else if !type.childTypes.isEmpty {
                     throw RuntimeError(
                         .missingArgument(for: name, index: 0, type: "block"),
