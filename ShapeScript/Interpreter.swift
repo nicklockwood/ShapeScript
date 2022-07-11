@@ -1480,13 +1480,13 @@ extension Expression {
             let name = Value.tuple(values).stringValue
             let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
             return try RuntimeError.wrap(.string(context.resolveFont(name)), at: range)
-        case .paths:
+        case let .list(type):
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
                 switch value {
-                case .path:
+                case _ where value.isConvertible(to: type):
                     return [value]
                 case let .tuple(values):
-                    guard values.allSatisfy({ $0.type == .path }) else {
+                    guard values.allSatisfy({ $0.isConvertible(to: type) }) else {
                         throw RuntimeError(
                             .typeMismatch(
                                 for: name,
