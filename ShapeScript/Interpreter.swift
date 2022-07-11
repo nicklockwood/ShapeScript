@@ -642,15 +642,19 @@ extension Definition {
             }
         case let .function(names, block):
             let declarationContext = context
-            let paramTypes = [ValueType](repeating: .any, count: names.count)
             let returnType: ValueType
+            var params = Dictionary(uniqueKeysWithValues: names.map {
+                ($0.name, ValueType.any)
+            })
             do {
                 let context = context.push(.custom(.all, [:], .any, .any))
-                for identifier in names {
-                    context.define(identifier.name, as: .placeholder(.any))
+                block.inferTypes(for: &params, in: context)
+                for (name, type) in params {
+                    context.define(name, as: .placeholder(type))
                 }
                 returnType = try block.staticType(in: context)
             }
+            let paramTypes = names.map { params[$0.name] ?? .any }
             return .function(.tuple(paramTypes), returnType) { value, context in
                 do {
                     let oldChildren = context.children
@@ -1000,12 +1004,15 @@ extension Statement {
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
+            // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
+            // unneccessary, however because <type> can always be cast to .list(<type>)
+            // it isn't. Need to find a static solution for this (or abandon this check)
             guard let sequence = value.sequenceValue else {
                 throw RuntimeError(
                     .typeMismatch(
                         for: "range",
                         index: 0,
-                        expected: .union([.range, .list(.any)]),
+                        expected: .sequence,
                         got: value.type
                     ),
                     at: expression.range
