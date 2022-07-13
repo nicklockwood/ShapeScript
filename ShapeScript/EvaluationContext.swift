@@ -266,6 +266,8 @@ extension EvaluationContext {
                 options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
                 options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
                 #endif
+                // TODO: Work around silly race condition where font may have
+                // been imported by another file in the meantime
                 throw RuntimeErrorType.unknownFont(name, options: options)
             }
             return name

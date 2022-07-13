@@ -3046,6 +3046,89 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
+    func testFontOutsideText() {
+        let program = """
+        text "a"
+        font "Courier"
+        text "a"
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 2)
+        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        #endif
+    }
+
+    func testFontOutsideTextFunction() {
+        let program = """
+        define aText {
+            text "a"
+        }
+        aText
+        font "Courier"
+        aText
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 2)
+        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        #endif
+    }
+
+    func testFontOutsideTextBlock() {
+        let program = """
+        text { "a" }
+        font "Courier"
+        text { "a" }
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 2)
+        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        #endif
+    }
+
+    func testFontOutsideTextBlockFunction() {
+        let program = """
+        define aText {
+            text { "a" }
+        }
+        aText
+        font "Courier"
+        aText
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 2)
+        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        #endif
+    }
+
+    func testFontInsideTextBlock() {
+        let program = """
+        text {
+            "a"
+            font "Courier"
+            "a"
+        }
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        #if canImport(CoreText)
+        let chars = context.children.compactMap { $0.value as? Geometry }
+        XCTAssertEqual(chars.count, 2)
+        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        #endif
+    }
+
     // MARK: SVGPath command
 
     func testSVGPath() throws {

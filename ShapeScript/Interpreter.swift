@@ -771,7 +771,7 @@ extension EvaluationContext {
             case _ where !childTypes.contains(value.type) && childTypes.contains(.text):
                 children.append(.text(TextValue(
                     string: value.stringValue,
-                    font: font,
+                    font: self.value(for: "font")?.stringValue ?? font,
                     color: material.color,
                     linespacing: self.value(for: "linespacing")?.doubleValue
                 )))
@@ -1370,7 +1370,12 @@ extension Expression {
         case .string where Value.tuple(values).isConvertible(to: .string):
             return .string(Value.tuple(values).stringValue)
         case .text where Value.tuple(values).isConvertible(to: .text):
-            return .text(Value.tuple(values).textValue)
+            return .text(TextValue(
+                string: Value.tuple(values).stringValue,
+                font: context.value(for: "font")?.stringValue ?? context.font,
+                color: context.material.color,
+                linespacing: context.value(for: "linespacing")?.doubleValue
+            ))
         case .texture where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
             return try RuntimeError.wrap(.texture(.file(

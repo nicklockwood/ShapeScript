@@ -265,20 +265,6 @@ extension Value {
         }
     }
 
-    var textValue: TextValue {
-        switch self {
-        case let .text(text):
-            return text
-        default:
-            return TextValue(
-                string: stringValue,
-                font: nil,
-                color: nil,
-                linespacing: nil
-            )
-        }
-    }
-
     var tupleValue: [AnyHashable] {
         if case let .tuple(values) = self {
             return values.map { $0.value }

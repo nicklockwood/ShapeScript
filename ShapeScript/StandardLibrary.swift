@@ -245,7 +245,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "linespacing": .number,
         ])) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
-            let text = context.children.map { $0.textValue }
+            let text = context.children.compactMap { $0.value as? TextValue }
             let paths = Path.text(text, width: width, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
