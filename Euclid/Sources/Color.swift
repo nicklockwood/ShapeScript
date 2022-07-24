@@ -32,7 +32,7 @@
 /// A color in RGBA format.
 ///
 /// Color can be used as a ``Polygon/material-swift.property`` or as a ``Vertex/color``.
-public struct Color: Hashable {
+public struct Color: Hashable, Sendable {
     /// The red component of the color.
     public var r: Double
     /// The green component of the color.
@@ -85,13 +85,13 @@ extension Color: Codable {
 }
 
 public extension Color {
-    static var clear = Color(0, 0)
-    static var black = Color(0)
-    static var white = Color(1)
+    static let clear = Color(0, 0)
+    static let black = Color(0)
+    static let white = Color(1)
     static let gray = Color(0.5)
-    static var red = Color(1, 0, 0)
-    static var green = Color(0, 1, 0)
-    static var blue = Color(0, 0, 1)
+    static let red = Color(1, 0, 0)
+    static let green = Color(0, 1, 0)
+    static let blue = Color(0, 0, 1)
     static let yellow = Color(1, 1, 0)
     static let cyan = Color(0, 1, 1)
     static let magenta = Color(1, 0, 1)

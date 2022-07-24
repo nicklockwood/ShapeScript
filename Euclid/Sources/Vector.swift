@@ -35,7 +35,7 @@ import Foundation
 ///
 /// > Note: Euclid doesn't have a 2D vector type. When working with primarily 2D shapes, such as
 /// ``Path``s, you can omit the ``z`` component when constructing vector and it will default to zero.
-public struct Vector: Hashable {
+public struct Vector: Hashable, Sendable {
     /// The X component of the vector.
     public var x: Double
     /// The Y component of the vector.
@@ -298,39 +298,6 @@ public extension Vector {
     /// - Returns: The nearest point in 3D space that lies on the line.
     func project(onto line: Line) -> Vector {
         self + vectorFromPointToLine(self, line.origin, line.direction)
-    }
-}
-
-struct PointSet {
-    private var storage = [Vector: [Vector]]()
-
-    /// The maximum distance between points.
-    let precision: Double
-
-    /// Creates a point set with specified precision.
-    /// - Parameter precision: The maximum distance between points.
-    init(precision: Double) {
-        self.precision = precision
-    }
-
-    /// If point is unique, inserts it and returns the same value
-    /// otherwise, returns nearest match
-    /// - Parameter point: The point to insert.
-    mutating func insert(_ point: Vector) -> Vector {
-        let hash = Vector(
-            round(point.x / precision) * precision,
-            round(point.y / precision) * precision,
-            round(point.z / precision) * precision
-        )
-        if let point = storage[hash]?.first(where: {
-            $0.isEqual(to: point, withPrecision: precision)
-        }) {
-            return point
-        }
-        point.hashValues(withPrecision: precision).forEach {
-            storage[$0, default: []].append(point)
-        }
-        return point
     }
 }
 

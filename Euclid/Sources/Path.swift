@@ -43,7 +43,7 @@ import Foundation
 /// Paths are typically 2-dimensional, but because ``PathPoint`` positions have a Z coordinate, they are
 /// not *required* to be. Even a flat ``Path`` (where all points lie on the same plane) can be translated or
 /// rotated so that its points do not necessarily lie on the *XY* plane.
-public struct Path: Hashable {
+public struct Path: Hashable, Sendable {
     let subpathIndices: [Int]
     /// The array of points that makes up this path.
     public let points: [PathPoint]
@@ -279,6 +279,9 @@ public extension Path {
     /// - Returns: The edge vertices, or an empty array if path has subpaths.
     func edgeVertices(for wrapMode: Mesh.WrapMode) -> [Vertex] {
         guard subpaths.count <= 1, points.count >= 2 else {
+            if let p = points.first {
+                return [Vertex(p.position, nil, p.texcoord, p.color)]
+            }
             return []
         }
 
@@ -291,9 +294,6 @@ public extension Path {
                 let length = (point.position - prev).length
                 totalLength += length
                 prev = point.position
-            }
-            guard totalLength > 0 else {
-                return []
             }
         case .tube:
             var min = Double.infinity
@@ -390,7 +390,6 @@ internal extension Path {
         let positions = isClosed ? points.dropLast().map { $0.position } : points.map { $0.position }
         let subpathIndices = subpathIndices ?? subpathIndicesFor(points)
         self.subpathIndices = subpathIndices
-        assert(subpaths.allSatisfy { $0.points == sanitizePoints($0.points) })
         if let plane = plane {
             self.plane = plane
             assert(points.allSatisfy { plane.containsPoint($0.position) })
@@ -502,7 +501,7 @@ internal extension Path {
             if p0.position.x > 0 {
                 if p0 == p1 {
                     points.remove(at: i)
-                } else if p1.position.x == 0 {
+                } else if abs(p1.position.x) < epsilon {
                     points.remove(at: i)
                 } else if p1.position.x > 0 {
                     points.remove(at: i)

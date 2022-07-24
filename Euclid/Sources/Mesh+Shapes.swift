@@ -90,8 +90,8 @@ public extension Mesh {
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     static func cube(
-        center c: Vector = .init(0, 0, 0),
-        size s: Vector,
+        center: Vector = .zero,
+        size: Vector,
         faces: Faces = .default,
         material: Material? = nil
     ) -> Mesh {
@@ -112,11 +112,11 @@ public extension Mesh {
             )
             return Polygon(
                 unchecked: indexData.map { i in
-                    let pos = c + s.scaled(by: Vector(
+                    let pos = center + Vector(
                         i & 1 > 0 ? 0.5 : -0.5,
                         i & 2 > 0 ? 0.5 : -0.5,
                         i & 4 > 0 ? 0.5 : -0.5
-                    ))
+                    )
                     let uv = Vector(
                         (1 ... 2).contains(index) ? 1 : 0,
                         (0 ... 1).contains(index) ? 1 : 0
@@ -127,10 +127,13 @@ public extension Mesh {
                 normal: normal,
                 isConvex: true,
                 material: material
-            )
+            ).scaled(by: size)
         }
-        let halfSize = s / 2
-        let bounds = Bounds(min: c - halfSize, max: c + halfSize)
+        let halfSize = Vector(size: 0.5)
+        let bounds = Bounds(
+            min: center - halfSize,
+            max: center + halfSize
+        ).scaled(by: size)
         switch faces {
         case .front, .default:
             return Mesh(
@@ -163,7 +166,7 @@ public extension Mesh {
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     static func cube(
-        center c: Vector = .init(0, 0, 0),
+        center c: Vector = .zero,
         size s: Double = 1,
         faces: Faces = .default,
         material: Material? = nil
@@ -191,7 +194,7 @@ public extension Mesh {
     ) -> Mesh {
         var semicircle = [PathPoint]()
         let stacks = max(2, stacks ?? (slices / 2))
-        let radius = max(abs(radius), epsilon)
+        let radius = max(abs(radius), scaleLimit / 2)
         for i in 0 ... stacks {
             let a = Double(i) / Double(stacks) * Angle.pi
             semicircle.append(.curve(-sin(a) * radius, cos(a) * radius))
@@ -218,23 +221,23 @@ public extension Mesh {
     ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
     ///   - material: The optional material for the mesh.
     static func cylinder(
-        radius r: Double = 0.5,
-        height h: Double = 1,
+        radius: Double = 0.5,
+        height: Double = 1,
         slices: Int = 16,
         poleDetail: Int = 0,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
-        let r = max(abs(r), epsilon)
-        let h = max(abs(h), epsilon)
+        let radius = max(abs(radius), scaleLimit / 2)
+        let height = max(abs(height), scaleLimit)
         let wrapMode = wrapMode == .default ? .tube : wrapMode
         return lathe(
             unchecked: Path(unchecked: [
-                .point(0, h / 2),
-                .point(-r, h / 2),
-                .point(-r, -h / 2),
-                .point(0, -h / 2),
+                .point(0, height / 2),
+                .point(-radius, height / 2),
+                .point(-radius, -height / 2),
+                .point(0, -height / 2),
             ], plane: .xy, subpathIndices: []),
             slices: slices,
             poleDetail: poleDetail,
@@ -261,8 +264,8 @@ public extension Mesh {
     /// > Note: The default `nil` value for poleDetail will derive value automatically.
     /// Use zero instead if you wish to add no extra detail at the poles.
     static func cone(
-        radius r: Double = 0.5,
-        height h: Double = 1,
+        radius: Double = 0.5,
+        height: Double = 1,
         slices: Int = 16,
         poleDetail: Int? = nil,
         addDetailAtBottomPole: Bool = false,
@@ -270,15 +273,15 @@ public extension Mesh {
         wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
-        let r = max(abs(r), epsilon)
-        let h = max(abs(h), epsilon)
+        let radius = max(abs(radius), scaleLimit / 2)
+        let height = max(abs(height), scaleLimit)
         let poleDetail = poleDetail ?? Int(sqrt(Double(slices)))
         let wrapMode = wrapMode == .default ? .tube : wrapMode
         return lathe(
             unchecked: Path(unchecked: [
-                .point(0, h / 2),
-                .point(-r, -h / 2),
-                .point(0, -h / 2),
+                .point(0, height / 2),
+                .point(-radius, -height / 2),
+                .point(0, -height / 2),
             ], plane: .xy, subpathIndices: []),
             slices: slices,
             poleDetail: poleDetail,
@@ -344,7 +347,8 @@ public extension Mesh {
         faces: Faces = .default,
         material: Material? = nil
     ) -> Mesh {
-        let offset = shape.faceNormal * (depth / 2)
+        let depth = max(abs(depth), scaleLimit)
+        let offset = shape.faceNormal * depth / 2
         if offset.isEqual(to: .zero) {
             return fill(shape, faces: faces, material: material)
         }
@@ -671,13 +675,13 @@ private extension Mesh {
             while i < vertices.count {
                 let v0 = vertices[i]
                 let v1 = vertices[i + 1]
-                if v0.position.x == 0 {
+                if abs(v0.position.x) < epsilon {
                     if v1.position.x != 0, addDetailForFlatPoles || !isVertical(v0.normal) {
                         let s = subdivide(poleDetail, v0, v1)
                         vertices.replaceSubrange(i ... i + 1, with: s)
                         i += s.count - 2
                     }
-                } else if v1.position.x == 0, addDetailForFlatPoles || !isVertical(v1.normal) {
+                } else if abs(v1.position.x) < 0, addDetailForFlatPoles || !isVertical(v1.normal) {
                     let s = subdivide(poleDetail, v1, v0).reversed()
                     vertices.replaceSubrange(i ... i + 1, with: s)
                     i += s.count - 2
@@ -698,7 +702,7 @@ private extension Mesh {
             let sin1 = sin(a1)
             for j in stride(from: 1, to: vertices.count, by: 2) {
                 let v0 = vertices[j - 1], v1 = vertices[j]
-                if v0.position.x == 0 {
+                if abs(v0.position.x) < epsilon {
                     if abs(v1.position.x) >= epsilon {
                         // top triangle
                         let v0 = Vertex(
@@ -728,7 +732,7 @@ private extension Mesh {
                             material: material
                         ))
                     }
-                } else if v1.position.x == 0 {
+                } else if abs(v1.position.x) < epsilon {
                     // bottom triangle
                     let v1 = Vertex(
                         unchecked: v1.position,
@@ -891,7 +895,7 @@ private extension Mesh {
         if !isClosed {
             let facePolygons = first.facePolygons(material: material)
             if facePolygons.isEmpty {
-                isCapped = false
+                isCapped = isCapped && first.isClosed && first.hasZeroArea
             } else {
                 let p0p1 = directionBetweenShapes(first, shapes[1])
                 polygons += facePolygons.map {
@@ -928,17 +932,13 @@ private extension Mesh {
         if !isClosed {
             let facePolygons = last.facePolygons(material: material)
             if facePolygons.isEmpty {
-                isCapped = false
+                isCapped = isCapped && last.isClosed && last.hasZeroArea
             } else {
                 let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], last)
                 polygons += facePolygons.map {
                     p0p1.dot($0.plane.normal) < 0 ? $0.inverted() : $0
                 }
             }
-        }
-        if !isCapped, count > 1 {
-            isCapped = first.isClosed && first.hasZeroArea &&
-                last.isClosed && last.hasZeroArea
         }
         let isWatertight = isWatertight ?? isCapped && shapes
             .dropFirst().dropLast().allSatisfy { $0.isClosed }

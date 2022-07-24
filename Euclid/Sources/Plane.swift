@@ -30,7 +30,7 @@
 //
 
 /// An infinite 2D plane in 3D space.
-public struct Plane: Hashable {
+public struct Plane: Hashable, Sendable {
     /// A surface normal vector, perpendicular to the plane.
     public let normal: Vector
     /// The perpendicular distance from the world origin to the plane.
@@ -219,7 +219,7 @@ internal extension Plane {
     }
 
     // Approximate equality
-    func isEqual(to other: Plane, withPrecision p: Double = epsilon) -> Bool {
+    func isEqual(to other: Plane, withPrecision p: Double = planeEpsilon) -> Bool {
         w.isEqual(to: other.w, withPrecision: p) &&
             normal.isEqual(to: other.normal, withPrecision: p)
     }
