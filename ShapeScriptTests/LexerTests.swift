@@ -120,6 +120,30 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    func testNegativeInteger() {
+        let input = "-56"
+        let tokens: [TokenType] = [.prefix(.minus), .number(56), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testNegativeDecimal() {
+        let input = "-5.6"
+        let tokens: [TokenType] = [.prefix(.minus), .number(5.6), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testNegativeLeadingDecimalPoint() {
+        let input = "-.56"
+        let tokens: [TokenType] = [.prefix(.minus), .number(0.56), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testLeadingDecimalPointInParens() {
+        let input = "(.56)"
+        let tokens: [TokenType] = [.lparen, .number(0.56), .rparen, .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     func testTooManyDecimalPoints() {
         let input = "0.5.6"
         XCTAssertThrowsError(try tokenize(input)) { error in

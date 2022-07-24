@@ -22,10 +22,10 @@ public func tokenize(_ input: String) throws -> [Token] {
         spaceBefore = characters.skipWhitespaceAndComments()
         if !spaceBefore, let lastTokenType = tokens.last?.type {
             switch lastTokenType {
-            case .infix, .dot, .lparen, .lbrace, .linebreak:
+            case .infix, .prefix, .dot, .lparen, .lbrace, .linebreak:
                 spaceBefore = true
             case .identifier, .keyword, .hexColor,
-                 .prefix, .number, .string, .rbrace, .rparen, .eof:
+                 .number, .string, .rbrace, .rparen, .eof:
                 break
             }
         }
