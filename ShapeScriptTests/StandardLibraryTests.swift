@@ -677,6 +677,17 @@ class StandardLibraryTests: XCTestCase {
         }
     }
 
+    func testMissingMoveInSVGPath() throws {
+        let program = try parse("""
+        svgpath {
+            "M 80 80 A 45 45, 0, 0, 0, 125 125 L 125 80 Z"
+            "A 45 45, 0, 1, 0, 275 125 L 275 80 Z"
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
     func testFontInText() throws {
         let program = try parse("""
         text {

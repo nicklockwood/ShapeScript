@@ -158,7 +158,10 @@ extension SVGPath {
                 startingPoint = points.first?.position ?? .zero
                 endPath()
             }
-            if case .moveTo = command {} else if firstCommand == nil {
+            switch command {
+            case .moveTo, .end:
+                break
+            default:
                 firstCommand = command
             }
             lastCommand = command
