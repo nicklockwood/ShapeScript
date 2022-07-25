@@ -1,3 +1,16 @@
+## [1.5.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.4) (2022-07-25)
+
+- Fixed setting font inside a `text` command
+- Improved error messages for missing block arguments
+- Multiple arguments passed to `text` command are now treated as single coalesced string
+- Extruding along a path now more reliably produces watertight output
+- Fixed parsing of tuple statements starting with constant
+- Fixed parsing of a prefix minus immediately followed by decimal point
+- Increased detail multiplier for `svgpath` command to match path
+- Fixed `svgpath` crash when missing `M` command after `Z`
+- Fixed camera clipping issue when resizing objects
+- Bumped Euclid to version 0.5.26
+
 ## [1.5.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.3) (2022-07-03)
 
 - The `loft` command now supports joining shapes with unequal numbers of sides or points
