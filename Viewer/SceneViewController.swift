@@ -168,7 +168,8 @@ class SceneViewController: NSViewController {
         didSet {
             refreshGeometry()
             if let bounds = geometry?.bounds, !bounds.isEmpty,
-               !bounds.intersects(lastBounds)
+               !bounds.intersects(lastBounds) || bounds
+               .containsPoint(Vector(cameraNode.position))
             {
                 lastBounds = bounds
                 updateAxesAndCamera()
