@@ -259,7 +259,7 @@ extension Dictionary where Key == String, Value == Symbol {
             }
             return .path(Path(
                 svgPath,
-                detail: context.detail / 8,
+                detail: context.detail / 4,
                 color: context.material.color
             ).transformed(by: context.transform))
         },
