@@ -112,7 +112,7 @@ public extension GeometryType {
              .group, .camera, .light:
             return .empty
         case .cone, .cylinder, .sphere, .cube:
-            return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
+            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
         case let .extrude(paths, along: along):
             if along.isEmpty {
                 return paths.reduce(into: .empty) { bounds, path in

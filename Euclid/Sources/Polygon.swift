@@ -419,10 +419,10 @@ internal extension Collection where Element == Polygon {
                 let u = positions.insert(v)
                 if modified || v != u {
                     modified = true
-                    if let w = merged.last, w.position == u.position {
-                        merged[merged.count - 1] = w.lerp(v, 0.5).with(position: u.position)
-                        continue
-                    }
+//                    if let w = merged.last, w.position == u.position {
+//                        merged[merged.count - 1] = w.lerp(v, 0.5).with(position: u.position)
+//                        continue
+//                    }
                 }
                 merged.append(u)
             }
