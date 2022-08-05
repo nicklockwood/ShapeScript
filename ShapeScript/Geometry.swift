@@ -375,7 +375,7 @@ public extension Geometry {
     }
 
     func merged(_ callback: @escaping () -> Bool = { true }) -> Mesh {
-        var result = mesh ?? Mesh([])
+        var result = mesh ?? .empty
         if type.isLeafGeometry {
             result = result.merge(mergedChildren(callback))
         }
@@ -395,7 +395,7 @@ private extension Collection where Element == Geometry {
     }
 
     func merged(_ callback: @escaping () -> Bool) -> Mesh {
-        var result = Mesh([])
+        var result = Mesh.empty
         for child in self where callback() {
             result = result.merge(child.merged(callback))
         }
@@ -413,7 +413,7 @@ private extension Geometry {
     }
 
     func flattenedFirstChild(_ callback: @escaping () -> Bool) -> Mesh {
-        children.first.map { $0.flattened(with: self.material, callback) } ?? Mesh([])
+        children.first.map { $0.flattened(with: self.material, callback) } ?? .empty
     }
 
     func childMeshes(_ callback: @escaping () -> Bool) -> [Mesh] {
@@ -503,7 +503,7 @@ private extension Geometry {
         let isCancelled = { !callback() }
         switch type {
         case .group, .path, .camera, .light:
-            mesh = Mesh([])
+            mesh = .empty
         case let .cone(segments):
             mesh = .cone(slices: segments)
         case let .cylinder(segments):
