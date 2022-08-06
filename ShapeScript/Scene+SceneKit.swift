@@ -84,6 +84,11 @@ public extension SCNNode {
 //            geometry: SCNGeometry(bounds: geometry.bounds)
 //        ))
 
+        // debug holes
+//        geometry.mesh.map { self.addChildNode(SCNNode(
+//            geometry: SCNGeometry($0.polygons.holeEdges)
+//        )) }
+
         if geometry.renderChildren || geometry.childDebug {
             geometry.children.forEach { addChildNode(SCNNode($0)) }
         }
