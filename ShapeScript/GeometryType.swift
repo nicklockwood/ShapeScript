@@ -123,11 +123,9 @@ public extension GeometryType {
 internal extension GeometryType {
     var isLeafGeometry: Bool {
         switch self {
-        case let .extrude(paths, along):
-            return paths.count == 1 && along.count <= 1
-        case let .lathe(paths, _), let .fill(paths):
-            return paths.count == 1
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh,
+        case let .extrude(paths, _), let .lathe(paths, _):
+            return !paths.isEmpty
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .fill,
              .group, .camera, .light:
             return true
         case .union, .xor, .difference, .intersection, .stencil:

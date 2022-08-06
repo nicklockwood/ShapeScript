@@ -124,18 +124,17 @@ public final class Geometry: Hashable {
             (paths, material) = paths.fixupColors(material: material)
             (along, material) = along.fixupColors(material: material)
             type = .extrude(paths, along: along)
-            along = along.flatMap { $0.subpaths }
             switch (paths.count, along.count) {
             case (0, 0):
                 break
-            case (1, 1), (1, 0):
+            case (1, _), (_, 0):
                 assert(children.isEmpty)
-            case (_, 0):
+            default:
                 assert(children.isEmpty)
                 type = .extrude([], along: [])
                 children = paths.map { path in
                     Geometry(
-                        type: .extrude([path], along: []),
+                        type: .extrude([path], along: along),
                         name: nil,
                         transform: .identity,
                         material: material,
@@ -143,22 +142,6 @@ public final class Geometry: Hashable {
                         children: [],
                         sourceLocation: sourceLocation
                     )
-                }
-            default:
-                assert(children.isEmpty)
-                type = .extrude([], along: [])
-                children = along.flatMap { along in
-                    paths.map { path in
-                        Geometry(
-                            type: .extrude([path], along: [along]),
-                            name: nil,
-                            transform: .identity,
-                            material: material,
-                            smoothing: smoothing,
-                            children: [],
-                            sourceLocation: sourceLocation
-                        )
-                    }
                 }
             }
         case .lathe(var paths, let segments):
@@ -190,22 +173,8 @@ public final class Geometry: Hashable {
             switch paths.count {
             case 0:
                 break
-            case 1:
-                assert(children.isEmpty)
             default:
                 assert(children.isEmpty)
-                type = .fill([])
-                children = paths.map {
-                    Geometry(
-                        type: .fill([$0]),
-                        name: nil,
-                        transform: .identity,
-                        material: material,
-                        smoothing: smoothing,
-                        children: [],
-                        sourceLocation: sourceLocation
-                    )
-                }
             }
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
             assert(children.isEmpty)
@@ -273,14 +242,13 @@ public extension Geometry {
             } ?? .empty) { bounds, child in
                 bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
-        case .union, .xor, .group, .extrude, .lathe, .loft, .fill:
+        case .cone, .cube, .cylinder, .sphere, .path, .mesh,
+             .lathe, .fill, .extrude, .loft,
+             .union, .xor, .group,
+             .camera, .light:
             return children.reduce(into: type.bounds) { bounds, child in
                 bounds.formUnion(child.bounds.transformed(by: child.transform))
             }
-        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
-            return type.bounds
-        case .camera, .light:
-            return .empty
         }
     }
 
@@ -426,7 +394,7 @@ private extension Geometry {
 
     func meshes(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
         var meshes = [Mesh]()
-        if var mesh = mesh {
+        if var mesh = mesh, mesh != .empty {
             mesh = mesh.transformed(by: transform)
             if material != self.material {
                 mesh = mesh.replacing(nil, with: self.material)
@@ -466,9 +434,8 @@ private extension Geometry {
             return callback()
         }
         switch type {
-        case let .extrude(paths, along) where paths.isEmpty && along.count <= 1:
-            mesh = nil
-        case let .lathe(paths, _) where paths.isEmpty,
+        case let .extrude(paths, _) where paths.isEmpty,
+             let .lathe(paths, _) where paths.isEmpty,
              let .fill(paths) where paths.isEmpty:
             mesh = nil
         case .group, .path, .mesh,
@@ -512,18 +479,21 @@ private extension Geometry {
             mesh = .sphere(slices: segments, stacks: segments / 2)
         case .cube:
             mesh = .cube()
-        case let .extrude(paths, along: along) where paths.count == 1 && along.count <= 1:
-            assert(along.reduce(0) { $0 + $1.subpaths.count } <= 1)
-            mesh = along.first.map {
-                Mesh.extrude(paths[0], along: $0).makeWatertight()
-            } ?? Mesh.extrude(paths[0]).makeWatertight()
+        case let .extrude(paths, along: along) where paths.count == 1 && !along.isEmpty:
+            mesh = Mesh.extrude(
+                paths[0],
+                along: Path(subpaths: along),
+                isCancelled: isCancelled
+            ).makeWatertight()
+        case let .extrude(paths, along: along) where paths.count >= 1 && along.isEmpty:
+            mesh = Mesh.extrude(paths, isCancelled: isCancelled).makeWatertight()
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
         case let .loft(paths):
             mesh = Mesh.loft(paths).makeWatertight()
-        case let .fill(paths) where paths.count == 1:
-            mesh = Mesh.fill(paths[0].closed()).makeWatertight()
-        case .union, .extrude, .lathe, .fill:
+        case let .fill(paths):
+            mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
+        case .union, .lathe, .extrude:
             mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
             mesh = Mesh.xor(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
