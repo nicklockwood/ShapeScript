@@ -16,8 +16,8 @@ class Document: NSDocument {
     var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()
 
-    var sceneViewControllers: [SceneViewController] {
-        windowControllers.compactMap { $0.window?.contentViewController as? SceneViewController }
+    var sceneViewControllers: [DocumentViewController] {
+        windowControllers.compactMap { $0.window?.contentViewController as? DocumentViewController }
     }
 
     var scene: Scene? {

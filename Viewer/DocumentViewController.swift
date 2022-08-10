@@ -10,7 +10,7 @@ import Euclid
 import SceneKit
 import ShapeScript
 
-class SceneViewController: NSViewController {
+class DocumentViewController: NSViewController {
     let scnScene = SCNScene()
     private(set) var scnView: SCNView!
     private var renderTimer: Timer?
@@ -350,7 +350,7 @@ class SceneViewController: NSViewController {
     }
 }
 
-extension SceneViewController: NSWindowDelegate {
+extension DocumentViewController: NSWindowDelegate {
     func windowDidChangeOcclusionState(_: Notification) {
         refreshView()
     }

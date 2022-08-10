@@ -27,7 +27,7 @@
 		014F85D9215B890100461FB7 /* Interpreter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85D8215B890100461FB7 /* Interpreter.swift */; };
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
 		0152E5C8214500990082A5A3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0152E5C7214500990082A5A3 /* AppDelegate.swift */; };
-		0152E5CA214500990082A5A3 /* SceneViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0152E5C9214500990082A5A3 /* SceneViewController.swift */; };
+		0152E5CA214500990082A5A3 /* DocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0152E5C9214500990082A5A3 /* DocumentViewController.swift */; };
 		0152E5CE2145009A0082A5A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0152E5CD2145009A0082A5A3 /* Assets.xcassets */; };
 		0152E5D12145009A0082A5A3 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0152E5CF2145009A0082A5A3 /* Main.storyboard */; };
 		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
@@ -209,7 +209,7 @@
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0152E5C7214500990082A5A3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		0152E5C9214500990082A5A3 /* SceneViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneViewController.swift; sourceTree = "<group>"; };
+		0152E5C9214500990082A5A3 /* DocumentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewController.swift; sourceTree = "<group>"; };
 		0152E5CD2145009A0082A5A3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0152E5D02145009A0082A5A3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		0152E5D22145009A0082A5A3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -306,7 +306,7 @@
 				0190CB6E21CE300E00CE4571 /* Utilities.swift */,
 				0152E5C7214500990082A5A3 /* AppDelegate.swift */,
 				0120CCE7218C6F0600FC7F7C /* WelcomeViewController.swift */,
-				0152E5C9214500990082A5A3 /* SceneViewController.swift */,
+				0152E5C9214500990082A5A3 /* DocumentViewController.swift */,
 				013312F021CD5A7000626F1B /* PreferencesViewController.swift */,
 				01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */,
 				01908DC726B7597F0068390E /* ProgramError.swift */,
@@ -726,7 +726,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0152E5CA214500990082A5A3 /* SceneViewController.swift in Sources */,
+				0152E5CA214500990082A5A3 /* DocumentViewController.swift in Sources */,
 				0120CCE9218C72B000FC7F7C /* WelcomeViewController.swift in Sources */,
 				0104EB6F271E184000B60058 /* Camera.swift in Sources */,
 				01DCD498279A15C6004DD38F /* Document+Sandbox.swift in Sources */,
