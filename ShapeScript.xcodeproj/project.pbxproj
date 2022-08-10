@@ -20,6 +20,7 @@
 		013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312F021CD5A7000626F1B /* PreferencesViewController.swift */; };
 		013312F521CD653B00626F1B /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312F421CD653B00626F1B /* Settings.swift */; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
+		0144BD9828A465CC00A4C6B2 /* Document+EvaluationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0144BD9728A465CC00A4C6B2 /* Document+EvaluationDelegate.swift */; };
 		01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
 		01460C3921D63FA200BFC4FF /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01460C3B21D6406500BFC4FF /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -203,6 +204,7 @@
 		013312F021CD5A7000626F1B /* PreferencesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesViewController.swift; sourceTree = "<group>"; };
 		013312F421CD653B00626F1B /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibrary.swift; sourceTree = "<group>"; };
+		0144BD9728A465CC00A4C6B2 /* Document+EvaluationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Document+EvaluationDelegate.swift"; sourceTree = "<group>"; };
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -311,6 +313,7 @@
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
 				01DCD497279A15C6004DD38F /* Document+Sandbox.swift */,
 				01DCD4B3279AC725004DD38F /* Document+ModelInfo.swift */,
+				0144BD9728A465CC00A4C6B2 /* Document+EvaluationDelegate.swift */,
 				0104EB76271F0A1E00B60058 /* WindowController.swift */,
 				0104EB6B271E17FE00B60058 /* Camera.swift */,
 				013312F421CD653B00626F1B /* Settings.swift */,
@@ -734,6 +737,7 @@
 				0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */,
 				01E4E48826D377F000F390D7 /* Axes.swift in Sources */,
 				013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */,
+				0144BD9828A465CC00A4C6B2 /* Document+EvaluationDelegate.swift in Sources */,
 				01DCD4B4279AC725004DD38F /* Document+ModelInfo.swift in Sources */,
 				012A4A382828859A002AC1FF /* Settings+Editor.swift in Sources */,
 				0104EB77271F0A1E00B60058 /* WindowController.swift in Sources */,
