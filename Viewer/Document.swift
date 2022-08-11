@@ -450,7 +450,11 @@ class Document: NSDocument {
             menuItem.state = camera.isOrthographic ?? isOrthographic ? .on : .off
             return camera.isOrthographic == nil
         case #selector(selectCamera(_:)) where menuItem.tag < cameras.count:
-            menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
+            if camera == cameras[menuItem.tag] {
+                menuItem.state = cameraHasMoved ? .mixed : .on
+            } else {
+                menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
+            }
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
             camerasMenu = menuItem.submenu
