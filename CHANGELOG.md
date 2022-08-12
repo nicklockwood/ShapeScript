@@ -1,3 +1,10 @@
+## [1.5.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.5) (2022-08-11)
+
+- Significantly improved performance for bulk fill/extrude operations (e.g. text)
+- Fixed camera position continuously being reset in ShapeScript Viewer while loading
+- Added indicator to Camera menu when camera has been moved
+- Bumped Euclid to version 0.5.28
+
 ## [1.5.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.4) (2022-07-25)
 
 - Fixed setting font inside a `text` command
