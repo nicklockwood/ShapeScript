@@ -11,13 +11,17 @@ import SceneKit
 import ShapeScript
 
 class Document: NSDocument {
+    static let backgroundColor: NSColor = .underPageBackgroundColor
+
     let cache = GeometryCache()
     let settings = Settings.shared
     var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()
 
-    var sceneViewControllers: [DocumentViewController] {
-        windowControllers.compactMap { $0.window?.contentViewController as? DocumentViewController }
+    var viewController: DocumentViewController? {
+        windowControllers.compactMap {
+            $0.window?.contentViewController as? DocumentViewController
+        }.first
     }
 
     var scene: Scene? {
@@ -58,15 +62,6 @@ class Document: NSDocument {
         )
     }
 
-    var selectedGeometry: Geometry? {
-        for viewController in sceneViewControllers {
-            if let selectedGeometry = viewController.selectedGeometry {
-                return selectedGeometry
-            }
-        }
-        return nil
-    }
-
     var loadingProgress: LoadingProgress? {
         didSet {
             updateViews()
@@ -76,78 +71,8 @@ class Document: NSDocument {
     var errorMessage: NSAttributedString?
     var accessErrorURL: URL?
 
-    var showWireframe: Bool {
-        get { settings.value(for: #function, in: self) ?? false }
-        set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
-            rerender()
-        }
-    }
-
-    var showAxes: Bool {
-        get { settings.value(for: #function, in: self) ?? false }
-        set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
-            updateViews()
-        }
-    }
-
-    var isOrthographic: Bool {
-        get {
-            settings.value(for: #function, in: self) ?? false
-        }
-        set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
-            updateViews()
-        }
-    }
-
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)
-    }
-
-    var camera: Camera {
-        get {
-            let type: CameraType? = settings.value(for: #function, in: self)
-            return cameras.first(where: { $0.type == type }) ?? .default
-        }
-        set {
-            settings.set(newValue.type, for: #function, in: self)
-            updateViews()
-        }
-    }
-
-    var cameraHasMoved: Bool {
-        sceneViewControllers.contains(where: { $0.cameraHasMoved })
-    }
-
-    func rerender() {
-        guard let scene = scene else {
-            return
-        }
-        let options = scene.outputOptions(
-            for: camera.settings,
-            backgroundColor: Color(.underPageBackgroundColor),
-            wireframe: showWireframe
-        )
-        loadingProgress?.dispatch { progress in
-            progress.setStatus(.partial(scene))
-            scene.scnBuild(with: options)
-            progress.setStatus(.success(scene))
-        }
-    }
-
-    func updateViews() {
-        for viewController in sceneViewControllers {
-            viewController.isLoading = (loadingProgress?.inProgress == true)
-            viewController.background = camera.background ?? scene?.background
-            viewController.geometry = geometry
-            viewController.errorMessage = errorMessage
-            viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
-            viewController.showAxes = showAxes
-            viewController.isOrthographic = isOrthographic
-            viewController.camera = camera
-        }
     }
 
     override var fileURL: URL? {
@@ -204,7 +129,7 @@ class Document: NSDocument {
             }
             switch status {
             case .waiting:
-                for viewController in self.sceneViewControllers {
+                if let viewController = self.viewController {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
@@ -476,7 +401,7 @@ class Document: NSDocument {
         }
         let camera = cameras[menuItem.tag]
         if camera == self.camera {
-            sceneViewControllers.forEach { $0.resetCamera(nil) }
+            viewController?.resetCamera()
         } else {
             self.camera = camera
         }

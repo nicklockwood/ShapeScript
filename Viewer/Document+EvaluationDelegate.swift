@@ -60,8 +60,8 @@ extension Document: EvaluationDelegate {
         }.joined()
 
         Swift.print(line)
-        DispatchQueue.main.async {
-            for viewController in self.sceneViewControllers {
+        DispatchQueue.main.async { [weak self] in
+            if let viewController = self?.viewController {
                 viewController.showConsole = true
                 viewController.appendLog(line + "\n")
             }

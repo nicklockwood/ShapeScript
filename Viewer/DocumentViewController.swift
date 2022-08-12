@@ -256,7 +256,7 @@ class DocumentViewController: NSViewController {
 
         // set view background color
         scnView.wantsLayer = true
-        scnView.layer?.backgroundColor = NSColor.underPageBackgroundColor.cgColor
+        scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
 
         // set the scene to the view
         scnView.scene = scnScene
@@ -283,7 +283,7 @@ class DocumentViewController: NSViewController {
                 scale: axesSize,
                 camera: camera,
                 background: background,
-                backgroundColor: Color(.underPageBackgroundColor)
+                backgroundColor: Color(Document.backgroundColor)
             ))
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
             self.axesNode = axesNode
@@ -344,7 +344,7 @@ class DocumentViewController: NSViewController {
         cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
     }
 
-    @IBAction func resetCamera(_: Any?) {
+    @IBAction func resetCamera(_: Any? = nil) {
         updateAxesAndCamera()
         resetView()
     }

@@ -41,6 +41,7 @@
 		01AA1D8721EF31860086BF86 /* Material.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA1D8621EF31860086BF86 /* Material.swift */; };
 		01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49F926B621C1009BB2C6 /* Geometry.swift */; };
 		01AA49FE26B622B4009BB2C6 /* LoadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */; };
+		01BB43D428A69D410053C3A0 /* Document+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BB43D328A69D410053C3A0 /* Document+View.swift */; };
 		01BD9437219367D2005FFAEC /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01BD943521936514005FFAEC /* Examples */; };
 		01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BD943821936B90005FFAEC /* RandomSequence.swift */; };
 		01BFB3A021425C8500E47A7C /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
@@ -225,6 +226,7 @@
 		01AA1D8621EF31860086BF86 /* Material.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Material.swift; sourceTree = "<group>"; };
 		01AA49F926B621C1009BB2C6 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
 		01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingProgress.swift; sourceTree = "<group>"; };
+		01BB43D328A69D410053C3A0 /* Document+View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Document+View.swift"; sourceTree = "<group>"; };
 		01BD943521936514005FFAEC /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
 		01BD943821936B90005FFAEC /* RandomSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSequence.swift; sourceTree = "<group>"; };
 		01BFB39621425C8500E47A7C /* ShapeScript.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShapeScript.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -311,6 +313,7 @@
 				01AA49FD26B622B4009BB2C6 /* LoadingProgress.swift */,
 				01908DC726B7597F0068390E /* ProgramError.swift */,
 				0152E5FB2145C0420082A5A3 /* Document.swift */,
+				01BB43D328A69D410053C3A0 /* Document+View.swift */,
 				01DCD497279A15C6004DD38F /* Document+Sandbox.swift */,
 				01DCD4B3279AC725004DD38F /* Document+ModelInfo.swift */,
 				0144BD9728A465CC00A4C6B2 /* Document+EvaluationDelegate.swift */,
@@ -736,6 +739,7 @@
 				0152E5FC2145C0420082A5A3 /* Document.swift in Sources */,
 				0190CB6F21CE300F00CE4571 /* Utilities.swift in Sources */,
 				01E4E48826D377F000F390D7 /* Axes.swift in Sources */,
+				01BB43D428A69D410053C3A0 /* Document+View.swift in Sources */,
 				013312F221CD5A7000626F1B /* PreferencesViewController.swift in Sources */,
 				0144BD9828A465CC00A4C6B2 /* Document+EvaluationDelegate.swift in Sources */,
 				01DCD4B4279AC725004DD38F /* Document+ModelInfo.swift in Sources */,
