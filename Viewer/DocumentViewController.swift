@@ -157,6 +157,10 @@ class DocumentViewController: NSViewController {
         }
     }
 
+    var cameraHasMoved: Bool {
+        scnView.pointOfView != cameraNode
+    }
+
     var background: MaterialProperty? {
         get { MaterialProperty(scnScene.background) }
         set { newValue?.configureProperty(scnScene.background) }
@@ -169,7 +173,8 @@ class DocumentViewController: NSViewController {
             refreshGeometry()
             if let bounds = geometry?.bounds, !bounds.isEmpty,
                !bounds.intersects(lastBounds) || bounds
-               .containsPoint(Vector(cameraNode.position))
+               .containsPoint(Vector(cameraNode.position)),
+               !cameraHasMoved
             {
                 lastBounds = bounds
                 updateAxesAndCamera()
@@ -262,6 +267,7 @@ class DocumentViewController: NSViewController {
         scnView.antialiasingMode = .multisampling16X
         scnView.allowsCameraControl = geometry != nil
         updateAxesAndCamera()
+        resetView()
 
         // add a click gesture recognizer
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))

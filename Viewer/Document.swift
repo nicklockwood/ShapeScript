@@ -117,6 +117,10 @@ class Document: NSDocument {
         }
     }
 
+    var cameraHasMoved: Bool {
+        sceneViewControllers.contains(where: { $0.cameraHasMoved })
+    }
+
     func rerender() {
         guard let scene = scene else {
             return
