@@ -537,4 +537,19 @@ internal extension Path {
             subpathIndices: nil
         )
     }
+
+    /// Approximate equality
+    func isEqual(to other: Path, withPrecision p: Double = epsilon) -> Bool {
+        points.count == other.points.count && zip(points, other.points).allSatisfy {
+            $0.isEqual(to: $1, withPrecision: p)
+        }
+    }
+
+    // Returns the path with its first point recentered on the origin
+    func withNormalizedPosition() -> (Path, Vector) {
+        guard let offset = points.first?.position, offset != .zero else {
+            return (self, .zero)
+        }
+        return (translated(by: -offset), offset)
+    }
 }

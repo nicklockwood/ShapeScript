@@ -175,4 +175,26 @@ class MeshTests: XCTestCase {
             LineSegment(Vector(0, -0.5, 0), Vector(0, 0.5, 0)),
         ])
     }
+
+    // MARK: submeshes
+
+    func testSubmeshes() {
+        let sphere = Mesh.sphere()
+        let cube = Mesh.cube(size: 0.8)
+        let mesh = sphere.merge(cube)
+        XCTAssertEqual(mesh.submeshes.count, 2)
+        XCTAssertEqual(mesh.submeshes.first, sphere)
+        XCTAssertEqual(Set(mesh.submeshes.last?.polygons ?? []), Set(cube.polygons))
+    }
+
+    func testSubmeshesDontCreateCircularReference() {
+        weak var material: AnyObject?
+        do {
+            let temp = NSObject()
+            material = temp
+            let mesh = Mesh.sphere(material: temp)
+            XCTAssertEqual(mesh.submeshes, [mesh])
+        }
+        XCTAssertNil(material)
+    }
 }

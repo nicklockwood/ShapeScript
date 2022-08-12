@@ -63,7 +63,8 @@ extension Mesh: Codable {
                 unchecked: polygons,
                 bounds: boundsIfSet,
                 isConvex: isConvex,
-                isWatertight: nil
+                isWatertight: nil,
+                submeshes: nil
             )
         } else {
             let polygons = try [Polygon](from: decoder)
@@ -146,7 +147,8 @@ public extension Mesh {
             unchecked: polygons,
             bounds: nil,
             isConvex: false,
-            isWatertight: nil
+            isWatertight: nil,
+            submeshes: nil
         )
     }
 
@@ -162,7 +164,8 @@ public extension Mesh {
             },
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: watertightIfSet
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -180,7 +183,8 @@ public extension Mesh {
             unchecked: polygons + mesh.polygons,
             bounds: boundsIfSet,
             isConvex: false,
-            isWatertight: nil
+            isWatertight: nil,
+            submeshes: nil // TODO: can we preserve this?
         )
     }
 
@@ -189,9 +193,9 @@ public extension Mesh {
     /// - Returns: A new mesh that includes all polygons from all meshes.
     ///
     /// > Note: No attempt is made to deduplicate or join meshes. Polygons are neither split nor removed.
-    static func merge(_ meshes: [Mesh]) -> Mesh {
-        if meshes.count == 1 {
-            return meshes[0]
+    static func merge<T: Collection>(_ meshes: T) -> Mesh where T.Element == Mesh {
+        if meshes.count <= 1 {
+            return meshes.first ?? .empty
         }
         var allBoundsSet = true
         var polygons = [Polygon]()
@@ -210,7 +214,8 @@ public extension Mesh {
             unchecked: polygons,
             bounds: boundsIfSet,
             isConvex: false,
-            isWatertight: nil
+            isWatertight: nil,
+            submeshes: nil // TODO: can we preserve this?
         )
     }
 
@@ -244,13 +249,15 @@ public extension Mesh {
                     unchecked: front,
                     bounds: nil,
                     isConvex: false,
-                    isWatertight: nil
+                    isWatertight: nil,
+                    submeshes: nil
                 ),
                 Mesh(
                     unchecked: back,
                     bounds: nil,
                     isConvex: false,
-                    isWatertight: nil
+                    isWatertight: nil,
+                    submeshes: nil
                 )
             )
         }
@@ -274,7 +281,8 @@ public extension Mesh {
             unchecked: polygons.inverted(),
             bounds: boundsIfSet,
             isConvex: false,
-            isWatertight: watertightIfSet
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -285,7 +293,8 @@ public extension Mesh {
             unchecked: polygons.tessellate(),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: nil // TODO: fix triangulate() then see if this is fixed
+            isWatertight: nil, // TODO: fix triangulate() then see if this is fixed
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -296,7 +305,8 @@ public extension Mesh {
             unchecked: polygons.triangulate(),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: watertightIfSet
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -307,7 +317,8 @@ public extension Mesh {
             unchecked: polygons.sortedByPlane().detessellate(),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: nil // TODO: can this be done without introducing holes?
+            isWatertight: nil, // TODO: can this be done without introducing holes?
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -318,7 +329,8 @@ public extension Mesh {
             unchecked: polygons.sortedByPlane().detessellate(ensureConvex: true),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: nil // TODO: can this be done without introducing holes?
+            isWatertight: nil, // TODO: can this be done without introducing holes?
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -342,8 +354,9 @@ public extension Mesh {
         return Mesh(
             unchecked: polygons,
             bounds: boundsIfSet,
-            isConvex: false,
-            isWatertight: isWatertight
+            isConvex: false, // TODO: can makeWatertight make this false?
+            isWatertight: isWatertight,
+            submeshes: submeshesIfEmpty
         )
     }
 
@@ -355,7 +368,8 @@ public extension Mesh {
             unchecked: polygons.smoothNormals(threshold),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
-            isWatertight: watertightIfSet
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
         )
     }
 }
@@ -365,19 +379,24 @@ internal extension Mesh {
         unchecked polygons: [Polygon],
         bounds: Bounds?,
         isConvex: Bool,
-        isWatertight: Bool?
+        isWatertight: Bool?,
+        submeshes: [Mesh]?
     ) {
         self.storage = polygons.isEmpty ? .empty : Storage(
             polygons: polygons,
             bounds: bounds,
             isConvex: isConvex,
-            isWatertight: isWatertight
+            isWatertight: isWatertight,
+            submeshes: submeshes
         )
     }
 
     var boundsIfSet: Bounds? { storage.boundsIfSet }
     var watertightIfSet: Bool? { storage.watertightIfSet }
     var isKnownConvex: Bool { storage.isConvex }
+    var submeshesIfEmpty: [Mesh]? {
+        storage.submeshesIfSet.flatMap { $0.isEmpty ? [] : nil }
+    }
 }
 
 private extension Mesh {
@@ -389,7 +408,8 @@ private extension Mesh {
             polygons: [],
             bounds: .empty,
             isConvex: true,
-            isWatertight: true
+            isWatertight: true,
+            submeshes: []
         )
 
         private(set) var materialsIfSet: [Material?]?
@@ -423,21 +443,15 @@ private extension Mesh {
             return watertightIfSet!
         }
 
-        private var submeshesIfSet: [Mesh]?
+        private(set) var submeshesIfSet: [Mesh]?
         var submeshes: [Mesh] {
             if submeshesIfSet == nil {
-                if isConvex {
-                    submeshesIfSet = [Mesh(storage: self)]
-                } else {
-                    let groups = polygons.groupedBySubmesh()
-                    if groups.count == 1 {
-                        submeshesIfSet = [Mesh(storage: self)]
-                    } else {
-                        submeshesIfSet = groups.map(Mesh.init)
-                    }
-                }
+                let groups = isConvex ? [] : polygons.groupedBySubmesh()
+                submeshesIfSet = groups.count <= 1 ? [] : groups.map(Mesh.init)
             }
-            return submeshesIfSet!
+            return submeshesIfSet.map {
+                $0.isEmpty ? [Mesh(storage: self)] : $0
+            } ?? []
         }
 
         static func == (lhs: Storage, rhs: Storage) -> Bool {
@@ -452,13 +466,18 @@ private extension Mesh {
             polygons: [Polygon],
             bounds: Bounds?,
             isConvex: Bool,
-            isWatertight: Bool?
+            isWatertight: Bool?,
+            submeshes: [Mesh]?
         ) {
             assert(isWatertight == nil || isWatertight == polygons.areWatertight)
+            assert(!isConvex || polygons.groupedBySubmesh().count <= 1)
+            assert((submeshes ?? []).allSatisfy { $0.submeshes.count <= 1 })
+            assert(!isConvex || submeshes?.count ?? 0 <= 1)
             self.polygons = polygons
             self.boundsIfSet = polygons.isEmpty ? .empty : bounds
             self.isConvex = isConvex || polygons.isEmpty
             self.watertightIfSet = polygons.isEmpty ? true : isWatertight
+            self.submeshesIfSet = submeshes ?? (isConvex ? [] : nil)
         }
     }
 }

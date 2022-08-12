@@ -140,21 +140,24 @@ public extension Mesh {
                 unchecked: polygons,
                 bounds: bounds,
                 isConvex: true,
-                isWatertight: true
+                isWatertight: true,
+                submeshes: []
             )
         case .back:
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: bounds,
                 isConvex: false,
-                isWatertight: true
+                isWatertight: true,
+                submeshes: []
             )
         case .frontAndBack:
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: bounds,
                 isConvex: false,
-                isWatertight: true
+                isWatertight: true,
+                submeshes: []
             )
         }
     }
@@ -366,6 +369,24 @@ public extension Mesh {
         )
     }
 
+    /// Efficiently extrudes an array of paths along their respective face normals, avoiding duplicate work.
+    /// - Parameters:
+    ///   - shapes: The array of paths to extrude in order to create the mesh.
+    ///   - depth: The depth of the extrusion.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
+    static func extrude(
+        _ shapes: [Path],
+        depth: Double = 1,
+        faces: Faces = .default,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        .union(build(shapes, using: {
+            extrude($0, depth: depth, faces: faces, material: material)
+        }, isCancelled: isCancelled), isCancelled: isCancelled)
+    }
+
     /// Creates a mesh by extruding one path along another path.
     /// - Parameters:
     ///   - shape: The shape to extrude into a mesh.
@@ -376,18 +397,19 @@ public extension Mesh {
         _ shape: Path,
         along: Path,
         faces: Faces = .default,
-        material: Material? = nil
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         let subpaths = along.subpaths
         guard subpaths.count == 1 else {
-            return .merge(subpaths.map {
+            return .merge(build(subpaths, using: {
                 extrude(
                     shape,
                     along: $0,
                     faces: faces,
                     material: material
                 )
-            })
+            }, isCancelled: isCancelled))
         }
         let points = along.points
         guard var p0 = points.first else {
@@ -459,7 +481,7 @@ public extension Mesh {
         return loft(shapes, faces: faces, material: material)
     }
 
-    /// Creates a mesh by connecting a series of 3D paths representing the cross sections
+    /// Creates a mesh by connecting a series of 3D paths representing the cross sections.
     /// - Parameters:
     ///   - shapes: The paths to connect.
     ///   - faces: The direction of the generated polygon faces.
@@ -501,26 +523,45 @@ public extension Mesh {
                 unchecked: polygons,
                 bounds: nil,
                 isConvex: false,
-                isWatertight: false
+                isWatertight: false,
+                submeshes: []
             )
         case .back:
             return Mesh(
                 unchecked: polygons.map { $0.inverted() },
                 bounds: nil,
                 isConvex: false,
-                isWatertight: false
+                isWatertight: false,
+                submeshes: []
             )
         case .frontAndBack, .default:
             return Mesh(
                 unchecked: polygons + polygons.map { $0.inverted() },
                 bounds: nil,
                 isConvex: polygons.count == 1 && polygons[0].isConvex,
-                isWatertight: true
+                isWatertight: true,
+                submeshes: []
             )
         }
     }
 
-    /// Stroke a path with the specified line width, depth and material
+    /// Efficiently fills an array of paths, avoiding unecessary work if there are duplicates.
+    /// - Parameters:
+    ///   - shapes: The array of paths to be filled.
+    ///   - faces: The direction the polygon faces.
+    ///   - material: The optional material for the mesh.
+    static func fill(
+        _ shapes: [Path],
+        faces: Faces = .default,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        .union(build(shapes, using: {
+            fill($0, faces: faces, material: material)
+        }, isCancelled: isCancelled), isCancelled: isCancelled)
+    }
+
+    /// Strokes a path with the specified line width, depth and material
     @available(*, deprecated, message: "Use `stroke(width:detail:)` instead")
     static func stroke(
         _ shape: Path,
@@ -547,7 +588,8 @@ public extension Mesh {
         _ shape: Path,
         width: Double = 0.01,
         detail: Int = 2,
-        material: Material? = nil
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         let path: Path
         let radius = width / 2
@@ -558,10 +600,38 @@ public extension Mesh {
             path = .circle(radius: radius, segments: sides)
         }
         let faces: Faces = detail == 2 ? .frontAndBack : .front
-        return extrude(path, along: shape, faces: faces, material: material)
+        return extrude(
+            path,
+            along: shape,
+            faces: faces,
+            material: material,
+            isCancelled: isCancelled
+        )
     }
 
-    /// Efficiently strokes a set of line segments (useful for drawing wireframes)
+    /// Efficiently strokes an array of paths, avoiding duplicate work.
+    /// - Parameters:
+    ///   - shapes: The paths to stroke.
+    ///   - width: The line width of the stroke.
+    ///   - detail: The number of sides to use for the cross-sectional shape of each stroked mesh.
+    ///   - material: The optional material for the mesh.
+    static func stroke(
+        _ shapes: [Path],
+        width: Double = 0.01,
+        detail: Int = 2,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        stroke(
+            Path(subpaths: shapes),
+            width: width,
+            detail: detail,
+            material: material,
+            isCancelled: isCancelled
+        )
+    }
+
+    /// Efficiently strokes a collection of line segments (useful for drawing wireframes).
     /// - Parameters:
     ///   - lines: A collection of ``LineSegment`` to stroke.
     ///   - width: The line width of the strokes.
@@ -603,7 +673,8 @@ public extension Mesh {
             unchecked: polygons,
             bounds: bounds,
             isConvex: false,
-            isWatertight: nil
+            isWatertight: nil,
+            submeshes: nil
         )
     }
 }
@@ -814,21 +885,24 @@ private extension Mesh {
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: isConvex,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .back:
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .frontAndBack:
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .default:
             // seal loose ends
@@ -843,7 +917,8 @@ private extension Mesh {
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         }
     }
@@ -948,21 +1023,24 @@ private extension Mesh {
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: isConvex,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .back:
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight
+                isWatertight: isWatertight,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .frontAndBack, .default:
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight ? true : nil
+                isWatertight: isWatertight ? true : nil,
+                submeshes: nil // TODO: Can we calculate this efficiently?
             )
         }
     }
@@ -1114,5 +1192,31 @@ private extension Mesh {
                 prev = ai + 2
             }
         }
+    }
+
+    static func build(
+        _ shapes: [Path],
+        using fn: (Path) -> Mesh,
+        isCancelled: CancellationHandler = { false }
+    ) -> [Mesh] {
+        var cache = [Path: Mesh]()
+        var meshes = [Mesh]()
+        meshes.reserveCapacity(shapes.count)
+        for path in shapes {
+            if isCancelled() {
+                break
+            }
+            let (p, offset) = path.withNormalizedPosition()
+            if let mesh = cache.first(where: { q, _ in
+                p.isEqual(to: q, withPrecision: epsilon)
+            })?.value {
+                meshes.append(mesh.translated(by: offset))
+            } else {
+                let mesh = fn(p)
+                cache[p] = mesh
+                meshes.append(mesh.translated(by: offset))
+            }
+        }
+        return meshes
     }
 }

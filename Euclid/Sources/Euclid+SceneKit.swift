@@ -653,17 +653,29 @@ public extension Mesh {
                         vertices.append(vertex(at: index))
                         index += 1
                     }
-                    Polygon(vertices, material: material).map {
-                        polygons.append($0)
+                    if let polygon = Polygon(vertices, material: material) {
+                        polygons.append(polygon)
+                    } else {
+                        for triangle in triangulateVertices(
+                            vertices,
+                            plane: nil,
+                            isConvex: nil,
+                            material: material,
+                            id: 0
+                        ) {
+                            polygons.append(triangle)
+                        }
                     }
                 }
             default:
                 // TODO: throw detailed error message instead
+                print("Unsupported SCNGeometryPrimitiveType: \(element.primitiveType.rawValue)")
                 return nil
             }
         }
         let isKnownConvex: Bool
         let isWatertight: Bool?
+        let noSubmeshes: Bool
         switch scnGeometry {
         case is SCNPlane,
              is SCNBox,
@@ -674,26 +686,38 @@ public extension Mesh {
              is SCNCapsule:
             isKnownConvex = true
             isWatertight = true
+            noSubmeshes = true
         case is SCNTube,
-             is SCNTorus,
-             is SCNText,
+             is SCNTorus:
+            isKnownConvex = false
+            isWatertight = true
+            noSubmeshes = true
+        case is SCNText,
              is SCNShape:
             isKnownConvex = false
             isWatertight = true
+            noSubmeshes = false
         default:
             isKnownConvex = false
             isWatertight = nil
+            noSubmeshes = false
         }
-        let bounds = Bounds(scnGeometry.boundingBox)
         let holeEdges = polygons.holeEdges
-        let maxLength = (holeEdges.map { $0.length }.min() ?? 0) / 2
-        let distance = max(min(holeEdges.separationDistance, maxLength), 1e-6)
-        polygons = polygons.mergingVertices(withPrecision: distance)
+        if !holeEdges.isEmpty {
+            let holePoints = holeEdges.reduce(into: Set<Vector>()) {
+                $0.insert($1.start)
+                $0.insert($1.end)
+            }
+            let maxLength = holeEdges.map { $0.length }.min() ?? 0
+            let distance = max(min(holeEdges.separationDistance, maxLength), epsilon)
+            polygons = polygons.mergingVertices(holePoints, withPrecision: distance)
+        }
         self.init(
             unchecked: polygons,
-            bounds: bounds,
+            bounds: Bounds(scnGeometry.boundingBox),
             isConvex: isKnownConvex,
-            isWatertight: isWatertight
+            isWatertight: isWatertight,
+            submeshes: noSubmeshes ? [] : nil
         )
     }
 
