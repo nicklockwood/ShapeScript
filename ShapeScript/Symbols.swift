@@ -373,7 +373,7 @@ extension Value {
                 }
                 return members + ["bounds"]
             }
-            if values.count < 5 {
+            if (1 ... 4).contains(values.count) {
                 members += ["red", "green", "blue", "alpha"]
                 if values.count < 4 {
                     members += [

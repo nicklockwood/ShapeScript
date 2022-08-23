@@ -2589,7 +2589,21 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unknown tuple member property 'red'")
+            XCTAssertNotEqual(error?.suggestion, "red")
             guard case .unknownMember("red", of: "tuple", _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testEmptyTupleColorLookup() {
+        let program = "print ().blue"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'blue'")
+            XCTAssertNotEqual(error?.suggestion, "blue")
+            guard case .unknownMember("blue", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
             }
