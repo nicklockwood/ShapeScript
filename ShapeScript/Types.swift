@@ -262,6 +262,7 @@ enum BlockType {
     case builder
     case shape
     case group
+    case hull
     case path
     case pathShape
     case mesh
@@ -274,7 +275,7 @@ extension BlockType {
         switch self {
         case let .custom(_, options, _, _):
             return options
-        case .builder, .group, .path, .shape, .pathShape, .mesh, .polygons:
+        case .builder, .group, .hull, .path, .shape, .pathShape, .mesh, .polygons:
             return [:]
         }
     }
@@ -283,6 +284,7 @@ extension BlockType {
         switch self {
         case .builder: return .path
         case .group: return .mesh
+        case .hull: return .union([.point, .path, .mesh])
         case .path: return .union([.point, .path])
         case .shape, .pathShape: return .void
         case .mesh: return .polygon
@@ -293,7 +295,7 @@ extension BlockType {
 
     var returnType: ValueType {
         switch self {
-        case .builder, .group, .shape, .mesh: return .mesh
+        case .builder, .group, .shape, .hull, .mesh: return .mesh
         case .path, .pathShape: return .path
         case .polygons: return .list(.polygon)
         case let .custom(_, _, _, returnType): return returnType
@@ -304,6 +306,7 @@ extension BlockType {
         switch self {
         case .shape: return .shape
         case .group: return .group
+        case .hull: return .hull
         case .builder: return .builder
         case .path: return .path
         case .pathShape: return .pathShape

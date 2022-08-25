@@ -55,7 +55,7 @@ public final class Geometry: Hashable {
              .lathe, .loft, .path, .mesh, .camera, .light,
              .intersection, .difference, .stencil:
             return false
-        case .union, .xor, .extrude, .fill:
+        case .union, .xor, .extrude, .fill, .hull:
             return mesh == nil
         }
     }
@@ -181,6 +181,8 @@ public final class Geometry: Hashable {
             default:
                 assert(children.isEmpty)
             }
+        case .hull:
+            break // TODO: what needs to be done here?
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
             assert(children.isEmpty)
         case let .mesh(mesh):
@@ -258,7 +260,7 @@ public extension Geometry {
             } ?? .empty) { bounds, child in
                 bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
-        case .union, .xor, .group:
+        case .union, .xor, .group, .hull:
             return Bounds(bounds: children.map {
                 $0.bounds.transformed(by: $0.transform)
             })
@@ -475,6 +477,8 @@ private extension Geometry {
              let .lathe(paths, _) where paths.isEmpty,
              let .fill(paths) where paths.isEmpty:
             mesh = nil
+        case .hull:
+            mesh = nil
         case .group, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
@@ -530,6 +534,10 @@ private extension Geometry {
             mesh = Mesh.loft(paths).makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
+        case let .hull(vertices):
+            let meshes = childMeshes(callback)
+            let vertices = vertices + meshes.flatMap { $0.polygons.flatMap { $0.vertices } }
+            mesh = Mesh.convexHull(of: vertices, material: material).makeWatertight()
         case .union, .lathe, .extrude:
             mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
@@ -628,7 +636,7 @@ public extension Geometry {
         case .camera, .light:
             return 0
         case .cone, .cylinder, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill,
+             .extrude, .lathe, .loft, .fill, .hull,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
             return 1
@@ -655,7 +663,7 @@ public extension Geometry {
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             return 0 // TODO: should paths/points be treated as children?
-        case .union, .xor, .difference, .intersection, .stencil, .group:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .hull:
             return children.count
         }
     }

@@ -157,6 +157,23 @@ extension Dictionary where Key == String, Value == Symbol {
             let polygons = context.children.compactMap { $0.value as? Polygon }
             return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },
+        "hull": .block(.hull) { context in
+            let vertices = try context.children.flatMap { child -> [Vertex] in
+                switch child {
+                case let .point(point):
+                    return [Vertex(point.position, nil, nil, point.color)]
+                case let .path(path):
+                    return path.subpaths.flatMap { $0.edgeVertices }
+                case .mesh:
+                    return [] // handled at mesh generation time
+                default:
+                    throw RuntimeErrorType.assertionFailure(
+                        "Unexpected child of type \(child.type) in hull"
+                    )
+                }
+            }
+            return .mesh(Geometry(type: .hull(vertices), in: context))
+        },
         // csg
         "union": .block(.group) { context in
             .mesh(Geometry(type: .union, in: context))
@@ -312,14 +329,16 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let points: Symbols = [
-        // vertices
+    static let point: Symbols = [
         "point": .function(.vector, .point) { parameter, context in
             .point(.point(
                 parameter.vectorValue,
                 color: context.material.color
             ))
         },
+    ]
+
+    static let curve: Symbols = [
         "curve": .function(.vector, .point) { parameter, context in
             .point(.curve(
                 parameter.vectorValue,
@@ -505,9 +524,10 @@ extension Dictionary where Key == String, Value == Symbol {
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
-    static let polygons: Symbols = _merge(childTransform, points, color)
+    static let hull: Symbols = _merge(group, point)
+    static let polygons: Symbols = _merge(childTransform, point, color)
     static let pathShape: Symbols = _merge(transform, detail, color)
-    static let path: Symbols = _merge(pathShape, childTransform, font, points)
+    static let path: Symbols = _merge(pathShape, childTransform, font, point, curve)
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, shape, path)
 }
