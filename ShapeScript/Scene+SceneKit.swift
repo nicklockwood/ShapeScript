@@ -342,7 +342,22 @@ public extension Material {
 public extension Geometry {
     convenience init(_ scnNode: SCNNode) throws {
         let type: GeometryType
-        if let scnGeometry = scnNode.geometry {
+        var transform = Transform.transform(from: scnNode)
+        if let scnCamera = scnNode.camera {
+            let isOrtho = scnCamera.usesOrthographicProjection
+            if isOrtho {
+                transform.scale *= scnCamera.orthographicScale
+            }
+            type = .camera(Camera(
+                hasPosition: true,
+                hasOrientation: true,
+                hasScale: isOrtho,
+                background: nil,
+                fov: .degrees(isOrtho ? 0 : Double(scnCamera.fieldOfView)),
+                width: nil,
+                height: nil
+            ))
+        } else if let scnGeometry = scnNode.geometry {
             guard let mesh = Mesh(
                 scnGeometry,
                 materialLookup: Material.init(_:)
@@ -356,7 +371,7 @@ public extension Geometry {
         self.init(
             type: type,
             name: scnNode.name,
-            transform: .transform(from: scnNode),
+            transform: transform,
             material: .default,
             smoothing: nil,
             children: try scnNode.childNodes.map(Geometry.init(_:)),
