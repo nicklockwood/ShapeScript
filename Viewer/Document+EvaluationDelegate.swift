@@ -7,8 +7,8 @@
 //
 
 import Foundation
-import ShapeScript
 import SceneKit
+import ShapeScript
 
 extension Document: EvaluationDelegate {
     func resolveURL(for path: String) -> URL {
@@ -42,7 +42,7 @@ extension Document: EvaluationDelegate {
             .createNormalsIfAbsent: true,
             .convertToYUp: true,
         ])
-        return try Geometry(scnNode: scene.rootNode)
+        return try Geometry(scene.rootNode)
     }
 
     func debugLog(_ values: [AnyHashable]) {

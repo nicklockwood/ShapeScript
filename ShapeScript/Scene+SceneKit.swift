@@ -311,7 +311,7 @@ public extension MaterialProperty {
         }
     }
 
-    @available(*, deprecated, message: "Use init?(_:) instead")
+    @available(*, renamed: "init(_:)")
     init?(scnMaterialProperty: SCNMaterialProperty) {
         self.init(scnMaterialProperty)
     }
@@ -333,14 +333,14 @@ public extension Material {
         }
     }
 
-    @available(*, deprecated, message: "Use init?(_:) instead")
+    @available(*, renamed: "init(_:)")
     init?(scnMaterial: SCNMaterial) {
         self.init(scnMaterial)
     }
 }
 
 public extension Geometry {
-    convenience init(scnNode: SCNNode) throws {
+    convenience init(_ scnNode: SCNNode) throws {
         let type: GeometryType
         if let scnGeometry = scnNode.geometry {
             guard let mesh = Mesh(
@@ -359,9 +359,14 @@ public extension Geometry {
             transform: .transform(from: scnNode),
             material: .default,
             smoothing: nil,
-            children: try scnNode.childNodes.map(Geometry.init(scnNode:)),
+            children: try scnNode.childNodes.map(Geometry.init(_:)),
             sourceLocation: nil
         )
+    }
+
+    @available(*, renamed: "init(_:)")
+    convenience init(scnNode: SCNNode) throws {
+        try self.init(scnNode)
     }
 }
 
