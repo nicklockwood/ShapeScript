@@ -111,7 +111,14 @@ extension Rotation: Loggable {
 
 extension Color: Loggable {
     public var logDescription: String {
-        "\(r.logDescription) \(g.logDescription) \(b.logDescription) \(a.logDescription)"
+        var components = self.components
+        if a == 1 {
+            components.removeLast()
+        }
+        if r == b, b == g {
+            components = [r]
+        }
+        return components.map { $0.logDescription }.joined(separator: " ")
     }
 
     public var nestedLogDescription: String {
@@ -162,9 +169,9 @@ extension MaterialProperty: Loggable {
 extension Path: Loggable {
     public var logDescription: String {
         if subpaths.count > 1 {
-            return "path { subpaths: \(subpaths.count) }"
+            return "path { subpaths \(subpaths.count) }"
         }
-        return "path { points: \(points.count) }"
+        return "path { points \(points.count) }"
     }
 
     public var nestedLogDescription: String {
@@ -199,19 +206,54 @@ private extension GeometryType {
 
 extension Geometry: Loggable {
     public var logDescription: String {
-        let fields = [
-            name.flatMap { $0.isEmpty ? nil : "    name: \($0)" },
-            childCount == 0 ? nil : "    children: \(childCount)",
-            "    size: \(transform.scale.logDescription)",
-            "    position: \(transform.offset.logDescription)",
-            "    orientation: \(transform.rotation.logDescription)",
-        ].compactMap { $0 }.joined(separator: "\n")
-
-        return """
-        \(type.logDescription) {
-        \(fields)
+        let epsilon = 0.0001
+        let scale = transform.scale
+        let scaleDescription: String?
+        if abs(scale.x - scale.y) < epsilon, abs(scale.y - scale.z) < epsilon {
+            scaleDescription = abs(scale.x - 1) < epsilon ?
+                nil : "size \(scale.x.logDescription)"
+        } else {
+            scaleDescription = "size \(scale.logDescription)"
         }
-        """
+
+        var fields = [
+            name.flatMap { $0.isEmpty ? nil : "name \($0.nestedLogDescription)" },
+            childCount == 0 ? nil : "children \(childCount)",
+            scaleDescription,
+            transform.offset == .zero ? nil : "position \(transform.offset.logDescription)",
+            transform.rotation == .identity ? nil : "orientation \(transform.rotation.logDescription)",
+        ].compactMap { $0 }
+
+        if case let .camera(camera) = type {
+            if let fov = camera.fov, abs(fov.degrees - 60) > epsilon {
+                fields.append("fov \(fov.logDescription)")
+            }
+            if let width = camera.width {
+                fields.append("width \(width.logDescription)")
+            }
+            if let height = camera.height {
+                fields.append("height \(height.logDescription)")
+            }
+            switch camera.background {
+            case let .color(color)?:
+                fields.append("background \(color.logDescription)")
+            case let .texture(.file(name, _))?:
+                fields.append("background \(name.nestedLogDescription)")
+            case .texture, nil:
+                break
+            }
+        }
+
+        let block: String
+        switch fields.count {
+        case 0:
+            block = ""
+        case 1:
+            block = " { \(fields[0]) }"
+        default:
+            block = " {\n    \(fields.joined(separator: "\n    "))\n}"
+        }
+        return type.logDescription + block
     }
 
     public var nestedLogDescription: String {
