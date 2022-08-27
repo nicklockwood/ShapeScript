@@ -177,8 +177,8 @@ class LoggingTests: XCTestCase {
 
     func testOpaqueColor() {
         let input = Color(1, 0, 0, 1)
-        XCTAssertEqual(input.logDescription, "1 0 0 1")
-        XCTAssertEqual(input.nestedLogDescription, "(1 0 0 1)")
+        XCTAssertEqual(input.logDescription, "1 0 0")
+        XCTAssertEqual(input.nestedLogDescription, "(1 0 0)")
     }
 
     func testTranslucentColor() {
@@ -214,28 +214,43 @@ class LoggingTests: XCTestCase {
 
     func testPath() {
         let input = Path.square()
-        XCTAssertEqual(input.logDescription, "path { points: 5 }")
+        XCTAssertEqual(input.logDescription, "path { points 5 }")
         XCTAssertEqual(input.nestedLogDescription, "path")
     }
 
     func testSubpaths() {
         #if !os(Linux) // For some reason this test crashes on Linux
         let input = Path(subpaths: [.square(), .circle()])
-        XCTAssertEqual(input.logDescription, "path { subpaths: 2 }")
+        XCTAssertEqual(input.logDescription, "path { subpaths 2 }")
         XCTAssertEqual(input.nestedLogDescription, "path")
         #endif
     }
 
     // MARK: Geometry
 
+    func testDefaultCubeGeometry() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let input = Geometry(type: .cube, in: context)
+        XCTAssertEqual(input.logDescription, "cube")
+        XCTAssertEqual(input.nestedLogDescription, "cube")
+    }
+
     func testCubeGeometry() {
         let context = EvaluationContext(source: "", delegate: nil)
+        context.transform = Transform(scale: -.one)
+        let input = Geometry(type: .cube, in: context)
+        XCTAssertEqual(input.logDescription, "cube { size -1 }")
+        XCTAssertEqual(input.nestedLogDescription, "cube")
+    }
+
+    func testCubeGeometry2() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        context.transform = Transform(offset: Vector(1, 2), scale: -.one)
         let input = Geometry(type: .cube, in: context)
         XCTAssertEqual(input.logDescription, """
         cube {
-            size: 1 1 1
-            position: 0 0 0
-            orientation: 0 0 0
+            size -1
+            position 1 2 0
         }
         """)
         XCTAssertEqual(input.nestedLogDescription, "cube")
