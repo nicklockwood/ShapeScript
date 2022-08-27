@@ -47,18 +47,23 @@ extension Document: EvaluationDelegate {
     }
 
     func debugLog(_ values: [AnyHashable]) {
-        var spaceNeeded = false
-        let line = values.compactMap {
-            switch $0 {
-            case let string as String:
-                spaceNeeded = false
-                return string
-            case let value:
-                let string = String(logDescriptionFor: value as Any)
-                defer { spaceNeeded = true }
-                return spaceNeeded ? " \(string)" : string
-            }
-        }.joined()
+        let line: String
+        if values.count == 1 {
+            line = String(logDescriptionFor: values[0] as Any)
+        } else {
+            var spaceNeeded = false
+            line = values.compactMap {
+                switch $0 {
+                case let string as String:
+                    spaceNeeded = false
+                    return string
+                case let value:
+                    let string = String(nestedLogDescriptionFor: value as Any)
+                    defer { spaceNeeded = true }
+                    return spaceNeeded ? " \(string)" : string
+                }
+            }.joined()
+        }
 
         Swift.print(line)
         DispatchQueue.main.async { [weak self] in
