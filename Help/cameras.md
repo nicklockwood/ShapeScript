@@ -25,6 +25,8 @@ camera {
 }
 ```
 
+You can configure the camera position and orientation programmatically using the properties described below, however the easiest way to define a custom camera is to position it using the camera controls and then [copy the configuration](camera-control.md#copy-settings) and paste it into your `.shape` file.
+
 ## Position
 
 By default the camera will be positioned just in front of the scene, but you can adjust its position using the `position` property:

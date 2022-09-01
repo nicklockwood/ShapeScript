@@ -313,6 +313,16 @@ public extension Geometry {
         return !children.contains(where: { !$0.hasUniformMaterial(material ?? self.material) })
     }
 
+    /// Returns a copy of the geometry with the specified name
+    func with(name: String?) -> Geometry {
+        _with(
+            name: name,
+            transform: nil,
+            material: nil,
+            sourceLocation: nil
+        )
+    }
+
     func with(
         transform: Transform,
         material: Material?,
@@ -324,6 +334,7 @@ public extension Geometry {
             material?.texture = nil
         }
         return _with(
+            name: nil,
             transform: transform,
             material: material,
             sourceLocation: sourceLocation
@@ -531,7 +542,8 @@ private extension Geometry {
     }
 
     func _with(
-        transform: Transform,
+        name: String?,
+        transform: Transform?,
         material: Material?,
         sourceLocation: SourceLocation?
     ) -> Geometry {
@@ -545,12 +557,13 @@ private extension Geometry {
         }
         let copy = Geometry(
             type: type,
-            name: name,
-            transform: self.transform * transform,
+            name: name ?? self.name,
+            transform: transform.map { self.transform * $0 } ?? self.transform,
             material: m,
             smoothing: smoothing,
             children: children.map {
                 $0._with(
+                    name: nil,
                     transform: .identity,
                     material: material,
                     sourceLocation: sourceLocation

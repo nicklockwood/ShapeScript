@@ -214,6 +214,20 @@ class DocumentViewController: NSViewController {
         resetView()
     }
 
+    @IBAction func copyCamera(_: Any? = nil) {
+        guard let code = document?.cameraConfig(
+            for: scnView,
+            contentsScale: scnView.window?.backingScaleFactor ?? 1
+        ) else {
+            NSSound.beep()
+            return
+        }
+
+        // Copy code to clipboard
+        NSPasteboard.general.declareTypes([.string], owner: nil)
+        NSPasteboard.general.setString(code, forType: .string)
+    }
+
     @objc func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
         let hitResults = scnView.hitTest(location, options: [:])

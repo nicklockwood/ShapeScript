@@ -30,5 +30,9 @@ Pan up/down/left/right       | Swipe with two fingers
 Zoom in and out              | Either pinch, or hold Shift + swipe up or down with two fingers
 Rotate                       | Pinch, then rotate fingers
 
+## Copy Settings
+
+To copy the configuration for the current camera view, select `View > Copy Camera Settings`, or press **Cmd-Shift-C** on the keyboard. This will copy a snippet of ShapeScript code that you can paste into your `.shape` file to define a [custom camera](cameras.md#custom-cameras).
+
 ---
 [Index](index.md) | Next: [Primitives](primitives.md)

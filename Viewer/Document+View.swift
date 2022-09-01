@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SceneKit
 import ShapeScript
 
 extension Document {
@@ -53,6 +54,79 @@ extension Document {
 
     var cameraHasMoved: Bool {
         viewController?.cameraHasMoved ?? false
+    }
+
+    func cameraConfig(for scnView: SCNView, contentsScale: CGFloat) -> String? {
+        guard let scnCameraNode = scnView.pointOfView,
+              let geometry = try? Geometry(scnCameraNode),
+              case var .camera(camera) = geometry.type
+        else {
+            return nil
+        }
+
+        // Set additional camera properties
+        camera.width = Double(scnView.frame.width * contentsScale)
+        camera.height = Double(scnView.frame.height * contentsScale)
+        camera.background = self.camera.background
+
+        // Use current camera name (if custom and set)
+        var fields = [String]()
+        if let name = self.camera.geometry?.name {
+            fields.append("name \(name.nestedLogDescription)")
+        }
+
+        // Geometry attributes
+        let epsilon = 0.0001
+        let transform = geometry.transform
+        let scale = transform.scale
+        if abs(scale.x - scale.y) < epsilon, abs(scale.y - scale.z) < epsilon {
+            if abs(scale.x - 1) > epsilon {
+                fields.append("size \(scale.x.logDescription)")
+            }
+        } else {
+            fields.append("size \(scale.logDescription)")
+        }
+        if transform.offset != .zero {
+            fields.append("position \(transform.offset.logDescription)")
+        }
+        if transform.rotation != .identity {
+            fields.append("orientation \(transform.rotation.logDescription)")
+        }
+
+        // Camera attributes
+        if let fov = camera.fov, abs(fov.degrees - 60) > epsilon {
+            fields.append("fov \(fov.logDescription)")
+        }
+        if let width = camera.width {
+            fields.append("width \(width.logDescription)")
+        }
+        if let height = camera.height {
+            fields.append("height \(height.logDescription)")
+        }
+        if let background = camera.background {
+            switch background {
+            case let .color(color):
+                var components = color.components
+                if color.a == 1 {
+                    components.removeLast()
+                }
+                if color.r == color.b, color.b == color.g {
+                    components = [color.r]
+                }
+                let string = components.map { $0.logDescription }.joined(separator: " ")
+                fields.append("background \(string)")
+            case let .texture(texture):
+                if case let .file(name, _) = texture {
+                    fields.append("background \(name.nestedLogDescription)")
+                }
+            }
+        }
+
+        return """
+        camera {
+            \(fields.joined(separator: "\n    "))
+        }
+        """
     }
 
     func rerender() {

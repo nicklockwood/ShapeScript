@@ -401,6 +401,10 @@ class Document: NSDocument {
         }
     }
 
+    @IBAction func copyCamera(_: NSMenuItem) {
+        viewController?.copyCamera()
+    }
+
     @IBAction func showWireframe(_: NSMenuItem) {
         showWireframe.toggle()
     }

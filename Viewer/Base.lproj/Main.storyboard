@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -193,6 +194,12 @@
                                                 <action selector="showAxes:" target="Ady-hI-5gd" id="iKT-GP-LR6"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Copy Camera Settings" keyEquivalent="C" id="JYX-as-xAb">
+                                            <connections>
+                                                <action selector="copyCamera:" target="Ady-hI-5gd" id="Xip-Tz-ktJ"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="pVj-B6-hbO"/>
                                         <menuItem title="Model Info" keyEquivalent="i" id="LsO-0m-RrC">
                                             <connections>
                                                 <action selector="showModelInfo:" target="Ady-hI-5gd" id="GgQ-IA-hvt"/>
@@ -301,7 +308,7 @@
                 </windowController>
                 <customObject id="Oky-zY-oP4" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="75" y="336"/>
+            <point key="canvasLocation" x="85" y="458"/>
         </scene>
         <!--Document View Controller-->
         <scene sceneID="hIz-AP-VOD">
@@ -321,7 +328,7 @@
                                 <rect key="frame" x="0.0" y="0.0" width="700" height="500"/>
                                 <clipView key="contentView" drawsBackground="NO" copiesOnScroll="NO" id="5Z6-uz-bAL">
                                     <rect key="frame" x="0.0" y="0.0" width="700" height="500"/>
-                                    <autoresizingMask key="autoresizingMask"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" allowsCharacterPickerTouchBarItem="NO" textCompletion="NO" id="yEn-1o-bXc">
                                             <rect key="frame" x="0.0" y="0.0" width="700" height="500"/>
@@ -1280,7 +1287,7 @@
                                 <rect key="frame" x="20" y="122" width="442" height="197"/>
                                 <clipView key="contentView" drawsBackground="NO" id="5bW-wS-mdY">
                                     <rect key="frame" x="0.0" y="0.0" width="442" height="197"/>
-                                    <autoresizingMask key="autoresizingMask"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" smartInsertDelete="YES" id="Oke-rb-mcR">
                                             <rect key="frame" x="0.0" y="0.0" width="442" height="197"/>
