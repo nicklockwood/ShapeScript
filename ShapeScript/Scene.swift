@@ -22,7 +22,7 @@ public final class Scene {
     ) {
         self.background = background
         self.children = children
-        cameras = children.flatMap { $0.cameras }
+        cameras = children.flatMap { $0._cameras }
         self.cache = cache
         children.forEach { $0.cache = cache }
     }
@@ -42,5 +42,14 @@ public extension Scene {
             return false
         }
         return true
+    }
+}
+
+private extension Geometry {
+    var _cameras: [Geometry] {
+        guard case .camera = type else {
+            return children.flatMap { $0._cameras }
+        }
+        return [self]
     }
 }

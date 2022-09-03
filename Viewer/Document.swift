@@ -39,26 +39,7 @@ class Document: NSDocument {
 
     var scene: Scene? {
         didSet {
-            let customCameras = geometry.cameras
-            if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
-                let oldCameras = cameras
-                cameras = CameraType.allCases.map {
-                    Camera(type: $0)
-                } + customCameras.enumerated().map { i, geometry in
-                    Camera(geometry: geometry, index: i)
-                }
-                if !oldCameras.isEmpty {
-                    var didUpdateCamera = false
-                    for (old, new) in zip(oldCameras, cameras) where old != new {
-                        camera = new
-                        didUpdateCamera = true
-                        break
-                    }
-                    if !didUpdateCamera, cameras.count > oldCameras.count {
-                        camera = cameras[oldCameras.count]
-                    }
-                }
-            }
+            updateCameras()
             updateViews()
         }
     }

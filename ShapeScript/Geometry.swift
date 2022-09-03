@@ -252,6 +252,7 @@ public extension Geometry {
         }
     }
 
+    @available(*, deprecated, message: "Use Scene.cameras instead")
     var cameras: [Geometry] {
         guard case .camera = type else {
             return children.flatMap { $0.cameras }
