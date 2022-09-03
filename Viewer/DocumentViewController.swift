@@ -23,6 +23,8 @@ class DocumentViewController: NSViewController {
     @IBOutlet private var consoleScrollView: NSScrollView!
     @IBOutlet private var consoleTextView: NSTextView!
 
+    weak var document: Document?
+
     lazy var cameraNode: SCNNode = {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
@@ -256,7 +258,6 @@ class DocumentViewController: NSViewController {
 
         // set view background color
         scnView.wantsLayer = true
-        scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
 
         // set the scene to the view
         scnView.scene = scnScene
@@ -274,6 +275,15 @@ class DocumentViewController: NSViewController {
         var gestureRecognizers = scnView.gestureRecognizers
         gestureRecognizers.insert(clickGesture, at: 0)
         scnView.gestureRecognizers = gestureRecognizers
+    }
+
+    override func viewWillLayout() {
+        super.viewWillLayout()
+        if #available(macOS 10.14, *) {
+            NSAppearance.current = NSApp.effectiveAppearance
+        }
+        scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
+        document?.rerender()
     }
 
     private func updateAxes() {

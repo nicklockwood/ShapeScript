@@ -11,7 +11,18 @@ import SceneKit
 import ShapeScript
 
 class Document: NSDocument {
-    static let backgroundColor: NSColor = .underPageBackgroundColor
+    static var backgroundColor: NSColor {
+        if #available(macOS 10.14, *) {
+            if Thread.isMainThread {
+                NSAppearance.current = NSApp.effectiveAppearance
+            } else {
+                DispatchQueue.main.sync {
+                    NSAppearance.current = NSApp.effectiveAppearance
+                }
+            }
+        }
+        return .underPageBackgroundColor
+    }
 
     let cache = GeometryCache()
     let settings = Settings.shared
@@ -19,9 +30,11 @@ class Document: NSDocument {
     var securityScopedResources = Set<URL>()
 
     var viewController: DocumentViewController? {
-        windowControllers.compactMap {
+        let viewController = windowControllers.compactMap {
             $0.window?.contentViewController as? DocumentViewController
         }.first
+        viewController?.document = self
+        return viewController
     }
 
     var scene: Scene? {
@@ -188,7 +201,7 @@ class Document: NSDocument {
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
                 for: camera.settings,
-                backgroundColor: Color(.underPageBackgroundColor),
+                backgroundColor: Color(Self.backgroundColor),
                 wireframe: showWireframe
             )
             _ = scene.build {
