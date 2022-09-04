@@ -432,9 +432,9 @@ extension Dictionary where Key == String, Value == Symbol {
             ))
         },
         "background": .property(.colorOrTexture, { parameter, context in
-            context.background = MaterialProperty(parameter.value) ?? .color(.clear)
+            context.background = MaterialProperty(parameter.value)
         }, { context in
-            .colorOrTexture(context.background)
+            .colorOrTexture(context.background ?? .color(.clear))
         }),
     ])
 

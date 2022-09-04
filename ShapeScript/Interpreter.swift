@@ -32,7 +32,7 @@ public func evaluate(
     )
     try program.evaluate(in: context)
     return Scene(
-        background: context.background,
+        background: context.background ?? .color(.clear),
         children: context.children.compactMap { $0.value as? Geometry },
         cache: cache
     )

@@ -259,6 +259,13 @@ public extension Geometry {
         return [self]
     }
 
+    var camera: Camera? {
+        guard case let .camera(camera) = type else {
+            return nil
+        }
+        return camera
+    }
+
     var light: Light? {
         guard case let .light(light) = type else {
             return nil

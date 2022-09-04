@@ -1250,6 +1250,16 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testCameraBackgroundNotDefaultedToClear() throws {
+        let program = """
+        camera {}
+        background red
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertNil(camera.camera?.background)
+    }
+
     // MARK: Font
 
     func testSetValidFont() throws {

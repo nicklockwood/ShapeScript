@@ -46,9 +46,11 @@ final class EvaluationContext {
     var baseURL: URL?
 
     var material: Material = .default
-    var background: MaterialProperty {
-        get { value(for: #function)?.colorOrTextureValue ?? .color(.clear) }
-        set { define(#function, as: .constant(.colorOrTexture(newValue))) }
+    var background: MaterialProperty? {
+        get { value(for: #function)?.colorOrTextureValue }
+        set { define(#function, as: newValue.map {
+            .constant(.colorOrTexture($0))
+        }) }
     }
 
     var transform = Transform.identity
@@ -173,7 +175,7 @@ extension EvaluationContext {
         }
     }
 
-    func define(_ name: String, as symbol: Symbol) {
+    func define(_ name: String, as symbol: Symbol?) {
         userSymbols[name] = symbol
     }
 
