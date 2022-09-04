@@ -56,18 +56,26 @@ extension Document {
     }
 
     func rerender() {
-        guard let scene = scene else {
+        guard let loadingProgress = loadingProgress,
+              loadingProgress.didSucceed
+        else {
             return
         }
-        let options = scene.outputOptions(
-            for: camera.settings,
-            backgroundColor: Color(Self.backgroundColor),
-            wireframe: showWireframe
-        )
-        loadingProgress?.dispatch { progress in
-            progress.setStatus(.partial(scene))
-            scene.scnBuild(with: options)
-            progress.setStatus(.success(scene))
+        let camera = self.camera
+        let backgroundColor = Color(Self.backgroundColor)
+        let showWireframe = self.showWireframe
+        loadingProgress.dispatch { progress in
+            if case let .success(scene) = progress.status,
+               !scene.children.isEmpty
+            {
+                progress.setStatus(.partial(scene))
+                scene.scnBuild(with: scene.outputOptions(
+                    for: camera.settings,
+                    backgroundColor: backgroundColor,
+                    wireframe: showWireframe
+                ))
+                progress.setStatus(.success(scene))
+            }
         }
     }
 
