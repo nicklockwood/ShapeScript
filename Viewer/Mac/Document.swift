@@ -13,12 +13,18 @@ import ShapeScript
 class Document: NSDocument {
     static var backgroundColor: NSColor {
         if #available(macOS 10.14, *) {
+            let appearanceName: NSAppearance.Name
             if Thread.isMainThread {
                 NSAppearance.current = NSApp.effectiveAppearance
+                appearanceName = NSAppearance.current.name
             } else {
-                DispatchQueue.main.sync {
+                appearanceName = DispatchQueue.main.sync {
                     NSAppearance.current = NSApp.effectiveAppearance
+                    return NSAppearance.current.name
                 }
+            }
+            if appearanceName == .darkAqua {
+                return .controlBackgroundColor
             }
         }
         return .underPageBackgroundColor
