@@ -339,7 +339,7 @@ class DocumentViewController: NSViewController {
             }
             if camera.hasScale {
                 let v = geometry.worldTransform.scale
-                scale = max(v.x, v.y, v.z) / 2
+                scale = max(v.x, v.y, v.z)
             }
         } else {
             orientation = .identity
