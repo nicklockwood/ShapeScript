@@ -17,7 +17,7 @@
 
 ShapeScript is a hybrid scripting/markup language for creating and manipulating 3D geometry using techniques such as extruding or "lathing" 2D paths to create solid 3D shapes, and CSG (Constructive Solid Geometry) to combine or subtract those shapes from one another.
 
-ShapeScript is also the scripting language used for the [ShapeScript App](https://apps.apple.com/app/id1441135869).
+ShapeScript is also the scripting language used for the ShapeScript [Mac](https://apps.apple.com/app/id1441135869) and [iOS](https://apps.apple.com/app/id1606439346) apps.
 
 ShapeScript is implemented on top of [Euclid](https://github.com/nicklockwood/Euclid), a cross-platform 3D modeling library written in Swift. Anything you can construct using ShapeScript can be replicated programmatically in Swift using Euclid.
 

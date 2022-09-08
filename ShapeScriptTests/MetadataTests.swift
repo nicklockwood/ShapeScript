@@ -26,7 +26,7 @@ private let helpDirectory = projectDirectory
     .appendingPathComponent("docs")
 
 private let helpSourceDirectory = helpDirectory
-    .appendingPathComponent("mac")
+    .appendingPathComponent("src")
 
 private let helpIndexURL = helpSourceDirectory
     .appendingPathComponent("index.md")
@@ -85,6 +85,31 @@ private let syntaxLinks = [
     ("Import", "import.md"),
 ]
 
+private extension URL {
+    func hasSuffix(_ suffix: String) -> Bool {
+        deletingPathExtension().lastPathComponent.hasSuffix("-" + suffix)
+    }
+
+    func withSuffix(_ suffix: String) -> URL {
+        let name = deletingPathExtension().lastPathComponent
+        return deletingPathExtension()
+            .deletingLastPathComponent()
+            .appendingPathComponent(name + "-" + suffix)
+            .appendingPathExtension(pathExtension)
+    }
+
+    func deletingSuffix(_ suffix: String) -> URL {
+        guard hasSuffix(suffix) else {
+            return self
+        }
+        let name = deletingPathExtension().lastPathComponent
+        return deletingPathExtension()
+            .deletingLastPathComponent()
+            .appendingPathComponent(String(name.dropLast(suffix.count + 1)))
+            .appendingPathExtension(pathExtension)
+    }
+}
+
 private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
 
 class MetadataTests: XCTestCase {
@@ -141,7 +166,7 @@ class MetadataTests: XCTestCase {
             }.joined(separator: "\n")
         }
 
-        let index = try """
+        let indexMac = try """
         ShapeScript Help
         ---
 
@@ -157,10 +182,29 @@ class MetadataTests: XCTestCase {
 
         """
 
-        let existing = try String(contentsOf: helpIndexURL)
-        XCTAssertEqual(existing, index)
+        let indexIOS = try """
+        ShapeScript Help
+        ---
 
-        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
+        - [Getting Started](getting-started.md)
+        - [Camera Control](camera-control.md)
+        - Geometry
+        \(buildLinks(geometryLinks))
+        - Syntax
+        \(buildLinks(syntaxLinks))
+        - [Examples](examples.md)
+        - [Glossary](glossary.md)
+
+        """
+
+        for (index, url) in [
+            (indexMac, helpIndexURL),
+            (indexIOS, helpIndexURL.withSuffix("ios")),
+        ] {
+            let existing = try String(contentsOf: url)
+            XCTAssertEqual(existing, index)
+            try index.write(to: url, atomically: true, encoding: .utf8)
+        }
     }
 
     func testHelpFooterLinks() throws {
@@ -244,8 +288,99 @@ class MetadataTests: XCTestCase {
 
         let imagesEnumerator = try XCTUnwrap(fm.enumerator(atPath: imagesDirectory.path))
         for case let file as String in imagesEnumerator where file.hasSuffix(".png") {
-            if !referencedImages.contains(file) {
+            let unsuffixedFile = file.replacingOccurrences(of: "-ios.", with: ".")
+            if !referencedImages.contains(file),
+               !referencedImages.contains(unsuffixedFile)
+            {
                 XCTFail("Image \(file) not referenced in help")
+            }
+        }
+    }
+
+    func testExportMacHelp() throws {
+        let fm = FileManager.default
+
+        let outputDirectory = helpDirectory.appendingPathComponent("mac")
+        try? fm.removeItem(at: outputDirectory)
+        try fm.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
+        for case let file as String in enumerator {
+            let fileURL = helpSourceDirectory.appendingPathComponent(file)
+            guard fileURL.pathExtension == "md", !fileURL.hasSuffix("ios") else {
+                enumerator.skipDescendants()
+                continue
+            }
+            let outputURL = outputDirectory.appendingPathComponent(file)
+            try fm.copyItem(at: fileURL, to: outputURL)
+        }
+    }
+
+    func testExportIOSHelp() throws {
+        let fm = FileManager.default
+
+        let outputDirectory = helpDirectory.appendingPathComponent("ios")
+        try? fm.removeItem(at: outputDirectory)
+        try fm.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
+        for case var file as String in enumerator {
+            let fileURL = helpSourceDirectory.appendingPathComponent(file)
+            guard fileURL.pathExtension == "md" else {
+                enumerator.skipDescendants()
+                continue
+            }
+            if fileURL.hasSuffix("ios") {
+                file = String(fileURL
+                    .deletingPathExtension()
+                    .lastPathComponent
+                    .dropLast(4)) + ".md"
+            } else if fm.fileExists(atPath: fileURL.withSuffix("ios").path) {
+                continue
+            }
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+            let nsText = NSMutableString(string: text)
+            var range = NSRange(location: 0, length: nsText.length)
+            var urlRanges = [NSRange]()
+            for match in urlRegex.matches(in: text, options: [], range: range) {
+                range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
+                urlRanges.append(match.range(at: 1))
+            }
+            for range in urlRanges.reversed() {
+                guard var url = URL(string: nsText.substring(with: range)),
+                      url.host == nil
+                else {
+                    continue
+                }
+                if !url.hasSuffix("ios") {
+                    let isMac = url.hasSuffix("mac")
+                    if isMac {
+                        url = url.deletingSuffix("mac")
+                    }
+                    let iosURL = url.withSuffix("ios")
+                    let absoluteURL = URL(fileURLWithPath: iosURL.path, relativeTo: fileURL)
+                    if url.pathExtension == "png", fm.fileExists(atPath: absoluteURL.path) {
+                        url = iosURL
+                    } else if isMac {
+                        let macFile = url.withSuffix("mac").lastPathComponent
+                        XCTFail("File '\(macFile)' has no iOS equivalent")
+                    }
+                    nsText.replaceCharacters(in: range, with: url.path)
+                }
+                // Special case
+                if url.lastPathComponent == "export.md", nsText
+                    .substring(to: range.location).hasSuffix("Next: [Export](")
+                {
+                    nsText.replaceCharacters(in: range, with: "examples.md")
+                }
+            }
+            let outputURL = outputDirectory.appendingPathComponent(file)
+            try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
+
+            if file != "export.md" {
+                for key in ["View >", "macOS"] where nsText.contains(key) {
+                    XCTFail("Reference to '\(key)' in '\(file)'")
+                }
             }
         }
     }
@@ -258,31 +393,32 @@ class MetadataTests: XCTestCase {
             return
         }
         try? fm.removeItem(at: outputDirectory)
-        let subdir = "mac"
-        let helpDir = helpDirectory.appendingPathComponent(subdir)
-        let versionedDir = outputDirectory.appendingPathComponent(subdir)
-        try fm.createDirectory(at: versionedDir, withIntermediateDirectories: true)
-        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDir.path))
-        for case let file as String in enumerator where file.hasSuffix(".md") {
-            let fileURL = helpDir.appendingPathComponent(file)
-            let text = try String(contentsOf: fileURL)
-            let nsText = NSMutableString(string: text)
-            var range = NSRange(location: 0, length: nsText.length)
-            var urlRanges = [NSRange]()
-            for match in urlRegex.matches(in: text, options: [], range: range) {
-                range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
-                urlRanges.append(match.range(at: 1))
-            }
-            for range in urlRanges.reversed() {
-                guard let url = URL(string: nsText.substring(with: range)),
-                      url.host == nil, url.pathExtension == "png"
-                else {
-                    continue
+        for subdir in ["mac", "ios"] {
+            let helpDir = helpDirectory.appendingPathComponent(subdir)
+            let versionedDir = outputDirectory.appendingPathComponent(subdir)
+            try fm.createDirectory(at: versionedDir, withIntermediateDirectories: true)
+            let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDir.path))
+            for case let file as String in enumerator where file.hasSuffix(".md") {
+                let fileURL = helpDir.appendingPathComponent(file)
+                let text = try String(contentsOf: fileURL)
+                let nsText = NSMutableString(string: text)
+                var range = NSRange(location: 0, length: nsText.length)
+                var urlRanges = [NSRange]()
+                for match in urlRegex.matches(in: text, options: [], range: range) {
+                    range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
+                    urlRanges.append(match.range(at: 1))
                 }
-                nsText.replaceCharacters(in: range, with: "../\(url.path)")
+                for range in urlRanges.reversed() {
+                    guard let url = URL(string: nsText.substring(with: range)),
+                          url.host == nil, url.pathExtension == "png"
+                    else {
+                        continue
+                    }
+                    nsText.replaceCharacters(in: range, with: "../\(url.path)")
+                }
+                let outputURL = versionedDir.appendingPathComponent(file)
+                try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
             }
-            let outputURL = versionedDir.appendingPathComponent(file)
-            try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
         }
     }
 
