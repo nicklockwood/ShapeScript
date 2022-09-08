@@ -39,13 +39,6 @@ extension Settings {
         set { defaults.set(newValue, forKey: #function) }
     }
 
-    // MARK: Welcome screen
-
-    var showWelcomeScreenAtStartup: Bool {
-        get { defaults.object(forKey: #function) as? Bool ?? true }
-        set { defaults.set(newValue, forKey: #function) }
-    }
-
     // MARK: Editor
 
     var editorApps: [EditorApp] {

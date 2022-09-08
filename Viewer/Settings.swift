@@ -56,6 +56,13 @@ final class Settings {
     {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
     }
+
+    // MARK: Welcome screen
+
+    var showWelcomeScreenAtStartup: Bool {
+        get { defaults.object(forKey: #function) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: #function) }
+    }
 }
 
 private extension Document {
