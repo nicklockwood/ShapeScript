@@ -1,3 +1,16 @@
+## [1.5.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.6) (2022-09-06)
+
+- Added ability to copy the current camera configuration for easy creation of custom cameras
+- Improved logic for when camera position is reset after document update or window resize
+- Fixed bug where custom cameras did not correctly inherit the document background
+- Fixed bug where scale was doubled for custom orthographic cameras
+- Fixed live updating of document background when switching between light and dark mode
+- Fixed race condition in view rendering sometimes resulting in a blank scene
+- Fixed member suggestions for empty tuple
+- Renamed `Geometry(scnNode:)` initializer for consistency
+- Deprecated `Geometry.cameras` accessor
+- Bumped Euclid to version 0.5.29
+
 ## [1.5.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.5) (2022-08-11)
 
 - Significantly improved performance for bulk fill/extrude operations (e.g. text)

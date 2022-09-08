@@ -85,6 +85,8 @@ private let syntaxLinks = [
     ("Import", "import.md"),
 ]
 
+private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
+
 class MetadataTests: XCTestCase {
     // MARK: Releases
 
@@ -194,8 +196,6 @@ class MetadataTests: XCTestCase {
         let fm = FileManager.default
         let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
 
-        let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
-
         var referencedImages = Set<String>()
         for case let file as String in enumerator where file.hasSuffix(".md") {
             let fileURL = helpSourceDirectory.appendingPathComponent(file)
@@ -247,6 +247,42 @@ class MetadataTests: XCTestCase {
             if !referencedImages.contains(file) {
                 XCTFail("Image \(file) not referenced in help")
             }
+        }
+    }
+
+    func testExportVersionedHelp() throws {
+        let fm = FileManager.default
+        let outputDirectory = helpDirectory.appendingPathComponent(shapeScriptVersion)
+        guard fm.fileExists(atPath: outputDirectory.path) else {
+            XCTFail("Help directory for \(shapeScriptVersion) not found")
+            return
+        }
+        try? fm.removeItem(at: outputDirectory)
+        let subdir = "mac"
+        let helpDir = helpDirectory.appendingPathComponent(subdir)
+        let versionedDir = outputDirectory.appendingPathComponent(subdir)
+        try fm.createDirectory(at: versionedDir, withIntermediateDirectories: true)
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDir.path))
+        for case let file as String in enumerator where file.hasSuffix(".md") {
+            let fileURL = helpDir.appendingPathComponent(file)
+            let text = try String(contentsOf: fileURL)
+            let nsText = NSMutableString(string: text)
+            var range = NSRange(location: 0, length: nsText.length)
+            var urlRanges = [NSRange]()
+            for match in urlRegex.matches(in: text, options: [], range: range) {
+                range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
+                urlRanges.append(match.range(at: 1))
+            }
+            for range in urlRanges.reversed() {
+                guard let url = URL(string: nsText.substring(with: range)),
+                      url.host == nil, url.pathExtension == "png"
+                else {
+                    continue
+                }
+                nsText.replaceCharacters(in: range, with: "../\(url.path)")
+            }
+            let outputURL = versionedDir.appendingPathComponent(file)
+            try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
         }
     }
 

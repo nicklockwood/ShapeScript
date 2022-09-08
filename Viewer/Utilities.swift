@@ -12,10 +12,7 @@ import ShapeScript
 
 // MARK: General
 
-let onlineHelpURL = URL(
-    string: "https://github.com/nicklockwood/" +
-        "ShapeScript/blob/\(ShapeScript.version)/docs/index.md"
-)!
+let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!
 
 let isHighSierra: Bool = {
     let os = ProcessInfo.processInfo.operatingSystemVersion
