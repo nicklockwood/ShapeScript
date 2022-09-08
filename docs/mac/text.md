@@ -24,11 +24,11 @@ text {
 
 The output of the `text` command is a series of [paths](paths.md), one for each character or *glyph* in the text:
 
-![Text](images/text.png)
+![Text](../images/text.png)
 
 You can use the `fill` or `extrude` commands to turn these paths into a solid mesh (see [builders](builders.md) for details):
 
-![Solid Text](images/solid-text.png)
+![Solid Text](../images/solid-text.png)
 
 ## Interpolation
 
@@ -41,7 +41,7 @@ for i in 1 to 5 {
 }
 ```
 
-![Numbers](images/numbers.png)
+![Numbers](../images/numbers.png)
 
 You may find that in some cases you need to compose some text dynamically from several source values. ShapeScript has a feature called [text interpolation](https://en.wikipedia.org/wiki/String_interpolation), whereby values can be inserted into a larger body of text.
 
@@ -89,7 +89,7 @@ text {
 }
 ```
 
-![Wrapped text](images/text-wrap.png)
+![Wrapped text](../images/text-wrap.png)
 
 **Note:** `wrapwidth` is specified in world units, not characters.
 
@@ -138,7 +138,7 @@ text {
 }
 ```
 
-![+50% Line spacing](images/linespacing-increased.png)
+![+50% Line spacing](../images/linespacing-increased.png)
 
 A value of -0.5 will reduce the spacing by 0.5 (causing the lines to overlap by 0.5 units):
 
@@ -150,7 +150,7 @@ text {
 }
 ```
 
-![+50% Line spacing](images/linespacing-decreased.png)
+![+50% Line spacing](../images/linespacing-decreased.png)
 
 ## Position and Orientation
 
@@ -176,7 +176,7 @@ fill {
 
 Unlike most shapes, which are positioned relative to their center, text is positioned relative to its left margin and baseline.
 
-![Default text alignment](images/text-default.png)
+![Default text alignment](../images/text-default.png)
 
 In order to center a piece of text, you will need to know its actual dimensions. For this you can use the [bounds](bounds.md) member property. The following code uses the bounds to center some text:
 
@@ -186,7 +186,7 @@ translate -hello.bounds.width/2 -hello.bounds.height/2
 fill hello
 ```
 
-![Centered text](images/text-centered.png)
+![Centered text](../images/text-centered.png)
 
 ## Font
 
@@ -197,7 +197,7 @@ font "Zapfino"
 fill text "Hello World"
 ```
 
-![Text with font](images/text-font.png)
+![Text with font](../images/text-font.png)
 
 **Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may want to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
 

@@ -16,7 +16,7 @@ path {
 }
 ```
 
-![Line](images/line.png)
+![Line](../images/line.png)
 
 In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
 
@@ -33,7 +33,7 @@ path {
 }
 ```
 
-![Triangle](images/triangle.png)
+![Triangle](../images/triangle.png)
 
 ## Curves
 
@@ -53,7 +53,7 @@ path {
 }
 ```
 
-![Arc](images/arc.png)
+![Arc](../images/arc.png)
 
 You may notice that this "smooth" arc is not actually very smooth. As discussed in the [primitives section](primitives.md), 3D shapes are constructed from flat triangles, so likewise, curves are approximated using straight lines. You can adjust the smoothness of curves in a path using the `detail` command:
 
@@ -66,7 +66,7 @@ path {
 }
 ```
 
-![Smooth arc](images/smooth-arc.png)
+![Smooth arc](../images/smooth-arc.png)
 
 If multiple `curve` commands (control points) are used in sequence, an end-point will be interpolated at the mid-point between them. This allows you to easily create complex curves such as an "S" shape.
 
@@ -86,7 +86,7 @@ path {
 }
 ```
 
-![Circle](images/octocircle.png)
+![Circle](../images/octocircle.png)
 
 ## Circles
 
@@ -123,7 +123,7 @@ square {
 }
 ```
 
-![Rectangle](images/rectangle.png)
+![Rectangle](../images/rectangle.png)
 
 You can even create a rectangle with rounded corners using the `roundrect` command:
 
@@ -140,7 +140,7 @@ roundrect {
 }
 ```
 
-![Roundrect](images/roundrect.png)
+![Roundrect](../images/roundrect.png)
 
 ## Regular Polygons
 
@@ -152,7 +152,7 @@ polygon {
 }
 ```
 
-![Pentagon](images/pentagon.png)
+![Pentagon](../images/pentagon.png)
 
 The output for this is similar to using the `circle` command with a specific detail value:
 
@@ -176,7 +176,7 @@ extrude circle {
 }
 ```
 
-![Polygon vs circle](images/polygon-vs-circle.png)
+![Polygon vs circle](../images/polygon-vs-circle.png)
 
 ## Procedural Paths
 
@@ -193,7 +193,7 @@ path {
 }
 ```
 
-![Semicircle](images/semicircle.png)
+![Semicircle](../images/semicircle.png)
 
 ## Nested Paths
 
@@ -208,7 +208,7 @@ path {
 }
 ```
 
-![Overlapping Circles](images/overlapping-circles.png)
+![Overlapping Circles](../images/overlapping-circles.png)
 
 ## Path Colors
 
@@ -225,7 +225,7 @@ path {
 }
 ```
 
-![Path colors](images/path-colors.png)
+![Path colors](../images/path-colors.png)
 
 ## SVG Paths
 
@@ -253,7 +253,7 @@ fill svgpath {
 
 Which produces the following output:
 
-![SVG Triangle](images/svgpath.png)
+![SVG Triangle](../images/svgpath.png)
 
 **Note:** SVG uses a flipped vertical coordinate system relative to that used by ShapeScript. To compensate for this, vertical (Y) coordinates passed to the `svgpath` command are treated as negative.
 

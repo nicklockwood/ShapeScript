@@ -27,7 +27,7 @@ You can call it by simply referencing its name, like this:
 star
 ```
 
-![Star](images/star.png)
+![Star](../images/star.png)
 
 **Note:** there is a subtle distinction between the code above and the code below:
 
@@ -78,7 +78,7 @@ star {
 }
 ```
 
-![Star](images/six-pointed-star.png)
+![Star](../images/six-pointed-star.png)
 
 ---
 [Index](index.md) | Next: [Scope](scope.md)

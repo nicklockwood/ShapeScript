@@ -28,7 +28,7 @@ Motion                       | Action
 Rotate model                 | Click and drag with one finger
 Pan up/down/left/right       | Swipe with two fingers
 Zoom in and out              | Either pinch, or hold Shift + swipe up or down with two fingers
-Rotate                       | Pinch, then rotate fingers
+Roll                         | Pinch, then rotate fingers
 
 ## Copy Settings
 

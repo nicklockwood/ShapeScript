@@ -25,7 +25,7 @@ difference {
 
 The result is shown below on the right. The model on the left is using a `group` instead of `difference`, so you can see the position of the cylinder prior to subtraction.
 
-![Cone with a hole](images/group-vs-difference.png)
+![Cone with a hole](../images/group-vs-difference.png)
 
 The subtracted shape is removed from the resultant model, but leaves an impression in the object it is subtracted from. You can see this in above image, where the hole in the red cone is lined with green coloring from the cylinder.
 
@@ -35,7 +35,7 @@ The `intersection` command returns a shape representing the common volume betwee
 
 If we change the `difference` to an `intersection` in the previous code sample, this is the result:
 
-![Intersection of cone and cylinder](images/intersection.png)
+![Intersection of cone and cylinder](../images/intersection.png)
 
 As before, the color is taken from the shape that originally contributed that part of the surface.
 
@@ -51,7 +51,7 @@ The effect can be seen by using a translucent color (one with an alpha component
 
 The model on the left is using a `group`, and the inner surface of the cylinder can clearly be seen through the surface of the cone. The model on the right is using `union` and so the part of the cylinder inside the cone cannot be seen (because it has been removed).
 
-![Group vs union](images/group-vs-union.png)
+![Group vs union](../images/group-vs-union.png)
 
 ## XOR
 
@@ -69,7 +69,7 @@ xor {
 }
 ```
 
-![Eye-shaped Hole](images/xor.png)
+![Eye-shaped Hole](../images/xor.png)
 
 ## Stencil
 
@@ -90,7 +90,7 @@ stencil {
 }
 ```
 
-![Stenciled ball](images/stencil.png)
+![Stenciled ball](../images/stencil.png)
 
 **Note:** If the stencil shape has a texture applied to it (see [Materials](materials.md#texture)) then the texture wrapping will match the coordinates of the shape being painted, not the shape that the texture is taken from.
 

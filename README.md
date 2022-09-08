@@ -17,15 +17,15 @@
 
 ShapeScript is a hybrid scripting/markup language for creating and manipulating 3D geometry using techniques such as extruding or "lathing" 2D paths to create solid 3D shapes, and CSG (Constructive Solid Geometry) to combine or subtract those shapes from one another.
 
-ShapeScript is implemented on top of [Euclid](https://github.com/nicklockwood/Euclid), a cross-platform 3D modeling library written in Swift. Anything you can construct using ShapeScript can be replicated programmatically in Swift using Euclid.
-
 ShapeScript is also the scripting language used for the [ShapeScript App](https://apps.apple.com/app/id1441135869).
 
-If you would like to support the development of Euclid and the ShapeScript language, please consider buying a copy of [ShapeScript](https://apps.apple.com/app/id1441135869) (the app itself is free, but there is an in-app purchase to unlock some features).
+ShapeScript is implemented on top of [Euclid](https://github.com/nicklockwood/Euclid), a cross-platform 3D modeling library written in Swift. Anything you can construct using ShapeScript can be replicated programmatically in Swift using Euclid.
+
+If you would like to support the development of Euclid and the ShapeScript language, please consider buying a copy of [ShapeScript for Mac](https://apps.apple.com/app/id1441135869) (the app itself is free, but there is an in-app purchase to unlock some features).
 
 # Installation
 
-ShapeScript is packaged as a dynamic framework, which itself depends on the [Euclid](https://github.com/nicklockwood/Euclid) framework, a copy of which is included in this repository.
+ShapeScript is packaged as a Swift framework, which itself depends on the [Euclid](https://github.com/nicklockwood/Euclid) framework, a copy of which is included in this repository.
 
 To install the ShapeScript framework using CocoaPods, add the following to your Podfile:
 
@@ -59,7 +59,7 @@ ShapeScript does not include a built-in editor. Instead, after opening a shape f
 
 The ShapeScript Viewer will track changes to the source file and update in real-time as you edit it.
 
-For more information, check out the [help section](Help/index.md).
+For more information, check out the [help section](docs/index.md).
 
 # Contributing
 

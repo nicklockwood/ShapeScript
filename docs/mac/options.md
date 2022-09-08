@@ -52,7 +52,7 @@ sphere { detail 32 } // has detail of 32
 cylinder { position 1 } // has detail of 8
 ```
 
-![Detail](images/detail.png)
+![Detail](../images/detail.png)
 
 The `detail` command accepts a single integer value, which represents the number of straight sections used to approximate a circle. This is directly applicable to shapes that have circular sections, such as a sphere or cylinder, as well as to circular [paths](paths.md).
 
@@ -80,7 +80,7 @@ cylinder { smoothing 0.5 } // smooth shading
 sphere { position 1 } // inherits flat-shading from file scope
 ```
 
-![Smoothing](images/smoothing.png)
+![Smoothing](../images/smoothing.png)
 
 ## Transform
 

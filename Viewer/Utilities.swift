@@ -14,7 +14,7 @@ import ShapeScript
 
 let onlineHelpURL = URL(
     string: "https://github.com/nicklockwood/" +
-        "ShapeScript/blob/\(ShapeScript.version)/Help/index.md"
+        "ShapeScript/blob/\(ShapeScript.version)/docs/index.md"
 )!
 
 let isHighSierra: Bool = {

@@ -7,7 +7,7 @@ Start by creating a new ShapeScript document. You can do this by selecting `File
 
 You should see a new window appear containing a cube, sphere and cone. These are the default contents for a new file (don't worry, you can replace them with your own shapes).
 
-![New document window](images/new-document-window.png)
+![New document window](../images/new-document-mac.png)
 
 ## Viewing
 
@@ -17,7 +17,7 @@ You are not actually moving the objects themselves, but rotating the camera arou
 
 To help you orient yourself, you can use the `View > Show Axes` option, which displays the direction of the X, Y and Z axes.
 
-![Show axes](images/show-axes.png)
+![Show axes](../images/show-axes-mac.png)
 
 For more information about navigating around the model, see [Camera Control](camera-control.md).
 
@@ -27,7 +27,7 @@ To edit the 3D model, select the `Edit > Open in Editor` menu or press **Cmd-E**
 
 ShapeScript does not include an editor. Instead, the `Open in Editor` command will ask you to select an external text editor to use. If you do not have any other editors installed, the default option will probably be TextEdit. Once opened, the file should look something like this:
 
-![TextEdit window](images/textedit.png)
+![TextEdit window](../images/textedit-mac.png)
 
 ShapeScript files are just ordinary text documents, so they can be opened in any program that supports editing text. TextEdit will work, but is probably not the best choice as it does not support syntax coloring or any of the other programmer-friendly features of modern editors.
 
@@ -72,7 +72,7 @@ The line `position -1.5` means "position the shape 1.5 spacial units to the left
 
 **Note:** The spacial units ShapeScript uses are arbitrary, and can represent anything that you wish them to: a centimeter, a meter, an inch, a mile, etc. Try to choose an appropriate scale for your models so that you avoid having to work with very large scales (thousands of units), or very small scales (thousandths of a unit). That will help to avoid rendering precision issues, as well as making your scripts easier to work with.
 
-The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so a position of `-1.5` is equivalent to `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
+The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so a position o-f `-1.5` is equivalent to `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
 
 The next line, `color 1 0 0` sets the current color. The three numbers after the keyword represent the red, green, and blue color channels, each with a range from 0 to 1. Because the red channel is 1 and the other channels are 0, the resultant color will be pure red.
 
@@ -84,13 +84,13 @@ The groups of instructions after the cube are similar, but define a sphere and c
 
 Change the `color 1 0 0` instruction to `color 1 1 0`, and then save the file. If you switch back to the ShapeScript app you should now see that the red cube has changed to yellow. ShapeScript tracks changes to any open files and will automatically update the view whenever they are saved.
 
-![Yellow cube](images/yellow-cube.png)
+![Yellow cube](../images/yellow-cube-mac.png)
 
 Try tweaking the values for the `position`  and `color` instructions and observing the effects. You could also try adding a `size` option, which works like the others, but controls the *size* of the shape.
 
 If you make a mistake, you will see a screen like this:
 
-![Error screen](images/error-screen.png)
+![Error screen](../images/error-screen-mac.png)
 
 There is no cause for alarm if you see this screen. Just fix your mistake and save again to clear the error. If you aren't sure what you did, and the error message doesn't help, use the `Edit > Undo` menu in your editor to backtrack to a working state and try again.
 
@@ -104,7 +104,7 @@ You can get information about your model (such as polygon count and overall dime
 
 If a particular part of your model doesn't look right, you can click to select it in the viewing window, and then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the script file defines that component.
 
-![Object info](images/object-info.png)
+![Object info](../images/object-info-mac.png)
 
 ---
 [Index](index.md) | Next: [Camera Control](camera-control.md)

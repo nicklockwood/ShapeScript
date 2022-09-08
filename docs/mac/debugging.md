@@ -17,7 +17,7 @@ difference {
 }
 ```
 
-![Moon](images/moon.png)
+![Moon](../images/moon.png)
 
 Because the second cylinder is subtracted from the first, we can't actually see it, which means we can't [select it](getting-started.md#debugging-and-selection) to get information about it, or properly understand its shape. To solve this, we can use the `debug` command:
 
@@ -37,7 +37,7 @@ difference {
 
 This makes the cylinder visible in the ShapeScript viewer and allows it to be selected like any other shape.
 
-![Moon debug](images/moon-debug.png)
+![Moon debug](../images/moon-debug.png)
 
 ## Logging
 

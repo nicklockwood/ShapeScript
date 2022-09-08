@@ -18,7 +18,7 @@ fill path {
 }
 ```
 
-![Filled Pentagon](images/filled-pentagon.png)
+![Filled Pentagon](../images/filled-pentagon.png)
 
 Unlike a path, a filled shape can have a color and texture, but it has zero thickness.
 
@@ -33,7 +33,7 @@ fill path {
 }
 ```
 
-![Even-odd Fill](images/even-odd-fill.png)
+![Even-odd Fill](../images/even-odd-fill.png)
 
 ## Lathe
 
@@ -54,7 +54,7 @@ path {
 }
 ```
 
-![Pawn outline](images/pawn-profile.png)
+![Pawn outline](../images/pawn-profile.png)
 
 When passed to the `lathe` command, the path creates a solid 3D model:
 
@@ -71,7 +71,7 @@ lathe path {
 }
 ```
 
-![Pawn](images/pawn.png)
+![Pawn](../images/pawn.png)
 
 As with other curved shapes such as the `sphere` and `cone`, the smoothness of the lathed surface can be controlled using the `detail` and `smoothing` commands.
 
@@ -97,7 +97,7 @@ extrude {
 }
 ```
 
-![Prism](images/prism.png)
+![Prism](../images/prism.png)
 
 You can also extrude a shape *along* another path using the `along` option. In the following example, a circle is extruded along a rounded rectangle:
 
@@ -110,7 +110,7 @@ extrude {
 }
 ```
 
-![Rounded rectangle with circle cross-section](images/roundrect-extrusion.png)
+![Rounded rectangle with circle cross-section](../images/roundrect-extrusion.png)
 
 ## Loft
 
@@ -158,7 +158,7 @@ loft {
 }
 ```
 
-![Torus](images/torus.png)
+![Torus](../images/torus.png)
 
 However, the real power of the `loft` command comes from the fact that you can use *different* cross-sections, and the resultant surface will be interpolated between them. For example, here is a shape whose cross-section is square at one end and circular at the other:
 
@@ -170,7 +170,7 @@ loft {
 }
 ```
 
-![Loft shape](images/loftshape.png)
+![Loft shape](../images/loftshape.png)
 
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)

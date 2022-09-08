@@ -19,7 +19,7 @@ light {}
 
 This creates a white ambient light at full brightness. The ambient light is applied in addition to the default lighting, with the result that the scene appears over-bright, or *washed out*:
 
-![Over-bright ambient light](images/washed-out.png)
+![Over-bright ambient light](../images/washed-out.png)
 
 To solve this, you can reduce the intensity of the light by setting its color:
 
@@ -78,7 +78,7 @@ light {
 
 This rotates the light by 90 degrees (`0.5 * 180`) around the vertical (Y) axis.
 
-![Directional light shining from the left](images/left-light.png)
+![Directional light shining from the left](../images/left-light.png)
 
 **Note:** unlike ambient light, adding a directional light to the scene disables/replaces the default lighting.
 
@@ -111,7 +111,7 @@ camera {
 }
 ```
 
-![Point light between objects](images/point-light.png)
+![Point light between objects](../images/point-light.png)
 
 ## Spotlights
 
@@ -125,7 +125,7 @@ light {
 }
 ```
 
-![Spotlight](images/spotlight.png)
+![Spotlight](../images/spotlight.png)
 
 By default, spotlights cast light in a 45-degree cone. You can alter this with the `spread` option:
 
@@ -140,7 +140,7 @@ light {
 
 The spread is a value between 0 and 1 representing a cone angle from 0 to 180 degrees, so `0.5` in the example maps to a 90-degree cone:
 
-![Wide spotlight](images/spotlight-wide.png)
+![Wide spotlight](../images/spotlight-wide.png)
 
 You've probably noticed that the edge of the light cast by the spotlight is blurred. The blurred region around the spotlight is known as the [penumbra](https://en.wikipedia.org/wiki/Umbra,_penumbra_and_antumbra#Penumbra), and can be adjusted using the `penumbra` option:
 
@@ -155,7 +155,7 @@ light {
 
 The `penumbra` is specified as a value between 0 and 1 representing the proportion of the total spotlight cone that should be blurred. The default is `1` (meaning the blur is spread right across the cone). A value of zero results in a completely sharp edge:
 
-![Sharp spotlight](images/spotlight-sharp.png)
+![Sharp spotlight](../images/spotlight-sharp.png)
 
 ## Debugging
 
@@ -169,7 +169,7 @@ debug light {
 }
 ```swift
 
-![Debugging a spotlight](images/spotlight-debug.png)
+![Debugging a spotlight](../images/spotlight-debug.png)
 
 ---
 [Index](index.md) | Next: [Cameras](cameras.md)

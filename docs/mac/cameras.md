@@ -13,11 +13,11 @@ To solve this, in addition to the built-in cameras, ShapeScript also provides a 
 camera
 ```
 
-The location of the camera in the file is mostly unimportant - it will behave the same if it is placed before or after the visible geometry. Cameras added to your `.shape` file will appear in the `View > Camera` menu below the other cameras.
+The location of the camera in the file is mostly unimportant - it will behave the same if it is placed before or after the visible geometry. Cameras added to your `.shape` file will appear in the camera menu below the other cameras.
 
-![Custom camera menu](images/custom-camera-menu.png)
+![Custom camera menu](../images/custom-camera-menu.png)
 
-You may add multiple cameras to a scene and they will be named "Custom", "Custom 2", "Custom 3", and so on. You can use the `name` command to assign a more meaningful name to a given camera, and this will be reflected in the `View > Camera` menu:
+You may add multiple cameras to a scene and they will be named "Custom", "Custom 2", "Custom 3", and so on. You can use the `name` command to assign a more meaningful name to a given camera, and this will be reflected in the menu:
 
 ```swift
 camera {
@@ -39,7 +39,7 @@ camera {
 
 This code creates a camera at the coordinates `3,3,3`, which is diagonally up, right, and forwards from the center of the scene. Since we have not specified otherwise, the camera will point in the direction of the center of the scene, so you might see something like this:
 
-![Custom camera](images/custom-camera.png)
+![Custom camera](../images/custom-camera.png)
 
 ## Orientation
 
@@ -54,7 +54,7 @@ camera {
 
 This rotates the camera by 27 degrees to the left (`0.15 * 180`) and 45 degrees down (`0.25 * 180`), so that it is pointing roughly at the cone:
 
-![Custom camera orientation](images/camera-orientation.png)
+![Custom camera orientation](../images/camera-orientation.png)
 
 Cameras are also affected by [relative transforms](transforms.md#relative-transforms), so the following would be equivalent to the above:
 
@@ -83,15 +83,15 @@ camera {
 
 If you imagine your view as a cone expanding out from the camera, the field of view is the angle between the top and bottom edges of the cone. Like all angles in ShapeScript, it's measured in multiples of 180 degrees, so `fov 0.25` sets the field of view to 45 degrees - slightly narrower than the default of 60 degrees. This has the effect of *zooming-in* the camera:
 
-![Custom field of view](images/custom-fov.png)
+![Custom field of view](../images/custom-fov.png)
 
 You might think that the same effect could be achieved by simply moving the camera closer to the center of the scene, but in practice the result of this looks quite different due to the effect of perspective. To eliminate the effect of perspective, you can use an *orthographic* camera, which displays the scene without any perspective distortion.
 
 ## Orthographic View
 
-To use an orthographic camera, you can either toggle the `View > Orthographic` setting (which affects all cameras), or you can set `fov` to zero or a negative value in your script, which will override the global setting.
+To use an orthographic camera, you can either toggle the `Orthographic` menu (which affects all cameras), or you can set `fov` to zero or a negative value in your script, which will override the global setting.
 
-![Orthographic view](images/orthographic-camera.png)
+![Orthographic view](../images/orthographic-camera.png)
 
 When using an orthographic projection, the distance of the camera from an object no longer affects its size on screen. In order to control the scale at which objects appear, you can use the `size` property of the camera:
 

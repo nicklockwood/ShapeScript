@@ -1,7 +1,6 @@
 ShapeScript Help
 ---
 
-- [Overview](overview.md)
 - [Getting Started](getting-started.md)
 - [Camera Control](camera-control.md)
 - Geometry

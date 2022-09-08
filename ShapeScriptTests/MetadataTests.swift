@@ -23,9 +23,12 @@ private let projectURL = projectDirectory
     .appendingPathComponent("project.pbxproj")
 
 private let helpDirectory = projectDirectory
-    .appendingPathComponent("Help")
+    .appendingPathComponent("docs")
 
-private let helpIndexURL = helpDirectory
+private let helpSourceDirectory = helpDirectory
+    .appendingPathComponent("mac")
+
+private let helpIndexURL = helpSourceDirectory
     .appendingPathComponent("index.md")
 
 private let imagesDirectory = helpDirectory
@@ -127,7 +130,7 @@ class MetadataTests: XCTestCase {
 
         func buildLinks(_ links: [(String, String)]) throws -> String {
             try links.map { heading, path in
-                let file = helpDirectory.appendingPathComponent(path)
+                let file = helpSourceDirectory.appendingPathComponent(path)
                 let text = try String(contentsOf: file)
                 let links = findSections(in: text).map { subheading, fragment in
                     "\n        - [\(subheading)](\(path)#\(fragment))"
@@ -140,7 +143,6 @@ class MetadataTests: XCTestCase {
         ShapeScript Help
         ---
 
-        - [Overview](overview.md)
         - [Getting Started](getting-started.md)
         - [Camera Control](camera-control.md)
         - Geometry
@@ -161,7 +163,6 @@ class MetadataTests: XCTestCase {
 
     func testHelpFooterLinks() throws {
         let indexLinks = [
-            ("Overview", "overview.md"),
             ("Getting Started", "getting-started.md"),
             ("Camera Control", "camera-control.md"),
         ] + geometryLinks + syntaxLinks + [
@@ -173,7 +174,7 @@ class MetadataTests: XCTestCase {
         let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]+)\\)", options: [])
 
         for (i, (_, path)) in indexLinks.dropLast().enumerated() {
-            let fileURL = helpDirectory.appendingPathComponent(path)
+            let fileURL = helpSourceDirectory.appendingPathComponent(path)
             let text = try XCTUnwrap(String(contentsOf: fileURL))
             let nsText = text as NSString
             let range = NSRange(location: 0, length: nsText.length)
@@ -190,14 +191,14 @@ class MetadataTests: XCTestCase {
     }
 
     func testHelpLinks() throws {
-        let enumerator =
-            try XCTUnwrap(FileManager.default.enumerator(atPath: helpDirectory.path))
+        let fm = FileManager.default
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
 
         let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
 
         var referencedImages = Set<String>()
         for case let file as String in enumerator where file.hasSuffix(".md") {
-            let fileURL = helpDirectory.appendingPathComponent(file)
+            let fileURL = helpSourceDirectory.appendingPathComponent(file)
             let text = try XCTUnwrap(String(contentsOf: fileURL))
             let nsText = text as NSString
             var range = NSRange(location: 0, length: nsText.length)
@@ -217,8 +218,8 @@ class MetadataTests: XCTestCase {
                         url = fileURL.path
                     }
                 }
-                let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpDirectory)
-                guard FileManager.default.fileExists(atPath: absoluteURL.path) else {
+                let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpSourceDirectory)
+                guard fm.fileExists(atPath: absoluteURL.path) else {
                     XCTFail("\(url) referenced in \(file) does not exist")
                     continue
                 }
@@ -241,9 +242,7 @@ class MetadataTests: XCTestCase {
             }
         }
 
-        let imagesEnumerator =
-            try XCTUnwrap(FileManager.default.enumerator(atPath: imagesDirectory.path))
-
+        let imagesEnumerator = try XCTUnwrap(fm.enumerator(atPath: imagesDirectory.path))
         for case let file as String in imagesEnumerator where file.hasSuffix(".png") {
             if !referencedImages.contains(file) {
                 XCTFail("Image \(file) not referenced in help")
@@ -254,7 +253,7 @@ class MetadataTests: XCTestCase {
     // MARK: Examples
 
     func testExamplesAllListedInHelp() throws {
-        let examplesHelpURL = helpDirectory.appendingPathComponent("examples.md")
+        let examplesHelpURL = helpSourceDirectory.appendingPathComponent("examples.md")
         let examplesHelp = try String(contentsOf: examplesHelpURL)
         let exampleHeadings = findHeadings(in: examplesHelp)
         let exampleFileNames = exampleURLs.map { $0.deletingPathExtension().lastPathComponent }

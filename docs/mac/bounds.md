@@ -28,7 +28,7 @@ cube {
 }
 ```
 
-![Star with unit cube](images/star-with-unit-cube.png)
+![Star with unit cube](../images/star-with-unit-cube.png)
 
 We can see that the star is larger than the unit cube, but other than trial-and-error or complex math, how can we get the exact size? This is where the `bounds` [member property](expressions.md#members) comes in.
 
@@ -58,7 +58,7 @@ cube {
 }
 ```
 
-![Star with fitted cube](images/star-with-fitted-cube.png)
+![Star with fitted cube](../images/star-with-fitted-cube.png)
 
 ## Path Bounds
 
@@ -79,7 +79,7 @@ square {
 }
 ```
 
-![Star with fitted rectangle](images/star-with-fitted-rect.png)
+![Star with fitted rectangle](../images/star-with-fitted-rect.png)
 
 ## Bounds Members
 

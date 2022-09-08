@@ -3,13 +3,13 @@ Export
 
 Once you've finished crafting your 3D model, you'll probably want to *do something* with it. For that you will need to use the *Export* feature.
 
-**Export is a paid upgrade that can be unlocked via in-app purchase in the [ShapeScript App](https://apps.apple.com/app/id1441135869). Export is not available in the free ShapesScript Viewer.**
+**Export is a paid upgrade that can be unlocked via in-app purchase in the [ShapeScript Mac App](https://apps.apple.com/app/id1441135869). Export is not available in the free ShapesScript Viewer for Mac and iOS.**
 
 To export your model, select the `File > Purchase Export Feature…`  menu (**Cmd-Shift-E**) to unlock the export functionality. Once unlocked, this menu will change to `Export…`.
 
-**Note:** If the `Export…` menu is grayed-out, it is most likely because your model is still being generated. Wait for the loading spinner in the top-left of the ShapeScript document window to finish before trying to export.
+**Note:** If the `Export…` menu is grayed-out, it is most likely because your model is still loading. Wait for the loading spinner in the top-left of the ShapeScript document window to finish before trying to export.
 
-![Generating](images/generating.png)
+![Loading](../images/loading.png)
 
 ShapeScript can export your model in a variety of formats, selectable from the export window:
 

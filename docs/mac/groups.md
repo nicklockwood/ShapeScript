@@ -34,7 +34,7 @@ group {
 }
 ```
 
-![Group](images/group.png)
+![Group](../images/group.png)
 
 Changes made to the transform or material are [scoped](scope.md) to the group, and will not carry beyond the closing `}`.
 

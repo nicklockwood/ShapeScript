@@ -17,7 +17,7 @@ To alter the size of the cube, you can pass a [block](blocks.md) containing a `s
 cube { size 1 2 }
 ```
 
-![Box](images/box.png)
+![Box](../images/box.png)
 
 You can also rotate and position the cube using the `orientation` and `position` options, as follows:
 
@@ -39,7 +39,7 @@ The `sphere` primitive creates a spherical ball. Again, `size` can be used to co
 sphere { size 1 }
 ```
 
-![Sphere](images/sphere.png)
+![Sphere](../images/sphere.png)
 
 You may notice that the sphere doesn't look very smooth. As mentioned in the [getting started section](getting-started.md), 3D shapes in ShapeScript are made up of triangles, so curves cannot be represented exactly, only approximated.
 
@@ -52,7 +52,7 @@ sphere {
 }
 ```
 
-![Smoother sphere](images/smoother-sphere.png)
+![Smoother sphere](../images/smoother-sphere.png)
 
 You can also pass multiple parameters to `size` to create a *spheroid*:
 
@@ -63,7 +63,7 @@ sphere {
 }
 ```
 
-![Spheroid](images/spheroid.png)
+![Spheroid](../images/spheroid.png)
 
 ## Cylinder
 
@@ -73,7 +73,7 @@ The `cylinder` primitive creates a flat-ended cylinder.
 cylinder { size 1 }
 ```
 
-![Cylinder](images/cylinder.png)
+![Cylinder](../images/cylinder.png)
 
 Like the `sphere` primitive, `cylinder` uses the `detail` command to control its smoothness. If you require a cylinder that is longer or shorter, you can pass a second parameter to the `size` to control the diameter and length independently:
 
@@ -92,7 +92,7 @@ The `cone` primitive creates a conical shape:
 cone { size 1 }
 ```
 
-![Cone](images/cone.png)
+![Cone](../images/cone.png)
 
 Like `sphere` and `cylinder`, its smoothness is controlled by the `detail` command, and the diameter and length can be controlled independently by passing additional parameters to `size`:
 
