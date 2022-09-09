@@ -284,6 +284,10 @@ class DocumentViewController: NSViewController {
         }
         scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
         document?.rerender()
+        updateAxesAndCamera()
+        if !cameraHasMoved {
+            resetView()
+        }
     }
 
     private func updateAxes() {
@@ -309,21 +313,22 @@ class DocumentViewController: NSViewController {
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double
+        let aspectRatio = Double(view.bounds.height / view.bounds.width)
         var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
         switch camera.type {
         case .front, .back:
-            distance = max(size.x * 0.75, size.y) + bounds.size.z / 2
-            scale = max(size.x * 0.75, size.y, size.z * 0.75)
+            distance = max(size.x * aspectRatio, size.y) + bounds.size.z / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
         case .left, .right:
-            distance = max(size.z * 0.75, size.y) + bounds.size.x / 2
-            scale = max(size.x * 0.75, size.y, size.z * 0.75)
+            distance = max(size.z * aspectRatio, size.y) + bounds.size.x / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
         case .top, .bottom:
-            distance = max(size.x * 0.75, size.z) + bounds.size.y / 2
-            scale = max(size.x * 0.75, size.y * 0.75, size.z)
+            distance = max(size.x * aspectRatio, size.z) + bounds.size.y / 2
+            scale = max(size.x * aspectRatio, size.y * aspectRatio, size.z)
             offset = Vector(0, 0, 0.000001)
         default:
-            distance = max(size.x * 0.75, size.y) + bounds.size.z / 2
-            scale = max(size.x * 0.75, size.y, size.z * 0.75)
+            distance = max(size.x * aspectRatio, size.y) + bounds.size.z / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
         }
         if showAxes {
             distance = max(distance, axisScale)
