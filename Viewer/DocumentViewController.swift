@@ -168,22 +168,9 @@ class DocumentViewController: NSViewController {
         set { newValue?.configureProperty(scnScene.background) }
     }
 
-    private var lastBounds: Bounds = .empty
-
     var geometry: Geometry? {
         didSet {
             refreshGeometry()
-            if let bounds = geometry?.bounds, !bounds.isEmpty,
-               !bounds.intersects(lastBounds) || bounds
-               .containsPoint(Vector(cameraNode.position)),
-               !cameraHasMoved
-            {
-                lastBounds = bounds
-                updateAxesAndCamera()
-                resetView()
-            } else {
-                refreshView()
-            }
         }
     }
 
@@ -191,14 +178,15 @@ class DocumentViewController: NSViewController {
         // clear scene
         scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
 
-        // add axes
-        updateAxes()
+        // update axes
+        updateAxesAndCamera()
 
         // restore selection
         selectGeometry(selectedGeometry?.scnGeometry)
 
         guard let geometry = geometry, !geometry.bounds.isEmpty else {
             scnView.allowsCameraControl = showAxes
+            refreshView()
             return
         }
 
@@ -209,6 +197,15 @@ class DocumentViewController: NSViewController {
 
         // update camera
         scnView.allowsCameraControl = true
+
+        // update camera
+        updateAxesAndCamera()
+        scnView.allowsCameraControl = true
+        if !cameraHasMoved {
+            resetView()
+        } else {
+            refreshView()
+        }
     }
 
     private func resetView() {
@@ -290,7 +287,8 @@ class DocumentViewController: NSViewController {
         }
     }
 
-    private func updateAxes() {
+    private func updateAxesAndCamera() {
+        // Update axes
         axesNode?.removeFromParentNode()
         if showAxes {
             let axesNode = SCNNode(Axes(
@@ -302,10 +300,6 @@ class DocumentViewController: NSViewController {
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
             self.axesNode = axesNode
         }
-    }
-
-    private func updateAxesAndCamera() {
-        updateAxes()
         // Update camera node
         guard let bounds = geometry?.bounds else {
             return
