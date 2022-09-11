@@ -722,7 +722,9 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        #if os(macOS)
+        XCTAssertEqual(delegate.log, ["Times-Roman"])
+        #endif
     }
 
     func testFontInBlockCallScope() throws {
@@ -738,7 +740,9 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        #if os(macOS)
+        XCTAssertEqual(delegate.log, ["Times-Roman"])
+        #endif
     }
 
     func testFontInBlockCall() throws {
@@ -753,6 +757,8 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        #if os(macOS)
+        XCTAssertEqual(delegate.log, ["Times-Roman"])
+        #endif
     }
 }

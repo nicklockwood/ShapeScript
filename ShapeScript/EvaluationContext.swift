@@ -268,7 +268,7 @@ extension EvaluationContext {
         guard [".otf", ".ttf", ".ttc"].contains(where: {
             name.lowercased().hasSuffix($0)
         }) else {
-            guard CGFont(name as CFString) != nil else {
+            guard let cgFont = CGFont(name as CFString) else {
                 var options = [String]()
                 #if canImport(CoreText)
                 options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
@@ -278,7 +278,7 @@ extension EvaluationContext {
                 // been imported by another file in the meantime
                 throw RuntimeErrorType.unknownFont(name, options: options)
             }
-            return name
+            return cgFont.postScriptName as String? ?? name
         }
         let url = try resolveURL(for: name)
         guard let dataProvider = CGDataProvider(url: url as CFURL) else {
@@ -290,7 +290,7 @@ extension EvaluationContext {
         else {
             throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
         }
-        return cgFont.fullName as String? ?? ""
+        return cgFont.postScriptName as String? ?? name
         #endif
         #else
         return name

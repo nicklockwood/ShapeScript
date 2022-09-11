@@ -1391,7 +1391,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(context.font, "Edge-of-the-Galaxy")
         #endif
     }
 
