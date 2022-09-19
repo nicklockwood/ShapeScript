@@ -155,6 +155,21 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testPrintNot() {
+        let input = "print not"
+        let printRange = input.range(of: "print")!
+        let notRange = input.range(of: "not")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "print", range: printRange),
+                    Expression(type: .identifier("not"), range: notRange)
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
     func testUnterminatedInfixExpression() {
         let input = "define foo 1 +"
         let range = input.endIndex ..< input.endIndex

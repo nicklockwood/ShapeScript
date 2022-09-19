@@ -314,7 +314,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.black, Color.white])
     }
 
-    func testeOverrideColorInBlockScope() {
+    func testOverrideColorInBlockScope() {
         let program = """
         define black white
         define foo {
@@ -1992,6 +1992,30 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testPrintTo() {
+        let program = """
+        define to 5
+        print to
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            guard case .unexpectedToken(_, expected: "end value") = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testPrintToInParens() {
+        let program = """
+        define to 5
+        print (to)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     // MARK: If/else
 
     func testIfTrue() {
@@ -2418,6 +2442,30 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true, true, false])
     }
 
+    func testPrintOr() {
+        let program = """
+        define or 5
+        print or
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            guard case .unexpectedToken(_, expected: "operand") = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testPrintOrInParens() {
+        let program = """
+        define or 5
+        print (or)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     func testNotVsComparisonOperators() {
         let program = """
         print not 1 > 3
@@ -2459,6 +2507,16 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [true, true, true])
+    }
+
+    func testPrintNot() {
+        let program = """
+        define not 5
+        print not
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
     }
 
     func testMisspelledAndOperator() {

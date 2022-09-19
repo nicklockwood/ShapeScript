@@ -464,7 +464,9 @@ private extension ArraySlice where Element == Token {
     mutating func readComparison() throws -> Expression? {
         let not = nextToken.type == .identifier("not") ? readToken() : nil
         guard var lhs = try readStep() else {
-            return nil
+            return not.map {
+                Expression(type: .identifier("not"), range: $0.range)
+            }
         }
         if case let .infix(op) = nextToken.type, [
             .lt, .lte, .gt, .gte, .equal, .unequal,
