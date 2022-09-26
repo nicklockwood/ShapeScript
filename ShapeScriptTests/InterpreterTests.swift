@@ -341,6 +341,17 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
+    func testOptionReferencedInDefine() {
+        let program = """
+        define foo {
+            option bar 5
+            define baz bar/2
+        }
+        foo { bar 6 }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     func testOptionInvalidInFunctionDefine() {
         let program = """
         define foo() {

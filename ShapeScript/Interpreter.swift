@@ -605,9 +605,9 @@ extension Definition {
                 for statement in block.statements {
                     switch statement.type {
                     case let .option(identifier, expression):
-                        let type = try expression.staticType(in: context) ??
-                            expression.evaluate(in: context).type
-                        options[identifier.name] = type
+                        let value = try expression.evaluate(in: context)
+                        options[identifier.name] = value.type
+                        context.define(identifier.name, as: .constant(value))
                     case .define:
                         try statement.evaluate(in: context)
                     case .command, .forloop, .ifelse, .expression, .import:
