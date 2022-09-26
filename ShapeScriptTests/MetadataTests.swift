@@ -392,6 +392,10 @@ class MetadataTests: XCTestCase {
             XCTFail("Help directory for \(shapeScriptVersion) not found")
             return
         }
+        let attrs = try fm.attributesOfItem(atPath: outputDirectory.path)
+        if attrs[.type] as? FileAttributeType == .typeSymbolicLink {
+            return
+        }
         try? fm.removeItem(at: outputDirectory)
         for subdir in ["mac", "ios"] {
             let helpDir = helpDirectory.appendingPathComponent(subdir)

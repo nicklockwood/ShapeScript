@@ -242,13 +242,15 @@ public extension Geometry {
             } ?? .empty) { bounds, child in
                 bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
+        case .union, .xor, .group:
+            return Bounds(bounds: children.map {
+                $0.bounds.transformed(by: $0.transform)
+            })
         case .cone, .cube, .cylinder, .sphere, .path, .mesh,
-             .lathe, .fill, .extrude, .loft,
-             .union, .xor, .group,
-             .camera, .light:
-            return children.reduce(into: type.bounds) { bounds, child in
-                bounds.formUnion(child.bounds.transformed(by: child.transform))
-            }
+             .lathe, .fill, .extrude, .loft:
+            return type.bounds
+        case .camera, .light:
+            return .empty
         }
     }
 

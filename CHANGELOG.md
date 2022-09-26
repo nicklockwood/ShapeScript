@@ -1,3 +1,13 @@
+## [1.5.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.7) (2022-09-26)
+
+- Fixed bug where a `define` inside a block couldn't refer to `option` value
+- Fixed bug when parsing expressions ending in a `not` identifier
+- Fixed bug where view unexpectedly jumped to custom camera after reload
+- Bumped Euclid to version 0.5.30
+- Bumped LRUCache to version 1.0.3
+- Bumped SVGPath to version 1.1.1
+- Added iOS help pages
+
 ## [1.5.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.6) (2022-09-06)
 
 - Added ability to copy the current camera configuration for easy creation of custom cameras

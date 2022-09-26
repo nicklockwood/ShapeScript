@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.5.6"
+public let version = "1.5.7"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
