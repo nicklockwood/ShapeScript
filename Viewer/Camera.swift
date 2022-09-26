@@ -36,13 +36,6 @@ struct Camera {
 extension Camera: Equatable {
     static let `default` = Self(type: .front)
 
-    static func == (lhs: Camera, rhs: Camera) -> Bool {
-        lhs.type == rhs.type &&
-            lhs.name == rhs.name &&
-            lhs.settings == rhs.settings &&
-            lhs.geometry?.transform == rhs.geometry?.transform
-    }
-
     init(type: CameraType) {
         self.type = type
     }
@@ -73,15 +66,15 @@ extension Camera: Equatable {
     }
 
     var hasPosition: Bool {
-        settings?.hasPosition ?? false
+        settings?.position != nil
     }
 
     var hasOrientation: Bool {
-        settings?.hasOrientation ?? false
+        settings?.orientation != nil
     }
 
     var hasScale: Bool {
-        settings?.hasScale ?? false
+        settings?.scale != nil
     }
 
     var background: MaterialProperty? {

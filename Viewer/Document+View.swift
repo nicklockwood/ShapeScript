@@ -164,7 +164,9 @@ extension Document {
             }
             if !oldCameras.isEmpty {
                 var didUpdateCamera = false
-                for (old, new) in zip(oldCameras, cameras) where old != new {
+                for (old, new) in zip(oldCameras, cameras)
+                    where old.type != new.type || old.settings != new.settings
+                {
                     camera = new
                     didUpdateCamera = true
                     break

@@ -25,9 +25,9 @@ class GeometryTests: XCTestCase {
         )
         let camera = Geometry(
             type: .camera(Camera(
-                hasPosition: false,
-                hasOrientation: false,
-                hasScale: false
+                position: nil,
+                orientation: nil,
+                scale: nil
             )),
             name: nil,
             transform: Transform(

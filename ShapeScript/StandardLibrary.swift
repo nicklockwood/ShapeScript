@@ -142,19 +142,14 @@ extension Dictionary where Key == String, Value == Symbol {
             "spread": .number,
             "penumbra": .number,
         ])) { context in
-            var hasPosition = false, hasOrientation = false
-            if let position = context.value(for: "position")?.value as? Vector {
-                context.transform.offset = position
-                hasPosition = true
-            }
-            if let orientation = context.value(for: "orientation")?.value as? Rotation {
-                context.transform.rotation = orientation
-                hasOrientation = true
-            }
+            let position = context.value(for: "position")?.value as? Vector
+            position.map { context.transform.offset = $0 }
+            let orientation = context.value(for: "orientation")?.value as? Rotation
+            orientation.map { context.transform.rotation = $0 }
             return .mesh(Geometry(
                 type: .light(Light(
-                    hasPosition: hasPosition,
-                    hasOrientation: hasOrientation,
+                    position: position,
+                    orientation: orientation,
                     color: context.value(for: "color")?.colorValue ?? .white,
                     spread: context.value(for: "spread")?.angleValue ?? (.pi / 4),
                     penumbra: context.value(for: "penumbra")?.doubleValue ?? 1
@@ -405,24 +400,17 @@ extension Dictionary where Key == String, Value == Symbol {
             "width": .number,
             "height": .number,
         ])) { context in
-            var hasPosition = false, hasOrientation = false, hasScale = false
-            if let position = context.value(for: "position")?.value as? Vector {
-                context.transform.offset = position
-                hasPosition = true
-            }
-            if let orientation = context.value(for: "orientation")?.value as? Rotation {
-                context.transform.rotation = orientation
-                hasOrientation = true
-            }
-            if let size = context.value(for: "size")?.value as? Vector {
-                context.transform.scale = size
-                hasScale = true
-            }
+            let position = context.value(for: "position")?.value as? Vector
+            position.map { context.transform.offset = $0 }
+            let orientation = context.value(for: "orientation")?.value as? Rotation
+            orientation.map { context.transform.rotation = $0 }
+            let scale = context.value(for: "size")?.value as? Vector
+            scale.map { context.transform.scale = $0 }
             return .mesh(Geometry(
                 type: .camera(Camera(
-                    hasPosition: hasPosition,
-                    hasOrientation: hasOrientation,
-                    hasScale: hasScale,
+                    position: position,
+                    orientation: orientation,
+                    scale: scale,
                     background: context.background,
                     fov: context.value(for: "fov")?.angleValue,
                     width: context.value(for: "width")?.doubleValue,

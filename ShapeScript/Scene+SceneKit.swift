@@ -349,9 +349,9 @@ public extension Geometry {
                 transform.scale *= scnCamera.orthographicScale
             }
             type = .camera(Camera(
-                hasPosition: true,
-                hasOrientation: true,
-                hasScale: isOrtho,
+                position: transform.offset,
+                orientation: transform.rotation,
+                scale: isOrtho ? transform.scale : nil,
                 background: nil,
                 fov: .degrees(isOrtho ? 0 : Double(scnCamera.fieldOfView)),
                 width: nil,

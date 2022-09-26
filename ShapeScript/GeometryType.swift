@@ -9,21 +9,55 @@
 import Euclid
 
 public struct Camera: Hashable {
-    public var hasPosition: Bool
-    public var hasOrientation: Bool
-    public var hasScale: Bool
+    public var position: Vector?
+    public var orientation: Rotation?
+    public var scale: Vector?
     public var background: MaterialProperty?
     public var fov: Angle?
     public var width: Double?
     public var height: Double?
 }
 
+public extension Camera {
+    var hasPosition: Bool {
+        get { position != nil }
+        @available(*, deprecated, message: "Obsolete. Use position instead.")
+        set { position = newValue ? .zero : nil }
+    }
+
+    var hasOrientation: Bool {
+        get { orientation != nil }
+        @available(*, deprecated, message: "Obsolete. Use orientation instead.")
+        set { orientation = newValue ? .identity : nil }
+    }
+
+    var hasScale: Bool {
+        get { scale != nil }
+        @available(*, deprecated, message: "Obsolete. Use scale instead.")
+        set { scale = newValue ? .one : nil }
+    }
+}
+
 public struct Light: Hashable {
-    public var hasPosition: Bool
-    public var hasOrientation: Bool
+    public var position: Vector?
+    public var orientation: Rotation?
     public var color: Color
     public var spread: Angle
     public var penumbra: Double
+}
+
+public extension Light {
+    var hasPosition: Bool {
+        get { position != nil }
+        @available(*, deprecated, message: "Obsolete. Use position instead.")
+        set { position = newValue ? .zero : nil }
+    }
+
+    var hasOrientation: Bool {
+        get { orientation != nil }
+        @available(*, deprecated, message: "Obsolete. Use orientation instead.")
+        set { orientation = newValue ? .identity : nil }
+    }
 }
 
 public enum GeometryType: Hashable {
