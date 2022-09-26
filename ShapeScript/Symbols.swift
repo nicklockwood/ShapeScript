@@ -57,33 +57,12 @@ enum ValueType: Hashable {
     case range
     case void
     case bounds
+    case any
     indirect case union([ValueType])
 }
 
 extension ValueType {
     static let colorOrTexture: ValueType = .union([.color, .texture])
-
-    static let any: ValueType = .union([
-        .color,
-        .texture,
-        .boolean,
-        .font,
-        .number,
-        .vector,
-        .size,
-        .rotation,
-        .string,
-        .text,
-        .path,
-        .paths,
-        .mesh,
-        .tuple,
-        .point,
-        .pair,
-        .range,
-        .void,
-        .bounds,
-    ])
 
     var subtypes: [ValueType] {
         switch self {
@@ -115,8 +94,22 @@ extension ValueType {
         case .range: return "range"
         case .void: return "void"
         case .bounds: return "bounds"
+        case .any: return "any"
         case let .union(types):
             return types.errorDescription
+        }
+    }
+
+    func isSubtype(of type: ValueType) -> Bool {
+        switch (self, type) {
+        case (_, .any):
+            return true
+        case let (.union(lhs), rhs):
+            return lhs.allSatisfy { $0.isSubtype(of: rhs) }
+        case let (_, .union(types)):
+            return types.contains(where: isSubtype(of:))
+        default:
+            return self == type
         }
     }
 }
@@ -397,7 +390,8 @@ extension Value {
 
     func isConvertible(to type: ValueType) -> Bool {
         switch (self, type) {
-        case (.boolean, .string),
+        case (_, .any),
+             (.boolean, .string),
              (.boolean, .text),
              (.number, .string),
              (.number, .text),
