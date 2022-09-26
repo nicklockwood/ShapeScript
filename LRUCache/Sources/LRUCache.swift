@@ -33,7 +33,7 @@
 
 import Foundation
 
-#if canImport(UIKit)
+#if os(iOS) || os(tvOS)
 import UIKit
 
 /// Notification that cache should be cleared
@@ -104,6 +104,19 @@ public extension LRUCache {
     /// Is the cache empty?
     var isEmpty: Bool {
         values.isEmpty
+    }
+
+    /// Returns all values in the cache from oldest to newest
+    var allValues: [Value] {
+        lock.lock()
+        defer { lock.unlock() }
+        var values = [Value]()
+        var next = head
+        while let container = next {
+            values.append(container.value)
+            next = container.next
+        }
+        return values
     }
 
     /// Insert a value into the cache with optional `cost`
@@ -182,7 +195,7 @@ private extension LRUCache {
         }
     }
 
-    // Remove container from list
+    // Remove container from list (must be called inside lock)
     func remove(_ container: Container) {
         if head === container {
             head = container.next
@@ -195,7 +208,7 @@ private extension LRUCache {
         container.next = nil
     }
 
-    // Append container to list
+    // Append container to list (must be called inside lock)
     func append(_ container: Container) {
         assert(container.next == nil)
         if head == nil {
@@ -206,6 +219,7 @@ private extension LRUCache {
         tail = container
     }
 
+    // Remove expired values (must be called outside lock)
     func clean() {
         lock.lock()
         defer { lock.unlock() }
