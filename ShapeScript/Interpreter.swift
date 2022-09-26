@@ -284,7 +284,7 @@ public extension RuntimeError {
             default:
                 break
             }
-            type = type.isEmpty ? "" : " of type \(type)"
+            type = ["", "any"].contains(type) ? "" : " of type \(type)"
             let name = name.isEmpty ? "Function" : "The \(name) function"
             if index == 0 {
                 return "\(name) expects an argument\(type)."
@@ -856,8 +856,7 @@ extension EvaluationContext {
                 children.append(.point(v.transformed(by: childTransform)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
-            case _ where !childTypes.subtypes.contains(value.type) &&
-                childTypes.subtypes.contains(.text):
+            case _ where childTypes.subtypes.contains(.text):
                 children.append(.text(TextValue(
                     string: value.stringValue,
                     font: self.value(for: "font")?.stringValue ?? font,
@@ -1020,7 +1019,7 @@ extension Statement {
 }
 
 extension Expression {
-    func staticType(in context: EvaluationContext) throws -> ValueType? {
+    func staticType(in context: EvaluationContext) throws -> ValueType {
         switch type {
         case .number:
             return .number
@@ -1039,7 +1038,7 @@ extension Expression {
             case .command:
                 return .void
             case .function, .block:
-                return nil
+                return .any
             case let .property(type, _, _):
                 return type
             case let .constant(value):
@@ -1054,7 +1053,7 @@ extension Expression {
             case .command:
                 return .void
             case .block, .function:
-                return nil
+                return .any
             case .property, .constant:
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
@@ -1081,7 +1080,7 @@ extension Expression {
                 case .command:
                     return .void
                 case .function, .block:
-                    return nil
+                    return .any
                 case .property, .constant:
                     return .tuple
                 }
@@ -1106,7 +1105,7 @@ extension Expression {
             return .boolean
         case .member:
             // TODO: This should be possible to get
-            return nil
+            return .any
         case let .subexpression(expression):
             return try expression.staticType(in: context)
         }
@@ -1421,6 +1420,8 @@ extension Expression {
             return values[0]
         }
         switch type {
+        case .any:
+            return values.count == 1 ? values[0] : .tuple(values)
         case .color:
             // TODO: find less hacky way to do this unwrap
             if values.count == 1, case let .tuple(values) = values[0],
