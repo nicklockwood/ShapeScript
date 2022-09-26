@@ -226,6 +226,89 @@ public struct SVGPath: Hashable {
     }
 }
 
+public extension SVGPath {
+    func getPoints(_ points: inout [SVGPoint], detail: Int) {
+        for command in commands {
+            command.getPoints(&points, detail: detail)
+        }
+    }
+
+    func points(withDetail detail: Int) -> [SVGPoint] {
+        var points = [SVGPoint]()
+        getPoints(&points, detail: detail)
+        return points
+    }
+
+    struct WriteOptions {
+        public static let `default` = Self()
+
+        public var prettyPrinted: Bool
+        public var wrapWidth: Int
+
+        public init(prettyPrinted: Bool = true, wrapWidth: Int = .max) {
+            self.prettyPrinted = prettyPrinted
+            self.wrapWidth = wrapWidth
+        }
+    }
+
+    func string(with options: WriteOptions) -> String {
+        var output = ""
+        var width = 0
+
+        func append(_ string: String) {
+            let spaced = width > 0 && (
+                options.prettyPrinted ||
+                    (string.first?.isDigit ?? false) &&
+                    (output.last?.isDigit ?? false)
+            )
+
+            let w = string.count
+            if width + w + (spaced ? 1 : 0) > options.wrapWidth {
+                output += "\n"
+                width = 0
+            } else if spaced {
+                output += " "
+                width += 1
+            }
+            output += string
+            width += w
+        }
+
+        func append(_ cmd: String, _ numbers: Double...) {
+            append("\(cmd)\(String(format: "%g", numbers[0]))")
+            numbers.dropFirst().forEach { append(String(format: "%g", $0)) }
+        }
+
+        for command in commands {
+            switch command {
+            case let .moveTo(point):
+                append("M", point.x, -point.y)
+            case let .lineTo(point):
+                append("L", point.x, -point.y)
+            case let .cubic(c1, c2, point):
+                append("C", c1.x, -c1.y, c2.x, -c2.y, point.x, -point.y)
+            case let .quadratic(control, point):
+                append("Q", control.x, -control.y, point.x, -point.y)
+            case let .arc(arc):
+                let rad = arc.radius, end = arc.end
+                let rot = arc.rotation / .pi * 180
+                let large = arc.largeArc ? 1.0 : 0
+                let sweep = arc.sweep ? 1.0 : 0
+                append("A", rad.x, rad.y, rot, large, sweep, end.x, -end.y)
+            case .end:
+                append("Z")
+            }
+        }
+        return output
+    }
+}
+
+private extension Character {
+    var isDigit: Bool {
+        isASCII && isWholeNumber
+    }
+}
+
 public enum SVGError: Error, Hashable {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
@@ -282,6 +365,69 @@ public extension SVGCommand {
             return control2
         case .moveTo, .lineTo, .quadratic, .arc, .end:
             return nil
+        }
+    }
+
+    func getPoints(_ points: inout [SVGPoint], detail: Int) {
+        var start: Int?
+        for (i, point) in points.enumerated() {
+            if let j = start {
+                if points[j] == point {
+                    start = nil
+                }
+            } else {
+                start = i
+            }
+        }
+
+        func endSubpath() {
+            if start == points.count - 1 {
+                points.removeLast()
+            } else if let start = start {
+                points.append(points[start])
+            }
+        }
+
+        let popLast = start != nil
+        let last = points.last ?? .zero
+
+        switch self {
+        case let .moveTo(point):
+            endSubpath()
+            points.append(point)
+        case let .lineTo(point):
+            if !popLast {
+                points.append(last)
+            }
+            points.append(point)
+        case let .cubic(control1, control2, point):
+            if popLast {
+                _ = points.popLast()
+            }
+            let step = 1.0 / Double(detail)
+            for t in stride(from: 0, through: 1.0, by: step) {
+                points.append(SVGPoint(
+                    x: cubicBezier(last.x, control1.x, control2.x, point.x, t),
+                    y: cubicBezier(last.y, control1.y, control2.y, point.y, t)
+                ))
+            }
+        case let .quadratic(control, point):
+            if popLast {
+                _ = points.popLast()
+            }
+            let step = 1.0 / Double(detail)
+            for t in stride(from: 0, through: 1.0, by: step) {
+                points.append(SVGPoint(
+                    x: quadraticBezier(last.x, control.x, point.x, t),
+                    y: quadraticBezier(last.y, control.y, point.y, t)
+                ))
+            }
+        case let .arc(arc):
+            for command in arc.asBezierPath(from: last) {
+                command.getPoints(&points, detail: detail)
+            }
+        case .end:
+            endSubpath()
         }
     }
 
@@ -345,22 +491,6 @@ public extension SVGArc {
         let cx = end.x, cy = end.y
         let sinphi = sin(xr), cosphi = cos(xr)
 
-        func vectorAngle(
-            _ ux: Double, _ uy: Double,
-            _ vx: Double, _ vy: Double
-        ) -> Double {
-            let sign = (ux * vy - uy * vx < 0) ? -1.0 : 1.0
-            let umag = sqrt(ux * ux + uy * uy), vmag = sqrt(vx * vx + vy * vy)
-            let dot = ux * vx + uy * vy
-            return sign * acos(max(-1, min(1, dot / (umag * vmag))))
-        }
-
-        func toEllipse(_ x: Double, _ y: Double) -> SVGPoint {
-            let x = x * rx, y = y * ry
-            let xp = cosphi * x - sinphi * y, yp = sinphi * x + cosphi * y
-            return SVGPoint(x: xp + centerx, y: yp + centery)
-        }
-
         let dx = (px - cx) / 2, dy = (py - cy) / 2
         let pxp = cosphi * dx + sinphi * dy, pyp = -sinphi * dx + cosphi * dy
         if pxp == 0, pyp == 0 {
@@ -385,6 +515,22 @@ public extension SVGArc {
 
         let centerx = cosphi * centerxp - sinphi * centeryp + (px + cx) / 2
         let centery = sinphi * centerxp + cosphi * centeryp + (py + cy) / 2
+
+        func vectorAngle(
+            _ ux: Double, _ uy: Double,
+            _ vx: Double, _ vy: Double
+        ) -> Double {
+            let sign = (ux * vy - uy * vx < 0) ? -1.0 : 1.0
+            let umag = sqrt(ux * ux + uy * uy), vmag = sqrt(vx * vx + vy * vy)
+            let dot = ux * vx + uy * vy
+            return sign * acos(max(-1, min(1, dot / (umag * vmag))))
+        }
+
+        func toEllipse(_ x: Double, _ y: Double) -> SVGPoint {
+            let x = x * rx, y = y * ry
+            let xp = cosphi * x - sinphi * y, yp = sinphi * x + cosphi * y
+            return SVGPoint(x: xp + centerx, y: yp + centery)
+        }
 
         let vx1 = (pxp - centerxp) / rx, vy1 = (pyp - centeryp) / ry
         let vx2 = (-pxp - centerxp) / rx, vy2 = (-pyp - centeryp) / ry
@@ -418,4 +564,33 @@ public extension SVGArc {
         arc.end = arc.end + last
         return arc
     }
+}
+
+private func quadraticBezier(
+    _ p0: Double,
+    _ p1: Double,
+    _ p2: Double,
+    _ t: Double
+) -> Double {
+    let oneMinusT = 1 - t
+    let c0 = oneMinusT * oneMinusT * p0
+    let c1 = 2 * oneMinusT * t * p1
+    let c2 = t * t * p2
+    return c0 + c1 + c2
+}
+
+private func cubicBezier(
+    _ p0: Double,
+    _ p1: Double,
+    _ p2: Double,
+    _ p3: Double,
+    _ t: Double
+) -> Double {
+    let oneMinusT = 1 - t
+    let oneMinusTSquared = oneMinusT * oneMinusT
+    let c0 = oneMinusTSquared * oneMinusT * p0
+    let c1 = 3 * oneMinusTSquared * t * p1
+    let c2 = 3 * oneMinusT * t * t * p2
+    let c3 = t * t * t * p3
+    return c0 + c1 + c2 + c3
 }

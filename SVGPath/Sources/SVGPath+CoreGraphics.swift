@@ -34,6 +34,8 @@
 import CoreGraphics
 import Foundation
 
+// MARK: SVGPath to CGPath
+
 public extension CGPath {
     static func from(svgPath: String) throws -> CGPath {
         from(svgPath: try SVGPath(string: svgPath))
@@ -50,12 +52,6 @@ public extension CGPath {
 public extension CGPoint {
     init(_ svgPoint: SVGPoint) {
         self.init(x: svgPoint.x, y: svgPoint.y)
-    }
-}
-
-public extension SVGPoint {
-    init(_ cgPoint: CGPoint) {
-        self.init(x: Double(cgPoint.x), y: Double(cgPoint.y))
     }
 }
 
@@ -81,6 +77,66 @@ private extension CGMutablePath {
             arc.asBezierPath(from: SVGPoint(currentPoint)).forEach(addCommand)
         case .end:
             closeSubpath()
+        }
+    }
+}
+
+// MARK: CGPath to SVGPath
+
+public extension SVGPath {
+    init(cgPath: CGPath) {
+        var commands = [SVGCommand]()
+        cgPath.enumerate {
+            let command: SVGCommand
+            switch $0.type {
+            case .moveToPoint:
+                command = .moveTo(SVGPoint($0.points[0]))
+            case .closeSubpath:
+                command = .end
+            case .addLineToPoint:
+                command = .lineTo(SVGPoint($0.points[0]))
+            case .addQuadCurveToPoint:
+                let p1 = $0.points[0], p2 = $0.points[1]
+                command = .quadratic(SVGPoint(p1), SVGPoint(p2))
+            case .addCurveToPoint:
+                let p1 = $0.points[0], p2 = $0.points[1], p3 = $0.points[2]
+                command = .cubic(SVGPoint(p1), SVGPoint(p2), SVGPoint(p3))
+            @unknown default:
+                return
+            }
+            commands.append(command)
+        }
+        self.init(commands: commands)
+    }
+}
+
+public extension SVGPoint {
+    init(_ cgPoint: CGPoint) {
+        self.init(x: Double(cgPoint.x), y: Double(cgPoint.y))
+    }
+}
+
+extension CGPath {
+    func enumerate(_ fn: @convention(block) (CGPathElement) -> Void) {
+        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
+            applyWithBlock { fn($0.pointee) }
+            return
+        }
+
+        // Fallback for earlier OSes
+        typealias Block = @convention(block) (CGPathElement) -> Void
+        let callback: @convention(c) (
+            UnsafeMutableRawPointer,
+            UnsafePointer<CGPathElement>
+        ) -> Void = { info, element in
+            unsafeBitCast(info, to: Block.self)(element.pointee)
+        }
+        withoutActuallyEscaping(fn) { block in
+            let block = unsafeBitCast(block, to: UnsafeMutableRawPointer.self)
+            self.apply(info: block, function: unsafeBitCast(
+                callback,
+                to: CGPathApplierFunction.self
+            ))
         }
     }
 }

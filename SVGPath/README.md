@@ -8,6 +8,7 @@
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Advanced Usage](#advanced-usage)
 - [Credits](#credits)
 
 
@@ -54,6 +55,51 @@ let cgPath = try CGPath.from(svgPath: "M150 0 L75 200 L225 200 Z")
 ```
 
 Once you have a `CGPath` you can render it on iOS or macOS using a CoreGraphics context or a `CAShapeLayer`.
+
+
+# Advanced Usage
+
+You can convert a `CGPath` to an `SVGPath` using the `init(cgPath:)` initializer:
+
+```swift
+let rect = CGRect(x: 0, y: 0, width: 10, height: 10)
+let cgPath = CGPath(rect: rect, transform: nil)
+let svgPath = SVGPath(cgPath: cgPath)
+```
+
+To convert an `SVGPath` back into a `String`, use the `string(with:)` method. This can be useful for exporting a `CGPath` as an SVG string:
+
+```swift
+let svgPath = SVGPath(cgPath: ...)
+let options = SVGPath.WriteOptions(prettyPrinted: true, wrapWidth: 80)
+let string = svgPath.string(with: options)
+```
+
+It's also possible to use `SVGPath` without CoreGraphics. You can iterate over the raw path components using the `commands` property:
+
+```swift
+for command in svgPath.commands {
+    switch command {
+    case .moveTo(let point):
+        ...
+    case .lineTo(let point):
+        ...
+    default:
+        ...   
+    }   
+}
+```
+
+Alternatively, you can use the `points()` or `getPoints()` methods to convert the entire path to a flar array of points at your preferred level of detail.
+
+These can be used to render the path using simple straight line segments using any graphics API you choose:
+
+```swift
+let detail = 10 // number of sample points used to represent curved segments
+let points = svgPath.points(withDetail: detail)
+```
+
+**NOTE:** coordinates are stored with inverted Y coordinates internally, to match the coordinate system used by Core Graphics on macOS/iOS.
 
 
 # Credits

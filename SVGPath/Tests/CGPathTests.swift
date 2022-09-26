@@ -9,36 +9,10 @@
 #if canImport(CoreGraphics)
 
 import CoreGraphics
-import SVGPath
+@testable import SVGPath
 import XCTest
 
 private extension CGPath {
-    func enumerate(_ block: @convention(block) (CGPathElement) -> Void) {
-        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
-            applyWithBlock { block($0.pointee) }
-            return
-        }
-
-        // Fallback for earlier OSes
-        typealias Block = @convention(block) (CGPathElement) -> Void
-        let callback: @convention(c) (
-            UnsafeMutableRawPointer,
-            UnsafePointer<CGPathElement>
-        ) -> Void = { info, element in
-            unsafeBitCast(info, to: Block.self)(element.pointee)
-        }
-        withoutActuallyEscaping(block) { block in
-            let block = unsafeBitCast(block, to: UnsafeMutableRawPointer.self)
-            self.apply(
-                info: block,
-                function: unsafeBitCast(
-                    callback,
-                    to: CGPathApplierFunction.self
-                )
-            )
-        }
-    }
-
     var elements: [CGPathElement] {
         var elements = [CGPathElement]()
         enumerate { elements.append($0) }
@@ -120,6 +94,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testTriangleString() {
@@ -150,14 +125,17 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 2, y: -2))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testHeart() throws {
-        XCTAssertNoThrow(try SVGPath(string: """
+        let svgPath = try SVGPath(string: """
         M213.1,6.7c-32.4-14.4-73.7,0-88.1,30.6C110.6,4.9,67.5-9.5,36.9,6.7
         C2.8,22.9-13.4,62.4,13.5,110.9 C33.3,145.1,67.5,170.3,125,217
         c59.3-46.7,93.5-71.9,111.5-106.1C263.4,64.2,247.2,22.9,213.1,6.7z
-        """))
+        """)
+        let cgPath = CGPath.from(svgPath: svgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testNumbersWithoutSeparator() throws {
@@ -167,6 +145,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: -0.57, y: -0.13))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testAbsoluteHorizontalRule() throws {
@@ -177,6 +156,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 0, y: -10))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testTrailingNumber() throws {
@@ -198,6 +178,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testScientificNotationNumbers() throws {
@@ -208,6 +189,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 
     func testImplicitLines() throws {
@@ -218,6 +200,7 @@ class CGPathTests: XCTestCase {
         cgPath.addLine(to: CGPoint(x: 225, y: -200))
         cgPath.closeSubpath()
         XCTAssertEqual(.from(svgPath: svgPath), cgPath)
+        XCTAssertEqual(SVGPath(cgPath: cgPath), svgPath)
     }
 }
 
