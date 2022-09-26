@@ -30,13 +30,13 @@ private class TestDelegate: EvaluationDelegate {
     }
 }
 
-private func expressionType(_ expression: String) throws -> ValueType? {
+private func expressionType(_ expression: String) throws -> ValueType {
     let program = try parse("define foo \(expression)")
     guard case let .define(_, definition) = program.statements.last?.type,
           case let .expression(expression) = definition.type
     else {
         XCTFail()
-        return nil
+        return .any
     }
     let context = EvaluationContext(source: "", delegate: nil)
     return try expression.staticType(in: context)
@@ -3627,10 +3627,10 @@ class InterpreterTests: XCTestCase {
     }
 
     func testFunctionExpressionType() {
-        XCTAssertNil(try expressionType("(cos pi)")) // TODO: number
+        XCTAssertEqual(try expressionType("(cos pi)"), .any) // TODO: number
     }
 
     func testFunctionExpressionType2() {
-        XCTAssertNil(try expressionType("cos(pi)")) // TODO: number
+        XCTAssertEqual(try expressionType("cos(pi)"), .any) // TODO: number
     }
 }
