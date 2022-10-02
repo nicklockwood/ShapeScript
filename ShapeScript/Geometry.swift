@@ -650,6 +650,9 @@ public extension Geometry {
     }
 
     var isWatertight: Bool {
-        merged().isWatertight
+        if let mesh = mesh, !mesh.polygons.isEmpty {
+            return mesh.isWatertight
+        }
+        return children.reduce(true) { $0 && $1.isWatertight }
     }
 }
