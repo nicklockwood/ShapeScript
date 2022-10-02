@@ -216,6 +216,26 @@ public extension String {
         }
         return (line: line, column: column)
     }
+
+    func lineAndColumn(
+        at index: String.Index,
+        withLinebreakIndices linebreakIndices: [String.Index]
+    ) -> (line: Int, column: Int) {
+        let line = linebreakIndices.firstIndex(where: {
+            $0 >= index
+        }) ?? linebreakIndices.count - 1
+        var i = line > 0 ? self.index(after: linebreakIndices[line - 1]) : startIndex
+        var column = 1
+        while i < index {
+            i = self.index(after: i)
+            column += 1
+        }
+        return (line: line + 1, column: column)
+    }
+
+    var linebreakIndices: [String.Index] {
+        indices.compactMap { self[$0].isLinebreak ? $0 : nil } + [endIndex]
+    }
 }
 
 // MARK: Implementation
