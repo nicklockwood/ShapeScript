@@ -629,7 +629,7 @@ public extension Geometry {
 
     var triangleCount: Int {
         if let mesh = mesh, !mesh.polygons.isEmpty {
-            return mesh.triangulate().polygons.count
+            return mesh.polygons.reduce(0) { $0 + $1.vertices.count - 2 }
         }
         return children.reduce(0) { $0 + $1.triangleCount }
     }
