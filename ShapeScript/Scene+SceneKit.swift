@@ -101,15 +101,14 @@ public extension SCNNode {
     }
 }
 
-private extension Geometry {
-    typealias SCNData = (
-        options: Scene.OutputOptions,
-        geometry: SCNGeometry,
-        wireframe: SCNGeometry?
-    )
+private struct DataKey: Hashable {
+    var debug: Bool
+    var options: Scene.OutputOptions
+}
 
-    var scnData: SCNData? {
-        get { associatedData as? SCNData }
+private extension Geometry {
+    var scnData: [DataKey: SCNGeometry] {
+        get { associatedData as? [DataKey: SCNGeometry] ?? [:] }
         set { associatedData = newValue }
     }
 }
@@ -162,6 +161,7 @@ public extension Scene {
 }
 
 private var scnNodeKey: UInt8 = 1
+private var scnGeometryKey: UInt8 = 1
 
 public extension Geometry {
     fileprivate(set) var scnNode: SCNNode? {
@@ -176,8 +176,21 @@ public extension Geometry {
         }
     }
 
-    var scnGeometry: SCNGeometry {
-        scnData?.geometry ?? SCNGeometry()
+    fileprivate(set) var scnGeometry: SCNGeometry {
+        get {
+            objc_getAssociatedObject(
+                self,
+                &scnGeometryKey
+            ) as? SCNGeometry ?? SCNGeometry()
+        }
+        set {
+            objc_setAssociatedObject(
+                self,
+                &scnGeometryKey,
+                newValue,
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            )
+        }
     }
 
     func scnBuild(with options: Scene.OutputOptions) {
@@ -185,7 +198,9 @@ public extension Geometry {
             children.scnBuild(with: options, debug: !renderChildren)
         }
 
-        if let scnData = scnData, scnData.options == options {
+        let key = DataKey(debug: debug, options: options)
+        if let scnGeometry = scnData[key] {
+            self.scnGeometry = scnGeometry
             return
         } else if let light = light {
             if debug, let material = options.debugMaterial, !options.wireframe {
@@ -208,30 +223,26 @@ public extension Geometry {
                 let material = SCNMaterial(material, isOpaque: false)
                 material.lightingModel = .constant
                 geometry.materials = [material]
-                scnData = (options: options, geometry: geometry, wireframe: nil)
+                scnData[key] = geometry
+                scnGeometry = geometry
             }
         } else if let path = path {
             if options.wireframe {
-                let wireframe = scnData?.wireframe ?? SCNGeometry(.stroke(
+                let wireframe = SCNGeometry(.stroke(
                     path.removingColors(),
                     width: options.lineWidth,
                     detail: 5
                 ))
-
                 let material = SCNMaterial()
                 material.lightingModel = .constant
                 material.diffuse.contents = OSColor(options.lineColor)
                 wireframe.materials = [material]
-
-                scnData = (
-                    options: options,
-                    geometry: wireframe,
-                    wireframe: wireframe
-                )
+                scnData[key] = wireframe
+                scnGeometry = wireframe
             } else {
                 let geometry: SCNGeometry
                 if debug, let material = options.debugMaterial {
-                    geometry = scnData?.wireframe ?? SCNGeometry(.stroke(
+                    geometry = SCNGeometry(.stroke(
                         path.removingColors(),
                         width: options.lineWidth,
                         detail: 5
@@ -250,33 +261,22 @@ public extension Geometry {
                     material.diffuse.contents = OSColor(lineColor)
                     geometry.materials = [material]
                 }
-
-                scnData = (
-                    options: options,
-                    geometry: geometry,
-                    wireframe: scnData?.wireframe
-                )
+                scnData[key] = geometry
+                scnGeometry = geometry
             }
         } else if let mesh = mesh {
             if options.wireframe {
-                let wireframe = scnData?.wireframe ?? (
-                    options.wireframeLineWidth > 0 ? SCNGeometry(.stroke(
-                        mesh.uniqueEdges,
-                        width: options.wireframeLineWidth,
-                        detail: 3
-                    )) : SCNGeometry(wireframe: mesh)
-                )
-
+                let wireframe = options.wireframeLineWidth > 0 ? SCNGeometry(.stroke(
+                    mesh.uniqueEdges,
+                    width: options.wireframeLineWidth,
+                    detail: 3
+                )) : SCNGeometry(wireframe: mesh)
                 let material = SCNMaterial()
                 material.lightingModel = .constant
                 material.diffuse.contents = OSColor(options.lineColor)
                 wireframe.materials = [material]
-
-                scnData = (
-                    options: options,
-                    geometry: wireframe,
-                    wireframe: wireframe
-                )
+                scnData[key] = wireframe
+                scnGeometry = wireframe
             } else {
                 var geometry: SCNGeometry
                 if debug, let material = options.debugMaterial {
@@ -285,11 +285,8 @@ public extension Geometry {
                 } else {
                     geometry = SCNGeometry(mesh, for: self)
                 }
-                scnData = (
-                    options: options,
-                    geometry: geometry,
-                    wireframe: scnData?.wireframe
-                )
+                scnData[key] = geometry
+                scnGeometry = geometry
             }
         }
     }

@@ -98,9 +98,14 @@ public final class Geometry: Hashable {
         get {
             lock.lock()
             defer { lock.unlock() }
+            if let data = _associatedData {
+                return data
+            }
+            _associatedData = cache?[associatedData: self]
             return _associatedData
         }
         set {
+            cache?[associatedData: self] = newValue
             lock.lock()
             defer { lock.unlock() }
             _associatedData = newValue
@@ -450,7 +455,7 @@ private extension Geometry {
         for child in children where !child.buildPreview(callback) {
             return false
         }
-        if let mesh = cache?[self] {
+        if let mesh = cache?[mesh: self] {
             self.mesh = mesh
             return callback()
         }
@@ -484,7 +489,7 @@ private extension Geometry {
 
     // Build mesh (without children)
     func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
-        if let mesh = cache?[self] {
+        if let mesh = cache?[mesh: self] {
             self.mesh = mesh
             return callback()
         }
@@ -537,7 +542,7 @@ private extension Geometry {
             if let smoothing = smoothing {
                 mesh = mesh?.smoothNormals(smoothing)
             }
-            cache?[self] = mesh
+            cache?[mesh: self] = mesh
             return true
         }
         return false
@@ -575,7 +580,6 @@ private extension Geometry {
             debug: debug
         )
         copy.mesh = mesh
-        copy.associatedData = associatedData
         return copy
     }
 }

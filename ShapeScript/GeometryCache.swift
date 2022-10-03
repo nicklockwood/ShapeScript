@@ -13,7 +13,7 @@ import LRUCache
 #endif
 
 public final class GeometryCache {
-    private let cache: LRUCache<Key, Mesh>
+    private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>
 
     public init(memoryLimit: Int = 1_000_000_000) {
         cache = LRUCache(totalCostLimit: memoryLimit)
@@ -29,14 +29,31 @@ extension GeometryCache {
         let children: [Key]
     }
 
-    subscript(geometry: Geometry) -> Mesh? {
-        get { cache.value(forKey: geometry.cacheKey) }
+    subscript(mesh geometry: Geometry) -> Mesh? {
+        get { cache.value(forKey: geometry.cacheKey)?.mesh }
         set {
+            guard let newValue = newValue else {
+                cache.removeValue(forKey: geometry.cacheKey)
+                return
+            }
             cache.setValue(
-                newValue,
+                (newValue, [:]),
                 forKey: geometry.cacheKey,
-                cost: newValue?.memoryUsage ?? 0
+                cost: newValue.memoryUsage
             )
+        }
+    }
+
+    subscript(associatedData geometry: Geometry) -> Any? {
+        get {
+            cache.value(forKey: geometry.cacheKey)?
+                .associatedData[geometry.material]
+        }
+        set {
+            if var value = cache.value(forKey: geometry.cacheKey) {
+                value.associatedData[geometry.material] = newValue
+                cache.setValue(value, forKey: geometry.cacheKey)
+            }
         }
     }
 }
