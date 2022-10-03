@@ -1,3 +1,9 @@
+## [1.5.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.8) (2022-10-03)
+
+- Added shared `SCNGeometry` cache, significantly improving performance for scenes with repeated objects
+- Significantly reduced time to calculate mesh stats (as displayed in object info window)
+- Optimized source line lookup that affected script execution performance
+
 ## [1.5.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.7) (2022-09-26)
 
 - Fixed bug where a `define` inside a block couldn't refer to `option` value

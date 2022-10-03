@@ -1,6 +1,6 @@
 {
   "name": "ShapeScript",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "license": {
     "type": "MIT",
     "file": "LICENSE.md"
@@ -10,7 +10,7 @@
   "authors": "Nick Lockwood",
   "source": {
     "git": "https://github.com/nicklockwood/ShapeScript.git",
-    "tag": "1.5.7"
+    "tag": "1.5.8"
   },
   "source_files": ["ShapeScript", "LRUCache/Sources", "SVGPath/Sources"],
   "requires_arc": true,
