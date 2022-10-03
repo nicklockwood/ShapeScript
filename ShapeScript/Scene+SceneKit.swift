@@ -63,6 +63,7 @@ public extension SCNNode {
     convenience init(_ geometry: Geometry) {
         self.init(geometry: geometry.scnGeometry)
         setTransform(geometry.transform)
+        geometry.scnNode = self
         name = geometry.name
 
         if let light = geometry.light {
@@ -160,7 +161,21 @@ public extension Scene {
     }
 }
 
+private var scnNodeKey: UInt8 = 1
+
 public extension Geometry {
+    fileprivate(set) var scnNode: SCNNode? {
+        get { objc_getAssociatedObject(self, &scnNodeKey) as? SCNNode }
+        set {
+            objc_setAssociatedObject(
+                self,
+                &scnNodeKey,
+                newValue,
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            )
+        }
+    }
+
     var scnGeometry: SCNGeometry {
         scnData?.geometry ?? SCNGeometry()
     }

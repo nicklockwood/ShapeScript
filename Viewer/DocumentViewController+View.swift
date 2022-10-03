@@ -59,7 +59,7 @@ extension DocumentViewController {
         updateAxesAndCamera()
 
         // restore selection
-        selectGeometry(selectedGeometry?.scnGeometry)
+        selectGeometry(selectedGeometry?.scnNode)
 
         guard let geometry = geometry, !geometry.bounds.isEmpty else {
             scnView.allowsCameraControl = showAxes
@@ -82,8 +82,8 @@ extension DocumentViewController {
         }
     }
 
-    func selectGeometry(_ scnGeometry: SCNGeometry?) {
-        selectedGeometry = geometry?.select(with: scnGeometry)
+    func selectGeometry(_ scnNode: SCNNode?) {
+        selectedGeometry = geometry?.select(with: scnNode)
     }
 
     func refreshOrthographic() {
@@ -161,15 +161,23 @@ extension DocumentViewController {
 }
 
 extension Geometry {
-    func select(with scnGeometry: SCNGeometry?) -> Geometry? {
-        let isSelected = (self.scnGeometry == scnGeometry)
-        for material in self.scnGeometry.materials {
-            material.emission.contents = isSelected ? OSColor.red : .black
-            material.multiply.contents = isSelected ? OSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1) : .white
+    func select(with scnNode: SCNNode?) -> Geometry? {
+        let isSelected = (scnNode != nil && self.scnNode === scnNode)
+        if isSelected {
+            let g = scnGeometry.copy() as! SCNGeometry
+            g.materials = scnGeometry.materials.map {
+                let material = $0.copy() as! SCNMaterial
+                material.emission.contents = OSColor.red
+                material.multiply.contents = OSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1)
+                return material
+            }
+            self.scnNode?.geometry = g
+        } else {
+            self.scnNode?.geometry = scnGeometry
         }
         var selected = isSelected ? self : nil
         for child in children {
-            let g = child.select(with: scnGeometry)
+            let g = child.select(with: scnNode)
             selected = selected ?? g
         }
         return selected
