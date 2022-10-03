@@ -210,6 +210,7 @@ public final class Geometry: Hashable {
                 material: geometry.material == material ? nil : geometry.material,
                 smoothing: geometry.smoothing,
                 transform: geometry.transform,
+                flipped: geometry.transform.isFlipped,
                 children: geometry.children.map(flattenedCacheKey)
             )
         }
@@ -219,6 +220,7 @@ public final class Geometry: Hashable {
             material: nil,
             smoothing: smoothing,
             transform: .identity,
+            flipped: transform.isFlipped,
             children: type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
         )
 
@@ -227,6 +229,15 @@ public final class Geometry: Hashable {
 
         // Must be set after all other properties
         children.forEach { $0.parent = self }
+    }
+}
+
+private extension Transform {
+    var isFlipped: Bool {
+        var flipped = scale.x < 0
+        if scale.y < 0 { flipped = !flipped }
+        if scale.z < 0 { flipped = !flipped }
+        return flipped
     }
 }
 

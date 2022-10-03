@@ -26,6 +26,7 @@ extension GeometryCache {
         let material: Material?
         let smoothing: Angle?
         let transform: Transform
+        let flipped: Bool
         let children: [Key]
     }
 
