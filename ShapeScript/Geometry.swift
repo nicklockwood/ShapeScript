@@ -646,7 +646,14 @@ public extension Geometry {
     }
 
     var exactBounds: Bounds {
-        merged().bounds
+        if let mesh = mesh, !mesh.polygons.isEmpty {
+            if worldTransform.rotation == .identity {
+                return mesh.bounds.transformed(by: worldTransform)
+            }
+            return mesh.transformed(by: worldTransform).bounds
+        }
+        let bounds = children.map { $0.exactBounds }
+        return Bounds(bounds: bounds)
     }
 
     var isWatertight: Bool {
