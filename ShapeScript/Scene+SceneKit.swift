@@ -52,7 +52,7 @@ public extension SCNMaterial {
 }
 
 private extension SCNGeometry {
-    convenience init(mesh: Mesh, for geometry: Geometry) {
+    convenience init(_ mesh: Mesh, for geometry: Geometry) {
         self.init(mesh, materialLookup: {
             SCNMaterial($0 as? Material ?? geometry.material, isOpaque: geometry.isOpaque)
         })
@@ -96,7 +96,7 @@ public extension SCNNode {
 
     convenience init(merged geometry: Geometry) {
         let mesh = geometry.merged()
-        self.init(geometry: SCNGeometry(mesh: mesh, for: geometry))
+        self.init(geometry: SCNGeometry(mesh, for: geometry))
     }
 }
 
@@ -268,7 +268,7 @@ public extension Geometry {
                     let m = SCNMaterial(material, isOpaque: false)
                     geometry = SCNGeometry(mesh.scaled(by: 1.001)) { _ in m }
                 } else {
-                    geometry = SCNGeometry(mesh: mesh, for: self)
+                    geometry = SCNGeometry(mesh, for: self)
                 }
                 scnData = (
                     options: options,
