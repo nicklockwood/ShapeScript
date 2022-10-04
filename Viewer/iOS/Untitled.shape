@@ -1,0 +1,17 @@
+// ShapeScript document
+
+detail 32
+
+cube {
+    position -1.5
+    color 1 0 0
+}
+
+sphere {
+    color 0 1 0
+}
+
+cone {
+    position 1.5
+    color 0 0 1
+}

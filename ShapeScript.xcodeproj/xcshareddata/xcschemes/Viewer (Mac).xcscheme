@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0152E5C4214500990082A5A3"
                BuildableName = "ShapeScript Viewer.app"
-               BlueprintName = "ShapeScript Viewer"
+               BlueprintName = "Viewer (Mac)"
                ReferencedContainer = "container:ShapeScript.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -26,8 +26,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference
             skipped = "NO">
@@ -37,6 +36,16 @@
                BuildableName = "ShapeScriptTests.xctest"
                BlueprintName = "ShapeScriptTests"
                ReferencedContainer = "container:ShapeScript.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "016FAB3121BFE78100AF60DC"
+               BuildableName = "EuclidTests.xctest"
+               BlueprintName = "EuclidTests"
+               ReferencedContainer = "container:Euclid/Euclid.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -57,7 +66,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0152E5C4214500990082A5A3"
             BuildableName = "ShapeScript Viewer.app"
-            BlueprintName = "ShapeScript Viewer"
+            BlueprintName = "Viewer (Mac)"
             ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -74,7 +83,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0152E5C4214500990082A5A3"
             BuildableName = "ShapeScript Viewer.app"
-            BlueprintName = "ShapeScript Viewer"
+            BlueprintName = "Viewer (Mac)"
             ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

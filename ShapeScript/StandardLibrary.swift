@@ -13,6 +13,21 @@ import Foundation
 import SVGPath
 #endif
 
+/// Standard library symbols. Useful for syntax highlighting
+public let stdlibSymbols: Set<String> = {
+    var keys = Set<String>()
+    for (key, symbol) in Symbols.all {
+        keys.insert(key)
+        switch symbol {
+        case let .block(type, _):
+            keys.formUnion(type.options.keys)
+        case .command, .function, .property, .constant:
+            break
+        }
+    }
+    return keys
+}()
+
 extension Dictionary where Key == String, Value == Symbol {
     static func + (lhs: Symbols, rhs: Symbols) -> Symbols {
         lhs.merging(rhs) { $1 }

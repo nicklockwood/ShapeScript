@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "016FABE921C078E400AF60DC"
-               BuildableName = "EuclidExample.app"
-               BlueprintName = "Example"
-               ReferencedContainer = "container:Euclid.xcodeproj">
+               BlueprintIdentifier = "0183AA5728EC0DE400AD1984"
+               BuildableName = "ShapeScript.app"
+               BlueprintName = "Viewer (iOS)"
+               ReferencedContainer = "container:ShapeScript.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -35,13 +35,23 @@
                BlueprintIdentifier = "016FAB3121BFE78100AF60DC"
                BuildableName = "EuclidTests.xctest"
                BlueprintName = "EuclidTests"
-               ReferencedContainer = "container:Euclid.xcodeproj">
+               ReferencedContainer = "container:Euclid/Euclid.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01BFB39E21425C8500E47A7C"
+               BuildableName = "ShapeScriptTests.xctest"
+               BlueprintName = "ShapeScriptTests"
+               ReferencedContainer = "container:ShapeScript.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -54,10 +64,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "016FABE921C078E400AF60DC"
-            BuildableName = "EuclidExample.app"
-            BlueprintName = "Example"
-            ReferencedContainer = "container:Euclid.xcodeproj">
+            BlueprintIdentifier = "0183AA5728EC0DE400AD1984"
+            BuildableName = "ShapeScript.app"
+            BlueprintName = "Viewer (iOS)"
+            ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -71,10 +81,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "016FABE921C078E400AF60DC"
-            BuildableName = "EuclidExample.app"
-            BlueprintName = "Example"
-            ReferencedContainer = "container:Euclid.xcodeproj">
+            BlueprintIdentifier = "0183AA5728EC0DE400AD1984"
+            BuildableName = "ShapeScript.app"
+            BlueprintName = "Viewer (iOS)"
+            ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
