@@ -578,9 +578,7 @@ extension Definition {
                     for (identifier, value) in zip(names, values) {
                         context.define(identifier.name, as: .constant(value))
                     }
-                    for statement in block.statements {
-                        try statement.evaluate(in: context)
-                    }
+                    try block.evaluate(in: context)
                     if context.children.count == 1 {
                         return context.children[0]
                     }
@@ -798,6 +796,14 @@ extension EvaluationContext {
     }
 }
 
+extension Block {
+    func evaluate(in context: EvaluationContext) throws {
+        for statement in statements {
+            try statement.evaluate(in: context)
+        }
+    }
+}
+
 extension Statement {
     func evaluate(in context: EvaluationContext) throws {
         let sourceIndex = context.sourceIndex
@@ -892,22 +898,21 @@ extension Statement {
                     if let name = identifier?.name {
                         context.define(name, as: .constant(value))
                     }
-                    for statement in block.statements {
-                        try statement.evaluate(in: context)
-                    }
+                    try block.evaluate(in: context)
                 }
             }
         case let .ifelse(condition, body, else: elseBody):
-            let value = try condition.evaluate(as: .boolean, for: "condition", index: 0, in: context)
+            let value = try condition.evaluate(
+                as: .boolean,
+                for: "condition",
+                index: 0,
+                in: context
+            )
             try context.pushScope { context in
                 if value.boolValue {
-                    for statement in body.statements {
-                        try statement.evaluate(in: context)
-                    }
+                    try body.evaluate(in: context)
                 } else if let elseBody = elseBody {
-                    for statement in elseBody.statements {
-                        try statement.evaluate(in: context)
-                    }
+                    try elseBody.evaluate(in: context)
                 }
             }
         case let .import(expression):
