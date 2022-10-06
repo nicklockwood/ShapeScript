@@ -297,6 +297,9 @@ extension Value {
                 members.append("last")
             }
             members += ["count", "allButFirst", "allButLast"]
+            if isConvertible(to: .string) {
+                members += ["lines", "words", "characters"]
+            }
             guard values.allSatisfy({ $0.type == .number }) else {
                 guard values.allSatisfy({ $0.type == .path }) else {
                     if values.count == 1 {
@@ -323,7 +326,9 @@ extension Value {
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
-        case .texture, .boolean, .number, .string, .text:
+        case .string:
+            return ["lines", "words", "characters"]
+        case .texture, .boolean, .number, .text:
             return []
         }
     }
@@ -374,6 +379,8 @@ extension Value {
                 return .tuple(Array(values.dropLast()))
             case "count":
                 return .number(Double(values.count))
+            case "lines", "words", "characters":
+                return self.as(.string)?[name]
             default:
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
@@ -440,7 +447,23 @@ extension Value {
             case "depth": return .number(bounds.size.z)
             default: return nil
             }
-        case .boolean, .texture, .number, .string, .text:
+        case let .string(string):
+            switch name {
+            case "lines":
+                return .tuple(string
+                    .split { $0.isNewline }
+                    .map { .string("\($0)") })
+            case "words":
+                return .tuple(string
+                    .split(omittingEmptySubsequences: true) {
+                        $0.isWhitespace || $0.isNewline
+                    }
+                    .map { .string("\($0)") })
+            case "characters":
+                return .tuple(string.map { .string("\($0)") })
+            default: return nil
+            }
+        case .boolean, .texture, .number, .text:
             return nil
         }
     }

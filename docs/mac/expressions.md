@@ -139,6 +139,15 @@ define averageColor (color.red + color.green + color.blue) / 3
 print averageColor // 0.5667
 ```
 
+For strings, you can use the `lines`, `words` and `characters` members:
+
+```swift
+define sentence "The quick brown fox"
+for word in sentence {
+    print word // prints each word on a new line
+}
+```
+
 For more information about the members that can be accessed on various data types, see [structured data](literals.md#structured-data).
 
 

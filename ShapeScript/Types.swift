@@ -246,6 +246,9 @@ extension ValueType {
         "size": .size,
         "center": .vector,
         "count": .number,
+        "lines": .list(.string),
+        "words": .list(.string),
+        "characters": .list(.string),
     ]
 }
 

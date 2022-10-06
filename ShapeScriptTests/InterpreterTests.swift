@@ -2985,6 +2985,20 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testTupleWordsLookup() {
+        let program = "print (\"foo\" 1 2).words"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["foo1", "2"])
+    }
+
+    func testTupleCharactersLookup() {
+        let program = "print (\"foo\" 1).characters"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["f", "o", "o", "1"])
+    }
+
     func testNonNumericColorLookup() {
         let program = "print (\"foo\" \"bar\").red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
