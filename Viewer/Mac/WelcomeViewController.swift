@@ -20,9 +20,7 @@ class WelcomeViewController: NSViewController {
     }
 
     @IBAction func openGettingStartedGuide(_: Any) {
-        NSWorkspace.shared.open(onlineHelpURL
-            .deletingLastPathComponent()
-            .appendingPathComponent("getting-started.md"))
+        NSWorkspace.shared.open(onlineHelpURL.appendingPathComponent("getting-started"))
     }
 
     @IBAction func toggleShowAtStartup(_ sender: NSButton) {
