@@ -1,3 +1,11 @@
+# Change Log
+
+## [1.5.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.9) (2022-10-06)
+
+- Fixed getting started link in Welcome modal
+- Removed bad suggestions from editors list
+- Added iOS target for ShapeScript Viewer
+
 ## [1.5.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.8) (2022-10-03)
 
 - Added shared `SCNGeometry` cache, significantly improving performance for scenes with repeated objects
