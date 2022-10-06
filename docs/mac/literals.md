@@ -72,7 +72,7 @@ define myTuple2 "hello" 5.3 size
 
 ## Structured Data
 
-As well as simple values like numbers and text, it can sometimes be useful to group together sets of related data. Tuples can be nested arbitrarily, in order to create complex data structures:
+As well as simple values like numbers and text, it can sometimes be useful to group together sets of related data. Tuples can be nested arbitrarily to create complex data structures:
 
 ```swift
 define matrix (1 2 3) (4 5 6) (7 8 9)
@@ -117,7 +117,7 @@ print col.blue // 0
 print col.alpha // 1
 ```
 
-For more abstract data, you can use the ordinal members (`first`, `second`, `third`, etc.) to access members by index:
+For more abstract data, you can use the ordinal members (`first`, `second`, `third`, ... `last`) to access members by index:
 
 ```swift
 define data (
@@ -126,9 +126,10 @@ define data (
     #ff0000 // color
 )
 
+print data.count // 3
 print data.first // name
 print data.second // position
-print data.third // color
+print data.last // color
 ```
 
 Member expressions can be chained, so something like this will also work:
