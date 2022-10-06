@@ -1,6 +1,8 @@
 Import
 ---
 
+## Scripts
+
 ShapeScript files can get quite large for complicated models, and you may find that there are common shapes that you wish to across multiple ShapeScript files. The `import` command can help with both of these problems:
 
 ```swift
@@ -19,6 +21,10 @@ define ball {
 
 In this way, the loaded shape is bound to a symbol of your choice, and can be used a later point in the script. This approach also prevents any [symbols](symbols.md) defined in the imported script from leaking outside into the calling script's global [scope](scope.md).
 
+**Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md#access-permission) warning.
+
+## Models
+
 The `import` command is not limited to loading `.shape` files. It can load models in any of the [export formats](export.md) supported by ShapeScript. Imported models can be used just like imported script files:
 
 ```swift
@@ -30,7 +36,31 @@ define rocket {
 
 Depending on the format, imported models may include their own [materials](materials.md). Uncolored / untextured models will inherit the current ShapeScript material properties.
 
-**Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md#access-permission) warning.
+## Text and Data
+
+In addition to scripts and standard model formats, text files can be imported as a [string](literals.md#strings) value.
+
+```swift
+define data {
+    import "Text.txt"  
+}
+```
+
+Imported strings can then be displayed directly, or further processed using ShapeScript's [string functions](functions.md#strings):
+
+```swift
+for line in text.lines {
+    print (trim line)
+}
+```
+
+As well as plain text, ShapeScript also supports importing JSON files as [structured data](literals.md#structured-data):
+
+```swift
+define data {
+    import "Data.json"  
+}
+```
 
 ## Dynamic Imports
 

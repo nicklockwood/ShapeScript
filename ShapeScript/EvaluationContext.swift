@@ -346,6 +346,35 @@ extension EvaluationContext {
                     throw RuntimeErrorType
                         .importError(ImportError(error), for: path, in: source)
                 }
+            case "txt":
+                let text: String
+                do {
+                    text = try String(contentsOf: url)
+                } catch {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: error.localizedDescription
+                    )
+                }
+                try addValue(.string(text))
+                return
+            case "json":
+                let value: Value
+                do {
+                    let data = try Data(contentsOf: url)
+                    let json = try JSONSerialization
+                        .jsonObject(with: data, options: .fragmentsAllowed)
+                    value = Value(json: json)
+                } catch {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: error.localizedDescription
+                    )
+                }
+                try addValue(value)
+                return
             default:
                 do {
                     if let geometry = try delegate?.importGeometry(for: url)?.with(
