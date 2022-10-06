@@ -158,6 +158,10 @@ extension Settings {
 
     private static let blacklist = [
         "com.apple.iWork.Numbers",
+        "com.microsoft.Word",
+        "com.microsoft.Excel",
         "com.charcoaldesign.ShapeScriptMac",
+        "com.charcoaldesign.ShapeScriptViewer",
+        "com.charcoaldesign.ShapeScript",
     ]
 }
