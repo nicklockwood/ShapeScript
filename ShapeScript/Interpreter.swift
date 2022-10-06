@@ -458,7 +458,7 @@ private extension RuntimeError {
         "width": ["size", "x"],
         "height": ["size", "y"],
         "depth": ["size", "z"],
-        "length": ["size"],
+        "length": ["size", "count"],
         "radius": ["size"],
         "x": ["width", "position"],
         "y": ["height", "position"],
@@ -466,6 +466,8 @@ private extension RuntimeError {
         "option": ["define"],
         "subtract": ["difference"],
         "subtraction": ["difference"],
+        "head": ["first"],
+        "tail": ["last"],
     ]
 
     static let osName: String = {

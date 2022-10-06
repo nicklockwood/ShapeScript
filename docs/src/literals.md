@@ -117,7 +117,7 @@ print col.blue // 0
 print col.alpha // 1
 ```
 
-For more abstract data, you can use the ordinal members (`first`, `second`, `third`, etc.) to access members by index:
+For more abstract data, you can use the ordinal members (`first`, `second`, `third`, ... `last`) to access members by index:
 
 ```swift
 define data (
@@ -126,9 +126,10 @@ define data (
     #ff0000 // color
 )
 
+print data.count // 3
 print data.first // name
 print data.second // position
-print data.third // color
+print data.last // color
 ```
 
 Member expressions can be chained, so something like this will also work:
