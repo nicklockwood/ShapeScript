@@ -293,6 +293,7 @@ extension Value {
             return ["red", "green", "blue", "alpha"]
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
+            members.append("count")
             guard values.allSatisfy({ $0.type == .number }) else {
                 guard values.allSatisfy({ $0.type == .path }) else {
                     if values.count == 1 {
@@ -363,6 +364,8 @@ extension Value {
             }
             if let index = name.ordinalIndex {
                 return index < values.count ? values[index] : nil
+            } else if name == "count" {
+                return .number(Double(values.count))
             }
             guard values.allSatisfy({ $0.type == .number }) else {
                 guard values.allSatisfy({ $0.type == .path }) else {
