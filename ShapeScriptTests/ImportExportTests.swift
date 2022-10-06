@@ -15,6 +15,8 @@ import SceneKit
 #endif
 
 class ImportExportTests: XCTestCase {
+    // MARK: Geometry
+
     func testCog() throws {
         let source = """
         define cog {
@@ -64,5 +66,39 @@ class ImportExportTests: XCTestCase {
         XCTAssertEqual(mesh2.polygons.count, 256)
         XCTAssert(mesh2.isWatertight)
         #endif
+    }
+
+    // MARK: JSON
+
+    func testParseJSONValues() throws {
+        let source = """
+        [
+            "hello",
+            3,
+            3.5,
+            true,
+            null,
+            [1, 2, 3],
+            {
+                "foo": 2,
+                "bar": true,
+            }
+        ]
+        """
+        let json = try JSONSerialization
+            .jsonObject(with: source.data(using: .utf8)!)
+        let value = Value(json: json)
+        XCTAssertEqual(value, [
+            "hello",
+            3,
+            3.5,
+            true,
+            [],
+            [1, 2, 3],
+            [
+                ["bar", true],
+                ["foo", 2],
+            ],
+        ])
     }
 }

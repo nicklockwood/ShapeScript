@@ -11,6 +11,7 @@
 		010A906427FB250700D54A6F /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
+		0118098328F216D200E0C8D8 /* Value+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0118098228F216D200E0C8D8 /* Value+JSON.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
@@ -68,8 +69,8 @@
 		0183AAEB28EC3ACB00AD1984 /* DocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AADF28EC3ACB00AD1984 /* DocumentViewController.swift */; };
 		0183AAED28EC3ACB00AD1984 /* Settings+Editor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AAE128EC3ACB00AD1984 /* Settings+Editor.swift */; };
 		01977FCB215D0BD400D65D5E /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01977FCA215D0BD400D65D5E /* Scene.swift */; };
-		01A9CA4028BB483500440FDA /* GeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A9CA3F28BB483500440FDA /* GeometryTests.swift */; };
 		019853A228360F7500047DF2 /* TypesystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019853A128360F7500047DF2 /* TypesystemTests.swift */; };
+		01A9CA4028BB483500440FDA /* GeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A9CA3F28BB483500440FDA /* GeometryTests.swift */; };
 		01AA1D8721EF31860086BF86 /* Material.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA1D8621EF31860086BF86 /* Material.swift */; };
 		01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49F926B621C1009BB2C6 /* Geometry.swift */; };
 		01BD9437219367D2005FFAEC /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01BD943521936514005FFAEC /* Examples */; };
@@ -252,6 +253,7 @@
 		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
 		010A904F27FB222400D54A6F /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SVGPath.xcodeproj; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
+		0118098228F216D200E0C8D8 /* Value+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+JSON.swift"; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibrary.swift; sourceTree = "<group>"; };
@@ -301,8 +303,8 @@
 		0183AAE028EC3ACB00AD1984 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0183AAE128EC3ACB00AD1984 /* Settings+Editor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Settings+Editor.swift"; sourceTree = "<group>"; };
 		01977FCA215D0BD400D65D5E /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
-		01A9CA3F28BB483500440FDA /* GeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryTests.swift; sourceTree = "<group>"; };
 		019853A128360F7500047DF2 /* TypesystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypesystemTests.swift; sourceTree = "<group>"; };
+		01A9CA3F28BB483500440FDA /* GeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryTests.swift; sourceTree = "<group>"; };
 		01AA1D8621EF31860086BF86 /* Material.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Material.swift; sourceTree = "<group>"; };
 		01AA49F926B621C1009BB2C6 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
 		01BD943521936514005FFAEC /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
@@ -525,6 +527,7 @@
 				0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */,
 				01F1A7A1280F724600A1621B /* Material+Brightness.swift */,
 				01F01A4C2804CC5300FA1EBB /* SVGPath+Path.swift */,
+				0118098228F216D200E0C8D8 /* Value+JSON.swift */,
 				01E3AA0426CB8E8200E0B287 /* Logging.swift */,
 				01BFB39A21425C8500E47A7C /* Info.plist */,
 			);
@@ -954,6 +957,7 @@
 				01F1A9B7281F41DE00A1621B /* Symbols.swift in Sources */,
 				01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */,
 				01F01A4D2804CC5300FA1EBB /* SVGPath+Path.swift in Sources */,
+				0118098328F216D200E0C8D8 /* Value+JSON.swift in Sources */,
 				01977FCB215D0BD400D65D5E /* Scene.swift in Sources */,
 				013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */,
 				01C8AAB326F0B28A0055F522 /* String+Matching.swift in Sources */,
