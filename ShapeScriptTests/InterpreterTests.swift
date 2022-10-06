@@ -2792,14 +2792,27 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [10, 19, 23, 39, 47, 53, 68, 71, 86, 92])
     }
 
+    func testTupleCountAndLastLookup() {
+        let program = """
+        define foo 2 4 6
+        print foo.count
+        print foo.last
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3, 6])
+    }
+
     func testSingleValueOrdinalLookup() {
         let program = """
         define foo 10
         print foo.first
+        print foo.count
+        print foo.last
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [10])
+        XCTAssertEqual(delegate.log, [10, 1, 10])
     }
 
     func testSingleNumberXComponentLookup() {
