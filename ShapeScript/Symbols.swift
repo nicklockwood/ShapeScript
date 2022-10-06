@@ -323,7 +323,9 @@ extension Value {
             return ["bounds"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
-        case .texture, .boolean, .number, .string, .text:
+        case .string:
+            return ["lines", "words", "characters"]
+        case .texture, .boolean, .number, .text:
             return []
         }
     }
@@ -440,7 +442,23 @@ extension Value {
             case "depth": return .number(bounds.size.z)
             default: return nil
             }
-        case .boolean, .texture, .number, .string, .text:
+        case let .string(string):
+            switch name {
+            case "lines":
+                return .tuple(string
+                    .split { $0.isNewline }
+                    .map { .string("\($0)") })
+            case "words":
+                return .tuple(string
+                    .split(omittingEmptySubsequences: true) {
+                        $0.isWhitespace || $0.isNewline
+                    }
+                    .map { .string("\($0)") })
+            case "characters":
+                return .tuple(string.map { .string("\($0)") })
+            default: return nil
+            }
+        case .boolean, .texture, .number, .text:
             return nil
         }
     }
