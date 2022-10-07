@@ -2240,6 +2240,42 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
+    func testMinWithThreeArgs() {
+        let program = "print min 1 2 -1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1])
+    }
+
+    func testMinWithOneArg() {
+        let program = "print min 1"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testMinWithNoArgs() {
+        let program = "print min"
+        let range = program.range(of: "min")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .missingArgument(for: "min", index: 0, type: "numbers"),
+                at: range.upperBound ..< range.upperBound
+            ))
+        }
+    }
+
+    func testMinWithEmptyTuple() {
+        let program = """
+        define foo ()
+        print min foo
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0])
+    }
+
     func testMaxFunction() {
         let program = "print max 1 2"
         let delegate = TestDelegate()
