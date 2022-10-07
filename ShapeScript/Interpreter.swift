@@ -1448,6 +1448,9 @@ extension Expression {
             ))
         case .texture where Value.tuple(values).isConvertible(to: .string):
             let name = Value.tuple(values).stringValue
+            if name.isEmpty {
+                return .texture(nil)
+            }
             return try RuntimeError.wrap(.texture(.file(
                 name: name, url: try context.resolveURL(for: name)
             )), at: range)

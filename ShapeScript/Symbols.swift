@@ -208,7 +208,7 @@ extension Value {
         switch self {
         case let .color(color): return color
         case let .texture(texture):
-            return texture.map { $0 as AnyHashable } ?? texture as AnyHashable
+            return texture.map { $0 as AnyHashable } ?? AnyHashable("")
         case let .boolean(boolean): return boolean
         case let .number(number): return number
         case let .vector(vector): return vector
