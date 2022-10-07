@@ -325,10 +325,10 @@ extension Dictionary where Key == String, Value == Symbol {
         "ceil": .function(.number) { value, _ in
             .number(value.doubleValue.rounded(.up))
         },
-        "max": .function(.pair) { value, _ in
+        "max": .function(.list(.number)) { value, _ in
             .number(value.doublesValue.max() ?? 0)
         },
-        "min": .function(.pair) { value, _ in
+        "min": .function(.list(.number)) { value, _ in
             .number(value.doublesValue.min() ?? 0)
         },
         "abs": .function(.number) { value, _ in
