@@ -31,7 +31,9 @@ private class TestDelegate: EvaluationDelegate {
 }
 
 private func expressionType(_ expression: String) throws -> ValueType {
-    let program = try parse("define foo \(expression)")
+    let lines = expression.split(separator: "\n")
+    let source = "\(lines.dropLast().joined(separator: "\n"))\ndefine foo_ \(lines.last!)"
+    let program = try parse(source)
     guard case let .define(_, definition) = program.statements.last?.type,
           case let .expression(expression) = definition.type
     else {
@@ -39,6 +41,7 @@ private func expressionType(_ expression: String) throws -> ValueType {
         return .any
     }
     let context = EvaluationContext(source: "", delegate: nil)
+    try program.evaluate(in: context)
     return try expression.staticType(in: context)
 }
 
@@ -529,6 +532,38 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.23645552527159452])
     }
 
+    func testOptionDefaultValueIsIdempotent() {
+        let program = """
+        define bar() {
+            print "bar"
+            5
+        }
+        define foo {
+            define baz bar()
+            option quux baz
+            print quux
+        }
+        foo { quux 6 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["bar", 6]) // bar only called once, not twice
+    }
+
+    func testOptionCanReferenceOtherOption() {
+        let program = """
+        define foo {
+            option bar 5
+            option baz bar
+            print baz
+        }
+        foo { bar 6 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [6])
+    }
+
     func testGlobalSymbolsAvailableToCommand() {
         let program = """
         define baz 5
@@ -668,7 +703,7 @@ class InterpreterTests: XCTestCase {
                 for: "position",
                 index: 0,
                 expected: "vector",
-                got: "vector, number"
+                got: "tuple"
             ), at: range))
         }
     }
@@ -765,9 +800,9 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "color", max: 4), at: range
-            ))
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "color", index: 0, expected: "color", got: "tuple"
+            ), at: range))
         }
     }
 
@@ -1365,9 +1400,10 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(.fileNotFound(
+            XCTAssertEqual(error?.type, .fileNotFound(
                 for: "Nope1.jpg", at: testsDirectory.appendingPathComponent("Nope1.jpg")
-            ), at: range))
+            ))
+            XCTAssertEqual(error?.range, range)
         }
     }
 
@@ -1389,6 +1425,13 @@ class InterpreterTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: nil)
         let camera = try XCTUnwrap(scene.cameras.first)
         XCTAssertNil(camera.camera?.background)
+    }
+
+    func testBackgroundGetter() throws {
+        let program = try parse("background red")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
     }
 
     // MARK: Font
@@ -1624,6 +1667,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for extrude should be a path or block, not a mesh.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "extrude",
                 index: 0,
@@ -1654,6 +1698,23 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual((delegate.log.first as? Geometry)?.type, .xor)
+    }
+
+    func testTupleArgumentInMathExpression() {
+        let program = "print 3 * (3 5)"
+        let range = program.range(of: "3 5")
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The second argument for * should be a number, not a tuple.")
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "*",
+                index: 1,
+                expected: "number",
+                got: "tuple"
+            ))
+            XCTAssertEqual(error?.range, range)
+        }
     }
 
     func testInvokeTextInExpressionWithoutParens() {
@@ -2864,9 +2925,9 @@ class InterpreterTests: XCTestCase {
         let program = "print ().blue"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown void member property 'blue'")
+            XCTAssertEqual(error?.message, "Unknown tuple member property 'blue'")
             XCTAssertNotEqual(error?.suggestion, "blue")
-            guard case .unknownMember("blue", of: "void", _) = error?.type else {
+            guard case .unknownMember("blue", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
             }
@@ -3305,7 +3366,15 @@ class InterpreterTests: XCTestCase {
         define foo(x y) { point x y }
         foo(1 0)
         """
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'point'")
+            XCTAssertEqual(error?.hint, "The point function is not available in this context. Did you mean \'print\'?")
+            guard case .unknownSymbol("point", options: _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     // MARK: Text command
@@ -3595,6 +3664,8 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "color")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 index: 0,
@@ -3612,11 +3683,31 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "r", range: program.range(of: "debug r"))!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 index: 0,
                 expected: "mesh or block",
                 got: "color"
+            ), at: range))
+        }
+    }
+
+    func testDebugMixedTuple() throws {
+        let program = """
+        debug fill square 1
+        """
+        let range = program.range(of: "1")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The second argument for fill should be a path, not a number.")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "fill",
+                index: 1,
+                expected: "path",
+                got: "number"
             ), at: range))
         }
     }
@@ -3653,10 +3744,12 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The rnd function does not expect a block argument.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "rnd",
                 index: 0,
-                expected: "void",
+                expected: "tuple",
                 got: "block"
             ), at: range))
         }
@@ -3678,6 +3771,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
+    func testCallVoidFunctionWithEmptyParensInTuple() throws {
+        let program = """
+        seed 1
+        print rnd() rnd()
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.23645552527159452, 0.3692706737201661])
+    }
+
     func testCallVoidFunctionWithEmptyBlock() throws {
         let program = """
         define foo rnd {}
@@ -3686,10 +3789,12 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The rnd function does not expect a block argument.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "rnd",
                 index: 0,
-                expected: "void",
+                expected: "tuple",
                 got: "block"
             ), at: range))
         }
@@ -3723,10 +3828,31 @@ class InterpreterTests: XCTestCase {
         let range = program.range(of: "{}")!
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The foo function does not expect a block argument.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
                 index: 0,
-                expected: "void",
+                expected: "tuple",
+                got: "block"
+            ), at: range))
+        }
+    }
+
+    func testCallNonVoidCustomFunctionWithEmptyBlock() {
+        let program = """
+        define foo(bar) { bar + 3 }
+        print foo {}
+        """
+        let range = program.range(of: "{}")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The foo function does not expect a block argument.")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "foo",
+                index: 0,
+                expected: "any",
                 got: "block"
             ), at: range))
         }
@@ -3808,12 +3934,53 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(try expressionType("1 red"), .list(.any))
     }
 
+    func testBlockExpressionType() {
+        XCTAssertEqual(try expressionType("cube"), .mesh)
+    }
+
+    func testBlockExpressionType2() {
+        XCTAssertEqual(try expressionType("cube { size 1 }"), .mesh)
+    }
+
     func testFunctionExpressionType() {
-        XCTAssertEqual(try expressionType("(cos pi)"), .any) // TODO: number
+        XCTAssertEqual(try expressionType("rnd"), .number)
     }
 
     func testFunctionExpressionType2() {
-        XCTAssertEqual(try expressionType("cos(pi)"), .any) // TODO: number
+        XCTAssertEqual(try expressionType("(cos pi)"), .number)
+    }
+
+    func testFunctionExpressionType3() {
+        XCTAssertEqual(try expressionType("cos(pi)"), .number)
+    }
+
+    func testColorPropertyMemberType() {
+        XCTAssertEqual(try expressionType("color.red"), .number)
+    }
+
+    func testBlockMemberType() {
+        XCTAssertEqual(try expressionType("cube.bounds"), .any) // TODO: bounds
+    }
+
+    func testCustomConstantMemberType() {
+        XCTAssertEqual(try expressionType("""
+        define foo red
+        foo.green
+        """), .number)
+    }
+
+    func testCustomBlockResultMemberType() {
+        XCTAssertEqual(try expressionType("""
+        define foo { cube }
+        foo.bounds
+        """), .any) // TODO: bounds
+    }
+
+    func testCustomFunctionResultMemberType() {
+        XCTAssertEqual(try expressionType("""
+        define foo() { red }
+        foo.blue
+        """), .any) // TODO: number
     }
 
     // MARK: Type conversion
@@ -3856,6 +4023,24 @@ class InterpreterTests: XCTestCase {
                        .color(Color(1, 0.5, 0.1, 0.2)))
     }
 
+    func testCastNumericQuintupletToColor() {
+        XCTAssertFalse(Value(1, 0.5, 0.1, 0.2, 0.3).isConvertible(to: .color))
+        XCTAssertThrowsError(try evaluate("1 0.5 0.1 0.2 0.3", as: .color)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unexpectedArgument(for: "", max: 4))
+        }
+    }
+
+    func testCastEmptyTupleToColor() {
+        XCTAssertFalse(Value([]).isConvertible(to: .color))
+        XCTAssertThrowsError(try evaluate("()", as: .color)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "", index: 0, expected: "color", got: "tuple"
+            ))
+        }
+    }
+
     func testCastColorWithAlphaToColor() {
         XCTAssert(Value(.color(.red), 0.5).isConvertible(to: .color))
         XCTAssertEqual(try evaluate("red 0.5", as: .color),
@@ -3865,6 +4050,17 @@ class InterpreterTests: XCTestCase {
     func testCastColorToNumberList() {
         XCTAssert(Value.color(.red).isConvertible(to: .list(.number)))
         XCTAssertEqual(try evaluate("red", as: .list(.number)), [1, 0, 0, 1])
+    }
+
+    func testCastColorWithAlphaToNumberList() {
+        XCTAssert(Value(.color(.red), 0.5).isConvertible(to: .list(.number)))
+        XCTAssertEqual(try evaluate("red 0.5", as: .list(.number)),
+                       [1, 0, 0, 0.5])
+    }
+
+    func testCastNumericCoupletToNumberList() {
+        XCTAssert(Value(1, 0.5).isConvertible(to: .list(.number)))
+        XCTAssertEqual(try evaluate("1 0.5", as: .list(.number)), [1, 0.5])
     }
 
     func testCastNumericCoupletToAnyList() {
@@ -3909,5 +4105,11 @@ class InterpreterTests: XCTestCase {
         XCTAssert(Value("foo", 0.5, true).isConvertible(to: .string))
         XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: .string),
                        "foo0.5 true")
+    }
+
+    func testCastMixedNestedTupleToString() {
+        XCTAssert(Value("foo", Value(0.5, 1), "bar", true).isConvertible(to: .string))
+        XCTAssertEqual(try evaluate("\"foo\" (0.5 1) \"bar\" true", as: .string),
+                       "foo0.5 1bartrue")
     }
 }
