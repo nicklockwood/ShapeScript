@@ -436,7 +436,12 @@ private func evaluateParameters(
             let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
             try RuntimeError.wrap({
                 do {
-                    try values.append(fn(arg, context))
+                    switch try fn(arg, context) {
+                    case let .tuple(tuple):
+                        values += tuple
+                    case let value:
+                        values.append(value)
+                    }
                 } catch let RuntimeErrorType.unexpectedArgument(for: "", max: max) {
                     throw RuntimeErrorType.unexpectedArgument(for: name, max: max)
                 } catch let RuntimeErrorType.missingArgument(for: "", index: index, type: type) {
@@ -583,7 +588,6 @@ extension Definition {
                         return context.children[0]
                     }
                     return .tuple(context.children)
-
                 } catch {
                     if declarationContext.baseURL == context.baseURL {
                         throw error
