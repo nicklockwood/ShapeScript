@@ -1441,25 +1441,25 @@ extension Expression {
         case .rotation:
             let numbers = try numerify(max: 3, min: 1)
             return .rotation(Rotation(unchecked: numbers))
-        case .string where Value.tuple(values).isConvertible(to: .string):
-            return .string(Value.tuple(values).stringValue)
-        case .text where Value.tuple(values).isConvertible(to: .text):
+        case .string where Value(values).isConvertible(to: .string):
+            return .string(Value(values).stringValue)
+        case .text where Value(values).isConvertible(to: .text):
             return .text(TextValue(
-                string: Value.tuple(values).stringValue,
+                string: Value(values).stringValue,
                 font: context.value(for: "font")?.stringValue ?? context.font,
                 color: context.material.color,
                 linespacing: context.value(for: "linespacing")?.doubleValue
             ))
-        case .texture where Value.tuple(values).isConvertible(to: .string):
-            let name = Value.tuple(values).stringValue
+        case .texture where Value(values).isConvertible(to: .string):
+            let name = Value(values).stringValue
             if name.isEmpty {
                 return .texture(nil)
             }
             return try RuntimeError.wrap(.texture(.file(
                 name: name, url: try context.resolveURL(for: name)
             )), at: range)
-        case .font where Value.tuple(values).isConvertible(to: .string):
-            let name = Value.tuple(values).stringValue
+        case .font where Value(values).isConvertible(to: .string):
+            let name = Value(values).stringValue
             let range = parameters.first!.range.lowerBound ..< parameters.last!.range.upperBound
             return try RuntimeError.wrap(.string(context.resolveFont(name)), at: range)
         case let .tuple(types):
@@ -1558,7 +1558,7 @@ extension Expression {
                     for: name,
                     index: index,
                     expected: type,
-                    got: Value.tuple(values).type
+                    got: Value(values).type
                 ),
                 at: range
             )

@@ -185,7 +185,7 @@ extension BlockType {
 
 typealias Polygon = Euclid.Polygon
 
-enum Value {
+enum Value: Hashable {
     case color(Color)
     case texture(Texture?)
     case boolean(Bool)
@@ -202,6 +202,42 @@ enum Value {
     case tuple([Value])
     case range(RangeValue)
     case bounds(Bounds)
+}
+
+extension Value: ExpressibleByStringLiteral {
+    init(stringLiteral value: String) {
+        self = .string(value)
+    }
+}
+
+extension Value: ExpressibleByFloatLiteral, ExpressibleByIntegerLiteral {
+    init(floatLiteral value: Double) {
+        self = .number(value)
+    }
+
+    init(integerLiteral value: Int) {
+        self = .number(Double(value))
+    }
+}
+
+extension Value: ExpressibleByBooleanLiteral {
+    init(booleanLiteral value: Bool) {
+        self = .boolean(value)
+    }
+}
+
+extension Value: ExpressibleByArrayLiteral {
+    init(arrayLiteral elements: Value...) {
+        self.init(elements)
+    }
+
+    init(_ elements: [Value]) {
+        self = .tuple(elements)
+    }
+
+    init(_ elements: Value...) {
+        self = elements.count == 1 ? elements[0] : .tuple(elements)
+    }
 }
 
 struct RangeValue: Hashable, Sequence {

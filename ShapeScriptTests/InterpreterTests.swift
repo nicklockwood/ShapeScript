@@ -42,6 +42,18 @@ private func expressionType(_ expression: String) throws -> ValueType {
     return try expression.staticType(in: context)
 }
 
+private func evaluate(_ expression: String, as type: ValueType) throws -> Value {
+    let program = try parse("define foo \(expression)")
+    guard case let .define(_, definition) = program.statements.last?.type,
+          case let .expression(expression) = definition.type
+    else {
+        XCTFail()
+        return .void
+    }
+    let context = EvaluationContext(source: "", delegate: nil)
+    return try expression.evaluate(as: type, for: "", in: context)
+}
+
 class InterpreterTests: XCTestCase {
     // MARK: Random numbers
 
@@ -3750,100 +3762,66 @@ class InterpreterTests: XCTestCase {
     // MARK: Type conversion
 
     func testCastNumberToColor() {
-        XCTAssert(Value.number(1).isConvertible(to: .color))
+        XCTAssert(Value(1).isConvertible(to: .color))
+        XCTAssertEqual(try evaluate("1", as: .color), .color(.white))
     }
 
     func testCastNumericCoupletToColor() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-        ]).isConvertible(to: .color))
+        XCTAssert(Value(1, 0.5).isConvertible(to: .color))
+        XCTAssertEqual(try evaluate("1 0.5", as: .color),
+                       .color(Color.white.withAlpha(0.5)))
     }
 
     func testCastNumericTripletToColor() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-            .number(0.1),
-        ]).isConvertible(to: .color))
+        XCTAssert(Value(1, 0.5, 0.1).isConvertible(to: .color))
+        XCTAssertEqual(try evaluate("1 0.5 0.1", as: .color),
+                       .color(Color(1, 0.5, 0.1)))
     }
 
     func testCastNumericQuadrupletToColor() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-            .number(0.1),
-            .number(0.2),
-        ]).isConvertible(to: .color))
+        XCTAssert(Value(1, 0.5, 0.1, 0.2).isConvertible(to: .color))
+        XCTAssertEqual(try evaluate("1 0.5 0.1 0.2", as: .color),
+                       .color(Color(1, 0.5, 0.1, 0.2)))
     }
 
     func testCastColorWithAlphaToColor() {
-        XCTAssert(Value.tuple([
-            .color(.red),
-            .number(0.5),
-        ]).isConvertible(to: .color))
+        XCTAssert(Value(.color(.red), 0.5).isConvertible(to: .color))
+        XCTAssertEqual(try evaluate("red 0.5", as: .color),
+                       .color(Color.red.withAlpha(0.5)))
     }
 
     func testCastColorToNumberList() {
         XCTAssert(Value.color(.red).isConvertible(to: .list(.number)))
-    }
-
-    func testCastColorWithAlphaToNumberList() {
-        XCTAssert(Value.tuple([
-            .color(.red),
-            .number(0.5),
-        ]).isConvertible(to: .list(.number)))
-    }
-
-    func testCastNumericCoupletToNumberList() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-        ]).isConvertible(to: .list(.number)))
+        XCTAssertEqual(try evaluate("red", as: .list(.number)), [1, 0, 0, 1])
     }
 
     func testCastNumericCoupletToAnyList() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-        ]).isConvertible(to: .list(.any)))
-    }
-
-    func testCastMixedCoupletToStringList() {
-        XCTAssert(Value.tuple([
-            .string("foo"),
-            .number(0.5),
-            .boolean(true),
-        ]).isConvertible(to: .list(.string)))
+        XCTAssert(Value(1, 0.5).isConvertible(to: .list(.any)))
+        XCTAssertEqual(try evaluate("1 0.5", as: .list(.any)), [1, 0.5])
     }
 
     func testCastNumericCoupletToNumberTuple() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-        ]).isConvertible(to: .tuple([.number, .number])))
+        let type = ValueType.tuple([.number, .number])
+        XCTAssert(Value(1, 0.5).isConvertible(to: type))
+        XCTAssertEqual(try evaluate("1 0.5", as: type), [1, 0.5])
     }
 
     func testCastNumericCoupletToAnyTuple() {
-        XCTAssert(Value.tuple([
-            .number(1),
-            .number(0.5),
-        ]).isConvertible(to: .tuple([.any, .any])))
+        let type = ValueType.tuple([.any, .any])
+        XCTAssert(Value(1, 0.5).isConvertible(to: type))
+        XCTAssertEqual(try evaluate("1 0.5", as: type), [1, 0.5])
     }
 
-    func testCastMixedCoupletToMixedTuple() {
-        XCTAssert(Value.tuple([
-            .string("foo"),
-            .number(0.5),
-            .boolean(true),
-        ]).isConvertible(to: .tuple([.string, .number, .boolean])))
+    func testCastMixedTupleToMixedTuple() {
+        let type = ValueType.tuple([.string, .number, .boolean])
+        XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
+        XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: type),
+                       ["foo", 0.5, true])
     }
 
-    func testCastMixedCoupletToMixedStringTuple() {
-        XCTAssert(Value.tuple([
-            .string("foo"),
-            .number(0.5),
-            .boolean(true),
-        ]).isConvertible(to: .tuple([.string, .string, .string])))
+    func testCastMixedTupleToString() {
+        XCTAssert(Value("foo", 0.5, true).isConvertible(to: .string))
+        XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: .string),
+                       "foo0.5 true")
     }
 }
