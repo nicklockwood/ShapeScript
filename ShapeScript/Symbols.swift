@@ -13,22 +13,48 @@ import Foundation
 
 typealias Getter = (EvaluationContext) throws -> Value
 typealias Setter = (Value, EvaluationContext) throws -> Void
+typealias FunctionType = (parameterType: ValueType, returnType: ValueType)
 
 enum Symbol {
     case command(ValueType, Setter)
-    case function(ValueType, (Value, EvaluationContext) throws -> Value)
+    case function(FunctionType, (Value, EvaluationContext) throws -> Value)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)
     case constant(Value)
+    case placeholder(ValueType)
 }
 
 extension Symbol {
+    static func function(
+        _ parameterType: ValueType,
+        _ returnType: ValueType,
+        _ fn: @escaping (Value, EvaluationContext) throws -> Value
+    ) -> Symbol {
+        .function((parameterType, returnType), fn)
+    }
+
     var errorDescription: String {
         switch self {
         case .command, .block: return "command"
         case .function: return "function"
         case .property: return "property"
         case .constant: return "constant"
+        case .placeholder: return "placeholder"
+        }
+    }
+
+    var type: ValueType {
+        switch self {
+        case .command:
+            return .void
+        case let .function(type, _):
+            return type.returnType
+        case let .block(type, _):
+            return type.returnType
+        case let .property(type, _, _), let .placeholder(type):
+            return type
+        case let .constant(value):
+            return value.type
         }
     }
 }
@@ -53,7 +79,6 @@ enum ValueType: Hashable {
     case polygon
     case point
     case range
-    case void
     case bounds
     case any
     indirect case union([ValueType])
@@ -62,7 +87,8 @@ enum ValueType: Hashable {
 }
 
 extension ValueType {
-    static let pair: ValueType = .tuple([.number, .number])
+    static let void: ValueType = .tuple([])
+    static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
 
     var subtypes: [ValueType] {
@@ -89,12 +115,13 @@ extension ValueType {
         case .path: return "path"
         case .mesh: return "mesh"
         case .polygon: return "polygon"
-        case .list, .tuple: return "tuple"
         case .point: return "point"
         case .range: return "range"
-        case .void: return "void"
         case .bounds: return "bounds"
         case .any: return "any"
+        case let .tuple(types) where types.count == 1:
+            return types[0].errorDescription
+        case .tuple, .list: return "tuple"
         case let .union(types):
             return types.errorDescription
         }
@@ -167,6 +194,17 @@ extension BlockType {
         case .shape, .pathShape, .user: return .void
         case let .custom(baseType, _):
             return baseType?.childTypes ?? .void
+        }
+    }
+
+    var returnType: ValueType {
+        switch self {
+        case .builder, .group, .shape: return .mesh
+        case .path, .pathShape: return .path
+        case .text: return .list(.path)
+        case .user: return .any
+        case let .custom(baseType, _):
+            return baseType?.returnType ?? .any
         }
     }
 
@@ -428,74 +466,143 @@ extension Value {
         case .range: return .range
         case .bounds: return .bounds
         case let .tuple(values):
-            switch values.count {
-            case 0: return .void
-            case 1: return values[0].type
-            default:
-                var type: ValueType?
-                for value in values {
-                    let valueType = value.type
-                    if type == nil {
-                        type = valueType
-                    } else if type != valueType {
-                        type = nil
-                        break
-                    }
-                }
-                return .list(type ?? .any)
-            }
+            return .tuple(values.map { $0.type })
         }
     }
 
     func isConvertible(to type: ValueType) -> Bool {
+        self.as(type) != nil
+    }
+
+    func `as`(_ type: ValueType) -> Value? {
+        try? self.as(type, in: nil)
+    }
+
+    /// Convert value to specified type. Returns nil if conversion is not possible.
+    /// Note: context is used to verify that font or texture values exist. Errors are only thrown for
+    /// non-existent font or texture and will never be thrown if context is nil.
+    func `as`(_ type: ValueType, in context: EvaluationContext?) throws -> Value? {
+        func numerify(_ values: [Value], range: ClosedRange<Int>) -> [Double]? {
+            guard range.contains(values.count) else {
+                return nil
+            }
+            let numbers = values.compactMap { $0.as(.number)?.doubleValue }
+            guard numbers.count == values.count else {
+                return nil
+            }
+            return numbers
+        }
         switch (self, type) {
-        case (_, .any),
-             (_, .list(.any)),
-             (.boolean, .string),
-             (.boolean, .text),
-             (.number, .string),
-             (.number, .text),
-             (.number, .color),
-             (.number, .vector),
-             (.number, .size),
-             (.number, .rotation),
-             (.string, .text),
-             (.string, .texture),
-             (.string, .font),
-             (.color, .list(.number)),
-             (.vector, .list(.number)),
-             (.size, .list(.number)),
-             (.rotation, .list(.number)):
-            return true
-        case let (_, .list(type)):
-            return isConvertible(to: type)
-        case let (_, .tuple(types)) where types.count == 1:
-            return isConvertible(to: types[0])
+        case _ where self.type.isSubtype(of: type):
+            return self
         case let (_, .union(types)):
-            return types.contains(where: isConvertible(to:))
-        case let (.tuple(values), .list(type)) where !values.isEmpty:
-            return values.allSatisfy { $0.isConvertible(to: type) }
+            if types.contains(where: { self.type.isSubtype(of: $0) }) {
+                return self
+            }
+            for type in types {
+                if let value = try self.as(type, in: context) {
+                    return value
+                }
+            }
+            return nil
+        case let (_, .list(type)) where self.type.isSubtype(of: type):
+            switch self {
+            case .tuple:
+                return self
+            default:
+                return [self]
+            }
+        case let (_, .tuple(types)) where types.count == 1:
+            return try self.as(types[0], in: context).map { [$0] }
+        case (_, .text):
+            return try self.as(.string, in: context).flatMap {
+                .text(TextValue(string: $0.stringValue))
+            }
+        case let (.tuple(values), .texture) where values.contains { $0.type == .string }:
+            fallthrough
+        case (.string, .texture):
+            return try self.as(.string, in: context).flatMap {
+                let name = $0.stringValue
+                if name.isEmpty {
+                    return .texture(nil)
+                }
+                let url = try context?.resolveURL(for: name)
+                return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name)))
+            }
+        case let (.tuple(values), .font) where values.contains { $0.type == .string }:
+            fallthrough
+        case (.string, .font):
+            return try self.as(.string, in: context).flatMap {
+                let name = $0.stringValue
+                return try .string(context?.resolveFont(name) ?? name)
+            }
+        case (.boolean, .string), (.number, .string):
+            return .string(stringValue)
+        case let (.tuple(values), .string):
+            let stringifyable = values.allSatisfy { $0.as(.string) != nil }
+            return stringifyable ? .string(stringValue) : nil
+        case let (.number(value), .color):
+            return .color(Color(value, 1))
+        case let (.number(value), .vector):
+            return .vector(Vector(value, 0))
+        case let (.number(value), .size):
+            return .size(Vector(size: value))
+        case let (.number(value), .rotation):
+            return .rotation(Rotation(unchecked: [value]))
         case let (.tuple(values), type) where values.count == 1:
-            return values[0].isConvertible(to: type)
-        case let (.tuple(values), .color) where values.count == 2,
-             let (.tuple(values), .list(.number)) where values.count == 2:
-            return values[0].isConvertible(to: .color) && values[1].type == .number
-        case let (.tuple(values), .color),
-             let (.tuple(values), .vector),
-             let (.tuple(values), .size),
-             let (.tuple(values), .rotation):
-            return values.allSatisfy { $0.type == .number }
-        case let (.tuple(values), .string),
-             let (.tuple(values), .text),
-             let (.tuple(values), .texture),
-             let (.tuple(values), .font):
-            return values.allSatisfy { $0.isConvertible(to: .string) }
-        case let (.tuple(values), .void):
-            return values.isEmpty
-        case let (.tuple(values), .tuple(types)) where values.count == types.count:
-            return zip(values, types).allSatisfy { $0.isConvertible(to: $1) }
+            return try values[0].as(type, in: context)
+        case let (.tuple(values), .tuple(types)):
+            guard values.count == types.count else {
+                return nil
+            }
+            let values = try zip(values, types).compactMap {
+                try $0.as($1, in: context)
+            }
+            guard values.count == types.count else {
+                return nil
+            }
+            return .tuple(values)
+        case let (.tuple(values), .color) where values.count == 2:
+            guard case let .color(color)? = values[0].as(.color),
+                  case let .number(alpha)? = values[1].as(.number)
+            else {
+                return nil
+            }
+            return .color(color.withAlpha(alpha))
+        case let (.tuple(values), .list(.number)) where
+            values.count == 2 && values[0].type == .color:
+            if case let (.color(color), .number(alpha)) = (values[0], values[1]) {
+                return .tuple(color.withAlpha(alpha).components.map { .number($0) })
+            }
+            return nil
+        case let (.tuple(values), .list(type)):
+            let result = try values.compactMap { try $0.as(type, in: context) }
+            guard result.count == values.count else {
+                return nil
+            }
+            return .tuple(result)
+        case let (.tuple(values), .color):
+            return numerify(values, range: 1 ... 4).map { .color(Color(unchecked: $0)) }
+        case let (.tuple(values), .vector):
+            return numerify(values, range: 1 ... 3).map { .vector(Vector($0)) }
+        case let (.tuple(values), .size):
+            return numerify(values, range: 1 ... 3).map { .size(Vector(size: $0)) }
+        case let (.tuple(values), .rotation):
+            return numerify(values, range: 1 ... 3).map {
+                .rotation(Rotation(unchecked: $0))
+            }
+        case let (.color(value), .list(.number)):
+            return .tuple(value.components.map { .number($0) })
+        case let (.vector(value), .list(.number)):
+            return .tuple(value.components.map { .number($0) })
+        case let (.size(value), .list(.number)):
+            return .tuple(value.components.map { .number($0) })
+        case let (.rotation(value), .list(.number)):
+            return .tuple(value.rollYawPitchInHalfTurns.map { .number($0) })
+        case let (_, .list(type)):
+            return self.as(type).map { [$0] }
         default:
-            return self.type.isSubtype(of: type)
+            return nil
         }
     }
 

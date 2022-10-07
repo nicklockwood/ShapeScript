@@ -139,7 +139,7 @@ final class EvaluationContext {
             case .property, .function, .command:
                 // TODO: treat redefining these as an error anyway?
                 new.userSymbols[name] = nil
-            case .block, .constant:
+            case .block, .constant, .placeholder:
                 break // don't override user definitions
             }
         }
@@ -190,7 +190,7 @@ extension EvaluationContext {
             switch $1 {
             case .command:
                 return false
-            case .function, .property, .block, .constant:
+            case .function, .property, .block, .constant, .placeholder:
                 return true
             }
         }.keys)
@@ -201,7 +201,7 @@ extension EvaluationContext {
             switch $1 {
             case .command, .function, .property, .block:
                 return true
-            case .constant:
+            case .constant, .placeholder:
                 return false
             }
         }.keys) + Keyword.allCases.map { $0.rawValue }
