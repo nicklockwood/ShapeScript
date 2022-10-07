@@ -1261,6 +1261,16 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testSetBackgroundTextureToEmptyString() throws {
+        let program = """
+        background ""
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.clear])
+    }
+
     func testCameraBackgroundNotDefaultedToClear() throws {
         let program = """
         camera {}

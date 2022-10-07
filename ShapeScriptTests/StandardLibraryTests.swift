@@ -313,6 +313,18 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    func testEmptyTexture() throws {
+        let program = try parse("""
+        print texture
+        texture ""
+        print texture
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["", ""])
+    }
+
     // MARK: Detail
 
     func testDetailInRoot() throws {
