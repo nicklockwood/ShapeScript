@@ -3761,9 +3761,24 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Type conversion
 
+    func testCastNumberToNumberTuple() {
+        XCTAssert(Value(1).isConvertible(to: .tuple([.number])))
+        XCTAssertEqual(try evaluate("1", as: .tuple([.number])), [.number(1)])
+    }
+
+    func testCastNumberToNumberList() {
+        XCTAssert(Value(1).isConvertible(to: .list(.number)))
+        XCTAssertEqual(try evaluate("1", as: .list(.number)), [.number(1)])
+    }
+
     func testCastNumberToColor() {
         XCTAssert(Value(1).isConvertible(to: .color))
         XCTAssertEqual(try evaluate("1", as: .color), .color(.white))
+    }
+
+    func testCastNumberToColorList() {
+        XCTAssert(Value(1).isConvertible(to: .list(.color)))
+        XCTAssertEqual(try evaluate("1", as: .list(.color)), [.color(.white)])
     }
 
     func testCastNumericCoupletToColor() {
@@ -3800,6 +3815,13 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(try evaluate("1 0.5", as: .list(.any)), [1, 0.5])
     }
 
+    func testCastMixedTupleToStringList() {
+        let type = ValueType.list(.string)
+        XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
+        XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: type),
+                       ["foo", "0.5", "true"])
+    }
+
     func testCastNumericCoupletToNumberTuple() {
         let type = ValueType.tuple([.number, .number])
         XCTAssert(Value(1, 0.5).isConvertible(to: type))
@@ -3817,6 +3839,13 @@ class InterpreterTests: XCTestCase {
         XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
         XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: type),
                        ["foo", 0.5, true])
+    }
+
+    func testCastMixedTupleToStringTuple() {
+        let type = ValueType.tuple([.string, .string, .string])
+        XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
+        XCTAssertEqual(try evaluate("\"foo\" 0.5 true", as: type),
+                       ["foo", "0.5", "true"])
     }
 
     func testCastMixedTupleToString() {
