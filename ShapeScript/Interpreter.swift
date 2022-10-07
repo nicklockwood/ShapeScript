@@ -1493,13 +1493,25 @@ extension Expression {
                         at: parameters[i].range
                     )
                 }
-                return value
+                switch type {
+                case .string:
+                    return .string(value.stringValue)
+                default:
+                    return value
+                }
             })
         case let .list(type):
             return try .tuple(values.enumerated().flatMap { i, value -> [Value] in
                 switch value {
                 case _ where value.isConvertible(to: type):
-                    return [value]
+                    switch (type, value) {
+                    case (.string, _):
+                        return [.string(value.stringValue)]
+                    case let (.color, .number(value)):
+                        return [.color(Color(value, 1))]
+                    default:
+                        return [value]
+                    }
                 case let .color(color) where type == .number:
                     var components = color.components
                     if values.count == 2, components.count == 4 {

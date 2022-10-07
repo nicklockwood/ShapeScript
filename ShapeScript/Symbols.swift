@@ -110,6 +110,9 @@ extension ValueType {
             return types.contains(where: isSubtype(of:))
         case let (.list(lhs), .list(rhs)):
             return lhs.isSubtype(of: rhs)
+        case let (.tuple(lhs), .tuple(rhs)):
+            return lhs.count == rhs.count &&
+                zip(lhs, rhs).allSatisfy { $0.isSubtype(of: $1) }
         default:
             return self == type
         }
@@ -464,8 +467,14 @@ extension Value {
              (.size, .list(.number)),
              (.rotation, .list(.number)):
             return true
+        case let (_, .list(type)):
+            return isConvertible(to: type)
+        case let (_, .tuple(types)) where types.count == 1:
+            return isConvertible(to: types[0])
         case let (_, .union(types)):
             return types.contains(where: isConvertible(to:))
+        case let (.tuple(values), .list(type)) where !values.isEmpty:
+            return values.allSatisfy { $0.isConvertible(to: type) }
         case let (.tuple(values), type) where values.count == 1:
             return values[0].isConvertible(to: type)
         case let (.tuple(values), .color) where values.count == 2,
@@ -483,12 +492,10 @@ extension Value {
             return values.allSatisfy { $0.isConvertible(to: .string) }
         case let (.tuple(values), .void):
             return values.isEmpty
-        case let (.tuple(values), .list(type)) where !values.isEmpty:
-            return values.allSatisfy { $0.isConvertible(to: type) }
         case let (.tuple(values), .tuple(types)) where values.count == types.count:
             return zip(values, types).allSatisfy { $0.isConvertible(to: $1) }
         default:
-            return self.type == type
+            return self.type.isSubtype(of: type)
         }
     }
 
