@@ -174,6 +174,12 @@ for n in 1 to 5 {
 }
 ```
 
+As with `color`, once a texture has been set it will be applied to all subsequent shapes defined in the same [scope](scope.md). To clear the current texture you can set it to an empty string:
+
+```swift
+texture ""
+```
+
 ### Access Permission
 
 The first time you try to use an image, you will see an error screen like the one below.
