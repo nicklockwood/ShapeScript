@@ -133,14 +133,9 @@ final class EvaluationContext {
     func push(_ type: BlockType) -> EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.childTypes = type.childTypes
-        new.symbols = type.symbols
-        for (name, symbol) in type.symbols {
-            switch symbol {
-            case .property, .function:
-                new.userSymbols[name] = nil
-            case .block, .constant, .placeholder:
-                break // don't override user definitions
-            }
+        new.symbols = Symbols.global.merging(type.symbols) { $1 }
+        for name in type.symbols.keys {
+            new.userSymbols[name] = nil
         }
         return new
     }

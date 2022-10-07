@@ -344,6 +344,26 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.red, Color.white])
     }
 
+    func testOverrideGlobalFunction() {
+        let program = """
+        define cos(foo) { print "hello" }
+        cube { cos(5) }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["hello"])
+    }
+
+    func testNoOverridePathFunction() {
+        let program = """
+        define point(foo) { print "hello" }
+        path { point 1 0 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
     // MARK: Option scope
 
     func testOptionValidInBlockDefine() {
