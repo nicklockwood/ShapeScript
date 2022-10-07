@@ -231,6 +231,18 @@ extension Value {
         return value as? Double ?? 0
     }
 
+    var doublesValue: [Double] {
+        switch self {
+        case let .tuple(values):
+            return values.map { $0.doubleValue }
+        case let .number(value):
+            return [value]
+        default:
+            assertionFailure()
+            return []
+        }
+    }
+
     var angleValue: Angle {
         .radians(doubleValue * .pi)
     }
@@ -285,6 +297,16 @@ extension Value {
              .number, .string, .text, .path, .mesh, .point, .bounds:
             return nil
         }
+    }
+
+    var vectorValue: Vector {
+        assert(value is Vector)
+        return value as? Vector ?? .zero
+    }
+
+    var rotationValue: Rotation {
+        assert(value is Rotation)
+        return value as? Rotation ?? .identity
     }
 
     var colorValue: Color {

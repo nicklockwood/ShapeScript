@@ -35,17 +35,17 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let transform: Symbols = [
         "position": .property(.vector, { parameter, context in
-            context.transform.offset = parameter.value as! Vector
+            context.transform.offset = parameter.vectorValue
         }, { context in
             .vector(context.transform.offset)
         }),
         "orientation": .property(.rotation, { parameter, context in
-            context.transform.rotation = parameter.value as! Rotation
+            context.transform.rotation = parameter.rotationValue
         }, { context in
             .rotation(context.transform.rotation)
         }),
         "size": .property(.size, { parameter, context in
-            context.transform.scale = parameter.value as! Vector
+            context.transform.scale = parameter.vectorValue
         }, { context in
             .size(context.transform.scale)
         }),
@@ -53,15 +53,15 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let childTransform: Symbols = [
         "translate": .command(.vector) { parameter, context in
-            let vector = parameter.value as! Vector
+            let vector = parameter.vectorValue
             context.childTransform.translate(by: vector)
         },
         "rotate": .command(.rotation) { parameter, context in
-            let rotation = parameter.value as! Rotation
+            let rotation = parameter.rotationValue
             context.childTransform.rotate(by: rotation)
         },
         "scale": .command(.size) { parameter, context in
-            let scale = parameter.value as! Vector
+            let scale = parameter.vectorValue
             context.childTransform.scale(by: scale)
         },
     ]
@@ -279,13 +279,13 @@ extension Dictionary where Key == String, Value == Symbol {
         // vertices
         "point": .function(.vector) { parameter, context in
             .point(.point(
-                parameter.value as! Vector,
+                parameter.vectorValue,
                 color: context.material.color
             ))
         },
         "curve": .function(.vector) { parameter, context in
             .point(.curve(
-                parameter.value as! Vector,
+                parameter.vectorValue,
                 color: context.material.color
             ))
         },
@@ -326,12 +326,10 @@ extension Dictionary where Key == String, Value == Symbol {
             .number(value.doubleValue.rounded(.up))
         },
         "max": .function(.pair) { value, _ in
-            let values = value.value as! [Double]
-            return .number(values.max()!)
+            .number(value.doublesValue.max() ?? 0)
         },
         "min": .function(.pair) { value, _ in
-            let values = value.value as! [Double]
-            return .number(values.min()!)
+            .number(value.doublesValue.min() ?? 0)
         },
         "abs": .function(.number) { value, _ in
             .number(value.doubleValue.magnitude)
@@ -340,7 +338,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .number(sqrt(value.doubleValue))
         },
         "pow": .function(.pair) { value, _ in
-            let values = value.value as! [Double]
+            let values = value.doublesValue
             return .number(pow(values[0], values[1]))
         },
         "cos": .function(.number) { value, _ in
@@ -362,7 +360,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .number(atan(value.doubleValue))
         },
         "atan2": .function(.pair) { value, _ in
-            let values = value.value as! [Double]
+            let values = value.doublesValue
             return .number(atan2(values[0], values[1]))
         },
         "pi": .constant(.number(.pi)),
