@@ -73,18 +73,18 @@ pow 3 2 // returns 9
 pow 4 0.5 // returns 2
 ```
 
-The `min` function returns the lower of two values:
+The `min` function returns the lower of two or more values:
 
 ```swift
 min 2 4 // returns 2
-min 5 -5.1 // returns -5.1
+min 5 0 -5.1 // returns -5.1
 ```
 
-The `max` function returns the higher of two values:
+The `max` function returns the higher of two or more values:
 
 ```swift
 max 2 4 // returns 4
-max 5 -5.1 // returns 5
+max 5 0 -5.1 // returns 5
 ```
 
 ## Trigonometry
