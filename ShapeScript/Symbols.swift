@@ -451,6 +451,9 @@ extension Value {
             default: return nil
             }
         case let .tuple(values):
+            if values.count == 1, case .tuple = values[0] {
+                return values[0][name]
+            }
             if let index = name.ordinalIndex {
                 return index < values.count ? values[index] : nil
             }
