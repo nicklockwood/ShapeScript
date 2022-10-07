@@ -21,7 +21,7 @@ public let stdlibSymbols: Set<String> = {
         switch symbol {
         case let .block(type, _):
             keys.formUnion(type.options.keys)
-        case .command, .function, .property, .constant:
+        case .command, .function, .property, .constant, .placeholder:
             break
         }
     }
@@ -277,13 +277,13 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let points: Symbols = [
         // vertices
-        "point": .function(.vector) { parameter, context in
+        "point": .function(.vector, .point) { parameter, context in
             .point(.point(
                 parameter.vectorValue,
                 color: context.material.color
             ))
         },
-        "curve": .function(.vector) { parameter, context in
+        "curve": .function(.vector, .point) { parameter, context in
             .point(.curve(
                 parameter.vectorValue,
                 color: context.material.color
@@ -304,11 +304,11 @@ extension Dictionary where Key == String, Value == Symbol {
         // Logic
         "true": .constant(.boolean(true)),
         "false": .constant(.boolean(false)),
-        "not": .function(.boolean) { value, _ in
+        "not": .function(.boolean, .boolean) { value, _ in
             .boolean(!value.boolValue)
         },
         // Math
-        "rnd": .function(.void) { _, context in
+        "rnd": .function(.void, .number) { _, context in
             .number(context.random.next())
         },
         "seed": .property(.number, { value, context in
@@ -316,50 +316,50 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .number(Double(context.random.seed))
         }),
-        "round": .function(.number) { value, _ in
+        "round": .function(.number, .number) { value, _ in
             .number(value.doubleValue.rounded())
         },
-        "floor": .function(.number) { value, _ in
+        "floor": .function(.number, .number) { value, _ in
             .number(value.doubleValue.rounded(.down))
         },
-        "ceil": .function(.number) { value, _ in
+        "ceil": .function(.number, .number) { value, _ in
             .number(value.doubleValue.rounded(.up))
         },
-        "max": .function(.list(.number)) { value, _ in
+        "max": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.max() ?? 0)
         },
-        "min": .function(.list(.number)) { value, _ in
+        "min": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.min() ?? 0)
         },
-        "abs": .function(.number) { value, _ in
+        "abs": .function(.number, .number) { value, _ in
             .number(value.doubleValue.magnitude)
         },
-        "sqrt": .function(.number) { value, _ in
+        "sqrt": .function(.number, .number) { value, _ in
             .number(sqrt(value.doubleValue))
         },
-        "pow": .function(.pair) { value, _ in
+        "pow": .function(.numberPair, .number) { value, _ in
             let values = value.doublesValue
             return .number(pow(values[0], values[1]))
         },
-        "cos": .function(.number) { value, _ in
+        "cos": .function(.number, .number) { value, _ in
             .number(cos(value.doubleValue))
         },
-        "acos": .function(.number) { value, _ in
+        "acos": .function(.number, .number) { value, _ in
             .number(acos(value.doubleValue))
         },
-        "sin": .function(.number) { value, _ in
+        "sin": .function(.number, .number) { value, _ in
             .number(sin(value.doubleValue))
         },
-        "asin": .function(.number) { value, _ in
+        "asin": .function(.number, .number) { value, _ in
             .number(asin(value.doubleValue))
         },
-        "tan": .function(.number) { value, _ in
+        "tan": .function(.number, .number) { value, _ in
             .number(tan(value.doubleValue))
         },
-        "atan": .function(.number) { value, _ in
+        "atan": .function(.number, .number) { value, _ in
             .number(atan(value.doubleValue))
         },
-        "atan2": .function(.pair) { value, _ in
+        "atan2": .function(.numberPair, .number) { value, _ in
             let values = value.doublesValue
             return .number(atan2(values[0], values[1]))
         },
