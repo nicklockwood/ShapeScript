@@ -368,7 +368,7 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let global: Symbols = _merge(functions, colors, meshes, paths)
 
-    static let node: Symbols = _merge(global, transform, [
+    static let node: Symbols = _merge(transform, [
         "name": .property(.string, { parameter, context in
             context.name = parameter.stringValue
         }, { context in
@@ -443,7 +443,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
-    static let pathShape: Symbols = _merge(global, transform, detail, color)
+    static let pathShape: Symbols = _merge(transform, detail, color)
     static let path: Symbols = _merge(pathShape, childTransform, font, points)
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, shape, path)
