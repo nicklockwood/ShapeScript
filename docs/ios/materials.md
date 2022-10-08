@@ -163,7 +163,7 @@ sphere {
 
 The parameter for the `texture` command is the name of an external image file to display. The name can include either an absolute or relative file path, enclosed in double quotes. If a relative path is used it should be specified relative to the ShapeScript file that references it.
 
-The texture name can be constructed dynamically by using the [text interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple texture files with a common prefix or suffix:
+The texture name can be constructed dynamically by using [string interpolation](text.md#interpolation), which is useful if you have multiple texture files with a common prefix or suffix:
 
 ```swift
 for n in 1 to 5 {

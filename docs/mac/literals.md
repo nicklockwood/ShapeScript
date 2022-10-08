@@ -6,36 +6,34 @@ Literals are values that you type in your ShapeScript file. They could be number
 ```swift
 5 // an integer literal
 
-37.2 // a floating-point literal
+37.2 // a decimal literal
 
 false // a boolean literal
 
-"hello" // a text literal
+"hello" // a string literal
 
 1 0 0 // a vector literal
 
 #FF0000 // a hex color literal
 ```
 
-Text literals are delimited by double quotes (`"`) to prevent ambiguity if the text matches a keyword or [symbol](symbols.md), or contains spaces or other punctuation. 
+## Strings
 
-Vector literals are just a sequence of numbers separated by spaces. They are often used to represent positions, colors, sizes and rotations.
+Strings are how human-readable text is represented in ShapeScript. These are used for a variety of purposes, including specifying file names for [imports](import.md) or [textures](materials.md#texture), [logging](debugging.md#logging) debug information to the console, or even rendering 3D text.
 
-## Escaping
-
-Because text literals use `"` as delimiters, if you want to use a double quote *inside* the text itself then it must be *escaped* using a backslash (`\`) character:
+String literals are delimited by double quotes (`"`) to prevent ambiguity if the text matches a keyword or [symbol](symbols.md), or contains spaces or other punctuation. If you want to use a double quote *inside* the text itself then it must be *escaped* using a backslash (`\`) character:
 
 ```swift
 "hello \"Bob\" (if that's your real name)"
 ```
 
-A line containing a text literal without a closing `"` is treated as an error, so if you need to include line-breaks in your text then these must also be escaped. Use the escape sequence `\n` (short for "new line") to indicate a line-break:
+A line containing a string literal without a closing `"` is treated as an error, so if you need to include line-breaks in your string then these must also be escaped. Use the escape sequence `\n` (short for "new line") to indicate a line-break:
 
 ```swift
 "first line\nsecond line"
 ```
 
-Because `\` is used as the escape character, it must also be escaped if you want it to appear literally in the text. Use a double `\\` in this case (there is no need to escape forward slashes (`/`) however):
+Because `\` is used as the escape character, it must also be escaped if you want it to appear literally in the string. Use a double `\\` in this case (there is no need to escape forward slashes (`/`) however):
 
 ```swift
 "back slash: \\"
@@ -44,13 +42,15 @@ Because `\` is used as the escape character, it must also be escaped if you want
 
 ## Vectors and Tuples
 
-A sequence of values separated by spaces defines a [tuple](https://en.wikipedia.org/wiki/Tuple). Many [commands](https://github.com/nicklockwood/ShapeScript/blob/develop/Help/commands.md) in ShapeScript accept a vector argument, and you can pass a tuple to these commands directly:
+A sequence of values separated by spaces defines a [tuple](https://en.wikipedia.org/wiki/Tuple). A tuple of numeric values is also known as a *vector*.
+
+Vectors are used in ShapeScript to represent positions, colors, sizes and rotations. Many [commands](https://github.com/nicklockwood/ShapeScript/blob/develop/Help/commands.md) in ShapeScript accept a vector argument, and you can pass a tuple to these commands directly:
 
 ```swift
 translate 1 0 0
 ```
 
-But you can also [define](symbols.md) a tuple value to use later:
+You can also [define](symbols.md) a tuple value to use later:
 
 ```swift
 define size 1 1 0.5
@@ -63,7 +63,7 @@ define size 1 1 0.5
 color size // sets color to yellow
 ```
 
-Tuples are't limited to numbers, they can be comprised of any type of value (including other tuples), or a mix of different types:
+Tuples are't limited to numbers. They can be comprised of any type of value (including other tuples), or a mix of different types:
 
 ```swift
 define size 1 2 3

@@ -43,9 +43,9 @@ for i in 1 to 5 {
 
 ![Numbers](../images/numbers.png)
 
-You may find that in some cases you need to compose some text dynamically from several source values. ShapeScript has a feature called [text interpolation](https://en.wikipedia.org/wiki/String_interpolation), whereby values can be inserted into a larger body of text.
+You may find that in some cases you need to compose some text dynamically from several source values. ShapeScript has a feature called [string interpolation](https://en.wikipedia.org/wiki/String_interpolation), whereby values can be inserted into a larger body of text.
 
-To use text interpolation, simply pass multiple values to the `text` command and they will be concatenated together:
+To use string interpolation, simply pass multiple values to the `text` command and they will be concatenated together:
 
 ```swift
 define apples 5
@@ -60,7 +60,7 @@ text "Good" "bye" // becomes "Goodbye"
 text "Hello " "World" "!" // becomes "Hello World!"
 ```
 
-For your convenience, non-text values will be spaced-out automatically. If you wish to remove the spaces, you can place an empty text literal between them:
+For your convenience, non-text values will be spaced-out automatically. If you wish to remove the spaces, you can place an empty string literal between them:
 
 ```swift
 text 1 2 3 // becomes "1 2 3"
@@ -209,7 +209,7 @@ font "filename.ttf"
 
 Only fonts with a ".ttf", ".otf" or ".ttc" file extension are supported. The extension is required, or the `font` parameter will be treated as a system font rather than a file. If a relative path or filename is used, it should be specified relative to the ShapeScript file that references it.
 
-The filename can be constructed dynamically by using the [text interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple font files with a common prefix or suffix:
+The filename can be constructed dynamically by using the [string interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple font files with a common prefix or suffix:
 
 ```swift
 for n in 1 to 5 {
