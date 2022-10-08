@@ -570,4 +570,11 @@ class TypesystemTests: XCTestCase {
         foo
         """, as: .string), .string(url.path))
     }
+
+    func testCastNestedTupleArguments() throws {
+        let type = ValueType.tuple([.list(.string), .string])
+        XCTAssert(Value(Value("foo", "bar"), "baz").isConvertible(to: type))
+        XCTAssertEqual(try evaluate("(\"foo\" \"bar\") \"baz\"", as: type),
+                       [["foo", "bar"], "baz"])
+    }
 }
