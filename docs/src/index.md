@@ -89,6 +89,7 @@ ShapeScript Help
     - [Functions](functions.md)
         - [Arithmetic](functions.md#arithmetic)
         - [Trigonometry](functions.md#trigonometry)
+        - [Strings](functions.md#strings)
         - [Functions and Expressions](functions.md#functions-and-expressions)
         - [Custom Functions](functions.md#custom-functions)
     - [Commands](commands.md)
