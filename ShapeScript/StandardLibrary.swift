@@ -368,6 +368,31 @@ extension Dictionary where Key == String, Value == Symbol {
             return .number(atan2(values[0], values[1]))
         },
         "pi": .constant(.number(.pi)),
+        // Strings
+        "split": .function(.tuple([.string, .string]), .list(.string)) { value, _ in
+            let string = value.tupleValue[0] as! String
+            let separator = value.tupleValue[1] as! String
+            return .tuple(string
+                .components(separatedBy: separator)
+                .map { .string($0) })
+        },
+        "join": .function(.tuple([.list(.any), .string]), .string) { value, _ in
+            guard case let .tuple(args) = value, args.count == 2,
+                  case let .tuple(stringValues) = args[0],
+                  case let .string(separator) = args[1]
+            else {
+                throw RuntimeErrorType.assertionFailure(
+                    "Invalid arguments to join function"
+                )
+            }
+            let strings = stringValues.map { $0.stringValue }
+            return .string(strings.joined(separator: separator))
+        },
+        "trim": .function(.string, .string) { value, _ in
+            .string(value.stringValue.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ))
+        },
     ]
 
     static let global: Symbols = _merge(functions, colors, meshes, paths)

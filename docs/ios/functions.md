@@ -170,6 +170,43 @@ Angle in degrees | Angle in radians | Angle in half-turns
 
 <br>
 
+## Strings
+
+ShapeScript includes a number of functions for manipulating strings.
+
+The `join` function concatenates two or more strings together, with an optional separator:
+
+```swift
+define words "Hello" "World!"
+define greeting join words ", "
+print greeting // prints "Hello, World!"
+```
+
+If you don't want a delimiter, just pass an empty string as the second argument to join:
+
+```swift
+define words "Hello" "World!"
+define greeting join(words "")
+print greeting // prints "HelloWorld!"
+```
+
+The `split` function breaks a string up into a tuple of substrings by splitting it at a specified delimiter:
+
+```swift
+define input "comma,delimited,string"
+define elements split input ","
+print elements.second // prints "delimited"
+```
+
+The `trim` function removes any leading or trailing [white space](https://en.wikipedia.org/wiki/Whitespace_character) characters from a string:
+
+```swift
+define input "comma, delimited , string,with ,spaces"
+define elements split input ","
+print elements.second // prints " delimited "
+print trim elements.second // prints just "delimited" without spaces
+```
+
 ## Functions and Expressions
 
 Expressions can be passed as function arguments, for example:
