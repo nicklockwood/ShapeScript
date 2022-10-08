@@ -74,7 +74,7 @@ extension ValueType {
         case .vector: return "vector"
         case .size: return "size"
         case .rotation: return "rotation"
-        case .string: return "text"
+        case .string: return "string"
         case .text: return "text"
         case .path: return "path"
         case .paths: return "path"

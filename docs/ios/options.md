@@ -11,7 +11,7 @@ An option is denoted by a name followed by one or more values or expressions ins
 cube {
     detail 5 // a numeric value
     position 1 0 -1 // a vector value
-    texture "Earth.png" // a text value
+    texture "Earth.png" // a texture value
 }
 ```
 

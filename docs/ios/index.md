@@ -74,7 +74,7 @@ ShapeScript Help
 - Syntax
     - [Comments](comments.md)
     - [Literals](literals.md)
-        - [Escaping](literals.md#escaping)
+        - [Strings](literals.md#strings)
         - [Vectors and Tuples](literals.md#vectors-and-tuples)
         - [Structured Data](literals.md#structured-data)
     - [Symbols](symbols.md)

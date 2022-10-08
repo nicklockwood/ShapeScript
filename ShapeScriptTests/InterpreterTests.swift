@@ -219,7 +219,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.assertionFailure(
-                "Blocks that return a text value cannot be assigned a name"
+                "Blocks that return a string value cannot be assigned a name"
             ), at: range))
         }
     }
@@ -1748,7 +1748,7 @@ class InterpreterTests: XCTestCase {
                 for: "start value",
                 index: 0,
                 expected: "number",
-                got: "text"
+                got: "string"
             ), at: range))
         }
     }
@@ -1763,7 +1763,7 @@ class InterpreterTests: XCTestCase {
                 for: "end value",
                 index: 0,
                 expected: "number",
-                got: "text"
+                got: "string"
             ), at: range))
         }
     }
@@ -1778,7 +1778,7 @@ class InterpreterTests: XCTestCase {
                 for: "step value",
                 index: 0,
                 expected: "number",
-                got: "text"
+                got: "string"
             ), at: range))
         }
     }
@@ -1884,7 +1884,7 @@ class InterpreterTests: XCTestCase {
                 for: "range",
                 index: 0,
                 expected: "range or tuple",
-                got: "text"
+                got: "string"
             ), at: range))
         }
     }
@@ -2172,7 +2172,7 @@ class InterpreterTests: XCTestCase {
                 for: "sqrt",
                 index: 0,
                 expected: "number",
-                got: "text"
+                got: "string"
             ), at: range))
         }
     }
