@@ -735,4 +735,51 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(delegate.log, ["Times"])
     }
+
+    // MARK: Strings
+
+    func testSplit() throws {
+        let program = try parse("""
+        define foo "hello world"
+        define bar split foo " "
+        print bar.first
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["hello"])
+    }
+
+    func testSplit2() throws {
+        let program = try parse("""
+        define foo split "hello world" " "
+        print foo.second
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["world"])
+    }
+
+    func testJoin() throws {
+        let program = try parse("""
+        define foo "hello" "world"
+        print join foo ", "
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["hello, world"])
+    }
+
+    func testTrim() throws {
+        let program = try parse("""
+        define foo "  hello world\\n"
+        print trim foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["hello world"])
+    }
 }
