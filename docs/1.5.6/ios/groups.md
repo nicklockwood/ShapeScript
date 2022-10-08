@@ -17,7 +17,7 @@ group {
 
 Like other 3D shapes, a group has a `position` and `orientation` in 3D space, but it can also contain child shapes which inherit its coordinate system; if you move the group, its children move with it. The `position`, `orientation` and `size` properties of the children will be treated as relative to those of the containing group.
 
-You can override the current [material](materials.md) at any point inside a group and only the subsequent children will be affected. You can also use [relative transform](transforms.md) commands to manipulate the relative transforms for shapes inside the group:
+You can override the current [material](materials.md) at any point inside a group and only the subsequent children will be affected. You can also use [relative transform](transforms.md#relative-transforms) commands to manipulate the relative transforms for shapes inside the group:
 
 ```swift
 group {

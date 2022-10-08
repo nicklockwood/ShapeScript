@@ -41,17 +41,17 @@ Instead of a color, you can pass a file path to an image:
 background "filename.png" // set background image
 ```
 
-This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md). By default, the background is transparent.
+This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md#rendering-an-image). By default, the background is transparent.
 
 **Note:** the `background` command can only be used at the root level of a ShapeScript file, or inside a [camera](cameras.md) node:
 
 ## Detail
 
-The `detail` command can be used anywhere in the ShapeScript file to override the local detail level used for approximating curved geometry. It is documented in the [options](options.md) section.
+The `detail` command can be used anywhere in the ShapeScript file to override the local detail level used for approximating curved geometry. It is documented in the [options](options.md#detail) section.
 
 ## Smoothing
 
-The `smoothing` command can be used anywhere in the ShapeScript file to override the local smoothing level used for calculating surface normals. It is documented in the [options](options.md) section.
+The `smoothing` command can be used anywhere in the ShapeScript file to override the local smoothing level used for calculating surface normals. It is documented in the [options](options.md#smoothing) section.
 
 ## Materials
 
@@ -63,7 +63,7 @@ The `font`, command is used to specify the font used to render [text](text.md).
 
 ## Transforms
 
-The `rotate`, `translate` and `scale` commands are useful for procedurally generating paths and complex shapes. These are documented in the [transforms](transforms.md) section.
+The `rotate`, `translate` and `scale` commands are useful for procedurally generating paths and complex shapes. These are documented in the [transforms](transforms.md#relative-transforms) section.
 
 ## Primitives
 
@@ -75,7 +75,7 @@ The `path`, `circle` and `square` commands are used to create paths that can be 
 
 ## Text
 
-The `text` command is used to generate individual words, lines or paragraphs of text, which can then be [filled](builders.md) or [extruded](builders.md) to create a 3D mesh. The `text` command is documented in the [text](text.md) section.
+The `text` command is used to generate individual words, lines or paragraphs of text, which can then be [filled](builders.md#fill) or [extruded](builders.md#extrude) to create a 3D mesh. The `text` command is documented in the [text](text.md) section.
 
 ## Builders
 
@@ -87,7 +87,7 @@ The `difference`, `union`, `intersection` and `stencil` commands use boolean ope
 
 ## Random Numbers
 
-The `rnd` and `seed` commands can be used to generate pseudorandom values that are great for procedurally generating natural-looking shapes. The [train example](examples.md) uses this approach to create a jumbled layer of coal behind the driver's cab.
+The `rnd` and `seed` commands can be used to generate pseudorandom values that are great for procedurally generating natural-looking shapes. The [train example](examples.md#train) uses this approach to create a jumbled layer of coal behind the driver's cab.
 
 The `rnd` command takes no parameters but returns a random number in the range 0 to 1. It can be used as one of the inputs to a `rotate` or `translate` command, or multiplied by other values as part of an expression to produce random numbers in different ranges:
 

@@ -9,7 +9,7 @@ import "MyShape.shape"
 
 The `import` command loads an external ShapeScript file and evaluates it inside the calling script. Any symbols that are defined in the imported file will become available inside the [scope](scope.md) in which it is loaded, and any geometry created by the imported file will be displayed.
 
-You can import the same file several times in the same script, and import statements can appear inside [loops](control-flow.md), [if statements](control-flow.md) or [blocks](blocks.md). If you don't want the geometry inside an imported file to be displayed immediately, you can place the import inside a [define](symbols.md) statement:
+You can import the same file several times in the same script, and import statements can appear inside [loops](control-flow.md#loops), [if statements](control-flow.md#if-else) or [blocks](blocks.md). If you don't want the geometry inside an imported file to be displayed immediately, you can place the import inside a [define](symbols.md) statement:
 
 ```swift
 define ball {
@@ -30,13 +30,13 @@ define rocket {
 
 Depending on the format, imported models may include their own [materials](materials.md). Uncolored / untextured models will inherit the current ShapeScript material properties.
 
-**Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md) warning.
+**Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md#access-permission) warning.
 
 ## Dynamic Imports
 
 It can sometimes be useful to generate the name of an imported file dynamically. For example if you have multiple numbered files to import, you might want to generate the names programatically.
 
-You can do this using the [text interpolation](text.md) feature. The following code, for example, will load the files "Shape1.shape", "Shape2.shape"... up to "Shape10.shape":
+You can do this using the [text interpolation](text.md#interpolation) feature. The following code, for example, will load the files "Shape1.shape", "Shape2.shape"... up to "Shape10.shape":
 
 ```swift
 for n in 1 to 10 {

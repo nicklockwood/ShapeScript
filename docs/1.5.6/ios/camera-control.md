@@ -20,7 +20,7 @@ Roll                         | Pinch, then rotate fingers
 
 ## Copy Settings
 
-To copy the configuration for the current camera view, select `Copy Settings` from the camera menu. This will copy a snippet of ShapeScript code which you can then paste into your `.shape` file to define a [custom camera](cameras.md).
+To copy the configuration for the current camera view, select `Copy Settings` from the camera menu. This will copy a snippet of ShapeScript code which you can then paste into your `.shape` file to define a [custom camera](cameras.md#custom-cameras).
 
 ---
 [Index](index.md) | Next: [Primitives](primitives.md)

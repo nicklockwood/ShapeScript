@@ -1,13 +1,13 @@
 Transforms
 ---
 
-Every shape has a position, orientation and size. These can be set in *absolute* units by using the `position`, `orientation` and `size` options, or in *relative* units using the `translate`, `rotate` and `scale` commands (see [relative transforms]() below).
+Every shape has a position, orientation and size. These can be set in *absolute* units by using the `position`, `orientation` and `size` options, or in *relative* units using the `translate`, `rotate` and `scale` commands (see [relative transforms](#relative-transforms) below).
 
 ## Position
 
 When you define a shape in ShapeScript, it is created at the *point of origin*. By default, this is the zero position of the X, Y and Z axes within the current [scope](scope.md), but this can be overridden using the `position` option.
 
-The `position` option accepts a [vector](literals.md) of up to 3 values representing a coordinate along the X Y and Z axes. If values are omitted they are assumed to be zero. The default `position` of every shape is `0 0 0`, which is located at the *origin*, aka the center of the world.
+The `position` option accepts a [vector](literals.md#vectors-and-tuples) of up to 3 values representing a coordinate along the X Y and Z axes. If values are omitted they are assumed to be zero. The default `position` of every shape is `0 0 0`, which is located at the *origin*, aka the center of the world.
 
 Positive `position` values move the shape right, up, and towards the camera respectively. Negative values move it left, down and away from the camera:
 
@@ -31,9 +31,9 @@ cube {
 
 The ordering of these three parameters may seem counterintuitive (Z, Y, X), but it makes sense in the context that when working with 2D [paths](paths.md), you often wish to apply a rotation only around the Z axis (in the XY plane), and by having that as the first parameter, you can simply omit the other values, which will default to zero.
 
-Angles of rotation are specified as numbers in the range 0 to 2 (or 0 to -2 if you prefer), representing the number of half turns. This again may seem odd if you were expecting degrees or radians, but using this range works better mathematically, as you avoid the need to multiply or divide computed rotation values by [pi](https://en.wikipedia.org/wiki/Pi) or 180, and it's easier to mentally convert 90 degrees to 0.5 than to 1.5707963268 (see the [trigonometry section](functions.md) for more about converting between angular representations).
+Angles of rotation are specified as numbers in the range 0 to 2 (or 0 to -2 if you prefer), representing the number of half turns. This again may seem odd if you were expecting degrees or radians, but using this range works better mathematically, as you avoid the need to multiply or divide computed rotation values by [pi](https://en.wikipedia.org/wiki/Pi) or 180, and it's easier to mentally convert 90 degrees to 0.5 than to 1.5707963268 (see the [trigonometry section](functions.md#trigonometry) for more about converting between angular representations).
 
-While it is relatively simple to use the `orientation` property to specify a rotation around a single axis, it can be awkward to apply a rotation around multiple axes at once due to the fixed order. If you need to do that, you may find it simpler to use the `rotate` command instead (described [below]()), which can be applied multiple times in any order.
+While it is relatively simple to use the `orientation` property to specify a rotation around a single axis, it can be awkward to apply a rotation around multiple axes at once due to the fixed order. If you need to do that, you may find it simpler to use the `rotate` command instead (described [below](#relative-transforms)), which can be applied multiple times in any order.
 
 ## Size
 
@@ -45,7 +45,7 @@ It it possible to apply a negative scale factor, which has the effect of flippin
 
 ## Relative Transforms
 
-When defining paths or shapes procedurally using [loops](control-flow.md) or other logic, you will often wish to position shapes or points using *relative* coordinates, rather than absolutely. You can do this using the `translate`, `rotate` and `scale` commands, which are counterparts to the `position`, `orientation` and `size` options.
+When defining paths or shapes procedurally using [loops](control-flow.md#loops) or other logic, you will often wish to position shapes or points using *relative* coordinates, rather than absolutely. You can do this using the `translate`, `rotate` and `scale` commands, which are counterparts to the `position`, `orientation` and `size` options.
 
 Translation is the mathematical term for directional movement. Like `position`,  `translate`  takes up to 3 values representing offsets along the X Y and Z axes. Unlike `position`, the values do not specify the position of the containing shape, but rather they move the *origin* of the current [scope](scope.md), affecting all subsequently defined shapes.
 
@@ -98,7 +98,7 @@ rotate -0.25
 scale 0.5
 ```
 
-As mentioned in the [orientation]() section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be very difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
+As mentioned in the [orientation](#orientation) section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be very difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
 
 ```swift
 rotate 0 0 0.25 // pitch 45 degrees

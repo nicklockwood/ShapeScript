@@ -3,7 +3,7 @@ Options
 
 All 3D shapes in ShapeScript have a common set of options that you can configure. As implied by the name, options are *optional* - they always have sensible default values that will be used if you don't specify a value.
 
-Some shapes have extra options, specific to that shape. Later you will learn how to define custom options on your own shapes using the [option command](blocks.md).
+Some shapes have extra options, specific to that shape. Later you will learn how to define custom options on your own shapes using the [option command](blocks.md#options).
 
 An option is denoted by a name followed by one or more values or expressions inside a shape [block](blocks.md). Different options accept different value types, but typically these will be a number, vector or text. Here are some examples:
 
@@ -66,7 +66,7 @@ As mentioned above, all shapes in ShapeScript are formed from flat triangles. To
 
 [Primitive shapes](primitives.md) in ShapeScript all have appropriate normals set by default, and when creating [paths](paths.md) you can use the `curve` command to specify when a corner should appear curved rather than sharp. However, there are times when you may wish to override the default behavior, e.g. to deliberately create a more angular appearance, or to smooth an [imported](import.md) model that does not already include appropriate surface normal data.
 
-The `smoothing` command accepts a numeric value in the range 0 to 1. This represents an angle between 0 and 180 degrees (see the [trigonometry section](functions.md) for more about how angles are represented in ShapeScript). This angle is the threshold at which ShapeScript will apply normal-based smoothing. Edges that meet at a greater angle than this threshold will be rendered as a sharp seam, and those that meet at lesser angle will appear as a smooth curve.
+The `smoothing` command accepts a numeric value in the range 0 to 1. This represents an angle between 0 and 180 degrees (see the [trigonometry section](functions.md#trigonometry) for more about how angles are represented in ShapeScript). This angle is the threshold at which ShapeScript will apply normal-based smoothing. Edges that meet at a greater angle than this threshold will be rendered as a sharp seam, and those that meet at lesser angle will appear as a smooth curve.
 
 On that basis, a `smoothing` value of 0 means all edges will appear sharp. A value of 1 means all edges will appear rounded (this may look a little strange). A value of 0.5 (90 degrees) means that [obtuse](https://en.wikipedia.org/wiki/Angle#Types_of_angles) edges will appear rounded and acute ones will appear sharp.
 

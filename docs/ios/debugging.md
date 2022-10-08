@@ -19,7 +19,7 @@ difference {
 
 ![Moon](../images/moon.png)
 
-Because the second cylinder is subtracted from the first, we can't actually see it, which means we can't [select it](getting-started.md) to get information about it, or properly understand its shape. To solve this, we can use the `debug` command:
+Because the second cylinder is subtracted from the first, we can't actually see it, which means we can't [select it](getting-started.md#debugging-and-selection) to get information about it, or properly understand its shape. To solve this, we can use the `debug` command:
 
 ```swift
 difference {
@@ -71,7 +71,7 @@ assert color = red // no other color will do
 
 The assert function accepts a single boolean value or expression, and will raise an error if it evaluates to false.
 
-So when would this be useful? Suppose that you have defined a block, like the [star example](blocks.md) and you want a way to specify that it must have at least 4 points and a nonzero radius. You could do that like this:
+So when would this be useful? Suppose that you have defined a block, like the [star example](blocks.md#options) and you want a way to specify that it must have at least 4 points and a nonzero radius. You could do that like this:
 
 ```swift
 define star {

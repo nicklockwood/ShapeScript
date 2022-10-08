@@ -3,7 +3,7 @@ Functions
 
 Functions consist of a name followed by one or more values. They perform an operation on their input values and return the result.
 
-Functions can be used inside expressions, and can accept expressions as inputs. Unlike [operators](expressions.md), functions have no implicit precedence, so parentheses may be needed to avoid ambiguity.
+Functions can be used inside expressions, and can accept expressions as inputs. Unlike [operators](expressions.md#operators), functions have no implicit precedence, so parentheses may be needed to avoid ambiguity.
 
 In the following example, it's not clear if `y` is intended as a second argument to the `cos` function, or as the second argument to the translate command. Only the latter would technically be valid, since `cos` only accepts a single argument, but ShapeScript requires you to be explicit, and will treat this as an error:
 
@@ -27,7 +27,7 @@ Either approach is acceptable in ShapeScript.
 
 ## Arithmetic
 
-In addition to the standard arithmetic [operators](expressions.md), ShapeScript also includes a number of built-in arithmetic *functions*:
+In addition to the standard arithmetic [operators](expressions.md#operators), ShapeScript also includes a number of built-in arithmetic *functions*:
 
 The `round` function is used to round a number to the nearest integer (whole number):
 
@@ -89,13 +89,13 @@ max 5 -5.1 // returns 5
 
 ## Trigonometry
 
-For the most part, you can avoid the need for trigonometry is ShapeScript by using the built-in [transform commands](transforms.md) to manipulate geometry rather than manually calculating the positions of vertices.
+For the most part, you can avoid the need for trigonometry is ShapeScript by using the built-in [transform commands](transforms.md#relative-transforms) to manipulate geometry rather than manually calculating the positions of vertices.
 
 But sometimes you may wish to do something more complex (e.g. generating a path in the shape of a sign wave) that can only be achieved through explicit calculations, and to support that, ShapeScript provides a standard suite of trigonometric functions.
 
-While ShapeScript's [transform](transforms.md) commands expect values in the range 0 to 2 (or 0 to -2), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
+While ShapeScript's [transform](transforms.md#orientation) commands expect values in the range 0 to 2 (or 0 to -2), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
 
-While ShapeScript's [transform](transforms.md) commands expect values calculated by dividing the number of degrees by 180, the trigonometric functions all use radians, a value between 0 and 3.141 (pi).
+While ShapeScript's [transform](transforms.md#orientation) commands expect values calculated by dividing the number of degrees by 180, the trigonometric functions all use radians, a value between 0 and 3.141 (pi).
 
 For example, the `sin` (sine) function takes a radian representation of an angle and returns a ratio value of that angle. In this case 0.524 radians returns 0.5 or 1/2 - an angle of 30 degrees:
 
@@ -212,7 +212,7 @@ define almostEqual(a b) {
 }
 ```
 
-Unlike [block options](blocks.md), function inputs do not have default values. Calling a function without passing a value for every input will result in an error.
+Unlike [block options](blocks.md#options), function inputs do not have default values. Calling a function without passing a value for every input will result in an error.
 
 ---
 [Index](index.md) | Next: [Commands](commands.md)

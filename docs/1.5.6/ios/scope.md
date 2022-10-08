@@ -13,11 +13,11 @@ This is convenient, because it means that code that defines sub-objects in your 
 
 ## Function Scope
 
-When you define a [custom function](functions.md), it also creates a local scope around its body. Like blocks, functions inherit symbols from their parent scope and locally defined symbols will not *leak* out into their parent scope. Unlike blocks, functions can affect the transforms and materials of the scope where they are invoked.
+When you define a [custom function](functions.md#custom-functions), it also creates a local scope around its body. Like blocks, functions inherit symbols from their parent scope and locally defined symbols will not *leak* out into their parent scope. Unlike blocks, functions can affect the transforms and materials of the scope where they are invoked.
 
 ## Conditional Scope
 
-Control flow statements like [for loops](control-flow.md) and [if statements](control-flow.md) also creates a local scope around their body. Like function scope, loop and if/else scope does not apply to transforms or materials, but only to symbols created using the `define` command.
+Control flow statements like [for loops](control-flow.md#loops) and [if statements](control-flow.md#if-else) also creates a local scope around their body. Like function scope, loop and if/else scope does not apply to transforms or materials, but only to symbols created using the `define` command.
 
 Any symbols defined inside a `for` loop will be restricted to the inside of the loop body. This also applies to the optional loop index variable.
 

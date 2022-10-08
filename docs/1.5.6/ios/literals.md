@@ -56,7 +56,7 @@ But you can also [define](symbols.md) a tuple value to use later:
 define size 1 1 0.5
 ```
 
-A tuple defined in this way doesn't know if it's going to be used as a vector - it's just a sequence of numbers. We might guess from the name "size" that it will be used to set the size of something, but there's nothing preventing you from using it as, say, a [color](materials.md) value:
+A tuple defined in this way doesn't know if it's going to be used as a vector - it's just a sequence of numbers. We might guess from the name "size" that it will be used to set the size of something, but there's nothing preventing you from using it as, say, a [color](materials.md#color) value:
 
 ```swift
 define size 1 1 0.5
@@ -92,7 +92,7 @@ define matrix (
 
 Since no built-in commands in ShapeScript consume structured data like this, you need a way to access individual elements. You can do this in two ways:
 
-To extract individual values from a tuple, you can use [member syntax](expressions.md). If the tuple is numeric and shaped like a vector, size, rotation or color then you can use the `x`/`y`/`z`, `width`/`height`/`depth`, `roll`/`yaw`/`pitch` or `red`/`green`/`blue`/`alpha` members respectively:
+To extract individual values from a tuple, you can use [member syntax](expressions.md#members). If the tuple is numeric and shaped like a vector, size, rotation or color then you can use the `x`/`y`/`z`, `width`/`height`/`depth`, `roll`/`yaw`/`pitch` or `red`/`green`/`blue`/`alpha` members respectively:
 
 ```swift
 define pos 1 2
@@ -137,7 +137,7 @@ Member expressions can be chained, so something like this will also work:
 print data.second.x // x component of the position
 ```
 
-For list-like data, you can use a [for loop](control-flow.md) to loop over the top-level values:
+For list-like data, you can use a [for loop](control-flow.md#looping-over-values) to loop over the top-level values:
 
 ```swift
 define positions (

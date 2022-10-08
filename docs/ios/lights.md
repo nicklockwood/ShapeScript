@@ -29,7 +29,7 @@ light {
 }
 ```
 
-The `color` parameter of the light behaves just like any other [color](materials.md) in ShapeScript. You can pass up to four values representing the red, green blue and alpha components.
+The `color` parameter of the light behaves just like any other [color](materials.md#color) in ShapeScript. You can pass up to four values representing the red, green blue and alpha components.
 
 ```swift
 light {
@@ -82,7 +82,7 @@ This rotates the light by 90 degrees (`0.5 * 180`) around the vertical (Y) axis.
 
 **Note:** unlike ambient light, adding a directional light to the scene disables/replaces the default lighting.
 
-Lights are also affected by [relative transforms](transforms.md), so the following would be equivalent to the above:
+Lights are also affected by [relative transforms](transforms.md#relative-transforms), so the following would be equivalent to the above:
 
 ```swift
 rotate 0 0.5 0

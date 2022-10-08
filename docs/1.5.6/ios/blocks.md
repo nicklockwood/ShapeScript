@@ -1,7 +1,7 @@
 Blocks
 ---
 
-A block is a nested list of instructions, contained inside `{ ... }` braces. Some commands, such as [builders](builders.md) or [CSG operations](csg.md), accept a block parameter instead of a simple value like a number or [vector](literals.md).
+A block is a nested list of instructions, contained inside `{ ... }` braces. Some commands, such as [builders](builders.md) or [CSG operations](csg.md), accept a block parameter instead of a simple value like a number or [vector](literals.md#vectors-and-tuples).
 
 Instructions inside a block are executed within the [scope](scope.md) of the command that invoked them. Typically that means that any transforms or material changes made inside the block will only apply to geometry created inside the same block. This also applies to any symbols that you define inside the block.
 

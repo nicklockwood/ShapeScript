@@ -22,7 +22,7 @@ fill path {
 
 Unlike a path, a filled shape can have a color and texture, but it has zero thickness.
 
-If a path contains multiple overlapping sub-paths, they will be filled using the [even-odd rule](https://en.wikipedia.org/wiki/Even–odd_rule). For example, the [overlapping circles](paths.md) path would be filled like this:
+If a path contains multiple overlapping sub-paths, they will be filled using the [even-odd rule](https://en.wikipedia.org/wiki/Even–odd_rule). For example, the [overlapping circles](paths.md#nested-paths) path would be filled like this:
 
 ```swift
 fill path {

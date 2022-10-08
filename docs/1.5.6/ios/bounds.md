@@ -1,9 +1,9 @@
 Bounds
 ---
 
-ShapeScript's [size](transforms.md) ands [scale](transforms.md) commands let you control the relative size of a shape, but sometimes it's useful to know the exact dimensions.
+ShapeScript's [size](transforms.md#size) ands [scale](transforms.md#relative-transforms) commands let you control the relative size of a shape, but sometimes it's useful to know the exact dimensions.
 
-A cube of size 1 has an easily-predicted size of one world unit square, but what about a more complex shape, such as a 5-pointed star (see the [procedural paths](paths.md) and [blocks](blocks.md) sections for details):
+A cube of size 1 has an easily-predicted size of one world unit square, but what about a more complex shape, such as a 5-pointed star (see the [procedural paths](paths.md#procedural-paths) and [blocks](blocks.md) sections for details):
 
 ```swift
 define star path {
@@ -30,7 +30,7 @@ cube {
 
 ![Star with unit cube](../../images/star-with-unit-cube.png)
 
-We can see that the star is larger than the unit cube, but other than trial-and-error or complex math, how can we get the exact size? This is where the `bounds` [member property](expressions.md) comes in.
+We can see that the star is larger than the unit cube, but other than trial-and-error or complex math, how can we get the exact size? This is where the `bounds` [member property](expressions.md#members) comes in.
 
 ## Mesh Bounds
 

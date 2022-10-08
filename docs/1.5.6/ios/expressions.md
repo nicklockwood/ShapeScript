@@ -37,7 +37,7 @@ Operator precedence follows the standard [BODMAS](https://en.wikipedia.org/wiki/
 (5 + 3) * 4
 ```
 
-Because spaces are used as delimiters in [vector literals](literals.md), you need to take care with the spacing around operators to avoid ambiguity. Specifically, unary + and - must not have a space after them, and ordinary infix operators should have balanced space around them.
+Because spaces are used as delimiters in [vector literals](literals.md#vectors-and-tuples), you need to take care with the spacing around operators to avoid ambiguity. Specifically, unary + and - must not have a space after them, and ordinary infix operators should have balanced space around them.
 
 For example, these expressions would both evaluate to a single number with the value 4:
 
@@ -54,7 +54,7 @@ Whereas this expression would be interpreted as a 2D vector of 5 and -1:
 
 ## Equality and Comparison
 
-In addition to the standard arithmetic operators, ShapeScript also has equality and comparison operators, which can be used in [conditional logic](control-flow.md). The following infix comparison operators are supported:
+In addition to the standard arithmetic operators, ShapeScript also has equality and comparison operators, which can be used in [conditional logic](control-flow.md#if-else). The following infix comparison operators are supported:
 
 Symbol         | Name                  | Function
 :------------- | :-------------------- |:--------------------------------------
@@ -121,9 +121,9 @@ if (not a) and (b or c) {
 
 ## Members
 
-There are currently no vector or matrix math operators such as dot product or vector addition, but these are mostly not needed in practice due to the [relative transform](transforms.md) commands.
+There are currently no vector or matrix math operators such as dot product or vector addition, but these are mostly not needed in practice due to the [relative transform](transforms.md#relative-transforms) commands.
 
-It is however possible to use vector, size, rotation or [color](materials.md) values in expressions by using the *dot* operator to access individual components:
+It is however possible to use vector, size, rotation or [color](materials.md#color) values in expressions by using the *dot* operator to access individual components:
 
 ```swift
 define vector 0.5 0.2 0.4
@@ -139,7 +139,7 @@ define averageColor (color.red + color.green + color.blue) / 3
 print averageColor // 0.5667
 ```
 
-For more information about the members that can be accessed on various data types, see [structured data](literals.md).
+For more information about the members that can be accessed on various data types, see [structured data](literals.md#structured-data).
 
 
 ## Ranges
@@ -150,7 +150,7 @@ Another type of expression you can create is a *range* expression. This consists
 1 to 5
 ```
 
-Ranges are mostly used in [for loops](control-flow.md):
+Ranges are mostly used in [for loops](control-flow.md#loops):
 
 ```swift
 for i in 1 to 5 {
@@ -208,7 +208,7 @@ for i in loops step 2 {
 }
 ```
 
-A negative `step` can be used to create a [backwards loop](control-flow.md):
+A negative `step` can be used to create a [backwards loop](control-flow.md#looping-backwards):
 
 ```swift
 for i in 5 to 1 step -1 {

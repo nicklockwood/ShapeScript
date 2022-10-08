@@ -365,7 +365,7 @@ class MetadataTests: XCTestCase {
                         let macFile = url.withSuffix("mac").lastPathComponent
                         XCTFail("File '\(macFile)' has no iOS equivalent")
                     }
-                    nsText.replaceCharacters(in: range, with: url.path)
+                    nsText.replaceCharacters(in: range, with: url.absoluteString)
                 }
                 // Special case
                 if url.lastPathComponent == "export.md", nsText
@@ -418,7 +418,7 @@ class MetadataTests: XCTestCase {
                     else {
                         continue
                     }
-                    nsText.replaceCharacters(in: range, with: "../\(url.path)")
+                    nsText.replaceCharacters(in: range, with: "../\(url.absoluteString)")
                 }
                 let outputURL = versionedDir.appendingPathComponent(file)
                 try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)

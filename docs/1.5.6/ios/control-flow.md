@@ -3,7 +3,7 @@ Control Flow
 
 ## Loops
 
-To repeat an instruction (or sequence of instructions) you can use a `for` loop. The simplest form of the for loop takes a [numeric range](expressions.md), and a block of instructions inside braces. The following loop creates a circle of 5 points (you might use this inside a `path`):
+To repeat an instruction (or sequence of instructions) you can use a `for` loop. The simplest form of the for loop takes a [numeric range](expressions.md#ranges), and a block of instructions inside braces. The following loop creates a circle of 5 points (you might use this inside a `path`):
 
 ```swift
 for 1 to 5 {

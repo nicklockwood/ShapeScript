@@ -18,7 +18,7 @@ path {
 
 ![Line](../../images/line.png)
 
-In the above example we used the `point` command, which accepts a [vector](literals.md) value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
+In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
 
 Paths can be open or closed (meaning that the points form an unbroken loop). To create a closed path, the first and last point should have the same position.
 
@@ -162,7 +162,7 @@ circle {
 }
 ```
 
-The difference is only apparent if you extrude the result, because in the circle's case the extruded sides are [smoothed](options.md) by default, whereas for the polygon they are sharply defined:
+The difference is only apparent if you extrude the result, because in the circle's case the extruded sides are [smoothed](options.md#smoothing) by default, whereas for the polygon they are sharply defined:
 
 ```swift
 extrude polygon {
@@ -182,7 +182,7 @@ extrude circle {
 
 The `circle` command is fine for creating complete circles, but what if you want a circular arc or semicircle? Calculating the Bézier control points for that manually would be tedious, so this is where the power of ShapeScript's procedural logic comes in handy.
 
-To create a path procedurally, you can use a [for loop](control-flow.md) along with [relative transform commands](transforms.md) such as `rotate`. For example, the following code generates a semicircle:
+To create a path procedurally, you can use a [for loop](control-flow.md#loops) along with [relative transform commands](transforms.md#relative-transforms) such as `rotate`. For example, the following code generates a semicircle:
 
 ```swift
 path {
@@ -212,7 +212,7 @@ path {
 
 ## Path Colors
 
-Paths cannot currently be textured, but they inherit the current [material color](materials.md). Color can also be applied to individual points within a path. When neighboring path points have different colors applied, the color will be smoothly interpolated between them, creating a gradient:
+Paths cannot currently be textured, but they inherit the current [material color](materials.md#color). Color can also be applied to individual points within a path. When neighboring path points have different colors applied, the color will be smoothly interpolated between them, creating a gradient:
 
 ```swift
 path {

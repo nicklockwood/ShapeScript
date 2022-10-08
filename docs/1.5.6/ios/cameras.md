@@ -25,7 +25,7 @@ camera {
 }
 ```
 
-You can configure the camera position and orientation programmatically using the properties described below, however the easiest way to define a custom camera is to position it using the camera controls and then [copy the configuration](camera-control.md) and paste it into your `.shape` file.
+You can configure the camera position and orientation programmatically using the properties described below, however the easiest way to define a custom camera is to position it using the camera controls and then [copy the configuration](camera-control.md#copy-settings) and paste it into your `.shape` file.
 
 ## Position
 
@@ -56,7 +56,7 @@ This rotates the camera by 27 degrees to the left (`0.15 * 180`) and 45 degrees 
 
 ![Custom camera orientation](../../images/camera-orientation.png)
 
-Cameras are also affected by [relative transforms](transforms.md), so the following would be equivalent to the above:
+Cameras are also affected by [relative transforms](transforms.md#relative-transforms), so the following would be equivalent to the above:
 
 ```swift
 translate 3 3 3
@@ -107,7 +107,7 @@ As with `position` and `orientation`, if the `size` property is omitted then a s
 
 ## Background
 
-The [background color or texture](commands.md) for the scene can be overridden for each camera. This opens up some useful possibilities such as setting orthographic sketches as background for different cameras to use as reference images when modeling:
+The [background color or texture](commands.md#background) for the scene can be overridden for each camera. This opens up some useful possibilities such as setting orthographic sketches as background for different cameras to use as reference images when modeling:
 
 ```swift
 camera {
@@ -119,7 +119,7 @@ camera {
 
 ## Pixel Dimensions
 
-You can add an optional `width` and/or `height` to your camera block to control the pixel dimensions of the captured image. This has no effect on how the camera view is displayed in the app, but determines the size of [exported images](export.md):
+You can add an optional `width` and/or `height` to your camera block to control the pixel dimensions of the captured image. This has no effect on how the camera view is displayed in the app, but determines the size of [exported images](export.md#rendering-an-image):
 
 ```swift
 camera {

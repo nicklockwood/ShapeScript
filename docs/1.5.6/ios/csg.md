@@ -92,7 +92,7 @@ stencil {
 
 ![Stenciled ball](../../images/stencil.png)
 
-**Note:** If the stencil shape has a texture applied to it (see [Materials](materials.md)) then the texture wrapping will match the coordinates of the shape being painted, not the shape that the texture is taken from.
+**Note:** If the stencil shape has a texture applied to it (see [Materials](materials.md#texture)) then the texture wrapping will match the coordinates of the shape being painted, not the shape that the texture is taken from.
 
 If the child shapes both have the same color or texture, there will be no visible effect from using stencil.
 

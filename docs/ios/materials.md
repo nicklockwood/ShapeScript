@@ -163,7 +163,7 @@ sphere {
 
 The parameter for the `texture` command is the name of an external image file to display. The name can include either an absolute or relative file path, enclosed in double quotes. If a relative path is used it should be specified relative to the ShapeScript file that references it.
 
-The texture name can be constructed dynamically by using the [text interpolation](text.md) feature, which is sometimes useful if, for example, you have multiple texture files with a common prefix or suffix:
+The texture name can be constructed dynamically by using the [text interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple texture files with a common prefix or suffix:
 
 ```swift
 for n in 1 to 5 {
@@ -196,11 +196,11 @@ How a texture is wrapped around the model depends on the shape. Different shape 
 
 Currently there is no way to override the default wrapping scheme, but the way that you create a shape affects the way that it is textured.
 
-For example, creating a cube using the `cube` command will result in a different texture wrapping effect than creating it by [extruding](builders.md) a square.
+For example, creating a cube using the `cube` command will result in a different texture wrapping effect than creating it by [extruding](builders.md#extrude) a square.
 
 ## Opacity
 
-Opacity is a measure of how transparent an object is. You can vary the opacity for an object or group using the alpha property of the `color` (as described [above]()), but sometimes you may want to vary the opacity of a whole tree of differently-colored objects, and for that you can use the `opacity` command:
+Opacity is a measure of how transparent an object is. You can vary the opacity for an object or group using the alpha property of the `color` (as described [above](#color)), but sometimes you may want to vary the opacity of a whole tree of differently-colored objects, and for that you can use the `opacity` command:
 
 ```swift
 opacity 0.5

@@ -97,7 +97,7 @@ text {
 
 By default, text has a line height of one world unit. The line height is not the height of the actual characters, but the distance between two consecutive lines of text. If you imagine some lined writing paper, the line height would be the distance between the lines.
 
-To adjust the text size, you can use the [size](transforms.md) option:
+To adjust the text size, you can use the [size](transforms.md#size) option:
 
 ```swift
 text {
@@ -154,7 +154,7 @@ text {
 
 ## Position and Orientation
 
-To adjust the text position and orientation, use the [position](transforms.md) and [orientation](transforms.md) commands:
+To adjust the text position and orientation, use the [position](transforms.md#position) and [orientation](transforms.md#orientation) commands:
 
 ```swift
 text {
@@ -199,7 +199,7 @@ fill text "Hello World"
 
 ![Text with font](../images/text-font.png)
 
-**Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may want to set the [detail](options.md) option to a lower value for text than you would for other geometry.
+**Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may want to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
 
 The font name you provide must match a font that is already installed on your system. If no matching fonts are found then an error will be raised. If you wish to load a font file directly, without installing it, you can pass the filename or path to the `font` command instead of the font name:
 
@@ -209,7 +209,7 @@ font "filename.ttf"
 
 Only fonts with a ".ttf", ".otf" or ".ttc" file extension are supported. The extension is required, or the `font` parameter will be treated as a system font rather than a file. If a relative path or filename is used, it should be specified relative to the ShapeScript file that references it.
 
-The filename can be constructed dynamically by using the [text interpolation](text.md) feature, which is sometimes useful if, for example, you have multiple font files with a common prefix or suffix:
+The filename can be constructed dynamically by using the [text interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple font files with a common prefix or suffix:
 
 ```swift
 for n in 1 to 5 {

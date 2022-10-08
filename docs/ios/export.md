@@ -41,7 +41,7 @@ You can import DAE files into a game development tool like Unity, or use SCN(Z) 
 
 ShapeScript can export models in STL format, used by many 3D printing applications. Just use `stl` as the file extension when exporting your model for printing. 
 
-When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md) command to combine all the parts of your model into a single shape, eliminating internal faces.
+When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine all the parts of your model into a single shape, eliminating internal faces.
 
 ShapeScript uses the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the ShapeScript preferences to export models in this orientation.
 
@@ -64,9 +64,9 @@ bmp                   | Bitmap                                            | No
 
 If you aren't sure which format to use, the PNG format is a good all-rounder, with lossless compression and transparency support.
 
-The size of the exported image defaults to the current window size and display resolution. You can override this size by adding `width` and/or `height` options to your [custom camera](cameras.md):
+The size of the exported image defaults to the current window size and display resolution. You can override this size by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions):
 
-Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md).
+Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background).
 
 When exporting an image (or exporting a model for non-realtime use), you may wish to use the `detail` command to increase the detail level. A detail level of 100 should be good enough for even a very large or high-resolution image, but this may take a long time to generate for a complex model.
 

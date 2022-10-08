@@ -45,7 +45,7 @@ for i in 1 to 5 {
 // foo reverts to original value of 1 after loop terminates
 ```
 
-**Note:** Because of this scoping, it's not possible to conditionally define a value inside an `if` statement and use it outside the `if`. For the correct way to do this, see [conditional defines](control-flow.md).
+**Note:** Because of this scoping, it's not possible to conditionally define a value inside an `if` statement and use it outside the `if`. For the correct way to do this, see [conditional defines](control-flow.md#conditional-defines).
 
 ---
 [Index](index.md) | Next: [Expressions](expressions.md)
