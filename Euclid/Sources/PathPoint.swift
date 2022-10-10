@@ -48,6 +48,12 @@ public struct PathPoint: Hashable, Sendable {
     public var isCurved: Bool
 }
 
+extension PathPoint: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Double...) {
+        self = .point(Vector(elements))
+    }
+}
+
 extension PathPoint: Codable {
     /// Creates a new path point by decoding from the given decoder.
     /// - Parameter decoder: The decoder to read data from.
@@ -57,15 +63,15 @@ extension PathPoint: Codable {
         let y = try container.decode(Double.self)
         switch container.count {
         case 2:
-            self.init(Vector(x, y), texcoord: nil, color: nil, isCurved: false)
+            self = [x, y]
         case 3:
             let isCurved: Bool, position: Vector
             do {
                 isCurved = try container.decodeIfPresent(Bool.self) ?? false
-                position = Vector(x, y)
+                position = [x, y]
             } catch {
                 isCurved = false
-                position = Vector(x, y, try container.decode(Double.self))
+                position = try [x, y, container.decode(Double.self)]
             }
             self.init(position, texcoord: nil, color: nil, isCurved: isCurved)
         case 4:
@@ -73,12 +79,12 @@ extension PathPoint: Codable {
             let isCurved: Bool, position: Vector, texcoord: Vector?
             do {
                 isCurved = try container.decodeIfPresent(Bool.self) ?? false
-                position = Vector(x, y, zOrU)
+                position = [x, y, zOrU]
                 texcoord = nil
             } catch {
                 isCurved = false
-                position = Vector(x, y)
-                texcoord = Vector(zOrU, try container.decode(Double.self))
+                position = [x, y]
+                texcoord = try [zOrU, container.decode(Double.self)]
             }
             self.init(position, texcoord: texcoord, color: nil, isCurved: isCurved)
         case 5:
@@ -87,12 +93,12 @@ extension PathPoint: Codable {
             let isCurved: Bool, position: Vector, texcoord: Vector?
             do {
                 isCurved = try container.decodeIfPresent(Bool.self) ?? false
-                position = Vector(x, y)
-                texcoord = Vector(zOrU, uOrV)
+                position = [x, y]
+                texcoord = [zOrU, uOrV]
             } catch {
                 isCurved = false
-                position = Vector(x, y, zOrU)
-                texcoord = Vector(uOrV, try container.decode(Double.self))
+                position = [x, y, zOrU]
+                texcoord = try [uOrV, container.decode(Double.self)]
             }
             self.init(position, texcoord: texcoord, color: nil, isCurved: isCurved)
         case 6:

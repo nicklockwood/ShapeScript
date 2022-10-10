@@ -56,6 +56,12 @@ public struct Color: Hashable, Sendable {
     }
 }
 
+extension Color: CustomStringConvertible {
+    public var description: String {
+        "Color(\(r), \(g), \(b)\(a == 1 ? "" : ", \(a)"))"
+    }
+}
+
 extension Color: Codable {
     private enum CodingKeys: String, CodingKey {
         case r, g, b, a

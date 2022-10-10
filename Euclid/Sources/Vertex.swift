@@ -59,72 +59,33 @@ public struct Vertex: Hashable, Sendable {
     ///   - color: The optional vertex color (defaults to white).
     public init(
         _ position: Vector,
-        _ normal: Vector? = nil,
+        _ normal: Vector?,
         _ texcoord: Vector? = nil,
         _ color: Color? = nil
     ) {
         self.init(unchecked: position, normal?.normalized(), texcoord, color)
     }
 
-    /// Creates a new vertex from a position with default values for normal, texcoord and color.
-    /// - Parameter position: The position of the vertex in 3D space.
-    public init(_ position: Vector) {
-        self.init(unchecked: position, nil, nil, nil)
+    /// Creates a new vertex.
+    /// - Parameters:
+    ///   - position: The position of the vertex in 3D space.
+    ///   - normal: The surface normal for the vertex (defaults to zero).
+    ///   - texcoord: The optional texture coordinates for the vertex (defaults to zero).
+    ///   - color: The optional vertex color (defaults to white).
+    public init(_ position: Vector, _ color: Color? = nil) {
+        self.init(unchecked: position, nil, nil, color)
     }
+}
 
-    /// Creates a vertex from a flat array of values.
-    /// - Parameter values: The array of values.
-    ///
-    /// The number of values specified determines how each value is interpreted. The following patterns are
-    /// supported (P = position, N = normal, T = texcoord, RGB[A] = color):
-    ///
-    /// PP
-    /// PPP
-    /// PPP NNN
-    /// PPP NNN TT
-    /// PPP NNN TTT
-    /// PPP NNN TTT RGB
-    /// PPP NNN TTT RGBA
-    public init?(_ values: [Double]) {
-        switch values.count {
-        case 2:
-            self.init(Vector(values[0], values[1]))
-        case 3:
-            self.init(Vector(values[0], values[1], values[2]))
-        case 6:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5])
-            )
-        case 8:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7])
-            )
-        case 9:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8])
-            )
-        case 12:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8]),
-                Color(values[9], values[10], values[11])
-            )
-        case 13:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8]),
-                Color(values[9], values[10], values[11], values[12])
-            )
-        default:
-            return nil
-        }
+extension Vertex: CustomStringConvertible {
+    public var description: String {
+        let p = "[\(position.x), \(position.y)\(position.z == 0 ? "" : ", \(position.z)")]"
+        let t =  texcoord == .zero ? "" :
+            ", [\(texcoord.x), \(texcoord.y)\(texcoord.z == 0 ? "" : ", \(texcoord.z)")]"
+        let n = texcoord == .zero && normal == .zero ? "" :
+            ", [\(normal.x), \(normal.y), \(normal.z)]"
+        let c = color == .white ? "" : ", \(color)"
+        return "Vertex(\(p)\(n)\(t)\(c))"
     }
 }
 
@@ -173,6 +134,67 @@ extension Vertex: Codable {
 }
 
 public extension Vertex {
+    /// Creates a new vertex from a position with default values for normal, texcoord and color.
+    /// - Parameter position: The position of the vertex in 3D space.
+    init(_ position: Vector) {
+        self.init(unchecked: position, nil, nil, nil)
+    }
+
+    /// Creates a vertex from a flat array of values.
+    /// - Parameter values: The array of values.
+    ///
+    /// The number of values specified determines how each value is interpreted. The following patterns are
+    /// supported (P = position, N = normal, T = texcoord, RGB[A] = color):
+    ///
+    /// PP
+    /// PPP
+    /// PPP NNN
+    /// PPP NNN TT
+    /// PPP NNN TTT
+    /// PPP NNN TTT RGB
+    /// PPP NNN TTT RGBA
+    init?(_ values: [Double]) {
+        switch values.count {
+        case 2:
+            self.init(Vector(values[0], values[1]))
+        case 3:
+            self.init(Vector(values[0], values[1], values[2]))
+        case 6:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5])
+            )
+        case 8:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5]),
+                Vector(values[6], values[7])
+            )
+        case 9:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5]),
+                Vector(values[6], values[7], values[8])
+            )
+        case 12:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5]),
+                Vector(values[6], values[7], values[8]),
+                Color(values[9], values[10], values[11])
+            )
+        case 13:
+            self.init(
+                Vector(values[0], values[1], values[2]),
+                Vector(values[3], values[4], values[5]),
+                Vector(values[6], values[7], values[8]),
+                Color(values[9], values[10], values[11], values[12])
+            )
+        default:
+            return nil
+        }
+    }
+
     /// Returns a new vertex with the normal inverted.
     func inverted() -> Vertex {
         Vertex(unchecked: position, -normal, texcoord, color)

@@ -86,12 +86,6 @@ extension SCNNode {
     }
 }
 
-private extension Vector {
-    static let unitX = Vector(1, 0, 0)
-    static let unitY = Vector(0, 1, 0)
-    static let unitZ = Vector(0, 0, 1)
-}
-
 private extension Geometry {
     convenience init(
         type: GeometryType = .group,

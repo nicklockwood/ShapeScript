@@ -55,6 +55,18 @@ public struct Vector: Hashable, Sendable {
     }
 }
 
+extension Vector: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Double...) {
+        self.init(elements)
+    }
+}
+
+extension Vector: CustomStringConvertible {
+    public var description: String {
+        "Vector(\(x), \(y)\(z == 0 ? "" : ", \(z)"))"
+    }
+}
+
 extension Vector: Comparable {
     /// Returns whether the leftmost vector has the lower value.
     /// This provides a stable order when sorting collections of vectors.
@@ -115,6 +127,12 @@ public extension Vector {
     static let zero = Vector(0, 0, 0)
     /// A vector with all coordinates set to `1`.
     static let one = Vector(1, 1, 1)
+    /// A vector of unit length along X axis.
+    static let unitX = Vector(1, 0, 0)
+    /// A vector of unit length along Y axis.
+    static let unitY = Vector(0, 1, 0)
+    /// A vector of unit length along Z axis.
+    static let unitZ = Vector(0, 0, 1)
 
     /// Creates a vector from an array of coordinates.
     /// - Parameter components: An array of vector components.
@@ -302,10 +320,6 @@ public extension Vector {
 }
 
 internal extension Vector {
-    static let unitX = Vector(1, 0, 0)
-    static let unitY = Vector(0, 1, 0)
-    static let unitZ = Vector(0, 0, 1)
-
     func _quantized() -> Vector {
         Vector(quantize(x), quantize(y), quantize(z))
     }
