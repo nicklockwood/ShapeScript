@@ -420,6 +420,14 @@ extension Value {
                 let name = $0.stringValue
                 return try .string(context?.resolveFont(name) ?? name)
             }
+        case (.string, .number):
+            return Double(self.stringValue).map { .number($0) }
+        case (.string, .boolean):
+            switch stringValue.lowercased() {
+            case "true": return .boolean(true)
+            case "false": return .boolean(false)
+            default: return nil
+            }
         case (.boolean, .string), (.number, .string), (.texture(.file), .string):
             return .string(stringValue)
         case let (.tuple(values), .string):
