@@ -14,9 +14,27 @@ import Foundation
 public let version = "1.5.9"
 
 public protocol EvaluationDelegate: AnyObject {
+    /// Return a file system URL for the specified path (optional).
     func resolveURL(for path: String) -> URL
+
+    /// Load data from the specified local file URL  (optional).
+    func importData(for url: URL, options: Data.ReadingOptions) throws -> Data
+
+    /// Import a 3D model or mesh file and return the appropriate ShapeScript Geometry type.
     func importGeometry(for url: URL) throws -> Geometry?
+
+    /// Log the provided values to the console.
     func debugLog(_ values: [AnyHashable])
+}
+
+public extension EvaluationDelegate {
+    func resolveURL(for path: String) -> URL {
+        URL(fileURLWithPath: path)
+    }
+
+    func importData(for url: URL, options: Data.ReadingOptions) throws -> Data {
+        try Data(contentsOf: url, options: options)
+    }
 }
 
 public func evaluate(

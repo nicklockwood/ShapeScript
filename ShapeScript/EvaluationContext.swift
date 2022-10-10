@@ -229,28 +229,52 @@ extension EvaluationContext {
         let documentRelativePath = baseURL.map {
             URL(fileURLWithPath: path, relativeTo: $0).path
         } ?? path
-        guard let url = delegate?.resolveURL(for: documentRelativePath) else {
-            // TODO: should this be a different error type, like "delegate not available"?
-            throw RuntimeErrorType.fileNotFound(for: path, at: nil)
+        if let url = delegate?.resolveURL(for: documentRelativePath) {
+            return url
         }
-        // TODO: move this logic out of EvaluationContext into delegate
-        // so we can more easily mock the filesystem for testing purposes
-        #if os(macOS)
-        // macOS can check for existence of files even without access permission
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            throw RuntimeErrorType.fileNotFound(for: path, at: url)
+        return URL(fileURLWithPath: documentRelativePath)
+    }
+
+    func importData(for path: String) throws -> Data {
+        let url = try resolveURL(for: path)
+        do {
+            let options: Data.ReadingOptions = []
+            guard let delegate = delegate else {
+                return try Data(contentsOf: url, options: options)
+            }
+            return try delegate.importData(for: url, options: options)
+        } catch {
+            switch (error as NSError).code {
+            case 257:
+                let directory = url.deletingLastPathComponent()
+                if FileManager.default.isReadableFile(atPath: directory.path) {
+                    // TODO: verify if/when this scenario occurs
+                    fallthrough
+                }
+                throw RuntimeErrorType.fileAccessRestricted(for: path, at: directory)
+            case 260:
+                throw RuntimeErrorType.fileNotFound(for: path, at: url)
+            default:
+                throw error
+            }
         }
-        #endif
-        let directory = url.deletingLastPathComponent()
-        guard FileManager.default.isReadableFile(atPath: url.path) ||
-            FileManager.default.isReadableFile(atPath: directory.path)
-        else {
-            throw RuntimeErrorType.fileAccessRestricted(for: path, at: directory)
+    }
+
+    func importString(for path: String) throws -> String {
+        let data = try importData(for: path)
+        if let string = String(data: data, encoding: .utf8) {
+            return string
         }
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            throw RuntimeErrorType.fileNotFound(for: path, at: url)
+        let url = try resolveURL(for: path)
+        do {
+            return try String(contentsOf: url)
+        } catch {
+            throw RuntimeErrorType.fileParsingError(
+                for: path,
+                at: url,
+                message: error.localizedDescription
+            )
         }
-        return url
     }
 
     func resolveFont(_ name: String) throws -> String {
@@ -274,14 +298,20 @@ extension EvaluationContext {
             }
             return cgFont.postScriptName as String? ?? name
         }
-        let url = try resolveURL(for: name)
-        guard let dataProvider = CGDataProvider(url: url as CFURL) else {
+        let data = try importData(for: name)
+        guard let dataProvider = CGDataProvider(data: data as CFData) else {
+            let url = try resolveURL(for: name)
             throw RuntimeErrorType.fileNotFound(for: name, at: url)
         }
         #if canImport(CoreText)
+        var error: Unmanaged<CFError>?
         guard let cgFont = CGFont(dataProvider),
-              CTFontManagerRegisterGraphicsFont(cgFont, nil)
+              CTFontManagerRegisterGraphicsFont(cgFont, &error)
         else {
+            if let error = error?.takeRetainedValue() {
+                throw error
+            }
+            let url = try resolveURL(for: name)
             throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
         }
         return cgFont.postScriptName as String? ?? name
@@ -302,16 +332,7 @@ extension EvaluationContext {
         } else {
             switch url.pathExtension.lowercased() {
             case "shape":
-                let source: String
-                do {
-                    source = try String(contentsOf: url)
-                } catch {
-                    throw RuntimeErrorType.fileParsingError(
-                        for: path,
-                        at: url,
-                        message: error.localizedDescription
-                    )
-                }
+                let source = try importString(for: path)
                 do {
                     // TODO: async source loading?
                     program = try parse(source)
@@ -321,29 +342,11 @@ extension EvaluationContext {
                         .importError(ImportError(error), for: path, in: source)
                 }
             case "txt":
-                let text: String
-                do {
-                    text = try String(contentsOf: url)
-                } catch {
-                    throw RuntimeErrorType.fileParsingError(
-                        for: path,
-                        at: url,
-                        message: error.localizedDescription
-                    )
-                }
+                let text = try importString(for: path)
                 try addValue(.string(text))
                 return
             case "json":
-                let data: Data
-                do {
-                    data = try Data(contentsOf: url)
-                } catch {
-                    throw RuntimeErrorType.fileParsingError(
-                        for: path,
-                        at: url,
-                        message: error.localizedDescription
-                    )
-                }
+                let data = try importData(for: path)
                 let value: Value
                 do {
                     value = try Value(jsonData: data)
@@ -368,6 +371,7 @@ extension EvaluationContext {
                         for: path, at: url, message: error.message
                     )
                 } catch {
+                    _ = try importData(for: path)
                     var error: Error? = error
                     while let nsError = error as NSError? {
                         if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {

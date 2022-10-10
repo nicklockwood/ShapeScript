@@ -409,6 +409,7 @@ extension Value {
                     return .texture(nil)
                 }
                 let url = try context?.resolveURL(for: name)
+                _ = try context?.importData(for: name)
                 return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name)))
             }
         case let (.tuple(values), .font) where values.contains { $0.type == .string }:
