@@ -39,19 +39,27 @@ public struct SVGPath: Hashable {
     }
 
     public init(string: String) throws {
-        var token: UnicodeScalar = " "
+        var token: (scalar: UnicodeScalar, String.Index)?
         var commands = [SVGCommand]()
         var numbers = ArraySlice<Double>()
-        var number = ""
+        var number: (string: String, index: String.Index)?
         var isRelative = false
 
         func assertArgs(_ count: Int) throws -> [Double] {
-            if numbers.count < count {
-                throw SVGError
-                    .missingArgument(for: String(token), expected: count)
-            } else if !numbers.count.isMultiple(of: count) {
-                throw SVGError
-                    .unexpectedArgument(for: String(token), expected: count)
+            if let (scalar, index) = token {
+                if numbers.count < count {
+                    throw SVGError.missingArgument(
+                        for: String(scalar),
+                        at: index,
+                        expected: count
+                    )
+                } else if !numbers.count.isMultiple(of: count) {
+                    throw SVGError.unexpectedArgument(
+                        for: String(scalar),
+                        at: index,
+                        expected: count
+                    )
+                }
             }
             defer { numbers.removeFirst(count) }
             return Array(numbers.prefix(count))
@@ -149,15 +157,14 @@ public struct SVGPath: Hashable {
         }
 
         func processNumber() throws {
-            if number.isEmpty {
+            guard let (string, index) = number else {
                 return
             }
-            if let double = Double(number) {
-                numbers.append(double)
-                number = ""
-                return
+            guard let double = Double(string) else {
+                throw SVGError.unexpectedToken(string, at: index)
             }
-            throw SVGError.unexpectedToken(number)
+            numbers.append(double)
+            number = nil
         }
 
         func appendCommand(_ command: SVGCommand) {
@@ -166,13 +173,16 @@ public struct SVGPath: Hashable {
         }
 
         func processCommand() throws {
+            guard let (scalar, index) = token else {
+                return
+            }
             let command: SVGCommand
-            switch token {
+            switch scalar {
             case "m", "M":
                 command = try moveTo()
                 if !numbers.isEmpty {
                     appendCommand(command)
-                    token = UnicodeScalar(token.value - 1)!
+                    token?.scalar = UnicodeScalar(scalar.value - 1)!
                     return try processCommand()
                 }
             case "l", "L": command = try lineTo()
@@ -184,8 +194,7 @@ public struct SVGPath: Hashable {
             case "s", "S": command = try cubicTo()
             case "a", "A": command = try arc()
             case "z", "Z": command = try end()
-            case " ": return
-            default: throw SVGError.unexpectedToken(String(token))
+            default: throw SVGError.unexpectedToken(String(scalar), at: index)
             }
             appendCommand(command)
             if !numbers.isEmpty {
@@ -193,31 +202,33 @@ public struct SVGPath: Hashable {
             }
         }
 
-        for char in string.unicodeScalars {
+        let unicodeScalars = string.unicodeScalars
+        for index in unicodeScalars.indices {
+            let char = unicodeScalars[index]
             switch char {
             case "0" ... "9", "E", "e", "+":
-                number.append(Character(char))
+                number?.string.append(Character(char))
             case ".":
-                if number.contains(".") {
+                if number?.string.contains(".") == true {
                     try processNumber()
                 }
-                number.append(".")
+                number?.string.append(".")
             case "-":
-                if let last = number.last, "eE".contains(last) {
-                    number.append(Character(char))
+                if let last = number?.string.last, "eE".contains(last) {
+                    number?.string.append(Character(char))
                 } else {
                     try processNumber()
-                    number = "-"
+                    number?.string = "-"
                 }
             case "a" ... "z", "A" ... "Z":
                 try processNumber()
                 try processCommand()
-                token = char
+                token = (char, index)
                 isRelative = char > "Z"
             case " ", "\r", "\n", "\t", ",":
                 try processNumber()
             default:
-                throw SVGError.unexpectedToken(String(char))
+                throw SVGError.unexpectedToken(String(char), at: index)
             }
         }
         try processNumber()
@@ -310,18 +321,27 @@ private extension Character {
 }
 
 public enum SVGError: Error, Hashable {
-    case unexpectedToken(String)
-    case unexpectedArgument(for: String, expected: Int)
-    case missingArgument(for: String, expected: Int)
+    case unexpectedToken(String, at: String.Index)
+    case unexpectedArgument(for: String, at: String.Index, expected: Int)
+    case missingArgument(for: String, at: String.Index, expected: Int)
 
     public var message: String {
         switch self {
-        case let .unexpectedToken(string):
+        case let .unexpectedToken(string, _):
             return "Unexpected token '\(string)'"
-        case let .unexpectedArgument(command, _):
+        case let .unexpectedArgument(command, _, _):
             return "Too many arguments for '\(command)'"
-        case let .missingArgument(command, _):
+        case let .missingArgument(command, _, _):
             return "Missing argument for '\(command)'"
+        }
+    }
+
+    public var index: String.Index {
+        switch self {
+        case let .unexpectedToken(_, index),
+             let .unexpectedArgument(_, index, _),
+             let .missingArgument(_, index, _):
+            return index
         }
     }
 }

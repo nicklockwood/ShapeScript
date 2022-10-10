@@ -62,9 +62,21 @@ extension ProgramError {
             .foregroundColor: OSColor.white.withAlphaComponent(0.7),
             .font: OSFont.systemFont(ofSize: 15, weight: .regular),
         ]))
-        if let lineRange = lineRange, let range = range,
+        if let lineRange = lineRange, var range = range,
            let font = OSFont(name: "Courier", size: 15)
         {
+            // Epic hack to support SVG error highlighting
+            if let runtimeError = self as? RuntimeError,
+               case let .parserError(parserError) = runtimeError.type,
+               let start = source.range(of: "^svgpath\\s+\"", options: .regularExpression, range: range)?.upperBound,
+               case let string = String(source[start ..< range.upperBound]),
+               parserError.range.lowerBound < string.endIndex,
+               case let offset = string[..<parserError.range.lowerBound].count
+            {
+                let index = source.index(start, offsetBy: offset)
+                range = index ..< index
+            }
+
             let sourceLine = String(source[lineRange])
             let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound) +
                 emojiSpacing(for: source[lineRange.lowerBound ..< range.lowerBound])

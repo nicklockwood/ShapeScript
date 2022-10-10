@@ -178,6 +178,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
     indirect case importError(ProgramError, for: String, in: String)
+    case parserError(ParserError)
 }
 
 public struct RuntimeError: Error, Equatable {
@@ -230,6 +231,8 @@ public extension RuntimeError {
                 return "Error in file '\(name)' imported"
             }
             return "Error in imported file '\(name)': \(error.message)"
+        case let .parserError(error):
+            return error.message
         }
     }
 
@@ -250,7 +253,8 @@ public extension RuntimeError {
              .fileAccessRestricted,
              .fileTypeMismatch,
              .fileParsingError,
-             .importError:
+             .importError,
+             .parserError:
             return nil
         }
     }
@@ -356,6 +360,8 @@ public extension RuntimeError {
             if error.range == nil {
                 return error.message
             }
+            return error.hint
+        case let .parserError(error):
             return error.hint
         }
     }

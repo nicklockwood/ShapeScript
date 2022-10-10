@@ -310,7 +310,9 @@ extension Dictionary where Key == String, Value == Symbol {
             do {
                 svgPath = try SVGPath(string: text)
             } catch let error as SVGError {
-                throw RuntimeErrorType.assertionFailure(error.message)
+                throw RuntimeErrorType.parserError(ParserError(
+                    .custom(error.message, hint: nil, at: error.index ..< error.index)
+                ))
             }
             return .path(Path(
                 svgPath,
