@@ -623,6 +623,22 @@ class TypesystemTests: XCTestCase {
         """, as: .string), .string(url.path))
     }
 
+    func testStringToInt() throws {
+        XCTAssertEqual(try evaluate("\"1\" + 2", as: .any), 3)
+        XCTAssertEqual(try evaluate("\"2\" * \"3\"", as: .any), 6)
+        XCTAssertEqual(try evaluate("3 - \"4\"", as: .any), -1)
+        XCTAssertEqual(try evaluate("+\"5\"", as: .any), 5)
+        XCTAssertEqual(try evaluate("-\"7\"", as: .any), -7)
+    }
+
+    func testStringToDouble() throws {
+        XCTAssertEqual(try evaluate("\"1.5\" + \"2.3\"", as: .any), 3.8)
+    }
+
+    func testStringTupleToVector() throws {
+        XCTAssertEqual(try evaluate("\"1.5\" \"2.3\" \"0\"", as: .vector), .vector(.init(1.5, 2.3, 0)))
+    }
+
     func testCastNestedTupleArguments() throws {
         let type = ValueType.tuple([.list(.string), .string])
         XCTAssert(Value(Value("foo", "bar"), "baz").isConvertible(to: type))
