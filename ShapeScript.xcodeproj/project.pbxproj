@@ -14,6 +14,7 @@
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
+		013FBF6A2834D7EF00EAF795 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013FBF692834D7EF00EAF795 /* Types.swift */; };
 		01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
 		01460C3921D63FA200BFC4FF /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01460C3B21D6406500BFC4FF /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -252,6 +253,7 @@
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibrary.swift; sourceTree = "<group>"; };
+		013FBF692834D7EF00EAF795 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -502,6 +504,7 @@
 			children = (
 				01BFB3B021425C9A00E47A7C /* Lexer.swift */,
 				014F85DA215BE1A900461FB7 /* Parser.swift */,
+				013FBF692834D7EF00EAF795 /* Types.swift */,
 				01F1A9B2281F41DE00A1621B /* Symbols.swift */,
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
 				013312D221C9BBCC00626F1B /* EvaluationContext.swift */,
@@ -935,6 +938,7 @@
 				01CF787226EA36AD0097907A /* String+Ordinals.swift in Sources */,
 				014F85D9215B890100461FB7 /* Interpreter.swift in Sources */,
 				01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */,
+				013FBF6A2834D7EF00EAF795 /* Types.swift in Sources */,
 				01F1A7A5280F724600A1621B /* Material+Brightness.swift in Sources */,
 				01AA1D8721EF31860086BF86 /* Material.swift in Sources */,
 				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,

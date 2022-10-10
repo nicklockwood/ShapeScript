@@ -826,15 +826,6 @@ extension Definition {
             }
         }
     }
-
-    func staticSymbol(in context: EvaluationContext) throws -> Symbol {
-        switch type {
-        case let .expression(expression):
-            return try .placeholder(expression.staticType(in: context))
-        case .function, .block:
-            return try evaluate(in: context)
-        }
-    }
 }
 
 extension EvaluationContext {
@@ -1016,104 +1007,6 @@ extension Statement {
 }
 
 extension Expression {
-    func staticType(in context: EvaluationContext) throws -> ValueType {
-        switch type {
-        case .number:
-            return .number
-        case .string:
-            return .string
-        case .color:
-            return .color
-        case let .identifier(name):
-            guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(
-                    .unknownSymbol(name, options: context.expressionSymbols),
-                    at: range
-                )
-            }
-            return symbol.type
-        case let .block(identifier, block):
-            let (name, range) = (identifier.name, identifier.range)
-            guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
-            }
-            switch symbol {
-            case .block:
-                return symbol.type
-            case .property, .constant, .placeholder, .function((.void, _), _):
-                throw RuntimeError(
-                    .unexpectedArgument(for: name, max: 0),
-                    at: block.range
-                )
-            case let .function((parameterType, _), _):
-                throw RuntimeError(.typeMismatch(
-                    for: name,
-                    index: 0,
-                    expected: parameterType.errorDescription,
-                    got: "block"
-                ), at: block.range)
-            }
-        case let .tuple(expressions):
-            switch expressions.count {
-            case 0:
-                return .void
-            case 1:
-                return try expressions[0].staticType(in: context)
-            default:
-                if case let .identifier(name) = expressions[0].type {
-                    guard let symbol = context.symbol(for: name) else {
-                        throw RuntimeError(
-                            .unknownSymbol(name, options: context.expressionSymbols),
-                            at: range
-                        )
-                    }
-                    switch symbol {
-                    case let .function(type, _) where type.parameterType != .void:
-                        return type.returnType
-                    case let .block(type, _) where type.childTypes != .void:
-                        return type.returnType
-                    case .property, .constant, .placeholder, .function, .block:
-                        break
-                    }
-                }
-                var type: ValueType?
-                for expression in expressions {
-                    let staticType = try expression.staticType(in: context)
-                    if type == nil {
-                        type = staticType
-                    } else if type != staticType {
-                        type = nil
-                        break
-                    }
-                }
-                return .list(type ?? .any)
-            }
-        case .prefix(.minus, _),
-             .prefix(.plus, _),
-             .infix(_, .minus, _),
-             .infix(_, .plus, _),
-             .infix(_, .times, _),
-             .infix(_, .divide, _):
-            return .number
-        case .infix(_, .to, _), .infix(_, .step, _):
-            return .range
-        case .infix(_, .equal, _),
-             .infix(_, .unequal, _),
-             .infix(_, .lt, _),
-             .infix(_, .gt, _),
-             .infix(_, .lte, _),
-             .infix(_, .gte, _),
-             .infix(_, .and, _),
-             .infix(_, .or, _):
-            return .boolean
-        case let .member(expression, member):
-            let type = try expression.staticType(in: context)
-            return type.memberType(member.name) ?? .any
-        case let .subexpression(expression):
-            return try expression.staticType(in: context)
-        }
-    }
-
     func evaluate(in context: EvaluationContext) throws -> Value {
         switch type {
         case let .number(number):
