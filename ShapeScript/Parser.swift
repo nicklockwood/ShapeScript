@@ -6,6 +6,8 @@
 //  Copyright © 2018 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
+
 // MARK: Public interface
 
 public func parse(_ input: String) throws -> Program {
