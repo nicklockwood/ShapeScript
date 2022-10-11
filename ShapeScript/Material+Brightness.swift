@@ -6,6 +6,8 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
+
 public extension MaterialProperty {
     var brightness: Double {
         averageColor.brightness
