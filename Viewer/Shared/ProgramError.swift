@@ -31,22 +31,13 @@ extension ImportError: ProgramError {}
 
 extension ProgramError {
     func rangeAndSource(with source: String) -> (SourceRange?, source: String) {
-        switch self {
-        case let error as ImportError:
-            if case let .runtimeError(error) = error {
-                return error.rangeAndSource(with: source)
-            }
-            return (error.range, source)
-        case let error as ProgramError:
-            switch (error as? RuntimeError)?.type {
-            case let .importError(error, for: _, in: source)?:
-                return error.rangeAndSource(with: source)
-            default:
-                return (error.range, source)
-            }
-        default:
-            return (nil, source)
+        if let error = self as? RuntimeError,
+           case let .importError(error, for: _, in: source) = error.type,
+           error != .unknownError
+        {
+            return error.rangeAndSource(with: source)
         }
+        return (range, source)
     }
 }
 
