@@ -38,16 +38,20 @@ public func evaluate(
     )
 }
 
-public enum ImportError: Error, Equatable {
+@available(*, renamed: "ProgramError")
+public typealias ImportError = ProgramError
+
+public enum ProgramError: Error, Equatable {
     case lexerError(LexerError)
     case parserError(ParserError)
     case runtimeError(RuntimeError)
     case unknownError
 }
 
-public extension ImportError {
+public extension ProgramError {
     init(_ error: Error) {
         switch error {
+        case let error as ProgramError: self = error
         case let error as LexerError: self = .lexerError(error)
         case let error as ParserError: self = .parserError(error)
         case let error as RuntimeError: self = .runtimeError(error)
@@ -96,7 +100,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
-    indirect case importError(ImportError, for: String, in: String)
+    indirect case importError(ProgramError, for: String, in: String)
 }
 
 public struct RuntimeError: Error, Equatable {
@@ -593,7 +597,7 @@ extension Definition {
                         throw error
                     }
                     throw RuntimeErrorType.importError(
-                        ImportError(error),
+                        ProgramError(error),
                         for: declarationContext.baseURL?.lastPathComponent ?? "",
                         in: declarationContext.source
                     )
@@ -747,7 +751,7 @@ extension Definition {
                         throw error
                     }
                     throw RuntimeErrorType.importError(
-                        ImportError(error),
+                        ProgramError(error),
                         for: baseURL?.lastPathComponent ?? "",
                         in: source
                     )
