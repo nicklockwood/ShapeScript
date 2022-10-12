@@ -93,7 +93,7 @@ For the most part, you can avoid the need for trigonometry is ShapeScript by usi
 
 But sometimes you may wish to do something more complex (e.g. generating a path in the shape of a sign wave) that can only be achieved through explicit calculations, and to support that, ShapeScript provides a standard suite of trigonometric functions.
 
-While ShapeScript's [transform](transforms.md#orientation) commands expect values in the range 0 to 2 (or 0 to -2), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
+While ShapeScript's [transform](transforms.md#orientation) commands expect values in [half-turns](https://en.wikipedia.org/wiki/Turn_(angle)), the trigonometric functions all use [radians](https://en.wikipedia.org/wiki/Radian).
 
 For example, the `sin` (sine) function takes a radian representation of an angle and returns a ratio value of that angle. In this case 0.524 radians returns 0.5 or 1/2 - an angle of 30 degrees:
 
@@ -117,14 +117,14 @@ The `atan2` function works like `atan`, but instead of a single tangent value, i
 atan2 1 -1 // returns a radian angle of the vector Y: 1, X: -1
 ```
 
-To convert an angle in radians to a ShapeScript rotation value, divide it by the 'pi' constant:
+To convert an angle in radians to a ShapeScript half-turn value, divide it by the 'pi' constant:
 
 ```swift
 define angle acos(0.5) // returns 1.047 radians (60 degrees)
 rotate angle / pi      // return 0.333 (1.047 / 3.141)
 ```
 
-To convert a ShapeScript rotation value to radians, multiply it by `pi`.
+To convert a ShapeScript half-turn value to radians, multiply it by `pi`.
 
 ```swift
 cube {
@@ -135,6 +135,7 @@ cube {
 
 Angular conversion formulae:
 
+<<<<<<< HEAD
 Conversion                      | Formula
 :------------------------------ | :--------------------------
 Degrees to radians              | radians = degrees / 180 * pi
@@ -143,12 +144,22 @@ Degrees to ShapeScript rotation | rotation = degrees / 180
 ShapeScript rotation to degrees | degrees = rotation * 180
 Radians to ShapeScript rotation | rotation = degrees / pi
 ShapeScript rotation to radians | radians = rotation * pi
+=======
+Conversion            | Formula
+:---------------------| :--------------------------
+Degrees to radians    | radians = degrees / 180 * pi
+Radians to degrees    | degrees = radians / pi * 180
+Degrees to half-turns | halfturns = degrees / 180
+Half-turns to degrees | degrees = halfturns * 180
+Radians to half-turns | halfturns = degrees / pi
+Half-turns to radians | radians = halfturns * pi
+>>>>>>> 278c9169 (Improve documentation for rotations and trig functions)
 
 <br>
 
 Common values:
 
-Angle in degrees | Angle in radians | ShapeScript rotation 
+Angle in degrees | Angle in radians | Angle in half-turns 
 :--------------- | :--------------- | :------------------
 0                | 0                | 0
 30               | pi / 6 (0.524)   | 1 / 6 (0.167)

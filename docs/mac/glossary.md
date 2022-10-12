@@ -10,6 +10,7 @@ CSG                  | Constructive Solid Geometry - adding or subtracting meshe
 Function             | A named, parameterized block that returns a value
 Geometry             | A collective term for 2D or 3D shapes produced using ShapeScript
 Group                | A group of paths or meshes. May also contain nested groups
+Half-turn            | The unit used to specify angles or rotations in ShapeScript
 Material             | A color or texture
 Mesh                 | A 3D shape made of polygons
 Member               | A single component of a compound value like a vector or tuple
