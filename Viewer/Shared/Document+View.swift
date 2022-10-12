@@ -228,8 +228,8 @@ extension Document {
                 self.scene = scene
             case let .failure(error):
                 self.errorMessage = error.message(with: input)
-                if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
-                    self.accessErrorURL = url
+                if error.isPermissionError {
+                    self.accessErrorURL = error.fileURL
                 } else {
                     self.accessErrorURL = nil
                 }
