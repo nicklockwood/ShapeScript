@@ -356,17 +356,25 @@ extension EvaluationContext {
                 try addValue(.string(text))
                 return
             case "json":
-                let value: Value
+                let data: Data
                 do {
-                    let data = try Data(contentsOf: url)
-                    let json = try JSONSerialization
-                        .jsonObject(with: data, options: .fragmentsAllowed)
-                    value = Value(json: json)
+                    data = try Data(contentsOf: url)
                 } catch {
                     throw RuntimeErrorType.fileParsingError(
                         for: path,
                         at: url,
                         message: error.localizedDescription
+                    )
+                }
+                let value: Value
+                do {
+                    value = try Value(jsonData: data)
+                } catch {
+                    let source = try String(contentsOf: url)
+                    throw RuntimeErrorType.importError(
+                        ProgramError(error),
+                        for: url,
+                        in: source
                     )
                 }
                 try addValue(value)
