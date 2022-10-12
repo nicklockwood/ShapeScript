@@ -1026,7 +1026,7 @@ extension Statement {
             )
             let path = pathValue.stringValue
             context.sourceIndex = expression.range.lowerBound
-            try RuntimeError.wrap(context.importModel(at: path), at: expression.range)
+            try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
         }
     }
 }

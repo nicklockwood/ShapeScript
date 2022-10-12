@@ -291,7 +291,7 @@ extension EvaluationContext {
         #endif
     }
 
-    func importModel(at path: String) throws {
+    func importFile(at path: String) throws {
         let url = try resolveURL(for: path)
         if importStack.contains(url) {
             throw RuntimeErrorType.assertionFailure("Files cannot import themselves")
@@ -299,50 +299,63 @@ extension EvaluationContext {
         let program: Program
         if let entry = importCache.store[url] {
             program = entry
-        } else if url.pathExtension == "shape", // TODO: async source loading?
-                  let source = try? String(contentsOf: url, encoding: .utf8)
-        {
-            do {
-                program = try parse(source)
-                importCache.store[url] = program
-            } catch {
-                throw RuntimeErrorType.importError(ImportError(error), for: path, in: source)
-            }
         } else {
-            do {
-                if let geometry = try delegate?.importGeometry(for: url)?.with(
-                    transform: childTransform,
-                    material: material,
-                    sourceLocation: sourceLocation
-                ) {
-                    children.append(.mesh(geometry))
-                    return
+            switch url.pathExtension.lowercased() {
+            case "shape":
+                let source: String
+                do {
+                    source = try String(contentsOf: url)
+                } catch {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: error.localizedDescription
+                    )
                 }
-            } catch let error as ImportError {
-                throw RuntimeErrorType.fileParsingError(
-                    for: path, at: url, message: error.message
+                do {
+                    // TODO: async source loading?
+                    program = try parse(source)
+                    importCache.store[url] = program
+                } catch {
+                    throw RuntimeErrorType
+                        .importError(ImportError(error), for: path, in: source)
+                }
+            default:
+                do {
+                    if let geometry = try delegate?.importGeometry(for: url)?.with(
+                        transform: childTransform,
+                        material: material,
+                        sourceLocation: sourceLocation
+                    ) {
+                        children.append(.mesh(geometry))
+                        return
+                    }
+                } catch let error as ImportError {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path, at: url, message: error.message
+                    )
+                } catch {
+                    var error: Error? = error
+                    while let nsError = error as NSError? {
+                        if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
+                            // Not a recognized model file format
+                            break
+                        }
+                        if let description = (
+                            nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
+                                nsError.userInfo[NSLocalizedDescriptionKey]
+                        ) as? String {
+                            throw RuntimeErrorType.fileParsingError(
+                                for: path, at: url, message: description
+                            )
+                        }
+                        error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
+                    }
+                }
+                throw RuntimeErrorType.fileTypeMismatch(
+                    for: path, at: url, expected: nil
                 )
-            } catch {
-                var error: Error? = error
-                while let nsError = error as NSError? {
-                    if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
-                        // Not a recognized model file format
-                        break
-                    }
-                    if let description = (
-                        nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
-                            nsError.userInfo[NSLocalizedDescriptionKey]
-                    ) as? String {
-                        throw RuntimeErrorType.fileParsingError(
-                            for: path, at: url, message: description
-                        )
-                    }
-                    error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
-                }
             }
-            throw RuntimeErrorType.fileTypeMismatch(
-                for: path, at: url, expected: nil
-            )
         }
         let oldURL = baseURL
         baseURL = url
@@ -354,7 +367,8 @@ extension EvaluationContext {
         do {
             try program.evaluate(in: self)
         } catch {
-            throw RuntimeErrorType.importError(ImportError(error), for: path, in: program.source)
+            throw RuntimeErrorType
+                .importError(ImportError(error), for: path, in: program.source)
         }
     }
 }
