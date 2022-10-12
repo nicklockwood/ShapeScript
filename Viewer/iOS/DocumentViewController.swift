@@ -20,9 +20,9 @@ class DocumentViewController: UIViewController {
 
     @IBOutlet private var containerView: SplitView!
     @IBOutlet private var errorScrollView: UIScrollView!
-    @IBOutlet private var errorTextView: UITextView!
+    @IBOutlet private(set) var errorTextView: UITextView!
     @IBOutlet private var loadingIndicator: UIActivityIndicatorView!
-    @IBOutlet private var grantAccessButton: UIButton!
+    @IBOutlet private(set) var grantAccessButton: UIButton!
     @IBOutlet private var closeButton: UIButton!
     @IBOutlet private var infoButton: UIButton!
     @IBOutlet private var cameraButton: UIButton!
@@ -104,18 +104,6 @@ class DocumentViewController: UIViewController {
             self.containerView.heights[1] =
                 min(150, self.consoleTextView.contentSize.height)
             self.consoleTextView.scrollRangeToVisible(range)
-        }
-    }
-
-    var showAccessButton = false {
-        didSet {
-            guard showAccessButton != oldValue else {
-                return
-            }
-            grantAccessButton.isHidden = !showAccessButton
-            errorTextView.backgroundColor = showAccessButton ?
-                UIColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1) :
-                UIColor(red: 0.8, green: 0, blue: 0, alpha: 1)
         }
     }
 
