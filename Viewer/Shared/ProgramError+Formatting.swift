@@ -24,7 +24,7 @@ extension ProgramError {
     func rangeAndSource(with source: String) -> (SourceRange?, source: String) {
         if case let .runtimeError(runtimeError) = self,
            case let .importError(error, for: _, in: source) = runtimeError.type,
-           error != .unknownError
+           error.range != nil
         {
             return error.rangeAndSource(with: source)
         }

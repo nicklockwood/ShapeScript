@@ -101,4 +101,27 @@ class ImportExportTests: XCTestCase {
             ],
         ])
     }
+
+    func testMalformedJSON() throws {
+        let json = """
+        [
+            "🙃,
+            "foo"
+        ]
+        """
+        XCTAssertThrowsError(try Value(jsonData: json.data(using: .utf8)!)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            guard case let .custom(message, _, range)? = error?.type else {
+                XCTFail()
+                return
+            }
+            if let range = range {
+                XCTAssertEqual(message, "Unescaped control character")
+                XCTAssertEqual(range.lowerBound, json.range(of: "🙃,")?.upperBound)
+            } else {
+                XCTAssert(message.hasPrefix("Unescaped control character") ||
+                    message.hasPrefix("Badly formed array"))
+            }
+        }
+    }
 }
