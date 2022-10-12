@@ -342,8 +342,11 @@ extension EvaluationContext {
                     program = try parse(source)
                     importCache.store[url] = program
                 } catch {
-                    throw RuntimeErrorType
-                        .importError(ImportError(error), for: path, in: source)
+                    throw RuntimeErrorType.importError(
+                        ProgramError(error),
+                        for: url,
+                        in: source
+                    )
                 }
             default:
                 do {
@@ -392,8 +395,11 @@ extension EvaluationContext {
         do {
             try program.evaluate(in: self)
         } catch {
-            throw RuntimeErrorType
-                .importError(ImportError(error), for: path, in: program.source)
+            throw RuntimeErrorType.importError(
+                ProgramError(error),
+                for: url,
+                in: program.source
+            )
         }
     }
 }

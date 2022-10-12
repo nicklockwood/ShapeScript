@@ -45,8 +45,8 @@
 		0183AAAB28EC3AA600AD1984 /* LoadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9C28EC3AA500AD1984 /* LoadingProgress.swift */; };
 		0183AAAC28EC3AA600AD1984 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9D28EC3AA500AD1984 /* Axes.swift */; };
 		0183AAAD28EC3AA600AD1984 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9D28EC3AA500AD1984 /* Axes.swift */; };
-		0183AAAE28EC3AA600AD1984 /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9E28EC3AA500AD1984 /* ProgramError.swift */; };
-		0183AAAF28EC3AA600AD1984 /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9E28EC3AA500AD1984 /* ProgramError.swift */; };
+		0183AAAE28EC3AA600AD1984 /* ProgramError+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9E28EC3AA500AD1984 /* ProgramError+Formatting.swift */; };
+		0183AAAF28EC3AA600AD1984 /* ProgramError+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9E28EC3AA500AD1984 /* ProgramError+Formatting.swift */; };
 		0183AAB028EC3AA600AD1984 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9F28EC3AA500AD1984 /* Settings.swift */; };
 		0183AAB128EC3AA600AD1984 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9F28EC3AA500AD1984 /* Settings.swift */; };
 		0183AAB228EC3AA600AD1984 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AAA028EC3AA500AD1984 /* Camera.swift */; };
@@ -291,7 +291,7 @@
 		0183AA9B28EC3AA500AD1984 /* DocumentViewController+View.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "DocumentViewController+View.swift"; sourceTree = "<group>"; };
 		0183AA9C28EC3AA500AD1984 /* LoadingProgress.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoadingProgress.swift; sourceTree = "<group>"; };
 		0183AA9D28EC3AA500AD1984 /* Axes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Axes.swift; sourceTree = "<group>"; };
-		0183AA9E28EC3AA500AD1984 /* ProgramError.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgramError.swift; sourceTree = "<group>"; };
+		0183AA9E28EC3AA500AD1984 /* ProgramError+Formatting.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProgramError+Formatting.swift"; sourceTree = "<group>"; };
 		0183AA9F28EC3AA500AD1984 /* Settings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		0183AAA028EC3AA500AD1984 /* Camera.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Document+Sandbox.swift"; sourceTree = "<group>"; };
@@ -445,7 +445,7 @@
 				0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */,
 				0183AA9C28EC3AA500AD1984 /* LoadingProgress.swift */,
 				0183AA9D28EC3AA500AD1984 /* Axes.swift */,
-				0183AA9E28EC3AA500AD1984 /* ProgramError.swift */,
+				0183AA9E28EC3AA500AD1984 /* ProgramError+Formatting.swift */,
 				0183AA9F28EC3AA500AD1984 /* Settings.swift */,
 				0183AAA028EC3AA500AD1984 /* Camera.swift */,
 				0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */,
@@ -917,7 +917,7 @@
 				0183AAAA28EC3AA600AD1984 /* LoadingProgress.swift in Sources */,
 				0183AAE328EC3ACB00AD1984 /* WindowController.swift in Sources */,
 				0183AAED28EC3ACB00AD1984 /* Settings+Editor.swift in Sources */,
-				0183AAAE28EC3AA600AD1984 /* ProgramError.swift in Sources */,
+				0183AAAE28EC3AA600AD1984 /* ProgramError+Formatting.swift in Sources */,
 				0183AAE228EC3ACB00AD1984 /* Utilities.swift in Sources */,
 				0183AAB428EC3AA600AD1984 /* Document+Sandbox.swift in Sources */,
 				0183AAE628EC3ACB00AD1984 /* PreferencesViewController.swift in Sources */,
@@ -942,7 +942,7 @@
 				0183AAD028EC3AB200AD1984 /* DocumentViewController.swift in Sources */,
 				0183AACC28EC3AB200AD1984 /* TokenView.swift in Sources */,
 				0183AAAB28EC3AA600AD1984 /* LoadingProgress.swift in Sources */,
-				0183AAAF28EC3AA600AD1984 /* ProgramError.swift in Sources */,
+				0183AAAF28EC3AA600AD1984 /* ProgramError+Formatting.swift in Sources */,
 				0183AAB528EC3AA600AD1984 /* Document+Sandbox.swift in Sources */,
 				0183AAB128EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAA928EC3AA600AD1984 /* DocumentViewController+View.swift in Sources */,

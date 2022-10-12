@@ -232,15 +232,11 @@ extension Document {
                 self.scene = scene
             case let .failure(error):
                 self.errorMessage = error.message(with: input)
-                let error = error as? RuntimeError
-                if let accessErrorURL = error?.accessErrorURL {
+                if let accessErrorURL = error.accessErrorURL {
                     self.errorURL = accessErrorURL
                     self.isAccessError = true
-                } else if case let .importError(_, name, _)? = error?.type {
-                    self.errorURL = URL(fileURLWithPath: name, relativeTo: fileURL)
-                    self.isAccessError = false
                 } else {
-                    self.errorURL = nil
+                    self.errorURL = error.shapeFileURL(relativeTo: fileURL)
                     self.isAccessError = false
                 }
                 self.updateViews()

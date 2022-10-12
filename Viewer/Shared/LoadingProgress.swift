@@ -36,7 +36,7 @@ extension LoadingProgress {
         case waiting
         case partial(Scene)
         case success(Scene)
-        case failure(Error)
+        case failure(ProgramError)
         case cancelled
     }
 
@@ -92,7 +92,7 @@ extension LoadingProgress {
             do {
                 try block(self)
             } catch {
-                self.setStatus(.failure(error))
+                self.setStatus(.failure(ProgramError(error)))
             }
         }
     }
