@@ -9,6 +9,24 @@
 import Foundation
 
 extension Value {
+    init(jsonData: Data) throws {
+        do {
+            let json = try JSONSerialization.jsonObject(with: jsonData)
+            self.init(json: json)
+        } catch {
+            let nsError = error as NSError
+            var message = nsError.userInfo["NSDebugDescription"] as? String ?? nsError.localizedDescription
+            var index: String.Index?
+            if let byteOffset = nsError.userInfo["NSJSONSerializationErrorIndex"] as? Int {
+                index = String(data: jsonData[0 ..< byteOffset], encoding: .utf8)?.endIndex
+            }
+            if index != nil, let range = message.range(of: " around line ") {
+                message = String(message[..<range.lowerBound])
+            }
+            throw ParserError(.custom(message, hint: nil, at: index.map { $0 ..< $0 }))
+        }
+    }
+
     init(json: Any) {
         switch json {
         case let array as [Any]:

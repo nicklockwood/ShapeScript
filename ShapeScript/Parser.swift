@@ -86,6 +86,7 @@ public struct Identifier: Equatable {
 
 public enum ParserErrorType: Equatable {
     case unexpectedToken(Token, expected: String?)
+    case custom(String, hint: String?, at: SourceRange?)
 }
 
 public struct ParserError: Error, Equatable {
@@ -97,10 +98,12 @@ public struct ParserError: Error, Equatable {
 }
 
 public extension ParserError {
-    var range: SourceRange {
+    var range: SourceRange? {
         switch type {
         case let .unexpectedToken(token, _):
             return token.range
+        case let .custom(_, _, at: range):
+            return range
         }
     }
 
@@ -108,22 +111,24 @@ public extension ParserError {
         switch type {
         case let .unexpectedToken(token, _):
             return "Unexpected \(token.type.errorDescription)"
+        case let .custom(message, _, _):
+            return message
         }
     }
 
     var suggestion: String? {
         switch type {
-        case let .unexpectedToken(token, expected):
-            switch expected {
-            case "if body", "operator":
-                guard case let .identifier(string) = token.type else {
-                    return nil
-                }
-                let options = InfixOperator.allCases.map { $0.rawValue }
-                return string.bestMatches(in: options).first
-            default:
+        case let .unexpectedToken(token, expected) where [
+            "if body",
+            "operator",
+        ].contains(expected):
+            guard case let .identifier(string) = token.type else {
                 return nil
             }
+            let options = InfixOperator.allCases.map { $0.rawValue }
+            return string.bestMatches(in: options).first
+        case .unexpectedToken, .custom:
+            return nil
         }
     }
 
@@ -136,6 +141,8 @@ public extension ParserError {
             return "Expected \(expected)."
         case .unexpectedToken(_, expected: nil):
             return nil
+        case let .custom(_, hint: hint, _):
+            return hint
         }
     }
 }

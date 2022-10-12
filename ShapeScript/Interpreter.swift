@@ -45,7 +45,7 @@ public enum ProgramError: Error, Equatable {
     case lexerError(LexerError)
     case parserError(ParserError)
     case runtimeError(RuntimeError)
-    case unknownError
+    case unknownError(String?)
 }
 
 public extension ProgramError {
@@ -55,7 +55,9 @@ public extension ProgramError {
         case let error as LexerError: self = .lexerError(error)
         case let error as ParserError: self = .parserError(error)
         case let error as RuntimeError: self = .runtimeError(error)
-        default: self = .unknownError
+        default:
+            let message = error.localizedDescription
+            self = .unknownError(message.hasSuffix(".") ? "\(message.dropLast())" : message)
         }
     }
 
@@ -64,16 +66,16 @@ public extension ProgramError {
         case let .lexerError(error): return error.message
         case let .parserError(error): return error.message
         case let .runtimeError(error): return error.message
-        case .unknownError: return "Unknown error"
+        case let .unknownError(message): return message ?? "Unknown error"
         }
     }
 
-    var range: SourceRange {
+    var range: SourceRange? {
         switch self {
         case let .lexerError(error): return error.range
         case let .parserError(error): return error.range
         case let .runtimeError(error): return error.range
-        case .unknownError: return "".startIndex ..< "".endIndex
+        case .unknownError: return nil
         }
     }
 
@@ -209,6 +211,9 @@ public extension RuntimeError {
             if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
             }
+            if error.range == nil {
+                return "Error in file '\(name)' imported"
+            }
             return "Error in imported file '\(name)': \(error.message)"
         }
     }
@@ -337,6 +342,9 @@ public extension RuntimeError {
             }
             return "The file at '\(url.path)' is not \(aOrAn(type)) file."
         case let .importError(error, for: _, in: _):
+            if error.range == nil {
+                return error.message
+            }
             return error.hint
         }
     }
