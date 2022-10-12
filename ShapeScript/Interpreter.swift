@@ -559,7 +559,10 @@ private func evaluateBlockParameters(
     in context: EvaluationContext,
     _ childContext: EvaluationContext
 ) throws {
-    let range = parameters[0].range.lowerBound ..< parameters.last!.range.upperBound
+    guard let first = parameters.first, let last = parameters.last else {
+        return
+    }
+    let range = first.range.lowerBound ..< last.range.upperBound
     let children: [(Int, Value)]
     if type.childTypes.subtypes.contains(.text) {
         let param = Expression(type: .tuple(parameters), range: range)
