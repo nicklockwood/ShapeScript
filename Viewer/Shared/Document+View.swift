@@ -191,4 +191,120 @@ extension Document {
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
     }
+
+    func load(_ data: Data, fileURL: URL) throws {
+        var nsString: NSString?
+        _ = NSString.stringEncoding(for: data, convertedString: &nsString, usedLossyConversion: nil)
+        guard let input = nsString as String? else {
+            throw RuntimeErrorType.fileParsingError(
+                for: fileURL.lastPathComponent,
+                at: fileURL,
+                message: """
+                The file '\(fileURL.lastPathComponent)' couldn’t be opened because the text \
+                encoding of its contents can’t be determined.
+                """
+            )
+        }
+        linkedResources.removeAll()
+        if let progress = loadingProgress, progress.inProgress {
+            Swift.print("[\(progress.id)] cancelling...")
+            progress.cancel()
+        }
+        let camera = self.camera
+        let showWireframe = self.showWireframe
+        loadingProgress = LoadingProgress { [weak self] status in
+            guard let self = self else {
+                return
+            }
+            switch status {
+            case .waiting:
+                if let viewController = self.viewController {
+                    viewController.showConsole = false
+                    viewController.clearLog()
+                }
+            case let .partial(scene), let .success(scene):
+                self.errorMessage = nil
+                self.accessErrorURL = nil
+                self.scene = scene
+            case let .failure(error):
+                self.errorMessage = error.message(with: input)
+                if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
+                    self.accessErrorURL = url
+                } else {
+                    self.accessErrorURL = nil
+                }
+                self.updateViews()
+            case .cancelled:
+                break
+            }
+        }
+
+        loadingProgress?.dispatch { [cache] progress in
+            func logCancelled() -> Bool {
+                if progress.isCancelled {
+                    Swift.print("[\(progress.id)] cancelled")
+                    return true
+                }
+                return false
+            }
+
+            let start = CFAbsoluteTimeGetCurrent()
+            Swift.print("[\(progress.id)] starting...")
+            if logCancelled() {
+                return
+            }
+
+            let program = try parse(input)
+            let parsed = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
+            if logCancelled() {
+                return
+            }
+
+            let scene = try evaluate(program, delegate: self, cache: cache, isCancelled: {
+                progress.isCancelled
+            })
+            let evaluated = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
+            if logCancelled() {
+                return
+            }
+
+            // Clear errors and previous geometry
+            progress.setStatus(.partial(.empty))
+
+            let minUpdatePeriod: TimeInterval = 0.1
+            var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
+            let options = scene.outputOptions(
+                for: camera.settings,
+                backgroundColor: Color(Self.backgroundColor),
+                wireframe: showWireframe
+            )
+            _ = scene.build {
+                if progress.isCancelled {
+                    return false
+                }
+                let time = CFAbsoluteTimeGetCurrent()
+                if time - lastUpdate > minUpdatePeriod {
+                    Swift.print(String(format: "[\(progress.id)] rendering..."))
+                    scene.scnBuild(with: options)
+                    progress.setStatus(.partial(scene))
+                    lastUpdate = time
+                }
+                return true
+            }
+
+            if logCancelled() {
+                return
+            }
+
+            let done = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
+            scene.scnBuild(with: options)
+            progress.setStatus(.success(scene))
+
+            let end = CFAbsoluteTimeGetCurrent()
+            Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
+        }
+    }
 }
