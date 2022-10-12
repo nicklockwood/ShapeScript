@@ -18,50 +18,27 @@ typealias OSColor = NSColor
 typealias OSFont = NSFont
 #endif
 
-protocol ProgramError {
-    var message: String { get }
-    var range: SourceRange { get }
-    var hint: String? { get }
-}
-
-extension LexerError: ProgramError {}
-extension ParserError: ProgramError {}
-extension RuntimeError: ProgramError {}
-extension ImportError: ProgramError {}
-
 extension ProgramError {
+    /// Returns the the range at which the error occurred within the specified source string.
+    /// If the error occurred at a known location inside an imported file, the range and source for that file will be returned instead.
     func rangeAndSource(with source: String) -> (SourceRange?, source: String) {
-        if let error = self as? RuntimeError,
-           case let .importError(error, for: _, in: source) = error.type,
+        if case let .runtimeError(runtimeError) = self,
+           case let .importError(error, for: _, in: source) = runtimeError.type,
            error != .unknownError
         {
             return error.rangeAndSource(with: source)
         }
         return (range, source)
     }
-}
 
-extension Error {
+    /// Returns a nicely-formatted rich text error message.
     func message(with source: String) -> NSAttributedString {
-        var source = source
         let errorType: String
-        let message: String, range: SourceRange?, hint: String?
-        switch self {
-        case let error as ProgramError:
-            (range, source) = error.rangeAndSource(with: source)
-            switch (error as? RuntimeError)?.type {
-            case .fileAccessRestricted?:
-                errorType = "Permission Required"
-            default:
-                errorType = "Error"
-            }
-            message = error.message
-            hint = error.hint
-        default:
+        let (range, source) = rangeAndSource(with: source)
+        if isPermissionError {
+            errorType = "Permission Required"
+        } else {
             errorType = "Error"
-            message = localizedDescription
-            range = nil
-            hint = nil
         }
 
         var location = "."

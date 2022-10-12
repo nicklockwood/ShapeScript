@@ -85,6 +85,63 @@ public extension ProgramError {
         case .unknownError: return nil
         }
     }
+
+    /// If the error was related to a file import, return the URL of that file.
+    var fileURL: URL? {
+        switch underlyingError {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case let .fileAccessRestricted(for: _, at: url),
+                 let .fileTypeMismatch(for: _, at: url, expected: _),
+                 let .fileParsingError(for: _, at: url, message: _):
+                return url
+            case let .fileNotFound(for: _, at: url):
+                return url
+            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
+                 .unexpectedArgument, .missingArgument, .unusedValue,
+                 .assertionFailure, .importError:
+                return nil
+            }
+        case .parserError, .lexerError, .unknownError:
+            return nil
+        }
+    }
+
+    /// Returns the underlying error if the error was triggerred inside an imported file, etc.
+    var underlyingError: ProgramError {
+        switch self {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case let .importError(error, _, _):
+                return error.underlyingError
+            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
+                 .unexpectedArgument, .missingArgument, .unusedValue,
+                 .assertionFailure, .fileNotFound, .fileAccessRestricted,
+                 .fileTypeMismatch, .fileParsingError:
+                return self
+            }
+        case .lexerError, .parserError, .unknownError:
+            return self
+        }
+    }
+
+    /// Returns true is the error was a file permission error (allowing these to be handled differently in the UI).
+    var isPermissionError: Bool {
+        switch underlyingError {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case .fileAccessRestricted:
+                return true
+            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
+                 .unexpectedArgument, .missingArgument, .unusedValue,
+                 .assertionFailure, .fileNotFound, .importError,
+                 .fileTypeMismatch, .fileParsingError:
+                return false
+            }
+        case .parserError, .lexerError, .unknownError:
+            return false
+        }
+    }
 }
 
 public enum RuntimeErrorType: Error, Equatable {
