@@ -374,7 +374,7 @@ public extension Geometry {
                 scnGeometry,
                 materialLookup: Material.init(_:)
             ) else {
-                throw ImportError.unknownError
+                throw ProgramError.unknownError
             }
             type = .mesh(mesh)
         } else {
