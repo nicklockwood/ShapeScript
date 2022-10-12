@@ -85,14 +85,54 @@ public extension ProgramError {
         case .unknownError: return nil
         }
     }
-}
 
-private extension ImportError {
+    /// If the error relates to file access permissions, returns the URL of that file.
     var accessErrorURL: URL? {
-        if case let .runtimeError(error) = self {
-            return error.accessErrorURL
+        switch underlyingError {
+        case let .runtimeError(runtimeError):
+            return runtimeError.accessErrorURL
+        case .parserError, .lexerError, .unknownError:
+            return nil
         }
-        return nil
+    }
+
+    /// Returns the URL of the .shape file in which the error occured.
+    func shapeFileURL(relativeTo baseURL: URL) -> URL {
+        switch self {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case let .importError(error, url, _):
+                guard let url = url, url.pathExtension == "shape" else {
+                    return baseURL
+                }
+                return error.shapeFileURL(relativeTo: url)
+            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
+                 .unexpectedArgument, .missingArgument, .unusedValue,
+                 .assertionFailure, .fileNotFound, .fileAccessRestricted,
+                 .fileTypeMismatch, .fileParsingError:
+                return baseURL
+            }
+        case .lexerError, .parserError, .unknownError:
+            return baseURL
+        }
+    }
+
+    /// Returns the underlying error if the error was triggerred inside an imported file, etc.
+    var underlyingError: ProgramError {
+        switch self {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case let .importError(error, _, _):
+                return error.underlyingError
+            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
+                 .unexpectedArgument, .missingArgument, .unusedValue,
+                 .assertionFailure, .fileNotFound, .fileAccessRestricted,
+                 .fileTypeMismatch, .fileParsingError:
+                return self
+            }
+        case .lexerError, .parserError, .unknownError:
+            return self
+        }
     }
 }
 
@@ -109,7 +149,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
-    indirect case importError(ProgramError, for: String, in: String)
+    indirect case importError(ProgramError, for: URL?, in: String)
 }
 
 public struct RuntimeError: Error, Equatable {
@@ -154,11 +194,12 @@ public extension RuntimeError {
         case let .fileParsingError(for: name, _, _),
              let .fileTypeMismatch(for: name, _, _):
             return "Unable to open file '\(name)'"
-        case let .importError(error, for: name, _):
+        case let .importError(error, for: url, _):
             if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
             }
-            return "Error in imported file '\(name)': \(error.message)"
+            let name = url.map { " '\($0.lastPathComponent)'" } ?? ""
+            return "Error in imported file\(name): \(error.message)"
         }
     }
 
@@ -634,7 +675,7 @@ extension Definition {
                     }
                     throw RuntimeErrorType.importError(
                         ProgramError(error),
-                        for: declarationContext.baseURL?.lastPathComponent ?? "",
+                        for: declarationContext.baseURL,
                         in: declarationContext.source
                     )
                 }
@@ -790,7 +831,7 @@ extension Definition {
                     }
                     throw RuntimeErrorType.importError(
                         ProgramError(error),
-                        for: baseURL?.lastPathComponent ?? "",
+                        for: baseURL,
                         in: source
                     )
                 }
