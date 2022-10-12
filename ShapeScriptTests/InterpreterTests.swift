@@ -3864,6 +3864,11 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
+    func testCallStdlibBlockWithEmptyParens() throws {
+        let program = "cube()"
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     func testCallBlockWithEmptyBlock() throws {
         let program = """
         define foo {
