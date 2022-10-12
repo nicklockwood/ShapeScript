@@ -17,9 +17,9 @@ class DocumentViewController: NSViewController {
 
     @IBOutlet private var containerView: NSSplitView!
     @IBOutlet private var errorScrollView: NSScrollView!
-    @IBOutlet private var errorTextView: NSTextView!
+    @IBOutlet private(set) var errorTextView: NSTextView!
     @IBOutlet private var loadingIndicator: NSProgressIndicator!
-    @IBOutlet private var grantAccessButton: NSButton!
+    @IBOutlet private(set) var grantAccessButton: NSButton!
     @IBOutlet private var consoleScrollView: NSScrollView!
     @IBOutlet private var consoleTextView: NSTextView!
 
@@ -77,18 +77,6 @@ class DocumentViewController: NSViewController {
         }
         DispatchQueue.main.async {
             self.consoleTextView.scrollToEndOfDocument(self)
-        }
-    }
-
-    var showAccessButton = false {
-        didSet {
-            guard showAccessButton != oldValue else {
-                return
-            }
-            grantAccessButton.isHidden = !showAccessButton
-            errorTextView.backgroundColor = showAccessButton ?
-                NSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1) :
-                NSColor(red: 0.8, green: 0, blue: 0, alpha: 1)
         }
     }
 
