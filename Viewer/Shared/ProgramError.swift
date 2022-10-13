@@ -85,9 +85,11 @@ extension Error {
             .foregroundColor: OSColor.white.withAlphaComponent(0.7),
             .font: OSFont.systemFont(ofSize: 15, weight: .regular),
         ]))
-        if let lineRange = lineRange, let range = range,
+        if let lineRange = lineRange, var range = range,
            let font = OSFont(name: "Courier", size: 15)
         {
+            let rangeMin = max(range.lowerBound, lineRange.lowerBound)
+            range = rangeMin ..< max(rangeMin, range.upperBound)
             let sourceLine = String(source[lineRange])
             let start = source.distance(from: lineRange.lowerBound, to: range.lowerBound) +
                 emojiSpacing(for: source[lineRange.lowerBound ..< range.lowerBound])
