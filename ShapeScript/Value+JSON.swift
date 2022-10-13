@@ -32,9 +32,7 @@ extension Value {
         case let array as [Any]:
             self = .tuple(array.map(Value.init(json:)))
         case let object as [String: Any]:
-            self = .tuple(object.sorted(by: { $0.0 < $1.0 }).map {
-                [.string($0), Value(json: $1)]
-            })
+            self = .object(object.mapValues(Value.init(json:)))
         case let string as String:
             self = .string(string)
         case let number as NSNumber:

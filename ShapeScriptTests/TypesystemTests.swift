@@ -645,4 +645,32 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try evaluate("(\"foo\" \"bar\") \"baz\"", as: type),
                        [["foo", "bar"], "baz"])
     }
+
+    func testCastObjectToAnyList() throws {
+        let type = ValueType.list(.any)
+        let value = Value.object(["foo": "bar", "baz": "quux"])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), [value])
+    }
+
+    func testCastObjectToStringTupleList() throws {
+        let type = ValueType.list(.tuple([.string, .string]))
+        let value = Value.object(["foo": "bar", "baz": "quux"])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), [["baz", "quux"], ["foo", "bar"]])
+    }
+
+    func testCastObjectToStringNumberTupleList() throws {
+        let type = ValueType.list(.tuple([.string, .number]))
+        let value = Value.object(["foo": 1, "baz": 2])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), [["baz", 2], ["foo", 1]])
+    }
+
+    func testCastObjectToTuple() throws {
+        let type = ValueType.tuple([.tuple([.string, .boolean]), .tuple([.string, .number])])
+        let value = Value.object(["foo": 1, "baz": true])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), [["baz", true], ["foo", 1]])
+    }
 }
