@@ -151,6 +151,50 @@ extension ValueType {
             return self == type
         }
     }
+
+    func memberType(_ name: String) -> ValueType? {
+        switch self {
+        case let .list(type):
+            return (name.isOrdinal || name == "last") ? type : type.memberType(name)
+        case let .tuple(types):
+            if let index = name.ordinalIndex {
+                return types.indices.contains(index) ? types[index] : nil
+            }
+            return name == "last" ? types.last : Self.memberTypes[name]
+        case let .union(types):
+            let types = types.compactMap { $0.memberType(name) }
+            return types.isEmpty ? nil : .union(types)
+        case .color, .texture, .boolean, .font, .number, .vector, .size,
+             .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
+             .bounds, .any:
+            return Self.memberTypes[name]
+        }
+    }
+
+    private static let memberTypes: [String: ValueType] = [
+        "x": .number,
+        "y": .number,
+        "z": .number,
+        "width": .number,
+        "height": .number,
+        "depth": .number,
+        "roll": .number,
+        "yaw": .number,
+        "pitch": .number,
+        "red": .number,
+        "green": .number,
+        "blue": .number,
+        "alpha": .number,
+        "bounds": .bounds,
+        "start": .number,
+        "end": .number,
+        "step": .number,
+        "min": .number,
+        "max": .number,
+        "size": .size,
+        "center": .vector,
+        "count": .number,
+    ]
 }
 
 extension Sequence where Element == ValueType {
