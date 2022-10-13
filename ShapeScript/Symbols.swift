@@ -76,6 +76,7 @@ enum Value: Hashable {
     case tuple([Value])
     case range(RangeValue)
     case bounds(Bounds)
+    case object([String: Value])
 }
 
 extension Value: ExpressibleByStringLiteral {
@@ -111,6 +112,16 @@ extension Value: ExpressibleByArrayLiteral {
 
     init(_ elements: Value...) {
         self = elements.count == 1 ? elements[0] : .tuple(elements)
+    }
+}
+
+extension Value: ExpressibleByDictionaryLiteral {
+    init(dictionaryLiteral elements: (String, Value)...) {
+        self.init(Dictionary(elements) { $1 })
+    }
+
+    init(_ elements: [String: Value]) {
+        self = .object(elements)
     }
 }
 
@@ -178,6 +189,7 @@ extension Value {
         case let .tuple(values): return values.map { $0.value }
         case let .range(range): return range
         case let .bounds(bounds): return bounds
+        case let .object(values): return values
         }
     }
 
@@ -248,6 +260,9 @@ extension Value {
                 return value
             }
             return AnySequence(values)
+        case let .object(values):
+            let values: [Value] = values.sorted(by: { $0.0 < $1.0 }).map { [.string($0), $1] }
+            return AnySequence(values)
         case .boolean, .vector, .size, .rotation, .color, .texture, .number,
              .string, .text, .path, .mesh, .polygon, .point, .bounds:
             return nil
@@ -276,7 +291,7 @@ extension Value {
         case let .texture(texture):
             return texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds:
+             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil
         }
     }
@@ -328,6 +343,8 @@ extension Value {
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
             return ["lines", "words", "characters"]
+        case let .object(values):
+            return values.keys.sorted()
         case .texture, .boolean, .number, .text:
             return []
         }
@@ -463,6 +480,8 @@ extension Value {
                 return .tuple(string.map { .string("\($0)") })
             default: return nil
             }
+        case let .object(values):
+            return values[name]
         case .boolean, .texture, .number, .text:
             return nil
         }
