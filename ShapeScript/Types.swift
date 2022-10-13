@@ -32,6 +32,7 @@ enum ValueType: Hashable {
     indirect case union(Set<ValueType>)
     indirect case tuple([ValueType])
     indirect case list(ValueType)
+    indirect case object([String: ValueType])
 }
 
 extension ValueType: Comparable {
@@ -57,6 +58,7 @@ extension ValueType: Comparable {
         case .union: return 17
         case .tuple: return 18
         case .list: return 19
+        case .object: return 20
         }
     }
 
@@ -78,7 +80,7 @@ extension ValueType: Comparable {
             switch lhs {
             case .any, .color, .texture, .boolean, .font, .number, .vector,
                  .size, .rotation, .string, .text, .path, .mesh, .polygon,
-                 .point, .range, .bounds, .union, .tuple, .list:
+                 .point, .range, .bounds, .union, .tuple, .list, .object:
                 return lhs.sortIndex < rhs.sortIndex
             }
         }
@@ -125,7 +127,7 @@ extension ValueType {
             return result.count == 1 ? result[0] : .union(Set(result))
         case .any, .color, .texture, .boolean, .font, .number, .vector, .size,
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds, .tuple, .list:
+             .bounds, .tuple, .list, .object:
             return self
         }
     }
@@ -181,6 +183,7 @@ extension ValueType {
         case .tuple, .list: return "tuple"
         case let .union(types):
             return types.sorted().errorDescription
+        case .object: return "object"
         }
     }
 
@@ -220,6 +223,8 @@ extension ValueType {
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
              .bounds, .any:
             return Self.memberTypes[name]
+        case let .object(values):
+            return values[name]
         }
     }
 
@@ -356,6 +361,8 @@ extension Value {
         case .bounds: return .bounds
         case let .tuple(values):
             return .tuple(values.map { $0.type })
+        case let .object(values):
+            return .object(values.mapValues { $0.type })
         }
     }
 
@@ -491,6 +498,22 @@ extension Value {
             return .tuple(value.components.map { .number($0) })
         case let (.rotation(value), .list(.number)):
             return .tuple(value.rollYawPitchInHalfTurns.map { .number($0) })
+        case let (.object(values), .list(type)):
+            let values = try values.sorted(by: { $0.0 < $1.0 }).compactMap {
+                try Value(.string($0), $1).as(type, in: context)
+            }
+            guard values.count == values.count else {
+                return nil
+            }
+            return .tuple(values)
+        case let (.object(values), .tuple(types)):
+            let values = try zip(values.sorted(by: { $0.0 < $1.0 }), types).compactMap {
+                try Value(.string($0.key), $0.value).as($1, in: context)
+            }
+            guard values.count == types.count else {
+                return nil
+            }
+            return .tuple(values)
         case let (_, .list(type)):
             return self.as(type).map { [$0] }
         default:

@@ -96,10 +96,11 @@ class ImportExportTests: XCTestCase {
             [],
             [1, 2, 3],
             [
-                ["bar", true],
-                ["foo", 2],
+                "bar": true,
+                "foo": 2,
             ],
         ])
+        XCTAssertEqual(value["seventh"]?["foo"], 2)
     }
 
     func testMalformedJSON() throws {
