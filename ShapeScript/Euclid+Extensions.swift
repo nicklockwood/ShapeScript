@@ -106,7 +106,11 @@ import AppKit
 #if canImport(CoreText)
 private extension NSAttributedString {
     convenience init(string: String, font: String?, color: Color?, linespacing: Double?) {
-        let font = CTFontCreateWithName((font ?? "Helvetica") as CFString, 1, nil)
+        var fontName = (font ?? "Helvetica") as CFString
+        #if canImport(CoreGraphics)
+        fontName = CGFont(fontName)?.postScriptName ?? fontName
+        #endif
+        let font = CTFontCreateWithName(fontName as CFString, 1, nil)
         var attributes = [NSAttributedString.Key.font: font as Any]
         #if canImport(AppKit) || canImport(UIKit)
         let paragraphStyle = NSMutableParagraphStyle()
