@@ -262,8 +262,11 @@ public extension Geometry {
             return Bounds(bounds: children.map {
                 $0.bounds.transformed(by: $0.transform)
             })
-        case .cone, .cube, .cylinder, .sphere, .path, .mesh,
-             .lathe, .fill, .extrude, .loft:
+        case .lathe, .fill, .extrude, .loft:
+            return type.bounds.union(Bounds(bounds: children.map {
+                $0.bounds.transformed(by: $0.transform)
+            }))
+        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
             return type.bounds
         case .camera, .light:
             return .empty
