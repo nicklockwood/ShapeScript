@@ -257,15 +257,6 @@ public final class Geometry: Hashable {
     }
 }
 
-private extension Transform {
-    var isFlipped: Bool {
-        var flipped = scale.x < 0
-        if scale.y < 0 { flipped = !flipped }
-        if scale.z < 0 { flipped = !flipped }
-        return flipped
-    }
-}
-
 public extension Geometry {
     var isEmpty: Bool {
         type.isEmpty && children.allSatisfy { $0.isEmpty }
