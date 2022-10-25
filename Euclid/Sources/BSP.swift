@@ -55,9 +55,11 @@ extension BSP {
         _ keeping: ClipRule,
         _ isCancelled: CancellationHandler
     ) -> [Polygon] {
-        var id = 0
-        var out: [Polygon]?
-        return clip(polygons.map { $0.with(id: 0) }, keeping, &out, &id, isCancelled)
+        batch(polygons, stride: 50) { polygons in
+            var id = 0
+            var out: [Polygon]?
+            return clip(polygons.map { $0.with(id: 0) }, keeping, &out, &id, isCancelled)
+        }
     }
 
     func split(
@@ -107,7 +109,7 @@ extension BSP {
 }
 
 private extension BSP {
-    final class BSPNode {
+    struct BSPNode {
         var front: Int = 0
         var back: Int = 0
         var polygons = [Polygon]()
@@ -135,7 +137,6 @@ private extension BSP {
     }
 
     mutating func initialize(_ polygons: [Polygon], _ isCancelled: CancellationHandler) {
-        nodes.reserveCapacity(polygons.count)
         var rng = DeterministicRNG()
 
         guard isConvex else {
@@ -144,45 +145,39 @@ private extension BSP {
             }
             // Randomly shuffle polygons to reduce average number of splits
             let polygons = polygons.shuffled(using: &rng)
+            nodes.reserveCapacity(polygons.count)
             nodes.append(BSPNode(plane: polygons[0].plane))
             insert(polygons, isCancelled)
             return
         }
 
-        // Sort polygons by plane
-        let polygons = polygons.sortedByPlane()
-
         // Create nodes
-        var parent: BSPNode?
-        for polygon in polygons {
-            if let parent = parent, polygon.plane.isEqual(to: parent.plane) {
-                parent.polygons.append(polygon)
-                continue
+        nodes = polygons
+            .groupedByPlane()
+            .shuffled(using: &rng)
+            .enumerated()
+            .map { i, group in
+                var node = BSPNode(plane: group.plane)
+                node.polygons = group.polygons
+                node.back = i + 1
+                return node
             }
-            let node = BSPNode(polygon: polygon)
-            nodes.append(node)
-            parent = node
-        }
 
-        // Randomly shuffle nodes to reduce average number of splits
-        nodes.shuffle(using: &rng)
-
-        // Use fast BSP construction
-        for i in 0 ..< nodes.count - 1 {
-            nodes[i].back = i + 1
-        }
+        // Fixup last node
+        nodes[nodes.count - 1].back = 0
     }
 
     mutating func insert(_ polygons: [Polygon], _ isCancelled: CancellationHandler) {
         var isActuallyConvex = true
-        var stack = [(node: nodes[0], polygons: polygons)]
+        var stack = [(node: 0, polygons: polygons)]
         while let (node, polygons) = stack.popLast(), !isCancelled() {
             var front = [Polygon](), back = [Polygon]()
             for polygon in polygons {
-                switch polygon.compare(with: node.plane) {
+                let plane = nodes[node].plane
+                switch polygon.compare(with: plane) {
                 case .coplanar:
-                    if node.plane.normal.dot(polygon.plane.normal) > 0 {
-                        node.polygons.append(polygon)
+                    if plane.normal.dot(polygon.plane.normal) > 0 {
+                        nodes[node].polygons.append(polygon)
                     } else {
                         back.append(polygon)
                     }
@@ -193,29 +188,25 @@ private extension BSP {
                     back.append(polygon)
                 case .spanning:
                     var id = 0
-                    polygon.split(spanning: node.plane, &front, &back, &id)
+                    polygon.split(spanning: plane, &front, &back, &id)
                     isActuallyConvex = false
                 }
             }
             if let first = front.first {
-                let next: BSPNode
-                if node.front > 0 {
-                    next = nodes[node.front]
-                } else {
-                    next = BSPNode(plane: first.plane)
-                    node.front = nodes.count
-                    nodes.append(next)
+                var next = nodes[node].front
+                if next == 0 {
+                    next = nodes.count
+                    nodes[node].front = next
+                    nodes.append(BSPNode(plane: first.plane))
                 }
                 stack.append((next, front))
             }
             if let first = back.first {
-                let next: BSPNode
-                if node.back > 0 {
-                    next = nodes[node.back]
-                } else {
-                    next = BSPNode(plane: first.plane)
-                    node.back = nodes.count
-                    nodes.append(next)
+                var next = nodes[node].back
+                if next == 0 {
+                    next = nodes.count
+                    nodes[node].back = next
+                    nodes.append(BSPNode(plane: first.plane))
                 }
                 stack.append((next, back))
             }

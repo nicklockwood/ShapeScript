@@ -264,21 +264,32 @@ public extension Polygon {
         )
     }
 
-    /// Splits a concave polygon into two or more convex polygons using the "ear clipping" method.
+    /// Splits a polygon into two or more convex polygons using the "ear clipping" method.
+    /// - Parameter maxSides: The maximum number of sides each polygon may have.
     /// - Returns: An array of convex polygons.
-    ///
-    /// > Note: If the polygon is already convex then the original polygon is returned unchanged.
-    func tessellate() -> [Polygon] {
-        if isConvex {
+    func tessellate(maxSides: Int = .max) -> [Polygon] {
+        let maxSides = max(maxSides, 3)
+        if vertices.count <= maxSides, isConvex {
             return [self]
         }
         var polygons = triangulate()
+        if maxSides == 3 {
+            return polygons
+        }
         var i = polygons.count - 1
-        while i > 0 {
+        while i > 1 {
             let a = polygons[i]
-            let b = polygons[i - 1]
-            if let merged = a.merge(unchecked: b, ensureConvex: true) {
-                polygons[i - 1] = merged
+            let count = a.vertices.count
+            if count < maxSides,
+               let j = polygons.firstIndex(where: {
+                   $0.vertices.count + count - 2 <= maxSides
+               }),
+               j < i,
+               let merged = a.merge(unchecked: polygons[j], ensureConvex: true)
+            {
+                precondition(merged.vertices.count <= maxSides)
+                precondition(merged.isConvex)
+                polygons[j] = merged
                 polygons.remove(at: i)
             }
             i -= 1
@@ -480,8 +491,8 @@ internal extension Collection where Element == Polygon {
     }
 
     /// Decompose each concave polygon into 2 or more convex polygons
-    func tessellate() -> [Polygon] {
-        flatMap { $0.tessellate() }
+    func tessellate(maxSides: Int = .max) -> [Polygon] {
+        flatMap { $0.tessellate(maxSides: maxSides) }
     }
 
     /// Decompose each polygon into triangles
@@ -519,31 +530,28 @@ internal extension Collection where Element == Polygon {
         return polygons
     }
 
-    /// Sort polygons by plane
-    func sortedByPlane() -> [Polygon] {
+    /// Group polygons by plane
+    func groupedByPlane() -> [(plane: Plane, polygons: [Polygon])] {
         if isEmpty {
             return []
         }
         let polygons = sorted(by: { $0.plane.w < $1.plane.w })
-        var prev = polygons[0]
-        var sorted = [Polygon]()
-        var groups = [(Plane, [Polygon])]()
-        for p in polygons {
-            if p.plane.w.isEqual(to: prev.plane.w, withPrecision: planeEpsilon) {
-                if let i = groups.lastIndex(where: { $0.0.isEqual(to: p.plane) }) {
-                    groups[i].0 = p.plane
-                    groups[i].1.append(p)
-                } else {
-                    groups.append((p.plane, [p]))
-                }
+        var prev = polygons[0].plane
+        var groups = [(prev, [polygons[0]])]
+        for p in polygons.dropFirst() {
+            if prev.isEqual(to: p.plane) {
+                groups[groups.count - 1].1.append(p)
             } else {
-                sorted += groups.flatMap { $0.1 }
-                groups = [(p.plane, [p])]
+                groups.append((p.plane, [p]))
             }
-            prev = p
+            prev = p.plane
         }
-        sorted += groups.flatMap { $0.1 }
-        return sorted
+        return groups
+    }
+
+    /// Sort polygons by plane
+    func sortedByPlane() -> [Polygon] {
+        groupedByPlane().flatMap { $0.polygons }
     }
 
     /// Group by material
@@ -613,7 +621,7 @@ internal extension Polygon {
     init(
         unchecked vertices: [Vertex],
         normal: Vector,
-        isConvex: Bool,
+        isConvex: Bool?,
         material: Material?
     ) {
         self.init(
@@ -643,9 +651,9 @@ internal extension Polygon {
         let plane = plane ?? Plane(unchecked: points, convex: isConvex)
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
-            vertices: vertices.map {
+            vertices: sanitizeNormals ? vertices.map {
                 $0.with(normal: $0.normal == .zero ? plane.normal : $0.normal)
-            },
+            } : vertices,
             plane: plane,
             isConvex: isConvex,
             material: material

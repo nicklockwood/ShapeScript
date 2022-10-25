@@ -50,22 +50,22 @@ public extension SCNVector4 {
 }
 
 public extension SCNQuaternion {
-    /// Creates a new SceneKit quaternion from a rotation
-    /// - Parameter m: The rotation to convert.
+    /// Creates a new SceneKit quaternion from a `Rotation`
+    /// - Parameter rotation: The rotation to convert.
     ///
     /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
     /// careful to avoid type ambiguity when using this value.
-    init(_ m: Rotation) {
-        let x = sqrt(max(0, 1 + m.m11 - m.m22 - m.m33)) / 2
-        let y = sqrt(max(0, 1 - m.m11 + m.m22 - m.m33)) / 2
-        let z = sqrt(max(0, 1 - m.m11 - m.m22 + m.m33)) / 2
-        let w = sqrt(max(0, 1 + m.m11 + m.m22 + m.m33)) / 2
-        self.init(
-            x * (x * (m.m32 - m.m23) > 0 ? 1 : -1),
-            y * (y * (m.m13 - m.m31) > 0 ? 1 : -1),
-            z * (z * (m.m21 - m.m12) > 0 ? 1 : -1),
-            -w
-        )
+    init(_ rotation: Rotation) {
+        self.init(rotation.quaternion)
+    }
+
+    /// Creates a new SceneKit quaternion from a Euclid `Quaternion`
+    /// - Parameter quaternion: The quaternion to convert.
+    ///
+    /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
+    /// careful to avoid type ambiguity when using this value.
+    init(_ quaternion: Quaternion) {
+        self.init(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
     }
 }
 
@@ -102,20 +102,18 @@ private typealias OSColorComponent = Double
 
 private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
     switch material {
-    case let material as SCNMaterial:
-        return material
+    case let scnMaterial as SCNMaterial:
+        return scnMaterial
     case let color as Color:
-        let material = SCNMaterial()
-        material.diffuse.contents = OSColor(color)
-        return material
-    case let color as OSColor:
-        let material = SCNMaterial()
-        material.diffuse.contents = color
-        return material
-    case let image as OSImage:
-        let material = SCNMaterial()
-        material.diffuse.contents = image
-        return material
+        return defaultMaterialLookup(OSColor(color))
+    case let cfType as CFTypeRef where [
+        CGImage.typeID, CGColor.typeID,
+    ].contains(CFGetTypeID(cfType)):
+        fallthrough
+    case is OSColor, is OSImage:
+        let scnMaterial = SCNMaterial()
+        scnMaterial.diffuse.contents = material
+        return scnMaterial
     default:
         return nil
     }
@@ -167,7 +165,9 @@ public extension SCNGeometry {
         let hasTexcoords = mesh.hasTexcoords
         let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
-        for (material, polygons) in mesh.polygonsByMaterial {
+        let polygonsByMaterial = mesh.polygonsByMaterial
+        for material in mesh.materials {
+            let polygons = polygonsByMaterial[material] ?? []
             var indices = [UInt32]()
             func addVertex(_ vertex: Vertex) {
                 if let index = indicesByVertex[vertex] {
@@ -213,7 +213,7 @@ public extension SCNGeometry {
         self.materials = materials
     }
 
-    /// Creates an geometry from a ``Mesh`` using convex polygons.
+    /// Creates a geometry from a ``Mesh`` using convex polygons.
     /// - Parameters:
     ///   - mesh: The mesh to convert into a SceneKit geometry.
     ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
@@ -229,7 +229,9 @@ public extension SCNGeometry {
         let hasTexcoords = mesh.hasTexcoords
         let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
-        for (material, polygons) in mesh.polygonsByMaterial {
+        let polygonsByMaterial = mesh.polygonsByMaterial
+        for material in mesh.materials {
+            var polygons = polygonsByMaterial[material] ?? []
             var indexData = Data()
             func addVertex(_ vertex: Vertex) {
                 if let index = indicesByVertex[vertex] {
@@ -249,7 +251,7 @@ public extension SCNGeometry {
                 }
             }
             materials.append(materialLookup(material) ?? SCNMaterial())
-            let polygons = polygons.tessellate()
+            polygons = polygons.tessellate()
             for polygon in polygons {
                 indexData.append(UInt32(polygon.vertices.count))
             }
@@ -452,16 +454,17 @@ public extension Vector {
 
 public extension Rotation {
     /// Creates a rotation from a SceneKit quaternion.
+    /// - Parameter quaternion: The `SCNQuaternion` to convert.
+    init(_ quaternion: SCNQuaternion) {
+        self.init(.init(quaternion))
+    }
+}
+
+public extension Quaternion {
+    /// Creates a Euclid `Quaternion` from a SceneKit quaternion.
     /// - Parameter q: The `SCNQuaternion` to convert.
     init(_ q: SCNQuaternion) {
-        let d = sqrt(1 - Double(q.w * q.w))
-        guard d > epsilon else {
-            self = .identity
-            return
-        }
-        let axis = Vector(Double(q.x) / d, Double(q.y) / d, Double(q.z) / d)
-        let rotation = 2 * Angle.acos(Double(-q.w))
-        self.init(unchecked: axis.normalized(), angle: rotation)
+        self.init(Double(q.x), Double(q.y), Double(q.z), Double(q.w))
     }
 }
 
@@ -525,12 +528,7 @@ public extension Mesh {
         )
     }
 
-    @available(*, deprecated, message: "Use init(url:ignoringTransforms:materialLookup:) instead")
-    init(url: URL, materialLookup: MaterialProvider? = nil) throws {
-        try self.init(url: url, ignoringTransforms: true, materialLookup: materialLookup)
-    }
-
-    /// Creates a mesh from an SceneKit node, with optional material mapping.
+    /// Creates a mesh from a SceneKit node, with optional material mapping.
     /// - Parameters:
     ///   - scnNode: The `SCNNode` to convert into a mesh.
     ///   - ignoringTransforms: Should transforms from the input node and its children be ignored.
@@ -554,11 +552,6 @@ public extension Mesh {
             mesh = mesh.transformed(by: .transform(from: scnNode))
         }
         self = mesh
-    }
-
-    @available(*, deprecated, message: "Use init(_:ignoringTransforms:materialLookup:) instead")
-    init(_ scnNode: SCNNode, materialLookup: MaterialProvider? = nil) {
-        self.init(scnNode, ignoringTransforms: true, materialLookup: materialLookup)
     }
 
     /// Creates a mesh from a SceneKit geometry, with optional material mapping.
@@ -721,7 +714,7 @@ public extension Mesh {
         )
     }
 
-    /// Creates a mesh from an SceneKit geometry, with the material you provide.
+    /// Creates a mesh from a SceneKit geometry, with the material you provide.
     /// - Parameters:
     ///   - scnGeometry: The `SCNGeometry` to convert.
     ///   - material: A ``Material`` to apply to the geometry, replacing any existing materials.

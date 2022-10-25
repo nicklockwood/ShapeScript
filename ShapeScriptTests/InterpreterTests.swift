@@ -2625,7 +2625,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 0.5).roll"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [-1.0])
+        XCTAssert(delegate.log == [1.0] || delegate.log == [-1.0])
     }
 
     func testTupleRotationPitchLookup() {

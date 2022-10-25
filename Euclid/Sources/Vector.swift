@@ -35,7 +35,7 @@ import Foundation
 ///
 /// > Note: Euclid doesn't have a 2D vector type. When working with primarily 2D shapes, such as
 /// ``Path``s, you can omit the ``z`` component when constructing vector and it will default to zero.
-public struct Vector: Hashable, Sendable {
+public struct Vector: Hashable, Sendable, AdditiveArithmetic {
     /// The X component of the vector.
     public var x: Double
     /// The Y component of the vector.
@@ -115,6 +115,12 @@ public extension Vector {
     static let zero = Vector(0, 0, 0)
     /// A vector with all coordinates set to `1`.
     static let one = Vector(1, 1, 1)
+    /// A vector of length `1` along the X axis.
+    static let unitX = Vector(1, 0, 0)
+    /// A vector of length `1` along the Y axis.
+    static let unitY = Vector(0, 1, 0)
+    /// A vector of length `1` along the Z axis.
+    static let unitZ = Vector(0, 0, 1)
 
     /// Creates a vector from an array of coordinates.
     /// - Parameter components: An array of vector components.
@@ -164,23 +170,9 @@ public extension Vector {
         Vector(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
     }
 
-    /// Adds the components of the vector on the right to the ones on the left.
-    static func += (lhs: inout Vector, rhs: Vector) {
-        lhs.x += rhs.x
-        lhs.y += rhs.y
-        lhs.z += rhs.z
-    }
-
     /// Returns the componentwise difference between two vectors.
     static func - (lhs: Vector, rhs: Vector) -> Vector {
         Vector(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
-    }
-
-    /// Subtracts the components of the vector on the right from the ones on the left.
-    static func -= (lhs: inout Vector, rhs: Vector) {
-        lhs.x -= rhs.x
-        lhs.y -= rhs.y
-        lhs.z -= rhs.z
     }
 
     /// Returns a vector with its components multiplied by the specified value.
@@ -256,9 +248,6 @@ public extension Vector {
         self + (a - self) * t
     }
 
-    @available(*, deprecated, message: "Obsolete. Do not use.")
-    func quantized() -> Vector { _quantized() }
-
     /// Returns the angle between this vector and another.
     /// - Parameter a: The vector to compare with.
     func angle(with a: Vector) -> Angle {
@@ -302,10 +291,6 @@ public extension Vector {
 }
 
 internal extension Vector {
-    static let unitX = Vector(1, 0, 0)
-    static let unitY = Vector(0, 1, 0)
-    static let unitZ = Vector(0, 0, 1)
-
     func _quantized() -> Vector {
         Vector(quantize(x), quantize(y), quantize(z))
     }

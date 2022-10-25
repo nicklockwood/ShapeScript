@@ -528,7 +528,7 @@ public extension Mesh {
             )
         case .back:
             return Mesh(
-                unchecked: polygons.map { $0.inverted() },
+                unchecked: polygons.inverted(),
                 bounds: nil,
                 isConvex: false,
                 isWatertight: false,
@@ -536,7 +536,7 @@ public extension Mesh {
             )
         case .frontAndBack, .default:
             return Mesh(
-                unchecked: polygons + polygons.map { $0.inverted() },
+                unchecked: polygons + polygons.inverted(),
                 bounds: nil,
                 isConvex: polygons.count == 1 && polygons[0].isConvex,
                 isWatertight: true,
@@ -559,23 +559,6 @@ public extension Mesh {
         .union(build(shapes, using: {
             fill($0, faces: faces, material: material)
         }, isCancelled: isCancelled), isCancelled: isCancelled)
-    }
-
-    /// Strokes a path with the specified line width, depth and material
-    @available(*, deprecated, message: "Use `stroke(width:detail:)` instead")
-    static func stroke(
-        _ shape: Path,
-        width: Double,
-        depth: Double,
-        faces: Faces = .default,
-        material: Material? = nil
-    ) -> Mesh {
-        extrude(
-            .rectangle(width: width, height: depth),
-            along: shape,
-            faces: faces,
-            material: material
-        )
     }
 
     /// Creates a mesh by stroking a path with the line width, detail, and material you provide.
@@ -1074,7 +1057,7 @@ private extension Mesh {
             Polygon(
                 unchecked: invert ? vertices.reversed() : vertices,
                 plane: nil,
-                isConvex: true,
+                isConvex: nil,
                 material: material
             )
         }
@@ -1199,24 +1182,22 @@ private extension Mesh {
         using fn: (Path) -> Mesh,
         isCancelled: CancellationHandler = { false }
     ) -> [Mesh] {
-        var cache = [Path: Mesh]()
-        var meshes = [Mesh]()
-        meshes.reserveCapacity(shapes.count)
-        for path in shapes {
-            if isCancelled() {
-                break
-            }
+        var uniquePaths = [Path]()
+        let indexesAndOffsets = shapes.map { path -> (Int, Vector) in
             let (p, offset) = path.withNormalizedPosition()
-            if let mesh = cache.first(where: { q, _ in
-                p.isEqual(to: q, withPrecision: epsilon)
-            })?.value {
-                meshes.append(mesh.translated(by: offset))
-            } else {
-                let mesh = fn(p)
-                cache[p] = mesh
-                meshes.append(mesh.translated(by: offset))
+            if let index = uniquePaths.firstIndex(where: {
+                p.isEqual(to: $0, withPrecision: epsilon)
+            }) {
+                return (index, offset)
             }
+            uniquePaths.append(p)
+            return (uniquePaths.count - 1, offset)
         }
-        return meshes
+        let meshes = batch(uniquePaths, stride: 1) { paths -> [Mesh] in
+            paths.map { isCancelled() ? .empty : fn($0) }
+        }
+        return isCancelled() ? [] : indexesAndOffsets.map { index, offset in
+            meshes[index].translated(by: offset)
+        }
     }
 }
