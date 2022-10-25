@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.5.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.10) (2022-10-29)
+
+- Improved documentation for strings and trigonometry functions
+- Fixed empty bounds returned for lathe, fill, extrude and loft shapes
+- Fixed runtime warning about postscript font names
+- Fixed range bug in error formatting logic
+- Fixed inconsistent handling of functions that return tuples
+- Fixed inconsistent member lookup handling
+- Bumped Euclid to version 0.6.0
+- Fixed Linux build warnings
+
 ## [1.5.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.9) (2022-10-06)
 
 - Fixed getting started link in Welcome modal
