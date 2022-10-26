@@ -197,6 +197,7 @@ class DocumentViewController: UIViewController {
         cameraButton.tintColor = interfaceColor
         infoButton.tintColor = interfaceColor
         loadingIndicator.color = interfaceColor
+        grantAccessButton.tintColor = .white
         setNeedsStatusBarAppearanceUpdate()
     }
 
