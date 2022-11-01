@@ -29,6 +29,17 @@ private func functionType(_ definition: String) throws -> FunctionType {
     return functionType
 }
 
+private func functionType(for name: String, in definition: String) throws -> FunctionType {
+    let program = try parse(definition)
+    let context = EvaluationContext(source: "", delegate: nil)
+    try program.evaluate(in: context)
+    guard case let .function(functionType, _) = context.symbol(for: name) else {
+        XCTFail()
+        return (.any, .any)
+    }
+    return functionType
+}
+
 private func evaluate(_ source: String, as type: ValueType) throws -> Value {
     var lines = source.split(separator: "\n")
     lines[lines.count - 1] = "define foo_ \(lines[lines.count - 1])"
@@ -389,6 +400,47 @@ class TypesystemTests: XCTestCase {
             XCTAssertEqual(error?.type, .fileNotFound(for: name, at: nil))
             XCTAssertEqual(error?.range, range)
         }
+    }
+
+    func testFunctionWithForwardReferenceToConstant() throws {
+        let type = try functionType(for: "foo", in: """
+        define foo() {
+            bar
+        }
+        define bar 3
+        """)
+        XCTAssertEqual(type.parameterType, .void)
+        XCTAssertEqual(type.returnType, .number)
+    }
+
+    func testFunctionWithForwardReferenceToFunction() throws {
+        let type = try functionType(for: "foo", in: """
+        define foo() {
+            bar
+        }
+        define bar() {
+            3
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .void)
+        XCTAssertEqual(type.returnType, .number)
+    }
+
+    func testFunctionWithNestedForwardReferenceToFunction() throws {
+        let type = try functionType(for: "foo", in: """
+        define foo() {
+            bar
+        }
+        define bar() {
+            baz
+        }
+        define baz() {
+            3
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .void)
+        // TODO: this should actually be a number
+        XCTAssertEqual(type.returnType, .any)
     }
 
     // MARK: Type unions

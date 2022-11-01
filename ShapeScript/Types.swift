@@ -503,6 +503,19 @@ extension Definition {
             return try evaluate(in: context)
         }
     }
+
+    func staticType(in context: EvaluationContext) throws -> ValueType {
+        switch try staticSymbol(in: context) {
+        case let .function(type, _):
+            return type.returnType
+        case let .block(type, _):
+            return type.returnType
+        case let .property(type, _, _), let .placeholder(type):
+            return type
+        case let .constant(value):
+            return value.type
+        }
+    }
 }
 
 extension Expression {
@@ -579,12 +592,15 @@ extension Expression {
         case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
             guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.expressionSymbols),
+                    at: range
+                )
             }
             switch symbol {
             case .block:
                 return symbol.type
-            case .property, .constant, .placeholder, .function((.void, _), _):
+            case .property, .constant, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
                     at: block.range
@@ -596,6 +612,8 @@ extension Expression {
                     expected: parameterType.errorDescription,
                     got: "block"
                 ), at: block.range)
+            case let .placeholder(type):
+                return type
             }
         case let .tuple(expressions):
             switch expressions.count {
@@ -663,9 +681,8 @@ extension Block {
         in context: EvaluationContext
     ) {
         context.pushScope { context in
-            for statement in statements {
-                statement.inferTypes(for: &params, in: context)
-            }
+            statements.gatherDefinitions(in: context)
+            statements.forEach { $0.inferTypes(for: &params, in: context) }
         }
     }
 
@@ -679,6 +696,7 @@ extension Block {
         options: inout Options?
     ) throws -> ValueType {
         var types = [ValueType]()
+        statements.gatherDefinitions(in: context)
         for statement in statements {
             if options != nil, case let .option(identifier, expression) = statement.type {
                 let type = try expression.staticType(in: context)
@@ -821,6 +839,22 @@ extension Statement {
         case .import:
             // TODO: how can we handle imports statically?
             return .void
+        }
+    }
+}
+
+extension Array where Element == Statement {
+    func gatherDefinitions(in context: EvaluationContext) {
+        for statement in self {
+            switch statement.type {
+            case let .define(identifier, definition):
+                if context.symbol(for: identifier.name) == nil {
+                    let type = (try? definition.staticType(in: context)) ?? .any
+                    context.define(identifier.name, as: .placeholder(type))
+                }
+            case .command, .option, .forloop, .ifelse, .expression, .import:
+                break
+            }
         }
     }
 }

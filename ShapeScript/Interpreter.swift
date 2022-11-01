@@ -98,8 +98,8 @@ public extension ProgramError {
             case let .fileNotFound(for: _, at: url):
                 return url
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .unexpectedArgument, .missingArgument, .unusedValue,
-                 .assertionFailure, .importError:
+                 .forwardReference, .unexpectedArgument, .missingArgument,
+                 .unusedValue, .assertionFailure, .importError:
                 return nil
             }
         case .parserError, .lexerError, .unknownError:
@@ -115,9 +115,9 @@ public extension ProgramError {
             case let .importError(error, _, _):
                 return error.underlyingError
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .unexpectedArgument, .missingArgument, .unusedValue,
-                 .assertionFailure, .fileNotFound, .fileAccessRestricted,
-                 .fileTypeMismatch, .fileParsingError:
+                 .forwardReference, .unexpectedArgument, .missingArgument,
+                 .unusedValue, .assertionFailure, .fileNotFound,
+                 .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
                 return self
             }
         case .lexerError, .parserError, .unknownError:
@@ -133,8 +133,8 @@ public extension ProgramError {
             case .fileAccessRestricted:
                 return true
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .unexpectedArgument, .missingArgument, .unusedValue,
-                 .assertionFailure, .fileNotFound, .importError,
+                 .forwardReference, .unexpectedArgument, .missingArgument,
+                 .unusedValue, .assertionFailure, .fileNotFound, .importError,
                  .fileTypeMismatch, .fileParsingError:
                 return false
             }
@@ -149,6 +149,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case unknownMember(String, of: String, options: [String])
     case unknownFont(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
+    case forwardReference(String)
     case unexpectedArgument(for: String, max: Int)
     case missingArgument(for: String, index: Int, type: String)
     case unusedValue(type: String)
@@ -184,6 +185,8 @@ public extension RuntimeError {
             return name.isEmpty ? "Font name cannot be blank" : "Unknown font '\(name)'"
         case .typeMismatch:
             return "Type mismatch"
+        case .forwardReference:
+            return "Forward reference"
         case .unexpectedArgument:
             return "Unexpected argument"
         case .missingArgument:
@@ -219,6 +222,7 @@ public extension RuntimeError {
         case let .unknownFont(name, options):
             return name.bestMatches(in: options).first
         case .typeMismatch,
+             .forwardReference,
              .unexpectedArgument,
              .missingArgument,
              .unusedValue,
@@ -275,6 +279,8 @@ public extension RuntimeError {
             }
             let got = got.contains(",") ? got : "a \(got)"
             return "The \(nth(index))argument for \(name) should be a \(type), not \(got)."
+        case let .forwardReference(name):
+            return "The symbol '\(name)' was used before it was defined."
         case let .unexpectedArgument(for: name, max: max):
             let hint: String
             if name.isEmpty {
@@ -487,6 +493,7 @@ extension Program {
         let oldSource = context.source
         context.source = source
         defer { context.source = oldSource }
+        statements.gatherDefinitions(in: context)
         do {
             try statements.forEach { try $0.evaluate(in: context) }
         } catch is EvaluationCancelled {}
@@ -727,6 +734,7 @@ extension Definition {
                     context.smoothing = _context.smoothing
                     context.baseURL = baseURL
                     context.source = source
+                    block.statements.gatherDefinitions(in: context)
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
                             if context.symbol(for: identifier.name) == nil {
@@ -897,9 +905,8 @@ extension EvaluationContext {
 
 extension Block {
     func evaluate(in context: EvaluationContext) throws {
-        for statement in statements {
-            try statement.evaluate(in: context)
-        }
+        statements.gatherDefinitions(in: context)
+        try statements.forEach { try $0.evaluate(in: context) }
     }
 }
 
@@ -964,7 +971,7 @@ extension Statement {
                 }
                 try RuntimeError.wrap(context.addValue(v), at: range)
             case .placeholder:
-                assertionFailure()
+                throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
         case let .expression(expression):
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
@@ -1085,13 +1092,15 @@ extension Expression {
             case let .constant(value):
                 return value
             case .placeholder:
-                assertionFailure()
-                return .void
+                throw RuntimeError(.forwardReference(name), at: range)
             }
         case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
             guard let symbol = context.symbol(for: name) else {
-                throw RuntimeError(.unknownSymbol(name, options: context.expressionSymbols), at: range)
+                throw RuntimeError(
+                    .unknownSymbol(name, options: context.expressionSymbols),
+                    at: range
+                )
             }
             switch symbol {
             case let .block(type, fn):
@@ -1100,6 +1109,7 @@ extension Expression {
                 }
                 let sourceIndex = context.sourceIndex
                 let context = context.push(type)
+                block.statements.gatherDefinitions(in: context)
                 for statement in block.statements {
                     switch statement.type {
                     case let .command(identifier, parameter):
@@ -1129,7 +1139,7 @@ extension Expression {
                 }
                 context.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(context), at: range)
-            case .property, .constant, .placeholder, .function((.void, _), _):
+            case .property, .constant, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
                     at: block.range
@@ -1141,6 +1151,8 @@ extension Expression {
                     expected: type.errorDescription,
                     got: "block"
                 ), at: block.range)
+            case .placeholder:
+                throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
         case let .tuple(expressions):
             return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })

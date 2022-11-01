@@ -3350,6 +3350,41 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testCallFunctionBeforeDeclaration() {
+        let program = """
+        foo 5
+        define foo(x) { x }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Forward reference")
+            XCTAssertEqual(error?.hint, "The symbol 'foo' was used before it was defined.")
+            guard case .forwardReference("foo")? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testReferenceFunctionBeforeDeclaration() {
+        let program = """
+        define bar(x) { foo(x) }
+        define foo(x) { x }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testNestedFunctionReferenceBeforeDeclaration() {
+        let program = """
+        define foo() {
+            define bar { baz }
+            define baz { 5 }
+            bar
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     // MARK: Text command
 
     func testNumberConvertedToText() {
