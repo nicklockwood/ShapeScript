@@ -158,15 +158,18 @@ public extension Mesh {
     ///     - new: The ``Material`` to use instead.
     /// - Returns: a new ``Mesh`` with the material replaced.
     func replacing(_ old: Material?, with new: Material?) -> Mesh {
-        Mesh(
-            unchecked: polygons.map {
-                $0.material == old ? $0.with(material: new) : $0
-            },
+        Mesh(storage: Storage(
+            vertices: storage.vertices,
+            indices: storage.indices,
+            materialIndices: storage.materialIndices,
+            materials: storage.materials.map { $0 == old ? new : $0 },
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: storage.submeshesIfSet?.map {
+                $0.replacing(old, with: new)
+            }
+        )) // TODO: depulicate materials
     }
 
     /// Merges the polygons from two meshes.
@@ -422,12 +425,56 @@ internal extension Mesh {
     var submeshesIfEmpty: [Mesh]? {
         storage.submeshesIfSet.flatMap { $0.isEmpty ? [] : nil }
     }
+
+    func mapVertices(
+        bounds: Bounds?,
+        isConvex: Bool?,
+        isWatertight: Bool?,
+        submeshes: [Mesh]?,
+        reverseVertices: Bool,
+        fn: (Vertex) -> Vertex
+    ) -> Mesh {
+        let vertices: [Vertex]
+        if reverseVertices {
+            var prev = 0
+            vertices = storage.indices.flatMap { next -> [Vertex] in
+                defer { prev = next }
+                return storage.vertices[prev ..< next].reversed().map(fn)
+            }
+        } else {
+            vertices = storage.vertices.map(fn)
+        }
+        return .init(storage: Storage(
+            vertices: vertices,
+            indices: storage.indices,
+            materialIndices: storage.materialIndices,
+            materials: storage.materials,
+            bounds: bounds,
+            isConvex: isConvex ?? false,
+            isWatertight: isWatertight,
+            submeshes: submeshes
+        ))
+    }
 }
 
 private extension Mesh {
     final class Storage: Hashable {
-        let polygons: [Polygon]
+        let vertices: [Vertex]
+        let indices: [Int]
+        let materials: [Material?]
+        let materialIndices: [Int]
         let isConvex: Bool
+
+        var polygons: [Polygon] {
+            var prev = 0
+            return zip(indices, materialIndices).map { next, i in
+                defer { prev = next }
+                return Polygon(
+                    Array(vertices[prev ..< next]),
+                    material: materials[i]
+                )!
+            }
+        }
 
         static let empty = Storage(
             polygons: [],
@@ -436,21 +483,6 @@ private extension Mesh {
             isWatertight: true,
             submeshes: []
         )
-
-        private(set) var materialsIfSet: [Material?]?
-        var materials: [Material?] {
-            if materialsIfSet == nil {
-                var materials = [Material?]()
-                for polygon in polygons {
-                    let material = polygon.material
-                    if !materials.contains(material) {
-                        materials.append(material)
-                    }
-                }
-                materialsIfSet = materials
-            }
-            return materialsIfSet!
-        }
 
         private(set) var boundsIfSet: Bounds?
         var bounds: Bounds {
@@ -498,10 +530,49 @@ private extension Mesh {
             assert(!isConvex || polygons.groupedBySubmesh().count <= 1)
             assert((submeshes ?? []).allSatisfy { $0.submeshes.count <= 1 })
             assert(!isConvex || submeshes?.count ?? 0 <= 1)
-            self.polygons = polygons
+            var index = 0
+            var indices = [Int]()
+            var materialIndices = [Int]()
+            var materials = [Material?]()
+            indices.reserveCapacity(polygons.count)
+            materialIndices.reserveCapacity(polygons.count)
+            self.vertices = polygons.flatMap { p -> [Vertex] in
+                if let materialIndex = materials.lastIndex(of: p.material) {
+                    materialIndices.append(materialIndex)
+                } else {
+                    materialIndices.append(materials.count)
+                    materials.append(p.material)
+                }
+                index += p.vertices.count
+                indices.append(index)
+                return p.vertices
+            }
+            self.indices = indices
+            self.materialIndices = materialIndices
+            self.materials = materials
             self.boundsIfSet = polygons.isEmpty ? .empty : bounds
             self.isConvex = isConvex || polygons.isEmpty
             self.watertightIfSet = polygons.isEmpty ? true : isWatertight
+            self.submeshesIfSet = submeshes ?? (isConvex ? [] : nil)
+        }
+
+        init(
+            vertices: [Vertex],
+            indices: [Int],
+            materialIndices: [Int],
+            materials: [Material?],
+            bounds: Bounds?,
+            isConvex: Bool,
+            isWatertight: Bool?,
+            submeshes: [Mesh]?
+        ) {
+            self.vertices = vertices
+            self.indices = indices
+            self.materialIndices = materialIndices
+            self.materials = materials
+            self.boundsIfSet = vertices.isEmpty ? .empty : bounds
+            self.isConvex = isConvex || vertices.isEmpty
+            self.watertightIfSet = vertices.isEmpty ? true : isWatertight
             self.submeshesIfSet = submeshes ?? (isConvex ? [] : nil)
         }
     }
