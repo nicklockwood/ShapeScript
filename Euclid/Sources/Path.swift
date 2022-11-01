@@ -366,7 +366,7 @@ public extension Path {
     /// - Returns: A copy of the path, inset by the specified distance.
     ///
     /// > Note: Passing a negative `distance` will expand the path instead of shrinking it.
-    func inset(by distance: Double) -> Path? {
+    func inset(by distance: Double) -> Path {
         guard subpaths.count <= 1, points.count >= 2 else {
             return Path(subpaths: subpaths.compactMap { $0.inset(by: distance) })
         }
