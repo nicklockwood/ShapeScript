@@ -226,61 +226,63 @@ public extension Transform {
 
 extension Mesh: Transformable {
     public func translated(by v: Vector) -> Mesh {
-        v.isEqual(to: .zero) ? self : Mesh(
-            unchecked: polygons.translated(by: v),
+        v.isEqual(to: .zero) ? self : mapVertices(
             bounds: boundsIfSet?.translated(by: v),
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: submeshesIfEmpty,
+            reverseVertices: false
+        ) { $0.translated(by: v) }
     }
 
     public func rotated(by r: Rotation) -> Mesh {
-        r.isIdentity ? self : Mesh(
-            unchecked: polygons.rotated(by: r),
+        r.isIdentity ? self : mapVertices(
             bounds: nil,
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: submeshesIfEmpty,
+            reverseVertices: false
+        ) { $0.rotated(by: r) }
     }
 
     public func scaled(by v: Vector) -> Mesh {
+        let v = v.clamped()
         if v.x == v.y, v.y == v.z {
             // optimization - avoids scaling normals
             return scaled(by: v.x)
         }
-        return Mesh(
-            unchecked: polygons.scaled(by: v),
+        return mapVertices(
             bounds: boundsIfSet?.scaled(by: v),
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: submeshesIfEmpty,
+            reverseVertices: isFlippedScale(v)
+        ) { $0.scaled(by: v) }
     }
 
     public func scaled(by f: Double) -> Mesh {
-        f.isEqual(to: 1, withPrecision: epsilon) ? self : Mesh(
-            unchecked: polygons.scaled(by: f),
+        let f = f.clamped()
+        return f.isEqual(to: 1, withPrecision: epsilon) ? self : mapVertices(
             bounds: boundsIfSet?.scaled(by: f),
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: submeshesIfEmpty,
+            reverseVertices: f < 0
+        ) { $0.scaled(by: f) }
     }
 
     /// Returns a transformed copy of the mesh.
     /// - Parameter t: A transform to apply to the mesh.
     public func transformed(by t: Transform) -> Mesh {
-        t.isIdentity ? self : Mesh(
-            unchecked: polygons.transformed(by: t),
+        t.isIdentity ? self : mapVertices(
             bounds: boundsIfSet.flatMap {
                 t.rotation.isIdentity ? $0.transformed(by: t) : nil
             },
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+            submeshes: submeshesIfEmpty,
+            reverseVertices: t.isFlipped
+        ) { $0.transformed(by: t) }
     }
 }
 
@@ -368,6 +370,7 @@ extension Vertex: Transformable {
     }
 
     public func scaled(by v: Vector) -> Vertex {
+        let v = v.clamped()
         let vn = Vector(1 / v.x, 1 / v.y, 1 / v.z)
         return Vertex(
             unchecked: position.scaled(by: v),
@@ -379,7 +382,7 @@ extension Vertex: Transformable {
 
     public func scaled(by f: Double) -> Vertex {
         Vertex(
-            unchecked: position * f,
+            unchecked: position * f.clamped(),
             f < 0 ? -normal : normal,
             texcoord,
             color
@@ -404,8 +407,8 @@ extension Vector: Transformable {
         Vector(x * v.x, y * v.y, z * v.z)
     }
 
-    public func scaled(by factor: Double) -> Vector {
-        self * factor
+    public func scaled(by f: Double) -> Vector {
+        self * f
     }
 }
 
@@ -430,7 +433,7 @@ extension PathPoint: Transformable {
 
     public func scaled(by v: Vector) -> PathPoint {
         PathPoint(
-            position.scaled(by: v),
+            position.scaled(by: v.clamped()),
             texcoord: texcoord,
             color: color,
             isCurved: isCurved
@@ -439,7 +442,7 @@ extension PathPoint: Transformable {
 
     public func scaled(by f: Double) -> PathPoint {
         PathPoint(
-            position * f,
+            position * f.clamped(),
             texcoord: texcoord,
             color: color,
             isCurved: isCurved
