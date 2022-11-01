@@ -318,14 +318,10 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "inset": .block(.custom(.path, [
-            "by": .number,
-        ], .path, .list(.path))) { context in
-            let by = context.value(for: "by")?.doubleValue ?? 0
-            let paths = context.children.compactMap { $0.value as? Path }
-            return .tuple(paths.compactMap {
-                $0.inset(by: by).map { .path($0.transformed(by: context.transform)) }
-            })
+        "inset": .function((.tuple([.path, .number]), .path)) { value, context in
+            guard case let .tuple(values) = value else { preconditionFailure() }
+            let path = values[0].value as! Path, inset = values[1].doubleValue
+            return .path(path.inset(by: inset).transformed(by: context.transform))
         },
     ]
 
