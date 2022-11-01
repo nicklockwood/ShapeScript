@@ -318,10 +318,23 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "inset": .function((.tuple([.path, .number]), .path)) { value, context in
+        "inset": .function(
+            .tuple([.union([.path, .mesh]), .number]),
+            .union([.path, .mesh])
+        ) { value, context in
             guard case let .tuple(values) = value else { preconditionFailure() }
-            let path = values[0].value as! Path, inset = values[1].doubleValue
-            return .path(path.inset(by: inset).transformed(by: context.transform))
+            let inset = values[1].doubleValue
+            switch values[0] {
+            case let .path(path):
+                return .path(path.inset(by: inset).transformed(by: context.transform))
+            case let .mesh(geometry):
+                _ = geometry.build { true }
+                let mesh = geometry.mesh?.inset(by: inset) ?? .empty
+                let geometry = Geometry(type: .mesh(mesh), in: context)
+                return .mesh(geometry)
+            default:
+                preconditionFailure()
+            }
         },
     ]
 

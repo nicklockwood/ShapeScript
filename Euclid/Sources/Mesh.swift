@@ -476,12 +476,12 @@ private extension Mesh {
 
         var polygons: [Polygon] {
             var prev = 0
-            return zip(indices, materialIndices).map { next, i in
+            return zip(indices, materialIndices).compactMap { next, i in
                 defer { prev = next }
                 return Polygon(
                     Array(vertices[prev ..< next]),
                     material: materials[i]
-                )!
+                )
             }
         }
 
