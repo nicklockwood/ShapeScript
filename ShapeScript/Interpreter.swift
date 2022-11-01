@@ -368,6 +368,7 @@ private extension RuntimeError {
         "box": ["cube"],
         "rect": ["square"],
         "rectangle": ["square"],
+        "triangle": ["polygon"],
         "ellipse": ["circle"],
         "elipse": ["circle"],
         "squircle": ["roundrect"],
