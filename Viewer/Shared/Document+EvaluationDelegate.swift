@@ -41,6 +41,7 @@ extension Document: EvaluationDelegate {
             .flattenScene: false,
             .createNormalsIfAbsent: true,
             .convertToYUp: true,
+            .preserveOriginalTopology: true,
         ])
         return try Geometry(scene.rootNode)
     }
