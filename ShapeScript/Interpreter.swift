@@ -110,7 +110,7 @@ public extension ProgramError {
                 return error.shapeFileURL(relativeTo: url)
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
                  .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .fileNotFound,
+                 .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
                 return baseURL
             }
@@ -128,7 +128,7 @@ public extension ProgramError {
                 return error.underlyingError
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
                  .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .fileNotFound,
+                 .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
                 return self
             }
@@ -149,6 +149,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case unusedValue(type: String)
     case assertionFailure(String)
     case fileNotFound(for: String, at: URL?)
+    case fileTimedOut(for: String, at: URL)
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
@@ -194,6 +195,8 @@ public extension RuntimeError {
                 return "Empty file name"
             }
             return "File '\(name)' not found"
+        case let .fileTimedOut(for: name, _):
+            return "File '\(name)' timed out"
         case let .fileAccessRestricted(for: name, _):
             return "Unable to access file '\(name)'"
         case let .fileParsingError(for: name, _, _),
@@ -224,6 +227,7 @@ public extension RuntimeError {
              .unusedValue,
              .assertionFailure,
              .fileNotFound,
+             .fileTimedOut,
              .fileAccessRestricted,
              .fileTypeMismatch,
              .fileParsingError,
@@ -322,6 +326,9 @@ public extension RuntimeError {
             }
             return "ShapeScript expected to find the file at '\(url.path)'."
                 + " Check that it exists and is located here."
+        case let .fileTimedOut(for: _, at: url):
+            return "ShapeScript was unable to download the file at '\(url.path)'."
+                + " Check your network settings."
         case let .fileAccessRestricted(for: _, at: url):
             return "ShapeScript cannot read the file due to \(Self.osName) security restrictions."
                 + " Please open the directory at '\(url.path)' to grant access."
@@ -353,6 +360,7 @@ public extension RuntimeError {
              .unusedValue,
              .assertionFailure,
              .fileNotFound,
+             .fileTimedOut,
              .fileTypeMismatch,
              .fileParsingError,
              .unknownSymbol,
