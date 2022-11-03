@@ -265,8 +265,7 @@ extension EvaluationContext {
             let timeout: TimeInterval = 30
             while isUndownloadedUbiquitousFile(url), !isCancelled() {
                 if CFAbsoluteTimeGetCurrent() - start > timeout {
-                    // TODO: Introduce specific error type for this
-                    throw RuntimeErrorType.fileNotFound(for: path, at: url)
+                    throw RuntimeErrorType.fileTimedOut(for: path, at: url)
                 }
                 Thread.sleep(forTimeInterval: 0.1)
                 url.removeAllCachedResourceValues()
