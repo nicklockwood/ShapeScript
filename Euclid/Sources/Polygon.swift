@@ -274,6 +274,31 @@ public extension Polygon {
         )
     }
 
+    /// Applies a uniform inset to the edges of the polygon.
+    /// - Parameter distance: The distance by which to inset the polygon edges.
+    /// - Returns: A copy of the polygon, inset by the specified distance.
+    ///
+    /// > Note: Passing a negative `distance` will expand the polygon instead of shrinking it.
+    func inset(by distance: Double) -> Polygon? {
+        let count = vertices.count
+        var v1 = vertices[count - 1]
+        var v2 = vertices[0]
+        var p1p2 = v2.position - v1.position
+        var n1: Vector!
+        return Polygon((0 ..< count).map { i in
+            v1 = v2
+            v2 = i < count - 1 ? vertices[i + 1] : vertices[0]
+            let p0p1 = p1p2
+            p1p2 = v2.position - v1.position
+            let faceNormal = plane.normal
+            let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
+            n1 = p1p2.cross(faceNormal).normalized()
+            // TODO: do we need to inset texcoord as well? If so, by how much?
+            let normal = (n0 + n1).normalized()
+            return v1.translated(by: normal * -(distance / n0.dot(normal)))
+        })
+    }
+
     /// Splits a polygon into two or more convex polygons using the "ear clipping" method.
     /// - Parameter maxSides: The maximum number of sides each polygon may have.
     /// - Returns: An array of convex polygons.
@@ -490,6 +515,56 @@ internal extension Collection where Element == Polygon {
                 },
                 plane: p0.plane,
                 isConvex: p0.isConvex,
+                material: p0.material
+            )
+        }
+    }
+
+    /// Inset along face normals
+    func insetFaces(by distance: Double) -> [Polygon] {
+        var planesByVertex: [Vector: [Plane]] = [:]
+        for p in self {
+            for v in p.vertices {
+                if !planesByVertex[v.position, default: []].contains(where: {
+                    $0.isEqual(to: p.plane)
+                }) {
+                    planesByVertex[v.position, default: []].append(p.plane)
+                }
+            }
+        }
+        let positionsByVertex: [Vector: Vector] = Dictionary(
+            uniqueKeysWithValues: planesByVertex.map { p, planes in
+                switch planes.count {
+                case 2:
+                    let normal = planes.map { $0.normal }.reduce(.zero) { $0 + $1 }.normalized()
+                    let distance = -(distance / planes[0].normal.dot(normal))
+                    return (p, p + normal * distance)
+                case 3...:
+                    let planes = planes.map { $0.translated(by: $0.normal * -distance) }
+                    if let line = planes[0].intersection(with: planes[1]),
+                       let p2 = line.intersection(with: planes[2])
+                    {
+                        return (p, p2)
+                    } else {
+                        fallthrough
+                    }
+                default:
+                    return (p, p + planes[0].normal * -distance)
+                }
+            }
+        )
+        return map { p0 in
+            Polygon(
+                unchecked: p0.vertices.map { v in
+                    Vertex(
+                        unchecked: positionsByVertex[v.position] ?? v.position,
+                        v.normal,
+                        v.texcoord,
+                        v.color
+                    )
+                },
+                plane: p0.plane.translated(by: p0.plane.normal * -distance),
+                isConvex: nil,
                 material: p0.material
             )
         }
