@@ -389,7 +389,7 @@ extension Value {
             if !members.isEmpty {
                 members.append("last")
             }
-            members.append("count")
+            members += ["count", "allButFirst", "allButLast"]
             guard values.allSatisfy({ $0.type == .number }) else {
                 guard values.allSatisfy({ $0.type == .path }) else {
                     if values.count == 1 {
@@ -461,6 +461,10 @@ extension Value {
             switch name {
             case "last":
                 return values.last
+            case "allButFirst":
+                return .tuple(Array(values.dropFirst()))
+            case "allButLast":
+                return .tuple(Array(values.dropLast()))
             case "count":
                 return .number(Double(values.count))
             default:

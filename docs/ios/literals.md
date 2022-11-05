@@ -138,6 +138,15 @@ Member expressions can be chained, so something like this will also work:
 print data.second.x // x component of the position
 ```
 
+You can split up lists of data using the `allButFirst` and `allButLast` members:
+
+```swift
+define data (1 2 3 4 5)
+
+print data.allButFirst // 2 3 4 5
+print data.allButLast // 1 2 3 4
+```
+
 For list-like data, you can use a [for loop](control-flow.md#looping-over-values) to loop over the top-level values:
 
 ```swift

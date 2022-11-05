@@ -2820,15 +2820,17 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [10, 19, 23, 39, 47, 53, 68, 71, 86, 92])
     }
 
-    func testTupleCountAndLastLookup() {
+    func testTupleCountLastRestLookup() {
         let program = """
         define foo 2 4 6
         print foo.count
         print foo.last
+        print foo.allButFirst
+        print foo.allButLast
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [3, 6])
+        XCTAssertEqual(delegate.log, [3, 6, 4, 6, 2, 4])
     }
 
     func testSingleValueOrdinalLookup() {
@@ -2837,10 +2839,24 @@ class InterpreterTests: XCTestCase {
         print foo.first
         print foo.count
         print foo.last
+        print foo.allButFirst
+        print foo.allButLast
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [10, 1, 10])
+    }
+
+    func testEmptyTupleOrdinalLookup() {
+        let program = """
+        define foo ()
+        print foo.count
+        print foo.allButFirst
+        print foo.allButLast
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0])
     }
 
     func testSingleNumberXComponentLookup() {
