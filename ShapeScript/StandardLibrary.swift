@@ -287,13 +287,16 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ))
         },
+    ]
+
+    static let curves: Symbols = _merge(points, [
         "curve": .function(.vector, .point) { parameter, context in
             .point(.curve(
                 parameter.vectorValue,
                 color: context.material.color
             ))
         },
-    ]
+    ])
 
     static let functions: Symbols = [
         // Debug
@@ -473,7 +476,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
     static let pathShape: Symbols = _merge(transform, detail, color)
-    static let path: Symbols = _merge(pathShape, childTransform, font, points)
+    static let path: Symbols = _merge(pathShape, childTransform, font, curves)
     static let definition: Symbols = root
     static let all: Symbols = _merge(root, shape, path)
 }
