@@ -453,7 +453,8 @@ private extension RuntimeError {
         "subtract": ["difference"],
         "subtraction": ["difference"],
         "head": ["first"],
-        "tail": ["last"],
+        "tail": ["last", "allButFirst"],
+        "rest": ["allButFirst"],
     ]
 
     static let osName: String = {
