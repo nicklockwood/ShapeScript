@@ -69,6 +69,16 @@ public extension SCNQuaternion {
     }
 }
 
+public extension SCNMatrix4 {
+    /// Creates a new SceneKit matrix from a `Transform`
+    /// - Parameter transform: The transform to convert
+    init(_ transform: Transform) {
+        let node = SCNNode()
+        node.setTransform(transform)
+        self = node.transform
+    }
+}
+
 private extension Data {
     mutating func append(_ int: UInt32) {
         var int = int
@@ -514,11 +524,18 @@ public extension Mesh {
     ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
     init(url: URL, ignoringTransforms: Bool, materialLookup: MaterialProvider? = nil) throws {
         var options: [SCNSceneSource.LoadingOption: Any] = [
+            .checkConsistency: false,
             .flattenScene: true,
             .createNormalsIfAbsent: true,
         ]
         if #available(iOS 11, tvOS 11, macOS 10.10, *) {
             options[.convertToYUp] = true
+        }
+        if #available(iOS 13, tvOS 13, macOS 10.12, *) {
+            options[.preserveOriginalTopology] = true
+        }
+        if !FileManager.default.isReadableFile(atPath: url.path) {
+            _ = try Data(contentsOf: url) // Will throw error if unreachable
         }
         let importedScene = try SCNScene(url: url, options: options)
         self.init(

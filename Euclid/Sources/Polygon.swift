@@ -151,6 +151,16 @@ public extension Polygon {
         vertices.contains(where: { $0.color != .white })
     }
 
+    /// Returns the ordered array of polygon edges
+    var orderedEdges: [LineSegment] {
+        var p0 = vertices.last!.position
+        return vertices.map {
+            let p1 = $0.position
+            defer { p0 = p1 }
+            return LineSegment(unchecked: p0, p1)
+        }
+    }
+
     /// An unordered set of polygon edges.
     /// The direction of each edge is normalized relative to the origin to simplify edge-equality comparisons.
     var undirectedEdges: Set<LineSegment> {
@@ -536,17 +546,25 @@ internal extension Collection where Element == Polygon {
             return []
         }
         let polygons = sorted(by: { $0.plane.w < $1.plane.w })
-        var prev = polygons[0].plane
-        var groups = [(prev, [polygons[0]])]
-        for p in polygons.dropFirst() {
-            if prev.isEqual(to: p.plane) {
-                groups[groups.count - 1].1.append(p)
+        var prev = polygons[0]
+        var sorted = [(Plane, [Polygon])]()
+        var groups = [(Plane, [Polygon])]()
+        for p in polygons {
+            if p.plane.w.isEqual(to: prev.plane.w, withPrecision: planeEpsilon) {
+                if let i = groups.lastIndex(where: { $0.0.isEqual(to: p.plane) }) {
+                    groups[i].0 = p.plane
+                    groups[i].1.append(p)
+                } else {
+                    groups.append((p.plane, [p]))
+                }
             } else {
-                groups.append((p.plane, [p]))
+                sorted += groups
+                groups = [(p.plane, [p])]
             }
-            prev = p.plane
+            prev = p
         }
-        return groups
+        sorted += groups
+        return sorted
     }
 
     /// Sort polygons by plane
@@ -615,7 +633,109 @@ internal extension MutableCollection where Element == Polygon, Index == Int {
     }
 }
 
+internal extension Array where Element == Polygon {
+    mutating func addPoint(
+        _ point: Vector,
+        material: Polygon.Material?,
+        verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]]
+    ) {
+        var facing = [Polygon](), coplanar = [Vector: [Polygon]]()
+        loop: for (i, polygon) in enumerated().reversed() {
+            switch point.compare(with: polygon.plane) {
+            case .front:
+                facing.append(polygon)
+                remove(at: i)
+            case .coplanar:
+                if polygon.vertices.contains(where: { $0.position == point }) {
+                    return
+                }
+                if polygon.containsPoint(point) {
+                    coplanar[polygon.plane.normal] = [polygon]
+                    break loop
+                }
+                coplanar[polygon.plane.normal, default: []].append(polygon)
+            case .back, .spanning:
+                continue
+            }
+        }
+        // Find bounding edges
+        func boundingEdges(in polygons: [Polygon]) -> [LineSegment] {
+            var edges = [LineSegment]()
+            for polygon in polygons {
+                for edge in polygon.orderedEdges {
+                    if let index = edges.firstIndex(where: {
+                        $0.start == edge.end && $0.end == edge.start
+                    }) {
+                        edges.remove(at: index)
+                    } else {
+                        edges.append(edge)
+                    }
+                }
+            }
+            return edges
+        }
+        // Create triangles from point to edges
+        func addTriangles(with edges: [LineSegment], faceNormal: Vector?) {
+            for edge in edges {
+                guard let triangle = Polygon(
+                    points: [point, edge.start, edge.end],
+                    verticesByPosition: verticesByPosition,
+                    faceNormal: faceNormal,
+                    material: material
+                ) else {
+                    assertionFailure()
+                    continue
+                }
+                append(triangle)
+            }
+        }
+        // Extend polygons to include point
+        guard facing.isEmpty else {
+            addTriangles(with: boundingEdges(in: facing), faceNormal: nil)
+            return
+        }
+        for (faceNormal, polygons) in coplanar {
+            guard let polygon = polygons.first else { continue }
+            addTriangles(with: boundingEdges(in: polygons).compactMap {
+                let edgePlane = polygon.edgePlane(for: $0)
+                if point.compare(with: edgePlane) == .front {
+                    return $0.inverted()
+                }
+                return nil
+            }, faceNormal: faceNormal)
+        }
+    }
+}
+
 internal extension Polygon {
+    // Create polygon from points with nearest matches in a vertex collection
+    init?<T: Collection>(
+        points: T,
+        verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]],
+        faceNormal: Vector?,
+        material: Polygon.Material?
+    ) where T.Element == Vector {
+        let faceNormal = faceNormal ?? faceNormalForPolygonPoints(
+            Array(points), convex: true
+        )
+        let vertices = points.map { p -> Vertex in
+            let matches = verticesByPosition[p] ?? []
+            var best: Vertex?, bestDot = 1.0
+            for (n, v) in matches {
+                let dot = abs(1 - n.dot(faceNormal))
+                if dot <= bestDot {
+                    bestDot = dot
+                    best = v
+                }
+            }
+            if bestDot == 1 {
+                best?.normal = .zero
+            }
+            return best ?? Vertex(p)
+        }
+        self.init(vertices, material: material)
+    }
+
     // Create polygon from vertices and face normal without performing validation
     // Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
     init(
@@ -742,21 +862,14 @@ internal extension Polygon {
         )
     }
 
+    func edgePlane(for edge: LineSegment) -> Plane {
+        let tangent = edge.end - edge.start
+        let normal = tangent.cross(plane.normal).normalized()
+        return Plane(unchecked: normal, pointOnPlane: edge.start)
+    }
+
     var edgePlanes: [Plane] {
-        var planes = [Plane]()
-        var p0 = vertices.last!.position
-        for v1 in vertices {
-            let p1 = v1.position
-            let tangent = p1 - p0
-            let normal = tangent.cross(plane.normal).normalized()
-            guard let plane = Plane(normal: normal, pointOnPlane: p0) else {
-                assertionFailure()
-                return []
-            }
-            planes.append(plane)
-            p0 = p1
-        }
-        return planes
+        orderedEdges.map(edgePlane(for:))
     }
 
     func compare(with plane: Plane) -> PlaneComparison {
