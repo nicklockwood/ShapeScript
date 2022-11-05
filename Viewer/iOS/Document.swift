@@ -51,6 +51,11 @@ class Document: UIDocument {
     var accessErrorURL: URL?
     var sourceString: String = ""
 
+    override init(fileURL url: URL) {
+        super.init(fileURL: url)
+        startObservingFileChangesIfPossible()
+    }
+
     override func load(fromContents contents: Any, ofType _: String?) throws {
         if let data = contents as? Data {
             try load(data, fileURL: fileURL)
@@ -64,6 +69,56 @@ class Document: UIDocument {
             self.securityScopedResources.forEach {
                 $0.stopAccessingSecurityScopedResource()
             }
+        }
+    }
+
+    private var _modified: TimeInterval = 0
+    private var _timer: Timer?
+
+    private func startObservingFileChangesIfPossible() {
+        // cancel previous observer
+        _timer?.invalidate()
+
+        // check file exists
+        let url = fileURL
+        guard url.isFileURL, FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+
+        func getModifiedDate(_ url: URL) -> TimeInterval? {
+            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
+            return date.map { $0.timeIntervalSinceReferenceDate }
+        }
+
+        func fileIsModified(_ url: URL) -> Bool {
+            guard let newDate = getModifiedDate(url), newDate > _modified else {
+                return false
+            }
+            return true
+        }
+
+        // set modified date
+        _modified = Date.timeIntervalSinceReferenceDate
+
+        // start watching
+        _timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self else {
+                return
+            }
+            guard getModifiedDate(url) != nil else {
+                self._timer?.invalidate()
+                self._timer = nil
+                return
+            }
+            var isModified = false
+            for u in [url] + self.linkedResources {
+                isModified = isModified || fileIsModified(u)
+            }
+            guard isModified else {
+                return
+            }
+            self._modified = Date.timeIntervalSinceReferenceDate
+            try? self.read(from: url)
         }
     }
 
