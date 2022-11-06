@@ -393,10 +393,21 @@ class DocumentViewController: UIViewController {
         present(sheet, animated: true, completion: {})
     }
 
-    func openSourceView(withContentsOf _: URL) {
+    func openSourceView(withContentsOf fileURL: URL) {
         let storyBoard = UIStoryboard(name: "Main", bundle: nil)
         let viewController = storyBoard.instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
-        viewController.document = document
+        if fileURL == document?.fileURL {
+            viewController.document = document
+        } else {
+            let document = Document(fileURL: fileURL)
+            document.open { success in
+                if success {
+                    viewController.document = document
+                } else {
+                    viewController.dismiss(animated: true)
+                }
+            }
+        }
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)
         present(navigationController, animated: true, completion: nil)

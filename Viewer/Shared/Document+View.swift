@@ -205,6 +205,7 @@ extension Document {
                 """
             )
         }
+        sourceString = input
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
@@ -219,7 +220,6 @@ extension Document {
             case .waiting:
                 if let viewController = self.viewController {
                     if input != self.sourceString {
-                        self.sourceString = input
                         viewController.dismissModals()
                     }
                     viewController.showConsole = false
