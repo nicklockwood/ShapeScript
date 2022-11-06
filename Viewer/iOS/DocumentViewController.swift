@@ -261,14 +261,6 @@ class DocumentViewController: UIViewController {
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
-
-        // observe foregrounding
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(reload),
-            name: UIApplication.willEnterForegroundNotification,
-            object: nil
-        )
     }
 
     private func rebuildMenu() {
@@ -374,17 +366,6 @@ class DocumentViewController: UIViewController {
                 ),
             ]
         )
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if document?.documentState == .normal {
-            reload()
-        }
-    }
-
-    @objc private func reload() {
-        document?.open(completionHandler: { _ in })
     }
 
     @IBAction func showModelInfo() {
