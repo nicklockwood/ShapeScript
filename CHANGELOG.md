@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.5.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.11) (2022-11-06)
+
+- Fixed source code view on iOS
+- Fixed loading of external iCloud assets when file has not been downloaded
+- ShapeScript now monitors changes to external textures, fonts and imports on iOS
+- Original topology for imported models is now preserved, instead of being triangulated
+- Improved error messaging for file imports
+- Bumped Euclid to version 0.6.2
+
 ## [1.5.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.10) (2022-10-29)
 
 - Improved documentation for strings and trigonometry functions

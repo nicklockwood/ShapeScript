@@ -80,7 +80,7 @@ class DocumentViewController: NSViewController {
         }
     }
 
-    func dismissModals(animated: Bool = true) {
+    func dismissModals(animated _: Bool = true) {
         // Does nothing on macOS
     }
 
