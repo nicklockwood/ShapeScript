@@ -226,6 +226,16 @@ extension EvaluationContext {
 // MARK: External file access
 
 extension EvaluationContext {
+    private func isUndownloadedUbiquitousFile(_ url: URL) -> Bool {
+        #if os(macOS) || os(iOS)
+        return (try? url.resourceValues(forKeys: [
+            .ubiquitousItemDownloadingStatusKey,
+        ]).ubiquitousItemDownloadingStatus) == .notDownloaded
+        #else
+        return false
+        #endif
+    }
+
     func resolveURL(for path: String) throws -> URL {
         let path = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !path.isEmpty else {
@@ -239,23 +249,43 @@ extension EvaluationContext {
             // TODO: should this be a different error type, like "delegate not available"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
+        let fileManager = FileManager.default
+//        try? fileManager.evictUbiquitousItem(at: url) // Handy for testing
         // TODO: move this logic out of EvaluationContext into delegate
         // so we can more easily mock the filesystem for testing purposes
+        let isRemote = isUndownloadedUbiquitousFile(url)
         #if os(macOS)
         // macOS can check for existence of files even without access permission
-        guard FileManager.default.fileExists(atPath: url.path) else {
+        guard isRemote || fileManager.fileExists(atPath: url.path) else {
             throw RuntimeErrorType.fileNotFound(for: path, at: url)
         }
         #endif
         let directory = url.deletingLastPathComponent()
-        guard FileManager.default.isReadableFile(atPath: url.path) ||
-            FileManager.default.isReadableFile(atPath: directory.path)
+        guard isRemote || fileManager.isReadableFile(atPath: url.path) ||
+            fileManager.isReadableFile(atPath: directory.path)
         else {
             throw RuntimeErrorType.fileAccessRestricted(for: path, at: directory)
         }
-        guard FileManager.default.fileExists(atPath: url.path) else {
+        guard isRemote || fileManager.fileExists(atPath: url.path) else {
             throw RuntimeErrorType.fileNotFound(for: path, at: url)
         }
+        #if os(macOS) || os(iOS)
+        // TODO: Make this interface asynchronous instead of blocking
+        if isRemote {
+            try FileManager.default.startDownloadingUbiquitousItem(at: url)
+            var url = url
+            let start = CFAbsoluteTimeGetCurrent()
+            let timeout: TimeInterval = 30
+            while isUndownloadedUbiquitousFile(url), !isCancelled() {
+                if CFAbsoluteTimeGetCurrent() - start > timeout {
+                    // TODO: Introduce specific error type for this
+                    throw RuntimeErrorType.fileNotFound(for: path, at: url)
+                }
+                Thread.sleep(forTimeInterval: 0.1)
+                url.removeAllCachedResourceValues()
+            }
+        }
+        #endif
         return url
     }
 
