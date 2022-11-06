@@ -9,6 +9,16 @@
 import Foundation
 
 extension Document {
+    var linkedResources: Set<URL> {
+        get { fileMonitor?.linkedResources ?? [] }
+        set { fileMonitor?.linkedResources = newValue }
+    }
+
+    var securityScopedResources: Set<URL> {
+        get { fileMonitor?.securityScopedResources ?? [] }
+        set { fileMonitor?.securityScopedResources = newValue }
+    }
+
     func clearBookmarks() {
         UserDefaults.standard.removeObject(forKey: "SandboxBookmarks")
     }

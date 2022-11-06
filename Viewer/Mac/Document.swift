@@ -26,8 +26,7 @@ class Document: NSDocument {
 
     let cache = GeometryCache()
     let settings = Settings.shared
-    var linkedResources = Set<URL>()
-    var securityScopedResources = Set<URL>()
+    private(set) var fileMonitor: FileMonitor?
 
     var viewController: DocumentViewController? {
         let viewController = windowControllers.compactMap {
@@ -71,7 +70,9 @@ class Document: NSDocument {
 
     override var fileURL: URL? {
         didSet {
-            startObservingFileChangesIfPossible()
+            fileMonitor = FileMonitor(fileURL) { [weak self] url in
+                _ = try self?.read(from: url, ofType: url.pathExtension)
+            }
         }
     }
 
@@ -102,63 +103,11 @@ class Document: NSDocument {
     override func close() {
         super.close()
         loadingProgress?.cancel()
-        _timer?.invalidate()
-        securityScopedResources.forEach {
-            $0.stopAccessingSecurityScopedResource()
-        }
+        fileMonitor = nil
     }
 
     override func read(from url: URL, ofType _: String) throws {
         try load(Data(contentsOf: url), fileURL: url)
-    }
-
-    private var _modified: TimeInterval = 0
-    private var _timer: Timer?
-
-    private func startObservingFileChangesIfPossible() {
-        // cancel previous observer
-        _timer?.invalidate()
-
-        // check file exists
-        guard let url = fileURL, url.isFileURL, FileManager.default.fileExists(atPath: url.path) else {
-            return
-        }
-
-        func getModifiedDate(_ url: URL) -> TimeInterval? {
-            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
-            return date.map { $0.timeIntervalSinceReferenceDate }
-        }
-
-        func fileIsModified(_ url: URL) -> Bool {
-            guard let newDate = getModifiedDate(url), newDate > _modified else {
-                return false
-            }
-            return true
-        }
-
-        // set modified date
-        _modified = Date.timeIntervalSinceReferenceDate
-
-        // start watching
-        _timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard let self = self else {
-                return
-            }
-            guard getModifiedDate(url) != nil else {
-                self._timer?.invalidate()
-                self._timer = nil
-                return
-            }
-            var isModified = false
-            for u in [url] + Array(self.linkedResources) {
-                isModified = isModified || fileIsModified(u)
-            }
-            guard isModified else {
-                return
-            }
-            self._modified = Date.timeIntervalSinceReferenceDate
-            _ = try? self.read(from: url, ofType: url.pathExtension)
-        }
     }
 
     @IBAction private func didSelectEditor(_ sender: NSPopUpButton) {

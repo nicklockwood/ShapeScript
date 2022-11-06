@@ -18,7 +18,7 @@ class Document: UIDocument {
 
     let cache = GeometryCache()
     let settings = Settings.shared
-    var securityScopedResources = Set<URL>()
+    private(set) var fileMonitor: FileMonitor?
 
     weak var viewController: DocumentViewController?
 
@@ -53,7 +53,9 @@ class Document: UIDocument {
 
     override init(fileURL url: URL) {
         super.init(fileURL: url)
-        startObservingFileChangesIfPossible()
+        fileMonitor = FileMonitor(url) { [weak self] url in
+            try self?.read(from: url)
+        }
     }
 
     override func load(fromContents contents: Any, ofType _: String?) throws {
@@ -72,61 +74,9 @@ class Document: UIDocument {
         }
     }
 
-    private var _modified: TimeInterval = 0
-    private var _timer: Timer?
-
-    private func startObservingFileChangesIfPossible() {
-        // cancel previous observer
-        _timer?.invalidate()
-
-        // check file exists
-        let url = fileURL
-        guard url.isFileURL, FileManager.default.fileExists(atPath: url.path) else {
-            return
-        }
-
-        func getModifiedDate(_ url: URL) -> TimeInterval? {
-            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
-            return date.map { $0.timeIntervalSinceReferenceDate }
-        }
-
-        func fileIsModified(_ url: URL) -> Bool {
-            guard let newDate = getModifiedDate(url), newDate > _modified else {
-                return false
-            }
-            return true
-        }
-
-        // set modified date
-        _modified = Date.timeIntervalSinceReferenceDate
-
-        // start watching
-        _timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard let self = self else {
-                return
-            }
-            guard getModifiedDate(url) != nil else {
-                self._timer?.invalidate()
-                self._timer = nil
-                return
-            }
-            var isModified = false
-            for u in [url] + self.linkedResources {
-                isModified = isModified || fileIsModified(u)
-            }
-            guard isModified else {
-                return
-            }
-            self._modified = Date.timeIntervalSinceReferenceDate
-            try? self.read(from: url)
-        }
-    }
-
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)
     }
-
-    var linkedResources = Set<URL>()
 
     func grantAccess() {
         let picker = UIDocumentPickerViewController(

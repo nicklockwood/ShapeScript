@@ -29,6 +29,8 @@
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
 		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
+		0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
+		0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
 		017EE7142194ED6D0046C918 /* InterpreterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017EE7132194ED6D0046C918 /* InterpreterTests.swift */; };
 		017F72FE28270F290023231C /* PlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 017F72FD28270F290023231C /* PlatformTests.swift */; };
 		0183AAA228EC3AA600AD1984 /* Document+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AA9828EC3AA500AD1984 /* Document+View.swift */; };
@@ -279,6 +281,7 @@
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
 		01746BF126C5D226009DADEF /* GeometryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryType.swift; sourceTree = "<group>"; };
+		0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
 		017EE7132194ED6D0046C918 /* InterpreterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterpreterTests.swift; sourceTree = "<group>"; };
 		017F72FD28270F290023231C /* PlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformTests.swift; sourceTree = "<group>"; };
 		0183AA5828EC0DE400AD1984 /* ShapeScript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShapeScript.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -439,6 +442,7 @@
 				0183AA9928EC3AA500AD1984 /* Document+EvaluationDelegate.swift */,
 				0183AA9A28EC3AA500AD1984 /* Document+ModelInfo.swift */,
 				0183AA9B28EC3AA500AD1984 /* DocumentViewController+View.swift */,
+				0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */,
 				0183AA9C28EC3AA500AD1984 /* LoadingProgress.swift */,
 				0183AA9D28EC3AA500AD1984 /* Axes.swift */,
 				0183AA9E28EC3AA500AD1984 /* ProgramError.swift */,
@@ -917,6 +921,7 @@
 				0183AAE228EC3ACB00AD1984 /* Utilities.swift in Sources */,
 				0183AAB428EC3AA600AD1984 /* Document+Sandbox.swift in Sources */,
 				0183AAE628EC3ACB00AD1984 /* PreferencesViewController.swift in Sources */,
+				0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */,
 				0183AAB028EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAE528EC3ACB00AD1984 /* WelcomeViewController.swift in Sources */,
 				0183AAEA28EC3ACB00AD1984 /* AppDelegate.swift in Sources */,
@@ -942,6 +947,7 @@
 				0183AAB128EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAA928EC3AA600AD1984 /* DocumentViewController+View.swift in Sources */,
 				0183AAC928EC3AB200AD1984 /* SplitView.swift in Sources */,
+				0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */,
 				0183AAAD28EC3AA600AD1984 /* Axes.swift in Sources */,
 				0183AACF28EC3AB200AD1984 /* AppDelegate.swift in Sources */,
 				0183AAD128EC3AB200AD1984 /* DocumentBrowserViewController.swift in Sources */,
