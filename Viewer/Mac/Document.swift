@@ -63,6 +63,7 @@ class Document: NSDocument {
 
     var errorMessage: NSAttributedString?
     var accessErrorURL: URL?
+    var sourceString: String = ""
 
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)

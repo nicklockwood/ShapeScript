@@ -80,6 +80,10 @@ class DocumentViewController: NSViewController {
         }
     }
 
+    func dismissModals(animated: Bool = true) {
+        // Does nothing on macOS
+    }
+
     var isLoading = false {
         didSet {
             guard isLoading != oldValue else {

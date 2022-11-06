@@ -59,16 +59,6 @@ class DocumentViewController: UIViewController {
         consoleTextView.text = ""
     }
 
-    func dismissModals(animated: Bool = true) {
-        var presentedViewController = presentedViewController
-        while let vc = presentedViewController?.presentedViewController {
-            presentedViewController = vc
-        }
-        presentedViewController?.dismiss(animated: animated) { [weak self] in
-            self?.dismissModals(animated: animated)
-        }
-    }
-
     func appendLog(_ text: String) {
         if text.isEmpty {
             return
@@ -104,6 +94,16 @@ class DocumentViewController: UIViewController {
             self.containerView.heights[1] =
                 min(150, self.consoleTextView.contentSize.height)
             self.consoleTextView.scrollRangeToVisible(range)
+        }
+    }
+
+    func dismissModals(animated: Bool = true) {
+        var presentedViewController = presentedViewController
+        while let vc = presentedViewController?.presentedViewController {
+            presentedViewController = vc
+        }
+        presentedViewController?.dismiss(animated: animated) { [weak self] in
+            self?.dismissModals(animated: animated)
         }
     }
 

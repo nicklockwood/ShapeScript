@@ -218,6 +218,10 @@ extension Document {
             switch status {
             case .waiting:
                 if let viewController = self.viewController {
+                    if input != self.sourceString {
+                        self.sourceString = input
+                        viewController.dismissModals()
+                    }
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
