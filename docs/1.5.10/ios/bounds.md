@@ -34,7 +34,7 @@ We can see that the star is larger than the unit cube, but other than trial-and-
 
 ## Mesh Bounds
 
-Paths and meshes both expose a `bounds` property that represents a bounding box around the shape. From this you can get the exact size and position needs to place a box around the star:
+Paths and meshes both expose a `bounds` property that represents a bounding box around the shape. From this you can get the exact size and position needed to place a box around the star:
 
 ```swift
 define star {

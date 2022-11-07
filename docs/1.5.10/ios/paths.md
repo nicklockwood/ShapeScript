@@ -1,7 +1,7 @@
 Paths
 ---
 
-A path is sequence of line segments or curves joined end-to-end. The points of the path can be positioned anywhere in 3D space, and the path can be open-ended or closed.
+A path is a sequence of line segments or curves joined end-to-end. The points of the path can be positioned anywhere in 3D space, and the path can be open-ended or closed.
 
 Paths are not typically used directly as part of a 3D model (except possibly for something like a thin rope or antenna), but they can be used to define the contours of a 3D mesh (see [builders](builders.md) for details).
 
@@ -18,11 +18,9 @@ path {
 
 ![Line](../../images/line.png)
 
-In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be 3-dimensional, so `point` can accept up to 3 coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of 0).
+In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be three-dimensional, so `point` accepts up to three coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of zero).
 
-Paths can be open or closed (meaning that the points form an unbroken loop). To create a closed path, the first and last point should have the same position.
-
-The following path has 4 points, but it actually describes a triangle rather than a quadrilateral, because the first and last points are the same:
+Paths can be open or closed (meaning that the points form an unbroken loop). To create a closed path, the first and last point must have the same position. The following path has four points, but it actually describes a triangle rather than a quadrilateral, because the first and last points are the same:
 
 ```swift
 path {
@@ -39,7 +37,7 @@ path {
 
 Points are great for defining polygonal shapes, but what about curves?
 
-Curves can be created in ShapeScript are defined using [quadratic Béziers curves](https://en.wikipedia.org/wiki/Bézier_curve). A quadratic Bézier is defined by two end-points and a control point.
+Curves in ShapeScript are created using [quadratic Béziers curves](https://en.wikipedia.org/wiki/Bézier_curve). A quadratic Bézier is defined by two end-points and a control point.
 
 The curve passes through the end-points, but does not pass through the control point. Instead, the control point defines the point of intersection for the tangents of the curve as it passes through the end-points. This sounds complicated, but it's quite straightforward to use in practice.
 
@@ -55,7 +53,7 @@ path {
 
 ![Arc](../../images/arc.png)
 
-You may notice that this "smooth" arc is not actually very smooth. As discussed in the [primitives section](primitives.md), 3D shapes are constructed from flat triangles, so likewise, curves are approximated using straight lines. You can adjust the smoothness of curves in a path using the `detail` command:
+You may notice that this "smooth" arc is not actually very smooth. As discussed in the [primitives section](primitives.md), 3D shapes are constructed from flat polygons, so likewise, curves are approximated using straight lines. You can adjust the smoothness of curves in a path using the `detail` command:
 
 ```swift
 detail 99

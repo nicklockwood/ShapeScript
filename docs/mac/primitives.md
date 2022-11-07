@@ -41,7 +41,7 @@ sphere { size 1 }
 
 ![Sphere](../images/sphere.png)
 
-You may notice that the sphere doesn't look very smooth. As mentioned in the [getting started section](getting-started.md), 3D shapes in ShapeScript are made up of triangles, so curves cannot be represented exactly, only approximated.
+You may notice that the sphere doesn't look very smooth. As mentioned in the [getting started section](getting-started.md), 3D shapes in ShapeScript are made up of polygons, so curves cannot be represented exactly, only approximated.
 
 You can improve the quality of the sphere by using the `detail` option:
 
