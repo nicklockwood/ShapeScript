@@ -64,7 +64,9 @@ public enum GeometryType: Hashable {
     case group
     // primitives
     case cone(segments: Int)
+    case pyramid(sides: Int)
     case cylinder(segments: Int)
+    case prism(sides: Int)
     case sphere(segments: Int)
     case cube
     // builders
@@ -93,7 +95,7 @@ public extension GeometryType {
         case .union, .xor, .difference, .intersection, .stencil,
              .group, .hull, .camera, .light:
             return true
-        case .cone, .cylinder, .sphere, .cube:
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube:
             return false
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
@@ -114,7 +116,8 @@ public extension GeometryType {
             return .empty
         case .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
-        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
+        case let .cone(segments), let .cylinder(segments), let .sphere(segments),
+             let .pyramid(segments), let .prism(segments):
             let bounds = Path.circle(segments: segments).bounds
                 .rotated(by: .roll(-.halfPi))
             return Bounds(
@@ -169,8 +172,8 @@ internal extension GeometryType {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _):
             return !paths.isEmpty
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .fill,
-             .group, .camera, .light:
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube, .loft,
+             .path, .mesh, .fill, .group, .camera, .light:
             return true
         case .hull, .union, .xor, .difference, .intersection, .stencil:
             return false

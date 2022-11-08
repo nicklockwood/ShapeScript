@@ -116,8 +116,20 @@ extension Dictionary where Key == String, Value == Symbol {
         "cone": .block(.shape) { context in
             .mesh(Geometry(type: .cone(segments: context.detail), in: context))
         },
+        "pyramid": .block(.custom(.shape, [
+            "sides": .number,
+        ], .void, .mesh)) { context in
+            let sides = context.value(for: "sides")?.intValue ?? 4
+            return .mesh(Geometry(type: .pyramid(sides: sides), in: context))
+        },
         "cylinder": .block(.shape) { context in
             .mesh(Geometry(type: .cylinder(segments: context.detail), in: context))
+        },
+        "prism": .block(.custom(.shape, [
+            "sides": .number,
+        ], .void, .mesh)) { context in
+            let sides = context.value(for: "sides")?.intValue ?? 3
+            return .mesh(Geometry(type: .prism(sides: sides), in: context))
         },
         "sphere": .block(.shape) { context in
             .mesh(Geometry(type: .sphere(segments: context.detail), in: context))
