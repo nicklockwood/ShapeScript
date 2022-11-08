@@ -6,7 +6,7 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
+@testable import Euclid
 @testable import ShapeScript
 import XCTest
 
@@ -55,5 +55,15 @@ class GeometryTests: XCTestCase {
         )
         XCTAssert(camera.bounds.transformed(by: camera.transform).isEmpty)
         XCTAssertEqual(group.bounds, cube.bounds)
+    }
+
+    func testLowDetailPrimitiveBounds() {
+        let cylinder = GeometryType.cylinder(segments: 3)
+        let cone = GeometryType.cone(segments: 3)
+        let sphere = GeometryType.sphere(segments: 3)
+        let expected = Vector(0.75, 1, 0.866025403784)
+        XCTAssert(cylinder.bounds.size.isEqual(to: expected))
+        XCTAssert(cone.bounds.size.isEqual(to: expected))
+        XCTAssert(sphere.bounds.size.isEqual(to: expected))
     }
 }

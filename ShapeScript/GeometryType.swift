@@ -111,8 +111,15 @@ public extension GeometryType {
         case .union, .xor, .difference, .intersection, .stencil,
              .group, .camera, .light:
             return .empty
-        case .cone, .cylinder, .sphere, .cube:
+        case .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
+        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
+            let bounds = Path.circle(segments: segments).bounds
+                .rotated(by: .roll(-.halfPi))
+            return Bounds(
+                min: .init(bounds.min.x, -0.5, bounds.min.y),
+                max: .init(bounds.max.x, 0.5, bounds.max.y)
+            )
         case let .extrude(paths, along: along):
             if along.isEmpty {
                 return paths.reduce(into: .empty) { bounds, path in
