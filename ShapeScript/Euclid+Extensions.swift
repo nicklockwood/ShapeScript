@@ -187,3 +187,15 @@ extension Path {
         #endif
     }
 }
+
+extension Mesh {
+    /// Create a pyramid shape
+    static func pyramid(sides: Int) -> Mesh {
+        Mesh.cone(slices: sides).smoothNormals(.zero)
+    }
+
+    /// Create a prism shape
+    static func prism(sides: Int) -> Mesh {
+        Mesh.cylinder(slices: sides).smoothNormals(.zero)
+    }
+}

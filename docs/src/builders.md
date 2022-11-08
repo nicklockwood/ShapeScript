@@ -83,7 +83,7 @@ Lathed paths must lie flat on the XY plane, and  be positioned entirely to one s
 
 The `extrude` command extrudes a 2D path along the Z axis. The path therefore represents a cross-section of the final shape. The default extrusion distance is 1 unit, but it can be overridden using the `size` option or relative `scale` command (as described in [transforms](transforms.md)).
 
-In the following example, `extrude` is used to create a triangular prism:
+In the following example, `extrude` is used to recreate the [prism primitive](primitives.md#prism):
 
 ```swift
 extrude {

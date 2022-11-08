@@ -219,7 +219,9 @@ private extension GeometryType {
         switch self {
         case .group: return "group"
         case .cone: return "cone"
+        case .pyramid: return "pyramid"
         case .cylinder: return "cylinder"
+        case .prism: return "prism"
         case .sphere: return "sphere"
         case .cube: return "cube"
         case .extrude: return "extrusion"

@@ -52,7 +52,7 @@ public final class Geometry: Hashable {
         switch type {
         case .group:
             return true
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube,
              .lathe, .loft, .path, .mesh, .camera, .light,
              .intersection, .difference, .stencil:
             return false
@@ -208,7 +208,8 @@ public final class Geometry: Hashable {
             }
         case .hull:
             break // TODO: what needs to be done here?
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube,
+             .loft, .path, .camera, .light:
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
@@ -284,7 +285,7 @@ public extension Geometry {
             return type.bounds.union(Bounds(bounds: children.map {
                 $0.bounds.transformed(by: $0.transform)
             }))
-        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
+        case .cone, .pyramid, .cube, .cylinder, .prism, .sphere, .path, .mesh:
             return type.bounds
         case .camera, .light:
             return .empty
@@ -512,7 +513,7 @@ private extension Geometry {
         case .hull:
             mesh = nil
         case .group, .path, .mesh,
-             .cone, .cylinder, .sphere, .cube,
+             .cone, .pyramid, .cylinder, .prism, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
@@ -546,8 +547,12 @@ private extension Geometry {
             mesh = .empty
         case let .cone(segments):
             mesh = .cone(slices: segments)
+        case let .pyramid(sides):
+            mesh = Mesh.pyramid(sides: sides)
         case let .cylinder(segments):
             mesh = .cylinder(slices: segments)
+        case let .prism(sides):
+            mesh = Mesh.prism(sides: sides)
         case let .sphere(segments):
             mesh = .sphere(slices: segments, stacks: segments / 2)
         case .cube:
@@ -667,7 +672,7 @@ public extension Geometry {
             return children.reduce(0) { $0 + $1.objectCount }
         case .camera, .light:
             return 0
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
@@ -691,7 +696,7 @@ public extension Geometry {
 
     var childCount: Int {
         switch type {
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .pyramid, .cylinder, .prism, .sphere, .cube,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             return 0 // TODO: should paths/points be treated as children?

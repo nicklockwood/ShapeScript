@@ -84,6 +84,33 @@ cylinder {
 }
 ```
 
+## Prism
+
+The `prism` primitive is similar to `cylinder`, except that it has a polygonal cross-section: 
+
+```swift
+prism { size 1 }
+```
+
+![Prism](../images/prism.png)
+
+By default, a prism has three sides, but you can override this using the `sides` option:
+
+```swift
+prism { sides 6 }
+```
+
+![Prism](../images/hexagonal-prism.png)
+
+Like `cylinder`, you can control the diameter and length of the prism independently by passing additional parameters to `size`. Unlike `cylinder`, prism is not affected by `detail`:
+
+```swift
+prism {
+    sides 5
+    size 1 2
+}
+```
+
 ## Cone
 
 The `cone` primitive creates a conical shape:
@@ -99,6 +126,33 @@ Like `sphere` and `cylinder`, its smoothness is controlled by the `detail` comma
 ```swift
 cone {
     detail 48
+    size 1 2
+}
+```
+
+## Pyramid
+
+The `pyramid` primitive is similar to `cone`, except that it has a polygonal cross-section: 
+
+```swift
+pyramid { size 1 }
+```
+
+![Pyramid](../images/pyramid.png)
+
+By default, a pyramid has four sides, but you can override this using the `sides` option:
+
+```swift
+pyramid { sides 6 }
+```
+
+![Prism](../images/hexagonal-pyramid.png)
+
+Like `cone`, you can control the diameter and length of the pyramid independently by passing additional parameters to `size`. Unlike `cone`, pyramid is not affected by `detail`:
+
+```swift
+pyramid {
+    sides 3
     size 1 2
 }
 ```
