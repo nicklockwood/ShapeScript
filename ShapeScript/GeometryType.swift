@@ -116,13 +116,18 @@ public extension GeometryType {
             return .empty
         case .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
-        case let .cone(segments), let .cylinder(segments), let .sphere(segments),
-             let .pyramid(segments), let .prism(segments):
+        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
             let bounds = Path.circle(segments: segments).bounds
                 .rotated(by: .roll(-.halfPi))
             return Bounds(
                 min: .init(bounds.min.x, -0.5, bounds.min.y),
                 max: .init(bounds.max.x, 0.5, bounds.max.y)
+            )
+        case let .prism(sides: sides), let .pyramid(sides: sides):
+            let bounds = Path.polygon(sides: sides).bounds
+            return Bounds(
+                min: .init(bounds.min.x, bounds.min.y, -0.5),
+                max: .init(bounds.max.x, bounds.max.y, 0.5)
             )
         case let .extrude(paths, along: along):
             if along.isEmpty {
