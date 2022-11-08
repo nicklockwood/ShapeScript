@@ -172,5 +172,48 @@ loft {
 
 ![Loft shape](../images/loftshape.png)
 
+## Hull
+
+The `hull` command works a bit like `loft`, in that it joins together multiple paths to form a solid surface. Here is the `loft` shape above, implemented using `hull`:
+
+```swift
+hull {
+    square
+    translate 0 0 1
+    circle
+}
+```
+
+![Hull shape](../images/loftshape.png)
+
+So if `hull` and `loft` are the same, why have a separate command?
+
+The difference is that rather than joining sections together in a tube, `hull` forms a tight *skin* around the outside of all its child shapes, known as a [convex hull](https://en.wikipedia.org/wiki/Convex_hull). To illustrate the difference, here is the `hull` of a star shape, vs a `loft` of the same shape:
+
+![Hull shape](../images/hull-vs-loft.png)
+
+But the real power of the `hull` command is that it's not limited to operating on paths. Unlike the other builders, you can create a hull around meshes, paths, points, or any combination. For example, here is a hull formed from a cylinder and a point:
+
+```swift
+hull {
+    cylinder
+    point 1 0 0
+}
+```
+
+![Hull shape](../images/hull.png)
+
+This allows for a lot of interesting shapes that would be hard to create using the other commands.
+
+You might notice some odd stripes on the surface near the lip of the cylinder. As you may recall from the [detail](options.md#detail) section, curved surfaces in ShapeScript are actually formed from straight-edged polygons, with lighting used to make them appear smooth.
+
+When creating a hull from different shapes, the resultant [surface normals](https://en.wikipedia.org/wiki/Normal_(geometry)) aren't always what you'd expect, which can result in lighting glitches like this. In some cases you can use the [smoothing](options.md#smoothing) command to smooth out these discrepancies, like so:
+
+```swift
+smoothing 0.25
+```
+
+![Hull shape](../images/smoothed-hull.png)
+
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)

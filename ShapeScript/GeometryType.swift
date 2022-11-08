@@ -72,6 +72,7 @@ public enum GeometryType: Hashable {
     case lathe([Path], segments: Int)
     case loft([Path])
     case fill([Path])
+    case hull([Vertex])
     // csg
     case union
     case difference
@@ -90,7 +91,7 @@ public extension GeometryType {
     var isEmpty: Bool {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil,
-             .group, .camera, .light:
+             .group, .hull, .camera, .light:
             return true
         case .cone, .cylinder, .sphere, .cube:
             return false
@@ -153,6 +154,8 @@ public extension GeometryType {
             })
         case let .loft(paths), let .fill(paths):
             return .init(bounds: paths.map { $0.bounds })
+        case let .hull(vertices):
+            return .init(points: vertices.map { $0.position })
         case let .path(path):
             return path.bounds
         case let .mesh(mesh):
@@ -169,7 +172,7 @@ internal extension GeometryType {
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .fill,
              .group, .camera, .light:
             return true
-        case .union, .xor, .difference, .intersection, .stencil:
+        case .hull, .union, .xor, .difference, .intersection, .stencil:
             return false
         }
     }
