@@ -179,6 +179,16 @@ extension Path: Loggable {
     }
 }
 
+extension Polygon: Loggable {
+    public var logDescription: String {
+        "polygon { points \(vertices.count) }"
+    }
+
+    public var nestedLogDescription: String {
+        "polygon"
+    }
+}
+
 extension PathPoint: Loggable {
     public var logDescription: String {
         "\(nestedLogDescription) { \(position.logDescription) }"
@@ -223,9 +233,16 @@ private extension GeometryType {
         case .xor: return "xor"
         case .stencil: return "stencil"
         case .path: return "path"
-        case .mesh: return "mesh"
+        case let .mesh(mesh): return "mesh { polygons \(mesh.polygons.count) }"
         case .camera: return "camera"
         case .light: return "light"
+        }
+    }
+
+    var nestedDescription: String {
+        switch self {
+        case .mesh: return "mesh"
+        default: return logDescription
         }
     }
 }
