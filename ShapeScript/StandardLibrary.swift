@@ -133,6 +133,23 @@ extension Dictionary where Key == String, Value == Symbol {
         "fill": .block(.builder) { context in
             .mesh(Geometry(type: .fill(context.paths), in: context))
         },
+        "hull": .block(.hull) { context in
+            let vertices = try context.children.flatMap { child -> [Vertex] in
+                switch child {
+                case let .point(point):
+                    return [Vertex(point.position, nil, nil, point.color)]
+                case let .path(path):
+                    return path.subpaths.flatMap { $0.edgeVertices }
+                case .mesh:
+                    return [] // handled at mesh generation time
+                default:
+                    throw RuntimeErrorType.assertionFailure(
+                        "Unexpected child of type \(child.type) in hull"
+                    )
+                }
+            }
+            return .mesh(Geometry(type: .hull(vertices), in: context))
+        },
         // csg
         "union": .block(.group) { context in
             .mesh(Geometry(type: .union, in: context))
@@ -475,6 +492,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
+    static let hull: Symbols = _merge(group, points)
     static let pathShape: Symbols = _merge(transform, detail, color)
     static let path: Symbols = _merge(pathShape, childTransform, font, curves)
     static let definition: Symbols = root

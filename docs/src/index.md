@@ -51,6 +51,7 @@ ShapeScript Help
         - [Lathe](builders.md#lathe)
         - [Extrude](builders.md#extrude)
         - [Loft](builders.md#loft)
+        - [Hull](builders.md#hull)
     - [Constructive Solid Geometry](csg.md)
         - [Difference](csg.md#difference)
         - [Intersection](csg.md#intersection)
