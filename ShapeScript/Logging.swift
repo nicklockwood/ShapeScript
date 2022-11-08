@@ -190,6 +190,7 @@ extension GeometryType: Loggable {
         case .lathe: return "lathe"
         case .loft: return "loft"
         case .fill: return "fill"
+        case .hull: return "hull"
         case .union: return "union"
         case .difference: return "difference"
         case .intersection: return "intersection"
