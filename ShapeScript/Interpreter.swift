@@ -1070,7 +1070,7 @@ extension Expression {
             case let .property(_, _, getter):
                 return try RuntimeError.wrap(getter(context), at: range)
             case let .block(type, fn):
-                guard type.childTypes == .void else {
+                guard type.childTypes.isOptional else {
                     // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,

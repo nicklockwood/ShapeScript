@@ -91,6 +91,14 @@ extension ValueType {
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
 
+    static func optional(_ type: ValueType) -> ValueType {
+        .union([type, .void])
+    }
+
+    var isOptional: Bool {
+        subtypes.contains(.void)
+    }
+
     var subtypes: Set<ValueType> {
         switch self {
         case let .union(types):
