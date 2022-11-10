@@ -278,21 +278,47 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "polygon": .block(.custom(.polygon, [
             "sides": .number,
+            "radius": .number,
         ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
             let sides = context.value(for: "sides")?.intValue
+            let radius = context.value(for: "radius")?.doubleValue
             let points = context.children.compactMap { $0.value as? PathPoint }
             if !points.isEmpty {
                 if sides != nil {
                     throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
                 }
+                if radius != nil {
+                    throw RuntimeErrorType.assertionFailure("Polygon cannot have both points and radius")
+                }
                 let path = Path(points).transformed(by: context.transform)
                 let polygons = path.closed().facePolygons(material: context.material)
                 return .tuple(polygons.map { .polygon($0) })
             }
-            return .path(Path.polygon(
-                sides: sides ?? 5,
-                color: context.material.color
-            ).transformed(by: context.transform))
+            let path: Path
+            if let radius = radius {
+                let sides = sides ?? 5
+                var angle = Angle(radians: .pi / Double(sides))
+                let offset: Double
+                if sides.isMultiple(of: 2) {
+                    offset = 0
+                } else {
+                    offset = -(1 - cos(angle)) / 4
+                    angle = .zero
+                }
+                path = .polygon(
+                    radius: radius,
+                    sides: sides,
+                    color: context.material.color
+                )
+//                .translated(by: .init(0, offset, 0))
+//                .rotated(by: .roll(angle))
+            } else {
+                path = .polygon(
+                    sides: sides ?? 5,
+                    color: context.material.color
+                )
+            }
+            return .path(path.transformed(by: context.transform))
         },
         "roundrect": .block(.custom(.pathShape, [
             "radius": .number,
