@@ -189,7 +189,7 @@ extension Path {
 
     /// Create a regular polygon shape
     static func polygon(sides: Int, color: Color? = nil) -> Path {
-        let (r, o, a) = polyFill(sides: sides)
+        let (r, o, a) = polyFit(sides: sides)
         let t = Transform(offset: .init(0, -o, 0), rotation: .roll(a))
         return Path.polygon(radius: r, sides: sides, color: color).transformed(by: t)
     }
@@ -198,7 +198,7 @@ extension Path {
 extension Mesh {
     /// Create a pyramid shape
     static func pyramid(sides: Int) -> Mesh {
-        let (r, o, a) = polyFill(sides: sides)
+        let (r, o, a) = polyFit(sides: sides)
         let t = Transform(offset: .init(0, 0, o), rotation: .yaw(a + .halfPi))
         return Mesh.cone(radius: r, slices: sides)
             .transformed(by: t).smoothNormals(.zero)
@@ -206,7 +206,7 @@ extension Mesh {
 
     /// Create a prism shape
     static func prism(sides: Int) -> Mesh {
-        let (r, o, a) = polyFill(sides: sides)
+        let (r, o, a) = polyFit(sides: sides)
         let t = Transform(offset: .init(0, 0, o), rotation: .yaw(a + .halfPi))
         return Mesh.cylinder(radius: r, slices: sides)
             .transformed(by: t).smoothNormals(.zero)
@@ -221,4 +221,23 @@ private func polyFill(sides: Int) -> (radius: Double, offset: Double, angle: Ang
     }
     let radius = 1 / (1 + cos(angle))
     return (radius, radius - 0.5, .zero)
+}
+
+// Get parameters to apply to a polygon so that it fits a unit square
+private func polyFit(sides: Int) -> (radius: Double, offset: Double, angle: Angle) {
+    let angle = Angle(radians: .pi / Double(sides))
+    if sides.isMultiple(of: 4) {
+        return (0.5 / cos(angle), 0, angle)
+    }
+    if sides.isMultiple(of: 2) {
+        return (0.5, 0, angle)
+    }
+    let radius = 0.5 / sin(angle * Double(sides / 2))
+    return (radius, (radius - 0.5) * 2, .zero)
+
+    // centered with radius
+//    if sides.isMultiple(of: 2) {
+//        return (0.5, 0, angle)
+//    }
+//    return (0.5, (1 - cos(angle)) / 4, .zero)
 }
