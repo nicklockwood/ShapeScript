@@ -188,6 +188,31 @@ extension Polygon: Loggable {
     }
 }
 
+extension PathPoint: Loggable {
+    public var logDescription: String {
+        "\(nestedLogDescription) { \(position.logDescription) }"
+    }
+
+    public var nestedLogDescription: String {
+        isCurved ? "curve" : "point"
+    }
+}
+
+extension Bounds: Loggable {
+    public var logDescription: String {
+        """
+        bounds {
+            min \(min.logDescription)
+            max \(max.logDescription)
+        }
+        """
+    }
+
+    public var nestedLogDescription: String {
+        "bounds"
+    }
+}
+
 extension GeometryType: Loggable {
     public var logDescription: String {
         switch self {
