@@ -494,15 +494,19 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let global: Symbols = _merge(functions, colors, meshes, paths)
-
-    static let node: Symbols = _merge(transform, [
+    static let name: Symbols = [
         "name": .property(.string, { parameter, context in
             context.name = parameter.stringValue
         }, { context in
             .string(context.name)
         }),
-    ])
+    ]
+
+    static let background: Symbols = [
+        "background": .getter(.colorOrTexture) { context in
+            .colorOrTexture(context.background ?? .color(.clear))
+        },
+    ]
 
     static let font: Symbols = [
         "font": .property(.font, { parameter, context in
@@ -552,7 +556,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     position: position,
                     orientation: orientation,
                     scale: scale,
-                    background: context.background,
+                    background: context.value(for: "background")?.colorOrTextureValue,
                     fov: context.value(for: "fov")?.angleValue,
                     width: context.value(for: "width")?.doubleValue,
                     height: context.value(for: "height")?.doubleValue
@@ -567,6 +571,8 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ])
 
+    static let global: Symbols = _merge(functions, colors, meshes, paths)
+    static let node: Symbols = _merge(transform, name, background)
     static let shape: Symbols = _merge(node, detail, smoothing, material)
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
@@ -574,7 +580,7 @@ extension Dictionary where Key == String, Value == Symbol {
     static let hull: Symbols = _merge(group, points)
     static let polygon: Symbols = _merge(transform, childTransform, points, color)
     static let mesh: Symbols = _merge(node, smoothing, color, childTransform, polygons)
-    static let pathShape: Symbols = _merge(transform, detail, color)
+    static let pathShape: Symbols = _merge(transform, detail, color, background)
     static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
     static let definition: Symbols = _merge(root, pathPoints)
     static let all: Symbols = _merge(definition, shape, path)

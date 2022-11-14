@@ -1421,6 +1421,99 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.clear])
     }
 
+    func testBackgroundSetter() throws {
+        let program = try parse("background red")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+    }
+
+    func testBackgroundGetter() throws {
+        let program = try parse("background")
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(
+                for: "background",
+                index: 0,
+                type: .colorOrTexture
+            ))
+        }
+    }
+
+    func testBackgroundInDefine() throws {
+        let program = try parse("""
+        background red
+        define bg background
+        print bg
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testReturnBackgroundFromBlock() throws {
+        let program = try parse("""
+        define bg { background }
+        background red
+        print bg
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testSetBackgroundInFunction() throws {
+        let program = try parse("""
+        define bg(color) {
+            background color
+            background
+        }
+        print bg(red)
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testCameraBackground() throws {
+        let program = """
+        background red
+        camera { background blue }
+        background green
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertEqual(camera.camera?.background, .color(.blue))
+    }
+
+    func testCameraBackgroundShadowing() throws {
+        let program = """
+        background red
+        camera {
+            background background 0.5
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertEqual(camera.camera?.background, .color(Color.red.withAlpha(0.5)))
+    }
+
+    func testCameraBackgroundNotInherited() throws {
+        let program = """
+        background red
+        camera {}
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertNil(camera.camera?.background)
+    }
+
     func testCameraBackgroundNotDefaultedToClear() throws {
         let program = """
         camera {}
@@ -1429,13 +1522,6 @@ class InterpreterTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: nil)
         let camera = try XCTUnwrap(scene.cameras.first)
         XCTAssertNil(camera.camera?.background)
-    }
-
-    func testBackgroundGetter() throws {
-        let program = try parse("background red")
-        let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.background, .color(.red))
     }
 
     // MARK: Font
@@ -1577,6 +1663,10 @@ class InterpreterTests: XCTestCase {
         try? program.evaluate(in: context) // Throws file not found, but we can ignore
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
+
+    // MARK: Export
+
+    func
 
     // MARK: Command invocation
 

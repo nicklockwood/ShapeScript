@@ -984,7 +984,17 @@ extension Statement {
                                                      for: identifier,
                                                      in: context)
                 try RuntimeError.wrap(context.addValue(fn(argument, context)), at: range)
-            case let .property(type, setter, _):
+            case let .property(type, setter, getter):
+                if parameter == nil {
+                    let value = try RuntimeError.wrap(getter(context), at: range)
+                    do {
+                        return try RuntimeError.wrap(context.addValue(value), at: range)
+                    } catch let error as RuntimeError {
+                        guard case .unusedValue = error.type else {
+                            throw error
+                        }
+                    }
+                }
                 let argument = try evaluateParameter(parameter,
                                                      as: type,
                                                      for: identifier,
