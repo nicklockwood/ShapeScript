@@ -41,7 +41,7 @@ Instead of a color, you can pass a file path to an image:
 background "filename.png" // set background image
 ```
 
-This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md#rendering-an-image). By default, the background is transparent.
+This affects how the scene appears in the ShapeScript viewer, as well as the background of [exported images](export.md#image-formats). By default, the background is transparent.
 
 **Note:** the `background` command can only be used at the root level of a ShapeScript file, or inside a [camera](cameras.md) node:
 
@@ -113,6 +113,10 @@ The default starting value for `seed` is zero, so `seed 0` will cause the `rnd` 
 ## Debugging
 
 The `debug`, `print` and `assert` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
+
+## Import
+
+The `import` command is used to import an external ShapeScript or 3D geometry file. For more details on how this is used, see the [import](import.md) section.
 
 ---
 [Index](index.md) | Next: [Control Flow](control-flow.md)
