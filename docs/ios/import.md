@@ -9,7 +9,7 @@ ShapeScript files can get quite large for complicated models, and you may find t
 import "MyShape.shape"
 ```
 
-The `import` command loads an external ShapeScript file and evaluates it inside the calling script. Any symbols that are defined in the imported file will become available inside the [scope](scope.md) in which it is loaded, and any geometry created by the imported file will be displayed.
+Here we've used `import` to load an external ShapeScript file and evaluate it inside the calling script. Any symbols that are defined in the imported file will become available inside the [scope](scope.md) in which it is loaded, and any geometry created by the imported file will be displayed.
 
 You can import the same file several times in the same script, and import statements can appear inside [loops](control-flow.md#loops), [if statements](control-flow.md#if-else) or [blocks](blocks.md). If you don't want the geometry inside an imported file to be displayed immediately, you can place the import inside a [define](symbols.md) statement:
 
