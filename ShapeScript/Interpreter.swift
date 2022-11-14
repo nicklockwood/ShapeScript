@@ -277,8 +277,8 @@ public extension RuntimeError {
             if got == "block" {
                 return "The \(name) function does not expect a block argument."
             }
-            let got = got.contains(",") ? got : "a \(got)"
-            return "The \(nth(index))argument for \(name) should be a \(type), not \(got)."
+            let got = got.contains(",") ? got : aOrAn(got)
+            return "The \(nth(index))argument for \(name) should be \(aOrAn(type)), not \(got)."
         case let .forwardReference(name):
             return "The symbol '\(name)' was used before it was defined."
         case let .unexpectedArgument(for: name, max: max):
@@ -306,14 +306,15 @@ public extension RuntimeError {
             } else {
                 hint = "The \(name) function"
             }
-            let type = (type == ValueType.any.errorDescription) ? "" : " of type \(type)"
             if index == 0 {
-                return "\(hint) expects an argument\(type)."
+                let type = (type == ValueType.any.errorDescription) ? "an" : "\(aOrAn(type))"
+                return "\(hint) expects \(type) argument."
             } else {
-                return "\(hint) expects a \(nth(index))argument\(type)."
+                let type = (type == ValueType.any.errorDescription) ? "" : " of type \(type)"
+                return "\(hint) expects \(aOrAn(nth(index))) argument\(type)."
             }
         case let .unusedValue(type: type):
-            return "A \(type) value was not expected in this context."
+            return "\(aOrAn(type, capitalized: true)) value was not expected in this context."
         case let .assertionFailure(message):
             return formatMessage(message)
         case let .fileNotFound(for: name, at: url):
@@ -334,7 +335,7 @@ public extension RuntimeError {
             guard let type = type else {
                 return "The type of file at '\(url.path)' is not supported."
             }
-            return "The file at '\(url.path)' is not a \(type) file."
+            return "The file at '\(url.path)' is not \(aOrAn(type)) file."
         case let .importError(error, for: _, in: _):
             return error.hint
         }
@@ -352,6 +353,15 @@ public extension RuntimeError {
 // MARK: Implementation
 
 private struct EvaluationCancelled: Error {}
+
+private func aOrAn(_ string: String, capitalized: Bool = false) -> String {
+    guard let first = string.first else {
+        return capitalized ? "An" : "an"
+    }
+    let beginsWithVowel = "AEIOUaeiou".contains(first)
+    let prefix = beginsWithVowel ? "an" : "a"
+    return "\(capitalized ? prefix.capitalized : prefix) \(string)"
+}
 
 private extension Array where Element == String {
     var typesDescription: String {
@@ -779,7 +789,7 @@ extension Definition {
                                 return value
                             }
                             throw RuntimeErrorType.assertionFailure(
-                                "Blocks that return a \(value.type.errorDescription) " +
+                                "Blocks that return \(aOrAn(value.type.errorDescription)) " +
                                     "value cannot be assigned a name"
                             )
                         }
@@ -822,7 +832,7 @@ extension Definition {
                                 return geometry
                             default:
                                 throw RuntimeErrorType.assertionFailure(
-                                    "Blocks that return a \($0.type.errorDescription) " +
+                                    "Blocks that return \(aOrAn($0.type.errorDescription)) " +
                                         "value cannot be assigned a name"
                                 )
                             }
