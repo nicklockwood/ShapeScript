@@ -11,6 +11,8 @@ To export your model, select the `File > Purchase Export Feature…`  menu (**Cm
 
 ![Loading](../images/loading.png)
 
+## Export Formats
+
 ShapeScript can export your model in a variety of formats, selectable from the export window:
 
 Extension             | File Type                                        | Supports All Features
@@ -31,11 +33,11 @@ Some model formats do not support embedding geometry and textures or materials i
 
 Exported models can be used in a variety of ways:
 
-## 3D Games and Augmented Reality
+## Games and AR
 
 ShapeScript models are well-suited to use in realtime 3D because the `detail` command gives you fine control over the triangle count. For realtime use you should generally set the detail level as low as you can get away with.
 
-You can import DAE files into a game development tool like Unity, or use SCN(Z) files with Apple's SceneKit and ARKit frameworks in Xcode.
+You can import DAE files into a game development tool like Unity, or use USD(Z) files with Apple's SceneKit and RealityKit frameworks in Xcode.
 
 ## 3D Printing
 
@@ -45,7 +47,7 @@ When exporting for 3D printing, you will usually want to avoid having internal g
 
 ShapeScript uses the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the ShapeScript preferences to export models in this orientation.
 
-## Rendering an Image
+## Image Formats
 
 In addition to 3D model formats, ShapeScript can also export 2D images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window. 
 

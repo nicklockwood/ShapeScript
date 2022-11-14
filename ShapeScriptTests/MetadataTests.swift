@@ -56,6 +56,11 @@ private func findHeadings(in string: String) -> [String] {
         .map { String($0.dropFirst(3)) }
 }
 
+private let headerLinks = [
+    ("Getting Started", "getting-started.md"),
+    ("Camera Control", "camera-control.md"),
+]
+
 private let geometryLinks = [
     ("Primitives", "primitives.md"),
     ("Options", "options.md"),
@@ -84,6 +89,11 @@ private let syntaxLinks = [
     ("Scope", "scope.md"),
     ("Debugging", "debugging.md"),
     ("Import", "import.md"),
+]
+
+private let footerLinks = [
+    ("Examples", "examples.md"),
+    ("Glossary", "glossary.md"),
 ]
 
 private extension URL {
@@ -156,14 +166,15 @@ class MetadataTests: XCTestCase {
             }
         }
 
-        func buildLinks(_ links: [(String, String)]) throws -> String {
+        func buildLinks(_ links: [(String, String)], indent: Int) throws -> String {
             try links.map { heading, path in
                 let file = helpSourceDirectory.appendingPathComponent(path)
                 let text = try String(contentsOf: file)
+                let indent = String(repeating: " ", count: indent * 4)
                 let links = findSections(in: text).map { subheading, fragment in
-                    "\n        - [\(subheading)](\(path)#\(fragment))"
+                    "\n\(indent)    - [\(subheading)](\(path)#\(fragment))"
                 }.joined()
-                return "    - [\(heading)](\(path))" + links
+                return "\(indent)- [\(heading)](\(path))" + links
             }.joined(separator: "\n")
         }
 
@@ -171,15 +182,13 @@ class MetadataTests: XCTestCase {
         ShapeScript Help
         ---
 
-        - [Getting Started](getting-started.md)
-        - [Camera Control](camera-control.md)
+        \(buildLinks(headerLinks, indent: 0))
         - Geometry
-        \(buildLinks(geometryLinks))
+        \(buildLinks(geometryLinks, indent: 1))
         - Syntax
-        \(buildLinks(syntaxLinks))
-        - [Export](export.md)
-        - [Examples](examples.md)
-        - [Glossary](glossary.md)
+        \(buildLinks(syntaxLinks, indent: 1))
+        \(buildLinks([("Export", "export.md")], indent: 0))
+        \(buildLinks(footerLinks, indent: 0))
 
         """
 
@@ -187,14 +196,12 @@ class MetadataTests: XCTestCase {
         ShapeScript Help
         ---
 
-        - [Getting Started](getting-started.md)
-        - [Camera Control](camera-control.md)
+        \(buildLinks(headerLinks, indent: 0))
         - Geometry
-        \(buildLinks(geometryLinks))
+        \(buildLinks(geometryLinks, indent: 1))
         - Syntax
-        \(buildLinks(syntaxLinks))
-        - [Examples](examples.md)
-        - [Glossary](glossary.md)
+        \(buildLinks(syntaxLinks, indent: 1))
+        \(buildLinks(footerLinks, indent: 0))
 
         """
 
@@ -209,14 +216,9 @@ class MetadataTests: XCTestCase {
     }
 
     func testHelpFooterLinks() throws {
-        let indexLinks = [
-            ("Getting Started", "getting-started.md"),
-            ("Camera Control", "camera-control.md"),
-        ] + geometryLinks + syntaxLinks + [
+        let indexLinks = headerLinks + geometryLinks + syntaxLinks + [
             ("Export", "export.md"),
-            ("Examples", "examples.md"),
-            ("Glossary", "glossary.md"),
-        ]
+        ] + footerLinks
 
         let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]+)\\)", options: [])
 
