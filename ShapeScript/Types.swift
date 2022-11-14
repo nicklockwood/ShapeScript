@@ -331,7 +331,7 @@ extension BlockType {
         case .mesh: return .mesh
         case .polygons: return .polygon
         case let .custom(symbols, options, _, _):
-            return symbols.merging(options.mapValues { .placeholder($0) }) { $1 }
+            return options.mapValues { .placeholder($0) }.merging(symbols) { $1 }
         }
     }
 }

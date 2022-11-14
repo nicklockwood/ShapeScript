@@ -42,6 +42,10 @@ extension Symbol {
         }
     }
 
+    static func getter(_ type: ValueType, _ fn: @escaping Getter) -> Symbol {
+        .function(.void, type) { try fn($1) }
+    }
+
     var errorDescription: String {
         switch self {
         case .block, .function((_, .void), _): return "command"

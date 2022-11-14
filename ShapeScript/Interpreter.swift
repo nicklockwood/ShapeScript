@@ -971,7 +971,17 @@ extension Statement {
                                                      for: identifier,
                                                      in: context)
                 try RuntimeError.wrap(context.addValue(fn(argument, context)), at: range)
-            case let .property(type, setter, _):
+            case let .property(type, setter, getter):
+                if parameter == nil {
+                    let value = try RuntimeError.wrap(getter(context), at: range)
+                    do {
+                        return try RuntimeError.wrap(context.addValue(value), at: range)
+                    } catch let error as RuntimeError {
+                        guard case .unusedValue = error.type else {
+                            throw error
+                        }
+                    }
+                }
                 let argument = try evaluateParameter(parameter,
                                                      as: type,
                                                      for: identifier,
@@ -1146,8 +1156,12 @@ extension Expression {
                     throw EvaluationCancelled()
                 }
                 let sourceIndex = context.sourceIndex
-                let context = context.push(type)
-                block.statements.gatherDefinitions(in: context)
+                let newContext = context.push(type)
+                defer {
+                    // TODO: find better solution for this
+                    context.background = newContext.background
+                }
+                block.statements.gatherDefinitions(in: newContext)
                 for statement in block.statements {
                     switch statement.type {
                     case let .command(identifier, parameter):
@@ -1163,20 +1177,20 @@ extension Expression {
                         }() else {
                             fallthrough
                         }
-                        context.define(name, as: try .constant(
+                        newContext.define(name, as: try .constant(
                             evaluateParameter(parameter,
                                               as: type,
                                               for: identifier,
-                                              in: context)
+                                              in: newContext)
                         ))
                     case .define, .forloop, .ifelse, .expression, .import:
-                        try statement.evaluate(in: context)
+                        try statement.evaluate(in: newContext)
                     case .option:
                         throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)
                     }
                 }
-                context.sourceIndex = sourceIndex
-                return try RuntimeError.wrap(fn(context), at: range)
+                newContext.sourceIndex = sourceIndex
+                return try RuntimeError.wrap(fn(newContext), at: range)
             case .property, .constant, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
