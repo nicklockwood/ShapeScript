@@ -1400,11 +1400,64 @@ class InterpreterTests: XCTestCase {
         XCTAssertNil(camera.camera?.background)
     }
 
-    func testBackgroundGetter() throws {
+    func testBackgroundSetter() throws {
         let program = try parse("background red")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(context.background, .color(.red))
+    }
+
+    func testBackgroundGetter() throws {
+        let program = try parse("background")
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .missingArgument(
+                for: "background",
+                index: 0,
+                type: .colorOrTexture
+            ))
+        }
+    }
+
+    func testBackgroundInDefine() throws {
+        let program = try parse("""
+        background red
+        define bg background
+        print bg
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testReturnBackgroundFromBlock() throws {
+        let program = try parse("""
+        define bg { background }
+        background red
+        print bg
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testSetBackgroundInFunction() throws {
+        let program = try parse("""
+        define bg(color) {
+            background color
+            background
+        }
+        print bg(red)
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.background, .color(.red))
+        XCTAssertEqual(delegate.log, [Color.red])
     }
 
     // MARK: Font

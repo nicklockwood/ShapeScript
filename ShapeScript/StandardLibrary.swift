@@ -494,15 +494,19 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let global: Symbols = _merge(functions, colors, meshes, paths)
+    static let global: Symbols = _merge(functions, colors, meshes, paths, [
+        "background": .getter(.colorOrTexture) { context in
+            .colorOrTexture(context.background ?? .color(.clear))
+        },
+    ])
 
-    static let node: Symbols = _merge(transform, [
+    static let name: Symbols = [
         "name": .property(.string, { parameter, context in
             context.name = parameter.stringValue
         }, { context in
             .string(context.name)
         }),
-    ])
+    ]
 
     static let font: Symbols = [
         "font": .property(.font, { parameter, context in
@@ -567,6 +571,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ])
 
+    static let node: Symbols = _merge(transform, name)
     static let shape: Symbols = _merge(node, detail, smoothing, material)
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
