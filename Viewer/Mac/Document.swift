@@ -45,6 +45,7 @@ class Document: NSDocument {
     var scene: Scene? {
         didSet {
             updateCameras()
+            updatePresets()
             updateViews()
         }
     }
@@ -70,6 +71,7 @@ class Document: NSDocument {
     var errorMessage: NSAttributedString?
     var accessErrorURL: URL?
     var sourceString: String = ""
+    var presets: [Export] = []
 
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)

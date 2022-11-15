@@ -34,6 +34,7 @@ public func evaluate(
     return Scene(
         background: context.background ?? .color(.clear),
         children: context.children.compactMap { $0.value as? Geometry },
+        exports: context.exports,
         cache: cache
     )
 }
@@ -100,9 +101,9 @@ public extension ProgramError {
                 return url
             case let .fileNotFound(for: _, at: url):
                 return url
-            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .importError:
+            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
+                 .typeMismatch, .forwardReference, .unexpectedArgument,
+                 .missingArgument, .unusedValue, .assertionFailure, .importError:
                 return nil
             }
         case .parserError, .lexerError, .unknownError:
@@ -117,8 +118,8 @@ public extension ProgramError {
             switch runtimeError.type {
             case let .importError(error, _, _):
                 return error.underlyingError
-            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .forwardReference, .unexpectedArgument, .missingArgument,
+            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
+                 .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
                  .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
                 return self
@@ -135,8 +136,8 @@ public extension ProgramError {
             switch runtimeError.type {
             case .fileAccessRestricted:
                 return true
-            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .forwardReference, .unexpectedArgument, .missingArgument,
+            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
+                 .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
                  .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .importError, .fileTypeMismatch, .fileParsingError:
                 return false
@@ -151,6 +152,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case unknownSymbol(String, options: [String])
     case unknownMember(String, of: String, options: [String])
     case unknownFont(String, options: [String])
+    case unknownCamera(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
     case forwardReference(String)
     case unexpectedArgument(for: String, max: Int)
@@ -187,6 +189,8 @@ public extension RuntimeError {
             return "Unknown \(type) member property '\(name)'"
         case let .unknownFont(name, _):
             return name.isEmpty ? "Font name cannot be blank" : "Unknown font '\(name)'"
+        case let .unknownCamera(name, _):
+            return name.isEmpty ? "Camera name cannot be blank" : "Unknown camera '\(name)'"
         case .typeMismatch:
             return "Type mismatch"
         case .forwardReference:
@@ -228,7 +232,7 @@ public extension RuntimeError {
             return Self.alternatives[name.lowercased()]?
                 .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
                 ?? name.bestMatches(in: options).first
-        case let .unknownFont(name, options):
+        case let .unknownFont(name, options), let .unknownCamera(name, options: options):
             return name.bestMatches(in: options).first
         case .typeMismatch,
              .forwardReference,
@@ -278,7 +282,7 @@ public extension RuntimeError {
             return hint
         case .unknownMember:
             return suggestion.map { "Did you mean '\($0)'?" }
-        case .unknownFont:
+        case .unknownFont, .unknownCamera:
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
@@ -1149,8 +1153,13 @@ extension Expression {
                     throw EvaluationCancelled()
                 }
                 let sourceIndex = context.sourceIndex
-                let context = context.push(type)
-                block.statements.gatherDefinitions(in: context)
+                let newContext = context.push(type)
+                defer {
+                    // TODO: find better solution for this
+                    context.exports = newContext.exports
+                    context.background = newContext.background
+                }
+                block.statements.gatherDefinitions(in: newContext)
                 for statement in block.statements {
                     switch statement.type {
                     case let .command(identifier, parameter):
@@ -1166,20 +1175,20 @@ extension Expression {
                         }() else {
                             fallthrough
                         }
-                        context.define(name, as: try .constant(
+                        newContext.define(name, as: try .constant(
                             evaluateParameter(parameter,
                                               as: type,
                                               for: identifier,
-                                              in: context)
+                                              in: newContext)
                         ))
                     case .define, .forloop, .ifelse, .expression, .import:
-                        try statement.evaluate(in: context)
+                        try statement.evaluate(in: newContext)
                     case .option:
                         throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)
                     }
                 }
-                context.sourceIndex = sourceIndex
-                return try RuntimeError.wrap(fn(context), at: range)
+                newContext.sourceIndex = sourceIndex
+                return try RuntimeError.wrap(fn(newContext), at: range)
             case .property, .constant, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),

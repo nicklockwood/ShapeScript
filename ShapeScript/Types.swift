@@ -14,9 +14,7 @@ import Foundation
 enum ValueType: Hashable {
     case any
     case color
-    case texture
     case boolean
-    case font
     case number
     case vector
     case size
@@ -29,10 +27,21 @@ enum ValueType: Hashable {
     case point
     case range
     case bounds
+    case resource(ResourceType)
     indirect case union(Set<ValueType>)
     indirect case tuple([ValueType])
     indirect case list(ValueType)
     indirect case object([String: ValueType])
+}
+
+enum ResourceType: String, Comparable {
+    case font
+    case texture
+    case camera
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
 }
 
 extension ValueType: Comparable {
@@ -40,25 +49,24 @@ extension ValueType: Comparable {
         switch self {
         case .any: return 0
         case .color: return 1
-        case .texture: return 2
-        case .boolean: return 3
-        case .font: return 4
-        case .number: return 5
-        case .vector: return 6
-        case .size: return 7
-        case .rotation: return 8
-        case .string: return 9
-        case .text: return 10
-        case .path: return 11
-        case .mesh: return 12
-        case .polygon: return 13
-        case .point: return 14
-        case .range: return 15
-        case .bounds: return 16
-        case .union: return 17
-        case .tuple: return 18
-        case .list: return 19
-        case .object: return 20
+        case .boolean: return 2
+        case .number: return 3
+        case .vector: return 4
+        case .size: return 5
+        case .rotation: return 6
+        case .string: return 7
+        case .text: return 8
+        case .path: return 9
+        case .mesh: return 10
+        case .polygon: return 11
+        case .point: return 12
+        case .range: return 13
+        case .resource: return 14
+        case .bounds: return 15
+        case .union: return 16
+        case .tuple: return 17
+        case .list: return 18
+        case .object: return 19
         }
     }
 
@@ -76,11 +84,13 @@ extension ValueType: Comparable {
             return lhs.count < rhs.count
         case let (.list(lhs), .list(rhs)):
             return lhs < rhs
+        case let (.resource(lhs), .resource(rhs)):
+            return lhs < rhs
         case let (lhs, rhs):
             switch lhs {
-            case .any, .color, .texture, .boolean, .font, .number, .vector,
-                 .size, .rotation, .string, .text, .path, .mesh, .polygon,
-                 .point, .range, .bounds, .union, .tuple, .list, .object:
+            case .any, .color, .boolean, .number, .vector, .size, .rotation,
+                 .string, .text, .path, .mesh, .polygon, .point, .range,
+                 .bounds, .resource, .union, .tuple, .list, .object:
                 return lhs.sortIndex < rhs.sortIndex
             }
         }
@@ -91,7 +101,9 @@ extension ValueType {
     static let void: ValueType = .tuple([])
     static let sequence: ValueType = .union([.range, .list(.any)])
     static let numberPair: ValueType = .tuple([.number, .number])
+    static let texture: ValueType = .resource(.texture)
     static let colorOrTexture: ValueType = .union([.color, .texture])
+    static let font: ValueType = .resource(.font)
 
     static func optional(_ type: ValueType) -> ValueType {
         .union([type, .void])
@@ -127,7 +139,7 @@ extension ValueType {
             return result.count == 1 ? result[0] : .union(Set(result))
         case .any, .color, .texture, .boolean, .font, .number, .vector, .size,
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds, .tuple, .list, .object:
+             .bounds, .resource, .tuple, .list, .object:
             return self
         }
     }
@@ -162,8 +174,6 @@ extension ValueType {
     var errorDescription: String {
         switch self {
         case .color: return "color"
-        case .texture: return "texture"
-        case .font: return "font"
         case .boolean: return "boolean"
         case .number: return "number"
         case .vector: return "vector"
@@ -178,6 +188,7 @@ extension ValueType {
         case .range: return "range"
         case .bounds: return "bounds"
         case .any: return "any"
+        case let .resource(type): return type.rawValue
         case let .tuple(types) where types.count == 1:
             return types[0].errorDescription
         case .tuple, .list: return "tuple"
@@ -221,7 +232,7 @@ extension ValueType {
             return types.isEmpty ? nil : .union(Set(types))
         case .color, .texture, .boolean, .font, .number, .vector, .size,
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds, .any:
+             .bounds, .resource, .any:
             return Self.memberTypes[name]
         case let .object(values):
             return values[name]

@@ -123,6 +123,7 @@ ShapeScript Help
         - [Random Numbers](commands.md#random-numbers)
         - [Debugging](commands.md#debugging)
         - [Import](commands.md#import)
+        - [Export](commands.md#export)
     - [Control Flow](control-flow.md)
         - [Loops](control-flow.md#loops)
         - [Loop Index](control-flow.md#loop-index)
