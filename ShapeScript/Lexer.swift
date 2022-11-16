@@ -59,6 +59,7 @@ public enum InfixOperator: String, CaseIterable {
     case minus = "-"
     case times = "*"
     case divide = "/"
+    case modulo = "%"
     // Comparison operators
     case lt = "<"
     case gt = ">"
