@@ -16,7 +16,27 @@ public func tokenize(_ input: String) throws -> [Token] {
     var spaceBefore = true
     _ = characters.skipWhitespaceAndComments()
     while let token = try characters.readToken(spaceBefore: spaceBefore) {
-        if token.type != .linebreak || tokens.last?.type != .linebreak {
+        switch (tokens.last?.type, token.type) {
+        case (.linebreak?, .linebreak):
+            break // Skip duplicate linebreak
+        case (.identifier?, .lparen) where spaceBefore && tokens.count > 1:
+            switch tokens[tokens.count - 2].type {
+            case .infix, .prefix:
+                // Insert parens for disambiguation
+                let identifier = tokens.removeLast()
+                let range = identifier.range
+                let lRange = range.lowerBound ..< range.lowerBound
+                let rRange = range.upperBound ..< range.upperBound
+                tokens += [
+                    Token(type: .lparen, range: lRange),
+                    identifier,
+                    Token(type: .rparen, range: rRange),
+                    token,
+                ]
+            default:
+                tokens.append(token)
+            }
+        default:
             tokens.append(token)
         }
         spaceBefore = characters.skipWhitespaceAndComments()
@@ -40,7 +60,7 @@ public func tokenize(_ input: String) throws -> [Token] {
     return tokens
 }
 
-/// Note: only includes keywords that start a command, not joining words
+// Note: only includes keywords that start a command, not joining words
 public enum Keyword: String, CaseIterable {
     case define
     case `for`

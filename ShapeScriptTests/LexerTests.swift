@@ -76,6 +76,25 @@ class LexerTests: XCTestCase {
         }
     }
 
+    func testInsertPhantomParensForDisambiguation() {
+        let input = "-a (b)"
+        let tokens: [TokenType] = [
+            .prefix(.minus), .lparen, .identifier("a"), .rparen,
+            .lparen, .identifier("b"), .rparen, .eof,
+        ]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testInsertPhantomParensForDisambiguation2() {
+        let input = "a + b (c)"
+        let tokens: [TokenType] = [
+            .identifier("a"), .infix(.plus),
+            .lparen, .identifier("b"), .rparen,
+            .lparen, .identifier("c"), .rparen, .eof,
+        ]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     // MARK: numbers
 
     func testZero() {

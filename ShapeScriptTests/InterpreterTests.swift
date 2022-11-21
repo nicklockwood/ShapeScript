@@ -2237,6 +2237,34 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [2])
     }
 
+    func testFunctionAmbiguity() {
+        let program = "print -cos(pi) + sin(pi)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-cos(Double.pi) + sin(.pi)])
+    }
+
+    func testFunctionAmbiguity2() {
+        let program = """
+        define a 1
+        define b 2
+        print -a (pi) + b (pi)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1, Double.pi + 2, Double.pi])
+    }
+
+    func testFunctionAmbiguity3() {
+        let program = """
+        define a 1
+        print -a (pi)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1, Double.pi])
+    }
+
     // MARK: Numeric comparison
 
     func testGT() {
