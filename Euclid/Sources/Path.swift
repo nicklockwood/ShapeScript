@@ -91,6 +91,9 @@ extension Path: Codable {
 }
 
 public extension Path {
+    /// An empty path.
+    static let empty: Path = .init([])
+
     /// Indicates whether all the path's points lie on a single plane.
     var isPlanar: Bool {
         plane != nil
@@ -107,7 +110,8 @@ public extension Path {
     var faceNormal: Vector {
         plane?.normal ?? faceNormalForPolygonPoints(
             points.map { $0.position },
-            convex: nil
+            convex: nil,
+            closed: isClosed
         )
     }
 
@@ -229,7 +233,8 @@ public extension Path {
             hasTexcoords = hasTexcoords && texcoord != nil
             let normal = plane?.normal ?? faceNormalForPolygonPoints(
                 [p0.position, p1.position, points[i + 1].position],
-                convex: true
+                convex: true,
+                closed: isClosed
             )
             vertices.append(Vertex(
                 unchecked: p1.position,
@@ -394,7 +399,7 @@ internal extension Path {
             self.plane = plane
             assert(positions.allSatisfy { plane.containsPoint($0) })
         } else if subpathIndices.isEmpty {
-            self.plane = Plane(points: positions)
+            self.plane = Plane(points: positions, convex: nil, closed: isClosed)
         } else {
             for path in subpaths {
                 guard let plane = path.plane else {
@@ -436,6 +441,7 @@ internal extension Path {
     }
 
     // TODO: Make this more robust, then make public
+    // TODO: Could this make use of Polygon.area?
     var hasZeroArea: Bool {
         points.count < (isClosed ? 4 : 3)
     }
