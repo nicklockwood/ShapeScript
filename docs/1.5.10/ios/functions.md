@@ -135,16 +135,6 @@ cube {
 
 Angular conversion formulae:
 
-<<<<<<< HEAD
-Conversion                      | Formula
-:------------------------------ | :--------------------------
-Degrees to radians              | radians = degrees / 180 * pi
-Radians to degrees              | degrees = radians / pi * 180
-Degrees to ShapeScript rotation | rotation = degrees / 180
-ShapeScript rotation to degrees | degrees = rotation * 180
-Radians to ShapeScript rotation | rotation = degrees / pi
-ShapeScript rotation to radians | radians = rotation * pi
-=======
 Conversion            | Formula
 :---------------------| :--------------------------
 Degrees to radians    | radians = degrees / 180 * pi
@@ -153,7 +143,6 @@ Degrees to half-turns | halfturns = degrees / 180
 Half-turns to degrees | degrees = halfturns * 180
 Radians to half-turns | halfturns = degrees / pi
 Half-turns to radians | radians = halfturns * pi
->>>>>>> 278c9169 (Improve documentation for rotations and trig functions)
 
 <br>
 

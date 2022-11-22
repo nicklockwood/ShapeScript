@@ -7,7 +7,7 @@ When you open a file in ShapeScript, it is rendered in 3D using a virtual camera
 
 By default, the camera is positioned along the Z axis, looking down at the model. The distance of the camera from the origin is set automatically based on the bounding sphere of the model.
 
-You can choose a different camera angle from the camera menu in the top right of the screen. Custom cameras [can be defined](cameras.md) programatically. To reset the current camera to its default position, select `Reset View`.
+You can choose a different camera angle from the camera menu in the top right of the screen. [Custom cameras](cameras.md#custom-cameras) can be defined programatically. To reset the current camera to its default position, select `Reset View`.
 
 ## Touch Controls
 

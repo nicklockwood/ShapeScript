@@ -53,7 +53,7 @@ The next line is:
 detail 32
 ```
 
-This controls the level of detail used for shapes in the file. ShapeScript models are made out of triangles, so it is not possible for curved edges to be represented exactly. When you define a sphere or other curved shape, the `detail` value is used to decide how many triangles will be used.
+This controls the level of detail used for shapes in the file. ShapeScript models are made out of flat polygons, so it is not possible for curved edges to be represented exactly. When you define a sphere or other curved shape, the `detail` value is used to decide how many polygons will be used.
 
 Next we have the following:
 
