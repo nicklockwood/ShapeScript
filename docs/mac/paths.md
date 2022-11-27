@@ -7,7 +7,7 @@ Paths are not typically used directly as part of a 3D model (except possibly for
 
 ## Points
 
-You define a path using a series of points. A path must have at least two points to be visible. The following path defines a short, horizontal line along the X axis.
+As with the [polygons](meshes.md#polygons-and-points) in a mesh, you define a path using a series of points. A path must have at least two points to be visible. The following path defines a short, horizontal line along the X axis.
 
 ```swift
 path {
@@ -53,7 +53,7 @@ path {
 
 ![Arc](../images/arc.png)
 
-You may notice that this "smooth" arc is not actually very smooth. As discussed in the [primitives section](primitives.md), 3D shapes are constructed from flat polygons, so likewise, curves are approximated using straight lines. You can adjust the smoothness of curves in a path using the `detail` command:
+You may notice that this "smooth" arc is not actually very smooth. Just as [3D meshes](meshes.md) are constructed from flat polygons, curves are approximated using straight lines. You can adjust the smoothness of curves in a path using the `detail` command:
 
 ```swift
 detail 99
@@ -142,7 +142,7 @@ roundrect {
 
 ## Regular Polygons
 
-To create a regular polygon you can use the `polygon` command. The following creates a pentagon:
+When used outside of a `mesh`, the `polygon` command can be used to create a regular polygon. The following creates a pentagon:
 
 ```swift
 polygon {

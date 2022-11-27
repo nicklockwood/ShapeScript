@@ -62,11 +62,12 @@ private let geometryLinks = [
     ("Materials", "materials.md"),
     ("Transforms", "transforms.md"),
     ("Bounds", "bounds.md"),
-    ("Groups", "groups.md"),
+    ("Meshes", "meshes.md"),
     ("Paths", "paths.md"),
     ("Text", "text.md"),
     ("Builders", "builders.md"),
     ("Constructive Solid Geometry", "csg.md"),
+    ("Groups", "groups.md"),
     ("Lights", "lights.md"),
     ("Cameras", "cameras.md"),
 ]

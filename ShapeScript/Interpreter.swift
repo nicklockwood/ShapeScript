@@ -812,6 +812,8 @@ extension Definition {
                                 sourceLocation: context.sourceLocation,
                                 debug: geometry.debug
                             ))
+                        case let .polygon(polygon):
+                            return .polygon(polygon.transformed(by: context.transform))
                         default:
                             if context.name.isEmpty {
                                 return value

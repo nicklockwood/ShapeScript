@@ -39,4 +39,4 @@ group {
 **Note:** Changes made to properties such as transform or material are [scoped](scope.md) to the group, and will not carry beyond the closing `}`.
 
 ---
-[Index](index.md) | Next: [Paths](paths.md)
+[Index](index.md) | Next: [Lights](lights.md)

@@ -97,4 +97,4 @@ stencil {
 If the child shapes both have the same color or texture, there will be no visible effect from using stencil.
 
 ---
-[Index](index.md) | Next: [Lights](lights.md)
+[Index](index.md) | Next: [Groups](groups.md)
