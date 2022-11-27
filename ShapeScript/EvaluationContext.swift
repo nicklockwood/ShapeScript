@@ -186,9 +186,9 @@ extension EvaluationContext {
     var commandSymbols: [String] {
         Array(symbols.merging(userSymbols) { $1 }.filter {
             switch $1 {
-            case .function, .property, .block:
+            case .function, .property, .block, .placeholder:
                 return true
-            case .constant, .placeholder:
+            case .constant:
                 return false
             }
         }.keys) + Keyword.allCases.map { $0.rawValue }
