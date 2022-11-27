@@ -782,4 +782,127 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(delegate.log, ["hello world"])
     }
+
+    // MARK: Polygons
+
+    func testPrintPolygonPath() throws {
+        let program = try parse("""
+        print polygon { sides 4 }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4)])
+    }
+
+    func testPrintPolygonFace() throws {
+        let program = try parse("""
+        print polygon {
+            point 0
+            point 1 0
+            point 1 1
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+    }
+
+    func testPrintDefaultPolygon() throws {
+        let program = try parse("""
+        print polygon
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [Path.polygon(sides: 5)])
+    }
+
+    func testPrintAmbiguousPolygon() throws {
+        let program = try parse("""
+        print polygon {
+            sides 2
+            point 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case let .assertionFailure(message)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssert(message.contains("points") && message.contains("sides"))
+        }
+    }
+
+    func testDefinePolygonPath() throws {
+        let program = try parse("""
+        define foo polygon { sides 4 }
+        print foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4)])
+    }
+
+    func testDefinePolygonFace() throws {
+        let program = try parse("""
+        define foo polygon {
+            point 0
+            point 1 0
+            point 1 1
+        }
+        print foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+    }
+
+    func testPolygonPathPosition() throws {
+        let program = try parse("""
+        print polygon {
+            position 1 0 0
+            sides 4
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4).translated(by: Vector(1, 0, 0))])
+    }
+
+    func testPolygonFacePosition() throws {
+        let program = try parse("""
+        print polygon {
+            position 1 0 0
+            point 0
+            point 1 0
+            point 1 1
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+    }
+
+    func testPolygonFacePointTransform() throws {
+        let program = try parse("""
+        print polygon {
+            point 0
+            point 1 0
+            translate 1 1
+            point 0
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+    }
 }

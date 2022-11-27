@@ -178,6 +178,16 @@ extension Path: Loggable {
     }
 }
 
+extension Polygon: Loggable {
+    public var logDescription: String {
+        "polygon { points \(vertices.count) }"
+    }
+
+    public var nestedLogDescription: String {
+        "polygon"
+    }
+}
+
 extension GeometryType: Loggable {
     public var logDescription: String {
         switch self {

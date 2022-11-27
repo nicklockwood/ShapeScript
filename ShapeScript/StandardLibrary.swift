@@ -101,6 +101,16 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ]
 
+    static let polygons: Symbols = [
+        "polygon": .block(.polygons) { context in
+            let path = Path(context.children.compactMap {
+                $0.value as? PathPoint
+            }).transformed(by: context.transform)
+            let polygons = path.closed().facePolygons(material: context.material)
+            return .tuple(polygons.map { .polygon($0) })
+        },
+    ]
+
     static let meshes: Symbols = [
         // primitives
         "cone": .block(.shape) { context in
@@ -149,6 +159,11 @@ extension Dictionary where Key == String, Value == Symbol {
                 }
             }
             return .mesh(Geometry(type: .hull(vertices), in: context))
+        },
+        // mesh
+        "mesh": .block(.mesh) { context in
+            let polygons = context.children.compactMap { $0.value as? Polygon }
+            return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },
         // csg
         "union": .block(.group) { context in
@@ -249,12 +264,21 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "polygon": .block(.custom(.pathShape, [
+        "polygon": .block(.custom(.polygon, [
             "sides": .number,
-        ], .void, .path)) { context in
-            let sides = context.value(for: "sides")?.intValue ?? 5
+        ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
+            let sides = context.value(for: "sides")?.intValue
+            let points = context.children.compactMap { $0.value as? PathPoint }
+            if !points.isEmpty {
+                if sides != nil {
+                    throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
+                }
+                let path = Path(points).transformed(by: context.transform)
+                let polygons = path.closed().facePolygons(material: context.material)
+                return .tuple(polygons.map { .polygon($0) })
+            }
             return .path(Path.polygon(
-                sides: sides,
+                sides: sides ?? 5,
                 color: context.material.color
             ).transformed(by: context.transform))
         },
@@ -297,7 +321,6 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let points: Symbols = [
-        // vertices
         "point": .function(.vector, .point) { parameter, context in
             .point(.point(
                 parameter.vectorValue,
@@ -306,7 +329,7 @@ extension Dictionary where Key == String, Value == Symbol {
         },
     ]
 
-    static let curves: Symbols = _merge(points, [
+    static let pathPoints: Symbols = _merge(points, [
         "curve": .function(.vector, .point) { parameter, context in
             .point(.curve(
                 parameter.vectorValue,
@@ -493,10 +516,12 @@ extension Dictionary where Key == String, Value == Symbol {
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
     static let hull: Symbols = _merge(group, points)
+    static let polygon: Symbols = _merge(transform, childTransform, points, color)
+    static let mesh: Symbols = _merge(node, smoothing, color, childTransform, polygons)
     static let pathShape: Symbols = _merge(transform, detail, color)
-    static let path: Symbols = _merge(pathShape, childTransform, font, curves)
-    static let definition: Symbols = root
-    static let all: Symbols = _merge(root, shape, path)
+    static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
+    static let definition: Symbols = _merge(root, pathPoints)
+    static let all: Symbols = _merge(definition, shape, path)
 }
 
 extension EvaluationContext {
