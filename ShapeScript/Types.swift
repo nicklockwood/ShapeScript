@@ -311,7 +311,8 @@ extension BlockType {
         case .builder: return .builder
         case .path: return .path
         case .pathShape: return .pathShape
-        case let .custom(symbols, _, _, _): return symbols
+        case let .custom(symbols, options, _, _):
+            return symbols.merging(options.mapValues { .placeholder($0) }) { $1 }
         }
     }
 }

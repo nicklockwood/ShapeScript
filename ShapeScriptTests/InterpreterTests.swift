@@ -403,6 +403,25 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testOptionDoesntShadowDefineInCallerScope() {
+        let program = """
+        define foo {
+            option x 0
+            print x
+        }
+
+        define bar {
+            define x 5
+            foo { x x }
+        }
+
+        bar
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     // MARK: Block scope
 
     func testLocalSymbolsNotPassedToCommand() {
@@ -583,6 +602,37 @@ class InterpreterTests: XCTestCase {
                 return
             }
             XCTAssertEqual(error?.suggestion, "option")
+        }
+    }
+
+    func testOptionNameSuggestedForTypoInBlock() {
+        let program = """
+        extrude { alon square }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("alon", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.suggestion, "along")
+        }
+    }
+
+    func testOptionNameSuggestedForTypoInCustomBlock() {
+        let program = """
+        define foo {
+            option bar 0
+        }
+        foo { baa 1 }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("baa", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.suggestion, "bar")
         }
     }
 

@@ -127,7 +127,10 @@ final class EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.childTypes = type.childTypes
         new.symbols = Symbols.global.merging(type.symbols) { $1 }
-        for name in type.symbols.keys {
+        for (name, symbol) in type.symbols {
+            if case .placeholder = symbol, new.userSymbols[name] != nil {
+                continue
+            }
             new.userSymbols[name] = nil
         }
         return new
@@ -186,9 +189,9 @@ extension EvaluationContext {
     var commandSymbols: [String] {
         Array(symbols.merging(userSymbols) { $1 }.filter {
             switch $1 {
-            case .function, .property, .block:
+            case .function, .property, .block, .placeholder:
                 return true
-            case .constant, .placeholder:
+            case .constant:
                 return false
             }
         }.keys) + Keyword.allCases.map { $0.rawValue }
