@@ -1524,6 +1524,37 @@ class InterpreterTests: XCTestCase {
         XCTAssertNil(camera.camera?.background)
     }
 
+    func testExportBackground() throws {
+        let program = """
+        background red
+        export { background blue }
+        background green
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertEqual(export.background, .color(.blue))
+    }
+
+    func testExportBackgroundNotInherited() throws {
+        let program = """
+        background red
+        export {}
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertNil(export.background)
+    }
+
+    func testExportBackgroundNotDefaultedToClear() throws {
+        let program = """
+        export {}
+        background red
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertNil(export.background)
+    }
+
     // MARK: Font
 
     func testSetValidFont() throws {
@@ -1663,10 +1694,6 @@ class InterpreterTests: XCTestCase {
         try? program.evaluate(in: context) // Throws file not found, but we can ignore
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
-
-    // MARK: Export
-
-    func
 
     // MARK: Command invocation
 

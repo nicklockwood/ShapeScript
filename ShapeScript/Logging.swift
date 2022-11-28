@@ -214,7 +214,7 @@ extension Bounds: Loggable {
     }
 }
 
-private extension GeometryType {
+extension GeometryType {
     var logDescription: String {
         switch self {
         case .group: return "group"

@@ -74,5 +74,72 @@ When exporting an image (or exporting a model for non-realtime use), you may wis
 
 **Note:** Although ShapeScript can export images, for best results you should export as a 3D model and then import that into a ray tracing program that provides fine-grained control over scene lighting and camera placement.
 
+## Export Command
+
+If you find that that you are commonly re-using a particular file name or format for a given ShapeScript file, you can set defaults for these within the file itself by using the `export` command.
+
+To specify a default file name for a given shape file, you can add an `export` block containing the `file` option:
+
+```swift
+export {
+    file "MyShape.obj"   
+}
+```
+
+This sets the default output file type to Wavefront Object, and the default file name to "MyShape". For a full-list of supported export types see the [export formats](#export-formats) section above.
+
+To use the "Z-up" convention for exported models (as mentioned in the [3D Printing](#3d-printing) section above), use the `zUp` option as follows:
+
+```swift
+export {
+    file "MyShape.obj"
+    zUp true
+}
+```
+
+You can create multiple `export` blocks with different configurations and these will be selectable at export time from the `Presets:` dropdown. Export presets will be assigned a default name derived from the file name, but you can override this with a name of your choosing by using the `name` option:
+
+
+```swift
+export {
+    name "OBJ Preset"
+    file "MyShape.obj"   
+}
+```
+
+You can configure default options for image export in the same way as for 3D models, by specifying an [image file extension](#image-formats):
+
+```swift
+export {
+    file "MyImage.png"   
+}
+```
+
+By default, the current camera will be used for exports. To override this, use the `camera` command to specify a named camera:
+
+```swift
+export {
+    file "MyImage.png" 
+    camera "Front"
+}
+```
+
+This works for both the built-in cameras and also any [custom cameras](cameras.md#custom-cameras) that you've defined. To set the output size for the exported image, use the `width` and `height` properties:
+
+```swift
+export {
+    width 1024
+    height 768
+}
+```
+
+This will override the current window size and/or any [dimensions](cameras.md#pixel-dimensions) defined in the camera itself. Similarly, you can override the current background:
+
+```swift
+export {
+    background black
+}
+```
+
 ---
 [Index](index.md) | Next: [Examples](examples.md)

@@ -25,6 +25,7 @@ class Document: UIDocument {
     var scene: Scene? {
         didSet {
             updateCameras()
+            updatePresets()
             updateViews()
         }
     }
@@ -51,6 +52,11 @@ class Document: UIDocument {
     var errorURL: URL?
     var isAccessError: Bool = false
     var sourceString: String = ""
+    var presets: [Export] = []
+
+    var cameras: [Camera] = CameraType.allCases.map {
+        Camera(type: $0)
+    }
 
     override init(fileURL url: URL) {
         super.init(fileURL: url)
@@ -73,10 +79,6 @@ class Document: UIDocument {
                 $0.stopAccessingSecurityScopedResource()
             }
         }
-    }
-
-    var cameras: [Camera] = CameraType.allCases.map {
-        Camera(type: $0)
     }
 
     func grantAccess() {

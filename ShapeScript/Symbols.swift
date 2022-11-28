@@ -354,9 +354,11 @@ extension Value {
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
             return ["lines", "words", "characters"]
+        case .text:
+            return ["string", "font", "color", "linespacing"]
         case let .object(values):
             return values.keys.sorted()
-        case .texture, .boolean, .number, .text:
+        case .texture, .boolean, .number:
             return []
         }
     }
@@ -510,9 +512,22 @@ extension Value {
                 return .tuple(string.map { .string("\($0)") })
             default: return nil
             }
+        case let .text(text):
+            switch name {
+            case "string":
+                return .string(text.string)
+            case "font":
+                return text.font.map { .string($0) } // TODO: return default?
+            case "color":
+                return text.color.map { .color($0) } // TODO: return default?
+            case "linespacing":
+                return text.linespacing.map { .number($0) } // TODO: return default?
+            default:
+                return nil
+            }
         case let .object(values):
             return values[name]
-        case .boolean, .texture, .number, .text:
+        case .boolean, .texture, .number:
             return nil
         }
     }
