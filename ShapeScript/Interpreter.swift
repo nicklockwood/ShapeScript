@@ -409,8 +409,16 @@ private extension RuntimeError {
 extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
+        let oldLinebreakIndices = context.linebreakIndices
+        let oldSourceIndex = context.sourceIndex
         context.source = source
-        defer { context.source = oldSource }
+        context.linebreakIndices = source.linebreakIndices
+        context.sourceIndex = nil
+        defer {
+            context.source = oldSource
+            context.linebreakIndices = oldLinebreakIndices
+            context.sourceIndex = oldSourceIndex
+        }
         do {
             try statements.forEach { try $0.evaluate(in: context) }
         } catch is EvaluationCancelled {}
@@ -549,10 +557,12 @@ extension Definition {
                     let oldChildTypes = context.childTypes
                     let oldSymbols = context.userSymbols
                     let oldSource = context.source
+                    let oldLinebreakIndices = context.linebreakIndices
                     let oldBaseURL = context.baseURL
                     context.children = []
                     context.childTypes = ValueType.any
                     context.source = declarationContext.source
+                    context.linebreakIndices = declarationContext.linebreakIndices
                     context.baseURL = declarationContext.baseURL
                     context.userSymbols = declarationContext.userSymbols
                     context.stackDepth += 1
@@ -560,6 +570,7 @@ extension Definition {
                         context.children = oldChildren
                         context.childTypes = oldChildTypes
                         context.source = oldSource
+                        context.linebreakIndices = oldLinebreakIndices
                         context.baseURL = oldBaseURL
                         context.userSymbols = oldSymbols
                         context.stackDepth -= 1
@@ -619,6 +630,8 @@ extension Definition {
                 }
             }
             let source = context.source
+            let linebreakIndices = context.linebreakIndices
+            let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
             return .block(.custom(.user, options)) { _context in
                 do {
@@ -640,6 +653,8 @@ extension Definition {
                     context.smoothing = _context.smoothing
                     context.baseURL = baseURL
                     context.source = source
+                    context.linebreakIndices = linebreakIndices
+                    context.sourceIndex = sourceIndex
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
                             if context.symbol(for: identifier.name) == nil {

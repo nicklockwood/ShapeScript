@@ -39,10 +39,10 @@ final class EvaluationContext {
     var userSymbols = Symbols()
     private let importCache: ImportCache
     private var importStack: [URL]
-    private let linebreakIndices: [String.Index]
     let isCancelled: () -> Bool
 
     var source: String
+    var linebreakIndices: [String.Index]
     var sourceIndex: String.Index?
     var baseURL: URL?
 
