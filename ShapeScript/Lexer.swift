@@ -241,10 +241,19 @@ public extension String {
         at index: String.Index,
         withLinebreakIndices linebreakIndices: [String.Index]
     ) -> (line: Int, column: Int) {
-        let line = linebreakIndices.firstIndex(where: {
-            $0 >= index
-        }) ?? linebreakIndices.count - 1
-        var i = line > 0 ? self.index(after: linebreakIndices[line - 1]) : startIndex
+        guard indices.contains(index),
+              let line = linebreakIndices.firstIndex(where: { $0 >= index })
+        else {
+            assertionFailure("index out of range")
+            return (linebreakIndices.count, 1)
+        }
+        let linebreakIndex = line > 0 ? self
+            .index(after: linebreakIndices[line - 1]) : startIndex
+        guard indices.contains(linebreakIndex) else {
+            assertionFailure("linebreakIndex out of range")
+            return (line, 1)
+        }
+        var i = linebreakIndex
         var column = 1
         while i < index {
             i = self.index(after: i)
