@@ -186,7 +186,7 @@ extension Document {
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
         viewController.errorMessage = errorMessage
-        viewController.showAccessButton = (errorMessage != nil && accessErrorURL != nil)
+        viewController.showAccessButton = (errorMessage != nil && isAccessError)
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
@@ -227,14 +227,21 @@ extension Document {
                 }
             case let .partial(scene), let .success(scene):
                 self.errorMessage = nil
-                self.accessErrorURL = nil
+                self.errorURL = nil
+                self.isAccessError = false
                 self.scene = scene
             case let .failure(error):
                 self.errorMessage = error.message(with: input)
-                if case let .fileAccessRestricted(_, url)? = (error as? RuntimeError)?.type {
-                    self.accessErrorURL = url
+                let error = error as? RuntimeError
+                if let accessErrorURL = error?.accessErrorURL {
+                    self.errorURL = accessErrorURL
+                    self.isAccessError = true
+                } else if case let .importError(_, name, _)? = error?.type {
+                    self.errorURL = URL(fileURLWithPath: name, relativeTo: fileURL)
+                    self.isAccessError = false
                 } else {
-                    self.accessErrorURL = nil
+                    self.errorURL = nil
+                    self.isAccessError = false
                 }
                 self.updateViews()
             case .cancelled:

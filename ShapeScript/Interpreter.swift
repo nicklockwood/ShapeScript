@@ -83,6 +83,15 @@ public extension ImportError {
     }
 }
 
+private extension ImportError {
+    var accessErrorURL: URL? {
+        if case let .runtimeError(error) = self {
+            return error.accessErrorURL
+        }
+        return nil
+    }
+}
+
 public enum RuntimeErrorType: Error, Equatable {
     case unknownSymbol(String, options: [String])
     case unknownMember(String, of: String, options: [String])
@@ -262,6 +271,27 @@ public extension RuntimeError {
             return "The file at '\(url.path)' is not a \(type) file."
         case let .importError(error, for: _, in: _):
             return error.hint
+        }
+    }
+
+    var accessErrorURL: URL? {
+        switch type {
+        case let .fileAccessRestricted(for: _, at: url):
+            return url
+        case let .importError(error, _, _):
+            return error.accessErrorURL
+        case .typeMismatch,
+             .unexpectedArgument,
+             .missingArgument,
+             .unusedValue,
+             .assertionFailure,
+             .fileNotFound,
+             .fileTypeMismatch,
+             .fileParsingError,
+             .unknownSymbol,
+             .unknownMember,
+             .unknownFont:
+            return nil
         }
     }
 

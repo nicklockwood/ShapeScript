@@ -48,7 +48,8 @@ class Document: UIDocument {
     }
 
     var errorMessage: NSAttributedString?
-    var accessErrorURL: URL?
+    var errorURL: URL?
+    var isAccessError: Bool = false
     var sourceString: String = ""
 
     override init(fileURL url: URL) {
@@ -83,7 +84,7 @@ class Document: UIDocument {
             forOpeningContentTypes: [.folder],
             asCopy: false
         )
-        picker.directoryURL = accessErrorURL
+        picker.directoryURL = errorURL
         picker.delegate = self
         picker.modalPresentationStyle = .fullScreen
         viewController?.present(picker, animated: true)
