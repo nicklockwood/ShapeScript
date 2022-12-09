@@ -17,7 +17,8 @@ public final class Geometry: Hashable {
     public let smoothing: Angle?
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
-    public let sourceLocation: SourceLocation?
+    private let _sourceLocation: (() -> SourceLocation?)?
+    public private(set) lazy var sourceLocation: SourceLocation? = _sourceLocation?()
     public private(set) weak var parent: Geometry?
 
     public func hash(into hasher: inout Hasher) {
@@ -112,15 +113,39 @@ public final class Geometry: Hashable {
         }
     }
 
-    public init(type: GeometryType,
-                name: String?,
-                transform: Transform,
-                material: Material,
-                smoothing: Angle?,
-                children: [Geometry],
-                sourceLocation: SourceLocation?,
-                debug: Bool = false)
-    {
+    @available(*, deprecated, message: "Use lazy source location instead.")
+    public convenience init(
+        type: GeometryType,
+        name: String?,
+        transform: Transform,
+        material: Material,
+        smoothing: Angle?,
+        children: [Geometry],
+        sourceLocation: SourceLocation,
+        debug: Bool = false
+    ) {
+        self.init(
+            type: type,
+            name: name,
+            transform: transform,
+            material: material,
+            smoothing: smoothing,
+            children: children,
+            sourceLocation: { sourceLocation },
+            debug: debug
+        )
+    }
+
+    public init(
+        type: GeometryType,
+        name: String?,
+        transform: Transform,
+        material: Material,
+        smoothing: Angle?,
+        children: [Geometry],
+        sourceLocation: (() -> SourceLocation?)?,
+        debug: Bool = false
+    ) {
         var material = material
         var children = children
         var type = type
@@ -199,7 +224,7 @@ public final class Geometry: Hashable {
         self.material = material
         self.smoothing = smoothing
         self.children = children
-        self.sourceLocation = sourceLocation
+        self._sourceLocation = sourceLocation
         self.debug = debug
 
         var isOpaque = material.isOpaque
@@ -318,7 +343,7 @@ public extension Geometry {
             material: material,
             smoothing: smoothing,
             children: children,
-            sourceLocation: sourceLocation,
+            sourceLocation: _sourceLocation,
             debug: debug
         )
     }
@@ -344,10 +369,23 @@ public extension Geometry {
         )
     }
 
+    @available(*, deprecated, message: "Use lazy source location instead.")
     func with(
         transform: Transform,
         material: Material?,
         sourceLocation: SourceLocation?
+    ) -> Geometry {
+        with(
+            transform: transform,
+            material: material,
+            sourceLocation: { sourceLocation }
+        )
+    }
+
+    func with(
+        transform: Transform,
+        material: Material?,
+        sourceLocation: @escaping () -> SourceLocation?
     ) -> Geometry {
         var material = material
         if material != nil, !hasUniformMaterial() {
@@ -566,7 +604,7 @@ private extension Geometry {
         name: String?,
         transform: Transform?,
         material: Material?,
-        sourceLocation: SourceLocation?
+        sourceLocation: (() -> SourceLocation?)?
     ) -> Geometry {
         var type = self.type
         var m = self.material
@@ -590,7 +628,7 @@ private extension Geometry {
                     sourceLocation: sourceLocation
                 )
             },
-            sourceLocation: self.sourceLocation ?? sourceLocation,
+            sourceLocation: self._sourceLocation ?? sourceLocation,
             debug: debug
         )
         copy.mesh = mesh
