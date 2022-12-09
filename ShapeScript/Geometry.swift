@@ -224,7 +224,7 @@ public final class Geometry: Hashable {
         self.material = material
         self.smoothing = smoothing
         self.children = children
-        self._sourceLocation = sourceLocation
+        _sourceLocation = sourceLocation
         self.debug = debug
 
         var isOpaque = material.isOpaque
@@ -628,7 +628,7 @@ private extension Geometry {
                     sourceLocation: sourceLocation
                 )
             },
-            sourceLocation: self._sourceLocation ?? sourceLocation,
+            sourceLocation: _sourceLocation ?? sourceLocation,
             debug: debug
         )
         copy.mesh = mesh

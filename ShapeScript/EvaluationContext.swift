@@ -42,7 +42,6 @@ final class EvaluationContext {
     let isCancelled: () -> Bool
 
     var source: String
-    var linebreakIndices: [String.Index]
     var sourceIndex: String.Index?
     var baseURL: URL?
 
@@ -76,15 +75,9 @@ final class EvaluationContext {
     var stackDepth = 1
 
     var sourceLocation: () -> SourceLocation? {
-        { [sourceIndex, source, linebreakIndices, baseURL] in
+        { [sourceIndex, source, baseURL] in
             sourceIndex.map {
-                SourceLocation(
-                    at: source.lineAndColumn(
-                        at: $0,
-                        withLinebreakIndices: linebreakIndices
-                    ).line,
-                    in: baseURL
-                )
+                SourceLocation(at: source.line(at: $0), in: baseURL)
             }
         }
     }
@@ -100,13 +93,11 @@ final class EvaluationContext {
         importCache = ImportCache()
         importStack = []
         random = RandomSequence(seed: 0)
-        linebreakIndices = source.linebreakIndices
     }
 
     private init(parent: EvaluationContext) {
         // preserve
         source = parent.source
-        linebreakIndices = parent.linebreakIndices
         sourceIndex = parent.sourceIndex
         baseURL = parent.baseURL
         delegate = parent.delegate
