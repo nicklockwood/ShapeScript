@@ -75,15 +75,17 @@ final class EvaluationContext {
 
     var stackDepth = 1
 
-    var sourceLocation: SourceLocation? {
-        sourceIndex.map {
-            SourceLocation(
-                at: source.lineAndColumn(
-                    at: $0,
-                    withLinebreakIndices: linebreakIndices
-                ).line,
-                in: baseURL
-            )
+    var sourceLocation: () -> SourceLocation? {
+        { [sourceIndex, source, linebreakIndices, baseURL] in
+            sourceIndex.map {
+                SourceLocation(
+                    at: source.lineAndColumn(
+                        at: $0,
+                        withLinebreakIndices: linebreakIndices
+                    ).line,
+                    in: baseURL
+                )
+            }
         }
     }
 
