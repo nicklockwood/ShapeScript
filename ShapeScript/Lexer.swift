@@ -237,6 +237,11 @@ public extension String {
         return (line: line, column: column)
     }
 
+    func line(at index: String.Index) -> Int {
+        lineAndColumn(at: index).line
+    }
+
+    @available(*, deprecated, message: "Use lineAndColumn(at:) instead.")
     func lineAndColumn(
         at index: String.Index,
         withLinebreakIndices linebreakIndices: [String.Index]
@@ -262,6 +267,7 @@ public extension String {
         return (line: line + 1, column: column)
     }
 
+    @available(*, deprecated, message: "Obsolete.")
     var linebreakIndices: [String.Index] {
         indices.compactMap { self[$0].isLinebreak ? $0 : nil } + [endIndex]
     }

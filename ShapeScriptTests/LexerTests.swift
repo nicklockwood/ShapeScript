@@ -539,12 +539,6 @@ class LexerTests: XCTestCase {
         let lc = input.lineAndColumn(at: input.startIndex)
         XCTAssertEqual(lc.line, 1)
         XCTAssertEqual(lc.column, 1)
-        let lc2 = input.lineAndColumn(
-            at: input.startIndex,
-            withLinebreakIndices: input.linebreakIndices
-        )
-        XCTAssertEqual(lc.line, lc2.line)
-        XCTAssertEqual(lc.column, lc2.column)
     }
 
     func testLineAndColumnAtEndOfLine() {
@@ -553,12 +547,6 @@ class LexerTests: XCTestCase {
         let lc = input.lineAndColumn(at: index)
         XCTAssertEqual(lc.line, 2)
         XCTAssertEqual(lc.column, 4)
-        let lc2 = input.lineAndColumn(
-            at: index,
-            withLinebreakIndices: input.linebreakIndices
-        )
-        XCTAssertEqual(lc.line, lc2.line)
-        XCTAssertEqual(lc.column, lc2.column)
     }
 
     func testLineAndColumnAtCRLFEndOfLine() {
@@ -567,11 +555,5 @@ class LexerTests: XCTestCase {
         let lc = input.lineAndColumn(at: index)
         XCTAssertEqual(lc.line, 2)
         XCTAssertEqual(lc.column, 4)
-        let lc2 = input.lineAndColumn(
-            at: index,
-            withLinebreakIndices: input.linebreakIndices
-        )
-        XCTAssertEqual(lc.line, lc2.line)
-        XCTAssertEqual(lc.column, lc2.column)
     }
 }
