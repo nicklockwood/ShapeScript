@@ -34,21 +34,10 @@ import Foundation
 // MARK: 3D shapes
 
 public extension Mesh {
-    /// A choice of the face directions that Euclid generates for polygons.
-    ///
-    /// ## Topics
-    ///
-    /// ### Faces
-    ///
-    /// - ``Faces/default``
-    /// - ``Faces/front``
-    /// - ``Faces/back``
-    /// - ``Faces/frontAndBack``
-    ///
-    /// ### Comparing Faces
-    ///
-    /// - ``Faces/!=(_:_:)``
-    ///
+    /// Alignment mode to use when extruding along a path.
+    typealias Alignment = Path.Alignment
+
+    /// The face generation policy for Euclid to use when creating a mesh.
     enum Faces {
         /// The default face generation behavior. Context-dependent.
         case `default`
@@ -60,20 +49,7 @@ public extension Mesh {
         case frontAndBack
     }
 
-    /// A choice of how texture coordinates should be generated.
-    ///
-    /// ## Topics
-    ///
-    /// ### Wrap Modes
-    ///
-    /// - ``WrapMode/default``
-    /// - ``WrapMode/shrink``
-    /// - ``WrapMode/tube``
-    ///
-    /// ### Comparing Wrap modes
-    ///
-    /// - ``WrapMode/!=(_:_:)``
-    ///
+    /// The texture wrapping mode to use when generating a mesh.
     enum WrapMode {
         /// The default wrap behavior. Context-dependent.
         case `default`
@@ -342,25 +318,37 @@ public extension Mesh {
     /// - Parameters:
     ///   - shape: The path to extrude in order to create the mesh.
     ///   - depth: The depth of the extrusion.
+    ///   - twist: Angular twist to apply along the extrusion.
+    ///   - sections: Number of sections to create along extrusion.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     static func extrude(
         _ shape: Path,
         depth: Double = 1,
+        twist: Angle = .zero,
+        sections: Int = 0,
         faces: Faces = .default,
         material: Material? = nil
     ) -> Mesh {
-        let depth = max(abs(depth), scaleLimit)
-        let offset = shape.faceNormal * depth / 2
-        if offset.isEqual(to: .zero) {
+        let depth = abs(depth)
+        if depth < scaleLimit {
             return fill(shape, faces: faces, material: material)
+        }
+        let faceNormal = shape.faceNormal
+        let offset = faceNormal * depth
+        let sections = max(1, sections)
+        let step = offset / Double(sections)
+        let rotation = Rotation(unchecked: faceNormal, angle: twist / Double(sections))
+        var shape = shape.translated(by: -offset / 2)
+        var shapes = [shape]
+        for _ in 0 ..< sections {
+            shape.translate(by: step)
+            shape.rotate(by: rotation)
+            shapes.append(shape)
         }
         let polygon = Polygon(shape: shape)
         return loft(
-            unchecked: [
-                shape.translated(by: offset),
-                shape.translated(by: -offset),
-            ],
+            unchecked: shapes,
             faces: faces,
             material: material,
             verifiedCoplanar: true,
@@ -373,17 +361,28 @@ public extension Mesh {
     /// - Parameters:
     ///   - shapes: The array of paths to extrude in order to create the mesh.
     ///   - depth: The depth of the extrusion.
+    ///   - twist: Angular twist to apply along the extrusion.
+    ///   - sections: Number of sections to create along extrusion.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     static func extrude(
         _ shapes: [Path],
         depth: Double = 1,
+        twist: Angle = .zero,
+        sections: Int = 0,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         .union(build(shapes, using: {
-            extrude($0, depth: depth, faces: faces, material: material)
+            extrude(
+                $0,
+                depth: depth,
+                twist: twist,
+                sections: sections,
+                faces: faces,
+                material: material
+            )
         }, isCancelled: isCancelled), isCancelled: isCancelled)
     }
 
@@ -391,11 +390,15 @@ public extension Mesh {
     /// - Parameters:
     ///   - shape: The shape to extrude into a mesh.
     ///   - along: The path along which to extrude the shape.
+    ///   - twist: Angular twist to apply along the extrusion.
+    ///   - align: The alignment mode to use for the extruded shape.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     static func extrude(
         _ shape: Path,
         along: Path,
+        twist: Angle = .zero,
+        align: Alignment = .default,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -406,80 +409,17 @@ public extension Mesh {
                 extrude(
                     shape,
                     along: $0,
+                    twist: twist,
                     faces: faces,
                     material: material
                 )
             }, isCancelled: isCancelled))
         }
-        let points = along.points
-        guard var p0 = points.first else {
-            return .empty
-        }
-        var shape = shape
-        let shapePlane = shape.flatteningPlane
-        let pathPlane = along.flatteningPlane
-        let shapeNormal: Vector
-        switch (shapePlane, pathPlane) {
-        case (.xy, .xy):
-            shape.rotate(by: .pitch(.halfPi))
-            shapeNormal = shapePlane.rawValue.normal.rotated(by: .pitch(.halfPi))
-        case (.yz, .yz), (.xz, .xz):
-            shape.rotate(by: .roll(.halfPi))
-            shapeNormal = shapePlane.rawValue.normal.rotated(by: .roll(.halfPi))
-        default:
-            shapeNormal = shapePlane.rawValue.normal
-        }
-        var shapes = [Path]()
-        let count = points.count
-        var p1 = points[1]
-        var p0p1 = (p1.position - p0.position).normalized()
-        var r = rotationBetweenVectors(p0p1, shapeNormal)
-
-        func addShape(_ p: PathPoint, _ s: Vector?) {
-            var shape = shape
-            if let color = p.color {
-                shape = shape.with(color: color)
-            }
-            if let scale = s {
-                shape.scale(by: scale)
-            }
-            shape.rotate(by: r)
-            shape.translate(by: p.position)
-            shapes.append(shape)
-            if !p.isCurved, s != nil {
-                shapes.append(shape)
-            }
-        }
-
-        func addShape(_ p2: PathPoint) {
-            let p1p2 = (p2.position - p1.position).normalized()
-            let angle = p1p2.angle(with: p0p1) / 2
-            var axis = p1p2.cross(p0p1).normalized()
-            if axis == .zero {
-                axis = along.faceNormal
-            }
-            let rotation = Rotation(unchecked: axis, angle: angle)
-            r *= rotation
-            addShape(p1, Vector(1 / cos(angle), 1, 1))
-            r *= rotation
-            p0 = p1
-            p1 = p2
-            p0p1 = p1p2
-        }
-
-        if along.isClosed {
-            for i in 1 ..< count {
-                addShape(points[(i < count - 1) ? i + 1 : 1])
-            }
-            shapes.append(shapes[0])
-        } else {
-            addShape(p0, nil)
-            for i in 1 ..< count - 1 {
-                addShape(points[i + 1])
-            }
-            addShape(points[count - 1], nil)
-        }
-        return loft(shapes, faces: faces, material: material)
+        return loft(shape.extrusionContours(
+            along: along,
+            twist: twist,
+            align: align
+        ), faces: faces, material: material)
     }
 
     /// Creates a mesh by connecting a series of 3D paths representing the cross sections.
@@ -1138,8 +1078,8 @@ private extension Mesh {
             let facePolygons = first.facePolygons(material: material)
             if facePolygons.isEmpty {
                 isCapped = isCapped && first.isClosed && first.hasZeroArea
-            } else {
-                let p0p1 = directionBetweenShapes(first, shapes[1])
+            } else if let next = shapes.first(where: { $0 != first }) {
+                let p0p1 = directionBetweenShapes(first, next)
                 polygons += facePolygons.map {
                     p0p1.dot($0.plane.normal) > 0 ? $0.inverted() : $0
                 }
@@ -1175,8 +1115,8 @@ private extension Mesh {
             let facePolygons = last.facePolygons(material: material)
             if facePolygons.isEmpty {
                 isCapped = isCapped && last.isClosed && last.hasZeroArea
-            } else {
-                let p0p1 = directionBetweenShapes(shapes[shapes.count - 2], last)
+            } else if let prev = shapes.last(where: { $0 != last }) {
+                let p0p1 = directionBetweenShapes(prev, last)
                 polygons += facePolygons.map {
                     p0p1.dot($0.plane.normal) < 0 ? $0.inverted() : $0
                 }

@@ -91,6 +91,9 @@ extension Path: Codable {
 }
 
 public extension Path {
+    /// An empty path.
+    static let empty: Path = .init([])
+
     /// Indicates whether all the path's points lie on a single plane.
     var isPlanar: Bool {
         plane != nil
@@ -101,13 +104,24 @@ public extension Path {
         Bounds(points: points.map { $0.position })
     }
 
+    /// The total length of the path.
+    var length: Double {
+        var prev = points.first?.position ?? .zero
+        return points.dropFirst().reduce(0.0) {
+            let position = $1.position
+            defer { prev = position }
+            return $0 + (position - prev).length
+        }
+    }
+
     /// The face normal for the path.
     ///
     /// > Note: If path is non-planar then this returns an average/approximate normal.
     var faceNormal: Vector {
         plane?.normal ?? faceNormalForPolygonPoints(
             points.map { $0.position },
-            convex: nil
+            convex: nil,
+            closed: isClosed
         )
     }
 
@@ -229,7 +243,8 @@ public extension Path {
             hasTexcoords = hasTexcoords && texcoord != nil
             let normal = plane?.normal ?? faceNormalForPolygonPoints(
                 [p0.position, p1.position, points[i + 1].position],
-                convex: true
+                convex: true,
+                closed: isClosed
             )
             vertices.append(Vertex(
                 unchecked: p1.position,
@@ -431,7 +446,7 @@ internal extension Path {
             self.plane = plane
             assert(positions.allSatisfy { plane.containsPoint($0) })
         } else if subpathIndices.isEmpty {
-            self.plane = Plane(points: positions)
+            self.plane = Plane(points: positions, convex: nil, closed: isClosed)
         } else {
             for path in subpaths {
                 guard let plane = path.plane else {
@@ -473,6 +488,7 @@ internal extension Path {
     }
 
     // TODO: Make this more robust, then make public
+    // TODO: Could this make use of Polygon.area?
     var hasZeroArea: Bool {
         points.count < (isClosed ? 4 : 3)
     }

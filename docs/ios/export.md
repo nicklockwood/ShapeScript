@@ -88,6 +88,15 @@ export {
 
 This sets the default output file type to Wavefront Object, and the default file name to "MyShape". For a full-list of supported export types see the [export formats](#export-formats) section above.
 
+To use the "Z-up" convention for exported models (as mentioned in the [3D Printing](#3d-printing) section above), use the `zUp` option as follows:
+
+```swift
+export {
+    file "MyShape.obj"
+    zUp true
+}
+```
+
 You can create multiple `export` blocks with different configurations and these will be selectable at export time from the `Presets:` dropdown. Export presets will be assigned a default name derived from the file name, but you can override this with a name of your choosing by using the `name` option:
 
 
@@ -124,7 +133,13 @@ export {
 }
 ```
 
-This will override the current window size and/or any [dimensions](cameras.md#pixel-dimensions) defined in the camera itself.
+This will override the current window size and/or any [dimensions](cameras.md#pixel-dimensions) defined in the camera itself. Similarly, you can override the current background:
+
+```swift
+export {
+    background black
+}
+```
 
 ---
 [Index](index.md) | Next: [Examples](examples.md)

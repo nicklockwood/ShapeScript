@@ -586,6 +586,37 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testOptionNameSuggestedForTypoInBlock() {
+        let program = """
+        extrude { alon square }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("alon", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.suggestion, "along")
+        }
+    }
+
+    func testOptionNameSuggestedForTypoInCustomBlock() {
+        let program = """
+        define foo {
+            option bar 0
+        }
+        foo { baa 1 }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("baa", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.suggestion, "bar")
+        }
+    }
+
     // MARK: Position
 
     func testCumulativePosition() throws {
@@ -1390,16 +1421,6 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.clear])
     }
 
-    func testCameraBackgroundNotDefaultedToClear() throws {
-        let program = """
-        camera {}
-        background red
-        """
-        let scene = try evaluate(parse(program), delegate: nil)
-        let camera = try XCTUnwrap(scene.cameras.first)
-        XCTAssertNil(camera.camera?.background)
-    }
-
     func testBackgroundSetter() throws {
         let program = try parse("background red")
         let context = EvaluationContext(source: program.source, delegate: nil)
@@ -1458,6 +1479,80 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(context.background, .color(.red))
         XCTAssertEqual(delegate.log, [Color.red])
+    }
+
+    func testCameraBackground() throws {
+        let program = """
+        background red
+        camera { background blue }
+        background green
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertEqual(camera.camera?.background, .color(.blue))
+    }
+
+    func testCameraBackgroundShadowing() throws {
+        let program = """
+        background red
+        camera {
+            background background 0.5
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertEqual(camera.camera?.background, .color(Color.red.withAlpha(0.5)))
+    }
+
+    func testCameraBackgroundNotInherited() throws {
+        let program = """
+        background red
+        camera {}
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertNil(camera.camera?.background)
+    }
+
+    func testCameraBackgroundNotDefaultedToClear() throws {
+        let program = """
+        camera {}
+        background red
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first)
+        XCTAssertNil(camera.camera?.background)
+    }
+
+    func testExportBackground() throws {
+        let program = """
+        background red
+        export { background blue }
+        background green
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertEqual(export.background, .color(.blue))
+    }
+
+    func testExportBackgroundNotInherited() throws {
+        let program = """
+        background red
+        export {}
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertNil(export.background)
+    }
+
+    func testExportBackgroundNotDefaultedToClear() throws {
+        let program = """
+        export {}
+        background red
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let export = try XCTUnwrap(scene.exports.first)
+        XCTAssertNil(export.background)
     }
 
     // MARK: Font
@@ -2506,6 +2601,34 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [2])
+    }
+
+    func testFunctionAmbiguity() {
+        let program = "print -cos(pi) + sin(pi)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-cos(Double.pi) + sin(.pi)])
+    }
+
+    func testFunctionAmbiguity2() {
+        let program = """
+        define a 1
+        define b 2
+        print -a (pi) + b (pi)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1, Double.pi + 2, Double.pi])
+    }
+
+    func testFunctionAmbiguity3() {
+        let program = """
+        define a 1
+        print -a (pi)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1, Double.pi])
     }
 
     // MARK: Numeric comparison

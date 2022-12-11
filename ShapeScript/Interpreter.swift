@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.5.11"
+public let version = "1.5.13"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -89,25 +89,35 @@ public extension ProgramError {
         }
     }
 
-    /// If the error was related to a file import, return the URL of that file.
-    var fileURL: URL? {
+    /// If the error relates to file access permissions, returns the URL of that file.
+    var accessErrorURL: URL? {
         switch underlyingError {
         case let .runtimeError(runtimeError):
-            switch runtimeError.type {
-            case let .fileTimedOut(for: _, at: url),
-                 let .fileAccessRestricted(for: _, at: url),
-                 let .fileTypeMismatch(for: _, at: url, expected: _),
-                 let .fileParsingError(for: _, at: url, message: _):
-                return url
-            case let .fileNotFound(for: _, at: url):
-                return url
-            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
-                 .typeMismatch, .forwardReference, .unexpectedArgument,
-                 .missingArgument, .unusedValue, .assertionFailure, .importError:
-                return nil
-            }
+            return runtimeError.accessErrorURL
         case .parserError, .lexerError, .unknownError:
             return nil
+        }
+    }
+
+    /// Returns the URL of the .shape file in which the error occured.
+    func shapeFileURL(relativeTo baseURL: URL) -> URL {
+        switch self {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case let .importError(error, url, _):
+                guard let url = url, url.pathExtension == "shape" else {
+                    return baseURL
+                }
+                return error.shapeFileURL(relativeTo: url)
+            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
+                 .typeMismatch, .forwardReference, .unexpectedArgument,
+                 .missingArgument, .unusedValue, .assertionFailure,
+                 .fileNotFound, .fileTimedOut, .fileAccessRestricted,
+                 .fileTypeMismatch, .fileParsingError:
+                return baseURL
+            }
+        case .lexerError, .parserError, .unknownError:
+            return baseURL
         }
     }
 
@@ -128,24 +138,6 @@ public extension ProgramError {
             return self
         }
     }
-
-    /// Returns true is the error was a file permission error (allowing these to be handled differently in the UI).
-    var isPermissionError: Bool {
-        switch underlyingError {
-        case let .runtimeError(runtimeError):
-            switch runtimeError.type {
-            case .fileAccessRestricted:
-                return true
-            case .unknownSymbol, .unknownMember, .unknownFont, .unknownCamera,
-                 .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
-                 .importError, .fileTypeMismatch, .fileParsingError:
-                return false
-            }
-        case .parserError, .lexerError, .unknownError:
-            return false
-        }
-    }
 }
 
 public enum RuntimeErrorType: Error, Equatable {
@@ -164,7 +156,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
-    indirect case importError(ProgramError, for: String, in: String)
+    indirect case importError(ProgramError, for: URL?, in: String)
 }
 
 public struct RuntimeError: Error, Equatable {
@@ -215,14 +207,13 @@ public extension RuntimeError {
         case let .fileParsingError(for: name, _, _),
              let .fileTypeMismatch(for: name, _, _):
             return "Unable to open file '\(name)'"
-        case let .importError(error, for: name, _):
+        case let .importError(error, for: url, _):
             if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
             }
-            if error.range == nil {
-                return "Error in file '\(name)' imported"
-            }
-            return "Error in imported file '\(name)': \(error.message)"
+            let name = url.map { " '\($0.lastPathComponent)'" } ?? ""
+            let error = error.range.map { _ in ": \(error.message)" } ?? ""
+            return "Error in imported file\(name)\(error)"
         }
     }
 
@@ -358,6 +349,30 @@ public extension RuntimeError {
                 return error.message
             }
             return error.hint
+        }
+    }
+
+    var accessErrorURL: URL? {
+        switch type {
+        case let .fileAccessRestricted(for: _, at: url):
+            return url
+        case let .importError(error, _, _):
+            return error.accessErrorURL
+        case .typeMismatch,
+             .forwardReference,
+             .unexpectedArgument,
+             .missingArgument,
+             .unusedValue,
+             .assertionFailure,
+             .fileNotFound,
+             .fileTimedOut,
+             .fileTypeMismatch,
+             .fileParsingError,
+             .unknownSymbol,
+             .unknownMember,
+             .unknownFont,
+             .unknownCamera:
+            return nil
         }
     }
 
@@ -524,8 +539,13 @@ private extension RuntimeError {
 extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
+        let oldSourceIndex = context.sourceIndex
         context.source = source
-        defer { context.source = oldSource }
+        context.sourceIndex = nil
+        defer {
+            context.source = oldSource
+            context.sourceIndex = oldSourceIndex
+        }
         statements.gatherDefinitions(in: context)
         do {
             try statements.forEach { try $0.evaluate(in: context) }
@@ -724,7 +744,7 @@ extension Definition {
                     }
                     throw RuntimeErrorType.importError(
                         ProgramError(error),
-                        for: declarationContext.baseURL?.lastPathComponent ?? "",
+                        for: declarationContext.baseURL,
                         in: declarationContext.source
                     )
                 }
@@ -746,6 +766,7 @@ extension Definition {
                 throw error
             }
             let source = context.source
+            let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
             return .block(.custom(.user, options ?? [:], .void, returnType)) { _context in
                 do {
@@ -767,6 +788,7 @@ extension Definition {
                     context.smoothing = _context.smoothing
                     context.baseURL = baseURL
                     context.source = source
+                    context.sourceIndex = sourceIndex
                     block.statements.gatherDefinitions(in: context)
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
@@ -879,7 +901,7 @@ extension Definition {
                     }
                     throw RuntimeErrorType.importError(
                         ProgramError(error),
-                        for: baseURL?.lastPathComponent ?? "",
+                        for: baseURL,
                         in: source
                     )
                 }

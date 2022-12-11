@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.5.13](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.13) (2022-12-08)
+
+- Fixed crash when importing external .shape files
+- When error occurs in imported file, Cmd-E now opens that file instead of the main file
+- Bumped Euclid to version 0.6.5
+ 
+## [1.5.12](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.12) (2022-11-21)
+
+- Bumped Euclid to version 0.6.4 (includes fixes for single-point path crash and path extrusions)
+- Fixed parsing ambiguity in tuple expressions where identifier is followed by opening paren
+- Improved bounds accuracy for circle-based shapes
+
 ## [1.5.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.11) (2022-11-06)
 
 - Fixed source code view on iOS

@@ -35,7 +35,7 @@ extension ProgramError {
     func message(with source: String) -> NSAttributedString {
         let errorType: String
         let (range, source) = rangeAndSource(with: source)
-        if isPermissionError {
+        if accessErrorURL != nil {
             errorType = "Permission Required"
         } else {
             errorType = "Error"

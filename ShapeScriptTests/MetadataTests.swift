@@ -300,6 +300,21 @@ class MetadataTests: XCTestCase {
         }
     }
 
+    func testHelpMergeConflicts() throws {
+        let fm = FileManager.default
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
+
+        for case let file as String in enumerator where file.hasSuffix(".md") {
+            let fileURL = helpSourceDirectory.appendingPathComponent(file)
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+            if text.range(of: "<<<<") ?? text.range(of: ">>>>") ??
+                text.range(of: "====") != nil
+            {
+                XCTFail("Merge conflict markers in \(file)")
+            }
+        }
+    }
+
     func testExportMacHelp() throws {
         let fm = FileManager.default
 

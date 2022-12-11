@@ -34,8 +34,10 @@ public struct Export: Hashable {
     public var file: String
     public var geometry: [Geometry]
     public var camera: String?
+    public var background: MaterialProperty?
     public var width: Double?
     public var height: Double?
+    public var zUp: Bool?
 }
 
 public extension Export {
@@ -61,7 +63,6 @@ final class EvaluationContext {
     var userSymbols = Symbols()
     private let importCache: ImportCache
     private var importStack: [URL]
-    private let linebreakIndices: [String.Index]
     let isCancelled: () -> Bool
 
     var source: String
@@ -92,15 +93,11 @@ final class EvaluationContext {
 
     var stackDepth = 1
 
-    var sourceLocation: SourceLocation? {
-        sourceIndex.map {
-            SourceLocation(
-                at: source.lineAndColumn(
-                    at: $0,
-                    withLinebreakIndices: linebreakIndices
-                ).line,
-                in: baseURL
-            )
+    var sourceLocation: () -> SourceLocation? {
+        { [sourceIndex, source, baseURL] in
+            sourceIndex.map {
+                SourceLocation(at: source.line(at: $0), in: baseURL)
+            }
         }
     }
 
@@ -115,13 +112,11 @@ final class EvaluationContext {
         importCache = ImportCache()
         importStack = []
         random = RandomSequence(seed: 0)
-        linebreakIndices = source.linebreakIndices
     }
 
     private init(parent: EvaluationContext) {
         // preserve
         source = parent.source
-        linebreakIndices = parent.linebreakIndices
         sourceIndex = parent.sourceIndex
         baseURL = parent.baseURL
         delegate = parent.delegate
@@ -213,7 +208,7 @@ extension EvaluationContext {
     var commandSymbols: [String] {
         Array(symbols.merging(userSymbols) { $1 }.filter {
             switch $1 {
-            case .function, .property, .block:
+            case .function, .property, .block, .placeholder:
                 return true
             case .constant, .placeholder:
                 return false
@@ -362,8 +357,46 @@ extension EvaluationContext {
                     program = try parse(source)
                     importCache.store[url] = program
                 } catch {
-                    throw RuntimeErrorType
-                        .importError(ImportError(error), for: path, in: source)
+                    throw RuntimeErrorType.importError(
+                        ProgramError(error),
+                        for: url,
+                        in: source
+                    )
+                }
+            case "txt":
+                let text: String
+                do {
+                    text = try String(contentsOf: url)
+                } catch {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: error.localizedDescription
+                    )
+                }
+                try addValue(.string(text))
+                return
+            case "json":
+                let data: Data
+                do {
+                    data = try Data(contentsOf: url)
+                } catch {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: error.localizedDescription
+                    )
+                }
+                let value: Value
+                do {
+                    value = try Value(jsonData: data)
+                } catch {
+                    let source = try String(contentsOf: url)
+                    throw RuntimeErrorType.importError(
+                        ProgramError(error),
+                        for: url,
+                        in: source
+                    )
                 }
             case "txt":
                 let text: String
@@ -445,8 +478,11 @@ extension EvaluationContext {
         do {
             try program.evaluate(in: self)
         } catch {
-            throw RuntimeErrorType
-                .importError(ImportError(error), for: path, in: program.source)
+            throw RuntimeErrorType.importError(
+                ProgramError(error),
+                for: url,
+                in: program.source
+            )
         }
     }
 }

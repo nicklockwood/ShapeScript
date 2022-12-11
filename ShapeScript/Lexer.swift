@@ -16,7 +16,27 @@ public func tokenize(_ input: String) throws -> [Token] {
     var spaceBefore = true
     _ = characters.skipWhitespaceAndComments()
     while let token = try characters.readToken(spaceBefore: spaceBefore) {
-        if token.type != .linebreak || tokens.last?.type != .linebreak {
+        switch (tokens.last?.type, token.type) {
+        case (.linebreak?, .linebreak):
+            break // Skip duplicate linebreak
+        case (.identifier?, .lparen) where spaceBefore && tokens.count > 1:
+            switch tokens[tokens.count - 2].type {
+            case .infix, .prefix:
+                // Insert parens for disambiguation
+                let identifier = tokens.removeLast()
+                let range = identifier.range
+                let lRange = range.lowerBound ..< range.lowerBound
+                let rRange = range.upperBound ..< range.upperBound
+                tokens += [
+                    Token(type: .lparen, range: lRange),
+                    identifier,
+                    Token(type: .rparen, range: rRange),
+                    token,
+                ]
+            default:
+                tokens.append(token)
+            }
+        default:
             tokens.append(token)
         }
         spaceBefore = characters.skipWhitespaceAndComments()
@@ -40,7 +60,7 @@ public func tokenize(_ input: String) throws -> [Token] {
     return tokens
 }
 
-/// Note: only includes keywords that start a command, not joining words
+// Note: only includes keywords that start a command, not joining words
 public enum Keyword: String, CaseIterable {
     case define
     case `for`
@@ -218,14 +238,28 @@ public extension String {
         return (line: line, column: column)
     }
 
+    func line(at index: String.Index) -> Int {
+        lineAndColumn(at: index).line
+    }
+
+    @available(*, deprecated, message: "Use lineAndColumn(at:) instead.")
     func lineAndColumn(
         at index: String.Index,
         withLinebreakIndices linebreakIndices: [String.Index]
     ) -> (line: Int, column: Int) {
-        let line = linebreakIndices.firstIndex(where: {
-            $0 >= index
-        }) ?? linebreakIndices.count - 1
-        var i = line > 0 ? self.index(after: linebreakIndices[line - 1]) : startIndex
+        guard indices.contains(index),
+              let line = linebreakIndices.firstIndex(where: { $0 >= index })
+        else {
+            assertionFailure("index out of range")
+            return (linebreakIndices.count, 1)
+        }
+        let linebreakIndex = line > 0 ? self
+            .index(after: linebreakIndices[line - 1]) : startIndex
+        guard indices.contains(linebreakIndex) else {
+            assertionFailure("linebreakIndex out of range")
+            return (line, 1)
+        }
+        var i = linebreakIndex
         var column = 1
         while i < index {
             i = self.index(after: i)
@@ -234,6 +268,7 @@ public extension String {
         return (line: line + 1, column: column)
     }
 
+    @available(*, deprecated, message: "Obsolete.")
     var linebreakIndices: [String.Index] {
         indices.compactMap { self[$0].isLinebreak ? $0 : nil } + [endIndex]
     }

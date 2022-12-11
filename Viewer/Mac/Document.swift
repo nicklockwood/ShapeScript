@@ -69,7 +69,8 @@ class Document: NSDocument {
     }
 
     var errorMessage: NSAttributedString?
-    var accessErrorURL: URL?
+    var errorURL: URL?
+    var isAccessError: Bool = false
     var sourceString: String = ""
     var presets: [Export] = []
 
@@ -169,14 +170,14 @@ class Document: NSDocument {
     }
 
     @IBAction func openInEditor(_: AnyObject) {
-        openFileInEditor(selectedGeometry?.sourceLocation?.file ?? fileURL)
+        openFileInEditor(errorURL ?? selectedGeometry?.sourceLocation?.file ?? fileURL)
     }
 
     @IBAction func grantAccess(_: Any?) {
         let dialog = NSOpenPanel()
         dialog.title = "Grant Access"
         dialog.showsHiddenFiles = false
-        dialog.directoryURL = accessErrorURL
+        dialog.directoryURL = errorURL
         dialog.canChooseDirectories = true
         showSheet(dialog, in: windowForSheet) { response in
             guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {

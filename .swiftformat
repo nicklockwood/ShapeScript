@@ -3,4 +3,4 @@
 --enable isEmpty
 --ifdef no-indent
 
---exclude Euclid, LRUCache, Package.swift
+--exclude Euclid, LRUCache, SVGPath, Package.swift

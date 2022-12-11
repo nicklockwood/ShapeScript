@@ -34,7 +34,9 @@ import Foundation
 /// An angle or 2D rotation.
 public struct Angle: Hashable, Comparable, Sendable, AdditiveArithmetic {
     /// The angle in radians.
-    public var radians: Double
+    public var radians: Double {
+        didSet { radians = radians.isFinite ? radians : 0 }
+    }
 
     /// Creates an angle from a radians value.
     /// - Parameter radians: The angle in radians.
@@ -72,6 +74,7 @@ extension Angle: Codable {
 /// Computes the trigonometric cosine of an angle.
 /// - Parameter angle: The angle to calculate the cosine for.
 /// - Returns: The trigonometric cosine of the angle.
+@_disfavoredOverload
 public func cos(_ angle: Angle) -> Double {
     cos(angle.radians)
 }
@@ -79,6 +82,7 @@ public func cos(_ angle: Angle) -> Double {
 /// Computes the trigonometric sine of an angle.
 /// - Parameter angle: The angle to calculate the sine for.
 /// - Returns: The trigonometric sine of the angle.
+@_disfavoredOverload
 public func sin(_ angle: Angle) -> Double {
     sin(angle.radians)
 }
@@ -86,6 +90,7 @@ public func sin(_ angle: Angle) -> Double {
 /// Computes the trigonometric tangent of an angle.
 /// - Parameter angle: The angle to calculate the tangent for.
 /// - Returns: The trigonometric tangent of the angle.
+@_disfavoredOverload
 public func tan(_ angle: Angle) -> Double {
     tan(angle.radians)
 }
@@ -121,7 +126,7 @@ public extension Angle {
     /// Creates an angle from a radians value.
     /// - Parameter radians: The angle in radians.
     static func radians(_ radians: Double) -> Angle {
-        Angle(radians: radians)
+        Angle(radians: radians.isFinite ? radians : 0)
     }
 
     /// Creates an angle representing the trigonometric arc cosine of the value you provide.

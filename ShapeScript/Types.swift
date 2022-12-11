@@ -340,7 +340,8 @@ extension BlockType {
         case .pathShape: return .pathShape
         case .mesh: return .mesh
         case .polygons: return .polygon
-        case let .custom(symbols, _, _, _): return symbols
+        case let .custom(symbols, options, _, _):
+            return options.mapValues { .placeholder($0) }.merging(symbols) { $1 }
         }
     }
 }
@@ -711,7 +712,7 @@ extension Expression {
              .infix(_, .minus, _),
              .infix(_, .plus, _),
              .infix(_, .times, _),
-             .infix(_, .divide, _):
+             .infix(_, .divide, _),
              .infix(_, .modulo, _):
             return .number
         case .infix(_, .to, _), .infix(_, .step, _):
