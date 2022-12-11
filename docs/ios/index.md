@@ -73,6 +73,8 @@ ShapeScript Help
         - [Pixel Dimensions](cameras.md#pixel-dimensions)
 - Syntax
     - [Comments](comments.md)
+        - [Block Comments](comments.md#block-comments)
+        - [Nested Comments](comments.md#nested-comments)
     - [Literals](literals.md)
         - [Strings](literals.md#strings)
         - [Vectors and Tuples](literals.md#vectors-and-tuples)

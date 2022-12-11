@@ -316,6 +316,23 @@ private extension Character {
 }
 
 private extension Substring {
+    mutating func skipBlockComment() {
+        assert(first == "*")
+        removeFirst()
+        while let c = first {
+            removeFirst()
+            switch c {
+            case "*" where first == "/":
+                removeFirst()
+                return
+            case "/" where first == "*":
+                skipBlockComment()
+            default:
+                break
+            }
+        }
+    }
+
     mutating func skipWhitespaceAndComments() -> Bool {
         var wasSpace = false
         while let c = first {
@@ -323,11 +340,20 @@ private extension Substring {
                 if c == "/" {
                     wasSpace = true
                     let nextIndex = index(after: startIndex)
-                    if nextIndex != endIndex, self[nextIndex] == "/" {
-                        removeFirst()
-                        removeFirst()
-                        while let c = first, !c.isLinebreak {
+                    if nextIndex != endIndex {
+                        switch self[nextIndex] {
+                        case "/":
                             removeFirst()
+                            removeFirst()
+                            while let c = first, !c.isLinebreak {
+                                removeFirst()
+                            }
+                        case "*":
+                            removeFirst()
+                            skipBlockComment()
+                            continue
+                        default:
+                            break
                         }
                     }
                 }

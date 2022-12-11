@@ -911,4 +911,25 @@ class ParserTests: XCTestCase {
             ),
         ]))
     }
+
+    // MARK: Comments
+
+    func testBlockCommentDoesntMessUpLineCalculation() {
+        let input = """
+        /*
+            a comment
+        */
+        if foo AND bar {
+            print foo
+        }
+        """
+        XCTAssertThrowsError(try parse(input)) { error in
+            guard let error = try? XCTUnwrap(error as? ParserError) else {
+                return
+            }
+            let range = error.range.lowerBound
+            XCTAssertEqual(error.message, "Unexpected token 'AND'")
+            XCTAssertEqual(input.line(at: range), 4)
+        }
+    }
 }

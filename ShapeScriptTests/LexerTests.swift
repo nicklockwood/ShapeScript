@@ -48,6 +48,50 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    // MARK: comments
+
+    func testSingleLineComment() {
+        let input = "// abc"
+        let tokens: [TokenType] = [.eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testConsecutiveSingleLineComments() {
+        let input = "// abc\n// xyz"
+        let tokens: [TokenType] = [.linebreak, .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testSingleLineCommentAfterDecimal() {
+        let input = "5.// abc"
+        let tokens: [TokenType] = [.number(5), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testSingleLineCommentAfterInfixOperator() {
+        let input = "5 + // abc"
+        let tokens: [TokenType] = [.number(5), .infix(.plus), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testBlockComment() {
+        let input = "/* abc\nxyz */"
+        let tokens: [TokenType] = [.eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testBlockCommentFollowedBySpace() {
+        let input = "/* abc */ "
+        let tokens: [TokenType] = [.eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testNestedBlockComments() {
+        let input = "foo /* abc /* xyz */ */ bar"
+        let tokens: [TokenType] = [.identifier("foo"), .identifier("bar"), .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     // MARK: identifiers
 
     func testLetters() {
