@@ -13,6 +13,7 @@ extension String {
         // Sort matches by Levenshtein edit distance
         return options
             .compactMap { option -> (String, distance: Int, commonPrefix: Int)? in
+                guard option != self else { return nil }
                 let lowercaseOption = option.lowercased()
                 let distance = lowercaseOption.editDistance(from: lowercaseQuery)
                 let commonPrefix = lowercaseOption.commonPrefix(with: lowercaseQuery)
