@@ -618,6 +618,7 @@ extension Expression {
              let .infix(lhs, .plus, rhs),
              let .infix(lhs, .times, rhs),
              let .infix(lhs, .divide, rhs),
+             let .infix(lhs, .modulo, rhs),
              let .infix(lhs, .lt, rhs),
              let .infix(lhs, .gt, rhs),
              let .infix(lhs, .lte, rhs),
@@ -715,7 +716,8 @@ extension Expression {
              .infix(_, .minus, _),
              .infix(_, .plus, _),
              .infix(_, .times, _),
-             .infix(_, .divide, _):
+             .infix(_, .divide, _),
+             .infix(_, .modulo, _):
             return .number
         case .infix(_, .to, _), .infix(_, .step, _):
             return .range

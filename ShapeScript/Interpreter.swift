@@ -515,6 +515,7 @@ private extension RuntimeError {
         "head": ["first"],
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],
+        "mod": ["%"],
     ]
 
     static let osName: String = {
@@ -1279,6 +1280,8 @@ extension Expression {
                 return .number(lhs.doubleValue * rhs.doubleValue)
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
+            case .modulo:
+                return .number(lhs.doubleValue.remainder(dividingBy: rhs.doubleValue))
             case .lt:
                 return .boolean(lhs.doubleValue < rhs.doubleValue)
             case .gt:

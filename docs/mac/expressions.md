@@ -22,6 +22,7 @@ Symbol         | Name                  | Function
 &dash;         | minus                 | Subtracts the right value from the left value
 &ast;          | times                 | Multiplies the left value by the right value
 &sol;          | divide                | Divides the left value by the right value
+&percnt;       | modulo                | Remainder of dividing the left value by the right value
 
 <br>
 

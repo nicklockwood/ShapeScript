@@ -399,7 +399,9 @@ private extension ArraySlice where Element == Token {
         guard var lhs = try readOperand() else {
             return nil
         }
-        while case let .infix(op) = nextToken.type, [.times, .divide].contains(op) {
+        while case let .infix(op) = nextToken.type,
+              [.times, .divide, .modulo].contains(op)
+        {
             removeFirst()
             let rhs = try require(readOperand(), as: "operand")
             lhs = Expression(
