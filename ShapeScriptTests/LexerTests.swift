@@ -537,7 +537,7 @@ class LexerTests: XCTestCase {
     func testMemberLookupWithLeadingSpace() {
         let input = "a .b"
         XCTAssertThrowsError(try tokenize(input)) { error in
-            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("."))
+            XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken(".b"))
         }
     }
 
@@ -546,6 +546,17 @@ class LexerTests: XCTestCase {
         XCTAssertThrowsError(try tokenize(input)) { error in
             XCTAssertEqual((error as? LexerError)?.type, .unexpectedToken("."))
         }
+    }
+
+    func testMemberLookupOnNumber() {
+        let input = "5.a"
+        let tokens: [TokenType] = [
+            .number(5),
+            .dot,
+            .identifier("a"),
+            .eof,
+        ]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
     // MARK: lineRange

@@ -457,19 +457,24 @@ private extension Substring {
     }
 
     mutating func readNumber() throws -> TokenType? {
-        let start = self
-        var digits = ""
-        while let c = first, "01234567890.".contains(c) {
-            digits.append(removeFirst())
+        let startIndex = self.startIndex
+        var start = self, number = ""
+        while let c = first, "\(digits).".contains(c) {
+            if c == "." { start = self }
+            number.append(removeFirst())
         }
-        if digits.isEmpty {
+        if number.last == ".", number.count == 1 || first.map({
+            letters.contains($0)
+        }) ?? false {
+            number.removeLast()
+            self = start
+        }
+        if number.isEmpty {
             return nil
         }
-        guard let double = Double(digits) else {
-            let range = start.startIndex ..< startIndex
-            let error: LexerErrorType = (digits == ".") ?
-                .unexpectedToken(digits) : .invalidNumber(digits)
-            throw LexerError(error, at: range)
+        guard let double = Double(number) else {
+            let range = startIndex ..< self.startIndex
+            throw LexerError(.invalidNumber(number), at: range)
         }
         return .number(double)
     }
