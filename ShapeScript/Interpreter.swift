@@ -516,6 +516,9 @@ private extension RuntimeError {
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],
         "mod": ["%"],
+        "equals": ["="],
+        "eq": ["="],
+        "is": ["="],
     ]
 
     static let osName: String = {
