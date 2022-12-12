@@ -294,7 +294,7 @@ private extension LexerError {
 
 private let whitespace = " \t"
 private let linebreaks = "\n\r\r\n"
-private let punctuation = "/()[]{}"
+private let delimiters = "()[]{}"
 private let operators = "+-*/<>=!?&|%^~"
 private let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 private let digits = "0123456789"
@@ -347,22 +347,27 @@ private extension Substring {
         return .linebreak
     }
 
-    mutating func readToEndOfToken() -> String {
-        var string = ""
-        if let c = popFirst() {
-            string.append(c)
-            if punctuation.contains(c) {
-                while let c = first, punctuation.contains(c) {
-                    string.append(removeFirst())
-                }
-            } else {
-                let terminator = whitespace + linebreaks + punctuation
-                while let c = first, !terminator.contains(c) {
-                    string.append(removeFirst())
-                }
-            }
+    mutating func readCharacters(in characters: String) -> String? {
+        var result = ""
+        while let c = first, characters.contains(c) {
+            result.append(removeFirst())
         }
-        return string
+        return result.isEmpty ? nil : result
+    }
+
+    mutating func readToEndOfToken() -> String {
+        if let string = readCharacters(in: delimiters) {
+            return string
+        } else if let string = readCharacters(in: operators) {
+            return string
+        } else {
+            var string = ""
+            let terminator = whitespace + linebreaks + delimiters + operators
+            while let c = first, !terminator.contains(c) {
+                string.append(removeFirst())
+            }
+            return string
+        }
     }
 
     mutating func readOperator(spaceBefore: Bool) -> TokenType? {
@@ -492,10 +497,8 @@ private extension Substring {
         guard let head = first, letters.contains(head) else {
             return nil
         }
-        var name = String(removeFirst())
-        while let c = first, alphanumerics.contains(c) || c == "_" {
-            name.append(removeFirst())
-        }
+        removeFirst()
+        let name = String(head) + (readCharacters(in: "\(alphanumerics)_") ?? "")
         if let keyword = Keyword(rawValue: name) {
             return .keyword(keyword)
         }
@@ -508,13 +511,9 @@ private extension Substring {
         }
         let start = self
         removeFirst()
-        var string = "", isValid = true
-        while let c = first, alphanumerics.contains(c) {
-            isValid = isValid && hexadecimals.contains(c)
-            string.append(removeFirst())
-        }
+        let string = readCharacters(in: alphanumerics) ?? ""
         let range = start.startIndex ..< startIndex
-        guard isValid else {
+        guard string.allSatisfy({ hexadecimals.contains($0) }) else {
             throw LexerError(.invalidColor(string), at: range)
         }
         switch string.count {
