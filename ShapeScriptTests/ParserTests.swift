@@ -917,10 +917,11 @@ class ParserTests: XCTestCase {
         }
         """
         XCTAssertThrowsError(try parse(input)) { error in
-            guard let error = try? XCTUnwrap(error as? ParserError) else {
+            guard let error = try? XCTUnwrap(error as? ParserError),
+                  let range = error.range?.lowerBound
+            else {
                 return
             }
-            let range = error.range.lowerBound
             XCTAssertEqual(error.message, "Unexpected token 'AND'")
             XCTAssertEqual(input.line(at: range), 4)
         }
