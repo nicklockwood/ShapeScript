@@ -194,7 +194,15 @@ extension Document {
 
     func load(_ data: Data, fileURL: URL) throws {
         var nsString: NSString?
-        _ = NSString.stringEncoding(for: data, convertedString: &nsString, usedLossyConversion: nil)
+        _ = NSString.stringEncoding(
+            for: data,
+            encodingOptions: [
+                .suggestedEncodingsKey: [String.Encoding.utf8.rawValue],
+                .likelyLanguageKey: "en",
+            ],
+            convertedString: &nsString,
+            usedLossyConversion: nil
+        )
         guard let input = nsString as String? else {
             throw RuntimeErrorType.fileParsingError(
                 for: fileURL.lastPathComponent,
