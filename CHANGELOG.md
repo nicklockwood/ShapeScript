@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.5.14](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.14) (2022-12-18)
+
+- Added support for C-style block comments using /* ... */ syntax
+- Fixed bug where source file could incorrectly be inferred as UTF-7, causing parsing errors
+- Fixed issue where error messages would sometimes suggest the same identifier you already used
+- Improved script execution performance by making source location lookup lazy
+- Bumped Euclid to version 0.6.6
+
 ## [1.5.13](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.13) (2022-12-08)
 
 - Fixed crash when importing external .shape files
