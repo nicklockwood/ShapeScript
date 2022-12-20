@@ -108,10 +108,11 @@ public extension ProgramError {
                     return baseURL
                 }
                 return error.shapeFileURL(relativeTo: url)
-            case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
-                 .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
-                 .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
+            case .unknownSymbol, .unknownMember, .unknownFont,
+                 .typeMismatch, .forwardReference, .unexpectedArgument,
+                 .missingArgument, .unusedValue, .assertionFailure,
+                 .fileNotFound, .fileTimedOut, .fileAccessRestricted,
+                 .fileTypeMismatch, .fileParsingError, .circularImport:
                 return baseURL
             }
         case .lexerError, .parserError, .unknownError:
@@ -129,7 +130,8 @@ public extension ProgramError {
             case .unknownSymbol, .unknownMember, .unknownFont, .typeMismatch,
                  .forwardReference, .unexpectedArgument, .missingArgument,
                  .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
-                 .fileAccessRestricted, .fileTypeMismatch, .fileParsingError:
+                 .fileAccessRestricted, .fileTypeMismatch, .fileParsingError,
+                 .circularImport:
                 return self
             }
         case .lexerError, .parserError, .unknownError:
@@ -153,6 +155,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileAccessRestricted(for: String, at: URL)
     case fileTypeMismatch(for: String, at: URL, expected: String?)
     case fileParsingError(for: String, at: URL, message: String)
+    case circularImport(for: URL)
     indirect case importError(ProgramError, for: URL?, in: String)
 }
 
@@ -202,6 +205,8 @@ public extension RuntimeError {
         case let .fileParsingError(for: name, _, _),
              let .fileTypeMismatch(for: name, _, _):
             return "Unable to open file '\(name)'"
+        case .circularImport:
+            return "Circular import"
         case let .importError(error, for: url, _):
             if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
@@ -231,6 +236,7 @@ public extension RuntimeError {
              .fileAccessRestricted,
              .fileTypeMismatch,
              .fileParsingError,
+             .circularImport,
              .importError:
             return nil
         }
@@ -339,6 +345,8 @@ public extension RuntimeError {
                 return "The type of file at '\(url.path)' is not supported."
             }
             return "The file at '\(url.path)' is not \(aOrAn(type)) file."
+        case .circularImport:
+            return "Files cannot import themselves."
         case let .importError(error, for: _, in: _):
             if error.range == nil {
                 return error.message
@@ -363,6 +371,7 @@ public extension RuntimeError {
              .fileTimedOut,
              .fileTypeMismatch,
              .fileParsingError,
+             .circularImport,
              .unknownSymbol,
              .unknownMember,
              .unknownFont:

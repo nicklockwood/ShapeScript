@@ -311,7 +311,7 @@ extension EvaluationContext {
     func importFile(at path: String) throws {
         let url = try resolveURL(for: path)
         if importStack.contains(url) {
-            throw RuntimeErrorType.assertionFailure("Files cannot import themselves")
+            throw RuntimeErrorType.circularImport(for: url)
         }
         let program: Program
         if let entry = importCache.store[url] {
