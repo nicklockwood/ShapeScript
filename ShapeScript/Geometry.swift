@@ -510,6 +510,7 @@ private extension Geometry {
                 Mesh.extrude(
                     paths[0],
                     along: along,
+                    twist: options.twist,
                     align: options.align,
                     isCancelled: isCancelled
                 ).makeWatertight()

@@ -42,12 +42,14 @@ public extension Light {
 
 public struct ExtrudeOptions: Hashable {
     public var along: [Path]
+    public var twist: Angle
     public var align: Path.Alignment
 
     public static let `default`: Self = .init()
 
-    init(along: [Path] = [], align: Path.Alignment? = nil) {
+    init(along: [Path] = [], twist: Angle? = nil, align: Path.Alignment? = nil) {
         self.along = along
+        self.twist = twist ?? .zero
         self.align = (along.isEmpty ? nil : align) ?? .default
     }
 }
@@ -122,7 +124,11 @@ public extension GeometryType {
         case let .extrude(paths, options):
             return paths.flatMap { path in
                 options.along.flatMap { along in
-                    path.extrusionContours(along: along, align: options.align)
+                    path.extrusionContours(
+                        along: along,
+                        twist: options.twist,
+                        align: options.align
+                    )
                 }
             }.bounds
         case let .lathe(paths, _):

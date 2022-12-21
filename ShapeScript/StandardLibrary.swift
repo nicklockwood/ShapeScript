@@ -132,8 +132,10 @@ extension Dictionary where Key == String, Value == Symbol {
         // builders
         "extrude": .block(.custom(.builder, [
             "along": .list(.path),
+            "twist": .number,
             "axisAligned": .boolean,
         ], .path, .mesh)) { context in
+            let twist = context.value(for: "twist")?.angleValue ?? .zero
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
             } ?? .default
@@ -141,16 +143,33 @@ extension Dictionary where Key == String, Value == Symbol {
                 // shapes follow a common path
                 // TODO: modify this to reuse meshes where possible
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
-                    along: along,
+                    along: along.map {
+                        $0.withDetail(context.detail, twist: twist)
+                    },
+                    twist: twist,
                     align: align
                 )), in: context))
             }
-            // Fast path - can reuse meshes (good for text)
-            // TODO: modify to return separate meshes rather than union
-            return .mesh(Geometry(
-                type: .extrude(context.paths, .default),
-                in: context
-            ))
+            if twist == .zero {
+                // Fast path - can reuse meshes (good for text)
+                // TODO: modify to return separate meshes rather than union
+                return .mesh(Geometry(
+                    type: .extrude(context.paths, .default),
+                    in: context
+                ))
+            }
+            // Slow path, each calculated separately, no reuse
+            // TODO: modify this to reuse meshes where possible
+            return .tuple(context.paths.map {
+                let vector = $0.faceNormal / 2, center = $0.bounds.center
+                let along = Path.line(center - vector, center + vector)
+                    .withDetail(context.detail, twist: twist)
+                return .mesh(Geometry(type: .extrude([$0], .init(
+                    along: [along],
+                    twist: twist,
+                    align: align
+                )), in: context))
+            })
         },
         "lathe": .block(.builder) { context in
             .mesh(Geometry(

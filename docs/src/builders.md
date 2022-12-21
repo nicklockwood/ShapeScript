@@ -112,7 +112,7 @@ extrude {
 
 ![Rounded rectangle with circle cross-section](../images/roundrect-extrusion.png)
 
-In the following example, we extrude a square cross-section along a twisting 3D path:
+In the following example, we extrude a square cross-section along a 3D path:
 
 ```swift
 define shape path {
@@ -150,6 +150,40 @@ A value of `true` for `axisAligned` means the cross section will remain perpendi
 A value of `false` means the cross-section is always aligned to the tangent of the path, which ensures consistent thickness at the cost of inconsistent orientation.
 
 If the `axisAligned` property is omitted, ShapeScript will try to choose an appropriate alignment for the path provided to `along`.
+
+To apply a twist along the length of an extruded shape, you can use the `twist` property:
+
+```swift
+extrude {
+    square
+    twist 0.5
+}
+```
+
+![Twisted extrusion](../images/twisted-extrusion.png)
+
+Twist uses the same [half-turn](transforms.md#orientation) units as the other rotation commands, so a twist of 0.5 equates to one quarter turn, or 90 degrees.
+
+Applying a twist will automatically increase the number of cross sections in proportion to the current [detail](options.md#detail) level to prevent distortion:
+
+![Twisted extrusion wireframe](../images/twisted-extrusion-wireframe.png)
+
+You can combine `twist` with the `along` property to twist a curved path:
+
+```swift
+extrude {
+    square { size 0.2 }
+    along circle
+    twist 2
+}
+```
+
+![Twisted circle](../images/twisted-circle.png)
+
+**Note:** when extruding along a closed path, you should always use a multiple of `2` (i.e. a full rotation) for the `twist` value to avoid an ugly seam:
+
+![Twisted circle seam](../images/twisted-circle-seam.png)
+
 
 ## Loft
 
