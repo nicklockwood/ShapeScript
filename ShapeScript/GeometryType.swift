@@ -60,6 +60,18 @@ public extension Light {
     }
 }
 
+public struct ExtrudeOptions: Hashable {
+    public var along: [Path]
+    public var align: Path.Alignment
+
+    public static let `default`: Self = .init()
+
+    init(along: [Path] = [], align: Path.Alignment? = nil) {
+        self.along = along
+        self.align = (along.isEmpty ? nil : align) ?? .default
+    }
+}
+
 public enum GeometryType: Hashable {
     case group
     // primitives
@@ -68,7 +80,7 @@ public enum GeometryType: Hashable {
     case sphere(segments: Int)
     case cube
     // builders
-    case extrude([Path], along: [Path])
+    case extrude([Path], ExtrudeOptions)
     case lathe([Path], segments: Int)
     case loft([Path])
     case fill([Path])
@@ -121,28 +133,18 @@ public extension GeometryType {
                 min: .init(bounds.min.x, -0.5, bounds.min.y),
                 max: .init(bounds.max.x, 0.5, bounds.max.y)
             )
-        case let .extrude(paths, along: along):
-            if along.isEmpty {
-                return paths.reduce(into: .empty) { bounds, path in
-                    let offset = path.faceNormal / 2
-                    bounds.formUnion(path.bounds.translated(by: offset))
-                    bounds.formUnion(path.bounds.translated(by: -offset))
-                }
+        case let .extrude(paths, .default):
+            return paths.reduce(into: .empty) { bounds, path in
+                let offset = path.faceNormal / 2
+                bounds.formUnion(path.bounds.translated(by: offset))
+                bounds.formUnion(path.bounds.translated(by: -offset))
             }
-            return along.reduce(into: .empty) { bounds, along in
-                let alongBounds = along.bounds
-                bounds = paths.reduce(into: bounds) { bounds, path in
-                    let pathBounds = path.bounds
-                    let pathRadius = Swift.max(
-                        pathBounds.min.length,
-                        pathBounds.max.length
-                    )
-                    bounds.formUnion(Bounds(
-                        min: alongBounds.min - Vector(size: pathRadius),
-                        max: alongBounds.max + Vector(size: pathRadius)
-                    ))
+        case let .extrude(paths, options):
+            return paths.flatMap { path in
+                options.along.flatMap { along in
+                    path.extrusionContours(along: along, align: options.align)
                 }
-            }
+            }.bounds
         case let .lathe(paths, _):
             return .init(bounds: paths.map {
                 var min = $0.bounds.min, max = $0.bounds.max

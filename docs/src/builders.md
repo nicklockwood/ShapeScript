@@ -112,6 +112,45 @@ extrude {
 
 ![Rounded rectangle with circle cross-section](../images/roundrect-extrusion.png)
 
+In the following example, we extrude a square cross-section along a twisting 3D path:
+
+```swift
+define shape path {
+    orientation 0 0 -0.4
+    curve 0 1 0.75
+    curve -1 0
+    curve 0 -1 0.25
+    curve 1 0
+    curve 1 1
+    curve 0 1 0.75
+}
+
+extrude {
+    square { size 0.1 }
+    along shape
+}
+```
+
+![Tangential extrusion](../images/tangential-extrusion.png)
+
+Note how the cross-section tilts as it follows the path. This can be a nice effect, but you might prefer that the cross section remains perpendicular to the world axes. To control this, you can use the `axisAligned` property:
+
+```swift
+extrude {
+    square { size 0.1 }
+    along shape
+    axisAligned true
+}
+```
+
+![Axis-aligned extrusion](../images/axis-aligned-extrusion.png)
+
+A value of `true` for `axisAligned` means the cross section will remain perpendicular to the path, which in some cases may cause the shape to look "pinched".
+
+A value of `false` means the cross-section is always aligned to the tangent of the path, which ensures consistent thickness at the cost of inconsistent orientation.
+
+If the `axisAligned` property is omitted, ShapeScript will try to choose an appropriate alignment for the path provided to `along`.
+
 ## Loft
 
 The `loft` command is similar to `extrude`, but instead of taking a single cross-section path and extruding it by a fixed distance, `loft` accepts multiple cross-sections and then joins them together to form a solid shape.

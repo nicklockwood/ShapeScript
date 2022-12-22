@@ -521,6 +521,7 @@ private extension RuntimeError {
         "option": ["define"],
         "subtract": ["difference"],
         "subtraction": ["difference"],
+        "sweep": ["extrude"],
         "head": ["first"],
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],

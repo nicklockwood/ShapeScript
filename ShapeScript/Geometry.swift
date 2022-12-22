@@ -150,21 +150,21 @@ public final class Geometry: Hashable {
         var children = children
         var type = type
         switch type {
-        case var .extrude(paths, along):
+        case var .extrude(paths, options):
             (paths, material) = paths.fixupColors(material: material)
-            (along, material) = along.fixupColors(material: material)
-            type = .extrude(paths, along: along)
-            switch (paths.count, along.count) {
+            (options.along, material) = options.along.fixupColors(material: material)
+            type = .extrude(paths, options)
+            switch (paths.count, options.along.count) {
             case (0, 0):
                 break
             case (1, _), (_, 0):
                 assert(children.isEmpty)
             default:
                 assert(children.isEmpty)
-                type = .extrude([], along: [])
+                type = .extrude([], .default)
                 children = paths.map { path in
                     Geometry(
-                        type: .extrude([path], along: along),
+                        type: .extrude([path], options),
                         name: nil,
                         transform: .identity,
                         material: material,
@@ -505,9 +505,7 @@ private extension Geometry {
             return callback()
         }
         switch type {
-        case let .extrude(paths, _) where paths.isEmpty,
-             let .lathe(paths, _) where paths.isEmpty,
-             let .fill(paths) where paths.isEmpty:
+        case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
         case .hull:
             mesh = nil
@@ -552,14 +550,17 @@ private extension Geometry {
             mesh = .sphere(slices: segments, stacks: segments / 2)
         case .cube:
             mesh = .cube()
-        case let .extrude(paths, along: along) where paths.count == 1 && !along.isEmpty:
-            mesh = Mesh.extrude(
-                paths[0],
-                along: Path(subpaths: along),
-                isCancelled: isCancelled
-            ).makeWatertight()
-        case let .extrude(paths, along: along) where paths.count >= 1 && along.isEmpty:
+        case let .extrude(paths, .default) where paths.count >= 1:
             mesh = Mesh.extrude(paths, isCancelled: isCancelled).makeWatertight()
+        case let .extrude(paths, options) where paths.count == 1:
+            mesh = Mesh.merge(options.along.map { along in
+                Mesh.extrude(
+                    paths[0],
+                    along: along,
+                    align: options.align,
+                    isCancelled: isCancelled
+                ).makeWatertight()
+            })
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
         case let .loft(paths):

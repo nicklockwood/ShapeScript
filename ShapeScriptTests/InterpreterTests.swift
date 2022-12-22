@@ -1772,13 +1772,13 @@ class InterpreterTests: XCTestCase {
     func testInvokeExtrudeWithSingleArgument() throws {
         let program = "extrude square"
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], along: []))
+        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
     }
 
     func testInvokeExtrudeWithSingleArgumentInParens() throws {
         let program = "extrude(square)"
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], along: []))
+        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
     }
 
     func testInvokeExtrudeWithMultipleArguments() throws {
@@ -1786,7 +1786,7 @@ class InterpreterTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: nil)
         XCTAssertEqual(
             scene.children.first?.type,
-            .extrude([.square(), .circle()], along: [])
+            .extrude([.square(), .circle()], .default)
         )
     }
 
@@ -1794,7 +1794,7 @@ class InterpreterTests: XCTestCase {
         let program = "extrude text \"foo\""
         let scene = try evaluate(parse(program), delegate: nil)
         #if canImport(CoreText)
-        XCTAssertEqual(scene.children.first?.type, .extrude(Path.text("foo"), along: []))
+        XCTAssertEqual(scene.children.first?.type, .extrude(Path.text("foo"), .default))
         #endif
     }
 

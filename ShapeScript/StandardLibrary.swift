@@ -130,12 +130,33 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .group, in: context))
         },
         // builders
-        "extrude": .block(.custom(.builder, ["along": .list(.path)], .path, .mesh)) { context in
-            let along = context.value(for: "along")?.tupleValue as? [Path] ?? []
-            return .mesh(Geometry(type: .extrude(context.paths, along: along), in: context))
+        "extrude": .block(.custom(.builder, [
+            "along": .list(.path),
+            "axisAligned": .boolean,
+        ], .path, .mesh)) { context in
+            let align: Path.Alignment = context.value(for: "axisAligned").map {
+                $0.boolValue ? .axis : .tangent
+            } ?? .default
+            if let along = context.value(for: "along")?.tupleValue as? [Path] {
+                // shapes follow a common path
+                // TODO: modify this to reuse meshes where possible
+                return .mesh(Geometry(type: .extrude(context.paths, .init(
+                    along: along,
+                    align: align
+                )), in: context))
+            }
+            // Fast path - can reuse meshes (good for text)
+            // TODO: modify to return separate meshes rather than union
+            return .mesh(Geometry(
+                type: .extrude(context.paths, .default),
+                in: context
+            ))
         },
         "lathe": .block(.builder) { context in
-            .mesh(Geometry(type: .lathe(context.paths, segments: context.detail), in: context))
+            .mesh(Geometry(
+                type: .lathe(context.paths, segments: context.detail),
+                in: context
+            ))
         },
         "loft": .block(.builder) { context in
             .mesh(Geometry(type: .loft(context.paths), in: context))
