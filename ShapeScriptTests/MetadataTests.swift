@@ -110,7 +110,7 @@ private extension URL {
     }
 }
 
-private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]+)\\)", options: [])
+private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]*)\\)", options: [])
 
 class MetadataTests: XCTestCase {
     // MARK: Releases
@@ -217,7 +217,7 @@ class MetadataTests: XCTestCase {
             ("Glossary", "glossary.md"),
         ]
 
-        let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]+)\\)", options: [])
+        let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]*)\\)", options: [])
 
         for (i, (_, path)) in indexLinks.dropLast().enumerated() {
             let fileURL = helpSourceDirectory.appendingPathComponent(path)
@@ -249,6 +249,8 @@ class MetadataTests: XCTestCase {
             for match in urlRegex.matches(in: text, options: [], range: range) {
                 range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
                 var url = nsText.substring(with: match.range(at: 1))
+                    .trimmingCharacters(in: .whitespaces)
+                XCTAssertFalse(url.isEmpty, "Empty url reference in \(file)")
                 var fragment = ""
                 let parts = url.components(separatedBy: "#")
                 guard !url.hasPrefix("http") else {
