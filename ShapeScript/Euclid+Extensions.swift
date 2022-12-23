@@ -128,6 +128,16 @@ private extension NSAttributedString {
 #endif
 
 extension PathPoint {
+    /// Create with vertex
+    init(_ vertex: Vertex) {
+        self.init(
+            vertex.position,
+            texcoord: vertex.texcoord,
+            color: vertex.color,
+            isCurved: false
+        )
+    }
+
     /// Replace point color
     func with(color: Color?) -> PathPoint {
         var point = self

@@ -298,7 +298,7 @@ extension Value {
 
     var members: [String] {
         switch self {
-        case .vector, .point:
+        case .vector:
             return ["x", "y", "z"]
         case .size:
             return ["width", "height", "depth"]
@@ -316,13 +316,7 @@ extension Value {
                 members += ["lines", "words", "characters"]
             }
             guard values.allSatisfy({ $0.type == .number }) else {
-                guard values.allSatisfy({ $0.type == .path }) else {
-                    if values.count == 1 {
-                        members += values[0].members
-                    }
-                    return members
-                }
-                return members + ["bounds"]
+                return members + (values.count == 1 ? values[0].members : [])
             }
             if (1 ... 4).contains(values.count) {
                 members += ["red", "green", "blue", "alpha"]
@@ -337,8 +331,18 @@ extension Value {
             return members
         case .range:
             return ["start", "end", "step"]
-        case .path, .mesh, .polygon:
-            return ["bounds"]
+        case let .mesh(geometry):
+            let members = ["name", "bounds"]
+            if case .mesh = geometry.type {
+                return members + ["polygons"]
+            }
+            return members
+        case .path, .polygon:
+            return ["bounds", "points"]
+        case let .point(point):
+            return ["x", "y", "z", "position"] + (point.color.map { _ in
+                ["color"]
+            } ?? [])
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
@@ -359,8 +363,6 @@ extension Value {
             case "z": return .number(vector.z)
             default: return nil
             }
-        case let .point(point):
-            return Value.vector(point.position)[name]
         case let .size(size):
             switch name {
             case "width": return .number(size.x)
@@ -404,19 +406,7 @@ extension Value {
                 }
             }
             guard values.allSatisfy({ $0.type == .number }) else {
-                guard values.allSatisfy({ $0.type == .path }) else {
-                    if values.count == 1 {
-                        return values[0][name]
-                    }
-                    return nil
-                }
-                let values = values.compactMap { $0.value as? Path }
-                switch name {
-                case "bounds":
-                    return .bounds(values.bounds)
-                default:
-                    return nil
-                }
+                return values.count == 1 ? values[0][name] : nil
             }
             let values = values.map { $0.doubleValue }
             switch name {
@@ -438,20 +428,43 @@ extension Value {
             case "step": return .number(range.step)
             default: return nil
             }
+        case let .mesh(geometry):
+            switch name {
+            case "name":
+                return .string(geometry.name ?? "")
+            case "bounds":
+                return .bounds(geometry.bounds)
+            case "polygons":
+                guard case let .mesh(mesh) = geometry.type else {
+                    return nil
+                }
+                return .tuple(mesh.polygons.map { .polygon($0) })
+            default:
+                return nil
+            }
         case let .path(path):
             switch name {
             case "bounds": return .bounds(path.bounds)
-            default: return nil
-            }
-        case let .mesh(mesh):
-            switch name {
-            case "bounds": return .bounds(mesh.bounds)
+            case "points": return .tuple(path.points.map { .point($0) })
             default: return nil
             }
         case let .polygon(polygon):
             switch name {
-            case "bounds": return .bounds(polygon.bounds)
-            default: return nil
+            case "bounds":
+                return .bounds(polygon.bounds)
+            case "points":
+                return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
+            default:
+                return nil
+            }
+        case let .point(point):
+            switch name {
+            case "position":
+                return .vector(point.position)
+            case "color":
+                return point.color.map { .color($0) } // TODO: return default?
+            default:
+                return Value.vector(point.position)[name]
             }
         case let .bounds(bounds):
             switch name {

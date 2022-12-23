@@ -148,6 +148,24 @@ for word in sentence {
 }
 ```
 
+For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members, and for [polygons](meshes.md#polygons-and-points) you can use `points` to access the individual vertices. For points you can access the `position` and `color`:
+
+```swift
+define triangle polygon {
+    color red
+    point 0 0
+    color green
+    point 1 0
+    color blue
+    point 1 1
+}
+
+// Print the vertex colors
+for point in triangle.points {
+    print "position: " point.position ", color: " point.color
+}
+```
+
 For more information about the members that can be accessed on various data types, see [structured data](literals.md#structured-data).
 
 
