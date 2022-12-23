@@ -1,5 +1,31 @@
 # Change Log
 
+## [1.6.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.0) (2022-12-27)
+
+- Added hull command for creating convex hulls from points, paths or other meshes
+- Added mesh command for manually creating meshes from individual polygons
+- Added axisAligned property for controlling extrusion along  paths
+- Added support for importing plain text files as a string and JSON files as a tuple
+- Added modulo operator for calculating remainder of division
+- Significantly overhauled type system to support lists, unions and objects
+- Improved static analysis, allowing type errors to be caught earlier
+- Improved handling of background property scope
+- The min and max functions are now variadic (accept any number of arguments)
+- Added split(), join() and trim() functions for working with strings
+- Added automatic conversion of strings to numbers or boolean values where applicable
+- Added string.lines, .words and .characters members
+- Added tuple.count, .last, .allButFirst and .allButLast members
+- Fixed member lookup on numeric literals
+- Fixed bug where material of imported shapes could not be overridden
+- Background and texture can now be cleared by setting them to an empty string
+- Logging geometry values to console now produces more useful output
+- Added proper logging for bounds and point values
+- Added fileTimedOut and circularImport errors
+- Refactored and improved error handling
+- Renamed ImportError to ProgramError
+- Raised minimum Euclid version to 0.6.6
+- Added Spirals example
+
 ## [1.5.14](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.14) (2022-12-18)
 
 - Added support for C-style block comments using /* ... */ syntax
