@@ -537,6 +537,10 @@ extension Value {
                 children: [],
                 sourceLocation: context?.sourceLocation
             ))
+        case let (.polygon(polygon), .path):
+            return .path(Path(polygon))
+        case let (.polygon(polygon), .mesh):
+            return try Value.path(Path(polygon)).as(.mesh, in: context)
         default:
             return nil
         }

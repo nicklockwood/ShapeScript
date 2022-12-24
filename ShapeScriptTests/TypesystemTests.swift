@@ -628,6 +628,28 @@ class TypesystemTests: XCTestCase {
         XCTAssertNotNil(try evaluate("square", as: .mesh))
     }
 
+    func testCastPolygonToPath() throws {
+        XCTAssertNotNil(try evaluate("""
+        define triangle polygon {
+            point 0 0
+            point 1 0
+            point 1 1
+        }
+        triangle
+        """, as: .path))
+    }
+
+    func testCastPolygonToMesh() throws {
+        XCTAssertNotNil(try evaluate("""
+        define triangle polygon {
+            point 0 0
+            point 1 0
+            point 1 1
+        }
+        triangle
+        """, as: .mesh))
+    }
+
     func testStringToInt() throws {
         XCTAssertEqual(try evaluate("\"1\" + 2", as: .any), 3)
         XCTAssertEqual(try evaluate("\"2\" * \"3\"", as: .any), 6)

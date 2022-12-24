@@ -150,6 +150,20 @@ extension Path {
         return Path(points.map { $0.with(color: nil) })
     }
 
+    /// Creates a closed path from a polygon.
+    init(_ polygon: Polygon) {
+        let hasTexcoords = polygon.hasTexcoords
+        let hasVertexColors = polygon.hasVertexColors
+        let points = polygon.vertices.map {
+            PathPoint.point(
+                $0.position,
+                texcoord: hasTexcoords ? $0.texcoord : nil,
+                color: hasVertexColors ? $0.color : nil
+            )
+        }
+        self.init(points + [points[0]])
+    }
+
     /// Create an array of text paths
     static func text(
         _ text: [TextValue],
