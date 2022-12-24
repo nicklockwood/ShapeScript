@@ -322,11 +322,6 @@ public extension MaterialProperty {
             return nil
         }
     }
-
-    @available(*, renamed: "init(_:)")
-    init?(scnMaterialProperty: SCNMaterialProperty) {
-        self.init(scnMaterialProperty)
-    }
 }
 
 public extension Material {
@@ -343,11 +338,6 @@ public extension Material {
             color = .white
             texture = nil
         }
-    }
-
-    @available(*, renamed: "init(_:)")
-    init?(scnMaterial: SCNMaterial) {
-        self.init(scnMaterial)
     }
 }
 
@@ -389,11 +379,6 @@ public extension Geometry {
             children: try scnNode.childNodes.map(Geometry.init(_:)),
             sourceLocation: nil
         )
-    }
-
-    @available(*, renamed: "init(_:)")
-    convenience init(scnNode: SCNNode) throws {
-        try self.init(scnNode)
     }
 }
 

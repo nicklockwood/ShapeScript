@@ -241,37 +241,6 @@ public extension String {
     func line(at index: String.Index) -> Int {
         lineAndColumn(at: index).line
     }
-
-    @available(*, deprecated, message: "Use lineAndColumn(at:) instead.")
-    func lineAndColumn(
-        at index: String.Index,
-        withLinebreakIndices linebreakIndices: [String.Index]
-    ) -> (line: Int, column: Int) {
-        guard indices.contains(index),
-              let line = linebreakIndices.firstIndex(where: { $0 >= index })
-        else {
-            assertionFailure("index out of range")
-            return (linebreakIndices.count, 1)
-        }
-        let linebreakIndex = line > 0 ? self
-            .index(after: linebreakIndices[line - 1]) : startIndex
-        guard indices.contains(linebreakIndex) else {
-            assertionFailure("linebreakIndex out of range")
-            return (line, 1)
-        }
-        var i = linebreakIndex
-        var column = 1
-        while i < index {
-            i = self.index(after: i)
-            column += 1
-        }
-        return (line: line + 1, column: column)
-    }
-
-    @available(*, deprecated, message: "Obsolete.")
-    var linebreakIndices: [String.Index] {
-        indices.compactMap { self[$0].isLinebreak ? $0 : nil } + [endIndex]
-    }
 }
 
 // MARK: Implementation

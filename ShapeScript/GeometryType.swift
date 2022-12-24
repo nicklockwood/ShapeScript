@@ -19,23 +19,11 @@ public struct Camera: Hashable {
 }
 
 public extension Camera {
-    var hasPosition: Bool {
-        get { position != nil }
-        @available(*, deprecated, message: "Obsolete. Use position instead.")
-        set { position = newValue ? .zero : nil }
-    }
+    var hasPosition: Bool { position != nil }
 
-    var hasOrientation: Bool {
-        get { orientation != nil }
-        @available(*, deprecated, message: "Obsolete. Use orientation instead.")
-        set { orientation = newValue ? .identity : nil }
-    }
+    var hasOrientation: Bool { orientation != nil }
 
-    var hasScale: Bool {
-        get { scale != nil }
-        @available(*, deprecated, message: "Obsolete. Use scale instead.")
-        set { scale = newValue ? .one : nil }
-    }
+    var hasScale: Bool { scale != nil }
 }
 
 public struct Light: Hashable {
@@ -47,17 +35,9 @@ public struct Light: Hashable {
 }
 
 public extension Light {
-    var hasPosition: Bool {
-        get { position != nil }
-        @available(*, deprecated, message: "Obsolete. Use position instead.")
-        set { position = newValue ? .zero : nil }
-    }
+    var hasPosition: Bool { position != nil }
 
-    var hasOrientation: Bool {
-        get { orientation != nil }
-        @available(*, deprecated, message: "Obsolete. Use orientation instead.")
-        set { orientation = newValue ? .identity : nil }
-    }
+    var hasOrientation: Bool { orientation != nil }
 }
 
 public struct ExtrudeOptions: Hashable {

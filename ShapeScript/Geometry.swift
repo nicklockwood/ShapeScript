@@ -113,29 +113,6 @@ public final class Geometry: Hashable {
         }
     }
 
-    @available(*, deprecated, message: "Use lazy source location instead.")
-    public convenience init(
-        type: GeometryType,
-        name: String?,
-        transform: Transform,
-        material: Material,
-        smoothing: Angle?,
-        children: [Geometry],
-        sourceLocation: SourceLocation,
-        debug: Bool = false
-    ) {
-        self.init(
-            type: type,
-            name: name,
-            transform: transform,
-            material: material,
-            smoothing: smoothing,
-            children: children,
-            sourceLocation: { sourceLocation },
-            debug: debug
-        )
-    }
-
     public init(
         type: GeometryType,
         name: String?,
@@ -291,14 +268,6 @@ public extension Geometry {
         }
     }
 
-    @available(*, deprecated, message: "Use Scene.cameras instead")
-    var cameras: [Geometry] {
-        guard case .camera = type else {
-            return children.flatMap { $0.cameras }
-        }
-        return [self]
-    }
-
     var camera: Camera? {
         guard case let .camera(camera) = type else {
             return nil
@@ -362,19 +331,6 @@ public extension Geometry {
         )
     }
 
-    @available(*, deprecated, message: "Use lazy source location instead.")
-    func with(
-        transform: Transform,
-        material: Material?,
-        sourceLocation: SourceLocation?
-    ) -> Geometry {
-        with(
-            transform: transform,
-            material: material,
-            sourceLocation: { sourceLocation }
-        )
-    }
-
     func with(
         transform: Transform,
         material: Material?,
@@ -402,11 +358,6 @@ public extension Geometry {
 
     func build(_ callback: @escaping () -> Bool) -> Bool {
         buildLeaves(callback) && buildPreview(callback) && buildFinal(callback)
-    }
-
-    @available(*, deprecated, message: "Use flattened() instead")
-    func flatten(with material: Material?, callback: @escaping () -> Bool) -> Mesh {
-        flattened(with: material, callback)
     }
 
     func flattened(_ callback: @escaping () -> Bool = { true }) -> Mesh {
