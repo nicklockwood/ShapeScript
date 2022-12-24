@@ -60,7 +60,7 @@ class ImportExportTests: XCTestCase {
         #if canImport(SceneKit)
         geometry.scnBuild(with: .default)
         let node = SCNNode(geometry)
-        let geometry2 = try Geometry(scnNode: node)
+        let geometry2 = try Geometry(node)
         XCTAssert(geometry2.build { true })
         let mesh2 = try XCTUnwrap(geometry2.mesh)
         XCTAssertEqual(mesh2.polygons.count, 256)

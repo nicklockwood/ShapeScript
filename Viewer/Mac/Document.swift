@@ -12,13 +12,11 @@ import ShapeScript
 
 class Document: NSDocument {
     static var backgroundColor: NSColor {
-        if #available(macOS 10.14, *) {
-            if Thread.isMainThread {
+        if Thread.isMainThread {
+            NSAppearance.current = NSApp.effectiveAppearance
+        } else {
+            DispatchQueue.main.sync {
                 NSAppearance.current = NSApp.effectiveAppearance
-            } else {
-                DispatchQueue.main.sync {
-                    NSAppearance.current = NSApp.effectiveAppearance
-                }
             }
         }
         return .underPageBackgroundColor

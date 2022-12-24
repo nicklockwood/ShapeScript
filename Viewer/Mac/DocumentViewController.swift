@@ -190,9 +190,7 @@ class DocumentViewController: NSViewController {
 
     override func viewWillLayout() {
         super.viewWillLayout()
-        if #available(macOS 10.14, *) {
-            NSAppearance.current = NSApp.effectiveAppearance
-        }
+        NSAppearance.current = NSApp.effectiveAppearance
         scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
         document?.rerender()
         updateAxesAndCamera()
