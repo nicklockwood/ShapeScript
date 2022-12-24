@@ -520,6 +520,16 @@ extension Value {
             return .tuple(values)
         case let (_, .list(type)):
             return self.as(type).map { [$0] }
+        case let (.path(path), .mesh):
+            return .mesh(Geometry(
+                type: .path(path),
+                name: context?.name,
+                transform: context?.transform ?? .identity,
+                material: .default, // not used for paths
+                smoothing: nil,
+                children: [],
+                sourceLocation: context?.sourceLocation
+            ))
         default:
             return nil
         }

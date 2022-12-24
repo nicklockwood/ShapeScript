@@ -623,6 +623,11 @@ class TypesystemTests: XCTestCase {
         """, as: .string), .string(url.path))
     }
 
+    func testCastPathToMesh() throws {
+        XCTAssert(Value.path(.square()).isConvertible(to: .mesh))
+        XCTAssertNotNil(try evaluate("square", as: .mesh))
+    }
+
     func testStringToInt() throws {
         XCTAssertEqual(try evaluate("\"1\" + 2", as: .any), 3)
         XCTAssertEqual(try evaluate("\"2\" * \"3\"", as: .any), 6)

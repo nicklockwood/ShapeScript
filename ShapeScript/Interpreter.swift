@@ -915,28 +915,15 @@ extension EvaluationContext {
                     color: material.color,
                     linespacing: self.value(for: "linespacing")?.doubleValue
                 )))
-            case let .tuple(values) where values.count <= 1:
-                children += values
+            case let .tuple(values) where value.type.isSubtype(of: childTypes):
+                try values.forEach(addValue)
             default:
                 children.append(value)
             }
+        } else if case let .tuple(values) = value {
+            try values.forEach(addValue)
         } else {
-            switch value {
-            case let .path(path) where childTypes.subtypes.contains(.mesh):
-                children.append(.mesh(Geometry(
-                    type: .path(path),
-                    name: name,
-                    transform: childTransform,
-                    material: .default, // not used for paths
-                    smoothing: nil,
-                    children: [],
-                    sourceLocation: sourceLocation
-                )))
-            case let .tuple(values):
-                try values.forEach(addValue)
-            default:
-                throw RuntimeErrorType.unusedValue(type: value.type)
-            }
+            throw RuntimeErrorType.unusedValue(type: value.type)
         }
     }
 }
