@@ -339,9 +339,11 @@ extension Value {
                 members += color.members
             }
             return members
+        case .text:
+            return ["string", "font", "color", "linespacing"]
         case let .object(values):
             return values.keys.sorted()
-        case .texture, .boolean, .number, .radians, .halfturns, .text:
+        case .texture, .boolean, .number, .radians, .halfturns:
             return []
         }
     }
@@ -494,9 +496,22 @@ extension Value {
             default:
                 return nil
             }
+        case let .text(text):
+            switch name {
+            case "string":
+                return .string(text.string)
+            case "font":
+                return text.font.map { .string($0) } ?? .void
+            case "color":
+                return text.color.map { .color($0) } ?? .void
+            case "linespacing":
+                return text.linespacing.map { .number($0) } ?? .void
+            default:
+                return nil
+            }
         case let .object(values):
             return values[name]
-        case .boolean, .texture, .number, .radians, .halfturns, .text:
+        case .boolean, .texture, .number, .radians, .halfturns:
             return nil
         }
     }

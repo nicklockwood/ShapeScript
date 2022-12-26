@@ -276,6 +276,8 @@ extension ValueType {
         "lines": .list(.string),
         "words": .list(.string),
         "characters": .list(.string),
+        "linespacing": .optional(.number),
+        "font": .optional(.string),
     ]
 }
 
