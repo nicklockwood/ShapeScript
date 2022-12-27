@@ -27,9 +27,15 @@ The Earth example demonstrates use of the [texture](materials.md#texture) comman
 
 ![Earth](../images/earth.png)
 
+## Spirals
+
+The Spirals example demonstrates using the [extrude](builders.md#extrude) command to create a spiral. This example also demonstrates the use of [for loops](control-flow.md#loops) and user-defined [options](blocks.md#options).
+
+![Spirals](../images/spirals.png)
+
 ## Spring
 
-The Spring example demonstrates advanced use of the [loft](builders.md#loft) command to create a coiled spring shape. This example also demonstrates the use of [for loops](control-flow.md#loops) and user-defined [options](blocks.md#options).
+The Spring example demonstrates how to use the [loft](builders.md#loft) command and a [for loop](control-flow.md#loops) to create a coiled spring shape. 
 
 ![Spring](../images/spring.png)
 

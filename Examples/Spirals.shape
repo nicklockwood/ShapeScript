@@ -1,0 +1,34 @@
+// ShapeScript document
+
+detail 32
+
+define spiral {
+    option coils 3 // number of coils
+    option radius 0.5 // radius of coil
+    option steps detail * coils // number of segments
+
+    path {
+        detail 0
+        for i in 0 to steps - 1 {
+            curve 0 radius * (1 - i / steps) 0
+            rotate 2 / steps * coils
+        }
+    }
+}
+
+// spiral path
+spiral { coils 3 }
+
+// extruded spiral
+extrude {
+    position 1
+    size 1 1 0.1
+    spiral { coils 4 }
+}
+
+// solid spiral with circular cross-section
+extrude {
+    position 2
+    circle { size 0.03 }
+    along spiral { coils 5 }
+}

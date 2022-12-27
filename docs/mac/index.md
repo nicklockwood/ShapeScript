@@ -154,6 +154,7 @@ ShapeScript Help
     - [Chessboard](examples.md#chessboard)
     - [Cog](examples.md#cog)
     - [Earth](examples.md#earth)
+    - [Spirals](examples.md#spirals)
     - [Spring](examples.md#spring)
     - [Train](examples.md#train)
 - [Glossary](glossary.md)
