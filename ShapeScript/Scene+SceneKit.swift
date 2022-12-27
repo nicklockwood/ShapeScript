@@ -328,14 +328,14 @@ public extension Material {
     init?(_ scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
         switch MaterialProperty(scnMaterial.diffuse) {
-        case let .color(color)?:
+        case let .color(color)? where color != .white:
             self.color = color
             texture = nil
         case let .texture(texture)?:
-            color = .white
+            color = nil
             self.texture = texture
         default:
-            color = .white
+            color = nil
             texture = nil
         }
     }

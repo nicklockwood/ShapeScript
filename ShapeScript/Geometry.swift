@@ -318,7 +318,9 @@ public extension Geometry {
         if material != nil, material != self.material {
             return false
         }
-        return !children.contains(where: { !$0.hasUniformMaterial(material ?? self.material) })
+        return children.allSatisfy {
+            $0.hasUniformMaterial(material ?? self.material)
+        }
     }
 
     /// Returns a copy of the geometry with the specified name
