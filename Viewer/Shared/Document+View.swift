@@ -82,11 +82,13 @@ extension Document {
         guard let loadingProgress = loadingProgress,
               loadingProgress.didSucceed
         else {
+            rerenderRequired = true
             return
         }
         let camera = self.camera
         let backgroundColor = Color(Self.backgroundColor)
         let showWireframe = self.showWireframe
+        rerenderRequired = false
         loadingProgress.dispatch { progress in
             if case let .success(scene) = progress.status,
                !scene.children.isEmpty
@@ -187,6 +189,9 @@ extension Document {
                 self.errorURL = nil
                 self.isAccessError = false
                 self.scene = scene
+                if case .success = status, self.rerenderRequired {
+                    self.rerender()
+                }
             case let .failure(error):
                 self.errorMessage = error.message(with: input)
                 if let accessErrorURL = error.accessErrorURL {

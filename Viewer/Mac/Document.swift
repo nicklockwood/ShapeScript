@@ -63,6 +63,8 @@ class Document: NSDocument {
     var errorURL: URL?
     var isAccessError: Bool = false
     var sourceString: String = ""
+    var rerenderRequired: Bool = false
+    private var observer: Any?
 
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)
@@ -98,10 +100,21 @@ class Document: NSDocument {
             currentWindow.addTabbedWindow(newWindow, ordered: .above)
         }
         updateViews()
+
+        // Observe settings changes.
+        observer = NotificationCenter.default.addObserver(
+            forName: .settingsUpdated,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.rerender()
+            self?.updateViews()
+        }
     }
 
     override func close() {
         super.close()
+        observer.map(NotificationCenter.default.removeObserver)
         loadingProgress?.cancel()
         fileMonitor = nil
     }

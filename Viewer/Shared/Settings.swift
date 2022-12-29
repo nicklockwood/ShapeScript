@@ -9,6 +9,10 @@
 import CoreServices
 import Foundation
 
+extension Notification.Name {
+    static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
+}
+
 final class Settings {
     static let shared = Settings()
 
@@ -48,6 +52,7 @@ final class Settings {
         if applyGlobally {
             // Set global default
             defaults.set(value, forKey: key)
+            NotificationCenter.default.post(name: .settingsUpdated, object: key)
         }
     }
 

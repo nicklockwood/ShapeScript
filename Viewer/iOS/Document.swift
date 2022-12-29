@@ -51,12 +51,28 @@ class Document: UIDocument {
     var errorURL: URL?
     var isAccessError: Bool = false
     var sourceString: String = ""
+    var rerenderRequired: Bool = false
+    private var observer: Any?
 
     override init(fileURL url: URL) {
         super.init(fileURL: url)
         fileMonitor = FileMonitor(url) { [weak self] url in
             try self?.read(from: url)
         }
+
+        // Observe settings changes.
+        observer = NotificationCenter.default.addObserver(
+            forName: .settingsUpdated,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.rerender()
+            self?.updateViews()
+        }
+    }
+
+    deinit {
+        observer.map(NotificationCenter.default.removeObserver)
     }
 
     override func load(fromContents contents: Any, ofType _: String?) throws {
