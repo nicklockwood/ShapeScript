@@ -417,6 +417,8 @@ extension Value {
         switch (self, type) {
         case _ where self.type.isSubtype(of: type):
             return self
+        case let (.tuple(values), type) where values.count == 1:
+            return try values[0].as(type, in: context)
         case let (_, .union(types)):
             if types.contains(where: { self.type.isSubtype(of: $0) }) {
                 return self
@@ -478,8 +480,6 @@ extension Value {
             return .size(Vector(size: value))
         case let (.number(value), .rotation):
             return .rotation(Rotation(unchecked: [value]))
-        case let (.tuple(values), type) where values.count == 1:
-            return try values[0].as(type, in: context)
         case let (.tuple(values), .tuple(types)):
             guard values.count == types.count else {
                 return nil
