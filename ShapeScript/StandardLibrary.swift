@@ -132,7 +132,7 @@ extension Dictionary where Key == String, Value == Symbol {
         // builders
         "extrude": .block(.custom(.builder, [
             "along": .list(.path),
-            "twist": .number,
+            "twist": .angle,
             "axisAligned": .boolean,
         ], .path, .mesh)) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
@@ -226,7 +226,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "position": .vector,
             "orientation": .rotation,
             "color": .color,
-            "spread": .number,
+            "spread": .angle,
             "penumbra": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
@@ -510,7 +510,7 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let smoothing: Symbols = [
-        "smoothing": .property(.number, { parameter, context in
+        "smoothing": .property(.angle, { parameter, context in
             // TODO: find a better way to represent null/auto
             let angle = Swift.min(.pi, parameter.angleValue)
             context.smoothing = angle < .zero ? nil : angle
@@ -525,7 +525,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "orientation": .rotation,
             "size": .size,
             "background": .colorOrTexture,
-            "fov": .number,
+            "fov": .angle,
             "width": .number,
             "height": .number,
         ], .void, .mesh)) { context in

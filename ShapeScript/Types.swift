@@ -89,6 +89,7 @@ extension ValueType: Comparable {
 
 extension ValueType {
     static let void: ValueType = .tuple([])
+    static let angle: ValueType = .number
     static let sequence: ValueType = .union([.range, .list(.any)])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
