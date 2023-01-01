@@ -168,7 +168,7 @@ extension Dictionary where Key == String, Value == Symbol {
             let vertices = try context.children.flatMap { child -> [Vertex] in
                 switch child {
                 case let .point(point):
-                    return [Vertex(point.position, nil, nil, point.color)]
+                    return [Vertex(point)]
                 case let .path(path):
                     return path.subpaths.flatMap { $0.edgeVertices }
                 case .mesh:

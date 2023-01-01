@@ -384,7 +384,7 @@ public extension SCNGeometry {
         )
     }
 
-    @available(*, renamed: "init(_:)")
+    @available(*, deprecated, message: "Use `init(_:)` instead")
     convenience init(bounds: Bounds) {
         self.init(bounds)
     }
@@ -517,10 +517,8 @@ public extension Mesh {
             .checkConsistency: false,
             .flattenScene: true,
             .createNormalsIfAbsent: true,
+            .convertToYUp: true,
         ]
-        if #available(iOS 11, tvOS 11, macOS 10.10, *) {
-            options[.convertToYUp] = true
-        }
         if #available(iOS 13, tvOS 13, macOS 10.12, *) {
             options[.preserveOriginalTopology] = true
         }
@@ -730,7 +728,7 @@ public extension Mesh {
         self.init(scnGeometry) { _ in material }
     }
 
-    @available(*, renamed: "init(_:material:)")
+    @available(*, deprecated, message: "Use `init(_:material:)` instead")
     init?(scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }

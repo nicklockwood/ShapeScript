@@ -608,7 +608,7 @@ private extension Collection where Element == Path {
         }
         var material = material
         material.color = current ?? material.color
-        return (map { $0.removingColors() }, material)
+        return (map { $0.with(color: nil) }, material)
     }
 }
 

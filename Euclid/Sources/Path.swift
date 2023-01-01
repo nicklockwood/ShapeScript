@@ -125,6 +125,14 @@ public extension Path {
         )
     }
 
+    /// Replace/remove path point colors.
+    /// - Parameter color: The color to apply to each point in the path.
+    func with(color: Color?) -> Path {
+        Path(unchecked: points.map {
+            $0.with(color: color)
+        }, plane: plane, subpathIndices: subpathIndices)
+    }
+
     /// Closes the path by joining last point to first.
     /// - Returns: A new path, or `self` if the path is already closed, or cannot be closed.
     func closed() -> Path {
@@ -150,7 +158,7 @@ public extension Path {
     /// - Parameter subpaths: An array of paths.
     init(subpaths: [Path]) {
         guard subpaths.count > 1 else {
-            self = subpaths.first ?? Path([])
+            self = subpaths.first ?? .empty
             return
         }
         let points = subpaths.flatMap { $0.points }
@@ -158,8 +166,26 @@ public extension Path {
         self.init(unchecked: points, plane: nil, subpathIndices: nil)
     }
 
-    /// Creates a path from a polygon.
+    /// Creates a closed path from a polygon.
     /// - Parameter polygon: A ``Polygon`` to convert to a path.
+    init(_ polygon: Polygon) {
+        let hasTexcoords = polygon.hasTexcoords
+        let hasVertexColors = polygon.hasVertexColors
+        let points = polygon.vertices.map {
+            PathPoint.point(
+                $0.position,
+                texcoord: hasTexcoords ? $0.texcoord : nil,
+                color: hasVertexColors ? $0.color : nil
+            )
+        }
+        self.init(
+            unchecked: points + [points[0]],
+            plane: polygon.plane,
+            subpathIndices: nil
+        )
+    }
+
+    @available(*, deprecated, message: "Use `init(_:)` instead")
     init(polygon: Polygon) {
         let hasTexcoords = polygon.hasTexcoords
         self.init(
@@ -294,10 +320,8 @@ public extension Path {
     /// - Returns: The edge vertices, or an empty array if path has subpaths.
     func edgeVertices(for wrapMode: Mesh.WrapMode) -> [Vertex] {
         guard subpaths.count <= 1, points.count >= 2 else {
-            if let p = points.first {
-                return [Vertex(p.position, nil, p.texcoord, p.color)]
-            }
-            return []
+            // TODO: does this actually match the documented behavior?
+            return points.first.map { [Vertex($0)] } ?? []
         }
 
         // get path length
@@ -430,13 +454,6 @@ internal extension Path {
     /// Does path contain vertex colors?
     var hasColors: Bool {
         points.contains(where: { $0.color != nil })
-    }
-
-    /// Replace/remove path point colors
-    func with(color: Color?) -> Path {
-        Path(unchecked: points.map {
-            $0.with(color: color)
-        }, plane: plane, subpathIndices: subpathIndices)
     }
 
     // Test if path is self-intersecting

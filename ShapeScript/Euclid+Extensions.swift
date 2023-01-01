@@ -127,51 +127,10 @@ private extension NSAttributedString {
 }
 #endif
 
-extension PathPoint {
-    /// Create with vertex
-    init(_ vertex: Vertex) {
-        self.init(
-            vertex.position,
-            texcoord: vertex.texcoord,
-            color: vertex.color,
-            isCurved: false
-        )
-    }
-
-    /// Replace point color
-    func with(color: Color?) -> PathPoint {
-        var point = self
-        point.color = color
-        return point
-    }
-}
-
 extension Path {
     /// Does path contain vertex colors
     var hasColors: Bool {
         points.contains(where: { $0.color != nil })
-    }
-
-    /// Remove point colors
-    func removingColors() -> Path {
-        if subpaths.count > 1 {
-            return Path(subpaths: subpaths.map { $0.removingColors() })
-        }
-        return Path(points.map { $0.with(color: nil) })
-    }
-
-    /// Creates a closed path from a polygon.
-    init(_ polygon: Polygon) {
-        let hasTexcoords = polygon.hasTexcoords
-        let hasVertexColors = polygon.hasVertexColors
-        let points = polygon.vertices.map {
-            PathPoint.point(
-                $0.position,
-                texcoord: hasTexcoords ? $0.texcoord : nil,
-                color: hasVertexColors ? $0.color : nil
-            )
-        }
-        self.init(points + [points[0]])
     }
 
     /// Create an array of text paths

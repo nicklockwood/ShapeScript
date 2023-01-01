@@ -229,7 +229,7 @@ public extension Geometry {
         } else if let path = path {
             if options.wireframe {
                 let wireframe = SCNGeometry(.stroke(
-                    path.removingColors(),
+                    path.with(color: nil),
                     width: options.lineWidth,
                     detail: 5
                 ))
@@ -243,7 +243,7 @@ public extension Geometry {
                 let geometry: SCNGeometry
                 if debug, let material = options.debugMaterial {
                     geometry = SCNGeometry(.stroke(
-                        path.removingColors(),
+                        path.with(color: nil),
                         width: options.lineWidth,
                         detail: 5
                     ))

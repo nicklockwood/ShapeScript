@@ -42,7 +42,7 @@ public protocol Transformable {
     func translated(by offset: Vector) -> Self
 
     /// Returns a scaled copy of the value.
-    /// - Parameter scale: A scale vector to apply to the value.
+    /// - Parameter scale: A vector scale factor to apply to the value.
     func scaled(by scale: Vector) -> Self
 
     /// Returns a scaled copy of the value.
@@ -74,7 +74,7 @@ public extension Transformable {
     }
 
     /// Scale the value in place.
-    /// - Parameter scale: A scale vector to apply to the value.
+    /// - Parameter scale: A vector scale factor to apply to the value.
     mutating func scale(by scale: Vector) {
         self = scaled(by: scale)
     }
@@ -212,13 +212,36 @@ public extension Transform {
     /// The identity transform (i.e. no transform).
     static let identity = Transform()
 
+    /// Creates a offset transform.
+    /// - Parameter offset: An offset distance.
+    static func offset(_ offset: Vector) -> Transform {
+        .init(offset: offset)
+    }
+
+    /// Creates a rotation transform.
+    /// - Parameter rotation: A rotation to apply.
+    static func rotation(_ rotation: Rotation) -> Transform {
+        .init(rotation: rotation)
+    }
+
+    /// Creates a scale transform.
+    /// - Parameter scale: A vector scale factor apply.
+    static func scale(_ scale: Vector) -> Transform {
+        .init(scale: scale)
+    }
+
+    /// Creates a uniform scale transform.
+    /// - Parameter factor: A uniform scale factor to apply.
+    static func scale(_ scale: Double) -> Transform {
+        .init(scale: Vector(size: scale))
+    }
+
     /// Transform has no effect.
     var isIdentity: Bool {
         rotation.isIdentity && offset.isEqual(to: .zero) && scale.isEqual(to: .one)
     }
 
-    /// Does the transform apply a mirror operation (negative scale).
-    /// - Parameter v: An offset vector to apply to the transform.
+    /// Does the transform apply a mirror operation (negative scale)?
     var isFlipped: Bool {
         isFlippedScale(scale)
     }
@@ -540,8 +563,6 @@ extension Bounds: Transformable {
         return isEmpty ? self : Bounds(min.scaled(by: v), max.scaled(by: v))
     }
 
-    /// Returns a scaled copy of the bounds.
-    /// - Parameter f: A scale factor to apply to the bounds.
     public func scaled(by f: Double) -> Bounds {
         let f = f.clamped()
         return isEmpty ? self : Bounds(min * f, max * f)
@@ -558,7 +579,7 @@ extension Array: Transformable where Element: Transformable {
     }
 
     public func scaled(by v: Vector) -> [Element] {
-        v.isEqual(to: .one) ? self : map { $0.scaled(by: v) }
+        v.isUniform ? scaled(by: v.x) : map { $0.scaled(by: v) }
     }
 
     public func scaled(by f: Double) -> [Element] {
@@ -566,7 +587,16 @@ extension Array: Transformable where Element: Transformable {
     }
 
     public func transformed(by t: Transform) -> [Element] {
-        t.isIdentity ? self : map { $0.transformed(by: t) }
+        if t.scale.isEqual(to: .one) {
+            if t.offset == .zero {
+                return rotated(by: t.rotation)
+            } else if t.isIdentity {
+                return translated(by: t.offset)
+            }
+        } else if t.rotation == .identity, t.offset == .zero {
+            return scaled(by: t.scale)
+        }
+        return map { $0.transformed(by: t) }
     }
 }
 
