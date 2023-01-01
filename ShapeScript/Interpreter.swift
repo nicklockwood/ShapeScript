@@ -28,6 +28,7 @@ public func evaluate(
     return Scene(
         background: context.background ?? .color(.clear),
         children: context.children.compactMap { $0.value as? Geometry },
+        exports: context.exports,
         cache: cache
     )
 }
@@ -37,6 +38,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case unknownMember(String, of: String, options: [String])
     case invalidIndex(Double, range: Range<Int>)
     case unknownFont(String, options: [String])
+    case unknownCamera(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
     case forwardReference(String)
     case unexpectedArgument(for: String, max: Int)
@@ -76,6 +78,8 @@ public extension RuntimeError {
             return "Index \(index.logDescription) out of bounds"
         case let .unknownFont(name, _):
             return name.isEmpty ? "Font name cannot be blank" : "Unknown font '\(name)'"
+        case let .unknownCamera(name, _):
+            return name.isEmpty ? "Camera name cannot be blank" : "Unknown camera '\(name)'"
         case .typeMismatch:
             return "Type mismatch"
         case .forwardReference:
@@ -121,7 +125,7 @@ public extension RuntimeError {
                 return alternative
             }
             return alternative ?? name.bestMatches(in: options).first
-        case let .unknownFont(name, options):
+        case let .unknownFont(name, options), let .unknownCamera(name, options: options):
             return name.bestMatches(in: options).first
         case .typeMismatch,
              .forwardReference,
@@ -185,7 +189,7 @@ public extension RuntimeError {
             return suggestion.map { "Did you mean '\($0)'?" }
         case let .invalidIndex(_, range: range):
             return range.isEmpty ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
-        case .unknownFont:
+        case .unknownFont, .unknownCamera:
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
@@ -267,7 +271,8 @@ public extension RuntimeError {
              .unknownSymbol,
              .unknownMember,
              .invalidIndex,
-             .unknownFont:
+             .unknownFont,
+             .unknownCamera:
             return nil
         }
     }
@@ -1171,6 +1176,7 @@ extension Expression {
                 let newContext = context.push(type)
                 defer {
                     // TODO: find better solution for this
+                    context.exports = newContext.exports
                     context.background = newContext.background
                 }
                 try newContext.pushScope { newContext in

@@ -69,6 +69,16 @@ extension Document {
         }
     }
 
+    var preset: Export? {
+        get {
+            let name: String? = settings.value(for: #function, in: self)
+            return presets.first(where: { $0.name == name })
+        }
+        set {
+            settings.set(newValue?.name, for: #function, in: self)
+        }
+    }
+
     var cameraHasMoved: Bool {
         viewController?.cameraHasMoved ?? false
     }
@@ -162,6 +172,29 @@ extension Document {
             self.camera = camera
         }
         return true
+    }
+
+    func updatePresets() {
+        let customExports = scene?.exports ?? []
+        if !customExports.isEmpty || loadingProgress?.didSucceed != false {
+            let oldPresets = presets
+            presets = customExports.enumerated().map { i, export in
+                var export = export
+                export.name = export.name.isEmpty ? "Preset \(i + 1)" : export.name
+                return export
+            }
+            if !oldPresets.isEmpty {
+                var didUpdatePreset = false
+                for (old, new) in zip(oldPresets, presets) where old != new {
+                    preset = new
+                    didUpdatePreset = true
+                    break
+                }
+                if !didUpdatePreset, presets.count > oldPresets.count {
+                    preset = presets[oldPresets.count]
+                }
+            }
+        }
     }
 
     func updateViews() {

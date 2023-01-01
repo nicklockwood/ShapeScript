@@ -37,6 +37,30 @@ public struct SourceLocation: Hashable {
     }
 }
 
+public struct Export: Hashable {
+    public var name: String
+    public var file: String
+    public var geometry: [Geometry]
+    public var camera: String?
+    public var background: MaterialProperty?
+    public var width: Double?
+    public var height: Double?
+    public var zUp: Bool?
+}
+
+public extension Export {
+    var fileName: String? {
+        let name = URL(fileURLWithPath: file)
+            .deletingPathExtension().lastPathComponent
+        return name.isEmpty ? nil : name
+    }
+
+    var fileExtension: String? {
+        let ext = URL(fileURLWithPath: file).pathExtension
+        return ext.isEmpty ? nil : ext
+    }
+}
+
 final class EvaluationContext {
     private final class ImportCache {
         var store = [URL: Program]()
@@ -60,6 +84,7 @@ final class EvaluationContext {
     var childTransform = Transform.identity
     var childTypes: ValueType = .mesh
     var name: String = ""
+    var exports: [Export] = []
     var namedObjects: [String: Geometry] = [:]
     var children = [Value]() {
         didSet {
@@ -119,6 +144,7 @@ final class EvaluationContext {
         self.font = parent.font
         // root-only
         self.background = parent.background
+        self.exports = parent.exports
         // opacity is cumulative
         self.opacity = parent.material.opacity?.color?.a ?? parent.opacity
         // reset

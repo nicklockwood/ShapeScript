@@ -25,6 +25,7 @@ class Document: UIDocument {
     var scene: Scene? {
         didSet {
             updateCameras()
+            updatePresets()
             updateViews()
         }
     }
@@ -70,6 +71,8 @@ class Document: UIDocument {
             self?.autosave()
         }
     }
+
+    var presets: [Export] = []
 
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)

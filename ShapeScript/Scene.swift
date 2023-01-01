@@ -14,17 +14,20 @@ public final class Scene {
     public let children: [Geometry]
     public let cameras: [Geometry]
     public let lights: [Geometry]
+    public let exports: [Export]
     public let cache: GeometryCache?
 
     public init(
         background: MaterialProperty,
         children: [Geometry],
+        exports: [Export],
         cache: GeometryCache?
     ) {
         self.background = background
         self.children = children
         self.cameras = children.flatMap { $0._cameras }
         self.lights = children.flatMap { $0._lights }
+        self.exports = exports
         self.cache = cache
         children.forEach { $0.cache = cache }
     }
@@ -39,7 +42,7 @@ extension Scene: Equatable {
 }
 
 public extension Scene {
-    static let empty = Scene(background: .color(.clear), children: [], cache: nil)
+    static let empty = Scene(background: .color(.clear), children: [], exports: [], cache: nil)
 
     /// Returns the approximate (overestimated) bounds of the scene geometry.
     var bounds: Bounds {

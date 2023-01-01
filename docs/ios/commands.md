@@ -118,5 +118,9 @@ The `debug`, `print` and `assert` commands can be used to understand what's happ
 
 The `import` command is used to import an external ShapeScript or 3D geometry file. For more details on how this is used, see the [import](import.md) section.
 
+## Export
+
+The `export` command is used to configure the format, file name, etc. of the output from a script. See the [export](export.md) section for details.
+
 ---
 [Index](index.md) | Next: [Control Flow](control-flow.md)

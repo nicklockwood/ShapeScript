@@ -655,6 +655,26 @@ extension Dictionary where Key == String, Value == Symbol {
                 in: context
             ))
         },
+        "export": .block(.init(.node, [
+            "file": .string,
+            "camera": .string,
+            "background": .colorOrTexture,
+            "width": .number,
+            "height": .number,
+            "zUp": .boolean,
+        ], .mesh, .void)) { context in
+            context.exports.append(Export(
+                name: context.name,
+                file: context.value(for: "file")?.stringValue ?? "",
+                geometry: context.children.compactMap { $0.value as? Geometry },
+                camera: context.value(for: "camera")?.stringValue,
+                background: context.value(for: "background")?.colorOrTextureValue,
+                width: context.value(for: "width")?.doubleValue,
+                height: context.value(for: "height")?.doubleValue,
+                zUp: context.value(for: "zUp")?.boolValue
+            ))
+            return .void
+        },
         "background": .property(.colorOrTexture, { parameter, context in
             context.background = MaterialProperty(parameter.value)
         }, { context in

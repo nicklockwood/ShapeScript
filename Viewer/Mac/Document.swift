@@ -37,6 +37,7 @@ class Document: NSDocument {
     var scene: Scene? {
         didSet {
             updateCameras()
+            updatePresets()
             updateViews()
         }
     }
@@ -61,6 +62,7 @@ class Document: NSDocument {
     var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
+    var presets: [Export] = []
 
     var sourceString: String? {
         didSet { didUpdateSource() }
