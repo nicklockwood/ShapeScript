@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.6.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.1) (2023-01-02)
+
+- Added twist option to extrude command
+- Fixed inconsistent view menu options when switching between open documents
+- Bumped Euclid to version 0.6.7
+
 ## [1.6.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.0) (2022-12-27)
 
 - Added hull command for creating convex hulls from points, paths or other meshes
