@@ -56,17 +56,18 @@ extension Document {
         viewController?.cameraHasMoved ?? false
     }
 
-    func cameraConfig(for scnView: SCNView, contentsScale: CGFloat) -> String? {
+    func cameraGeometry(for scnView: SCNView) -> Geometry? {
         guard let scnCameraNode = scnView.pointOfView,
-              var geometry = try? Geometry(scnCameraNode),
+              let geometry = try? Geometry(scnCameraNode),
               case var .camera(camera) = geometry.type
         else {
             return nil
         }
+        let contentsScale = scnView.contentScaleFactor
         camera.width = Double(scnView.frame.width * contentsScale)
         camera.height = Double(scnView.frame.height * contentsScale)
         camera.background = self.camera.background
-        geometry = Geometry(
+        return Geometry(
             type: .camera(camera),
             name: self.camera.geometry?.name,
             transform: geometry.transform,
@@ -75,7 +76,10 @@ extension Document {
             children: [],
             sourceLocation: nil
         )
-        return geometry.logDescription
+    }
+
+    func cameraConfig(for scnView: SCNView) -> String? {
+        cameraGeometry(for: scnView).logDescription
     }
 
     func rerender() {

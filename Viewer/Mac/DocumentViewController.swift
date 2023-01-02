@@ -205,10 +205,7 @@ class DocumentViewController: NSViewController {
     }
 
     @IBAction func copyCamera(_: Any? = nil) {
-        guard let code = document?.cameraConfig(
-            for: scnView,
-            contentsScale: scnView.window?.backingScaleFactor ?? 1
-        ) else {
+        guard let code = document?.cameraConfig(for: scnView) else {
             NSSound.beep()
             return
         }

@@ -278,3 +278,9 @@ class Document: NSDocument {
         isOrthographic.toggle()
     }
 }
+
+extension NSView {
+    var contentScaleFactor: CGFloat {
+        window?.backingScaleFactor ?? 1
+    }
+}

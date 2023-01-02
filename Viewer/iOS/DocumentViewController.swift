@@ -419,10 +419,7 @@ class DocumentViewController: UIViewController {
     }
 
     @IBAction func copyCamera() {
-        guard let code = document?.cameraConfig(
-            for: scnView,
-            contentsScale: scnView.contentScaleFactor
-        ) else {
+        guard let code = document?.cameraConfig(for: scnView) else {
             return
         }
 
