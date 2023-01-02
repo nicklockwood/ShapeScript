@@ -122,7 +122,7 @@ final class EvaluationContext {
     func push(_ type: BlockType) -> EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.childTypes = type.childTypes
-        new.symbols = Symbols.global.merging(type.symbols) { $1 }
+        new.symbols = type.symbols
         for (name, symbol) in type.symbols {
             if case .placeholder = symbol, new.userSymbols[name] != nil {
                 continue
@@ -156,7 +156,7 @@ final class EvaluationContext {
 
 extension EvaluationContext {
     func symbol(for name: String) -> Symbol? {
-        if let symbol = userSymbols[name] ?? symbols[name] {
+        if let symbol = userSymbols[name] ?? symbols[name] ?? Symbols.global[name] {
             return symbol
         }
         switch name {
@@ -171,8 +171,12 @@ extension EvaluationContext {
         userSymbols[name] = symbol
     }
 
+    var allSymbols: Symbols {
+        Symbols.global.merging(symbols) { $1 }.merging(userSymbols) { $1 }
+    }
+
     var expressionSymbols: [String] {
-        Array(symbols.merging(userSymbols) { $1 }.filter {
+        Array(allSymbols.filter {
             switch $1 {
             case let .function(type, _) where type.returnType == .void:
                 return false
@@ -183,7 +187,7 @@ extension EvaluationContext {
     }
 
     var commandSymbols: [String] {
-        Array(symbols.merging(userSymbols) { $1 }.filter {
+        Array(allSymbols.filter {
             switch $1 {
             case .function, .property, .block, .placeholder:
                 return true
