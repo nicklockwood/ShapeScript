@@ -34,7 +34,11 @@
 		01460C3B21D6406500BFC4FF /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		014F85D9215B890100461FB7 /* Interpreter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85D8215B890100461FB7 /* Interpreter.swift */; };
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
-		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
+		015046162964729800497008 /* SCADLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0150460E2964725600497008 /* SCADLib.framework */; };
+		0150462A2965D9E900497008 /* Program+SCADLib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015046292965D9E900497008 /* Program+SCADLib.swift */; };
+		0150462B2965D9E900497008 /* Program+SCADLib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015046292965D9E900497008 /* Program+SCADLib.swift */; };
+		0150463E2968D83F00497008 /* SCADLibTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0150463D2968D83F00497008 /* SCADLibTests.swift */; };
+		015046442968DAAB00497008 /* Program+SCADLib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015046292965D9E900497008 /* Program+SCADLib.swift */; };
 		016F9ED229DB2315008206CE /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
 		0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
@@ -113,6 +117,10 @@
 		01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */; };
 		01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */; };
 		01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D8796A285FBDC800C65135 /* ImportExportTests.swift */; };
+		01DCB73E2A390C0A00E72075 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
+		01DCB73F2A390C0A00E72075 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
+		01DCB7402A390C0A00E72075 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
+		01DCB76A2A3913DA00E72075 /* SCADLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0150460E2964725600497008 /* SCADLib.framework */; platformFilters = (ios, macos, ); };
 		01DE8AEC2AEA98A800107FA1 /* Values.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE8AEB2AEA98A800107FA1 /* Values.swift */; };
 		01DE96712A082A6A0080DB79 /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96702A082A6A0080DB79 /* ProgramError.swift */; };
 		01DE96782A085E900080DB79 /* CLI+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96762A085DC40080DB79 /* CLI+Export.swift */; };
@@ -164,6 +172,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
 			remoteInfo = "Euclid (Mac)";
+		};
+		0150460D2964725600497008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 015046082964725600497008 /* SCADLib.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 015045F0296471D100497008;
+			remoteInfo = SCADLib;
+		};
+		0150460F2964725600497008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 015046082964725600497008 /* SCADLib.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 015045F8296471D100497008;
+			remoteInfo = SCADLibTests;
 		};
 		0152E5D7214500BE0082A5A3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -263,6 +285,13 @@
 			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
 			remoteInfo = SVGPath;
 		};
+		01DCB7622A3913D400E72075 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 015046082964725600497008 /* SCADLib.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 015045EF296471D100497008;
+			remoteInfo = SCADLib;
+		};
 		01FDE3BF26BD736700A46F66 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
@@ -348,6 +377,9 @@
 		013FBF692834D7EF00EAF795 /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
+		015046082964725600497008 /* SCADLib.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SCADLib.xcodeproj; sourceTree = "<group>"; };
+		015046292965D9E900497008 /* Program+SCADLib.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Program+SCADLib.swift"; sourceTree = "<group>"; };
+		0150463D2968D83F00497008 /* SCADLibTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCADLibTests.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
@@ -443,7 +475,6 @@
 				010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */,
 				01FDE3CF26BD73AA00A46F66 /* LRUCache.framework in Frameworks */,
 				01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */,
-				0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,6 +486,7 @@
 				013A0FC2290905C40015FD28 /* Euclid.framework in Frameworks */,
 				013A0FC3290905C40015FD28 /* LRUCache.framework in Frameworks */,
 				013A0FC4290905C40015FD28 /* SVGPath.framework in Frameworks */,
+				015046162964729800497008 /* SCADLib.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,6 +494,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01DCB76A2A3913DA00E72075 /* SCADLib.framework in Frameworks */,
+				01DCB73E2A390C0A00E72075 /* Euclid.framework in Frameworks */,
+				01DCB73F2A390C0A00E72075 /* LRUCache.framework in Frameworks */,
+				01DCB7402A390C0A00E72075 /* SVGPath.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -500,6 +536,23 @@
 			children = (
 				010A905527FB222400D54A6F /* SVGPath.framework */,
 				010A905727FB222400D54A6F /* SVGPathTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		015045E12964717800497008 /* SCADLib */ = {
+			isa = PBXGroup;
+			children = (
+				015046082964725600497008 /* SCADLib.xcodeproj */,
+			);
+			path = SCADLib;
+			sourceTree = "<group>";
+		};
+		015046092964725600497008 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0150460E2964725600497008 /* SCADLib.framework */,
+				015046102964725600497008 /* SCADLibTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -545,6 +598,7 @@
 				0183AA9C28EC3AA500AD1984 /* LoadingProgress.swift */,
 				0183AA9D28EC3AA500AD1984 /* Axes.swift */,
 				0183AA9E28EC3AA500AD1984 /* ProgramError+Formatting.swift */,
+				015046292965D9E900497008 /* Program+SCADLib.swift */,
 				0183AA9F28EC3AA500AD1984 /* Settings.swift */,
 				0183AAA028EC3AA500AD1984 /* Camera.swift */,
 				0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */,
@@ -610,6 +664,7 @@
 				016FAC0221C149C300AF60DC /* Euclid */,
 				01FDE3AE26BD736700A46F66 /* LRUCache */,
 				010A904E27FB21F000D54A6F /* SVGPath */,
+				015045E12964717800497008 /* SCADLib */,
 				01BFB39821425C8500E47A7C /* ShapeScript */,
 				0152E5C6214500990082A5A3 /* Viewer */,
 				01BFB3A321425C8500E47A7C /* ShapeScriptTests */,
@@ -684,6 +739,7 @@
 				01111309269A0AD600BE9490 /* MetadataTests.swift */,
 				0107A0562A7326D800AD33A1 /* RegressionTests.swift */,
 				01C6F9BF284A6E52000B57B1 /* TestDelegate.swift */,
+				0150463D2968D83F00497008 /* SCADLibTests.swift */,
 				01BFB3A621425C8500E47A7C /* Info.plist */,
 			);
 			path = ShapeScriptTests;
@@ -789,6 +845,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				01DCB7632A3913D400E72075 /* PBXTargetDependency */,
 				010A905C27FB22A700D54A6F /* PBXTargetDependency */,
 				01FDE3CD26BD738C00A46F66 /* PBXTargetDependency */,
 				016FAC2B21C14A4600AF60DC /* PBXTargetDependency */,
@@ -896,6 +953,10 @@
 					ProjectRef = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
 				},
 				{
+					ProductGroup = 015046092964725600497008 /* Products */;
+					ProjectRef = 015046082964725600497008 /* SCADLib.xcodeproj */;
+				},
+				{
 					ProductGroup = 010A905027FB222400D54A6F /* Products */;
 					ProjectRef = 010A904F27FB222400D54A6F /* SVGPath.xcodeproj */;
 				},
@@ -924,6 +985,20 @@
 			fileType = wrapper.cfbundle;
 			path = SVGPathTests.xctest;
 			remoteRef = 010A905627FB222400D54A6F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		0150460E2964725600497008 /* SCADLib.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = SCADLib.framework;
+			remoteRef = 0150460D2964725600497008 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		015046102964725600497008 /* SCADLibTests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = SCADLibTests.xctest;
+			remoteRef = 0150460F2964725600497008 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		016FAC2321C149C300AF60DC /* Euclid.framework */ = {
@@ -1089,6 +1164,7 @@
 				0183AAA228EC3AA600AD1984 /* Document+View.swift in Sources */,
 				0183AAA428EC3AA600AD1984 /* Document+EvaluationDelegate.swift in Sources */,
 				0183AAA628EC3AA600AD1984 /* Document+ModelInfo.swift in Sources */,
+				0150462A2965D9E900497008 /* Program+SCADLib.swift in Sources */,
 				0183AAB228EC3AA600AD1984 /* Camera.swift in Sources */,
 				0183AAE828EC3ACB00AD1984 /* Document.swift in Sources */,
 			);
@@ -1117,6 +1193,7 @@
 				0183AAA528EC3AA600AD1984 /* Document+EvaluationDelegate.swift in Sources */,
 				0183AAA728EC3AA600AD1984 /* Document+ModelInfo.swift in Sources */,
 				0183AAB328EC3AA600AD1984 /* Camera.swift in Sources */,
+				0150462B2965D9E900497008 /* Program+SCADLib.swift in Sources */,
 				0183AACD28EC3AB200AD1984 /* Document.swift in Sources */,
 				0183AAC728EC3AB200AD1984 /* SourceViewController.swift in Sources */,
 			);
@@ -1164,11 +1241,13 @@
 				01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */,
 				019853A228360F7500047DF2 /* TypesystemTests.swift in Sources */,
 				01BFB3B52142726100E47A7C /* ParserTests.swift in Sources */,
+				0150463E2968D83F00497008 /* SCADLibTests.swift in Sources */,
 				01A9CA4028BB483500440FDA /* GeometryTests.swift in Sources */,
 				01A6FE832AEF5D2A006AE113 /* MemberTests.swift in Sources */,
 				0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */,
 				01C6F9C0284A6E52000B57B1 /* TestDelegate.swift in Sources */,
 				01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */,
+				015046442968DAAB00497008 /* Program+SCADLib.swift in Sources */,
 				01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */,
 				01F1A6182806BD1A00A1621B /* StandardLibraryTests.swift in Sources */,
 				0107A0572A7326D800AD33A1 /* RegressionTests.swift in Sources */,
@@ -1281,6 +1360,11 @@
 			isa = PBXTargetDependency;
 			name = SVGPath;
 			targetProxy = 01D753DE29E88FEE00B326F0 /* PBXContainerItemProxy */;
+		};
+		01DCB7632A3913D400E72075 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = SCADLib;
+			targetProxy = 01DCB7622A3913D400E72075 /* PBXContainerItemProxy */;
 		};
 		01FDE3CD26BD738C00A46F66 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

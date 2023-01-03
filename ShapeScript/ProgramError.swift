@@ -71,7 +71,9 @@ public extension ProgramError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
             case let .importError(error, url, _):
-                guard let url = url, url.pathExtension == "shape" else {
+                guard let url = url, ["shape", "scad"]
+                    .contains(url.pathExtension.lowercased())
+                else {
                     return baseURL
                 }
                 return error.shapeFileURL(relativeTo: url)

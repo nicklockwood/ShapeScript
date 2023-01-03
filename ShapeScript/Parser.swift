@@ -19,9 +19,37 @@ public func parse(_ input: String) throws -> Program {
     return Program(source: input, statements: statements)
 }
 
+public func parseStatement(_ input: String) throws -> Statement? {
+    var tokens = try ArraySlice(tokenize(input))
+    let statements = try tokens.readStatements()
+    _ = tokens.readToken(.linebreak)
+    guard let statement = try tokens.readStatement() else {
+        return nil
+    }
+    _ = tokens.readToken(.linebreak)
+    if let token = tokens.first, token.type != .eof {
+        throw ParserError(.unexpectedToken(token, expected: nil))
+    }
+    return statement
+}
+
+public func parseExpression(_ input: String) throws -> Expression? {
+    var tokens = try ArraySlice(tokenize(input))
+    let expression = try tokens.readExpression()
+    if let token = tokens.first, token.type != .eof {
+        throw ParserError(.unexpectedToken(token, expected: nil))
+    }
+    return expression
+}
+
 public struct Program: Equatable {
-    public let source: String
-    public let statements: [Statement]
+    public var source: String
+    public var statements: [Statement]
+
+    public init(source: String, statements: [Statement]) {
+        self.source = source
+        self.statements = statements
+    }
 }
 
 public enum StatementType: Equatable {
@@ -35,8 +63,13 @@ public enum StatementType: Equatable {
 }
 
 public struct Statement: Equatable {
-    public let type: StatementType
-    public let range: SourceRange
+    public var type: StatementType
+    public var range: SourceRange
+
+    public init(type: StatementType, range: SourceRange) {
+        self.type = type
+        self.range = range
+    }
 }
 
 public enum DefinitionType: Equatable {
@@ -46,7 +79,7 @@ public enum DefinitionType: Equatable {
 }
 
 public struct Definition: Equatable {
-    public let type: DefinitionType
+    public var type: DefinitionType
     public var range: SourceRange {
         switch type {
         case let .block(block), let .function(_, block):
@@ -54,6 +87,10 @@ public struct Definition: Equatable {
         case let .expression(expression):
             return expression.range
         }
+    }
+
+    public init(type: DefinitionType) {
+        self.type = type
     }
 }
 
@@ -72,13 +109,23 @@ public enum ExpressionType: Equatable {
 }
 
 public struct Expression: Equatable {
-    public let type: ExpressionType
-    public let range: SourceRange
+    public var type: ExpressionType
+    public var range: SourceRange
+
+    public init(type: ExpressionType, range: SourceRange) {
+        self.type = type
+        self.range = range
+    }
 }
 
 public struct Block: Equatable {
-    public let statements: [Statement]
-    public let range: SourceRange
+    public var statements: [Statement]
+    public var range: SourceRange
+
+    public init(statements: [Statement], range: SourceRange) {
+        self.statements = statements
+        self.range = range
+    }
 }
 
 public struct CaseStatement: Equatable {
@@ -88,8 +135,13 @@ public struct CaseStatement: Equatable {
 }
 
 public struct Identifier: Equatable {
-    public let name: String
-    public let range: SourceRange
+    public var name: String
+    public var range: SourceRange
+
+    public init(name: String, range: SourceRange) {
+        self.name = name
+        self.range = range
+    }
 }
 
 public enum ParserErrorType: Equatable {

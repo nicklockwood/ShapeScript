@@ -747,7 +747,7 @@ extension Expression {
             }
             switch file?.components(separatedBy: ".").last?.lowercased() ?? "" {
             case "txt": return .string
-            case "shape", "json", "": return .any
+            case "shape", "scad", "json", "": return .any
             default: return .mesh
             }
         }
