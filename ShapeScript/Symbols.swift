@@ -319,7 +319,7 @@ extension Value {
             if isConvertible(to: .string) {
                 members += ["lines", "words", "characters"]
             }
-            guard values.allSatisfy({ $0.type == .number }) else {
+            guard values.allSatisfy({ $0.isConvertible(to: .number) }) else {
                 return members + (values.count == 1 ? values[0].members : [])
             }
             if (1 ... 4).contains(values.count) {
@@ -409,7 +409,7 @@ extension Value {
                     return index < values.count ? values[index] : nil
                 }
             }
-            guard values.allSatisfy({ $0.type == .number }) else {
+            guard values.allSatisfy({ $0.isConvertible(to: .number) }) else {
                 return values.count == 1 ? values[0][name] : nil
             }
             let values = values.map { $0.doubleValue }
