@@ -819,6 +819,13 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Path.polygon(sides: 5)])
     }
 
+    func testPolygonWithoutArguments() throws {
+        let program = try parse("polygon")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssert(context.children.first?.value is Geometry)
+    }
+
     func testPrintAmbiguousPolygon() throws {
         let program = try parse("""
         print polygon {

@@ -1016,7 +1016,7 @@ extension Statement {
                         in: context, childContext
                     )
                     try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
-                } else if type.childTypes != .void {
+                } else if !type.childTypes.isOptional {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         index: 0,
