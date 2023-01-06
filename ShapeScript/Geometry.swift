@@ -33,14 +33,12 @@ public final class Geometry: Hashable {
         if lhs === rhs {
             return true
         }
-        // TODO: Find a way to synthesize this logic
         guard lhs.type == rhs.type,
               lhs.name == rhs.name,
               lhs.transform == rhs.transform,
               lhs.material == rhs.material,
-              lhs.children == rhs.children,
-              lhs.isOpaque == rhs.isOpaque,
-              lhs.sourceLocation == rhs.sourceLocation
+              lhs.children == rhs.children
+        // Exclude isOpaque, sourceLocation and parent
         else {
             return false
         }

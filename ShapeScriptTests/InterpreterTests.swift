@@ -2798,6 +2798,17 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    func testGeometriesEqual() {
+        let program = """
+        define a cube
+        define b cube
+        print a = b
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
     // MARK: Boolean algebra
 
     func testLogicalAnd() {
