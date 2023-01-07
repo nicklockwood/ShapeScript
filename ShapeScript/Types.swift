@@ -448,10 +448,13 @@ extension Value {
             case "false": return .boolean(false)
             default: return nil
             }
+        case (.string, .color):
+            // TODO: support named colors
+            return Color(hexString: stringValue).map { .color($0) }
         case (.boolean, .string), (.number, .string), (.texture(.file), .string):
             return .string(stringValue)
         case let (.tuple(values), .string):
-            let stringifyable = values.allSatisfy { $0.as(.string) != nil }
+            let stringifyable = values.allSatisfy { $0.isConvertible(to: .string) }
             return stringifyable ? .string(stringValue) : nil
         case let (.number(value), .color):
             return .color(Color(value, 1))

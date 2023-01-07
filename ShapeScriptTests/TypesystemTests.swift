@@ -650,7 +650,7 @@ class TypesystemTests: XCTestCase {
         """, as: .mesh))
     }
 
-    func testStringToInt() throws {
+    func testCastStringToInt() throws {
         XCTAssertEqual(try evaluate("\"1\" + 2", as: .any), 3)
         XCTAssertEqual(try evaluate("\"2\" * \"3\"", as: .any), 6)
         XCTAssertEqual(try evaluate("3 - \"4\"", as: .any), -1)
@@ -658,12 +658,16 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try evaluate("-\"7\"", as: .any), -7)
     }
 
-    func testStringToDouble() throws {
+    func testCastStringToDouble() throws {
         XCTAssertEqual(try evaluate("\"1.5\" + \"2.3\"", as: .any), 3.8)
     }
 
-    func testStringTupleToVector() throws {
+    func testCastStringTupleToVector() throws {
         XCTAssertEqual(try evaluate("\"1.5\" \"2.3\" \"0\"", as: .vector), .vector(.init(1.5, 2.3, 0)))
+    }
+
+    func testCastHexStringToColor() throws {
+        XCTAssertEqual(try evaluate("\"#f00\"", as: .color), .color(.red))
     }
 
     func testCastNestedTupleArguments() throws {
