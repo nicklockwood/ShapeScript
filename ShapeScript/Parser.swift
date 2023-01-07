@@ -63,7 +63,7 @@ public enum ExpressionType: Equatable {
     case color(Color)
     case identifier(String)
     case block(Identifier, Block)
-    indirect case tuple([Expression])
+    case tuple([Expression])
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
     indirect case member(Expression, Identifier)
@@ -126,7 +126,9 @@ public extension ParserError {
                 return nil
             }
             let options = InfixOperator.allCases.map { $0.rawValue }
-            return string.bestMatches(in: options).first
+
+            return Self.alternatives[string.lowercased()] ??
+                string.bestMatches(in: options).first
         case .unexpectedToken, .custom:
             return nil
         }
@@ -148,6 +150,15 @@ public extension ParserError {
 }
 
 // MARK: Implementation
+
+extension ParserError {
+    static let alternatives: [String: String] = [
+        "mod": "%",
+        "equals": "=",
+        "eq": "=",
+        "is": "=",
+    ]
+}
 
 private extension TokenType {
     var errorDescription: String {

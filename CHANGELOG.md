@@ -1,5 +1,26 @@
 # Change Log
 
+## [1.6.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.2) (2023-01-16)
+
+- Improved info panel display
+- Fixed twisted extrusion offset
+- Fixed roundrect detail level (previously 4x higher than intended)
+- Fixed incorrect output when intersecting groups of meshes
+- Empty scenes are no longer hidden if they contain debug geometry
+- Scene now conforms to Equatable protocol
+- Fixed misleading error message for excess color arguments
+- Fixed spurious forward declaration error for options that shadow global define
+- Added automatic casting of hex strings to color (useful for JSON data(
+- Made polygon members available on all geometries, not just manually-created meshes
+- Excluded source location from Geometry equality comparisons
+- Fixed vector member access on tuples containing string elements
+- Fixed vector member access on nested numeric tuples
+- Fixed color member access on tuples and strings
+- Fixed polygon member lookup on meshes
+- Fixed handling of blocks with optional children (e.g. polygon)
+- Improved symbol lookup performance
+- Bumped Euclid to version 0.6.8
+
 ## [1.6.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.1) (2023-01-02)
 
 - Added twist option to extrude command

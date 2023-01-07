@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.6.1"
+public let version = "1.6.2"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -491,7 +491,7 @@ extension RuntimeErrorType {
 }
 
 private extension RuntimeError {
-    static let alternatives = [
+    static let alternatives: [String: [String]] = [
         "box": ["cube"],
         "rect": ["square"],
         "rectangle": ["square"],
@@ -525,11 +525,7 @@ private extension RuntimeError {
         "head": ["first"],
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],
-        "mod": ["%"],
-        "equals": ["="],
-        "eq": ["="],
-        "is": ["="],
-    ]
+    ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {
         #if os(macOS) || targetEnvironment(macCatalyst)

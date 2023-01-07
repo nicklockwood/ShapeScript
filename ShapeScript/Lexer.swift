@@ -160,8 +160,9 @@ public extension LexerError {
     var suggestion: String? {
         switch type {
         case let .unexpectedToken(string):
+            let options = InfixOperator.allCases.map { $0.rawValue }
             return Self.alternatives[string.lowercased()] ??
-                string.bestMatches(in: InfixOperator.allCases.map { $0.rawValue }).first
+                string.bestMatches(in: options).first
         case let .invalidEscapeSequence(string):
             return [
                 "\"\"": "\\\"",
@@ -246,7 +247,7 @@ public extension String {
 // MARK: Implementation
 
 private extension LexerError {
-    static let alternatives = [
+    static let alternatives: [String: String] = [
         "&&": "and",
         "&": "and",
         "||": "or",
