@@ -335,12 +335,8 @@ extension Value {
             return members
         case .range:
             return ["start", "end", "step"]
-        case let .mesh(geometry):
-            let members = ["name", "bounds"]
-            if case .mesh = geometry.type {
-                return members + ["polygons"]
-            }
-            return members
+        case .mesh:
+            return ["name", "bounds", "polygons"]
         case .path, .polygon:
             return ["bounds", "points"]
         case let .point(point):
@@ -439,10 +435,9 @@ extension Value {
             case "bounds":
                 return .bounds(geometry.bounds)
             case "polygons":
-                guard case let .mesh(mesh) = geometry.type else {
-                    return nil
-                }
-                return .tuple(mesh.polygons.map { .polygon($0) })
+                _ = geometry.build { true }
+                let polygons = (geometry.mesh?.polygons ?? [])
+                return .tuple(polygons.map { .polygon($0) })
             default:
                 return nil
             }
