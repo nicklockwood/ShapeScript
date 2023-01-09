@@ -94,6 +94,121 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(first.name, "Foo")
     }
 
+    func testSetCircleName() throws {
+        let program = try parse("""
+        circle { name "Foo" }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSetRoundedRectName() throws {
+        let program = try parse("""
+        roundrect { name "Foo" }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSetPathName() throws {
+        let program = try parse("""
+        path { name "Foo" }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSetTextName() throws {
+        let program = try parse("""
+        text {
+            name "Foo"
+            "Hello"
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSVGPathName() throws {
+        let program = try parse("""
+        svgpath {
+            name "Foo"
+            "M150 0 L75 200 225 200 Z"
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSetRegularPolygonName() throws {
+        let program = try parse("""
+        polygon { name "Foo" }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testSetMeshPolygonName() throws {
+        let program = try parse("""
+        polygon {
+            name "Foo"
+            point 1 0
+            point 0 1
+            point 1 1
+        }
+        """)
+        let range = program.source.range(of: "polygon")!
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(.assertionFailure(
+                "Polygons cannot have individual names"
+            ), at: range))
+        }
+    }
+
+    func testSetCompoundPathName() throws {
+        let program = try parse("""
+        path {
+            name "Foo"
+            circle
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(first.name, "Foo")
+        XCTAssert(first.children.isEmpty)
+    }
+
     func testSetBuilderName() throws {
         let program = try parse("""
         extrude {
@@ -238,39 +353,6 @@ class InterpreterTests: XCTestCase {
                 XCTFail()
                 return
             }
-        }
-    }
-
-    func testNameInvalidInCircle() {
-        let input = """
-        circle { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
-        }
-    }
-
-    func testNameInvalidInPath() {
-        let input = """
-        path { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
-        }
-    }
-
-    func testNameInvalidInText() {
-        let input = """
-        text { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
         }
     }
 
@@ -3821,7 +3903,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
-    func testNumberConvertedToTextInsidePrintCommand() {
+    func testNumberConvertedToTextInsidePrintCommand() throws {
         let program = """
         print text 5
         print text "5"
@@ -3829,13 +3911,17 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         #if canImport(CoreText)
-        XCTAssert(delegate.log.first is Path)
         XCTAssertEqual(delegate.log.count, 2)
         XCTAssertEqual(delegate.log.first, delegate.log.last)
+        let geometry = try XCTUnwrap(delegate.log.first as? Geometry)
+        guard case .path = geometry.type else {
+            XCTFail()
+            return
+        }
         #endif
     }
 
-    func testNumberConvertedToTextInBlock() {
+    func testNumberConvertedToTextInBlock() throws {
         let program = """
         print text { 5 2 }
         print text { "5 2" }
@@ -3843,8 +3929,8 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         #if canImport(CoreText)
-        XCTAssert(delegate.log.first is Path)
-        guard delegate.log.count == 4 else {
+        let geometry = try XCTUnwrap(delegate.log.first as? Geometry)
+        guard delegate.log.count == 4, case .path = geometry.type else {
             XCTFail()
             return
         }

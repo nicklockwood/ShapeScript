@@ -792,7 +792,10 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4)])
+        XCTAssertEqual(delegate.log, [Geometry(
+            type: .path(Path.polygon(sides: 4)),
+            in: context
+        )])
     }
 
     func testPrintPolygonFace() throws {
@@ -816,7 +819,10 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, [Path.polygon(sides: 5)])
+        XCTAssertEqual(delegate.log, [Geometry(
+            type: .path(Path.polygon(sides: 5)),
+            in: context
+        )])
     }
 
     func testPolygonWithoutArguments() throws {
@@ -852,7 +858,10 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4)])
+        XCTAssertEqual(delegate.log, [Geometry(
+            type: .path(Path.polygon(sides: 4)),
+            in: context
+        )])
     }
 
     func testDefinePolygonFace() throws {
@@ -880,7 +889,10 @@ class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, [Path.polygon(sides: 4).translated(by: Vector(1, 0, 0))])
+        XCTAssertEqual(delegate.log, [Geometry(
+            type: .path(Path.polygon(sides: 4)),
+            in: context
+        ).transformed(by: .offset(Vector(1, 0, 0)))])
     }
 
     func testPolygonFacePosition() throws {

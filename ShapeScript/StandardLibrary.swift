@@ -335,10 +335,8 @@ extension Dictionary where Key == String, Value == Symbol {
                 }
             }
             endPath()
-            if subpaths.count != 1 {
-                subpaths = [Path(subpaths: subpaths)]
-            }
-            return .path(subpaths[0].transformed(by: context.transform))
+            let path = subpaths.count == 1 ? subpaths[0] : Path(subpaths: subpaths)
+            return .mesh(Geometry(type: .path(path), in: context))
         },
         "arc": .block(.init(.polygon, [
             "angle": .halfturns,
@@ -361,33 +359,40 @@ extension Dictionary where Key == String, Value == Symbol {
             ).transformed(by: context.transform))
         },
         "circle": .block(.pathShape) { context in
-            .path(Path.circle(
+            .mesh(Geometry(type: .path(.circle(
                 segments: context.detail,
                 color: context.material.color
-            ).transformed(by: context.transform))
+            )), in: context))
         },
         "square": .block(.pathShape) { context in
-            .path(Path.square(
+            .mesh(Geometry(type: .path(.square(
                 color: context.material.color
-            ).transformed(by: context.transform))
+            )), in: context))
         },
         "polygon": .block(.init(.polygon, [
             "sides": .number,
-        ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
+        ], .optional(.point), .union([.mesh, .list(.polygon)]))) { context in
             let sides = context.value(for: "sides")?.intValue
             let points = context.children.compactMap { $0.value as? PathPoint }
             if !points.isEmpty {
-                if sides != nil {
-                    throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
+                guard sides == nil else {
+                    throw RuntimeErrorType.assertionFailure(
+                        "Polygon cannot have both sides and points"
+                    )
+                }
+                guard context.name.isEmpty else {
+                    throw RuntimeErrorType.assertionFailure(
+                        "Polygons cannot have individual names"
+                    )
                 }
                 let path = Path(points).transformed(by: context.transform)
                 let polygons = path.closed().facePolygons(material: context.material)
                 return .tuple(polygons.map { .polygon($0) })
             }
-            return .path(Path.polygon(
+            return .mesh(Geometry(type: .path(Path.polygon(
                 sides: sides ?? 5,
                 color: context.material.color
-            ).transformed(by: context.transform))
+            )), in: context))
         },
         "roundrect": .block(.init(.pathShape, [
             "radius": .number,
@@ -396,23 +401,25 @@ extension Dictionary where Key == String, Value == Symbol {
             let size = context.value(for: "size")?.value as? Vector ?? .one
             let scale = Swift.min(size.x, size.y)
             let radius = (context.value(for: "radius")?.doubleValue ?? 0.25) * scale
-            return .path(Path.roundedRectangle(
+            return .mesh(Geometry(type: .path(.roundedRectangle(
                 width: size.x,
                 height: size.y,
                 radius: radius,
                 detail: context.detail / 4,
                 color: context.material.color
-            ).transformed(by: context.transform))
+            )), in: context))
         },
         "text": .block(.init(.pathShape, [
             "font": .font,
             "wrapwidth": .number,
             "linespacing": .number,
-        ], .text, .list(.path))) { context in
+        ], .text, .list(.mesh))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.children.compactMap { $0.value as? TextValue }
             let paths = Path.text(text, width: width, detail: context.detail / 8)
-            return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
+            return .tuple(paths.map {
+                .mesh(Geometry(type: .path($0), in: context))
+            })
         },
         "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
             let text = context.children.map { $0.stringValue }.joined(separator: "\n")
@@ -422,11 +429,11 @@ extension Dictionary where Key == String, Value == Symbol {
             } catch let error as SVGError {
                 throw RuntimeErrorType.assertionFailure(error.message)
             }
-            return .path(Path(
+            return .mesh(Geometry(type: .path(Path(
                 svgPath,
                 detail: context.detail / 4,
                 color: context.material.color
-            ).transformed(by: context.transform))
+            )), in: context))
         },
     ]
 
@@ -694,9 +701,9 @@ extension Dictionary where Key == String, Value == Symbol {
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
     static let hull: Symbols = _merge(group, points)
-    static let polygon: Symbols = _merge(transform, childTransform, points, color)
+    static let polygon: Symbols = _merge(transform, name, childTransform, points, color)
     static let mesh: Symbols = _merge(node, geometry, color, childTransform, polygons)
-    static let pathShape: Symbols = _merge(transform, detail, color, background)
+    static let pathShape: Symbols = _merge(transform, name, detail, color, background)
     static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
     static let definition: Symbols = _merge(root, pathPoints)
     static let all: Symbols = _merge(definition, shape, path)

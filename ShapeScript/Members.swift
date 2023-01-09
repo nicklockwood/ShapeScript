@@ -175,7 +175,9 @@ extension Value {
             return ["start", "end", "step"]
         case let .mesh(geometry):
             var members = ["name", "bounds"]
-            if geometry.hasMesh {
+            if case .path = geometry.type {
+                members.append("points")
+            } else if geometry.hasMesh {
                 members += ["polygons", "material"]
             }
             return members
@@ -306,6 +308,11 @@ extension Value {
                 return .tuple(polygons.map { .polygon($0) })
             case "material" where geometry.hasMesh:
                 return .material(geometry.material)
+            case "points":
+                if case let .path(path) = geometry.type {
+                    return .tuple(path.points.map { .point($0) })
+                }
+                return nil
             default:
                 return nil
             }
