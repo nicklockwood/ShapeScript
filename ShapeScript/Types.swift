@@ -553,6 +553,15 @@ extension Value {
                 children: [],
                 sourceLocation: context?.sourceLocation
             ))
+        case let (.mesh(geometry), .path):
+            switch geometry.type {
+            case let .path(path):
+                return .path(path.transformed(by: geometry.transform))
+            case .cone, .cylinder, .sphere, .cube, .extrude, .lathe, .loft,
+                 .fill, .hull, .union, .difference, .intersection, .xor,
+                 .stencil, .group, .mesh, .camera, .light:
+                return nil
+            }
         case let (.polygon(polygon), .path):
             return .path(Path(polygon))
         case let (.polygon(polygon), .mesh):

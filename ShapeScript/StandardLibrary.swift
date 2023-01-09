@@ -190,7 +190,10 @@ extension Dictionary where Key == String, Value == Symbol {
                     return [Vertex(point)]
                 case let .path(path):
                     return path.subpaths.flatMap { $0.edgeVertices }
-                case .mesh:
+                case let .mesh(geometry):
+                    if let path = geometry.path {
+                        return path.subpaths.flatMap { $0.edgeVertices }
+                    }
                     return [] // handled at mesh generation time
                 default:
                     throw RuntimeErrorType.assertionFailure(

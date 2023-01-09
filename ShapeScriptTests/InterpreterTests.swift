@@ -148,15 +148,29 @@ class InterpreterTests: XCTestCase {
 
     func testSetPathBlockName() throws {
         let program = try parse("""
-        define wheel {
-            circle
-        }
+        define wheel { circle }
         wheel { name "Foo" }
         """)
         let scene = try evaluate(program, delegate: nil)
         let first = try XCTUnwrap(scene.children.first)
         XCTAssertEqual(first.name, "Foo")
-        XCTAssert(first.children.isEmpty)
+        guard case .path = first.type else {
+            XCTFail()
+            return
+        }
+    }
+
+    func testExtrudeNamedPath() throws {
+        let program = try parse("""
+        define wheel { circle }
+        extrude wheel { name "Foo" }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let first = try XCTUnwrap(scene.children.first)
+        guard case .extrude = first.type else {
+            XCTFail()
+            return
+        }
     }
 
     func testSetNumberBlockName() throws {
