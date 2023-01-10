@@ -134,7 +134,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "along": .list(.path),
             "twist": .angle,
             "axisAligned": .boolean,
-        ], .path, .mesh)) { context in
+        ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
