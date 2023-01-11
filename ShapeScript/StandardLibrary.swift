@@ -161,8 +161,8 @@ extension Dictionary where Key == String, Value == Symbol {
             // Slow path, each calculated separately, no reuse
             // TODO: modify this to reuse meshes where possible
             return .tuple(context.paths.map {
-                let vector = $0.faceNormal / 2, center = $0.bounds.center
-                let along = Path.line(center - vector, center + vector)
+                let vector = $0.faceNormal / 2
+                let along = Path.line(-vector, vector)
                     .withDetail(context.detail, twist: twist)
                 return .mesh(Geometry(type: .extrude([$0], .init(
                     along: [along],
