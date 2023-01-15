@@ -800,7 +800,9 @@ extension Definition {
                     block.statements.gatherDefinitions(in: context)
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
-                            if context.symbol(for: identifier.name) == nil {
+                            if case .placeholder = context.symbol(
+                                for: identifier.name
+                            ) ?? .placeholder(.any) {
                                 context.define(
                                     identifier.name,
                                     as: .constant(try expression.evaluate(in: context))

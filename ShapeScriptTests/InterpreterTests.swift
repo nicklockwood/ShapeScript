@@ -422,6 +422,22 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testDefineInCallerScopeDoesntShadowOptionInBlock() {
+        let program = """
+        define foo {
+            option bar 1
+            print bar
+        }
+
+        foo
+
+        define bar 2
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
     // MARK: Block scope
 
     func testLocalSymbolsNotPassedToCommand() {
