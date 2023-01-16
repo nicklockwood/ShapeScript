@@ -409,19 +409,19 @@ extension Value {
                     return index < values.count ? values[index] : nil
                 }
             }
-            guard values.allSatisfy({ $0.isConvertible(to: .number) }) else {
+            let numbers = values.compactMap { $0.as(.number)?.doubleValue }
+            guard numbers.count == values.count else {
                 return values.count == 1 ? values[0][name] : nil
             }
-            let values = values.map { $0.doubleValue }
             switch name {
             case "x", "y", "z":
-                return values.count < 4 ? Value.vector(Vector(values))[name] : nil
+                return values.count < 4 ? Value.vector(Vector(numbers))[name] : nil
             case "width", "height", "depth":
-                return values.count < 4 ? Value.size(Vector(size: values))[name] : nil
+                return values.count < 4 ? Value.size(Vector(size: numbers))[name] : nil
             case "roll", "yaw", "pitch":
-                return Rotation(rollYawPitchInHalfTurns: values).map(Value.rotation)?[name]
+                return Rotation(rollYawPitchInHalfTurns: numbers).map(Value.rotation)?[name]
             case "red", "green", "blue", "alpha":
-                return Color(values).map(Value.color)?[name]
+                return Color(numbers).map(Value.color)?[name]
             default:
                 return nil
             }

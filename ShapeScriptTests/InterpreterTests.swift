@@ -3010,6 +3010,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1.0])
     }
 
+    func testStringTupleVectorLookup() {
+        let program = "print (\"1\" \"2\").x"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
+    func testMixedTupleVectorLookup() {
+        let program = "print (\"1\" 2).x"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
     func testTupleSizeHeightLookup() {
         let program = "print (1 0.5).height"
         let delegate = TestDelegate()
