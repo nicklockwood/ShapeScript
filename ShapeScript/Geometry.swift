@@ -614,6 +614,11 @@ private extension Collection where Element == Path {
 // MARK: Stats
 
 public extension Geometry {
+    var hasMesh: Bool {
+        (path == nil && mesh?.polygons.isEmpty == false) ||
+            children.contains(where: { $0.hasMesh })
+    }
+
     var objectCount: Int {
         switch type {
         case .group:
@@ -659,6 +664,8 @@ public extension Geometry {
                 return mesh.bounds.transformed(by: worldTransform)
             }
             return mesh.transformed(by: worldTransform).bounds
+        } else if let path = path {
+            return path.bounds
         }
         let bounds = children.map { $0.exactBounds }
         return Bounds(bounds: bounds)

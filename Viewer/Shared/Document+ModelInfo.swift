@@ -70,18 +70,18 @@ extension Document {
     var modelInfo: String {
         // Geometry info
         let geometry = selectedGeometry ?? self.geometry
-        let polygonCount: String
-        let triangleCount: String
+        let polygons: String
+        let triangles: String
         let dimensions: String
         let watertight: String
         if loadingProgress?.didSucceed ?? true {
-            polygonCount = String(geometry.polygonCount)
-            triangleCount = String(geometry.triangleCount)
+            polygons = String(geometry.polygonCount)
+            triangles = String(geometry.triangleCount)
             dimensions = geometry.exactBounds.size.logDescription
             watertight = String(geometry.isWatertight)
         } else {
-            polygonCount = "calculating…"
-            triangleCount = "calculating…"
+            polygons = "calculating…"
+            triangles = "calculating…"
             dimensions = "calculating…"
             watertight = "calculating…"
         }
@@ -97,15 +97,16 @@ extension Document {
             let nameString = selectedGeometry.name.flatMap {
                 $0.isEmpty ? nil : "Name: \($0)"
             }
+            let isMesh = selectedGeometry.hasMesh
             let childCount = selectedGeometry.childCount
             return [
                 nameString,
                 "Type: \(selectedGeometry.nestedLogDescription)",
                 childCount == 0 ? nil : "Children: \(childCount)",
-                triangleCount == polygonCount ? nil : "Polygons: \(polygonCount)",
-                "Triangles: \(triangleCount)",
-                "Dimensions: \(dimensions)",
-                "Watertight: \(watertight)",
+                triangles == polygons ? nil : "Polygons: \(polygons)",
+                isMesh ? "Triangles: \(triangles)" : nil,
+                geometry.bounds.isEmpty ? nil : "Dimensions: \(dimensions)",
+                isMesh ? "Watertight: \(watertight)" : nil,
 //                "Size: \(selectedGeometry.transform.scale.logDescription)",
 //                "Position: \(selectedGeometry.transform.offset.logDescription)",
 //                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
@@ -114,15 +115,16 @@ extension Document {
         }
 
         let objectCount = geometry.objectCount
+        let hasMeshes = geometry.hasMesh
         return [
             "Objects: \(objectCount)",
-            triangleCount == polygonCount ? nil : "Polygons: \(polygonCount)",
-            "Triangles: \(triangleCount)",
-            "Dimensions: \(dimensions)",
-            objectCount != 1 ? nil : "Watertight: \(watertight)",
+            triangles == polygons ? nil : "Polygons: \(polygons)",
+            hasMeshes ? "Triangles: \(triangles)" : nil,
+            geometry.bounds.isEmpty ? nil : "Dimensions: \(dimensions)",
+            hasMeshes ? "Watertight: \(watertight)" : nil,
             "",
-            "Imports: \(importedFileCount)",
-            "Textures: \(textureCount)",
+            importedFileCount == 0 ? nil : "Imports: \(importedFileCount)",
+            textureCount == 0 ? nil : "Textures: \(textureCount)",
             fontCount == 0 ? nil : "Fonts: \(fontCount)",
         ].compactMap { $0 }.joined(separator: "\n")
     }
