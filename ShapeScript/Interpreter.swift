@@ -1320,6 +1320,8 @@ extension Expression {
             if case let .tuple(values) = value, values.count == 1 {
                 value = values[0]
             }
+            assert(!value.members.contains(member.name),
+                   "\(value.type.errorDescription) should have member '\(member.name)'")
             throw RuntimeError(.unknownMember(
                 member.name,
                 of: value.type.errorDescription,

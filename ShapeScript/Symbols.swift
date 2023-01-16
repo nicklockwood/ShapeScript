@@ -316,21 +316,20 @@ extension Value {
                 members.append("last")
             }
             members += ["count", "allButFirst", "allButLast"]
-            if isConvertible(to: .string) {
-                members += ["lines", "words", "characters"]
+            if let string = self.as(.string) {
+                members += string.members
             }
-            guard values.allSatisfy({ $0.isConvertible(to: .number) }) else {
-                return members + (values.count == 1 ? values[0].members : [])
+            if !members.contains("alpha"), let color = self.as(.color) {
+                members += color.members
             }
-            if (1 ... 4).contains(values.count) {
-                members += ["red", "green", "blue", "alpha"]
-                if values.count < 4 {
-                    members += [
-                        "x", "y", "z",
-                        "width", "height", "depth",
-                        "roll", "yaw", "pitch",
-                    ]
-                }
+            if let vector = self.as(.vector) {
+                members += vector.members
+            }
+            if let size = self.as(.size) {
+                members += size.members
+            }
+            if let rotation = self.as(.rotation) {
+                members += rotation.members
             }
             return members
         case .range:
@@ -346,7 +345,11 @@ extension Value {
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
-            return ["lines", "words", "characters"]
+            var members = ["lines", "words", "characters"]
+            if let color = self.as(.color) {
+                members += color.members
+            }
+            return members
         case let .object(values):
             return values.keys.sorted()
         case .texture, .boolean, .number, .text:
@@ -400,25 +403,18 @@ extension Value {
                 return .number(Double(values.count))
             case "lines", "words", "characters":
                 return self.as(.string)?[name]
+            case "x", "y", "z":
+                return self.as(.vector)?[name]
+            case "width", "height", "depth":
+                return self.as(.size)?[name]
+            case "roll", "yaw", "pitch":
+                return self.as(.rotation)?[name]
+            case "red", "green", "blue", "alpha":
+                return self.as(.color)?[name]
             default:
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
                 }
-            }
-            let numbers = values.compactMap { $0.as(.number)?.doubleValue }
-            guard numbers.count == values.count else {
-                return values.count == 1 ? values[0][name] : nil
-            }
-            switch name {
-            case "x", "y", "z":
-                return values.count < 4 ? Value.vector(Vector(numbers))[name] : nil
-            case "width", "height", "depth":
-                return values.count < 4 ? Value.size(Vector(size: numbers))[name] : nil
-            case "roll", "yaw", "pitch":
-                return Rotation(rollYawPitchInHalfTurns: numbers).map(Value.rotation)?[name]
-            case "red", "green", "blue", "alpha":
-                return Color(numbers).map(Value.color)?[name]
-            default:
                 return nil
             }
         case let .range(range):
@@ -490,7 +486,10 @@ extension Value {
                     .map { .string("\($0)") })
             case "characters":
                 return .tuple(string.map { .string("\($0)") })
-            default: return nil
+            case "red", "green", "blue", "alpha":
+                return self.as(.color)?[name]
+            default:
+                return nil
             }
         case let .object(values):
             return values[name]

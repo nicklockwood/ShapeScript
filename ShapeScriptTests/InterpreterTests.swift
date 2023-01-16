@@ -3136,6 +3136,34 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.2])
     }
 
+    func testHexAlphaLookup() {
+        let program = "print #f00.alpha"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testHexTupleAlphaLookup() {
+        let program = "print (#f00 0.2).alpha"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.2])
+    }
+
+    func testHexStringAlphaLookup() {
+        let program = "print \"#f00\".alpha"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testHexStringTupleAlphaLookup() {
+        let program = "print (\"#f00\" 0.2).alpha"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.2])
+    }
+
     func testTooLongTupleColorLookup() {
         let program = "print (1 2 3 4 5).red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
