@@ -330,7 +330,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 width: 1,
                 height: 1,
                 radius: radius,
-                detail: context.detail,
+                detail: context.detail / 4,
                 color: context.material.color
             ).transformed(by: context.transform))
         },
