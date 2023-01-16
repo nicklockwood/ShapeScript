@@ -1406,9 +1406,16 @@ extension Expression {
             {
                 value = try expressions[0].evaluate(in: context)
                 if value.isConvertible(to: type) {
+                    var i = 0
+                    var values = [value]
+                    while value.isConvertible(to: type), i < expressions.count - 1 {
+                        i += 1
+                        try values.append(expressions[i].evaluate(in: context))
+                        value = .tuple(values)
+                    }
                     throw RuntimeError(
-                        .unexpectedArgument(for: name, max: 1),
-                        at: expressions[1].range
+                        .unexpectedArgument(for: name, max: i),
+                        at: expressions[i].range
                     )
                 }
             }
