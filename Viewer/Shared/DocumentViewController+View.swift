@@ -71,7 +71,7 @@ extension DocumentViewController {
         // restore selection
         selectGeometry(selectedGeometry?.scnNode)
 
-        guard let geometry = geometry, !geometry.bounds.isEmpty else {
+        guard let geometry = geometry else {
             scnView.allowsCameraControl = showAxes
             refreshView()
             return
@@ -117,9 +117,7 @@ extension DocumentViewController {
             self.axesNode = axesNode
         }
         // Update camera node
-        guard let bounds = geometry?.bounds else {
-            return
-        }
+        let bounds = geometry?.bounds ?? .empty
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double
