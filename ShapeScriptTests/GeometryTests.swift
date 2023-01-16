@@ -66,4 +66,39 @@ class GeometryTests: XCTestCase {
         XCTAssert(cone.bounds.size.isEqual(to: expected))
         XCTAssert(sphere.bounds.size.isEqual(to: expected))
     }
+
+    // MARK: Intersection
+
+    func testGroupIntersection() throws {
+        let a = try evaluate(parse("""
+        intersection {
+            cube
+            translate -0.75
+            group {
+                cube
+                translate 1.5
+                cube
+            }
+        }
+        """), delegate: nil)
+        let b = try evaluate(parse("""
+        intersection {
+            cube
+            translate -0.75
+            union {
+                cube
+                translate 1.5
+                cube
+            }
+        }
+        """), delegate: nil)
+        XCTAssertEqual(a.bounds, b.bounds)
+        XCTAssertEqual(a.children.count, b.children.count)
+        XCTAssertEqual(a.children.map { $0.mesh }, b.children.map { $0.mesh })
+        XCTAssertEqual(a.children.map {
+            $0.mesh?.polygons.count ?? 0
+        }, b.children.map {
+            $0.mesh?.polygons.count ?? 0
+        })
+    }
 }

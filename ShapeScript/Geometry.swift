@@ -532,8 +532,7 @@ private extension Geometry {
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
             mesh = Mesh.difference(meshes, isCancelled: isCancelled).makeWatertight()
         case .intersection:
-            let first = flattenedFirstChild(callback)
-            let meshes = [first] + children.dropFirst().meshes(with: material, callback)
+            let meshes = flattenedChildren(callback)
             mesh = Mesh.intersection(meshes, isCancelled: isCancelled).makeWatertight()
         case .stencil:
             let first = flattenedFirstChild(callback)
