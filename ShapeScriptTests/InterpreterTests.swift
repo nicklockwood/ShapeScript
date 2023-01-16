@@ -3378,7 +3378,56 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
-    func testMeshComponentLookup() {
+    func testMeshBoundsLookup() {
+        let program = """
+        print (fill square).bounds
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Bounds(
+            min: .init(-0.5, -0.5, 0),
+            max: .init(0.5, 0.5, 0)
+        )])
+    }
+
+    func testMeshPolygonsLookup() throws {
+        let program = """
+        print (fill square).polygons
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, Mesh.fill(.square()).polygons)
+    }
+
+    func testPathPolygonsLookup() throws {
+        let program = """
+        print square.polygons
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown path member property 'polygons'")
+            guard case .unknownMember("polygons", of: "path", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testCameraPolygonsLookup() throws {
+        let program = """
+        print camera.polygons
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown mesh member property 'polygons'")
+            guard case .unknownMember("polygons", of: "mesh", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testInvalidMeshComponentLookup() {
         let program = """
         print (fill { circle }).x
         """

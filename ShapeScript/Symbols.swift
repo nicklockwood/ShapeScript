@@ -316,12 +316,6 @@ extension Value {
                 members.append("last")
             }
             members += ["count", "allButFirst", "allButLast"]
-            if let string = self.as(.string) {
-                members += string.members
-            }
-            if !members.contains("alpha"), let color = self.as(.color) {
-                members += color.members
-            }
             if let vector = self.as(.vector) {
                 members += vector.members
             }
@@ -331,11 +325,24 @@ extension Value {
             if let rotation = self.as(.rotation) {
                 members += rotation.members
             }
+            if values.count == 1 {
+                return members + values[0].members
+            }
+            if let string = self.as(.string) {
+                members += string.members
+            }
+            if !members.contains("alpha"), let color = self.as(.color) {
+                members += color.members
+            }
             return members
         case .range:
             return ["start", "end", "step"]
-        case .mesh:
-            return ["name", "bounds", "polygons"]
+        case let .mesh(geometry):
+            var members = ["name", "bounds"]
+            if geometry.hasMesh {
+                members.append("polygons")
+            }
+            return members
         case .path, .polygon:
             return ["bounds", "points"]
         case let .point(point):
@@ -389,9 +396,6 @@ extension Value {
             default: return nil
             }
         case let .tuple(values):
-            if values.count == 1, case .tuple = values[0] {
-                return values[0][name]
-            }
             switch name {
             case "last":
                 return values.last
@@ -415,6 +419,9 @@ extension Value {
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
                 }
+                if values.count == 1 {
+                    return values[0][name]
+                }
                 return nil
             }
         case let .range(range):
@@ -430,7 +437,7 @@ extension Value {
                 return .string(geometry.name ?? "")
             case "bounds":
                 return .bounds(geometry.bounds)
-            case "polygons":
+            case "polygons" where geometry.hasMesh:
                 _ = geometry.build { true }
                 let polygons = (geometry.mesh?.polygons ?? [])
                 return .tuple(polygons.map { .polygon($0) })

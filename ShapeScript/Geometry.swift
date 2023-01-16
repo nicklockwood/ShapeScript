@@ -614,8 +614,15 @@ private extension Collection where Element == Path {
 
 public extension Geometry {
     var hasMesh: Bool {
-        (path == nil && mesh?.polygons.isEmpty == false) ||
-            children.contains(where: { $0.hasMesh })
+        switch type {
+        case .camera, .light, .path:
+            return false
+        case .cone, .cylinder, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull,
+             .union, .difference, .intersection, .xor, .stencil,
+             .group, .mesh:
+            return true
+        }
     }
 
     var objectCount: Int {
