@@ -28,6 +28,14 @@ public final class Scene {
     }
 }
 
+extension Scene: Equatable {
+    public static func == (lhs: Scene, rhs: Scene) -> Bool {
+        lhs.background == rhs.background &&
+            lhs.children == rhs.children &&
+            lhs.cameras == rhs.cameras
+    }
+}
+
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
