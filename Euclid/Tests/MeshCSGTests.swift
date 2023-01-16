@@ -9,7 +9,7 @@
 @testable import Euclid
 import XCTest
 
-class CSGTests: XCTestCase {
+class MeshCSGTests: XCTestCase {
     // MARK: Subtraction
 
     func testSubtractCoincidingBoxes() {
@@ -395,5 +395,71 @@ class CSGTests: XCTestCase {
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
         let b = a.clip(to: plane)
         XCTAssertEqual(b.bounds, .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+    }
+
+    func testSquareClippedToItsOwnPlane() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: .unitZ, pointOnPlane: .zero)
+        let b = a.clip(to: plane)
+        XCTAssertEqual(b.polygons, [a.polygons[0]])
+    }
+
+    func testSquareClippedToItsOwnPlaneWithFill() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: .unitZ, pointOnPlane: .zero)
+        let b = a.clip(to: plane, fill: Color.white)
+        XCTAssertEqual(b.polygons.first, a.polygons[0])
+        guard b.polygons.count == 2 else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(b.polygons[1].bounds, a.polygons[1].bounds)
+    }
+
+    func testSquareClippedToReversePlane() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: -.unitZ, pointOnPlane: .zero)
+        let b = a.clip(to: plane)
+        XCTAssertEqual(b.polygons, [a.polygons[1]])
+    }
+
+    func testSquareClippedToReversePlaneWithFill() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: -.unitZ, pointOnPlane: .zero)
+        let b = a.clip(to: plane, fill: Color.white)
+        XCTAssertEqual(b.polygons.first?.bounds, a.polygons[0].bounds)
+        guard b.polygons.count == 2 else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(b.polygons[1].bounds, a.polygons[1].bounds)
+    }
+
+    // MARK: Plane splitting
+
+    func testSquareSplitAlongPlane() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
+        let b = a.split(along: plane)
+        XCTAssertEqual(b.0?.bounds, .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+        XCTAssertEqual(b.1?.bounds, .init(Vector(-0.5, -0.5), Vector(0, 0.5)))
+        XCTAssertEqual(b.front, b.0)
+        XCTAssertEqual(b.back, b.1)
+    }
+
+    func testSquareSplitAlongItsOwnPlane() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: .unitZ, pointOnPlane: .zero)
+        let b = a.split(along: plane)
+        XCTAssertEqual(b.front?.polygons, [a.polygons[0]])
+        XCTAssertEqual(b.back?.polygons, [a.polygons[1]])
+    }
+
+    func testSquareSplitAlongReversePlane() {
+        let a = Mesh.fill(.square())
+        let plane = Plane(unchecked: -.unitZ, pointOnPlane: .zero)
+        let b = a.split(along: plane)
+        XCTAssertEqual(b.front?.polygons, [a.polygons[1]])
+        XCTAssertEqual(b.back?.polygons, [a.polygons[0]])
     }
 }
