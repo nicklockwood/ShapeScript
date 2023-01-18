@@ -1,61 +1,73 @@
 # Change Log
 
+## [1.6.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.3) (2023-01-31)
+
+- iOS Viewer now supports editing `.shape` files directly inside the app
+- Added `Edit > Select Shape` and `Clear Selection` menus in macOS viewer
+- Added selection hotkeys and VoiceOver support for macOS viewer
+- Fixed selection being cleared whenever geometry is refreshed
+- Fixed dynamic dark mode updates on iOS viewer
+- Fixed iOS split view bounds crash
+- Fixed bug where camera hotkeys failed after reload
+- Fixed error overlay translucency
+- Fixed various member type bugs
+
 ## [1.6.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.2) (2023-01-16)
 
 - Improved info panel display
 - Fixed twisted extrusion offset
-- Fixed roundrect detail level (previously 4x higher than intended)
+- Fixed `roundrect` detail level (previously 4x higher than intended)
 - Fixed incorrect output when intersecting groups of meshes
 - Empty scenes are no longer hidden if they contain debug geometry
 - Scene now conforms to Equatable protocol
 - Fixed misleading error message for excess color arguments
 - Fixed spurious forward declaration error for options that shadow global define
-- Added automatic casting of hex strings to color (useful for JSON data(
-- Made polygon members available on all geometries, not just manually-created meshes
+- Added automatic casting of hex strings to colors (useful for JSON data)
+- Made `.polygon` members available on all geometries, not just manually-created meshes
 - Excluded source location from Geometry equality comparisons
 - Fixed vector member access on tuples containing string elements
 - Fixed vector member access on nested numeric tuples
 - Fixed color member access on tuples and strings
 - Fixed polygon member lookup on meshes
-- Fixed handling of blocks with optional children (e.g. polygon)
+- Fixed handling of blocks with optional children (e.g. `polygon`)
 - Improved symbol lookup performance
 - Bumped Euclid to version 0.6.8
 
 ## [1.6.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.1) (2023-01-02)
 
-- Added twist option to extrude command
-- Fixed inconsistent view menu options when switching between open documents
+- Added `twist` option to `extrude` command
+- Fixed inconsistent View menu options when switching between open documents
 - Bumped Euclid to version 0.6.7
 
 ## [1.6.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.0) (2022-12-27)
 
 - Added hull command for creating convex hulls from points, paths or other meshes
 - Added mesh command for manually creating meshes from individual polygons
-- Added axisAligned property for controlling extrusion along  paths
+- Added `axisAligned` property for controlling extrusion along  paths
 - Added support for importing plain text files as a string and JSON files as a tuple
 - Added modulo operator for calculating remainder of division
 - Significantly overhauled type system to support lists, unions and objects
 - Improved static analysis, allowing type errors to be caught earlier
 - Improved handling of background property scope
 - The min and max functions are now variadic (accept any number of arguments)
-- Added split(), join() and trim() functions for working with strings
+- Added `split()`, `join()` and `trim()` functions for working with strings
 - Added automatic conversion of strings to numbers or boolean values where applicable
-- Added string.lines, .words and .characters members
-- Added tuple.count, .last, .allButFirst and .allButLast members
+- Added `string.lines`, `.words` and `.characters` members
+- Added `tuple.count`, `.last`, `.allButFirst` and `.allButLast` members
 - Fixed member lookup on numeric literals
 - Fixed bug where material of imported shapes could not be overridden
 - Background and texture can now be cleared by setting them to an empty string
 - Logging geometry values to console now produces more useful output
 - Added proper logging for bounds and point values
-- Added fileTimedOut and circularImport errors
+- Added `fileTimedOut` and `circularImport` errors
 - Refactored and improved error handling
-- Renamed ImportError to ProgramError
+- Renamed `ImportError` to `ProgramError`
 - Raised minimum Euclid version to 0.6.6
 - Added Spirals example
 
 ## [1.5.14](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.14) (2022-12-18)
 
-- Added support for C-style block comments using /* ... */ syntax
+- Added support for C-style block comments using `/* ... */` syntax
 - Fixed bug where source file could incorrectly be inferred as UTF-7, causing parsing errors
 - Fixed issue where error messages would sometimes suggest the same identifier you already used
 - Improved script execution performance by making source location lookup lazy
@@ -63,7 +75,7 @@
 
 ## [1.5.13](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.13) (2022-12-08)
 
-- Fixed crash when importing external .shape files
+- Fixed crash when importing external `.shape` files
 - When error occurs in imported file, Cmd-E now opens that file instead of the main file
 - Bumped Euclid to version 0.6.5
  
@@ -85,7 +97,7 @@
 ## [1.5.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.5.10) (2022-10-29)
 
 - Improved documentation for strings and trigonometry functions
-- Fixed empty bounds returned for lathe, fill, extrude and loft shapes
+- Fixed empty bounds returned for `lathe`, `fill`, `extrude` and `loft` shapes
 - Fixed runtime warning about postscript font names
 - Fixed range bug in error formatting logic
 - Fixed inconsistent handling of functions that return tuples
@@ -471,7 +483,7 @@
 
 ## [1.1.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.1.3) (2021-07-10)
 
-- Fixed assertion failure if a parsing error occurs at the last character in the .shape file
+- Fixed assertion failure if a parsing error occurs at the last character in the `.shape` file
 - Fixed bug in Path plane calculation that could result in corrupted extrusion shapes
 - Fixed a tessellation bug affecting anti-clockwise polygons
 

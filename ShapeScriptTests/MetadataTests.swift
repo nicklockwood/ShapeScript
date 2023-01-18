@@ -9,35 +9,35 @@
 @testable import ShapeScript
 import XCTest
 
-private let projectDirectory = URL(fileURLWithPath: #file)
+private let projectDirectory: URL = URL(fileURLWithPath: #file)
     .deletingLastPathComponent().deletingLastPathComponent()
 
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")
 
-private let podspecURL = projectDirectory
+private let podspecURL: URL = projectDirectory
     .appendingPathComponent("ShapeScript.podspec.json")
 
-private let projectURL = projectDirectory
+private let projectURL: URL = projectDirectory
     .appendingPathComponent("ShapeScript.xcodeproj")
     .appendingPathComponent("project.pbxproj")
 
-private let helpDirectory = projectDirectory
+private let helpDirectory: URL = projectDirectory
     .appendingPathComponent("docs")
 
-private let helpSourceDirectory = helpDirectory
+private let helpSourceDirectory: URL = helpDirectory
     .appendingPathComponent("src")
 
-private let helpIndexURL = helpSourceDirectory
+private let helpIndexURL: URL = helpSourceDirectory
     .appendingPathComponent("index.md")
 
-private let imagesDirectory = helpDirectory
+private let imagesDirectory: URL = helpDirectory
     .appendingPathComponent("images")
 
-private let examplesDirectory = projectDirectory
+private let examplesDirectory: URL = projectDirectory
     .appendingPathComponent("Examples")
 
-private let exampleURLs = try! FileManager.default
+private let exampleURLs: [URL] = try! FileManager.default
     .contentsOfDirectory(atPath: examplesDirectory.path)
     .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
     .filter { $0.pathExtension == "shape" }
@@ -56,12 +56,12 @@ private func findHeadings(in string: String) -> [String] {
         .map { String($0.dropFirst(3)) }
 }
 
-private let headerLinks = [
+private let headerLinks: [(String, String)] = [
     ("Getting Started", "getting-started.md"),
     ("Camera Control", "camera-control.md"),
 ]
 
-private let geometryLinks = [
+private let geometryLinks: [(String, String)] = [
     ("Primitives", "primitives.md"),
     ("Options", "options.md"),
     ("Materials", "materials.md"),
@@ -77,7 +77,7 @@ private let geometryLinks = [
     ("Cameras", "cameras.md"),
 ]
 
-private let syntaxLinks = [
+private let syntaxLinks: [(String, String)] = [
     ("Comments", "comments.md"),
     ("Literals", "literals.md"),
     ("Symbols", "symbols.md"),
@@ -91,21 +91,33 @@ private let syntaxLinks = [
     ("Import", "import.md"),
 ]
 
-private let footerLinks = [
+private let footerLinks: [(String, String)] = [
     ("Examples", "examples.md"),
     ("Glossary", "glossary.md"),
 ]
 
+private let versions: [String] = {
+    let fm = FileManager.default
+    var versions = Set([shapeScriptVersion])
+    let files = try! fm.contentsOfDirectory(atPath: helpDirectory.path)
+    for file in files where file.hasPrefix("1.") {
+        versions.insert(file)
+    }
+    return versions.sorted(by: {
+        $0.localizedStandardCompare($1) == .orderedAscending
+    })
+}()
+
 private extension URL {
     func hasSuffix(_ suffix: String) -> Bool {
-        deletingPathExtension().lastPathComponent.hasSuffix("-" + suffix)
+        deletingPathExtension().lastPathComponent.hasSuffix(suffix)
     }
 
-    func withSuffix(_ suffix: String) -> URL {
+    func appendingSuffix(_ suffix: String) -> URL {
         let name = deletingPathExtension().lastPathComponent
         return deletingPathExtension()
             .deletingLastPathComponent()
-            .appendingPathComponent(name + "-" + suffix)
+            .appendingPathComponent(name + suffix)
             .appendingPathExtension(pathExtension)
     }
 
@@ -116,7 +128,7 @@ private extension URL {
         let name = deletingPathExtension().lastPathComponent
         return deletingPathExtension()
             .deletingLastPathComponent()
-            .appendingPathComponent(String(name.dropLast(suffix.count + 1)))
+            .appendingPathComponent(String(name.dropLast(suffix.count)))
             .appendingPathExtension(pathExtension)
     }
 }
@@ -207,7 +219,7 @@ class MetadataTests: XCTestCase {
 
         for (index, url) in [
             (indexMac, helpIndexURL),
-            (indexIOS, helpIndexURL.withSuffix("ios")),
+            (indexIOS, helpIndexURL.appendingSuffix("-ios")),
         ] {
             let existing = try String(contentsOf: url)
             XCTAssertEqual(existing, index)
@@ -342,7 +354,7 @@ class MetadataTests: XCTestCase {
         let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))
         for case let file as String in enumerator {
             let fileURL = helpSourceDirectory.appendingPathComponent(file)
-            guard fileURL.pathExtension == "md", !fileURL.hasSuffix("ios") else {
+            guard fileURL.pathExtension == "md", !fileURL.hasSuffix("-ios") else {
                 enumerator.skipDescendants()
                 continue
             }
@@ -365,12 +377,9 @@ class MetadataTests: XCTestCase {
                 enumerator.skipDescendants()
                 continue
             }
-            if fileURL.hasSuffix("ios") {
-                file = String(fileURL
-                    .deletingPathExtension()
-                    .lastPathComponent
-                    .dropLast(4)) + ".md"
-            } else if fm.fileExists(atPath: fileURL.withSuffix("ios").path) {
+            if fileURL.hasSuffix("-ios") {
+                file = fileURL.deletingSuffix("-ios").lastPathComponent
+            } else if fm.fileExists(atPath: fileURL.appendingSuffix("-ios").path) {
                 continue
             }
             let text = try XCTUnwrap(String(contentsOf: fileURL))
@@ -387,18 +396,25 @@ class MetadataTests: XCTestCase {
                 else {
                     continue
                 }
-                if !url.hasSuffix("ios") {
-                    let isMac = url.hasSuffix("mac")
+                if url.pathExtension == "png" {
+                    let isMac = url.hasSuffix("-mac")
                     if isMac {
-                        url = url.deletingSuffix("mac")
+                        url = url.deletingSuffix("-mac")
                     }
-                    let iosURL = url.withSuffix("ios")
-                    let absoluteURL = URL(fileURLWithPath: iosURL.path, relativeTo: fileURL)
-                    if url.pathExtension == "png", fm.fileExists(atPath: absoluteURL.path) {
-                        url = iosURL
-                    } else if isMac {
-                        let macFile = url.withSuffix("mac").lastPathComponent
-                        XCTFail("File '\(macFile)' has no iOS equivalent")
+                    if !url.hasSuffix("-ios") {
+                        let iosURL = url.appendingSuffix("-ios")
+                        let absoluteURL = URL(fileURLWithPath: iosURL.path, relativeTo: fileURL)
+                        if fm.fileExists(atPath: absoluteURL.path) {
+                            url = iosURL
+                        }
+                    }
+                    for version in versions.reversed() {
+                        let iosURL = url.appendingSuffix("-\(version)")
+                        let absoluteURL = URL(fileURLWithPath: iosURL.path, relativeTo: fileURL)
+                        if fm.fileExists(atPath: absoluteURL.path) {
+                            url = iosURL
+                            break
+                        }
                     }
                     nsText.replaceCharacters(in: range, with: url.absoluteString)
                 }

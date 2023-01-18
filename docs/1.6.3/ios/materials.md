@@ -184,7 +184,7 @@ texture ""
 
 The first time you try to use an image, you will see an error screen like the one below.
 
-![Sandbox error](../images/sandbox-error-ios-1.6.3.png)
+![Sandbox error](../../images/sandbox-error-ios-1.6.3.png)
 
 This is because Apple employs a security feature called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)) to prevent apps from accessing files without the user's permission. Use the `Grant Access` button to open the containing folder for your images. If you prefer, you can just grant access to the specific image file, but in that case you will need to grant access individually to each new texture that you use.
 
@@ -192,13 +192,13 @@ This is because Apple employs a security feature called [sandboxing](https://en.
 
 How a texture is applied depends on the shape. Different shape types have different default wrapping schemes:
 
-![Textured cube](../images/textured-cube.png)
+![Textured cube](../../images/textured-cube.png)
 
-![Textured sphere](../images/textured-sphere.png)
+![Textured sphere](../../images/textured-sphere.png)
 
-![Textured cylinder](../images/textured-cylinder.png)
+![Textured cylinder](../../images/textured-cylinder.png)
 
-![Textured cone](../images/textured-cone.png)
+![Textured cone](../../images/textured-cone.png)
 
 Currently there is no way to override the default wrapping scheme, but the way that you create a shape affects the way that it is textured.
 
