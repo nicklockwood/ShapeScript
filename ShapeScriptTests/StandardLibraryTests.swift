@@ -912,4 +912,32 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
     }
+
+    // MARK: Hulls
+
+    func testPathInHull() throws {
+        let program = try parse("""
+        hull { square }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssert(context.children.first?.value is Geometry)
+    }
+
+    func testMultiplePathsInHull() throws {
+        let program = try parse("""
+        hull {
+            square
+            rotate 0 0.5
+            square
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh?.bounds, Mesh.cube().bounds)
+    }
 }
