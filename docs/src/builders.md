@@ -88,12 +88,7 @@ In the following example, `extrude` is used to create a triangular prism:
 ```swift
 extrude {
     size 1 1 2 // increase extrusion distance to 2 units
-    path {
-        for 0 to 3 {
-            point 0 1
-            rotate 2 / 3
-        }
-    }
+    polygon { sides 3 }
 }
 ```
 
@@ -196,22 +191,12 @@ For example, the following code produces a prism equivalent to the extrusion exa
 ```swift
 loft {
     // triangle 1
-    path {
-        for 0 to 3 {
-            point 0 1
-            rotate 2 / 3
-        }
-    }
+    polygon { sides 3 }
 
     translate 0 0 2
 
     // triangle 2
-    path {
-        for 0 to 3 {
-            point 0 1
-            rotate 2 / 3
-        }
-    }
+    polygon { sides 3 }
 }
 ```
 
