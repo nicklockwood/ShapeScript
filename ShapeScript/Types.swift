@@ -216,16 +216,25 @@ extension ValueType {
             if let index = name.ordinalIndex {
                 return types.indices.contains(index) ? types[index] : nil
             }
-            return name == "last" ? types.last : Self.memberTypes[name]
+            switch name {
+            case "count": return .number
+            case "last": return types.last
+            case _ where types.count <= 1:
+                return types.first?.memberType(name)
+            default:
+                return Self.memberTypes[name]
+            }
         case let .union(types):
-            let types = types.compactMap { $0.memberType(name) }
-            return types.isEmpty ? nil : .union(Set(types))
+            let types = Set(types.compactMap { $0.memberType(name) })
+            return types.isEmpty ? nil : ValueType.union(types).simplified()
         case .color, .texture, .boolean, .font, .number, .vector, .size,
              .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds, .any:
+             .bounds:
             return Self.memberTypes[name]
-        case let .object(values):
-            return values[name]
+        case let .object(members):
+            return members[name]
+        case .any:
+            return nil
         }
     }
 
@@ -244,6 +253,7 @@ extension ValueType {
         "blue": .number,
         "alpha": .number,
         "bounds": .bounds,
+        "color": .color,
         "start": .number,
         "end": .number,
         "step": .number,
@@ -253,6 +263,7 @@ extension ValueType {
         "center": .vector,
         "count": .number,
         "points": .list(.point),
+        "polygons": .list(.polygon),
         "lines": .list(.string),
         "words": .list(.string),
         "characters": .list(.string),

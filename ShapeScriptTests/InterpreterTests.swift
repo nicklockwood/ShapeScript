@@ -1122,12 +1122,7 @@ class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        switch geometry.type {
-        case let .path(path):
-            XCTAssertEqual(path.points.first?.color, .red)
-        default:
-            XCTFail()
-        }
+        XCTAssertEqual(geometry.path?.points.first?.color, .red)
     }
 
     func testColorInPath() throws {
@@ -1142,13 +1137,9 @@ class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        switch geometry.type {
-        case let .path(path):
-            XCTAssertEqual(path.points.first?.color, .red)
-            XCTAssertEqual(path.points.last?.color, .blue)
-        default:
-            XCTFail()
-        }
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.points.first?.color, .red)
+        XCTAssertEqual(path.points.last?.color, .blue)
     }
 
     func testNestedPathColor() throws {
@@ -1163,13 +1154,9 @@ class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        switch geometry.type {
-        case let .path(path):
-            XCTAssertEqual(path.subpaths.first?.points.first?.color, .red)
-            XCTAssertEqual(path.subpaths.last?.points.first?.color, .green)
-        default:
-            XCTFail()
-        }
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.subpaths.first?.points.first?.color, .red)
+        XCTAssertEqual(path.subpaths.last?.points.first?.color, .green)
     }
 
     func testColorInText() throws {
@@ -1185,19 +1172,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         #if canImport(CoreText)
         let line1 = try XCTUnwrap(context.children.first?.value as? Geometry)
-        switch line1.type {
-        case let .path(path):
-            XCTAssertEqual(path.points.first?.color, .red)
-        default:
-            XCTFail()
-        }
+        XCTAssertEqual(line1.path?.points.first?.color, .red)
         let line2 = try XCTUnwrap(context.children.last?.value as? Geometry)
-        switch line2.type {
-        case let .path(path):
-            XCTAssertEqual(path.points.first?.color, .blue)
-        default:
-            XCTFail()
-        }
+        XCTAssertEqual(line2.path?.points.first?.color, .blue)
         #endif
     }
 
@@ -3439,6 +3416,33 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
+    }
+
+    func testPolygonPointsLookup() throws {
+        let program = """
+        print cube.polygons.first.points
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let points = try XCTUnwrap(delegate.log as? [PathPoint])
+        XCTAssertEqual(points.count, 4)
+    }
+
+    func testPointColorLookup() throws {
+        let program = """
+        define foo path {
+            color red
+            point 0 0
+            color green
+            point 1 0
+            point 1 1
+        }
+        print foo.points.first.color
+        print foo.points.second.color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red, Color.green])
     }
 
     func testMemberPrecedence() {

@@ -264,6 +264,51 @@ class TypesystemTests: XCTestCase {
         """), .number)
     }
 
+    func testEmptyTupleCountType() {
+        XCTAssertEqual(try expressionType("""
+        define foo ()
+        foo.count
+        """), .number)
+    }
+
+    func testEmptyTupleMemberType() {
+        XCTAssertEqual(try expressionType("""
+        define foo ()
+        foo.blue
+        """), .any)
+    }
+
+    func testUnionMemberType() {
+        XCTAssertEqual(try expressionType("""
+        define foo () {
+            if rnd > 0.5 {
+                (1 2 1)
+            } else {
+                "#f00"
+            }
+        }
+        foo.blue
+        """), .number)
+    }
+
+    func testPolygonsMemberType() {
+        XCTAssertEqual(try expressionType("""
+        cube.polygons
+        """), .list(.polygon))
+    }
+
+    func testPolygonPointsMemberType() {
+        XCTAssertEqual(try expressionType("""
+        cube.polygons.first.points
+        """), .list(.point))
+    }
+
+    func testPointColorMemberType() {
+        XCTAssertEqual(try expressionType("""
+        square.points.color
+        """), .color)
+    }
+
     // MARK: Function parameter inference
 
     func testInferSimpleFunctionParameter() throws {
