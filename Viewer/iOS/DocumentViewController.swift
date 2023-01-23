@@ -219,6 +219,13 @@ class DocumentViewController: UIViewController {
         view.setNeedsLayout()
     }
 
+    override func traitCollectionDidChange(
+        _ previousTraitCollection: UITraitCollection?
+    ) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        view.setNeedsLayout()
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         errorTextView.textContainerInset = UIEdgeInsets(
@@ -227,6 +234,7 @@ class DocumentViewController: UIViewController {
             bottom: view.safeAreaInsets.bottom + 20,
             right: max(view.safeAreaInsets.right + 15, 20)
         )
+        updateInterfaceColor()
         if !cameraHasMoved {
             updateAxesAndCamera()
             resetView()
