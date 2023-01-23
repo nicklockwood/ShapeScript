@@ -113,9 +113,9 @@ class DocumentViewController: UIViewController {
                 return
             }
             if isLoading {
-                loadingIndicator.startAnimating()
+                loadingIndicator?.startAnimating()
             } else {
-                loadingIndicator.stopAnimating()
+                loadingIndicator?.stopAnimating()
                 refreshView()
             }
         }

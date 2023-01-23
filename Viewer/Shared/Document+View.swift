@@ -11,6 +11,14 @@ import SceneKit
 import ShapeScript
 
 extension Document {
+    var isEditable: Bool {
+        let fileURL: URL? = fileURL
+        return fileURL.map {
+            FileManager.default.isWritableFile(atPath: $0.path) &&
+                !$0.path.hasPrefix(Bundle.main.bundlePath)
+        } ?? false
+    }
+
     var selectedGeometry: Geometry? {
         viewController?.selectedGeometry
     }
@@ -169,14 +177,19 @@ extension Document {
             )
         }
         sourceString = input
+    }
+
+    func didUpdateSource() {
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
         let camera = self.camera
         let showWireframe = self.showWireframe
+        let input = sourceString ?? ""
+        let fileURL: URL? = fileURL
         loadingProgress = LoadingProgress { [weak self] status in
-            guard let self = self else {
+            guard let self = self, let fileURL = fileURL else {
                 return
             }
             switch status {

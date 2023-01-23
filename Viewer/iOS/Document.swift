@@ -50,9 +50,19 @@ class Document: UIDocument {
     var errorMessage: NSAttributedString?
     var errorURL: URL?
     var isAccessError: Bool = false
-    var sourceString: String = ""
     var rerenderRequired: Bool = false
     private var observer: Any?
+
+    var sourceString: String? {
+        didSet {
+            if oldValue == sourceString {
+                return
+            } else if oldValue != nil {
+                updateChangeCount(.done)
+            }
+            didUpdateSource()
+        }
+    }
 
     override init(fileURL url: URL) {
         super.init(fileURL: url)
@@ -79,6 +89,13 @@ class Document: UIDocument {
         if let data = contents as? Data {
             try load(data, fileURL: fileURL)
         }
+    }
+
+    override func contents(forType typeName: String) throws -> Any {
+        guard let data = sourceString?.data(using: .utf8) else {
+            throw NSError(domain: "", code: 0) // Unknown error
+        }
+        return data
     }
 
     override func close(completionHandler: ((Bool) -> Void)? = nil) {

@@ -62,9 +62,12 @@ class Document: NSDocument {
     var errorMessage: NSAttributedString?
     var errorURL: URL?
     var isAccessError: Bool = false
-    var sourceString: String = ""
     var rerenderRequired: Bool = false
     private var observer: Any?
+
+    var sourceString: String? {
+        didSet { didUpdateSource() }
+    }
 
     var cameras: [Camera] = CameraType.allCases.map {
         Camera(type: $0)

@@ -13,10 +13,13 @@ class SourceViewController: UIViewController {
     @IBOutlet private var textView: TokenView!
 
     var document: Document? {
-        didSet {
-            title = document?.fileURL.lastPathComponent
-            textView?.text = document?.sourceString
-        }
+        didSet { didSetDocument() }
+    }
+
+    func didSetDocument() {
+        title = document?.fileURL.lastPathComponent
+        textView?.text = document?.sourceString
+        textView?.isEditable = document?.isEditable ?? false
     }
 
     override func viewDidLoad() {
@@ -25,9 +28,8 @@ class SourceViewController: UIViewController {
         textView.font = .monospacedSystemFont(ofSize: 15, weight: .regular)
         textView.showLineNumbers = true
         textView.wrapLines = false
-        textView.isEditable = false
         textView.delegate = self
-        textView.text = document?.sourceString
+        didSetDocument()
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             systemItem: .close,
@@ -44,7 +46,7 @@ class SourceViewController: UIViewController {
                 }
                 let sheet = UIActivityViewController(
                     activityItems: [
-                        UISimpleTextPrintFormatter(text: document.sourceString),
+                        UISimpleTextPrintFormatter(text: document.sourceString ?? ""),
                         document.fileURL,
                     ],
                     applicationActivities: nil
@@ -183,6 +185,10 @@ extension SourceViewController: TokenViewDelegate {
         case .identifier, .operator, _:
             return [:]
         }
+    }
+
+    func textViewDidChange(_ textView: UITextView) {
+        document?.sourceString = textView.text
     }
 }
 
