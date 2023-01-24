@@ -147,7 +147,9 @@ class TextView: UIScrollView {
         if width != previousSize.width || size.height != previousSize.height {
             previousSize.width = width
             previousSize.height = size.height
+            let oldOffset = textView.contentOffset
             textView.sizeToFitWidth(width, in: size)
+            textView.contentOffset = oldOffset
             if contentSize != textView.frame.size {
                 contentSize = textView.frame.size
             }
