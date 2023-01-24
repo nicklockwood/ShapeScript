@@ -98,8 +98,10 @@ class DocumentViewController: UIViewController {
         consoleTextView.attributedText = log
         let range = NSRange(location: location, length: 1)
         DispatchQueue.main.async {
-            self.containerView.heights[1] =
+            if self.containerView.heights.count > 1 {
+                self.containerView.heights[1] =
                 min(150, self.consoleTextView.contentSize.height)
+            }
             self.consoleTextView.scrollRangeToVisible(range)
         }
     }
