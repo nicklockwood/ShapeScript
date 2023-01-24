@@ -176,7 +176,15 @@ extension Document {
                 """
             )
         }
-        sourceString = input
+        if input != sourceString {
+            sourceString = input
+            // Only dismiss source view if source has changed
+            // TODO: what if we're viewing source or info of an imported file?
+            viewController?.dismissModals(animated: true)
+        } else {
+            // Trigger reload anyway in case imported file has changed
+            didUpdateSource()
+        }
     }
 
     func didUpdateSource() {
@@ -196,7 +204,8 @@ extension Document {
             case .waiting:
                 if let viewController = self.viewController {
                     if input != self.sourceString {
-                        viewController.dismissModals()
+                        self.didUpdateSource()
+                        return
                     }
                     viewController.showConsole = false
                     viewController.clearLog()
