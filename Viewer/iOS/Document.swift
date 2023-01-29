@@ -52,6 +52,7 @@ class Document: UIDocument {
     var isAccessError: Bool = false
     var rerenderRequired: Bool = false
     private var observer: Any?
+    private weak var saveTimer: Timer?
 
     var sourceString: String? {
         didSet {
@@ -59,6 +60,15 @@ class Document: UIDocument {
                 return
             } else if oldValue != nil {
                 updateChangeCount(.done)
+                if viewController == nil {
+                    saveTimer?.invalidate()
+                    saveTimer = Timer.scheduledTimer(
+                        withTimeInterval: 1,
+                        repeats: false
+                    ) { [weak self] _ in
+                        self?.autosave()
+                    }
+                }
             }
             didUpdateSource()
         }
