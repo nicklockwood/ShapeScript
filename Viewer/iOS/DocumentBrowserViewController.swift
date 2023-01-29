@@ -12,6 +12,8 @@ import UIKit
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
 
 class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate, UITextFieldDelegate {
+    private var openingDocument = false
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -145,21 +147,44 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
 
     // MARK: Document Presentation
 
+    var transitionController: UIDocumentBrowserTransitionController?
+
     func presentDocument(at documentURL: URL) {
-        print("presenting", documentURL)
-        if let vc = presentedViewController as? DocumentViewController {
-            vc.document = Document(fileURL: documentURL)
-            vc.document?.open(completionHandler: { _ in })
+        guard !openingDocument else {
+            return
+        }
+
+        let document = Document(fileURL: documentURL)
+        if let viewController = presentedViewController as? DocumentViewController,
+           viewController.document?.fileURL == documentURL
+        {
             return
         }
 
         let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let documentViewController = storyBoard.instantiateViewController(withIdentifier: "DocumentViewController") as! DocumentViewController
-        documentViewController.document = Document(fileURL: documentURL)
-        documentViewController.modalPresentationStyle = .fullScreen
+        let viewController = storyBoard.instantiateViewController(withIdentifier: "DocumentViewController") as! DocumentViewController
+        viewController.document = document
+        viewController.modalPresentationStyle = .fullScreen
 
-        present(documentViewController, animated: true, completion: nil)
-        documentViewController.document?.open(completionHandler: { _ in })
+        transitionController = transitionController(forDocumentAt: documentURL)
+        transitionController?.targetView = viewController.scnView
+        transitionController?.loadingProgress = Progress(totalUnitCount: 10)
+
+        openingDocument = true
+        document.open { success in
+            self.transitionController?.loadingProgress?.completedUnitCount = 10
+            self.transitionController?.loadingProgress = nil
+            defer { self.openingDocument = false }
+            guard success else {
+                self.presentError("Unable to open file.", onOK: {})
+                return
+            }
+            if let existing = self.presentedViewController as? DocumentViewController {
+                existing.document = document
+            } else {
+                self.present(viewController, animated: true, completion: nil)
+            }
+        }
     }
 
     // MARK: Document Creation

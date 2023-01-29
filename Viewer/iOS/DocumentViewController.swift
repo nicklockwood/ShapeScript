@@ -33,6 +33,7 @@ class DocumentViewController: UIViewController {
         didSet {
             document?.viewController = self
             editButton?.isEnabled = document?.isEditable ?? false
+            document?.rerender()
         }
     }
 
@@ -100,7 +101,7 @@ class DocumentViewController: UIViewController {
         DispatchQueue.main.async {
             if self.containerView.heights.count > 1 {
                 self.containerView.heights[1] =
-                min(150, self.consoleTextView.contentSize.height)
+                    min(150, self.consoleTextView.contentSize.height)
             }
             self.consoleTextView.scrollRangeToVisible(range)
         }
