@@ -64,6 +64,10 @@ class Document: UIDocument {
         }
     }
 
+    var cameras: [Camera] = CameraType.allCases.map {
+        Camera(type: $0)
+    }
+
     override init(fileURL url: URL) {
         super.init(fileURL: url)
         fileMonitor = FileMonitor(url) { [weak self] url in
@@ -106,10 +110,6 @@ class Document: UIDocument {
                 $0.stopAccessingSecurityScopedResource()
             }
         }
-    }
-
-    var cameras: [Camera] = CameraType.allCases.map {
-        Camera(type: $0)
     }
 
     func grantAccess() {
