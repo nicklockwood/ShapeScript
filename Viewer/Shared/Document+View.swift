@@ -181,7 +181,7 @@ extension Document {
             // Only dismiss source view if source has changed
             // TODO: what if we're viewing source or info of an imported file?
             viewController?.dismissModals(animated: true)
-        } else {
+        } else if viewController != nil {
             // Trigger reload anyway in case imported file has changed
             didUpdateSource()
         }

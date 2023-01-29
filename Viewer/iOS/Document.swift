@@ -70,7 +70,9 @@ class Document: UIDocument {
                     }
                 }
             }
-            didUpdateSource()
+            if viewController != nil {
+                didUpdateSource()
+            }
         }
     }
 
