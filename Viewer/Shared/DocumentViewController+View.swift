@@ -17,7 +17,7 @@ extension DocumentViewController {
             grantAccessButton.isHidden = !newValue
             errorTextView.backgroundColor = newValue ?
                 OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1) :
-                OSColor(red: 0.8, green: 0, blue: 0, alpha: 1)
+                OSColor(red: 0.8, green: 0, blue: 0, alpha: 0.8)
         }
     }
 
