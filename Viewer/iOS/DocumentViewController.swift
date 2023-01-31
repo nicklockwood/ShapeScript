@@ -451,7 +451,12 @@ class DocumentViewController: UIViewController {
     }
 
     @IBAction func openSourceEditor() {
-        document.map { openSourceView(withContentsOf: $0.fileURL) }
+        if let fileURL = document?.errorURL ??
+            selectedGeometry?.sourceLocation?.file ??
+            document?.fileURL
+        {
+            openSourceView(withContentsOf: fileURL)
+        }
     }
 
     @IBAction func grantAccess() {
