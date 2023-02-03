@@ -68,9 +68,6 @@ extension DocumentViewController {
         // update axes
         updateAxesAndCamera()
 
-        // restore selection
-        selectGeometry(selectedGeometry?.scnNode)
-
         guard let geometry = geometry else {
             scnView.allowsCameraControl = showAxes
             refreshView()
@@ -81,6 +78,9 @@ extension DocumentViewController {
         geometry.children.forEach {
             scnScene.rootNode.addChildNode(SCNNode($0))
         }
+
+        // restore selection
+        selectGeometry(selectedGeometry?.scnNode)
 
         // update camera
         updateAxesAndCamera()
