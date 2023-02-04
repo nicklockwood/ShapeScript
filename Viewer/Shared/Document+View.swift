@@ -141,6 +141,19 @@ extension Document {
         }
     }
 
+    func selectCamera(at index: Int) -> Bool {
+        guard index < cameras.count else {
+            return false
+        }
+        let camera = cameras[index]
+        if camera == self.camera {
+            viewController?.resetCamera()
+        } else {
+            self.camera = camera
+        }
+        return true
+    }
+
     func updateViews() {
         guard let viewController = viewController else {
             return

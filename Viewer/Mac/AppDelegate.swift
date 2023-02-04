@@ -43,7 +43,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
         }
-        configureCameraMenu(camerasMenu, for: nil)
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {

@@ -308,12 +308,7 @@ class DocumentViewController: UIViewController {
                 attributes: [],
                 state: self.camera == camera ? .on : .off
             ) { [weak self] _ in
-                let camera = cameras[i]
-                if camera == self?.document?.camera {
-                    self?.resetCamera()
-                } else {
-                    self?.document?.camera = camera
-                }
+                _ = self?.document?.selectCamera(at: i)
             }
             cameraItems.append(item)
         }

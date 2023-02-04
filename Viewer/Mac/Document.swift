@@ -69,10 +69,6 @@ class Document: NSDocument {
         didSet { didUpdateSource() }
     }
 
-    var cameras: [Camera] = CameraType.allCases.map {
-        Camera(type: $0)
-    }
-
     override var fileURL: URL? {
         didSet {
             fileMonitor = FileMonitor(fileURL) { [weak self] url in
@@ -221,7 +217,57 @@ class Document: NSDocument {
         }
     }
 
+    // MARK: Cameras
+
+    var cameras: [Camera] = CameraType.allCases.map {
+        Camera(type: $0)
+    }
+
     private var camerasMenu: NSMenu?
+
+    private func configureCameraMenu(_ menu: NSMenu) {
+        while menu.item(at: 0)?.isSeparatorItem == false {
+            menu.removeItem(at: 0)
+        }
+        for (i, camera) in cameras.enumerated() {
+            let menuItem = menu.insertItem(
+                withTitle: camera.name,
+                action: #selector(selectCamera(_:)),
+                keyEquivalent: i < 9 ? "\(i + 1)" : "",
+                at: i
+            )
+            menuItem.tag = i
+            menuItem.keyEquivalentModifierMask = .command
+        }
+    }
+
+    @IBAction func selectCameras(_: NSMenuItem) {
+        // Does nothing
+    }
+
+    @IBAction func selectCamera(_ menuItem: NSMenuItem) {
+        if !selectCamera(at: menuItem.tag) {
+            NSSound.beep()
+        }
+    }
+
+    @IBAction func copyCamera(_: NSMenuItem) {
+        viewController?.copyCamera()
+    }
+
+    @IBAction func showWireframe(_: NSMenuItem) {
+        showWireframe.toggle()
+    }
+
+    @IBAction func showAxes(_: NSMenuItem) {
+        showAxes.toggle()
+    }
+
+    @IBAction func setOrthographic(_: NSMenuItem) {
+        isOrthographic.toggle()
+    }
+
+    // MARK: Menus
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
@@ -241,44 +287,11 @@ class Document: NSDocument {
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
             camerasMenu = menuItem.submenu
-            camerasMenu.map { configureCameraMenu($0, for: self) }
+            camerasMenu.map(configureCameraMenu)
         default:
             break
         }
         return super.validateMenuItem(menuItem)
-    }
-
-    @IBAction func selectCameras(_: NSMenuItem) {
-        // Does nothing
-    }
-
-    @IBAction func selectCamera(_ menuItem: NSMenuItem) {
-        guard menuItem.tag < cameras.count else {
-            NSSound.beep()
-            return
-        }
-        let camera = cameras[menuItem.tag]
-        if camera == self.camera {
-            viewController?.resetCamera()
-        } else {
-            self.camera = camera
-        }
-    }
-
-    @IBAction func copyCamera(_: NSMenuItem) {
-        viewController?.copyCamera()
-    }
-
-    @IBAction func showWireframe(_: NSMenuItem) {
-        showWireframe.toggle()
-    }
-
-    @IBAction func showAxes(_: NSMenuItem) {
-        showAxes.toggle()
-    }
-
-    @IBAction func setOrthographic(_: NSMenuItem) {
-        isOrthographic.toggle()
     }
 }
 

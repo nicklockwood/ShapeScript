@@ -220,6 +220,20 @@ class DocumentViewController: NSViewController {
         let hitResults = scnView.hitTest(location, options: [:])
         selectGeometry(hitResults.first?.node)
     }
+
+    override func keyDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.command),
+           let index = event.characters.flatMap(Int.init)
+        {
+            if index == 0 {
+                resetCamera()
+            } else if document?.selectCamera(at: index - 1) == false {
+                NSSound.beep()
+            }
+            return
+        }
+        super.keyDown(with: event)
+    }
 }
 
 extension DocumentViewController: NSWindowDelegate {
