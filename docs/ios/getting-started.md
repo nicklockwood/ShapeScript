@@ -13,15 +13,15 @@ After pressing OK you should see a new screen appear containing a cube, sphere a
 
 ## Viewing
 
-Drag your finger inside the window and you will notice that the three objects appear to rotate.
+Drag your finger inside the window and you will notice that the three shapes appear to rotate.
 
-You are not actually moving the objects themselves, but rotating the camera around them. To return to the original orientaton, tap the camera icon in the top-right and select `Reset View`.
+You are not actually moving the shapes themselves, but rotating the camera around them. To return to the original orientation, tap the camera icon in the top-right and select `Reset View`.
 
 To help you orient yourself, you can enable the `Show Axes` option in the camera menu, which displays the direction of the X, Y and Z axes.
 
 ![Show axes](../images/show-axes-ios.png)
 
-For more information about navigating around the model, see [Camera Control](camera-control.md).
+For more information about navigating around the scene, see [Camera Control](camera-control.md).
 
 ## Editing
 
@@ -57,7 +57,7 @@ The next line is:
 detail 32
 ```
 
-This controls the level of detail used for shapes in the file. ShapeScript models are made out of flat polygons, so it is not possible for curved edges to be represented exactly. When you define a sphere or other curved shape, the `detail` value is used to decide how many polygons will be used.
+This controls the level of detail used for shapes in the file. The shapes are made out of flat polygons, so it is not possible for curved edges to be represented exactly. When you define a sphere or other curved shape, the `detail` value is used to decide how many polygons will be used.
 
 Next we have the following:
 
@@ -74,7 +74,7 @@ The first instruction, `cube`, creates the cube shape. Note the `{ ... }` braces
 
 The line `position -1.5` means "position the shape 1.5 spacial units to the left of the origin". The *origin* is the center of the world, and is the default position at which new shapes will appear.
 
-**Note:** The spacial units ShapeScript uses are arbitrary, and can represent anything that you wish them to: a centimeter, a meter, an inch, a mile, etc. Try to choose an appropriate scale for your models so that you avoid having to work with very large scales (thousands of units), or very small scales (thousandths of a unit). That will help to avoid rendering precision issues, as well as making your scripts easier to work with.
+**Note:** The spacial units ShapeScript uses are arbitrary, and can represent anything that you wish them to: a centimeter, a meter, an inch, a mile, etc. Try to choose an appropriate scale for your scene so that you avoid having to work with very large numbers (thousands of units), or very small ones (thousandths of a unit). That will help to avoid rendering precision issues, as well as making your scripts easier to work with.
 
 The `position` keyword is followed by up to 3 numbers representing offsets along the X, Y, and Z axes respectively. If values are omitted, they are assume to be zero, so a position o-f `-1.5` is equivalent to `-1.5 0 0`. This is covered in detail in the [transforms](transforms.md#position) section.
 
@@ -104,11 +104,13 @@ When you are comfortable with manipulating the default shapes, try deleting them
 
 ## Debugging and Selection
 
-You can get information about your model (such as polygon count and overall dimensions) by tapping the info icon in the top-right corder of the screen.
+To get information about your scene (such as polygon count and overall dimensions), tap the info button in the top-right corder of the screen.
 
-If a particular part of your model doesn't look right, you can tap to select it in the viewer, then get info on just the selected part. This will also tell you which line in the script file defines that component.
+To get info about a particular shape in the scene, tap on it in the viewer to select it then press the info button. This will also tell you which line in the `.shape` file defines that component. Tap outside of the shape to deselect it again.
 
 ![Object info](../images/object-info-ios.png)
+
+**Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
 
 ---
 [Index](index.md) | Next: [Camera Control](camera-control.md)

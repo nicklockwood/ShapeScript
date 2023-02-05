@@ -17,7 +17,7 @@ fill path {
 }
 ```
 
-Comments are also useful for temporarily disabling a block of code when debugging a model. Some editors (such as Xcode) allow you to comment or uncomment multiple lines of code at once by making a multi-line selection and then pressing **Cmd-/** on the keyboard.
+Comments are also useful for temporarily disabling a block of code when debugging a scene. Some editors (such as Xcode) allow you to comment or uncomment multiple lines of code at once by making a multi-line selection and then pressing **Cmd-/** on the keyboard.
 
 ## Block Comments
 

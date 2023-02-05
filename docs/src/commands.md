@@ -23,7 +23,7 @@ In the case above, the `roll` parameter of the `rotate` command has been given a
 rotate (1 + angle) 0 0
 ```
 
-Commands do not *necessarily* accept or return a value. The main distinction between commands and functions/constants is that commands have *side effects*. Typically they either alter the appearance of the model, or alter the effects of subsequent commands. Here are some examples:
+Commands do not *necessarily* accept or return a value. The main distinction between commands and functions/constants is that commands have *side effects*. Typically they either alter the appearance of the shape, or alter the effects of subsequent commands. Here are some examples:
 
 ShapeScript has a number of built-in commands:
 
@@ -96,7 +96,7 @@ The `rnd` command takes no parameters but returns a random number in the range 0
 cube { position 0 (rnd * 10) - 5 0 }
 ```
 
-Each time `rnd` is called it will return a different value. Numbers are returned in a deterministic but non-repeating sequence. Because the sequence is deterministic, it will always produce the same values each time your model is rendered.
+Each time `rnd` is called it will return a different value. Numbers are returned in a deterministic but non-repeating sequence. Because the sequence is deterministic, it will always produce the same values each time your scene is rendered.
 
 To alter the random sequence you can use the `seed` command. The `seed` command takes a numeric value as its argument, and this is used to generate all subsequent `rnd` values. The seed value can be any number (positive or negative, integer or fraction), but note that values outside the range 0 to 2<sup>32</sup> will be wrapped to that range.
 

@@ -99,7 +99,7 @@ for i in ("parentheses" "are" "required") {
 
 ## If-Else
 
-Sometimes instead of repeating an action multiple times you need to perform it just once, but conditionally, based on some programmatic criteria. For example, your model might have multiple configurations that you can switch between by setting constants at the top of the file.
+Sometimes instead of repeating an action multiple times you need to perform it just once, but conditionally, based on some programmatic criteria. For example, your scene might have multiple configurations that you can switch between by setting constants at the top of the file.
 
 To execute code conditionally, you can use an `if` statement:
 

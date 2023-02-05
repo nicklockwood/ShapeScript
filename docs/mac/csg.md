@@ -23,11 +23,11 @@ difference {
 }
 ```
 
-The result is shown below on the right. The model on the left is using a `group` instead of `difference`, so you can see the position of the cylinder prior to subtraction.
+The result is shown below on the right. The shape on the left is using a `group` instead of `difference`, so you can see the position of the cylinder prior to subtraction.
 
 ![Cone with a hole](../images/group-vs-difference.png)
 
-The subtracted shape is removed from the resultant model, but leaves an impression in the object it is subtracted from. You can see this in above image, where the hole in the red cone is lined with green coloring from the cylinder.
+The subtracted shape is removed from the result, but leaves an impression in the shape it is subtracted from. You can see this in above image, where the hole in the red cone is lined with green coloring from the cylinder.
 
 ## Intersection
 
@@ -43,13 +43,13 @@ As before, the color is taken from the shape that originally contributed that pa
 
 The `union` command merges its child meshes into a single shape. You can think of it as being like the *OR* function from boolean algebra.
 
-For an opaque model the result is not visually distinguishable from simply using a `group`, but below the surface the `union` will split intersecting polygons and remove internal faces so that only the outer shell remains.
+For an opaque shape the result is not visually distinguishable from simply using a `group`, but below the surface the `union` will split intersecting polygons and remove internal faces so that only the outer shell remains.
 
 This can be important for rendering efficiency, as well as producing more predictable results if the mesh is then used for additional CSG operations.
 
 The effect can be seen by using a translucent color (one with an alpha component less than one). In the image below, the red cones have been set to an alpha opacity of 0.75, with the green cylinders left fully opaque.
 
-The model on the left is using a `group`, and the inner surface of the cylinder can clearly be seen through the surface of the cone. The model on the right is using `union` and so the part of the cylinder inside the cone cannot be seen (because it has been removed).
+The shape on the left is using a `group`, and the inner surface of the cylinder can clearly be seen through the surface of the cone. The shape on the right is using `union` and so the part of the cylinder inside the cone cannot be seen (because it has been removed).
 
 ![Group vs union](../images/group-vs-union.png)
 
@@ -73,7 +73,7 @@ xor {
 
 ## Stencil
 
-The `stencil` command retains the shape of its first child, but "paints" the intersecting areas between the child shapes using the material of the other children. This can be used to apply logos or patterns to the surface of a model.
+The `stencil` command retains the shape of its first child, but "paints" the intersecting areas between the child shapes using the material of the other children. This can be used to apply logos or patterns to the surface of a shape.
 
 In the following example, a red ball has been stenciled with the pattern of a green square:
 

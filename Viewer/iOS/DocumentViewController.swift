@@ -390,8 +390,8 @@ class DocumentViewController: UIViewController {
     @IBAction func showModelInfo() {
         let sheet = UIAlertController(
             title: selectedGeometry.map { _ in
-                "Selected Object Info"
-            } ?? "Model Info",
+                "Selected Shape Info"
+            } ?? "Scene Info",
             message: document?.modelInfo ?? "",
             preferredStyle: .alert
         )

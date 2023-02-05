@@ -190,7 +190,7 @@ This is because Apple employs a security feature called [sandboxing](https://en.
 
 ### Texture Wrapping
 
-How a texture is wrapped around the model depends on the shape. Different shape types have different default wrapping schemes:
+How a texture is applied depends on the shape. Different shape types have different default wrapping schemes:
 
 ![Textured cube](../images/textured-cube.png)
 

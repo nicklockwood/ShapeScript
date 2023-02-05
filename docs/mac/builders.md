@@ -56,7 +56,7 @@ path {
 
 ![Pawn outline](../images/pawn-profile.png)
 
-When passed to the `lathe` command, the path creates a solid 3D model:
+When passed to the `lathe` command, the path creates a solid 3D shape:
 
 ```swift
 lathe path {

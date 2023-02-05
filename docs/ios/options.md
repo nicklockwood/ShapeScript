@@ -28,7 +28,7 @@ cylinder {
 
 The name can contain spaces or punctuation, and is wrapped in double quotes to prevent ambiguity with other symbols (see [literals](literals.md) for details).
 
-The name is not displayed in the app, and currently has no use within ShapeScript itself, however it can be useful for identifying distinct shape components when importing an exported ShapeScript model into another application (see the [export](export.md) section for details).
+The name can be useful for identifying distinct shape components when [selecting them](getting-started.md#debugging-and-selection) in the viewer, or when importing a model exported from ShapeScript into another application (see the [export](export.md) section for details).
 
 ## Detail
 
@@ -62,7 +62,7 @@ For curved shapes that are not circular, such as a custom [path](paths.md), the 
 
 Similar to `detail`, `smoothing` is used to control the appearance of curved shapes.
 
-As mentioned above, all shapes in ShapeScript are formed from flat triangles. To create the illusion of a curved surface, lighting can be smoothly interpolated across polygon faces to give the appearance of curvature. Lighting is calculated using [surface normals](https://en.wikipedia.org/wiki/Normal_(geometry)) - vectors  pointing outwards from each [vertex](https://en.wikipedia.org/wiki/Vertex_(geometry)) in a model that are used to indicate when the simulated curvature differs from the geometric reality.
+As mentioned above, all shapes in ShapeScript are formed from flat triangles. To create the illusion of a curved surface, lighting can be smoothly interpolated across polygon faces to give the appearance of curvature. Lighting is calculated using [surface normals](https://en.wikipedia.org/wiki/Normal_(geometry)) - vectors  pointing outwards from each [vertex](https://en.wikipedia.org/wiki/Vertex_(geometry)) in a mesh that are used to indicate when the simulated curvature differs from the geometric reality.
 
 [Primitive shapes](primitives.md) in ShapeScript all have appropriate normals set by default, and when creating [paths](paths.md) you can use the `curve` command to specify when a corner should appear curved rather than sharp. However, there are times when you may wish to override the default behavior, e.g. to deliberately create a more angular appearance, or to smooth an [imported](import.md) model that does not already include appropriate surface normal data.
 

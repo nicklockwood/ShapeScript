@@ -1,7 +1,7 @@
 Primitives
 ---
 
-ShapeScript has a number of built-in shapes that you can use to quickly construct simple models. These are known as *primitives*, to distinguish them from more complex custom shapes that you can define using [builders](builders.md) and [CSG](csg.md) operations.
+ShapeScript has a number of built-in shapes that you can use to quickly construct a scene. These are known as *primitives*, to distinguish them from more complex custom shapes that you can define using [builders](builders.md) or [CSG](csg.md) operations.
 
 ## Cube
 

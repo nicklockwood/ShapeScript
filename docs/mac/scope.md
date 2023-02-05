@@ -9,7 +9,7 @@ When you define symbols, the effect is limited to the *scope* of the current blo
 
 Block scope is not just limited to symbols; it also affects [materials](materials.md) and [transforms](transforms.md). When you use the `translate`, `rotate` and `scale` commands to modify the world-transform, or use `color` or `texture` to modify the current material, the effect of those changes is limited to the current block.
 
-This is convenient, because it means that code that defines sub-objects in your model can use transforms and materials internally without the effects "leaking out" and affecting other objects.
+This is convenient, because it means that code that defines subcomponents in your scene can use transforms and materials internally without them "leaking out" and affecting other objects.
 
 ## Function Scope
 

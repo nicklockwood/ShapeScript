@@ -3,7 +3,7 @@ Lights
 
 By default, scenes created in ShapeScript are lit with a bright, white, camera-aligned directional light. This is good for viewing purposes, but limited.
 
-ShapeScript allows you to add your own lights to the scene, which can help produce a nicer effect when rendering a model for display.
+ShapeScript allows you to add your own lights to the scene, which can help produce a nicer effect when rendering a scene for display.
 
 Lights come in four basic types, all created using the `light` command.
 

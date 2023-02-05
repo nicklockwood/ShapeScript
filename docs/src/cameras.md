@@ -1,7 +1,7 @@
 Cameras
 ---
 
-ShapeScript provides a number of built-in cameras for viewing your models from the front, back, side, etc. But you may wish to view the scene from a custom viewpoint (say, a 45-degree overhead angle).
+ShapeScript provides a number of built-in cameras for viewing your scene from the front, back, side, etc. But you may wish to view the scene from a custom viewpoint (say, a 45-degree overhead angle).
 
 While it is possible to reposition the view using the [camera controls](camera-control.md), it's difficult to do so in a reproducible way, which is especially important if you wish to [export](export.md) an image of your scene.
 

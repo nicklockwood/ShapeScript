@@ -13,7 +13,7 @@ You should see a new window appear containing a cube, sphere and cone. These are
 
 Drag your mouse cursor inside the window and you will notice that the three objects appear to rotate.
 
-You are not actually moving the objects themselves, but rotating the camera around them. To reset the view, select `View > Camera > Reset` or press **Cmd-0**.
+You are not actually moving the shapes themselves, but rotating the camera around them. To reset the view, select `View > Camera > Reset` or press **Cmd-0**.
 
 To help you orient yourself, you can use the `View > Show Axes` option, which displays the direction of the X, Y and Z axes.
 
@@ -100,11 +100,13 @@ When you are comfortable with manipulating the default shapes, try deleting them
 
 ## Debugging and Selection
 
-You can get information about your model (such as polygon count and overall dimensions) by selecting `View > Model Info` (**Cmd-I**) in the menu bar.
+You can get information about your scene (such as polygon count and overall dimensions) by selecting `View > Scene Info` (**Cmd-I**) in the menu bar.
 
-If a particular part of your model doesn't look right, you can click to select it in the viewing window, and then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the script file defines that component.
+To get info about a particular shape in the scene, click on it in the viewer to select it, then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the `.shape` file defines that component. Click outside of the shape to deselect it again.
 
 ![Object info](../images/object-info-mac.png)
+
+**Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
 
 ---
 [Index](index.md) | Next: [Camera Control](camera-control.md)

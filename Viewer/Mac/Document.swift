@@ -202,7 +202,7 @@ class Document: NSDocument {
         let actionSheet = NSAlert()
         actionSheet.messageText = selectedGeometry.map { _ in
             "Selected Object Info"
-        } ?? "Model Info"
+        } ?? "Scene Info"
         actionSheet.informativeText = modelInfo
         actionSheet.addButton(withTitle: "OK")
         actionSheet.addButton(withTitle: "Open in Editor")
@@ -288,6 +288,9 @@ class Document: NSDocument {
             menuItem.title = "Camera (\(camera.name))"
             camerasMenu = menuItem.submenu
             camerasMenu.map(configureCameraMenu)
+        case #selector(showModelInfo(_:)):
+            menuItem.title = selectedGeometry == nil ?
+                "Scene Info" : "Model Info"
         default:
             break
         }

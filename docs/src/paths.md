@@ -3,7 +3,7 @@ Paths
 
 A path is a sequence of line segments or curves joined end-to-end. The points of the path can be positioned anywhere in 3D space, and the path can be open-ended or closed.
 
-Paths are not typically used directly as part of a 3D model (except possibly for something like a thin rope or antenna), but they can be used to define the contours of a 3D mesh (see [builders](builders.md) for details).
+Paths are not typically used directly as part of a scene (except possibly for something like a thin rope or antenna), but they can be used to define the contours of a 3D shape (see [builders](builders.md) for details).
 
 ## Points
 

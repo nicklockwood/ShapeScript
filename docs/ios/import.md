@@ -3,7 +3,7 @@ Import
 
 ## Scripts
 
-ShapeScript files can get quite large for complicated models, and you may find that there are common shapes that you wish to across multiple ShapeScript files. The `import` command can help with both of these problems:
+ShapeScript files can get quite large for complicated scenes, and you may find that there are common shapes that you wish to across multiple ShapeScript files. The `import` command can help with both of these problems:
 
 ```swift
 import "MyShape.shape"
