@@ -130,6 +130,12 @@
                                                 <action selector="selectShapes:" target="Ady-hI-5gd" id="xbx-wN-Dj6"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Clear Selection" id="Xqv-aC-qjn">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="clearSelection:" target="Ady-hI-5gd" id="hK6-vU-0YN"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem isSeparatorItem="YES" id="4PZ-GV-ZUl"/>
                                         <menuItem title="Cut" keyEquivalent="x" id="uRl-iY-unG">
                                             <connections>

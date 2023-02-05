@@ -232,7 +232,13 @@ class DocumentViewController: NSViewController {
             }
             return
         }
-        super.keyDown(with: event)
+        switch event.keyCode {
+        case 53: // escape
+            document?.clearSelection(nil)
+            return
+        default:
+            super.keyDown(with: event)
+        }
     }
 }
 

@@ -102,7 +102,7 @@ When you are comfortable with manipulating the default shapes, try deleting them
 
 You can get information about your scene (such as polygon count and overall dimensions) by selecting `View > Scene Info` (**Cmd-I**) in the menu bar.
 
-To get info about a particular shape in the scene, click on it in the viewer to select it, then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the `.shape` file defines that component. Click outside of the shape to deselect it again.
+To get info about a particular shape in the scene, click on it in the viewer to select it, then use `View > Model Info` (**Cmd-I**) to get info on just the selected part. This will also tell you which line in the `.shape` file defines that component. Click outside of the shape, or press **Escape** to deselect it again.
 
 ![Object info](../images/object-info-mac.png)
 

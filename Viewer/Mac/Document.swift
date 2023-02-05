@@ -309,6 +309,10 @@ class Document: NSDocument {
         }
     }
 
+    @IBAction func clearSelection(_: AnyObject?) {
+        viewController?.selectGeometry(nil)
+    }
+
     // MARK: Cameras
 
     var cameras: [Camera] = CameraType.allCases.map {
@@ -386,6 +390,8 @@ class Document: NSDocument {
             menuItem.title = "Camera (\(camera.name))"
             camerasMenu = menuItem.submenu
             camerasMenu.map(configureCameraMenu)
+        case #selector(clearSelection(_:)):
+            return selectedGeometry != nil
         case #selector(showModelInfo(_:)):
             menuItem.title = selectedGeometry == nil ?
                 "Scene Info" : "Model Info"
