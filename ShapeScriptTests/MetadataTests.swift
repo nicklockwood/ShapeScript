@@ -291,13 +291,28 @@ class MetadataTests: XCTestCase {
             }
         }
 
+        let obsoleteImages = ["subtext-ios.png"]
         let imagesEnumerator = try XCTUnwrap(fm.enumerator(atPath: imagesDirectory.path))
         for case let file as String in imagesEnumerator where file.hasSuffix(".png") {
-            let unsuffixedFile = file.replacingOccurrences(of: "-ios.", with: ".")
-            if !referencedImages.contains(file),
-               !referencedImages.contains(unsuffixedFile)
-            {
-                XCTFail("Image \(file) not referenced in help")
+            let fileNames = [
+                file,
+                file.replacingOccurrences(
+                    of: "-1\\.\\d\\.\\d\\.",
+                    with: ".",
+                    options: .regularExpression
+                ),
+                file.replacingOccurrences(
+                    of: "-ios(-1\\.\\d\\.\\d)?\\.",
+                    with: ".",
+                    options: .regularExpression
+                ),
+            ]
+            if !referencedImages.contains(where: fileNames.contains) {
+                if !obsoleteImages.contains(where: fileNames.contains) {
+                    XCTFail("Image \(file) not referenced in help")
+                }
+            } else if obsoleteImages.contains(where: fileNames.contains) {
+                XCTFail("Obsolete image \(file) still referenced in help")
             }
         }
     }

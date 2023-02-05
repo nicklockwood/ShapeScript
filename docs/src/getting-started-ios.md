@@ -1,7 +1,7 @@
 Getting Started
 ---
 
-ShapeScript Viewer for iOS is designed for opening and exploring 3D models and scenes that use the ShapeScript `.shape` file format.
+ShapeScript Viewer for iOS is designed for opening and editing 3D models and scenes that use the ShapeScript `.shape` file format.
 
 If you do not have any existing ShapeScript files, you can create one using the `+` button. You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
 
@@ -25,21 +25,21 @@ For more information about navigating around the model, see [Camera Control](cam
 
 ## Editing
 
-ShapeScript Viewer does not include an editor. To edit your `.shape` file you will need to open your `.shape` file in a separate text editor such as [Subtext](https://apps.apple.com/app/subtext/id1606625287) or [Runestone](https://apps.apple.com/app/runestone-text-editor/id1548193893).
+To edit your `.shape` file, tap the pencil icon in the top-right of the screen. This will open the file inside the integrated source editor:
 
-Once opened, the file should look something like this:
+![Integrated source editor](../images/source-editor-ios.png)
 
-![Subtext editor](../images/subtext-ios.png)
+Changes made to the model in the source editor will be reflected immediately in the scene (although you may need to close the source view to see them!).
 
-ShapeScript files are just ordinary text documents, so they can be opened in any program that supports editing text. Subtext is free, but does not support syntax coloring or some of the other programmer-friendly features of more advanced editors.
+In addition to the built-in editor, ShapeScript also supports the use of external text editors such as [Runestone](https://apps.apple.com/app/runestone-text-editor/id1548193893) or [Subtext](https://apps.apple.com/app/subtext/id1606625287).
 
-No third-party editors currently support ShapeScript syntax directly, but if you set your editor to treat `.shape` files as another C-like language (e.g. C, Swift or Java) then it should do an acceptable job of syntax coloring and indenting. Some editors (such as Runestone) will make this association automatically, which will save you having to do it each time you edit a ShapeScript file.
+ShapeScript files are just ordinary text documents, so they can be opened in any program that supports editing text. No third-party editors currently support ShapeScript syntax directly, but if you set your editor to treat `.shape` files as another C-like language (e.g. C, Swift or Java) then it should do an acceptable job of syntax coloring and indenting. Some editors (such as Runestone) will make this association automatically, which will save you having to do it each time you edit a ShapeScript file.
 
-If you are using an iPad, you can use the [Split View](https://support.apple.com/en-gb/guide/ipad/ipad08c9970c/ipados) feature to show both ShapeScript Viewer and your text editor on screen simultaneously:
+If you are using an iPad, you can use the [Split View](https://support.apple.com/en-gb/guide/ipad/ipad08c9970c/ipados) feature to show both ShapeScript Viewer and your text editor app on screen simultaneously:
 
 ![Split View](../images/split-view-ios.png)
 
-**Note:** Not all iOS text editors support *live editing* (where changes in the text are reflected automatically in ShapeScript as you make them). You may find you have to explicitly save or close the document in your editor for changes to take effect.
+**Note:** Not all iOS text editors support *live editing* (where changes in the text are reflected automatically in ShapeScript as you make them). You may find you have to explicitly save or close the document in your editor for changes to take effect. External editors may also not immediately pick up changes you make using the built-in source editor, so be careful when switching between them.
 
 ## File Structure
 

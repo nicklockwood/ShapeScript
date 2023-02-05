@@ -16,20 +16,23 @@ class DocumentViewController: UIViewController {
     var renderTimer: Timer?
     private(set) var interfaceColor: UIColor = .black
     private(set) var scnView: SCNView!
-    private var consoleTextView = UITextView()
+    private let consoleTextView: UITextView = .init()
+    private let loadingIndicator: UIActivityIndicatorView = .init()
 
     @IBOutlet private var containerView: SplitView!
     @IBOutlet private var errorScrollView: UIScrollView!
     @IBOutlet private(set) var errorTextView: UITextView!
-    @IBOutlet private var loadingIndicator: UIActivityIndicatorView!
     @IBOutlet private(set) var grantAccessButton: UIButton!
-    @IBOutlet private var closeButton: UIButton!
-    @IBOutlet private var infoButton: UIButton!
-    @IBOutlet private var cameraButton: UIButton!
+    @IBOutlet private var closeButton: UIBarButtonItem!
+    @IBOutlet private var infoButton: UIBarButtonItem!
+    @IBOutlet private var cameraButton: UIBarButtonItem!
+    @IBOutlet private var editButton: UIBarButtonItem!
+    @IBOutlet private var navigationBar: UINavigationBar!
 
     var document: Document? {
         didSet {
             document?.viewController = self
+            editButton?.isEnabled = document?.isEditable ?? false
         }
     }
 
@@ -41,12 +44,16 @@ class DocumentViewController: UIViewController {
         didSet {
             guard let errorMessage = errorMessage else {
                 errorScrollView.isHidden = true
-                closeButton.tintColor = interfaceColor
+                navigationBar.tintColor = interfaceColor
+                cameraButton.isEnabled = true
+                infoButton.isEnabled = true
                 return
             }
             errorTextView.attributedText = errorMessage
             errorScrollView.isHidden = false
-            closeButton.tintColor = .white
+            navigationBar.tintColor = .white
+            cameraButton.isEnabled = false
+            infoButton.isEnabled = false
         }
     }
 
@@ -113,9 +120,9 @@ class DocumentViewController: UIViewController {
                 return
             }
             if isLoading {
-                loadingIndicator?.startAnimating()
+                loadingIndicator.startAnimating()
             } else {
-                loadingIndicator?.stopAnimating()
+                loadingIndicator.stopAnimating()
                 refreshView()
             }
         }
@@ -180,8 +187,10 @@ class DocumentViewController: UIViewController {
     var background: MaterialProperty? {
         get { MaterialProperty(scnScene.background) }
         set {
-            newValue?.configureProperty(scnScene.background)
-            updateInterfaceColor()
+            if newValue != background {
+                newValue?.configureProperty(scnScene.background)
+                updateInterfaceColor()
+            }
         }
     }
 
@@ -193,9 +202,7 @@ class DocumentViewController: UIViewController {
 
     func updateInterfaceColor() {
         interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
-        closeButton.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
-        cameraButton.tintColor = interfaceColor
-        infoButton.tintColor = interfaceColor
+        navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
         setNeedsStatusBarAppearanceUpdate()
@@ -243,7 +250,6 @@ class DocumentViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        containerView.backgroundColor = .black
 
         // create view
         scnView = SCNView(frame: containerView.bounds, options: [:])
@@ -253,17 +259,24 @@ class DocumentViewController: UIViewController {
         // set the scene to the view
         scnView.scene = scnScene
 
+        // configure navigation bar
+        let loadingItem = UIBarButtonItem(customView: loadingIndicator)
+        navigationBar.topItem?.leftBarButtonItems?.append(loadingItem)
+        navigationBar.setBackgroundImage(.init(), for: .default)
+        navigationBar.shadowImage = .init()
+
         // configure the view
+        containerView.backgroundColor = Document.backgroundColor
         scnView.backgroundColor = Document.backgroundColor
         scnView.autoenablesDefaultLighting = true
         scnView.antialiasingMode = .multisampling4X // .multisampling16X
         scnView.allowsCameraControl = geometry != nil
         updateInterfaceColor()
+        editButton?.isEnabled = document?.isEditable ?? false
         updateAxesAndCamera()
         resetView()
 
         // configure camera button
-        cameraButton.showsMenuAsPrimaryAction = true
         rebuildMenu()
 
         // add a tap gesture recognizer
@@ -432,6 +445,10 @@ class DocumentViewController: UIViewController {
         }
 
         UIPasteboard.general.string = code
+    }
+
+    @IBAction func openSourceEditor() {
+        document.map { openSourceView(withContentsOf: $0.fileURL) }
     }
 
     @IBAction func grantAccess() {

@@ -91,7 +91,7 @@ class Document: UIDocument {
         }
     }
 
-    override func contents(forType typeName: String) throws -> Any {
+    override func contents(forType _: String) throws -> Any {
         guard let data = sourceString?.data(using: .utf8) else {
             throw NSError(domain: "", code: 0) // Unknown error
         }

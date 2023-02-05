@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
-        <capability name="Named colors" minToolsVersion="9.0"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -13,7 +12,7 @@
         <!--Document Browser View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="DocumentBrowserViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="DocumentBrowserViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -28,40 +27,16 @@
         <!--Document View Controller-->
         <scene sceneID="dkP-xk-x6W">
             <objects>
-                <viewController storyboardIdentifier="DocumentViewController" id="M2k-L8-Olo" customClass="DocumentViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="DocumentViewController" id="M2k-L8-Olo" customClass="DocumentViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="SIE-Uh-Zny">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RpZ-Bw-gc3" customClass="SplitView" customModule="ShapeScriptApp" customModuleProvider="target">
+                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RpZ-Bw-gc3" customClass="SplitView" customModule="Viewer" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                             </view>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tjt-kT-oKD">
-                                <rect key="frame" x="321" y="0.0" width="44" height="44"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="44" id="B3K-75-5Xl"/>
-                                    <constraint firstAttribute="height" constant="44" id="hUR-oR-buR"/>
-                                </constraints>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" image="camera" catalog="system"/>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hsi-9b-hQ0">
-                                <rect key="frame" x="269" y="0.0" width="44" height="44"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="44" id="OHT-hG-Gjc"/>
-                                    <constraint firstAttribute="width" constant="44" id="PFp-jp-h6e"/>
-                                </constraints>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" image="info.circle" catalog="system"/>
-                                <connections>
-                                    <action selector="showModelInfo" destination="M2k-L8-Olo" eventType="touchUpInside" id="Vu2-tb-6BX"/>
-                                </connections>
-                            </button>
-                            <activityIndicatorView hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="Nym-8I-hoY">
-                                <rect key="frame" x="69" y="12" width="20" height="20"/>
-                            </activityIndicatorView>
                             <textView hidden="YES" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" usesAttributedText="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qkp-ey-NHd">
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                                 <color key="backgroundColor" red="0.86274509803921573" green="0.12941176470588234" blue="0.0078431372549019607" alpha="0.80000000000000004" colorSpace="custom" customColorSpace="sRGB"/>
@@ -70,21 +45,7 @@
                                 <attributedString key="attributedText"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                             </textView>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bU1-So-whv">
-                                <rect key="frame" x="10" y="0.0" width="44" height="44"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="44" id="hb0-PP-o2V"/>
-                                    <constraint firstAttribute="height" constant="44" id="uez-t9-fep"/>
-                                </constraints>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" image="xmark" catalog="system">
-                                    <color key="titleColor" name="AccentColor"/>
-                                </state>
-                                <connections>
-                                    <action selector="dismissDocumentViewController" destination="M2k-L8-Olo" eventType="touchUpInside" id="dyQ-aS-Ga8"/>
-                                </connections>
-                            </button>
-                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9c5-Nk-nb2">
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9c5-Nk-nb2">
                                 <rect key="frame" x="141.5" y="617" width="92" height="30"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal" title="Grant Access"/>
@@ -92,37 +53,56 @@
                                     <action selector="grantAccess" destination="M2k-L8-Olo" eventType="touchUpInside" id="mdo-ET-RnY"/>
                                 </connections>
                             </button>
+                            <navigationBar opaque="NO" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZdZ-ln-uQQ">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="44"/>
+                                <items>
+                                    <navigationItem id="bon-9X-qp3">
+                                        <barButtonItem key="leftBarButtonItem" title="Close" image="xmark" catalog="system" id="4uK-Ny-2h9">
+                                            <connections>
+                                                <action selector="dismissDocumentViewController" destination="M2k-L8-Olo" id="2be-WL-toH"/>
+                                            </connections>
+                                        </barButtonItem>
+                                        <rightBarButtonItems>
+                                            <barButtonItem title="Camera" image="camera" catalog="system" id="PxS-9e-FYL"/>
+                                            <barButtonItem title="Info" image="info.circle" catalog="system" id="zzp-j3-Tsu">
+                                                <connections>
+                                                    <action selector="showModelInfo" destination="M2k-L8-Olo" id="9VE-4L-lqD"/>
+                                                </connections>
+                                            </barButtonItem>
+                                            <barButtonItem title="Edit" image="square.and.pencil" catalog="system" id="VSi-z2-lcA">
+                                                <connections>
+                                                    <action selector="openSourceEditor" destination="M2k-L8-Olo" id="iPc-O0-dOf"/>
+                                                </connections>
+                                            </barButtonItem>
+                                        </rightBarButtonItems>
+                                    </navigationItem>
+                                </items>
+                            </navigationBar>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="BoZ-jc-2Y8"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="Nym-8I-hoY" firstAttribute="centerY" secondItem="bU1-So-whv" secondAttribute="centerY" id="1Ni-O0-4E0"/>
                             <constraint firstItem="Qkp-ey-NHd" firstAttribute="bottom" secondItem="SIE-Uh-Zny" secondAttribute="bottom" id="8Tl-Wt-ACd"/>
+                            <constraint firstItem="ZdZ-ln-uQQ" firstAttribute="top" secondItem="BoZ-jc-2Y8" secondAttribute="top" id="G2u-C5-1WE"/>
                             <constraint firstItem="Qkp-ey-NHd" firstAttribute="top" secondItem="SIE-Uh-Zny" secondAttribute="top" id="H33-E7-HXa"/>
-                            <constraint firstItem="BoZ-jc-2Y8" firstAttribute="trailing" secondItem="tjt-kT-oKD" secondAttribute="trailing" priority="500" constant="5" id="Iii-Vf-da9"/>
-                            <constraint firstItem="Nym-8I-hoY" firstAttribute="leading" secondItem="bU1-So-whv" secondAttribute="trailing" constant="15" id="Mzf-RA-Zmx"/>
-                            <constraint firstItem="bU1-So-whv" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="SIE-Uh-Zny" secondAttribute="leading" constant="10" id="SpQ-eh-0eL"/>
-                            <constraint firstItem="tjt-kT-oKD" firstAttribute="centerY" secondItem="bU1-So-whv" secondAttribute="centerY" id="Yln-wa-YVL"/>
+                            <constraint firstItem="ZdZ-ln-uQQ" firstAttribute="trailing" secondItem="Qkp-ey-NHd" secondAttribute="trailing" id="Hku-d7-RQy"/>
+                            <constraint firstItem="ZdZ-ln-uQQ" firstAttribute="leading" secondItem="Qkp-ey-NHd" secondAttribute="leading" id="aOU-nx-E88"/>
                             <constraint firstItem="Qkp-ey-NHd" firstAttribute="trailing" secondItem="SIE-Uh-Zny" secondAttribute="trailing" id="aW4-OR-664"/>
                             <constraint firstItem="BoZ-jc-2Y8" firstAttribute="bottom" secondItem="9c5-Nk-nb2" secondAttribute="bottom" constant="20" id="cMi-sZ-zdy"/>
-                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="tjt-kT-oKD" secondAttribute="trailing" constant="10" id="e1i-VZ-ffZ"/>
-                            <constraint firstItem="bU1-So-whv" firstAttribute="leading" secondItem="BoZ-jc-2Y8" secondAttribute="leading" priority="500" constant="5" id="pwu-iX-hnp"/>
-                            <constraint firstItem="tjt-kT-oKD" firstAttribute="leading" secondItem="hsi-9b-hQ0" secondAttribute="trailing" constant="8" id="q8R-o4-uDO"/>
-                            <constraint firstItem="bU1-So-whv" firstAttribute="top" secondItem="BoZ-jc-2Y8" secondAttribute="top" id="uoA-iL-j1k"/>
-                            <constraint firstItem="tjt-kT-oKD" firstAttribute="centerY" secondItem="hsi-9b-hQ0" secondAttribute="centerY" id="w28-68-gGc"/>
                             <constraint firstItem="9c5-Nk-nb2" firstAttribute="centerX" secondItem="SIE-Uh-Zny" secondAttribute="centerX" id="ylo-X8-6gs"/>
                             <constraint firstItem="Qkp-ey-NHd" firstAttribute="leading" secondItem="SIE-Uh-Zny" secondAttribute="leading" id="yx1-gg-8cd"/>
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="cameraButton" destination="tjt-kT-oKD" id="rMq-Jr-4H7"/>
-                        <outlet property="closeButton" destination="bU1-So-whv" id="InJ-Vo-3s5"/>
+                        <outlet property="cameraButton" destination="PxS-9e-FYL" id="VOi-Xt-nno"/>
+                        <outlet property="closeButton" destination="4uK-Ny-2h9" id="FIZ-u7-VTP"/>
                         <outlet property="containerView" destination="RpZ-Bw-gc3" id="21M-8J-p2T"/>
+                        <outlet property="editButton" destination="VSi-z2-lcA" id="Xzg-hh-2pv"/>
                         <outlet property="errorScrollView" destination="Qkp-ey-NHd" id="nQd-bK-eJw"/>
                         <outlet property="errorTextView" destination="Qkp-ey-NHd" id="d1f-KH-bhz"/>
                         <outlet property="grantAccessButton" destination="9c5-Nk-nb2" id="Red-al-aaD"/>
-                        <outlet property="infoButton" destination="hsi-9b-hQ0" id="DTQ-nv-ad4"/>
-                        <outlet property="loadingIndicator" destination="Nym-8I-hoY" id="N7J-rn-eKb"/>
+                        <outlet property="infoButton" destination="zzp-j3-Tsu" id="kp3-tf-J80"/>
+                        <outlet property="navigationBar" destination="ZdZ-ln-uQQ" id="qgj-uv-sDv"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Rl9-ES-qQn" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -132,12 +112,12 @@
         <!--Source View Controller-->
         <scene sceneID="Kfv-qc-hvJ">
             <objects>
-                <viewController storyboardIdentifier="SourceViewController" id="En0-NS-SPY" customClass="SourceViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="SourceViewController" id="En0-NS-SPY" customClass="SourceViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="4h3-ri-0Qc">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XIj-HV-BPc" customClass="TokenView" customModule="ShapeScriptApp" customModuleProvider="target">
+                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XIj-HV-BPc" customClass="TokenView" customModule="Viewer" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <viewLayoutGuide key="contentLayoutGuide" id="XvO-oM-PCN"/>
@@ -158,12 +138,10 @@
         </scene>
     </scenes>
     <resources>
-        <image name="camera" catalog="system" width="128" height="94"/>
-        <image name="info.circle" catalog="system" width="128" height="121"/>
+        <image name="camera" catalog="system" width="128" height="93"/>
+        <image name="info.circle" catalog="system" width="128" height="123"/>
+        <image name="square.and.pencil" catalog="system" width="128" height="113"/>
         <image name="xmark" catalog="system" width="128" height="113"/>
-        <namedColor name="AccentColor">
-            <color red="0.0" green="0.46000000000000002" blue="0.89000000000000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </namedColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
