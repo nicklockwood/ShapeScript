@@ -217,6 +217,98 @@ class Document: NSDocument {
         }
     }
 
+    // MARK: Selection
+
+    private var selectMenu: NSMenu?
+
+    private func configureSelectMenu(
+        _ menu: NSMenu,
+        for geometry: Geometry,
+        with index: inout Int
+    ) -> Bool {
+        menu.removeAllItems()
+        var containsSelection = false
+        var typeCounts = [String: Int]()
+        for shape in geometry.children {
+            let hasChildren: Bool
+            switch shape.type {
+            case .group:
+                hasChildren = true
+            case .cone, .cylinder, .sphere, .cube, .mesh,
+                 .extrude, .lathe, .loft, .fill, .hull,
+                 .union, .difference, .intersection, .xor, .stencil,
+                 .path:
+                hasChildren = false
+            case .camera, .light:
+                continue
+            }
+            let typeName = shape.type.logDescription
+            var count = typeCounts[typeName] ?? 0
+            count += 1
+            typeCounts[typeName] = count
+            let title: String
+            if let name = shape.name, !name.isEmpty {
+                title = "\(name) (\(typeName))"
+            } else {
+                title = "\(typeName.capitalized) \(count)"
+            }
+            let menuItem = menu.addItem(
+                withTitle: title,
+                action: #selector(selectShape(_:)),
+                keyEquivalent: ""
+            )
+            if hasChildren {
+                let submenu = NSMenu()
+                if configureSelectMenu(submenu, for: shape, with: &index) {
+                    containsSelection = true
+                    menuItem.state = .mixed
+                }
+                menuItem.submenu = submenu
+            } else {
+                index += 1
+                menuItem.tag = index
+                menuItem.state = (selectedGeometry === shape) ? .on : .off
+                if !containsSelection {
+                    containsSelection = (selectedGeometry === shape)
+                }
+            }
+        }
+        return containsSelection
+    }
+
+    @IBAction func selectShapes(_: NSMenuItem) {
+        // Does nothing
+    }
+
+    @IBAction func selectShape(_ menuItem: NSMenuItem) {
+        func geometry(in shape: Geometry, with index: inout Int) -> Geometry? {
+            for shape in shape.children {
+                switch shape.type {
+                case .group:
+                    if let shape = geometry(in: shape, with: &index) {
+                        return shape
+                    }
+                case .cone, .cylinder, .sphere, .cube, .mesh,
+                     .extrude, .lathe, .loft, .fill, .hull,
+                     .union, .difference, .intersection, .xor, .stencil,
+                     .path:
+                    index += 1
+                    if index == menuItem.tag {
+                        return shape
+                    }
+                case .camera, .light:
+                    break
+                }
+            }
+            return nil
+        }
+
+        var index = 0
+        if let hit = geometry(in: self.geometry, with: &index) {
+            viewController?.selectGeometry(hit.scnNode)
+        }
+    }
+
     // MARK: Cameras
 
     var cameras: [Camera] = CameraType.allCases.map {
@@ -283,6 +375,12 @@ class Document: NSDocument {
                 menuItem.state = cameraHasMoved ? .mixed : .on
             } else {
                 menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
+            }
+        case #selector(selectShapes(_:)):
+            if let submenu = menuItem.submenu {
+                selectMenu = submenu
+                var index = 0
+                _ = configureSelectMenu(submenu, for: geometry, with: &index)
             }
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
