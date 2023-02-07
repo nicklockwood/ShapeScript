@@ -138,3 +138,17 @@ func handleEditorPopupAction(for popup: NSPopUpButton, in window: NSWindow?) {
         Settings.shared.selectedEditor = EditorApp(url)
     }
 }
+
+// MARK: VoiceOver
+
+private weak var currentSpeech: NSSpeechSynthesizer?
+
+func voiceOver(_ string: String) {
+    currentSpeech?.stopSpeaking()
+    if NSWorkspace.shared.isVoiceOverEnabled,
+       let speech = NSSpeechSynthesizer(voice: nil)
+    {
+        currentSpeech = speech
+        speech.startSpeaking(string)
+    }
+}

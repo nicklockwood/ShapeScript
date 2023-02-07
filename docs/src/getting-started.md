@@ -106,7 +106,7 @@ To get info about a particular shape in the scene, click on it in the viewer to 
 
 ![Object info](../images/object-info-mac.png)
 
-You can also use the `Edit > Select Shape` menu to select from a list of shapes in the scene.
+You can also use the `Edit > Select Shape` menu to select from a list of shapes in the scene, or cycle between selected shapes using the **Tab** key.
 
 **Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
 

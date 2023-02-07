@@ -223,48 +223,24 @@ class Document: NSDocument {
 
     private func configureSelectMenu(
         _ menu: NSMenu,
-        for geometry: Geometry,
-        with index: inout Int
+        for shape: Geometry,
+        with index: inout Int,
+        countsByType: inout [String: Int]
     ) -> Bool {
         menu.removeAllItems()
         var containsSelection = false
-        var typeCounts = [String: Int]()
-        for shape in geometry.children {
-            let hasChildren: Bool
-            switch shape.type {
-            case .group:
-                hasChildren = true
-            case .cone, .cylinder, .sphere, .cube, .mesh,
-                 .extrude, .lathe, .loft, .fill, .hull,
-                 .union, .difference, .intersection, .xor, .stencil,
-                 .path:
-                hasChildren = false
-            case .camera, .light:
+        for shape in shape.children {
+            let isSelectable = shape.isSelectable
+            let hasSelectableChildren = shape.hasSelectableChildren
+            guard isSelectable || hasSelectableChildren else {
                 continue
             }
-            let typeName = shape.type.logDescription
-            var count = typeCounts[typeName] ?? 0
-            count += 1
-            typeCounts[typeName] = count
-            let title: String
-            if let name = shape.name, !name.isEmpty {
-                title = "\(name) (\(typeName))"
-            } else {
-                title = "\(typeName.capitalized) \(count)"
-            }
             let menuItem = menu.addItem(
-                withTitle: title,
+                withTitle: geometryName(for: shape, in: &countsByType),
                 action: #selector(selectShape(_:)),
                 keyEquivalent: ""
             )
-            if hasChildren {
-                let submenu = NSMenu()
-                if configureSelectMenu(submenu, for: shape, with: &index) {
-                    containsSelection = true
-                    menuItem.state = .mixed
-                }
-                menuItem.submenu = submenu
-            } else {
+            if isSelectable {
                 index += 1
                 menuItem.tag = index
                 menuItem.state = (selectedGeometry === shape) ? .on : .off
@@ -272,8 +248,114 @@ class Document: NSDocument {
                     containsSelection = (selectedGeometry === shape)
                 }
             }
+            if hasSelectableChildren {
+                let submenu = NSMenu()
+                if configureSelectMenu(
+                    submenu,
+                    for: shape,
+                    with: &index,
+                    countsByType: &countsByType
+                ) {
+                    containsSelection = true
+                    menuItem.state = .mixed
+                }
+                menuItem.submenu = submenu
+            }
         }
         return containsSelection
+    }
+
+    private func enumerateGeometries(
+        in shape: Geometry,
+        with fn: (Geometry) -> Void
+    ) {
+        for shape in shape.children {
+            if shape.hasSelectableChildren {
+                fn(shape)
+                enumerateGeometries(in: shape, with: fn)
+            } else if shape.isSelectable {
+                fn(shape)
+            }
+        }
+    }
+
+    private func geometryName(
+        for geometry: Geometry,
+        in countsByType: inout [String: Int]
+    ) -> String {
+        let typeName = geometry.type.logDescription
+        var count = countsByType[typeName] ?? 0
+        count += 1
+        countsByType[typeName] = count
+        if let name = geometry.name, !name.isEmpty {
+            return "\(name) (\(typeName.capitalized) \(count))"
+        }
+        return "\(typeName.capitalized) \(count)"
+    }
+
+    private func geometryName(for geometry: Geometry) -> String {
+        var countsByType = [String: Int]()
+        let selectableGeometries = self.selectableGeometries
+        for shape in selectableGeometries {
+            let name = geometryName(for: shape, in: &countsByType)
+            if shape === geometry {
+                return name
+            }
+        }
+        return ""
+    }
+
+    private var selectableGeometries: [Geometry] {
+        var geometries = [Geometry]()
+        enumerateGeometries(in: geometry) { geometry in
+            geometries.append(geometry)
+        }
+        return geometries
+    }
+
+    func selectShape(at index: Int, andSpeakName speakName: Bool = false) {
+        let selectableGeometries = self.selectableGeometries
+        guard selectableGeometries.indices.contains(index) else {
+            return
+        }
+        let shape = selectableGeometries[index]
+        if speakName {
+            voiceOver(geometryName(for: shape))
+        }
+        viewController?.selectGeometry(shape.scnNode)
+    }
+
+    func selectNextShape() {
+        let selectableGeometries = self.selectableGeometries
+        if let selectedGeometry = selectedGeometry,
+           let index = selectableGeometries.firstIndex(where: {
+               $0 === selectedGeometry
+           })
+        {
+            let index = (index + 1) % selectableGeometries.count
+            selectShape(at: index, andSpeakName: true)
+        } else {
+            selectShape(at: 0, andSpeakName: true)
+        }
+    }
+
+    func selectPreviousShape() {
+        let selectableGeometries = self.selectableGeometries
+        if let selectedGeometry = selectedGeometry,
+           let index = selectableGeometries.firstIndex(where: {
+               $0 === selectedGeometry
+           })
+        {
+            let index = index > 0 ? index - 1 : selectableGeometries.count - 1
+            selectShape(at: index, andSpeakName: true)
+        } else {
+            selectShape(at: selectableGeometries.count - 1, andSpeakName: true)
+        }
+    }
+
+    func clearSelection() {
+        voiceOver("Deselected")
+        viewController?.selectGeometry(nil)
     }
 
     @IBAction func selectShapes(_: NSMenuItem) {
@@ -281,35 +363,10 @@ class Document: NSDocument {
     }
 
     @IBAction func selectShape(_ menuItem: NSMenuItem) {
-        func geometry(in shape: Geometry, with index: inout Int) -> Geometry? {
-            for shape in shape.children {
-                switch shape.type {
-                case .group:
-                    if let shape = geometry(in: shape, with: &index) {
-                        return shape
-                    }
-                case .cone, .cylinder, .sphere, .cube, .mesh,
-                     .extrude, .lathe, .loft, .fill, .hull,
-                     .union, .difference, .intersection, .xor, .stencil,
-                     .path:
-                    index += 1
-                    if index == menuItem.tag {
-                        return shape
-                    }
-                case .camera, .light:
-                    break
-                }
-            }
-            return nil
-        }
-
-        var index = 0
-        if let hit = geometry(in: self.geometry, with: &index) {
-            viewController?.selectGeometry(hit.scnNode)
-        }
+        selectShape(at: menuItem.tag - 1)
     }
 
-    @IBAction func clearSelection(_: AnyObject?) {
+    @IBAction func clearSelection(_: NSMenuItem) {
         viewController?.selectGeometry(nil)
     }
 
@@ -383,8 +440,13 @@ class Document: NSDocument {
         case #selector(selectShapes(_:)):
             if let submenu = menuItem.submenu {
                 selectMenu = submenu
-                var index = 0
-                _ = configureSelectMenu(submenu, for: geometry, with: &index)
+                var index = 0, countsByType = [String: Int]()
+                _ = configureSelectMenu(
+                    submenu,
+                    for: geometry,
+                    with: &index,
+                    countsByType: &countsByType
+                )
             }
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
@@ -399,6 +461,33 @@ class Document: NSDocument {
             break
         }
         return super.validateMenuItem(menuItem)
+    }
+}
+
+private extension Geometry {
+    var isSelectable: Bool {
+        switch type {
+        case .cone, .cylinder, .sphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .hull,
+             .union, .difference, .intersection, .xor, .stencil,
+             .path:
+            return true
+        case .camera, .light, .group:
+            return false
+        }
+    }
+
+    var hasSelectableChildren: Bool {
+        switch type {
+        case .group:
+            return true
+        case .cone, .cylinder, .sphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill,
+             .path, .camera, .light:
+            return false
+        case .hull, .union, .difference, .intersection, .xor, .stencil:
+            return childDebug
+        }
     }
 }
 

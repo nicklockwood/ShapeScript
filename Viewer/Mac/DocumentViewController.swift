@@ -233,8 +233,15 @@ class DocumentViewController: NSViewController {
             return
         }
         switch event.keyCode {
+        case 48: // tab
+            if event.modifierFlags.contains(.shift) {
+                document?.selectPreviousShape()
+            } else {
+                document?.selectNextShape()
+            }
+            return
         case 53: // escape
-            document?.clearSelection(nil)
+            document?.clearSelection()
             return
         default:
             super.keyDown(with: event)
