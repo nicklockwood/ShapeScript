@@ -60,8 +60,7 @@ class Document: NSDocument {
     }
 
     var errorMessage: NSAttributedString?
-    var errorURL: URL?
-    var isAccessError: Bool = false
+    var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
 
@@ -179,7 +178,7 @@ class Document: NSDocument {
         let dialog = NSOpenPanel()
         dialog.title = "Grant Access"
         dialog.showsHiddenFiles = false
-        dialog.directoryURL = errorURL
+        dialog.directoryURL = error?.accessErrorURL
         dialog.canChooseDirectories = true
         showSheet(dialog, in: windowForSheet) { response in
             guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {

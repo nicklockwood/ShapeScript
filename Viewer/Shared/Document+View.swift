@@ -19,6 +19,15 @@ extension Document {
         } ?? false
     }
 
+    var isAccessError: Bool {
+        error?.accessErrorURL != nil
+    }
+
+    var errorURL: URL? {
+        let fileURL: URL? = self.fileURL
+        return fileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
+    }
+
     var selectedGeometry: Geometry? {
         viewController?.selectedGeometry
     }
@@ -208,9 +217,8 @@ extension Document {
         let camera = self.camera
         let showWireframe = self.showWireframe
         let input = sourceString ?? ""
-        let fileURL: URL? = fileURL
         loadingProgress = LoadingProgress { [weak self] status in
-            guard let self = self, let fileURL = fileURL else {
+            guard let self = self else {
                 return
             }
             switch status {
@@ -225,21 +233,14 @@ extension Document {
                 }
             case let .partial(scene), let .success(scene):
                 self.errorMessage = nil
-                self.errorURL = nil
-                self.isAccessError = false
+                self.error = nil
                 self.scene = scene
                 if case .success = status, self.rerenderRequired {
                     self.rerender()
                 }
             case let .failure(error):
+                self.error = error
                 self.errorMessage = error.message(with: input)
-                if let accessErrorURL = error.accessErrorURL {
-                    self.errorURL = accessErrorURL
-                    self.isAccessError = true
-                } else {
-                    self.errorURL = error.shapeFileURL(relativeTo: fileURL)
-                    self.isAccessError = false
-                }
                 self.updateViews()
             case .cancelled:
                 break

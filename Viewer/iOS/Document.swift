@@ -48,8 +48,7 @@ class Document: UIDocument {
     }
 
     var errorMessage: NSAttributedString?
-    var errorURL: URL?
-    var isAccessError: Bool = false
+    var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
     private weak var saveTimer: Timer?
@@ -129,7 +128,7 @@ class Document: UIDocument {
             forOpeningContentTypes: [.folder],
             asCopy: false
         )
-        picker.directoryURL = errorURL
+        picker.directoryURL = error?.accessErrorURL
         picker.delegate = self
         picker.modalPresentationStyle = .fullScreen
         viewController?.present(picker, animated: true)

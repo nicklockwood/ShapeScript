@@ -446,11 +446,11 @@ class DocumentViewController: UIViewController {
     }
 
     @IBAction func openSourceEditor() {
-        if let fileURL = document?.errorURL ??
+        if let url = document?.errorURL ??
             selectedGeometry?.sourceLocation?.file ??
             document?.fileURL
         {
-            openSourceView(withContentsOf: fileURL)
+            openSourceView(withContentsOf: url)
         }
     }
 
