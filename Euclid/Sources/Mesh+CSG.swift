@@ -62,7 +62,9 @@ public extension Mesh {
                 isWatertight: watertightIfSet.flatMap { isWatertight in
                     mesh.watertightIfSet.map { $0 && isWatertight }
                 },
-                submeshes: [self, mesh]
+                submeshes: submeshesIfEmpty.flatMap { _ in
+                    mesh.submeshesIfEmpty.map { _ in [self, mesh] }
+                }
             )
         }
         var lhs: [Polygon] = [], rhs: [Polygon] = []
@@ -438,6 +440,7 @@ public extension Mesh {
                 ],
                 normal: .unitZ,
                 isConvex: true,
+                sanitizeNormals: false,
                 material: material
             )
             .rotated(by: -rotationBetweenVectors(.unitZ, -plane.normal))

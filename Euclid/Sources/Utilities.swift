@@ -84,6 +84,7 @@ func triangulateVertices(
     _ vertices: [Vertex],
     plane: Plane?,
     isConvex: Bool?,
+    sanitizeNormals: Bool,
     material: Mesh.Material?,
     id: Int,
     flipped: Bool = false
@@ -96,6 +97,7 @@ func triangulateVertices(
             unchecked: vertices,
             plane: plane,
             isConvex: isConvex,
+            sanitizeNormals: sanitizeNormals,
             material: material,
             id: id
         )]
@@ -109,10 +111,40 @@ func triangulateVertices(
             unchecked: vertices,
             plane: plane,
             isConvex: true,
+            sanitizeNormals: sanitizeNormals,
             material: material,
             id: id
         ))
         return true
+    }
+    let isConvex = isConvex ?? verticesAreConvex(vertices)
+    if isConvex {
+        var vertices = vertices
+        var i = 0
+        var attempts = 0
+        while vertices.count > 3 {
+            let a = vertices[i]
+            let b = vertices[(i + 1) % vertices.count]
+            let c = vertices[(i + 2) % vertices.count]
+            let d = vertices[(i + 3) % vertices.count]
+            if LineSegment(c.position, a.position)?.containsPoint(d.position) == false,
+               addTriangle([a, b, c])
+            {
+                vertices.remove(at: (i + 1) % vertices.count)
+                i = i % vertices.count
+                attempts = 0
+            } else {
+                i = (i + 1) % vertices.count
+                attempts += 1
+            }
+            if attempts > vertices.count * 2 {
+                return triangles
+            }
+        }
+        if addTriangle(vertices) {
+            return triangles
+        }
+        triangles.removeAll()
     }
     var start = 0, i = 0
     outer: while start < vertices.count {
@@ -159,6 +191,7 @@ func triangulateVertices(
             vertices.inverted(),
             plane: plane?.inverted(),
             isConvex: isConvex,
+            sanitizeNormals: sanitizeNormals,
             material: material,
             id: id,
             flipped: true

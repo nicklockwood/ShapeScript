@@ -177,10 +177,12 @@ public extension Polygon {
     /// Returns the area of the polygon.
     var area: Double {
         var vertices = self.vertices
-        if !vertices.allSatisfy({ $0.position.z == 0 }) {
+        let z = vertices.first?.position.z ?? 0
+        if !vertices.allSatisfy({ abs($0.position.z - z) < epsilon }) {
             let r = rotationBetweenVectors(plane.normal, .unitZ)
             vertices = vertices.map { Vertex($0.position.rotated(by: -r)) }
-            assert(vertices.allSatisfy { abs($0.position.z) < epsilon })
+            let z = vertices.first?.position.z ?? 0
+            assert(vertices.allSatisfy { abs($0.position.z - z) < epsilon })
         }
         var prev = vertices.last!.position
         return abs(vertices.reduce(0) { area, v in
@@ -286,6 +288,7 @@ public extension Polygon {
             unchecked: vertices.inverted(),
             plane: plane.inverted(),
             isConvex: isConvex,
+            sanitizeNormals: false,
             material: material,
             id: id
         )
@@ -336,6 +339,7 @@ public extension Polygon {
             vertices,
             plane: plane,
             isConvex: isConvex,
+            sanitizeNormals: false,
             material: material,
             id: id
         )
@@ -485,6 +489,7 @@ internal extension Collection where Element == Polygon {
                     unchecked: p0.vertices.map { $0.with(normal: n0) },
                     plane: p0.plane,
                     isConvex: p0.isConvex,
+                    sanitizeNormals: false,
                     material: p0.material
                 )
             }
@@ -507,6 +512,7 @@ internal extension Collection where Element == Polygon {
                 },
                 plane: p0.plane,
                 isConvex: p0.isConvex,
+                sanitizeNormals: false,
                 material: p0.material
             )
         }
@@ -759,12 +765,14 @@ internal extension Polygon {
         unchecked vertices: [Vertex],
         normal: Vector,
         isConvex: Bool?,
+        sanitizeNormals: Bool,
         material: Material?
     ) {
         self.init(
             unchecked: vertices,
             plane: Plane(unchecked: normal, pointOnPlane: vertices[0].position),
             isConvex: isConvex,
+            sanitizeNormals: sanitizeNormals,
             material: material,
             id: 0
         )
@@ -777,7 +785,7 @@ internal extension Polygon {
         unchecked vertices: [Vertex],
         plane: Plane?,
         isConvex: Bool?,
-        sanitizeNormals: Bool = false,
+        sanitizeNormals: Bool,
         material: Material?,
         id: Int = 0
     ) {
@@ -874,6 +882,7 @@ internal extension Polygon {
             unchecked: result,
             plane: plane,
             isConvex: isConvex,
+            sanitizeNormals: false,
             material: material,
             id: id
         )
