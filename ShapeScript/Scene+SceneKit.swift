@@ -22,7 +22,7 @@ typealias OSImage = NSImage
 
 private extension SCNGeometry {
     convenience init(_ mesh: Mesh, for geometry: Geometry) {
-        self.init(mesh, materialLookup: {
+        self.init(polygons: mesh, materialLookup: {
             SCNMaterial($0 as? Material ?? geometry.material, isOpaque: geometry.isOpaque)
         })
     }
