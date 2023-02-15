@@ -35,7 +35,7 @@ extension Document {
     var showWireframe: Bool {
         get { settings.value(for: #function, in: self) ?? false }
         set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
+            settings.set(newValue, for: #function, in: self)
             rerender()
         }
     }
@@ -43,7 +43,7 @@ extension Document {
     var showAxes: Bool {
         get { settings.value(for: #function, in: self) ?? false }
         set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
+            settings.set(newValue, for: #function, in: self)
             updateViews()
         }
     }
@@ -53,7 +53,7 @@ extension Document {
             settings.value(for: #function, in: self) ?? false
         }
         set {
-            settings.set(newValue, for: #function, in: self, andGlobally: true)
+            settings.set(newValue, for: #function, in: self)
             updateViews()
         }
     }
@@ -156,6 +156,7 @@ extension Document {
         }
         let camera = cameras[index]
         if camera == self.camera {
+            updateViews()
             viewController?.resetCamera()
         } else {
             self.camera = camera

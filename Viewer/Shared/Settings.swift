@@ -53,6 +53,8 @@ final class Settings {
             // Set global default
             defaults.set(value, forKey: key)
             NotificationCenter.default.post(name: .settingsUpdated, object: key)
+        } else {
+            defaults.set(nil, forKey: key)
         }
     }
 
