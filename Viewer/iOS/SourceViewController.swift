@@ -13,13 +13,21 @@ class SourceViewController: UIViewController {
     @IBOutlet private var textView: TokenView!
 
     var document: Document? {
+        willSet { document?.undoManager = nil }
         didSet { didSetDocument() }
+    }
+
+    override var undoManager: UndoManager? {
+        document?.undoManager
     }
 
     func didSetDocument() {
         title = document?.fileURL.lastPathComponent
-        textView?.text = document?.sourceString
-        textView?.isEditable = document?.isEditable ?? false
+        if let textView = textView {
+            textView.text = document?.sourceString
+            textView.isEditable = document?.isEditable ?? false
+            document?.undoManager = textView.undoManager
+        }
     }
 
     override func viewDidLoad() {
@@ -189,6 +197,13 @@ extension SourceViewController: TokenViewDelegate {
 
     func textViewDidChange(_ textView: UITextView) {
         document?.sourceString = textView.text
+        if undoManager?.isUndoing ?? false {
+            document?.updateChangeCount(.undone)
+        } else if undoManager?.isRedoing ?? false {
+            document?.updateChangeCount(.redone)
+        } else {
+            document?.updateChangeCount(.done)
+        }
     }
 }
 
