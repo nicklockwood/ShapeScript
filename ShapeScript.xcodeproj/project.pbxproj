@@ -83,6 +83,7 @@
 		01A9CA4028BB483500440FDA /* GeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A9CA3F28BB483500440FDA /* GeometryTests.swift */; };
 		01AA1D8721EF31860086BF86 /* Material.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA1D8621EF31860086BF86 /* Material.swift */; };
 		01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49F926B621C1009BB2C6 /* Geometry.swift */; };
+		01BAFC52299D3B4B00F1D473 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BAFC51299D3B4B00F1D473 /* SceneDelegate.swift */; };
 		01BD9437219367D2005FFAEC /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01BD943521936514005FFAEC /* Examples */; };
 		01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BD943821936B90005FFAEC /* RandomSequence.swift */; };
 		01BFB3A021425C8500E47A7C /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
@@ -332,6 +333,7 @@
 		01A9CA3F28BB483500440FDA /* GeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryTests.swift; sourceTree = "<group>"; };
 		01AA1D8621EF31860086BF86 /* Material.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Material.swift; sourceTree = "<group>"; };
 		01AA49F926B621C1009BB2C6 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		01BAFC51299D3B4B00F1D473 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		01BD943521936514005FFAEC /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
 		01BD943821936B90005FFAEC /* RandomSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSequence.swift; sourceTree = "<group>"; };
 		01BFB39621425C8500E47A7C /* ShapeScript.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShapeScript.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -474,6 +476,7 @@
 				0183AAC028EC3AB200AD1984 /* Document.swift */,
 				0183AAC128EC3AB200AD1984 /* TextView.swift */,
 				0183AAC228EC3AB200AD1984 /* AppDelegate.swift */,
+				01BAFC51299D3B4B00F1D473 /* SceneDelegate.swift */,
 				0183AAC328EC3AB200AD1984 /* DocumentViewController.swift */,
 				0183AAC428EC3AB200AD1984 /* DocumentBrowserViewController.swift */,
 				0183AAC528EC3AB200AD1984 /* Info.plist */,
@@ -959,6 +962,7 @@
 				0183AAB128EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAA928EC3AA600AD1984 /* DocumentViewController+View.swift in Sources */,
 				0183AAC928EC3AB200AD1984 /* SplitView.swift in Sources */,
+				01BAFC52299D3B4B00F1D473 /* SceneDelegate.swift in Sources */,
 				0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */,
 				0183AAAD28EC3AA600AD1984 /* Axes.swift in Sources */,
 				0183AACF28EC3AB200AD1984 /* AppDelegate.swift in Sources */,
