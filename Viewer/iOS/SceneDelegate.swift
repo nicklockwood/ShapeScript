@@ -17,7 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         window?.backgroundColor = .black
-        
+
         self.scene(scene, openURLContexts: connectionOptions.urlContexts)
     }
 

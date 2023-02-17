@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.6.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.4) (2023-02-28)
+
+- The `bounds` and `polygons` members now correctly take object transform into account
+- ShapeScript Viewer for iPad now supports multiple viewer/editor windows
+- Fixed some bugs and improved editing experience for source editor on iOS
+- Fixed bug where iOS editor would sometimes close spontaneously while editing
+- Added `shapescript:` URL scheme and improved URL handling
+- Bumped Euclid to version 0.6.10
+
 ## [1.6.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.3) (2023-01-31)
 
 - iOS Viewer now supports editing `.shape` files directly inside the app

@@ -452,7 +452,7 @@ extension Value {
                 return try .string(context?.resolveFont(name) ?? name)
             }
         case (.string, .number):
-            return Double(self.stringValue).map { .number($0) }
+            return Double(stringValue).map { .number($0) }
         case (.string, .boolean):
             switch stringValue.lowercased() {
             case "true": return .boolean(true)
