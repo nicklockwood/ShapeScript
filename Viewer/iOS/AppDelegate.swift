@@ -18,16 +18,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_: UIApplication, open inputURL: URL, options _: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Ensure the URL is a file URL
-        guard inputURL.isFileURL else { return false }
+        var inputURL = inputURL
+        if inputURL.scheme == "shapescript" {
+            var path = inputURL.absoluteString
+                .deletingPrefix("shapescript:")
+                .deletingPrefix("//")
 
-        // Reveal / import the document at the URL
+            path = (path.removingPercentEncoding ?? path)
+                .deletingPrefix("file://")
+
+            if let url = URL(string: path), url.scheme ?? "file" != "file" {
+                inputURL = url
+            } else {
+                inputURL = URL(fileURLWithPath: path)
+            }
+        }
+
         guard let documentBrowserViewController = window?.rootViewController as? DocumentBrowserViewController else { return false }
 
+        // Ensure the URL is a file URL
+        guard inputURL.isFileURL else {
+            documentBrowserViewController.presentError(
+                "Could not open '\(inputURL.absoluteString)'",
+                onOK: {}
+            )
+            return false
+        }
+
+        // Reveal / import the document at the URL
         documentBrowserViewController.revealDocument(at: inputURL, importIfNeeded: true) { revealedDocumentURL, error in
             if let error = error {
-                // Handle the error appropriately
-                print("Failed to reveal the document at URL \(inputURL) with error: '\(error)'")
+                documentBrowserViewController.presentError(
+                    "Could not open file '\(inputURL.path)'. \(error.localizedDescription)",
+                    onOK: {}
+                )
                 return
             }
 
@@ -39,5 +63,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         return true
+    }
+}
+
+private extension String {
+    func deletingPrefix(_ string: String) -> String {
+        if hasPrefix(string) {
+            return String(dropFirst(string.count))
+        }
+        return self
     }
 }
