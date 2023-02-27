@@ -439,8 +439,10 @@ extension Value {
                 // TODO: make exactBounds(with:) cancellable
                 return .bounds(geometry.exactBounds(with: geometry.transform))
             case "polygons" where geometry.hasMesh:
+                // TODO: make build cancellable
                 _ = geometry.build { true }
                 let polygons = (geometry.mesh?.polygons ?? [])
+                    .transformed(by: geometry.transform)
                 return .tuple(polygons.map { .polygon($0) })
             default:
                 return nil
