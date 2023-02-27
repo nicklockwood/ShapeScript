@@ -38,7 +38,7 @@ public func evaluate(
     )
 }
 
-@available(*, renamed: "ProgramError")
+@available(*, deprecated, renamed: "ProgramError")
 public typealias ImportError = ProgramError
 
 public enum ProgramError: Error, Equatable {

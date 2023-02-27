@@ -391,7 +391,7 @@ extension EvaluationContext {
                         children.append(.mesh(geometry))
                         return
                     }
-                } catch let error as ImportError {
+                } catch let error as ProgramError {
                     throw RuntimeErrorType.fileParsingError(
                         for: path, at: url, message: error.message
                     )
