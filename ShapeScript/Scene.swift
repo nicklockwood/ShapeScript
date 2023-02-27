@@ -39,6 +39,7 @@ extension Scene: Equatable {
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
+    /// Returns the approximate (overestimated) bounds of the scene geometry.
     var bounds: Bounds {
         children.reduce(into: .empty) {
             $0.formUnion($1.bounds.transformed(by: $1.transform))

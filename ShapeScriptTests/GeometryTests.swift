@@ -67,6 +67,43 @@ class GeometryTests: XCTestCase {
         XCTAssert(sphere.bounds.size.isEqual(to: expected))
     }
 
+    func testTransformedCubeBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = Transform.offset(offset)
+        let shape = Geometry(type: GeometryType.cube, in: context)
+        XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
+    }
+
+    func testTransformedConeBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        context.transform = Transform(
+            offset: Vector(1, 2, 3),
+            rotation: .yaw(.degrees(45))
+        )
+        let shape = Geometry(type: GeometryType.cone(segments: 5), in: context)
+        let bounds = shape.exactBounds(with: shape.transform)
+        _ = shape.build { true }
+        let expected = shape.mesh?.transformed(by: context.transform).bounds
+        XCTAssert(bounds.isEqual(to: expected ?? .empty))
+    }
+
+    func testTransformedSquarePathBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = Transform.offset(offset)
+        let shape = Geometry(type: GeometryType.path(.square()), in: context)
+        XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
+    }
+
+    func testTransformedFilledSquareBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = Transform.offset(offset)
+        let shape = Geometry(type: GeometryType.fill([.square()]), in: context)
+        XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
+    }
+
     // MARK: Intersection
 
     func testGroupIntersection() throws {

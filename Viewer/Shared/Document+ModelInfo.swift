@@ -77,7 +77,7 @@ extension Document {
         if loadingProgress?.didSucceed ?? true {
             polygons = String(geometry.polygonCount)
             triangles = String(geometry.triangleCount)
-            dimensions = geometry.exactBounds.size.logDescription
+            dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
             watertight = String(geometry.isWatertight)
         } else {
             polygons = "calculating…"

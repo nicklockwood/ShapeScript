@@ -436,7 +436,8 @@ extension Value {
             case "name":
                 return .string(geometry.name ?? "")
             case "bounds":
-                return .bounds(geometry.bounds)
+                // TODO: make exactBounds(with:) cancellable
+                return .bounds(geometry.exactBounds(with: geometry.transform))
             case "polygons" where geometry.hasMesh:
                 _ = geometry.build { true }
                 let polygons = (geometry.mesh?.polygons ?? [])

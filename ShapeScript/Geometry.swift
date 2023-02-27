@@ -239,6 +239,7 @@ public extension Geometry {
         type.isEmpty && children.allSatisfy { $0.isEmpty }
     }
 
+    /// Returns the overestimated Geometry bounds *without* the local transform applied
     var bounds: Bounds {
         switch type {
         case .difference, .stencil:
@@ -664,6 +665,51 @@ public extension Geometry {
         }
     }
 
+    /// Returns the exact bounds with specified transform
+    func exactBounds(
+        with transform: Transform,
+        _ callback: @escaping () -> Bool = { true }
+    ) -> Bounds {
+        switch type {
+        case .camera, .light:
+            return .empty
+        case let .extrude(paths, _) where paths.count >= 1,
+             let .lathe(paths, _) where paths.count >= 1:
+            fallthrough
+        case .cone, .cylinder, .sphere, .cube, .mesh:
+            if transform.rotation == .identity {
+                return type.bounds.transformed(by: transform)
+            }
+            return Bounds(points: type.representativePoints.transformed(by: transform))
+        case .hull:
+            var bounds = Bounds(points: type.representativePoints.transformed(by: transform))
+            for child in children {
+                bounds.formUnion(child.exactBounds(with: child.transform * transform))
+            }
+            return bounds
+        case let .path(path):
+            return path.transformed(by: transform).bounds
+        case let .fill(paths), let .loft(paths):
+            return paths.transformed(by: transform).bounds
+        case .group, .union, .lathe, .extrude:
+            return Bounds(bounds: children.map {
+                $0.exactBounds(with: $0.transform * transform)
+            })
+        case .xor, .difference, .intersection:
+            _ = build(callback)
+            if transform.rotation == .identity {
+                return mesh?.bounds.transformed(by: transform) ?? .empty
+            }
+            return mesh?.transformed(by: transform).bounds ?? .empty
+        case .stencil:
+            return children.first.map {
+                $0.exactBounds(with: $0.transform * transform)
+            } ?? .empty
+        }
+    }
+
+    /// Returns the exact bounds transformed to world coordinates
+    @available(*, deprecated, message: "Use exactBounds(with:) instead")
     var exactBounds: Bounds {
         if let mesh = mesh, !mesh.polygons.isEmpty {
             if worldTransform.rotation == .identity {

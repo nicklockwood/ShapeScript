@@ -103,6 +103,7 @@ public extension GeometryType {
         }
     }
 
+    /// Returns exact bounds, not including the effect of child shapes
     var bounds: Bounds {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil,
@@ -120,8 +121,9 @@ public extension GeometryType {
         case let .extrude(paths, .default):
             return paths.reduce(into: .empty) { bounds, path in
                 let offset = path.faceNormal / 2
-                bounds.formUnion(path.bounds.translated(by: offset))
-                bounds.formUnion(path.bounds.translated(by: -offset))
+                let pathBounds = path.bounds
+                bounds.formUnion(pathBounds.translated(by: offset))
+                bounds.formUnion(pathBounds.translated(by: -offset))
             }
         case let .extrude(paths, options):
             return paths.flatMap { path in
@@ -133,14 +135,10 @@ public extension GeometryType {
                     )
                 }
             }.bounds
-        case let .lathe(paths, _):
-            return .init(bounds: paths.map {
-                var min = $0.bounds.min, max = $0.bounds.max
-                min.x = Swift.min(min.x, -max.x, min.z, -max.z)
-                max.x = -min.x
-                min.z = min.x
-                max.z = -min.x
-                return .init(min: min, max: max)
+        case let .lathe(paths, segments):
+            // TODO: find a cheaper way to generate these
+            return .init(bounds: paths.map { path in
+                Mesh.lathe(path, slices: segments).bounds
             })
         case let .loft(paths), let .fill(paths):
             return .init(bounds: paths.map { $0.bounds })
@@ -165,5 +163,84 @@ internal extension GeometryType {
         case .hull, .union, .xor, .difference, .intersection, .stencil:
             return false
         }
+    }
+
+    /// Returns representative points needed to generate exact bounds
+    var representativePoints: [Vector] {
+        switch self {
+        case .union, .xor, .difference, .intersection, .stencil,
+             .group, .camera, .light:
+            return []
+        case .cube:
+            return [
+                Vector(-0.5, -0.5, -0.5),
+                Vector(0.5, -0.5, -0.5),
+                Vector(0.5, 0.5, -0.5),
+                Vector(-0.5, 0.5, -0.5),
+                Vector(-0.5, -0.5, 0.5),
+                Vector(0.5, -0.5, 0.5),
+                Vector(0.5, 0.5, 0.5),
+                Vector(-0.5, 0.5, 0.5),
+            ]
+        case let .cone(segments):
+            let points = Path.circle(segments: segments)
+                .rotated(by: .roll(-.halfPi))
+                .rotated(by: .pitch(.halfPi))
+                .pointPositions
+            return points.translated(by: Vector(0, -0.5, 0)) + [Vector(0, 0.5, 0)]
+        case let .cylinder(segments):
+            let points = Path.circle(segments: segments)
+                .rotated(by: .roll(-.halfPi))
+                .rotated(by: .pitch(.halfPi))
+                .pointPositions
+            return points.translated(by: Vector(0, -0.5, 0))
+                + points.translated(by: Vector(0, 0.5, 0))
+        case let .sphere(segments):
+            // TODO: find a cheaper way to generate these
+            return Mesh.sphere(slices: segments, stacks: segments / 2).vertexPositions
+        case let .extrude(paths, .default):
+            return paths.reduce(into: []) { vertices, path in
+                let offset = path.faceNormal / 2
+                let points = path.pointPositions
+                vertices += points.translated(by: offset) + points.translated(by: -offset)
+            }
+        case let .extrude(paths, options):
+            return paths.flatMap { path in
+                options.along.flatMap { along in
+                    path.extrusionContours(
+                        along: along,
+                        twist: options.twist,
+                        align: options.align
+                    ).flatMap { $0.pointPositions }
+                }
+            }
+        case let .lathe(paths, segments):
+            // TODO: find a cheaper way to generate these
+            return paths.flatMap { path in
+                Mesh.lathe(path, slices: segments).vertexPositions
+            }
+        case let .loft(paths), let .fill(paths):
+            return paths.flatMap { $0.pointPositions }
+        case let .hull(vertices):
+            // Note that this does not include child mesh vertices
+            return vertices.map { $0.position }
+        case let .path(path):
+            return path.pointPositions
+        case let .mesh(mesh):
+            return mesh.vertexPositions
+        }
+    }
+}
+
+private extension Path {
+    var pointPositions: [Vector] {
+        points.map { $0.position }
+    }
+}
+
+private extension Mesh {
+    var vertexPositions: [Vector] {
+        // TODO: find more efficient way to calculate this
+        Array(Set(polygons.flatMap { $0.vertices.map { $0.position } }))
     }
 }
