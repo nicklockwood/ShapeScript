@@ -24,7 +24,7 @@ class SourceViewController: UIViewController {
     func didSetDocument() {
         title = document?.fileURL.lastPathComponent
         if let textView = textView {
-            textView.text = document?.sourceString
+            textView.text = document?.sourceString ?? ""
             textView.isEditable = document?.isEditable ?? false
             document?.undoManager = textView.undoManager
         }

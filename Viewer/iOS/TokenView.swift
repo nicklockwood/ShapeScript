@@ -24,7 +24,7 @@ class TokenView: TextView {
         var range: Range<String.Index>
     }
 
-    override var text: String? {
+    override var text: String {
         didSet {
             tokenize()
         }
@@ -43,9 +43,7 @@ class TokenView: TextView {
     private var tokens: [NSRangeToken] = []
 
     private func tokenize() {
-        guard let tokenViewDelegate = delegate as? TokenViewDelegate,
-              let text = text
-        else {
+        guard let tokenViewDelegate = delegate as? TokenViewDelegate else {
             tokens = []
             return
         }
@@ -72,7 +70,7 @@ class TokenView: TextView {
         attributes[.font] = textView.font
         attributes[.foregroundColor] = textView.textColor
 
-        let wholeRange = NSRange(location: 0, length: text?.utf16.count ?? 0)
+        let wholeRange = NSRange(location: 0, length: text.utf16.count)
         textStorage.setAttributes(attributes, range: wholeRange)
 
         var tokenAttributes = [TokenType: [NSAttributedString.Key: Any]]()

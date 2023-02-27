@@ -40,6 +40,8 @@ class TextView: UIScrollView {
         didSet { setNeedsLayout() }
     }
 
+    var indentNewLines: Bool = true
+
     var spellCheckingType: UITextSpellCheckingType = .no {
         didSet {
             textView.spellCheckingType = spellCheckingType
@@ -48,7 +50,7 @@ class TextView: UIScrollView {
         }
     }
 
-    var text: String? {
+    var text: String {
         get { textView.text }
         set {
             guard newValue != textView.text else {
@@ -198,7 +200,7 @@ private extension TextView {
             layoutManager.gutterWidth = ceil(String(lineCount).size(withAttributes: [
                 .font: UIFontMetrics.default.scaledFont(for: font),
             ]).width + 8)
-            inset.left = max(inset.left, layoutManager.gutterWidth)
+            inset.left = max(inset.left + layoutManager.gutterWidth - 10, layoutManager.gutterWidth)
             gutterView.isHidden = false
             gutterView.frame.origin.x = contentOffset.x
             gutterView.frame.size = CGSize(
@@ -221,7 +223,7 @@ private extension TextView {
         guard showLineNumbers else {
             return
         }
-        let lineCount = (text ?? "").lineCount
+        let lineCount = text.lineCount
         if lineCount != self.lineCount {
             self.lineCount = lineCount
             setNeedsLayout()
@@ -233,7 +235,11 @@ private extension TextView {
             return
         }
         gutterView.gutterWidth = layoutManager.gutterWidth
-        gutterView.indexRects = layoutManager.indexRects
+        gutterView.indexRects = Dictionary(
+            uniqueKeysWithValues: layoutManager.indexRects.filter {
+                $0.key <= lineCount + 1
+            }
+        )
         gutterView.scrollOffset = textView.contentOffset.y
         gutterView.font = UIFontMetrics.default.scaledFont(for: font)
         gutterView.setNeedsLayout()
@@ -243,6 +249,32 @@ private extension TextView {
 private extension String {
     var lineCount: Int {
         reduce(0) { $0 + ("\r\n\n\r".contains($1) ? 1 : 0) }
+    }
+
+    func startOfLine(at index: String.Index) -> String.Index {
+        assert(index <= endIndex)
+        var index = index
+        while index > startIndex {
+            let prev = self.index(before: index)
+            if self[prev].isNewline {
+                return index
+            }
+            index = prev
+        }
+        return index
+    }
+
+    func indentForLine(at index: Int) -> String {
+        let endIndex = min(.init(utf16Offset: index, in: self), self.endIndex)
+        var index = startOfLine(at: endIndex)
+        var indent = ""
+        while index < endIndex, case let char = self[index],
+              char.isWhitespace, !char.isNewline
+        {
+            indent.append(char)
+            index = self.index(after: index)
+        }
+        return indent
     }
 }
 
@@ -272,9 +304,10 @@ private extension UITextView {
             height: bounds.height
         )
         if newSize != frame.size {
-            isScrollEnabled = false
             frame.size = newSize
-            isScrollEnabled = true
+            DispatchQueue.main.async {
+                self.contentOffset.x = -self.contentInset.left
+            }
         }
     }
 }
@@ -288,32 +321,101 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         }
     }
 
+    private func replace(_ range: NSRange, with text: String, for action: String) {
+        let oldText = textView.textStorage.mutableString.substring(with: range)
+        let newRange = NSRange(location: range.location, length: text.utf16.count)
+        textView.undoManager?.beginUndoGrouping()
+        textView.undoManager?.registerUndo(withTarget: self) {
+            $0.replace(newRange, with: oldText, for: action)
+        }
+        textView.undoManager?.setActionName(action)
+        textView.textStorage.mutableString.replaceCharacters(in: range, with: text)
+        textView.selectedRange = NSRange(
+            location: newRange.location + newRange.length, length: 0
+        )
+        if showLineNumbers {
+            updateLineCount(oldText: oldText, newText: text)
+        }
+        textViewDidChange(textView)
+        textView.undoManager?.endUndoGrouping()
+    }
+
+    private func updateLineCount(oldText: String, newText: String) {
+        let count = newText.lineCount - oldText.lineCount
+        if count != 0 {
+            lineCount += count
+            setNeedsLayout()
+        }
+    }
+
+    private func fixRange(_ range: NSRange) -> NSRange {
+        // Avoid splitting Windows (CRLF) linebreaks
+        var range = range
+        let string = textView.textStorage.mutableString
+        if range.location > 0, range.location < string.length,
+           string.character(at: range.location) == 10,
+           string.character(at: range.location - 1) == 13
+        {
+            range = NSRange(location: range.location - 1, length: range.length + 1)
+        } else if range.length == 1, range.location < string.length - 1,
+                  string.character(at: range.location) == 13,
+                  string.character(at: range.location + 1) == 10
+        {
+            range = NSRange(location: range.location, length: 2)
+        }
+        let rangeEnd = range.location + range.length
+        if range.length > 0, rangeEnd < string.length,
+           string.character(at: rangeEnd) == 10,
+           string.character(at: rangeEnd - 1) == 13
+        {
+            range = NSRange(location: range.location, length: range.length - 1)
+        }
+        return range
+    }
+
     func textView(
         _ textView: UITextView,
         shouldChangeTextIn range: NSRange,
         replacementText text: String
     ) -> Bool {
+        guard undoManager?.isUndoing != true,
+              undoManager?.isRedoing != true
+        else {
+            return true
+        }
+        let newRange = fixRange(range)
+        var actionName: String?
+        if text.isEmpty {
+            actionName = NSLocalizedString("Delete Text", comment: "")
+        } else if range.length > 0 {
+            actionName = NSLocalizedString("Replace Text", comment: "")
+        } else if text.count > 1 {
+            actionName = NSLocalizedString("Insert Text", comment: "")
+        } else if newRange != range {
+            actionName = NSLocalizedString("Typing", comment: "")
+        }
+        var text = text
+        switch text {
+        case "\n" where indentNewLines:
+            text = "\n" + self.text.indentForLine(at: newRange.location)
+            actionName = NSLocalizedString("Typing", comment: "")
+        default:
+            break
+        }
         guard (delegate as? UITextViewDelegate)?.textView?(
             textView,
-            shouldChangeTextIn: range,
+            shouldChangeTextIn: newRange,
             replacementText: text
         ) ?? true else {
+            // not sure what delegate might have done, so update count
+            updateLineCount()
             return false
         }
-        if showLineNumbers {
-            var count = 0
-            if let oldRange = textView.textRange(from: range),
-               let oldText = textView.text(in: oldRange)
-            {
-                count -= oldText.lineCount
-            }
-            count += text.lineCount
-            if count != 0 {
-                lineCount += count
-                setNeedsLayout()
-            }
+        guard let actionName = actionName else {
+            return true
         }
-        return true
+        replace(newRange, with: text, for: actionName)
+        return false
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -329,7 +431,8 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
         textView.undoManager?.registerUndo(withTarget: self) {
             $0.setText(oldText)
         }
-        textView.undoManager?.setActionName("Drag Text")
+        let actionName = NSLocalizedString("Drag Text", comment: "")
+        textView.undoManager?.setActionName(actionName)
         if let text = text {
             textView.text = text
         }
