@@ -39,7 +39,7 @@ final class EvaluationContext {
     var userSymbols = Symbols()
     private let importCache: ImportCache
     private var importStack: [URL]
-    let isCancelled: () -> Bool
+    let isCancelled: Mesh.CancellationHandler
 
     var source: String
     var sourceIndex: String.Index?

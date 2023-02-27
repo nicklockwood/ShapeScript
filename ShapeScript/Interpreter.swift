@@ -1307,7 +1307,7 @@ extension Expression {
             }
         case let .member(expression, member):
             var value = try expression.evaluate(in: context)
-            if let memberValue = value[member.name] {
+            if let memberValue = value[member.name, context.isCancelled] {
                 assert(value.members.contains(member.name),
                        "\(value.type.errorDescription) does not have member '\(member.name)'")
                 return memberValue

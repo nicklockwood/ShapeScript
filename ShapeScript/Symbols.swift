@@ -364,7 +364,14 @@ extension Value {
         }
     }
 
-    subscript(_ name: String) -> Value? {
+    subscript(name: String) -> Value? {
+        self[name, { false }]
+    }
+
+    subscript(
+        name: String,
+        isCancelled: @escaping Mesh.CancellationHandler
+    ) -> Value? {
         switch self {
         case let .vector(vector):
             switch name {
@@ -406,21 +413,21 @@ extension Value {
             case "count":
                 return .number(Double(values.count))
             case "lines", "words", "characters":
-                return self.as(.string)?[name]
+                return self.as(.string)?[name, isCancelled]
             case "x", "y", "z":
-                return self.as(.vector)?[name]
+                return self.as(.vector)?[name, isCancelled]
             case "width", "height", "depth":
-                return self.as(.size)?[name]
+                return self.as(.size)?[name, isCancelled]
             case "roll", "yaw", "pitch":
-                return self.as(.rotation)?[name]
+                return self.as(.rotation)?[name, isCancelled]
             case "red", "green", "blue", "alpha":
-                return self.as(.color)?[name]
+                return self.as(.color)?[name, isCancelled]
             default:
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
                 }
                 if values.count == 1 {
-                    return values[0][name]
+                    return values[0][name, isCancelled]
                 }
                 return nil
             }
@@ -436,11 +443,11 @@ extension Value {
             case "name":
                 return .string(geometry.name ?? "")
             case "bounds":
-                // TODO: make exactBounds(with:) cancellable
-                return .bounds(geometry.exactBounds(with: geometry.transform))
+                return .bounds(geometry.exactBounds(with: geometry.transform) {
+                    !isCancelled()
+                })
             case "polygons" where geometry.hasMesh:
-                // TODO: make build cancellable
-                _ = geometry.build { true }
+                _ = geometry.build { !isCancelled() }
                 let polygons = (geometry.mesh?.polygons ?? [])
                     .transformed(by: geometry.transform)
                 return .tuple(polygons.map { .polygon($0) })
@@ -469,7 +476,7 @@ extension Value {
             case "color":
                 return point.color.map { .color($0) } // TODO: return default?
             default:
-                return Value.vector(point.position)[name]
+                return Value.vector(point.position)[name, isCancelled]
             }
         case let .bounds(bounds):
             switch name {
@@ -497,7 +504,7 @@ extension Value {
             case "characters":
                 return .tuple(string.map { .string("\($0)") })
             case "red", "green", "blue", "alpha":
-                return self.as(.color)?[name]
+                return self.as(.color)?[name, isCancelled]
             default:
                 return nil
             }
