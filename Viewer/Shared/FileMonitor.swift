@@ -58,9 +58,13 @@ class FileMonitor {
             guard isModified else {
                 return
             }
-            self.modified = Date.timeIntervalSinceReferenceDate
+            self.markUpdated()
             try? self.reload(self.url)
         }
+    }
+
+    func markUpdated() {
+        modified = Date.timeIntervalSinceReferenceDate
     }
 
     deinit {

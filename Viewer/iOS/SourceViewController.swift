@@ -197,6 +197,7 @@ extension SourceViewController: TokenViewDelegate {
 
     func textViewDidChange(_ textView: UITextView) {
         document?.sourceString = textView.text
+        document?.fileMonitor?.markUpdated()
         if undoManager?.isUndoing ?? false {
             document?.updateChangeCount(.undone)
         } else if undoManager?.isRedoing ?? false {
