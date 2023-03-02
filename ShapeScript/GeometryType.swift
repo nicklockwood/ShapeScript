@@ -136,9 +136,15 @@ public extension GeometryType {
                 }
             }.bounds
         case let .lathe(paths, segments):
-            // TODO: find a cheaper way to generate these
             return .init(bounds: paths.map { path in
-                Mesh.lathe(path, slices: segments).bounds
+                let profileBounds = path.latheProfile.bounds
+                let diameter = abs(profileBounds.min.x) * 2
+                let bounds = Path.circle(segments: segments).bounds
+                    .scaled(by: diameter)
+                    .rotated(by: .roll(-.halfPi))
+                    .rotated(by: .pitch(.halfPi))
+                return bounds.translated(by: profileBounds.min.y * .unitY)
+                    .union(bounds.translated(by: profileBounds.max.y * .unitY))
             })
         case let .loft(paths), let .fill(paths):
             return .init(bounds: paths.map { $0.bounds })
@@ -196,8 +202,10 @@ internal extension GeometryType {
             return points.translated(by: Vector(0, -0.5, 0))
                 + points.translated(by: Vector(0, 0.5, 0))
         case let .sphere(segments):
-            // TODO: find a cheaper way to generate these
-            return Mesh.sphere(slices: segments, stacks: segments / 2).vertexPositions
+            let stacks = max(2, segments / 2)
+            return GeometryType
+                .lathe([.arc(segments: stacks)], segments: stacks)
+                .representativePoints
         case let .extrude(paths, .default):
             return paths.reduce(into: []) { vertices, path in
                 let offset = path.faceNormal / 2
@@ -215,9 +223,18 @@ internal extension GeometryType {
                 }
             }
         case let .lathe(paths, segments):
-            // TODO: find a cheaper way to generate these
-            return paths.flatMap { path in
-                Mesh.lathe(path, slices: segments).vertexPositions
+            return paths.flatMap { path -> [Vector] in
+                let profile = path.latheProfile
+                return profile.pointPositions.flatMap { point -> [Vector] in
+                    let diameter = abs(point.x) * 2
+                    let circle = Path.circle(segments: segments)
+                        .scaled(by: diameter)
+                        .rotated(by: .roll(-.halfPi))
+                        .rotated(by: .pitch(.halfPi))
+                    return circle
+                        .translated(by: point.y * .unitY)
+                        .pointPositions
+                }
             }
         case let .loft(paths), let .fill(paths):
             return paths.flatMap { $0.pointPositions }

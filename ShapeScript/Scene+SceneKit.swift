@@ -82,7 +82,7 @@ public extension SCNNode {
 
         // debug bounds
 //        self.addChildNode(SCNNode(
-//            geometry: SCNGeometry(bounds: geometry.bounds)
+//            geometry: SCNGeometry(geometry.bounds)
 //        ))
 
         // debug holes
