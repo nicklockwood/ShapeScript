@@ -142,8 +142,6 @@ class TextView: UIScrollView {
     private var previousSize: CGSize = .zero
     override func layoutSubviews() {
         super.layoutSubviews()
-        updateLineNumbers()
-        updateInsets()
         let size = frame.size
         let width = wrapLines ? size.width : .greatestFiniteMagnitude
         if width != previousSize.width || size.height != previousSize.height {
@@ -163,6 +161,8 @@ class TextView: UIScrollView {
         )
         textView.verticalScrollIndicatorInsets.right = textView.frame.width
             - frame.width - contentOffset.x - safeAreaInsets.left
+        updateLineNumbers()
+        updateInsets()
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -237,7 +237,7 @@ private extension TextView {
         gutterView.gutterWidth = layoutManager.gutterWidth
         gutterView.indexRects = Dictionary(
             uniqueKeysWithValues: layoutManager.indexRects.filter {
-                $0.key <= lineCount + 1
+                $0.key <= lineCount
             }
         )
         gutterView.scrollOffset = textView.contentOffset.y
@@ -248,7 +248,7 @@ private extension TextView {
 
 private extension String {
     var lineCount: Int {
-        reduce(0) { $0 + ("\r\n\n\r".contains($1) ? 1 : 0) }
+        reduce(1) { $0 + ("\r\n\n\r".contains($1) ? 1 : 0) }
     }
 
     func startOfLine(at index: String.Index) -> String.Index {
