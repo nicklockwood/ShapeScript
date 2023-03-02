@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.6.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.5) (2023-03-02)
+
+- Fixed performance regression in `GeometryType.bounds` when using lathe shapes
+- Fixed line number display in iOS source editor
+- Bumped Euclid to version 0.6.11
+
 ## [1.6.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.4) (2023-02-28)
 
 - The `bounds` and `polygons` members now correctly take object transform into account

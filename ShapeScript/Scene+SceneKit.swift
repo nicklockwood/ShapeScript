@@ -370,13 +370,13 @@ public extension Geometry {
         } else {
             type = .group
         }
-        self.init(
+        try self.init(
             type: type,
             name: scnNode.name,
             transform: transform,
             material: .default,
             smoothing: nil,
-            children: try scnNode.childNodes.map(Geometry.init(_:)),
+            children: scnNode.childNodes.map(Geometry.init(_:)),
             sourceLocation: nil
         )
     }

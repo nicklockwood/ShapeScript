@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.6.4"
+public let version = "1.6.5"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -799,9 +799,9 @@ extension Definition {
                             if case .placeholder = context.symbol(
                                 for: identifier.name
                             ) ?? .placeholder(.any) {
-                                context.define(
+                                try context.define(
                                     identifier.name,
-                                    as: .constant(try expression.evaluate(in: context))
+                                    as: .constant(expression.evaluate(in: context))
                                 )
                             }
                         } else {
@@ -863,13 +863,13 @@ extension Definition {
                             }
                         })
                     }
-                    return .mesh(Geometry(
+                    return try .mesh(Geometry(
                         type: .group,
                         name: context.name,
                         transform: context.transform,
                         material: .default,
                         smoothing: context.smoothing,
-                        children: try children.map {
+                        children: children.map {
                             switch $0 {
                             case let .path(path):
                                 return Geometry(
@@ -1048,7 +1048,7 @@ extension Statement {
             case .expression:
                 break
             }
-            context.define(identifier.name, as: try definition.evaluate(in: context))
+            try context.define(identifier.name, as: definition.evaluate(in: context))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .forloop(identifier, in: expression, block):
@@ -1189,7 +1189,7 @@ extension Expression {
                         }() else {
                             fallthrough
                         }
-                        newContext.define(name, as: try .constant(
+                        try newContext.define(name, as: .constant(
                             evaluateParameter(parameter,
                                               as: type,
                                               for: identifier,
