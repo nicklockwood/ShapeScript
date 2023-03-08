@@ -55,7 +55,7 @@ Whereas this expression would be interpreted as a 2D vector of 5 and -1:
 
 ## Equality and Comparison
 
-In addition to the standard arithmetic operators, ShapeScript also has equality and comparison operators, which can be used in [conditional logic](control-flow.md#if-else). The following infix comparison operators are supported:
+ShapeScript includes the following equality and comparison operators, which can be used in [conditional logic](control-flow.md#if-else):
 
 Symbol         | Name                  | Function
 :------------- | :-------------------- |:--------------------------------------
@@ -88,9 +88,18 @@ define isBrightColor averageColor >= 0.5
 print isBrightColor // true or false
 ```
 
+## Linear Algebra
+
+As well as operating on individual numbers, some operators can be applied to [vectors or tuples](literals.md#vectors-and-tuples). To multiply or divide a list of numbers by a scalar value you can use:
+
+```swift
+define numbers (1 2 3 -4)
+print numbers * 2 // prints 2 4 6 -8
+```
+
 ## Boolean Algebra
 
-In addition to the standard arithmetic operators, ShapeScript also has [boolean operators](https://en.wikipedia.org/wiki/Boolean_algebra) for implementing logical operations.
+Along with the standard arithmetic operators, ShapeScript also has [boolean operators](https://en.wikipedia.org/wiki/Boolean_algebra) for implementing logical operations.
 
 Not to be confused with the [boolean geometry](csg.md) functions for working with 3D solids, ShapeScript's boolean operators work with `true` or `false` values, and are predominantly used in conjunction with `if/else` control flow statements.
 
@@ -122,9 +131,7 @@ if (not a) and (b or c) {
 
 ## Members
 
-There are currently no vector or matrix math operators such as dot product or vector addition, but these are mostly not needed in practice due to the [relative transform](transforms.md#relative-transforms) commands.
-
-It is however possible to use vector, size, rotation or [color](materials.md#color) values in expressions by using the *dot* operator to access individual components:
+Compound values like [vectors and tuples](literals.md#vectors-and-tuples) can be decomposed by using the *dot* operator to access individual components:
 
 ```swift
 define vector 0.5 0.2 0.4

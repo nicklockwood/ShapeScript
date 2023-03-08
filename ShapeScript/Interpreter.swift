@@ -954,7 +954,7 @@ extension EvaluationContext {
             default:
                 children.append(value)
             }
-        } else if case let .tuple(values) = value {
+        } else if case let .tuple(values)? = try value.as(.list(childTypes), in: self) {
             try values.forEach(addValue)
         } else {
             throw RuntimeErrorType.unusedValue(type: value.type)
@@ -1302,27 +1302,59 @@ extension Expression {
                 in: context
             ).boolValue)
         case let .infix(lhs, op, rhs):
-            let lhs = try lhs.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
-            let rhs = try rhs.evaluate(as: .number, for: String(op.rawValue), index: 1, in: context)
+            func doubleValue(_ exp: Expression, index: Int = 0) throws -> Double {
+                try exp.evaluate(
+                    as: .number,
+                    for: String(op.rawValue),
+                    index: index,
+                    in: context
+                ).doubleValue
+            }
+            func tupleValue(_ exp: Expression, index: Int = 0) throws -> Value {
+                try exp.evaluate(
+                    as: .union([.number, .list(.number)]),
+                    for: String(op.rawValue),
+                    index: index,
+                    in: context
+                )
+            }
+            func apply(
+                _ lhs: Value,
+                _ rhs: Double,
+                _ fn: (Double, Double) -> Double
+            ) -> Value {
+                switch lhs {
+                case let .tuple(values):
+                    return .tuple(values.map { value in
+                        apply(value, rhs, fn)
+                    })
+                case let .number(value):
+                    return .number(fn(value, rhs))
+                default:
+                    assertionFailure()
+                    return .number(0)
+                }
+            }
+            let rhsValue = try doubleValue(rhs, index: 1)
             switch op {
             case .minus:
-                return .number(lhs.doubleValue - rhs.doubleValue)
+                return try .number(doubleValue(lhs) - rhsValue)
             case .plus:
-                return .number(lhs.doubleValue + rhs.doubleValue)
+                return try .number(doubleValue(lhs) + rhsValue)
             case .times:
-                return .number(lhs.doubleValue * rhs.doubleValue)
+                return try apply(tupleValue(lhs), rhsValue, *)
             case .divide:
-                return .number(lhs.doubleValue / rhs.doubleValue)
+                return try apply(tupleValue(lhs), rhsValue, /)
             case .modulo:
-                return .number(fmod(lhs.doubleValue, rhs.doubleValue))
+                return try .number(fmod(doubleValue(lhs), rhsValue))
             case .lt:
-                return .boolean(lhs.doubleValue < rhs.doubleValue)
+                return try .boolean(doubleValue(lhs) < rhsValue)
             case .gt:
-                return .boolean(lhs.doubleValue > rhs.doubleValue)
+                return try .boolean(doubleValue(lhs) > rhsValue)
             case .lte:
-                return .boolean(lhs.doubleValue <= rhs.doubleValue)
+                return try .boolean(doubleValue(lhs) <= rhsValue)
             case .gte:
-                return .boolean(lhs.doubleValue >= rhs.doubleValue)
+                return try .boolean(doubleValue(lhs) >= rhsValue)
             case .to, .step, .equal, .unequal, .and, .or:
                 throw RuntimeErrorType
                     .assertionFailure("\(op.rawValue) should be handled by earlier case")

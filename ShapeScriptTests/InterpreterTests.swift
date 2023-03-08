@@ -3031,6 +3031,45 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["foo", false])
     }
 
+    // MARK: Vector algebra
+
+    func testNumericTupleScalarMultiply() {
+        let program = "print (1 0 -2) * 3"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3.0, 0, -6.0])
+    }
+
+    func testNumericTupleScalarDivide() {
+        let program = "print (-1 3) / 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-0.5, 1.5])
+    }
+
+    func testNumericStringTupleScalarMultiply() {
+        let program = "print (\"1\" \"-2\") * \"3\""
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3.0, -6.0])
+    }
+
+    func testNonNumericStringTupleScalarMultiply() {
+        let program = "print (\"foo\" \"bar\") * 3"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .typeMismatch(
+                for: "*",
+                index: 0,
+                expected: "number or vector",
+                got: "tuple"
+            )? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     // MARK: Member lookup
 
     func testTupleVectorLookup() {

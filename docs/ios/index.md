@@ -99,6 +99,7 @@ ShapeScript Help
     - [Expressions](expressions.md)
         - [Operators](expressions.md#operators)
         - [Equality and Comparison](expressions.md#equality-and-comparison)
+        - [Linear Algebra](expressions.md#linear-algebra)
         - [Boolean Algebra](expressions.md#boolean-algebra)
         - [Members](expressions.md#members)
         - [Ranges](expressions.md#ranges)
