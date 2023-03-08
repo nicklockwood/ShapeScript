@@ -521,8 +521,12 @@ extension Value {
             return .tuple(value.components.map { .number($0) })
         case let (.vector(value), .list(.number)):
             return .tuple(value.components.map { .number($0) })
+        case let (.vector(value), .size):
+            return .size(value)
         case let (.size(value), .list(.number)):
             return .tuple(value.components.map { .number($0) })
+        case let (.size(value), .vector):
+            return .vector(value)
         case let (.rotation(value), .list(.number)):
             return .tuple(value.rollYawPitchInHalfTurns.map { .number($0) })
         case let (.object(values), .list(type)):

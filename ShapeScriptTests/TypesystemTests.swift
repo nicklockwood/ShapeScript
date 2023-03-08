@@ -540,6 +540,12 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try evaluate("1", as: .list(.number)), [.number(1)])
     }
 
+    func testCastVectorToSizeAndViceVersa() {
+        XCTAssert(Value.vector(.one).isConvertible(to: .size))
+        XCTAssert(Value.size(.one).isConvertible(to: .vector))
+        XCTAssertEqual(try evaluate("cube.bounds.size", as: .vector), .vector(.one))
+    }
+
     func testCastNumberToColor() {
         XCTAssert(Value(1).isConvertible(to: .color))
         XCTAssertEqual(try evaluate("1", as: .color), .color(.white))
