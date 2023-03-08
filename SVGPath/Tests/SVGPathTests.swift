@@ -88,6 +88,16 @@ class SVGPathTests: XCTestCase {
         XCTAssertEqual(svgPath, expected)
     }
 
+    func testNumbersWithPlusAsSeparator() throws {
+        let svgPath = try SVGPath(string: "M0 0L.57+5Z")
+        let expected = SVGPath(commands: [
+            .moveTo(.zero),
+            .lineTo(.init(x: 0.57, y: -5)),
+            .end,
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
     func testAbsoluteHorizontalRule() throws {
         let svgPath = try SVGPath(string: "M0 0L10 10H0Z")
         let expected = SVGPath(commands: [
@@ -138,6 +148,61 @@ class SVGPathTests: XCTestCase {
             .moveTo(.init(x: 150, y: 0)),
             .lineTo(.init(x: 75, y: -200)),
             .lineTo(.init(x: 225, y: -200)),
+            .end,
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testRelativePathAfterEndCommand() throws {
+        let svgPath = try SVGPath(string: """
+        m246.7881938,177.5848955c-13.9366996-.4842-27.8722993-.77-41.8169989
+        -.8486,6.3990998,6.5819998,12.7983997,13.1638997,19.1974995,19.7456995,
+        7.3688998-6.5151998,14.8972996-12.8044997,22.6194994-18.8970995Zm
+        -45.4452989,2.3984999c-7.2300998,6.6123998-14.2535996,13.4058997
+        -21.1025995,20.4121995,12.8467997,13.5595997,25.6935994,27.1189993,
+        38.540699,40.678399,6.9114998-7.2348998,14.0072996-14.2496996,
+        21.3211995-21.0778995-12.9196997-13.3375997-25.8395993-26.6751993
+        -38.759299-40.012699Z
+        """)
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 246.7881938, y: -177.5848955)),
+            .cubic(
+                .init(x: 232.8514942, y: -177.1006955),
+                .init(x: 218.91589449999998, y: -176.81489549999998),
+                .init(x: 204.9711949, y: -176.73629549999998)
+            ),
+            .cubic(
+                .init(x: 211.3702947, y: -183.3182953),
+                .init(x: 217.7695946, y: -189.90019519999998),
+                .init(x: 224.1686944, y: -196.48199499999998)
+            ),
+            .cubic(
+                .init(x: 231.5375942, y: -189.96679519999998),
+                .init(x: 239.065994, y: -183.67749529999998),
+                .init(x: 246.7881938, y: -177.5848955)
+            ),
+            .end,
+            .moveTo(.init(x: 201.34289489999998, y: -179.98339539999998)),
+            .cubic(
+                .init(x: 194.11279509999997, y: -186.59579519999997),
+                .init(x: 187.08929529999997, y: -193.38929509999997),
+                .init(x: 180.24029539999998, y: -200.3955949)
+            ),
+            .cubic(
+                .init(x: 193.08709509999997, y: -213.9551946),
+                .init(x: 205.9338948, y: -227.51459419999998),
+                .init(x: 218.78099439999997, y: -241.0739939)
+            ),
+            .cubic(
+                .init(x: 225.69249419999997, y: -233.8390941),
+                .init(x: 232.78829399999998, y: -226.82429430000002),
+                .init(x: 240.10219389999997, y: -219.9960944)
+            ),
+            .cubic(
+                .init(x: 227.18249419999998, y: -206.6584947),
+                .init(x: 214.26259459999997, y: -193.3208951),
+                .init(x: 201.34289489999998, y: -179.9833954)
+            ),
             .end,
         ])
         XCTAssertEqual(svgPath, expected)

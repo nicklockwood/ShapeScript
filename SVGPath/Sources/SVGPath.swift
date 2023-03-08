@@ -11,22 +11,22 @@
 //  https://github.com/nicklockwood/SVGPath
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
+//  of this software and associated documentation files (the "Software"), to
+//  deal in the Software without restriction, including without limitation the
+//  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+//  sell copies of the Software, and to permit persons to whom the Software is
 //  furnished to do so, subject to the following conditions:
 //
-//  The above copyright notice and this permission notice shall be included in all
-//  copies or substantial portions of the Software.
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
 //
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 //  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//  SOFTWARE.
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+//  IN THE SOFTWARE.
 //
 
 import Foundation
@@ -70,7 +70,7 @@ public struct SVGPath: Hashable {
         func lineToVertical() throws -> SVGCommand {
             let numbers = try assertArgs(1)
             return .lineTo(SVGPoint(
-                x: isRelative ? 0 : (commands.last?.point.x ?? 0),
+                x: isRelative ? 0 : commands.lastPoint.x,
                 y: -numbers[0]
             ))
         }
@@ -79,7 +79,7 @@ public struct SVGPath: Hashable {
             let numbers = try assertArgs(1)
             return .lineTo(SVGPoint(
                 x: numbers[0],
-                y: isRelative ? 0 : (commands.last?.point.y ?? 0)
+                y: isRelative ? 0 : commands.lastPoint.y
             ))
         }
 
@@ -161,8 +161,9 @@ public struct SVGPath: Hashable {
         }
 
         func appendCommand(_ command: SVGCommand) {
-            let last = isRelative ? commands.last : nil
-            commands.append(command.relative(to: last))
+            commands.append(
+                isRelative ? command.relative(to: commands.lastPoint) : command
+            )
         }
 
         func processCommand() throws {
@@ -195,20 +196,18 @@ public struct SVGPath: Hashable {
 
         for char in string.unicodeScalars {
             switch char {
-            case "0" ... "9", "E", "e", "+":
+            case "0" ... "9", "E", "e":
                 number.append(Character(char))
             case ".":
                 if number.contains(".") {
                     try processNumber()
                 }
                 number.append(".")
-            case "-":
-                if let last = number.last, "eE".contains(last) {
-                    number.append(Character(char))
-                } else {
+            case "-", "+":
+                if let last = number.last, !"eE".contains(last) {
                     try processNumber()
-                    number = "-"
                 }
+                number.append(Character(char))
             case "a" ... "z", "A" ... "Z":
                 try processNumber()
                 try processCommand()
@@ -309,6 +308,17 @@ private extension Character {
     }
 }
 
+private extension Array where Element == SVGCommand {
+    var lastPoint: SVGPoint {
+        for command in reversed() {
+            if let point = command.point {
+                return point
+            }
+        }
+        return .zero
+    }
+}
+
 public enum SVGError: Error, Hashable {
     case unexpectedToken(String)
     case unexpectedArgument(for: String, expected: Int)
@@ -336,7 +346,7 @@ public enum SVGCommand: Hashable {
 }
 
 public extension SVGCommand {
-    var point: SVGPoint {
+    var point: SVGPoint? {
         switch self {
         case let .moveTo(point),
              let .lineTo(point),
@@ -346,7 +356,7 @@ public extension SVGCommand {
         case let .arc(arc):
             return arc.end
         case .end:
-            return .zero
+            return nil
         }
     }
 
@@ -431,10 +441,7 @@ public extension SVGCommand {
         }
     }
 
-    fileprivate func relative(to last: SVGCommand?) -> SVGCommand {
-        guard let last = last?.point else {
-            return self
-        }
+    fileprivate func relative(to last: SVGPoint) -> SVGCommand {
         switch self {
         case let .moveTo(point):
             return .moveTo(point + last)
