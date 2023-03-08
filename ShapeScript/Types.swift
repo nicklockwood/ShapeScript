@@ -167,7 +167,7 @@ extension ValueType {
         case .font: return "font"
         case .boolean: return "boolean"
         case .number: return "number"
-        case .vector: return "vector"
+        case .vector, .list(.number): return "vector"
         case .size: return "size"
         case .rotation: return "rotation"
         case .string: return "string"
