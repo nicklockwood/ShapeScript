@@ -523,6 +523,8 @@ private extension RuntimeError {
         "height": ["size", "y"],
         "depth": ["size", "z"],
         "length": ["size", "count"],
+        "magnitude": ["length"],
+        "norm": ["length"],
         "radius": ["size"],
         "x": ["width", "position"],
         "y": ["height", "position"],

@@ -87,6 +87,40 @@ max 2 4 // returns 4
 max 5 0 -5.1 // returns 5
 ```
 
+## Linear Algebra
+
+ShapeScript also includes functions for operating on [vectors](literals.md#vectors-and-tuples):
+
+The `dot` function is used to calculate the [dot product](https://en.wikipedia.org/wiki/Dot_product) of a pair of vectors:
+
+```swift
+define up (0 1)
+define right (1 0)
+print dot(up right) // returns 0
+```
+
+The `cross` function calculates the [cross product](https://en.wikipedia.org/wiki/Cross_product):
+
+```swift
+define up (0 1)
+define right (1 0)
+print cross(up right) // returns 0 0 -1
+```
+
+The `length` function calculates the magnitude of a vector (also known as the [norm](https://en.wikipedia.org/wiki/Euclidean_space#Euclidean_norm)):
+
+```swift
+define v (3 4)
+print length(v) // returns 5
+```
+
+The `normalize` function computes a [unit vector](https://en.wikipedia.org/wiki/Unit_vector) from an arbitrary vector by dividing each element by the vector length:
+
+```swift
+define v (3 4)
+print normalize(v) // returns 0.6 0.8
+```
+
 ## Trigonometry
 
 For the most part, you can avoid the need for trigonometry is ShapeScript by using the built-in [transform commands](transforms.md#relative-transforms) to manipulate geometry rather than manually calculating the positions of vertices.

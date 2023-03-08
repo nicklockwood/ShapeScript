@@ -105,6 +105,8 @@ define right (1 -2 3)
 print left * right // prints 1 -4 9
 ```
 
+Note that is a simple member-wise multiplication of the numbers. For other types of vector multiplication such as the dot or cross product see the [functions section](functions.md#linear-algebra).
+
 If the tuples have different lengths, the result will be truncated to the shorter of the two:
 
 ```swift

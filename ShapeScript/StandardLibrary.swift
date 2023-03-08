@@ -454,6 +454,24 @@ extension Dictionary where Key == String, Value == Symbol {
             return .number(atan2(values[0], values[1]))
         },
         "pi": .constant(.number(.pi)),
+        // Linear algebra
+        "dot": .function(.tuple([.list(.number), .list(.number)]), .number) { value, _ in
+            let values = value.tupleValue as! [[Double]]
+            return .number(zip(values[0], values[1]).map { $0 * $1 }.reduce(0, +))
+        },
+        "cross": .function(.tuple([.vector, .vector]), .list(.number)) { value, _ in
+            let values = value.tupleValue as! [Vector]
+            return .tuple(values[0].cross(values[1]).components.map { .number($0) })
+        },
+        "length": .function(.list(.number), .number) { value, _ in
+            let values = value.tupleValue as! [Double]
+            return .number(sqrt(values.map { $0 * $0 }.reduce(0, +)))
+        },
+        "normalize": .function(.list(.number), .list(.number)) { value, _ in
+            let values = value.tupleValue as! [Double]
+            let length = sqrt(values.map { $0 * $0 }.reduce(0, +))
+            return .tuple(values.map { .number(length > 0 ? $0 / length : 0) })
+        },
         // Strings
         "split": .function(.tuple([.string, .string]), .list(.string)) { value, _ in
             let string = value.tupleValue[0] as! String

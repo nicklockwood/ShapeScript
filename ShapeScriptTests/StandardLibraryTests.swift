@@ -940,4 +940,48 @@ class StandardLibraryTests: XCTestCase {
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh?.bounds, Mesh.cube().bounds)
     }
+
+    // MARK: Functions
+
+    func testDot() {
+        let program = "print dot((1 0) (0 1))"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
+    func testCross() {
+        let program = "print cross((1 0) (0 1))"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0, 0.0, 1.0])
+    }
+
+    func testLength() {
+        let program = "print length(3 4)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5.0])
+    }
+
+    func testLengthZero() {
+        let program = "print length(0 0 0)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
+    func testNormalize() {
+        let program = "print normalize(3 4)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.6, 0.8])
+    }
+
+    func testNormalizeZero() {
+        let program = "print normalize(0 0 0 0)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0, 0.0, 0.0, 0.0])
+    }
 }

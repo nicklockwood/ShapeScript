@@ -105,6 +105,7 @@ ShapeScript Help
         - [Ranges](expressions.md#ranges)
     - [Functions](functions.md)
         - [Arithmetic](functions.md#arithmetic)
+        - [Linear Algebra](functions.md#linear-algebra)
         - [Trigonometry](functions.md#trigonometry)
         - [Strings](functions.md#strings)
         - [Functions and Expressions](functions.md#functions-and-expressions)
