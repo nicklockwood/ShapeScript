@@ -1193,15 +1193,34 @@ extension Expression {
                                               for: identifier,
                                               in: newContext)
                         ))
-                    case .define, .forloop, .ifelse, .expression, .import:
+                    case .define, .forloop, .ifelse, .expression, .import, .option:
                         try statement.evaluate(in: newContext)
-                    case .option:
-                        throw RuntimeError(.unknownSymbol("option", options: []), at: statement.range)
                     }
                 }
                 newContext.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(newContext), at: range)
-            case .property, .constant, .function((.void, _), _):
+            case let .constant(value):
+                guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),
+                      case let .tuple(values) = value
+                else {
+                    fallthrough
+                }
+                let sourceIndex = context.sourceIndex
+                let newContext = context.push(.custom(.transform, [:], .mesh, value.type))
+                block.statements.gatherDefinitions(in: newContext)
+                for statement in block.statements {
+                    try statement.evaluate(in: newContext)
+                }
+                newContext.sourceIndex = sourceIndex
+                if values.first?.type == .path {
+                    return .tuple(values.map({
+                        .path(($0.value as! Path).transformed(by: newContext.transform))
+                    }))
+                }
+                return .tuple(values.map({
+                    .mesh(($0.value as! Geometry).transformed(by: newContext.transform))
+                }))
+            case .property, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
                     at: block.range

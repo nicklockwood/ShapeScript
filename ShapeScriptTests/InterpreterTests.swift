@@ -4234,16 +4234,7 @@ class InterpreterTests: XCTestCase {
         define foo cube
         print foo {}
         """
-        let range = program.range(of: "{}")!
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error?.hint, "The foo symbol does not expect any arguments.")
-            XCTAssertEqual(error, RuntimeError(
-                .unexpectedArgument(for: "foo", max: 0),
-                at: range
-            ))
-        }
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
     func testCallBlockWithoutArgs() throws {
