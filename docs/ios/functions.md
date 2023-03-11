@@ -122,6 +122,14 @@ define v (3 4)
 print length(v) // returns 5
 ```
 
+The `distance` function is similar to `length`, but takes a pair of vectors and returns the distance between them:
+
+```swift
+define a (3 4)
+define b (4 7)
+print distance(v) // returns 5
+```
+
 The `normalize` function computes a [unit vector](https://en.wikipedia.org/wiki/Unit_vector) from an arbitrary vector by dividing each element by the vector length:
 
 ```swift
