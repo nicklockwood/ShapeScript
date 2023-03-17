@@ -7,7 +7,7 @@
 
 import UIKit
 
-protocol TokenViewDelegate: UITextViewDelegate {
+protocol TokenViewDelegate: TextViewDelegate {
     func tokens(for input: String) -> [TokenView.Token]
     func attributes(
         for tokenType: TokenView.TokenType
@@ -24,15 +24,21 @@ class TokenView: TextView {
         var range: Range<String.Index>
     }
 
-    override var text: String {
-        didSet {
-            tokenize()
-        }
+    override func textViewDidChange(_ textView: UITextView) {
+        super.textViewDidChange(textView)
+        tokenize()
     }
 
-    override func textViewDidChange(_ textView: UITextView) {
-        tokenize()
-        super.textViewDidChange(textView)
+    override var text: String {
+        didSet { tokenize() }
+    }
+
+    override var font: UIFont {
+        didSet { updateAttributes() }
+    }
+
+    override var textColor: UIColor {
+        didSet { updateAttributes() }
     }
 
     private struct NSRangeToken {
@@ -53,12 +59,12 @@ class TokenView: TextView {
         }
         let tokenized = CFAbsoluteTimeGetCurrent()
         print("tokenized", tokenized - start)
-        createAttributes(for: tokens)
+        updateAttributes()
         let attributed = CFAbsoluteTimeGetCurrent()
         print("attributed", attributed - tokenized)
     }
 
-    private func createAttributes(for tokens: [NSRangeToken]) {
+    private func updateAttributes() {
         guard let tokenViewDelegate = delegate as? TokenViewDelegate else {
             return
         }
@@ -66,24 +72,21 @@ class TokenView: TextView {
         let textStorage = textView.textStorage
         textStorage.beginEditing()
 
-        var attributes = [NSAttributedString.Key: Any]()
-        attributes[.font] = textView.font
-        attributes[.foregroundColor] = textView.textColor
-
-        let wholeRange = NSRange(location: 0, length: text.utf16.count)
-        textStorage.setAttributes(attributes, range: wholeRange)
+        let wholeRange = NSRange(location: 0, length: textStorage.length)
+        var baseAttributes = [NSAttributedString.Key: Any]()
+        baseAttributes[.font] = textView.font
+        baseAttributes[.foregroundColor] = textColor
+        textStorage.setAttributes(baseAttributes, range: wholeRange)
 
         var tokenAttributes = [TokenType: [NSAttributedString.Key: Any]]()
         for token in tokens {
             let attributes = tokenAttributes[token.type] ?? {
-                let attr = tokenViewDelegate.attributes(for: token.type)
-                tokenAttributes[token.type] = attr
-                return attr
+                let attributes = tokenViewDelegate.attributes(for: token.type)
+                tokenAttributes[token.type] = attributes
+                return attributes
             }()
 
-            if !attributes.isEmpty {
-                textStorage.addAttributes(attributes, range: token.nsRange)
-            }
+            textStorage.addAttributes(attributes, range: token.nsRange)
         }
 
         textStorage.endEditing()

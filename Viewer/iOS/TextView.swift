@@ -7,10 +7,18 @@
 
 import UIKit
 
+@objc protocol TextViewDelegate: UITextViewDelegate {
+    @objc optional func textView(
+        _ textView: TextView,
+        replacementForText text: String
+    ) -> String
+}
+
 class TextView: UIScrollView {
     private let layoutManager: LayoutManager
     private let gutterView = LineNumberView()
     private var lineCount = 0
+    fileprivate var currentAction: TextAction?
     let textView: UITextView
 
     private var _contentInset: UIEdgeInsets = .zero
@@ -63,8 +71,17 @@ class TextView: UIScrollView {
         }
     }
 
+    var selectedRange: NSRange {
+        get { textView.selectedRange }
+        set { textView.selectedRange = newValue }
+    }
+
     var font: UIFont = .monospacedSystemFont(ofSize: 15, weight: .regular) {
         didSet { updateFont() }
+    }
+
+    var textColor: UIColor = .label {
+        didSet { textView.textColor = textColor }
     }
 
     var isEditable: Bool = true {
@@ -110,6 +127,7 @@ class TextView: UIScrollView {
         isDirectionalLockEnabled = true
         showsHorizontalScrollIndicator = true
         textView.font = UIFontMetrics.default.scaledFont(for: font)
+        textView.textColor = textColor
         textView.adjustsFontForContentSizeCategory = true
         textView.contentInsetAdjustmentBehavior = .never
         textView.showsHorizontalScrollIndicator = false
@@ -142,6 +160,8 @@ class TextView: UIScrollView {
     private var previousSize: CGSize = .zero
     override func layoutSubviews() {
         super.layoutSubviews()
+        updateLineNumbers()
+        updateInsets()
         let size = frame.size
         let width = wrapLines ? size.width : .greatestFiniteMagnitude
         if width != previousSize.width || size.height != previousSize.height {
@@ -153,8 +173,29 @@ class TextView: UIScrollView {
             if contentSize != textView.frame.size {
                 contentSize = textView.frame.size
             }
+            let textView = self.textView
+            DispatchQueue.main.async {
+                let maxY = max(0, textView.contentSize.height - textView.frame.height
+                    + textView.contentInset.bottom)
+                if textView.contentOffset.y > maxY {
+                    textView.contentOffset.y = maxY
+                }
+            }
         }
         showsHorizontalScrollIndicator = !wrapLines
+        if _contentInset.bottom > safeAreaInsets.bottom {
+            horizontalScrollIndicatorInsets.left =
+                textView.contentInset.left - safeAreaInsets.left
+            horizontalScrollIndicatorInsets.right =
+                textView.contentInset.right - safeAreaInsets.right
+            horizontalScrollIndicatorInsets.bottom = _contentInset.bottom
+        } else {
+            horizontalScrollIndicatorInsets.left =
+                max(textView.contentInset.left, safeAreaInsets.bottom) - safeAreaInsets.left
+            horizontalScrollIndicatorInsets.right =
+                max(safeAreaInsets.right, safeAreaInsets.bottom) - safeAreaInsets.right
+            horizontalScrollIndicatorInsets.bottom = -safeAreaInsets.bottom
+        }
         textView.verticalScrollIndicatorInsets.bottom = max(
             _contentInset.bottom,
             safeAreaInsets.bottom
@@ -180,7 +221,7 @@ private extension TextView {
         layoutManager.addTextContainer(textContainer)
         let textStorage = NSTextStorage()
         textStorage.addLayoutManager(layoutManager)
-        return UITextView(frame: .zero, textContainer: textContainer)
+        return _UITextView(frame: .zero, textContainer: textContainer)
     }
 
     func updateFont() {
@@ -219,6 +260,17 @@ private extension TextView {
         }
     }
 
+    func scrollToCaret() {
+        if let range = textView.selectedTextRange?.start {
+            var caretRect = convert(textView.caretRect(for: range), from: textView)
+            caretRect = caretRect.insetBy(dx: -40, dy: -40) // allow breathing room
+            if caretRect.origin.x < frame.width {
+                caretRect.origin.x = 0 // don't cut off start of line
+            }
+            scrollRectToVisible(caretRect, animated: true)
+        }
+    }
+
     func updateLineCount() {
         guard showLineNumbers else {
             return
@@ -228,21 +280,6 @@ private extension TextView {
             self.lineCount = lineCount
             setNeedsLayout()
         }
-    }
-
-    func updateLineNumbers() {
-        guard showLineNumbers else {
-            return
-        }
-        gutterView.gutterWidth = layoutManager.gutterWidth
-        gutterView.indexRects = Dictionary(
-            uniqueKeysWithValues: layoutManager.indexRects.filter {
-                $0.key <= lineCount
-            }
-        )
-        gutterView.scrollOffset = textView.contentOffset.y
-        gutterView.font = UIFontMetrics.default.scaledFont(for: font)
-        gutterView.setNeedsLayout()
     }
 }
 
@@ -275,6 +312,44 @@ private extension String {
             index = self.index(after: index)
         }
         return indent
+    }
+}
+
+private enum TextAction {
+    case typing, delete, cut, paste, drag, drop
+}
+
+private final class _UITextView: UITextView {
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        switch action {
+        case #selector(selectAll(_:)):
+            return true
+        case #selector(captureTextFromCamera(_:)):
+            return false // weird and broken
+        default:
+            return super.canPerformAction(action, withSender: sender)
+        }
+    }
+
+    override func cut(_ sender: Any?) {
+        (delegate as? TextView)?.currentAction = .cut
+        super.cut(sender)
+    }
+
+    override func paste(_ sender: Any?) {
+        (delegate as? TextView)?.currentAction = .paste
+        super.paste(sender)
+    }
+
+    override func captureTextFromCamera(_ sender: Any?) {
+        if #available(iOS 15, *) {
+            super.captureTextFromCamera(sender)
+        }
+    }
+
+    override func replace(_ range: UITextRange, withText text: String) {
+        super.replace(range, withText: text)
+        (delegate as? TextView)?.updateLineCount()
     }
 }
 
@@ -314,11 +389,27 @@ private extension UITextView {
 
 extension TextView: UITextViewDelegate, UIScrollViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
+        if currentAction == nil {
+            // Content was not pre-processed, so need to update everything
+            if let newText = (delegate as? TextViewDelegate)?.textView?(
+                self,
+                replacementForText: text
+            ), newText != text {
+                DispatchQueue.main.async { self.text = newText }
+            } else {
+                updateLineCount()
+            }
+        }
+        currentAction = nil
         (delegate as? UITextViewDelegate)?.textViewDidChange?(textView)
         if !wrapLines {
             previousSize = .zero
             setNeedsLayout()
         }
+    }
+
+    func textViewDidChangeSelection(_: UITextView) {
+        scrollToCaret()
     }
 
     private func replace(_ range: NSRange, with text: String, for action: String) {
@@ -329,10 +420,16 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
             $0.replace(newRange, with: oldText, for: action)
         }
         textView.undoManager?.setActionName(action)
-        textView.textStorage.mutableString.replaceCharacters(in: range, with: text)
-        textView.selectedRange = NSRange(
-            location: newRange.location + newRange.length, length: 0
-        )
+        if textView.textStorage.mutableString.length == 0, let font = textView.font {
+            // Prevent font being reset
+            textView.textStorage.setAttributedString(.init(
+                string: text, attributes: [.font: font, .foregroundColor: textColor]
+            ))
+        } else {
+            textView.textStorage.mutableString
+                .replaceCharacters(in: range, with: text)
+        }
+        textView.selectedRange = NSRange(location: newRange.upperBound, length: 0)
         if showLineNumbers {
             updateLineCount(oldText: oldText, newText: text)
         }
@@ -363,7 +460,7 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         {
             range = NSRange(location: range.location, length: 2)
         }
-        let rangeEnd = range.location + range.length
+        let rangeEnd = range.upperBound
         if range.length > 0, rangeEnd < string.length,
            string.character(at: rangeEnd) == 10,
            string.character(at: rangeEnd - 1) == 13
@@ -381,40 +478,67 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         guard undoManager?.isUndoing != true,
               undoManager?.isRedoing != true
         else {
+            if undoManager?.undoActionName == NSLocalizedString(
+                "Paste", comment: ""
+            ) {
+                // This is handled by TextView so we need to block the default
+                return false
+            }
             return true
         }
         let newRange = fixRange(range)
         var actionName: String?
-        if text.isEmpty {
-            actionName = NSLocalizedString("Delete Text", comment: "")
-        } else if range.length > 0 {
-            actionName = NSLocalizedString("Replace Text", comment: "")
-        } else if text.count > 1 {
-            actionName = NSLocalizedString("Insert Text", comment: "")
-        } else if newRange != range {
-            actionName = NSLocalizedString("Typing", comment: "")
+        currentAction = currentAction ?? .typing
+        if currentAction == .cut {
+            actionName = "Cut"
+            UIPasteboard.general.string = textView.textStorage
+                .mutableString.substring(with: newRange)
+        } else if currentAction == .paste || currentAction == .drop {
+            actionName = "Paste"
+        } else if text.isEmpty {
+            currentAction = .delete
+            actionName = "Delete"
+        } else if newRange.length > 0 {
+            actionName = "Replace"
+        } else if newRange != range || text.contains(where: {
+            $0.isNewline
+        }) || textView.textStorage.mutableString.substring(with: newRange).contains(where: {
+            $0.isNewline
+        }) {
+            // Need special handling if either:
+            // * replaced a selection
+            // * had to adjust range
+            // * replacement text contains newlines
+            // * replaced text contained newlines
+            actionName = "Typing"
         }
         var text = text
         switch text {
         case "\n" where indentNewLines:
             text = "\n" + self.text.indentForLine(at: newRange.location)
-            actionName = NSLocalizedString("Typing", comment: "")
+            actionName = actionName ?? "Typing"
         default:
             break
+        }
+        if let newText = (delegate as? TextViewDelegate)?.textView?(
+            self,
+            replacementForText: text
+        ), newText != text {
+            text = newText
+            actionName = actionName ?? "Typing"
         }
         guard (delegate as? UITextViewDelegate)?.textView?(
             textView,
             shouldChangeTextIn: newRange,
             replacementText: text
         ) ?? true else {
-            // not sure what delegate might have done, so update count
-            updateLineCount()
+            // TODO: fix bugs when undoing paste when returning false
             return false
         }
         guard let actionName = actionName else {
             return true
         }
-        replace(newRange, with: text, for: actionName)
+        replace(newRange, with: text, for: NSLocalizedString(actionName, comment: ""))
         return false
     }
 
@@ -431,7 +555,7 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
         textView.undoManager?.registerUndo(withTarget: self) {
             $0.setText(oldText)
         }
-        let actionName = NSLocalizedString("Drag Text", comment: "")
+        let actionName = NSLocalizedString("Drag", comment: "")
         textView.undoManager?.setActionName(actionName)
         if let text = text {
             textView.text = text
@@ -440,9 +564,14 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
     }
 
     func textDroppableView(_: UIView & UITextDroppable,
-                           willPerformDrop _: UITextDropRequest)
+                           willPerformDrop drop: UITextDropRequest)
     {
-        setText(nil)
+        if drop.isSameView {
+            currentAction = .drag
+            setText(nil)
+        } else {
+            currentAction = .drop
+        }
     }
 
     func textDroppableView(_: UIView & UITextDroppable,
@@ -456,11 +585,36 @@ extension TextView: NSLayoutManagerDelegate {
     func layoutManager(_: NSLayoutManager, didCompleteLayoutFor _: NSTextContainer?,
                        atEnd _: Bool)
     {
-        layoutManager.indexRects.removeAll()
+        layoutManager.invalidateIndexRects()
     }
 
-    func didLayoutNumbers() {
-        updateLineNumbers()
+    func updateLineNumbers() {
+        guard showLineNumbers else {
+            return
+        }
+        gutterView.gutterWidth = layoutManager.gutterWidth
+        gutterView.scrollOffset = textView.contentOffset.y
+        gutterView.font = UIFontMetrics.default.scaledFont(for: font)
+        gutterView.indexRects = Dictionary(
+            uniqueKeysWithValues: layoutManager.indexRects.filter {
+                $0.key <= lineCount
+            }
+        )
+        // Calculate final line rect, which may be missing or wrong
+        if text.isEmpty {
+            if let textContainer = layoutManager.textContainers.first {
+                var rect = layoutManager.usedRect(for: textContainer)
+                rect.origin.y = textView.textContainerInset.top
+                gutterView.indexRects[1] = rect
+            }
+        } else if !wrapLines, text.last?.isNewline ?? false {
+            // TODO: Find a way to calculate this if lines are wrapped
+            if var rect = gutterView.indexRects[lineCount - 1] {
+                rect.origin.y = rect.maxY
+                gutterView.indexRects[lineCount] = rect
+            }
+        }
+        gutterView.setNeedsLayout()
     }
 }
 
@@ -500,7 +654,12 @@ private class LayoutManager: NSLayoutManager {
     private var lastParaNumber: Int = 0
 
     var gutterWidth: CGFloat = 0
-    var indexRects: [Int: CGRect] = [:]
+    private(set) var indexRects: [Int: CGRect] = [:]
+    private var indexRectsNeedUpdate: Bool = false
+
+    func invalidateIndexRects() {
+        indexRectsNeedUpdate = true
+    }
 
     override func processEditing(
         for textStorage: NSTextStorage,
@@ -520,6 +679,7 @@ private class LayoutManager: NSLayoutManager {
         if invalidatedCharRange.location < lastParaLocation {
             lastParaLocation = 0
             lastParaNumber = 0
+            indexRectsNeedUpdate = true
         }
     }
 
@@ -531,6 +691,12 @@ private class LayoutManager: NSLayoutManager {
 
         var gutterRect: CGRect = .zero
         var paraNumber = 0
+        let text = textStorage?.mutableString ?? ""
+
+        if indexRectsNeedUpdate {
+            indexRects.removeAll()
+            indexRectsNeedUpdate = false
+        }
 
         enumerateLineFragments(
             forGlyphRange: glyphsToShow
@@ -539,11 +705,10 @@ private class LayoutManager: NSLayoutManager {
                 forGlyphRange: glyphRange,
                 actualGlyphRange: nil
             )
-            let paraRange = ((self.textStorage?.string ?? "") as NSString)
-                .paragraphRange(for: charRange)
+            let paraRange = text.paragraphRange(for: charRange)
 
             if charRange.location == paraRange.location {
-                paraNumber = self.paraNumber(for: charRange)
+                paraNumber = self.paraNumber(for: charRange, in: text)
                 gutterRect = CGRect(
                     x: origin.x,
                     y: rect.origin.y + origin.y,
@@ -554,26 +719,25 @@ private class LayoutManager: NSLayoutManager {
             }
         }
 
-        if NSMaxRange(glyphsToShow) > numberOfGlyphs {
+        // TODO: can this ever happen?
+        if glyphsToShow.upperBound > numberOfGlyphs {
             indexRects[paraNumber + 2] = gutterRect.offsetBy(
                 dx: 0,
                 dy: gutterRect.height
             )
         }
 
-        (delegate as? TextView)?.didLayoutNumbers()
+        (delegate as? TextView)?.updateLineNumbers()
     }
 
-    func paraNumber(for charRange: NSRange) -> Int {
+    private func paraNumber(for charRange: NSRange, in text: NSString) -> Int {
         if charRange.location == lastParaLocation {
             return lastParaNumber
         }
 
-        let string = (textStorage?.string ?? "") as NSString
         var paraNumber = lastParaNumber
-
         if charRange.location < lastParaLocation {
-            string.enumerateSubstrings(
+            text.enumerateSubstrings(
                 in: NSRange(
                     location: charRange.location,
                     length: lastParaLocation - charRange.location
@@ -591,7 +755,7 @@ private class LayoutManager: NSLayoutManager {
             return paraNumber
         }
 
-        string.enumerateSubstrings(
+        text.enumerateSubstrings(
             in: NSRange(
                 location: lastParaLocation,
                 length: charRange.location - lastParaLocation
@@ -616,11 +780,11 @@ private class LineNumberView: UIView {
     var gutterWidth: CGFloat = 0
     var scrollOffset: CGFloat = 0
     var indexRects: [Int: CGRect] = [:]
-    var font: UIFont?
+    var font: UIFont = .preferredFont(forTextStyle: .body)
 
     override func layoutSubviews() {
         let atts: [NSAttributedString.Key: Any] = [
-            .font: font ?? .preferredFont(forTextStyle: .body),
+            .font: font,
             .foregroundColor: UIColor.secondaryLabel,
         ]
 
