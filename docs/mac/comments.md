@@ -58,8 +58,10 @@ define foo {
     // return bar
     print bar
 }
-/*
+*/
 ```
+
+**Note:** although nested comments are supported by ShapeScript itself, they may confuse the syntax highlighting in whichever editor you are using. Don't be alarmed if part of the comment appears in the wrong color.
 
 ---
 [Index](index.md) | Next: [Literals](literals.md)
