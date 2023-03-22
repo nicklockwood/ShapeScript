@@ -1200,19 +1200,50 @@ extension Expression {
                     throw RuntimeError(.unexpectedArgument(for: name, max: 0), at: block.range)
                 }
                 let sourceIndex = context.sourceIndex
-                let newContext = context.push(.init(.transform, [:], .mesh, value.type))
+                let isPath = values.first?.type == .path
+                let newContext = context.push(.init(
+                    .transform + (isPath ? Symbols.color : .material),
+                    [:],
+                    .mesh,
+                    value.type
+                ))
                 block.statements.gatherDefinitions(in: newContext)
+                var hasColor = false, hasTexture = false
                 for statement in block.statements {
-                    try statement.evaluate(in: newContext)
+                    switch statement.type {
+                    case let .command(identifier, _):
+                        switch identifier.name {
+                        case "color", "colour":
+                            hasColor = true
+                        case "texture":
+                            hasTexture = true
+                        default:
+                            break
+                        }
+                        fallthrough
+                    default:
+                        try statement.evaluate(in: newContext)
+                    }
+                }
+                // Don't inherit texture or color from parent scope
+                if !hasTexture, !hasColor {
+                    newContext.material.albedo = nil
                 }
                 newContext.sourceIndex = sourceIndex
-                if values.first?.type == .path {
+                if isPath {
                     return .tuple(values.map {
-                        .path(($0.value as! Path).transformed(by: newContext.transform))
+                        var path = ($0.value as! Path)
+                            .transformed(by: newContext.transform)
+                        if let color = newContext.material.color {
+                            path = path.withColor(color)
+                        }
+                        return .path(path)
                     })
                 }
                 return .tuple(values.map {
-                    .mesh(($0.value as! Geometry).transformed(by: newContext.transform))
+                    .mesh(($0.value as! Geometry)
+                        .transformed(by: newContext.transform)
+                        .withMaterial(newContext.material))
                 })
             case let .property(type, setter, _):
                 let blockType = BlockType([:], type.memberTypes, .void, type)

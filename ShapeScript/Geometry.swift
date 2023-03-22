@@ -317,6 +317,24 @@ public extension Geometry {
         )
     }
 
+    func withMaterial(_ material: Material) -> Geometry {
+        var _material = self.material
+        if let albedo = material.albedo {
+            _material.albedo = albedo
+        }
+        return Geometry(
+            type: type,
+            name: name,
+            transform: transform,
+            material: _material,
+            smoothing: smoothing,
+            wrapMode: wrapMode,
+            children: children,
+            sourceLocation: _sourceLocation,
+            debug: debug
+        )
+    }
+
     @available(*, deprecated, message: "Do not use")
     func hasUniformMaterial(_: Material? = nil) -> Bool {
         true
