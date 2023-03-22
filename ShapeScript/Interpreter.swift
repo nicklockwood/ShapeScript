@@ -251,6 +251,16 @@ public extension RuntimeError {
                 return ""
             }
         }
+        func theSymbol(_ name: String) -> String {
+            if name.components(separatedBy: " ").count == 2 {
+                return "The \(name)"
+            } else if name.isEmpty {
+                return "Symbol"
+            } else if let symbol = Symbols.all[name] {
+                return "The \(name) \(symbol.errorDescription)"
+            }
+            return "The \(name) symbol"
+        }
         func formatMessage(_ message: String) -> String? {
             guard let last = message.last else {
                 return nil
@@ -280,44 +290,32 @@ public extension RuntimeError {
             }
             return ""
         case let .typeMismatch(for: name, index: index, expected: type, got: got):
-            if got == "block" {
-                return "The \(name) function does not expect a block argument."
+            if index == 0 {
+                if type == ValueType.void.errorDescription {
+                    return "\(theSymbol(name)) does not expect any arguments."
+                } else if got == "block" {
+                    return "\(theSymbol(name)) does not expect a block argument."
+                }
             }
             let got = got.contains(",") ? got : aOrAn(got)
             return "The \(nth(index))argument for \(name) should be \(aOrAn(type)), not \(got)."
         case let .forwardReference(name):
             return "The symbol '\(name)' was used before it was defined."
         case let .unexpectedArgument(for: name, max: max):
-            let hint: String
-            if name.isEmpty {
-                hint = "Function"
-            } else if let symbol = Symbols.all[name] {
-                hint = "The \(name) \(symbol.errorDescription)"
-            } else {
-                hint = "The \(name) function"
-            }
             if max == 0 {
-                return "\(hint) does not expect any arguments."
+                return "\(theSymbol(name)) does not expect any arguments."
             } else if max == 1 {
-                return "\(hint) expects only a single argument."
+                return "\(theSymbol(name)) expects only a single argument."
             } else {
-                return "\(hint) expects a maximum of \(max) arguments."
+                return "\(theSymbol(name)) expects a maximum of \(max) arguments."
             }
         case let .missingArgument(for: name, index: index, type: type):
-            let hint: String
-            if name.isEmpty {
-                hint = "Function"
-            } else if let symbol = Symbols.all[name] {
-                hint = "The \(name) \(symbol.errorDescription)"
-            } else {
-                hint = "The \(name) function"
-            }
             if index == 0 {
                 let type = (type == ValueType.any.errorDescription) ? "an" : "\(aOrAn(type))"
-                return "\(hint) expects \(type) argument."
+                return "\(theSymbol(name)) expects \(type) argument."
             } else {
                 let type = (type == ValueType.any.errorDescription) ? "" : " of type \(type)"
-                return "\(hint) expects \(aOrAn(nth(index))) argument\(type)."
+                return "\(theSymbol(name)) expects \(aOrAn(nth(index))) argument\(type)."
             }
         case let .unusedValue(type: type):
             return "\(aOrAn(type, capitalized: true)) value was not expected in this context."

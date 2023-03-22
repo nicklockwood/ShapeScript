@@ -4202,7 +4202,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error?.hint, "The foo function does not expect any arguments.")
+            XCTAssertEqual(error?.hint, "The foo symbol does not expect any arguments.")
             XCTAssertEqual(error, RuntimeError(
                 .unexpectedArgument(for: "foo", max: 0),
                 at: range
@@ -4219,13 +4219,30 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The foo function does not expect a block argument.")
+            XCTAssertEqual(error?.hint, "The foo symbol does not expect a block argument.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
                 index: 0,
                 expected: "number",
                 got: "block"
             ), at: range))
+        }
+    }
+
+    func testCallPropertyWithEmptyBlock() {
+        let program = """
+        define foo cube
+        print foo {}
+        """
+        let range = program.range(of: "{}")!
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected argument")
+            XCTAssertEqual(error?.hint, "The foo symbol does not expect any arguments.")
+            XCTAssertEqual(error, RuntimeError(
+                .unexpectedArgument(for: "foo", max: 0),
+                at: range
+            ))
         }
     }
 
