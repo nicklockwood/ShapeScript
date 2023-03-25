@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.6.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.6) (2023-03-25)
+
+- The position and transform of mesh and path values can now be set as if they were a block
+- Setting name on a block that returns a path no longer makes the result unusable in a builder
+- Constants and property symbols are no longer called "function" in error messages
+- Removed unhelpful "did you mean" suggestions when a valid symbol is used in wrong context
+- Improved error description for numeric list type
+- Fixed various bugs in the iOS source editor
+- Bumped SVGPath to version 1.1.3
+
 ## [1.6.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.5) (2023-03-02)
 
 - Fixed performance regression in `GeometryType.bounds` when using lathe shapes

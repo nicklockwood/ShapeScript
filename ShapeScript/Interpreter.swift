@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.6.5"
+public let version = "1.6.6"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -1216,13 +1216,13 @@ extension Expression {
                 }
                 newContext.sourceIndex = sourceIndex
                 if values.first?.type == .path {
-                    return .tuple(values.map({
+                    return .tuple(values.map {
                         .path(($0.value as! Path).transformed(by: newContext.transform))
-                    }))
+                    })
                 }
-                return .tuple(values.map({
+                return .tuple(values.map {
                     .mesh(($0.value as! Geometry).transformed(by: newContext.transform))
-                }))
+                })
             case .property, .function((.void, _), _):
                 throw RuntimeError(
                     .unexpectedArgument(for: name, max: 0),
