@@ -220,9 +220,12 @@ public extension RuntimeError {
     var suggestion: String? {
         switch type {
         case let .unknownSymbol(name, options), let .unknownMember(name, _, options):
-            return Self.alternatives[name.lowercased()]?
+            let alternative = Self.alternatives[name.lowercased()]?
                 .first(where: { options.contains($0) || Keyword(rawValue: $0) != nil })
-                ?? name.bestMatches(in: options).first
+            if Symbols.all[name] != nil {
+                return alternative
+            }
+            return alternative ?? name.bestMatches(in: options).first
         case let .unknownFont(name, options):
             return name.bestMatches(in: options).first
         case .typeMismatch,
