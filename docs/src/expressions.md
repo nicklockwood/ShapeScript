@@ -90,11 +90,51 @@ print isBrightColor // true or false
 
 ## Linear Algebra
 
-As well as operating on individual numbers, some operators can be applied to [vectors or tuples](literals.md#vectors-and-tuples). To multiply or divide a list of numbers by a scalar value you can use:
+As well as operating on individual numbers, some operators can be used with [vectors or tuples](literals.md#vectors-and-tuples). To multiply or divide a tuple of numbers by a scalar value you can use:
 
 ```swift
 define numbers (1 2 3 -4)
 print numbers * 2 // prints 2 4 6 -8
+```
+
+You can also multiply two tuples:
+
+```swift
+define left (1 2 3)
+define right (1 -2 3)
+print left * right // prints 1 -4 9
+```
+
+If the tuples have different lengths, the result will be truncated to the shorter of the two:
+
+```swift
+define left (1 2 3)
+define right (1 -2)
+print left * right // prints 1 -4
+```
+
+You can also add or subtract two lists of numbers together:
+
+```swift
+define left (1 2 3)
+define right (1 -2 3)
+print left + right // prints 2 0 6
+```
+
+Unlike with multiplication or division, adding or subtracting a shorter tuple from a longer one will preserve the length of the left side:
+
+```swift
+define left (1 2 3)
+define right (1 -2)
+print left + right // prints 2 0 3
+```
+
+Adding a longer tuple to a shorter one will not widen the result however:
+
+```swift
+define left (1 2 3)
+define right (1 -2 3 4)
+print left + right // prints 2 0 3
 ```
 
 ## Boolean Algebra

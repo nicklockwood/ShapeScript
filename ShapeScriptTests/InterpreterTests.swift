@@ -1885,23 +1885,6 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual((delegate.log.first as? Geometry)?.type, .xor)
     }
 
-    func testTupleArgumentInMathExpression() {
-        let program = "print 3 * (3 5)"
-        let range = program.range(of: "(3 5)")
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The second argument for * should be a number, not a tuple.")
-            XCTAssertEqual(error?.type, .typeMismatch(
-                for: "*",
-                index: 1,
-                expected: "number",
-                got: "tuple"
-            ))
-            XCTAssertEqual(error?.range, range)
-        }
-    }
-
     func testInvokeTextInExpressionWithoutParens() {
         let program = "print 1 + text \"foo\""
         let range = program.range(of: "text")!
@@ -3040,6 +3023,27 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3.0, 0, -6.0])
     }
 
+    func testNumericTupleMultiply() {
+        let program = "print (1 0 -2) * (2 3 4)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2.0, 0, -8.0])
+    }
+
+    func testNumericTupleMultiplyShorten() {
+        let program = "print (1 0 -2) * (2 3)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2.0, 0])
+    }
+
+    func testNumericTupleMultiplyNoWiden() {
+        let program = "print (1 0) * (2 3 4)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2.0, 0])
+    }
+
     func testNumericTupleScalarDivide() {
         let program = "print (-1 3) / 2"
         let delegate = TestDelegate()
@@ -3068,6 +3072,41 @@ class InterpreterTests: XCTestCase {
                 return
             }
         }
+    }
+
+    func testNumericTupleScalarAdd() {
+        let program = "print (-1 3) + 2"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 5.0])
+    }
+
+    func testNumericTupleAdd() {
+        let program = "print (-1 3) + (2 1)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 4.0])
+    }
+
+    func testNumericTupleSubtract() {
+        let program = "print (-1 3) - (2 1)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-3.0, 2.0])
+    }
+
+    func testNumericTupleAddNoShorten() {
+        let program = "print (-1 3 2) + (2 1)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 4.0, 2.0])
+    }
+
+    func testNumericTupleAddNoWiden() {
+        let program = "print (-1 3) + (2 1 2)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 4.0])
     }
 
     // MARK: Member lookup

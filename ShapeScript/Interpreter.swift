@@ -1320,41 +1320,59 @@ extension Expression {
             }
             func apply(
                 _ lhs: Value,
-                _ rhs: Double,
+                _ rhs: Value,
                 _ fn: (Double, Double) -> Double
             ) -> Value {
-                switch lhs {
-                case let .tuple(values):
-                    return .tuple(values.map { value in
-                        apply(value, rhs, fn)
-                    })
-                case let .number(value):
-                    return .number(fn(value, rhs))
+                switch (lhs, rhs) {
+                case let (.number(lhs), .number(rhs)):
+                    return .number(fn(lhs, rhs))
+                case let (.tuple(lhs), _) where lhs.count == 1:
+                    return apply(lhs[0], rhs, fn)
+                case let (_, .tuple(rhs)) where rhs.count == 1:
+                    return apply(lhs, rhs[0], fn)
+                case let (.tuple(lhs), .tuple(rhs)):
+                    return .tuple(zip(lhs, rhs).map { apply($0, $1, fn) })
+                case let (.tuple(lhs), .number):
+                    return .tuple(lhs.map { apply($0, rhs, fn) })
+                case let (.number, .tuple(rhs)):
+                    return .tuple(rhs.map { apply(lhs, $0, fn) })
                 default:
                     assertionFailure()
                     return .number(0)
                 }
             }
-            let rhsValue = try doubleValue(rhs, index: 1)
+            func tupleApply(
+                _ fn: (Double, Double) -> Double,
+                widen: Bool
+            ) throws -> Value {
+                let lhs = try tupleValue(lhs)
+                let rhs = try tupleValue(rhs, index: 1)
+                switch (apply(lhs, rhs, fn), lhs) {
+                case let (.tuple(values), .tuple(lhs)) where widen:
+                    return .tuple(values + lhs[values.count...])
+                case let (value, _):
+                    return value
+                }
+            }
             switch op {
             case .minus:
-                return try .number(doubleValue(lhs) - rhsValue)
+                return try tupleApply(-, widen: true)
             case .plus:
-                return try .number(doubleValue(lhs) + rhsValue)
+                return try tupleApply(+, widen: true)
             case .times:
-                return try apply(tupleValue(lhs), rhsValue, *)
+                return try tupleApply(*, widen: false)
             case .divide:
-                return try apply(tupleValue(lhs), rhsValue, /)
+                return try tupleApply(/, widen: false)
             case .modulo:
-                return try .number(fmod(doubleValue(lhs), rhsValue))
+                return try tupleApply(fmod, widen: false)
             case .lt:
-                return try .boolean(doubleValue(lhs) < rhsValue)
+                return try .boolean(doubleValue(lhs) < doubleValue(rhs, index: 1))
             case .gt:
-                return try .boolean(doubleValue(lhs) > rhsValue)
+                return try .boolean(doubleValue(lhs) > doubleValue(rhs, index: 1))
             case .lte:
-                return try .boolean(doubleValue(lhs) <= rhsValue)
+                return try .boolean(doubleValue(lhs) <= doubleValue(rhs, index: 1))
             case .gte:
-                return try .boolean(doubleValue(lhs) >= rhsValue)
+                return try .boolean(doubleValue(lhs) >= doubleValue(rhs, index: 1))
             case .to, .step, .equal, .unequal, .and, .or:
                 throw RuntimeErrorType
                     .assertionFailure("\(op.rawValue) should be handled by earlier case")
