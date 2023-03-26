@@ -1312,7 +1312,7 @@ extension Expression {
             case .divide:
                 return .number(lhs.doubleValue / rhs.doubleValue)
             case .modulo:
-                return .number(lhs.doubleValue.remainder(dividingBy: rhs.doubleValue))
+                return .number(fmod(lhs.doubleValue, rhs.doubleValue))
             case .lt:
                 return .boolean(lhs.doubleValue < rhs.doubleValue)
             case .gt:
