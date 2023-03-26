@@ -154,6 +154,7 @@ public extension ParserError {
 extension ParserError {
     static let alternatives: [String: String] = [
         "mod": "%",
+        "fmod": "%",
         "equals": "=",
         "eq": "=",
         "is": "=",
