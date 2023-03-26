@@ -769,7 +769,6 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "position",
-                index: 0,
                 expected: "vector",
                 got: "tuple"
             ), at: range))
@@ -869,7 +868,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "color", index: 0, expected: "color", got: "tuple"
+                for: "color", expected: "color", got: "tuple"
             ), at: range))
         }
     }
@@ -962,7 +961,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .typeMismatch(for: "color", index: 0, expected: "color", got: "tuple"), at: range
+                .typeMismatch(for: "color", expected: "color", got: "tuple"), at: range
             ))
         }
     }
@@ -1094,7 +1093,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "c", index: 0, expected: "string", got: "color"
+                for: "c", expected: "string", got: "color"
             ), at: range))
         }
     }
@@ -1113,7 +1112,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "c", index: 0, expected: "string", got: "color"
+                for: "c", expected: "string", got: "color"
             ), at: range))
         }
     }
@@ -1504,7 +1503,6 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.type, .missingArgument(
                 for: "background",
-                index: 0,
                 type: .colorOrTexture
             ))
         }
@@ -1803,7 +1801,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "lathe", index: 0, type: "path or block"), at: range
+                .missingArgument(for: "lathe", type: "path or block"), at: range
             ))
         }
     }
@@ -1815,7 +1813,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "group", index: 0, type: "mesh or block"), at: range
+                .missingArgument(for: "group", type: "mesh or block"), at: range
             ))
         }
     }
@@ -1858,7 +1856,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.hint, "The argument for extrude should be a path or block, not a mesh.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "extrude",
-                index: 0,
                 expected: "path or block",
                 got: "mesh"
             ), at: range))
@@ -1912,7 +1909,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "text", index: 0, type: "text or block"),
+                .missingArgument(for: "text", type: "text or block"),
                 at: range.upperBound ..< range.upperBound
             ))
         }
@@ -1926,7 +1923,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "text",
-                index: 0,
                 expected: "text or block",
                 got: "mesh"
             ), at: range))
@@ -2009,7 +2005,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.hint, "The argument for along should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "along",
-                index: 0,
                 expected: "path",
                 got: "number"
             ), at: range))
@@ -2115,7 +2110,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "start value",
-                index: 0,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2130,7 +2124,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "end value",
-                index: 0,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2143,9 +2136,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The step value should be a number, not a string.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "step value",
-                index: 0,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2235,8 +2228,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "range",
-                index: 0,
+                for: "loop bounds",
                 expected: "range or tuple",
                 got: "number"
             ), at: range))
@@ -2250,8 +2242,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "range",
-                index: 0,
+                for: "loop bounds",
                 expected: "range or tuple",
                 got: "string"
             ), at: range))
@@ -2362,10 +2353,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for range should be a range or tuple, not a color.")
+            XCTAssertEqual(error?.hint, "The loop bounds should be a range or tuple, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "range",
-                index: 0,
+                for: "loop bounds",
                 expected: "range or tuple",
                 got: "color"
             ), at: range))
@@ -2425,10 +2415,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for condition should be a boolean, not a color.")
+            XCTAssertEqual(error?.hint, "The if condition should be a boolean, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "condition",
-                index: 0,
+                for: "if condition",
                 expected: "boolean",
                 got: "color"
             ), at: range))
@@ -2457,7 +2446,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "cos", index: 0, type: "number"), at: range
+                .missingArgument(for: "cos", type: "number"), at: range
             ))
         }
     }
@@ -2486,7 +2475,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "pow", index: 0, type: "number"), at: range
+                .missingArgument(for: "pow", type: "number"), at: range
             ))
         }
     }
@@ -2526,7 +2515,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "sqrt", index: 0, type: "number"),
+                .missingArgument(for: "sqrt", type: "number"),
                 at: range.upperBound ..< range.upperBound
             ))
         }
@@ -2539,7 +2528,6 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "sqrt",
-                index: 0,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2619,7 +2607,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "min", index: 0, type: "number"),
+                .missingArgument(for: "min", type: "number"),
                 at: range.upperBound ..< range.upperBound
             ))
         }
@@ -4074,7 +4062,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
-                index: 0,
                 expected: "mesh or block",
                 got: "color"
             ), at: range))
@@ -4093,7 +4080,6 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
-                index: 0,
                 expected: "mesh or block",
                 got: "color"
             ), at: range))
@@ -4128,7 +4114,7 @@ class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Missing argument")
             XCTAssertEqual(error?.hint, "The print command expects an argument.")
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "print", index: 0, type: "any"),
+                .missingArgument(for: "print", type: "any"),
                 at: range
             ))
         }
@@ -4267,10 +4253,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The foo symbol does not expect a block argument.")
+            XCTAssertEqual(error?.hint, "The argument for foo should be a number, not a block.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
-                index: 0,
                 expected: "number",
                 got: "block"
             ), at: range))

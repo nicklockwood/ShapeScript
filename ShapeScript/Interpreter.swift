@@ -246,12 +246,12 @@ public extension RuntimeError {
     }
 
     var hint: String? {
-        func nth(_ index: Int) -> String {
+        func nthArgument(_ index: Int) -> String {
             switch index {
-            case 1 ..< String.ordinals.count:
-                return "\(String.ordinals[index]) "
+            case 0 ..< String.ordinals.count:
+                return "\(String.ordinals[index]) argument"
             default:
-                return ""
+                return "argument"
             }
         }
         func theSymbol(_ name: String) -> String {
@@ -292,16 +292,14 @@ public extension RuntimeError {
                 return "Did you mean '\(suggestion)'?"
             }
             return ""
-        case let .typeMismatch(for: name, index: index, expected: type, got: got):
-            if index == 0 {
-                if type == ValueType.void.errorDescription {
-                    return "\(theSymbol(name)) does not expect any arguments."
-                } else if got == "block" {
-                    return "\(theSymbol(name)) does not expect a block argument."
-                }
-            }
+        case let .typeMismatch(for: name, index: i, expected: type, got: got):
+            let name = [
+                "if condition",
+                "loop bounds",
+                "step value",
+            ].contains(name) ? name : "\(nthArgument(i)) for \(name)"
             let got = got.contains(",") ? got : aOrAn(got)
-            return "The \(nth(index))argument for \(name) should be \(aOrAn(type)), not \(got)."
+            return "The \(name) should be \(aOrAn(type)), not \(got)."
         case let .forwardReference(name):
             return "The symbol '\(name)' was used before it was defined."
         case let .unexpectedArgument(for: name, max: max):
@@ -312,14 +310,9 @@ public extension RuntimeError {
             } else {
                 return "\(theSymbol(name)) expects a maximum of \(max) arguments."
             }
-        case let .missingArgument(for: name, index: index, type: type):
-            if index == 0 {
-                let type = (type == ValueType.any.errorDescription) ? "an" : "\(aOrAn(type))"
-                return "\(theSymbol(name)) expects \(type) argument."
-            } else {
-                let type = (type == ValueType.any.errorDescription) ? "" : " of type \(type)"
-                return "\(theSymbol(name)) expects \(aOrAn(nth(index))) argument\(type)."
-            }
+        case let .missingArgument(for: name, index: i, type: type):
+            let type = (type == ValueType.any.errorDescription) ? "" : " of type \(type)"
+            return "\(theSymbol(name)) expects \(aOrAn(nthArgument(i > 0 ? i : -1)))\(type)."
         case let .unusedValue(type: type):
             return "\(aOrAn(type, capitalized: true)) value was not expected in this context."
         case let .assertionFailure(message):
@@ -422,7 +415,15 @@ private extension Array where Element == String {
 extension RuntimeErrorType {
     static func typeMismatch(
         for symbol: String,
-        index: Int,
+        expected: String,
+        got: String
+    ) -> RuntimeErrorType {
+        .typeMismatch(for: symbol, index: -1, expected: expected, got: got)
+    }
+
+    static func typeMismatch(
+        for symbol: String,
+        index: Int = -1,
         expected types: [String],
         got: String
     ) -> RuntimeErrorType {
@@ -430,18 +431,9 @@ extension RuntimeErrorType {
         return .typeMismatch(for: symbol, index: index, expected: expected, got: got)
     }
 
-    static func missingArgument(
-        for symbol: String,
-        index: Int,
-        types: [String]
-    ) -> RuntimeErrorType {
-        let expected = types.typesDescription
-        return .missingArgument(for: symbol, index: index, type: expected)
-    }
-
     static func typeMismatch(
         for name: String,
-        index: Int,
+        index: Int = -1,
         expected: ValueType,
         got: ValueType
     ) -> RuntimeErrorType {
@@ -463,8 +455,24 @@ extension RuntimeErrorType {
     }
 
     static func missingArgument(
+        for symbol: String,
+        type: String
+    ) -> RuntimeErrorType {
+        .missingArgument(for: symbol, index: 0, type: type)
+    }
+
+    static func missingArgument(
+        for symbol: String,
+        index: Int = 0,
+        types: [String]
+    ) -> RuntimeErrorType {
+        let expected = types.typesDescription
+        return .missingArgument(for: symbol, index: index, type: expected)
+    }
+
+    static func missingArgument(
         for name: String,
-        index: Int,
+        index: Int = 0,
         type: ValueType
     ) -> RuntimeErrorType {
         let typeDescription: String
@@ -646,7 +654,7 @@ private func evaluateBlockParameters(
             throw RuntimeError(
                 .typeMismatch(
                     for: identifier.name,
-                    index: j,
+                    index: j > 0 ? j : -1,
                     expected: types,
                     got: child.type.errorDescription
                 ),
@@ -668,7 +676,7 @@ private func evaluateParameter(_ parameter: Expression?,
             return .void
         }
         throw RuntimeError(
-            .missingArgument(for: name, index: 0, type: type),
+            .missingArgument(for: name, type: type),
             at: range.upperBound ..< range.upperBound
         )
     }
@@ -1018,7 +1026,6 @@ extension Statement {
                 } else if !type.childTypes.isOptional {
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        index: 0,
                         types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
                     ), at: range)
                 } else {
@@ -1060,8 +1067,7 @@ extension Statement {
             guard let sequence = value.sequenceValue else {
                 throw RuntimeError(
                     .typeMismatch(
-                        for: "range",
-                        index: 0,
+                        for: "loop bounds",
                         expected: .sequence,
                         got: value.type
                     ),
@@ -1082,8 +1088,7 @@ extension Statement {
         case let .ifelse(condition, body, else: elseBody):
             let value = try condition.evaluate(
                 as: .boolean,
-                for: "condition",
-                index: 0,
+                for: "if condition",
                 in: context
             )
             try context.pushScope { context in
@@ -1135,7 +1140,6 @@ extension Expression {
                 // Functions with parameters can't be called without arguments
                 throw RuntimeError(.missingArgument(
                     for: name,
-                    index: 0,
                     type: parameterType
                 ), at: range.upperBound ..< range.upperBound)
             case let .property(_, _, getter):
@@ -1145,7 +1149,6 @@ extension Expression {
                     // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        index: 0,
                         types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
                     ), at: range.upperBound ..< range.upperBound)
                 }
@@ -1231,7 +1234,6 @@ extension Expression {
             case let .function((type, _), _):
                 throw RuntimeError(.typeMismatch(
                     for: name,
-                    index: 0,
                     expected: type.errorDescription,
                     got: "block"
                 ), at: block.range)
@@ -1346,7 +1348,7 @@ extension Expression {
         }
     }
 
-    func evaluate(as type: ValueType, for name: String, index: Int = 0, in context: EvaluationContext) throws -> Value {
+    func evaluate(as type: ValueType, for name: String, index: Int = -1, in context: EvaluationContext) throws -> Value {
         let value: Value, values: [(index: Int, value: Value)]
         do {
             if case let .tuple(expressions) = self.type {
