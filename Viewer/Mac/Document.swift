@@ -446,6 +446,7 @@ class Document: NSDocument {
                     with: &index,
                     countsByType: &countsByType
                 )
+                return submenu.numberOfItems != 0
             }
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera (\(camera.name))"
