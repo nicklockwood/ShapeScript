@@ -151,6 +151,7 @@ ShapeScript Help
     - [Games and AR](export.md#games-and-ar)
     - [3D Printing](export.md#3d-printing)
     - [Image Formats](export.md#image-formats)
+    - [Image Options](export.md#image-options)
 - [Examples](examples.md)
     - [Ball](examples.md#ball)
     - [Chessboard](examples.md#chessboard)

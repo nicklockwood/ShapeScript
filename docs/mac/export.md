@@ -66,7 +66,11 @@ bmp                   | Bitmap                                            | No
 
 If you aren't sure which format to use, the PNG format is a good all-rounder, with lossless compression and transparency support.
 
-The size of the exported image defaults to the current window size and display resolution. You can override this size by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions):
+## Image Options
+
+The size of the exported image defaults to the current window size at the current display resolution. You can override this size in your script file by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions), or by clicking on the size label in the export window and selecting a different size:
+
+![Export size](../images/export-size.png)
 
 Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background).
 
