@@ -151,7 +151,7 @@ extension Document {
     }
 
     func selectCamera(at index: Int) -> Bool {
-        guard index < cameras.count else {
+        guard cameras.indices.contains(index) else {
             return false
         }
         let camera = cameras[index]
