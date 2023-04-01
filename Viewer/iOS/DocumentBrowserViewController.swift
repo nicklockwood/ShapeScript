@@ -267,8 +267,8 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             field.smartQuotesType = .no
             field.smartInsertDeleteType = .no
             field.delegate = self
-            field.addAction(UIAction { _ in
-                okAction.isEnabled = field.shouldEnableSubmit
+            field.addAction(UIAction { [weak field] _ in
+                okAction.isEnabled = field?.shouldEnableSubmit ?? false
             }, for: .editingChanged)
         }
         okAction.isEnabled = textField?.shouldEnableSubmit ?? false
