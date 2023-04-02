@@ -4397,10 +4397,10 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for foo should be a number, not a block.")
+            XCTAssertEqual(error?.hint, "The argument for foo should be a number or vector, not a block.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
-                expected: "number",
+                expected: "number or vector",
                 got: "block"
             ), at: range))
         }

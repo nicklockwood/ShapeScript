@@ -72,6 +72,22 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("(1 + 2) * 3"), .number)
     }
 
+    func testArithmeticExpressionType3() {
+        XCTAssertEqual(try expressionType("\"1\" + 2"), .number)
+    }
+
+    func testVectorExpressionType() {
+        XCTAssertEqual(try expressionType("(1 2) * 3"), .list(.number))
+    }
+
+    func testVectorExpressionType2() {
+        XCTAssertEqual(try expressionType("2 + (3 4)"), .list(.number))
+    }
+
+    func testVectorExpressionType3() {
+        XCTAssertEqual(try expressionType("(\"1\" \"2\") * 3"), .list(.number))
+    }
+
     func testBooleanLiteral() {
         XCTAssertEqual(try expressionType("true"), .boolean)
     }
@@ -313,13 +329,13 @@ class TypesystemTests: XCTestCase {
 
     func testInferSimpleFunctionParameter() throws {
         let type = try functionType("define foo(bar) { bar + 1 }")
-        XCTAssertEqual(type.parameterType, .tuple([.number]))
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
         XCTAssertEqual(type.returnType, .number)
     }
 
     func testInferSimpleFunctionParameters() throws {
         let type = try functionType("define foo(bar baz) { bar + baz }")
-        XCTAssertEqual(type.parameterType, .tuple([.number, .number]))
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector, .numberOrVector]))
         XCTAssertEqual(type.returnType, .number)
     }
 
@@ -343,7 +359,7 @@ class TypesystemTests: XCTestCase {
             print quux
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.number, .list(.any)]))
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector, .list(.any)]))
         XCTAssertEqual(type.returnType, .number)
     }
 
@@ -381,7 +397,7 @@ class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.number, .list(.any)]))
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector, .list(.any)]))
         XCTAssertEqual(type.returnType, .union([.number, .void]))
     }
 
@@ -409,7 +425,7 @@ class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .list(.any)]), .number]))
+        XCTAssertEqual(type.parameterType, .tuple([.union([.numberOrVector, .list(.any)]), .number]))
         XCTAssertEqual(type.returnType, .void)
     }
 
@@ -424,7 +440,9 @@ class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .texture])]))
+        XCTAssertEqual(type.parameterType, .tuple([
+            .union([.number, .list(.number), .texture]),
+        ]))
         XCTAssertEqual(type.returnType, .void)
     }
 

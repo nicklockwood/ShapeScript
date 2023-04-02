@@ -93,6 +93,7 @@ extension ValueType {
     static let sequence: ValueType = .union([.range, .list(.any)])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
+    static let numberOrVector: ValueType = .union([.number, .list(.number)])
 
     static func optional(_ type: ValueType) -> ValueType {
         .union([type, .void])
@@ -640,13 +641,15 @@ extension Expression {
             lhs.inferTypes(for: &params, in: context, with: .range)
             rhs.inferTypes(for: &params, in: context, with: .number)
         case let .prefix(.minus, rhs), let .prefix(.plus, rhs):
-            rhs.inferTypes(for: &params, in: context, with: .number)
-        case let .infix(lhs, .to, rhs),
-             let .infix(lhs, .minus, rhs),
+            rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
+        case let .infix(lhs, .minus, rhs),
              let .infix(lhs, .plus, rhs),
              let .infix(lhs, .times, rhs),
              let .infix(lhs, .divide, rhs),
-             let .infix(lhs, .modulo, rhs),
+             let .infix(lhs, .modulo, rhs):
+            lhs.inferTypes(for: &params, in: context, with: .numberOrVector)
+            rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
+        case let .infix(lhs, .to, rhs),
              let .infix(lhs, .lt, rhs),
              let .infix(lhs, .gt, rhs),
              let .infix(lhs, .lte, rhs),
@@ -739,13 +742,26 @@ extension Expression {
                 }
                 return .list(type ?? .any)
             }
-        case .prefix(.minus, _),
-             .prefix(.plus, _),
-             .infix(_, .minus, _),
-             .infix(_, .plus, _),
-             .infix(_, .times, _),
-             .infix(_, .divide, _),
-             .infix(_, .modulo, _):
+        case let .prefix(.minus, rhs),
+             let .prefix(.plus, rhs):
+            if try rhs.staticType(in: context).isSubtype(of: .list(.any)) {
+                return .list(.number)
+            }
+            return .number
+        case let .infix(lhs, .minus, rhs),
+             let .infix(lhs, .plus, rhs):
+            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) ||
+                rhs.staticType(in: context).isSubtype(of: .list(.any))
+            {
+                return .list(.number)
+            }
+            return .number
+        case let .infix(lhs, .times, _),
+             let .infix(lhs, .divide, _),
+             let .infix(lhs, .modulo, _):
+            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) {
+                return .list(.number)
+            }
             return .number
         case .infix(_, .to, _), .infix(_, .step, _):
             return .range
