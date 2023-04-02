@@ -1245,12 +1245,24 @@ extension Expression {
         case let .tuple(expressions):
             return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })
         case let .prefix(op, expression):
-            let value = try expression.evaluate(as: .number, for: String(op.rawValue), index: 0, in: context)
+            let value = try expression.evaluate(
+                as: .union([.number, .list(.number)]),
+                for: String(op.rawValue),
+                in: context
+            )
             switch op {
             case .minus:
-                return .number(-value.doubleValue)
+                switch value {
+                case let .tuple(values):
+                    return .tuple(values.map { .number(-$0.doubleValue) })
+                case let .number(value):
+                    return .number(-value)
+                default:
+                    assertionFailure()
+                    return value
+                }
             case .plus:
-                return .number(value.doubleValue)
+                return value
             }
         case let .infix(lhs, .to, rhs):
             let start = try lhs.evaluate(as: .number, for: "start value", in: context)

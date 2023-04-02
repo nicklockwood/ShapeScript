@@ -2833,6 +2833,51 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Math operators
 
+    func testNegateNumericExpression() {
+        let program = """
+        print -(1 + 2)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-3.0])
+    }
+
+    func testNegateNumericStringExpression() {
+        let program = """
+        print -(\"1\" + \"2\")
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-3.0])
+    }
+
+    func testNegateNumericString() {
+        let program = """
+        print -\"42\"
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-42.0])
+    }
+
+    func testCoerceNumericString() {
+        let program = """
+        print +\"42\"
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [42.0])
+    }
+
+    func testCoerceNumericStringExpression() {
+        let program = """
+        print +(\"1\" + \"2\")
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3.0])
+    }
+
     func testModuloOperator() {
         let program = """
         print 3 % 3
@@ -3015,6 +3060,27 @@ class InterpreterTests: XCTestCase {
     }
 
     // MARK: Vector algebra
+
+    func testNumericTupleNegation() {
+        let program = "print -(1 0 -2)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1.0, 0, 2.0])
+    }
+
+    func testNumericStringTupleNegation() {
+        let program = "print -(\"1\" \"0\" \"-2\")"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1.0, 0, 2.0])
+    }
+
+    func testNumericStringTupleCoercion() {
+        let program = "print +(\"1\" \"0\" \"-2\")"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 0, -2.0])
+    }
 
     func testNumericTupleScalarMultiply() {
         let program = "print (1 0 -2) * 3"
