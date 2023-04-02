@@ -327,11 +327,14 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         "roundrect": .block(.custom(.pathShape, [
             "radius": .number,
+            "size": .size,
         ], .void, .path)) { context in
-            let radius = context.value(for: "radius")?.doubleValue ?? 0.25
+            let size = context.value(for: "size")?.value as? Vector ?? .one
+            let scale = Swift.min(size.x, size.y)
+            let radius = (context.value(for: "radius")?.doubleValue ?? 0.25) * scale
             return .path(Path.roundedRectangle(
-                width: 1,
-                height: 1,
+                width: size.x,
+                height: size.y,
                 radius: radius,
                 detail: context.detail / 4,
                 color: context.material.color
