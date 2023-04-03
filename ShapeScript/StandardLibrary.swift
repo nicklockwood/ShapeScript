@@ -271,6 +271,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 if !points.isEmpty {
                     subpaths.append(.curve(points, detail: context.detail / 4))
                 }
+                points.removeAll()
             }
             for child in context.children {
                 switch child {
