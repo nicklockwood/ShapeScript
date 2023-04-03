@@ -12,7 +12,7 @@
         <!--Document Browser View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="DocumentBrowserViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="DocumentBrowserViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -27,13 +27,13 @@
         <!--Document View Controller-->
         <scene sceneID="dkP-xk-x6W">
             <objects>
-                <viewController storyboardIdentifier="DocumentViewController" id="M2k-L8-Olo" customClass="DocumentViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="DocumentViewController" id="M2k-L8-Olo" customClass="DocumentViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="SIE-Uh-Zny">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RpZ-Bw-gc3" customClass="SplitView" customModule="Viewer" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RpZ-Bw-gc3" customClass="SplitView" customModule="ShapeScriptApp" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="-1" width="375" height="668"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                             </view>
@@ -63,6 +63,7 @@
                                             </connections>
                                         </barButtonItem>
                                         <rightBarButtonItems>
+                                            <barButtonItem title="Info" image="square.and.arrow.up" catalog="system" id="ljV-pr-4b0" userLabel="Export Button"/>
                                             <barButtonItem title="Camera" image="camera" catalog="system" id="PxS-9e-FYL"/>
                                             <barButtonItem title="Info" image="info.circle" catalog="system" id="zzp-j3-Tsu">
                                                 <connections>
@@ -100,6 +101,7 @@
                         <outlet property="editButton" destination="VSi-z2-lcA" id="Xzg-hh-2pv"/>
                         <outlet property="errorScrollView" destination="Qkp-ey-NHd" id="nQd-bK-eJw"/>
                         <outlet property="errorTextView" destination="Qkp-ey-NHd" id="d1f-KH-bhz"/>
+                        <outlet property="exportButton" destination="ljV-pr-4b0" id="8v8-hh-6KV"/>
                         <outlet property="grantAccessButton" destination="9c5-Nk-nb2" id="Red-al-aaD"/>
                         <outlet property="infoButton" destination="zzp-j3-Tsu" id="kp3-tf-J80"/>
                         <outlet property="navigationBar" destination="ZdZ-ln-uQQ" id="qgj-uv-sDv"/>
@@ -112,13 +114,13 @@
         <!--Source View Controller-->
         <scene sceneID="Kfv-qc-hvJ">
             <objects>
-                <viewController storyboardIdentifier="SourceViewController" id="En0-NS-SPY" customClass="SourceViewController" customModule="Viewer" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="SourceViewController" id="En0-NS-SPY" customClass="SourceViewController" customModule="ShapeScriptApp" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="4h3-ri-0Qc">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XIj-HV-BPc" customClass="TokenView" customModule="Viewer" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XIj-HV-BPc" customClass="TokenView" customModule="ShapeScriptApp" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="-1" width="375" height="668"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <viewLayoutGuide key="contentLayoutGuide" id="XvO-oM-PCN"/>
                                 <viewLayoutGuide key="frameLayoutGuide" id="aTN-Aa-aXV"/>
@@ -140,6 +142,7 @@
     <resources>
         <image name="camera" catalog="system" width="128" height="93"/>
         <image name="info.circle" catalog="system" width="128" height="123"/>
+        <image name="square.and.arrow.up" catalog="system" width="115" height="128"/>
         <image name="square.and.pencil" catalog="system" width="128" height="113"/>
         <image name="xmark" catalog="system" width="128" height="113"/>
         <systemColor name="systemBackgroundColor">

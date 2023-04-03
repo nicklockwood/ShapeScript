@@ -11,11 +11,15 @@ import SceneKit
 import ShapeScript
 import UIKit
 
+protocol ExportMenuProvider {
+    func updateExportMenu()
+}
+
 class DocumentViewController: UIViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?
     private(set) var interfaceColor: UIColor = .black
-    private(set) var scnView: SCNView!
+    private(set) var scnView: SCNView = .init()
     private let consoleTextView: UITextView = .init()
     private let loadingIndicator: UIActivityIndicatorView = .init()
 
@@ -23,6 +27,7 @@ class DocumentViewController: UIViewController {
     @IBOutlet private var errorScrollView: UIScrollView!
     @IBOutlet private(set) var errorTextView: UITextView!
     @IBOutlet private(set) var grantAccessButton: UIButton!
+    @IBOutlet private(set) var exportButton: UIBarButtonItem!
     @IBOutlet private var closeButton: UIBarButtonItem!
     @IBOutlet private var infoButton: UIBarButtonItem!
     @IBOutlet private var cameraButton: UIBarButtonItem!
@@ -48,6 +53,7 @@ class DocumentViewController: UIViewController {
                 navigationBar.tintColor = interfaceColor
                 cameraButton.isEnabled = true
                 infoButton.isEnabled = true
+                exportButton.isEnabled = true
                 return
             }
             errorTextView.attributedText = errorMessage
@@ -55,6 +61,7 @@ class DocumentViewController: UIViewController {
             navigationBar.tintColor = .white
             cameraButton.isEnabled = false
             infoButton.isEnabled = false
+            exportButton.isEnabled = false
         }
     }
 
@@ -203,6 +210,10 @@ class DocumentViewController: UIViewController {
         return brightness > 0.5
     }
 
+    var exportMenuProvider: ExportMenuProvider? {
+        self as Any as? ExportMenuProvider
+    }
+
     func updateInterfaceColor() {
         interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
         navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
@@ -249,6 +260,7 @@ class DocumentViewController: UIViewController {
             updateAxesAndCamera()
             resetView()
         }
+        rebuildMenu()
     }
 
     override func viewDidLoad() {
@@ -267,6 +279,13 @@ class DocumentViewController: UIViewController {
         navigationBar.topItem?.leftBarButtonItems?.append(loadingItem)
         navigationBar.setBackgroundImage(.init(), for: .default)
         navigationBar.shadowImage = .init()
+        if let exportMenuProvider = exportMenuProvider {
+            exportMenuProvider.updateExportMenu()
+        } else {
+            navigationBar.topItem?.rightBarButtonItems?.removeAll(where: {
+                $0 === exportButton
+            })
+        }
 
         // configure the view
         containerView.backgroundColor = Document.backgroundColor
@@ -285,9 +304,29 @@ class DocumentViewController: UIViewController {
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
+
+        if self as Any is ExportMenuProvider {
+            scheduleCameraMovedTimer()
+        }
+    }
+
+    private var _cameraHadMoved = false
+    private func scheduleCameraMovedTimer() {
+        Timer.scheduledTimer(
+            withTimeInterval: 1,
+            repeats: false
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            if self.cameraHasMoved != self._cameraHadMoved {
+                self._cameraHadMoved = self.cameraHasMoved
+                self.rebuildMenu()
+            }
+            self.scheduleCameraMovedTimer()
+        }
     }
 
     private func rebuildMenu() {
+        // Update camera menu
         let cameras: [Camera]
         if let document = document {
             cameras = document.cameras
@@ -306,7 +345,8 @@ class DocumentViewController: UIViewController {
                 identifier: nil,
                 discoverabilityTitle: nil,
                 attributes: [],
-                state: self.camera == camera ? .on : .off
+                state: self.camera == camera ?
+                    (cameraHasMoved ? .mixed : .on) : .off
             ) { [weak self] _ in
                 _ = self?.document?.selectCamera(at: i)
             }
@@ -323,7 +363,7 @@ class DocumentViewController: UIViewController {
                     image: nil,
                     identifier: nil,
                     discoverabilityTitle: nil,
-                    attributes: [],
+                    attributes: cameraHasMoved ? [] : .disabled,
                     state: .off
                 ) { [weak self] _ in
                     self?.resetCamera()
@@ -347,7 +387,8 @@ class DocumentViewController: UIViewController {
                             identifier: nil,
                             discoverabilityTitle: nil,
                             attributes: camera.isOrthographic.map { _ in .disabled } ?? [],
-                            state: isOrthographic ? .on : .off
+                            state: isOrthographic ||
+                                camera.isOrthographic == true ? .on : .off
                         ) { [weak self] _ in
                             self?.toggleOrthographic()
                         },
@@ -385,6 +426,8 @@ class DocumentViewController: UIViewController {
                 ),
             ]
         )
+        // Update export menu
+        exportMenuProvider?.updateExportMenu()
     }
 
     @IBAction func showModelInfo() {

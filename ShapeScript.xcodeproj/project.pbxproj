@@ -30,6 +30,8 @@
 		014F85D9215B890100461FB7 /* Interpreter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85D8215B890100461FB7 /* Interpreter.swift */; };
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
 		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
+		016F9ED229DB2315008206CE /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */; };
+		016F9ED429DB24F8008206CE /* CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = 016F9ED329DB24F8008206CE /* CHANGELOG.md */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
 		0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
 		0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
@@ -286,6 +288,8 @@
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
+		016F9ED329DB24F8008206CE /* CHANGELOG.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
 		01746BF126C5D226009DADEF /* GeometryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryType.swift; sourceTree = "<group>"; };
 		0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
@@ -491,11 +495,13 @@
 				0183AAD528EC3ACB00AD1984 /* WindowController.swift */,
 				0183AAD628EC3ACB00AD1984 /* Assets.xcassets */,
 				0183AAD728EC3ACB00AD1984 /* WelcomeViewController.swift */,
+				016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */,
 				0183AAD828EC3ACB00AD1984 /* PreferencesViewController.swift */,
 				0183AAD928EC3ACB00AD1984 /* Main.storyboard */,
 				0183AADB28EC3ACB00AD1984 /* Document.swift */,
 				0183AADC28EC3ACB00AD1984 /* Viewer.entitlements */,
 				0183AADD28EC3ACB00AD1984 /* Welcome.rtf */,
+				016F9ED329DB24F8008206CE /* CHANGELOG.md */,
 				0183AADE28EC3ACB00AD1984 /* AppDelegate.swift */,
 				0183AADF28EC3ACB00AD1984 /* DocumentViewController.swift */,
 				0183AAE028EC3ACB00AD1984 /* Info.plist */,
@@ -829,6 +835,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0183AAE728EC3ACB00AD1984 /* Main.storyboard in Resources */,
+				016F9ED429DB24F8008206CE /* CHANGELOG.md in Resources */,
 				0183AAE928EC3ACB00AD1984 /* Welcome.rtf in Resources */,
 				0183AAE428EC3ACB00AD1984 /* Assets.xcassets in Resources */,
 				01BD9437219367D2005FFAEC /* Examples in Resources */,
@@ -939,6 +946,7 @@
 				0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */,
 				0183AAB028EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAE528EC3ACB00AD1984 /* WelcomeViewController.swift in Sources */,
+				016F9ED229DB2315008206CE /* WhatsNewViewController.swift in Sources */,
 				0183AAEA28EC3ACB00AD1984 /* AppDelegate.swift in Sources */,
 				0183AAA828EC3AA600AD1984 /* DocumentViewController+View.swift in Sources */,
 				0183AAAC28EC3AA600AD1984 /* Axes.swift in Sources */,

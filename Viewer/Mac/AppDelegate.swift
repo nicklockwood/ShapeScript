@@ -9,6 +9,10 @@
 import Cocoa
 import ShapeScript
 
+protocol ExportMenuProvider {
+    func updateExportMenu()
+}
+
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow? {
@@ -18,6 +22,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var welcomeWindowController: NSWindowController = NSStoryboard(name: "Main", bundle: nil)
         .instantiateController(withIdentifier: "WelcomeWindow") as! NSWindowController
 
+    lazy var whatsNewWindowController: NSWindowController? = NSStoryboard(name: "Main", bundle: nil)
+        .instantiateController(withIdentifier: "ReleaseNotesWindow") as? NSWindowController
+
     lazy var preferencesWindowController: NSWindowController = NSStoryboard(name: "Main", bundle: nil)
         .instantiateController(withIdentifier: "PreferencesWindow") as! NSWindowController
 
@@ -25,6 +32,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBOutlet private var examplesMenu: NSMenu!
     @IBOutlet private var camerasMenu: NSMenu!
+    @IBOutlet var exportMenuItem: NSMenuItem?
+    @IBOutlet var iapMenuItem: NSMenuItem?
+
+    private var exportMenuProvider: ExportMenuProvider? {
+        self as Any as? ExportMenuProvider
+    }
 
     func applicationDidFinishLaunching(_: Notification) {
         let firstLaunchOfNewVersion = (Settings.shared.appVersion != NSApplication.appVersion)
@@ -35,6 +48,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if WelcomeViewController.shouldShowAtStartup {
             welcomeWindowController.showWindow(self)
             dismissOpenSavePanel()
+        } else if firstLaunchOfNewVersion {
+            whatsNewWindowController?.showWindow(self)
+            dismissOpenSavePanel()
         }
         if let files = Bundle.main.urls(forResourcesWithExtension: "shape", subdirectory: "Examples") {
             for url in files.sorted(by: { $0.path < $1.path }) {
@@ -43,6 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }
         }
+        exportMenuProvider?.updateExportMenu()
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
@@ -52,8 +69,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    @IBAction func showHelp(_: Any) {
+    @IBAction func openOnlineDocumentation(_: Any) {
         NSWorkspace.shared.open(onlineHelpURL)
+    }
+
+    @IBAction func openCommunity(_: Any) {
+        NSWorkspace.shared.open(URL(string:
+            "https://www.reddit.com/r/shapescript/")!)
     }
 
     @IBAction func openExample(sender: NSMenuItem) {
@@ -66,8 +88,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController.showWindow(self)
     }
 
+    private func composeEmail(subject: String, body: String, error: String) {
+        let emailService = NSSharingService(named: .composeEmail)!
+        emailService.recipients = ["support@charcoaldesign.co.uk"]
+        emailService.subject = subject
+
+        if emailService.canPerform(withItems: [body]) {
+            emailService.perform(withItems: [body])
+        } else {
+            let error = NSError(domain: "", code: 0, userInfo: [
+                NSLocalizedDescriptionKey: error,
+            ])
+            NSDocumentController.shared.presentError(error)
+        }
+    }
+
+    @IBAction func reportBug(_: Any) {
+        composeEmail(subject: "ShapeScript bug report", body: "Write your bug report here.\n\nRemember to include all relevant information needed to reproduce the issue.\n\nIf you have a .shape file or screenshot that demonstrates the problem, please attach it.", error: "No email client is set up on this machine. Please report bugs to support@charcoaldesign.co.uk with the subject line 'ShapeScript bug report'.")
+    }
+
+    @IBAction func requestFeature(_: Any) {
+        composeEmail(subject: "ShapeScript feature request", body: "Write your feature request here.", error: "No email client is set up on this machine. Please send feature requests to support@charcoaldesign.co.uk with the subject line 'ShapeScript feature request'.")
+    }
+
     @IBAction func showWelcomeWindow(_: Any) {
         welcomeWindowController.showWindow(self)
+    }
+
+    @IBAction func showWhatsNew(_: Any) {
+        whatsNewWindowController?.showWindow(self)
     }
 }
 

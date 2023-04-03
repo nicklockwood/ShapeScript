@@ -41,11 +41,11 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             title: "Welcome to ShapeScript",
             message: """
 
-            ShapeScript is a text-based 3D modeling tool for macOS.
+            ShapeScript is a text-based 3D modeling tool for iOS and macOS.
 
-            This viewer can be used to preview models in ShapeScript's shape file format, but does not include an editor.
+            If this is your first time using ShapeScript, we recommend you check out the Getting Started guide in the online documentation.
 
-            You can edit shape files in a text editor such as Subtext or Runestone.
+            ShapeScript is free to use for viewing and editing models in ShapeScript's own shape file format.
             """,
             preferredStyle: .alert
         )
