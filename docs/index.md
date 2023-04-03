@@ -1,4 +1,4 @@
-![Screenshot](https://raw.githubusercontent.com/nicklockwood/ShapeScript/master/Screenshot.jpg)
+![Screenshot](https://raw.githubusercontent.com/nicklockwood/ShapeScript/master/images/Screenshot.jpg)
 
 Overview
 ---
@@ -11,6 +11,11 @@ The ShapeScript app includes a parser for a simple language (also called "ShapeS
 
 You don't need to be a programmer to use ShapeScript. If you have ever worked with any kind of structured text like JSON or HTML then it should come naturally. But if you *do* have experience with programming, then you can apply those skills to create even more complex models by using loops, functions and variables to procedurally generate geometry.
 
+ShapeScript is available to download for free from the iOS and Mac App Stores respectively:
+
+[<img alt="Mac App Store" height="115" src="https://raw.githubusercontent.com/nicklockwood/ShapeScript/master/images/mac-app-store-badge.png"/>](https://apps.apple.com/app/id1441135869)
+[<img alt="App Store" height="115" src="https://raw.githubusercontent.com/nicklockwood/ShapeScript/master/images/app-store-badge.png"/>](https://apps.apple.com/app/id1606439346)
+
 ---
 
-[Mac documentation](mac/index.md) | [iOS documentation](ios/index.md) | [Source code](https://github.com/nicklockwood/ShapeScript)
+[Mac documentation](mac/index.md) • [iOS documentation](ios/index.md) • [Source code](https://github.com/nicklockwood/ShapeScript)

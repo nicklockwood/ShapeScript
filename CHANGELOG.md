@@ -1,5 +1,21 @@
 # Change Log
 
+## [1.6.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.7) (2023-04-04)
+
+- Added `arc` command
+- Added vector algebra operators
+- Setting unequal width/height no longer distorts corner radius for `roundrect` command
+- Added `sign`, `dot`, `cross`, `length` and `normalize` functions
+- Added implicit casting between vector and size values
+- Select Shape menu is now disabled when empty
+- Improved argument error messages
+- Fixed bug where modulo operator sometimes returned negative values
+- Fixed bug when mixing points and subpaths in a `path` command
+- Fixed retain cycle in iOS file dialog
+- Fixed potential crash in `selectCamera()` function
+- Increased code sharing between Mac and iOS Viewer implementations
+- Bumped Euclid to version 0.6.12
+
 ## [1.6.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.6) (2023-03-25)
 
 - The position and transform of mesh and path values can now be set as if they were a block
