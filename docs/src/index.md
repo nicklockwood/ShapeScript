@@ -46,6 +46,7 @@ ShapeScript Help
     - [Paths](paths.md)
         - [Points](paths.md#points)
         - [Curves](paths.md#curves)
+        - [Arcs](paths.md#arcs)
         - [Circles](paths.md#circles)
         - [Rectangles](paths.md#rectangles)
         - [Regular Polygons](paths.md#regular-polygons)

@@ -123,7 +123,7 @@ print normalize(v) // returns 0.6 0.8
 
 ## Trigonometry
 
-For the most part, you can avoid the need for trigonometry is ShapeScript by using the built-in [transform commands](transforms.md#relative-transforms) to manipulate geometry rather than manually calculating the positions of vertices.
+For the most part, you can avoid the need for trigonometry in ShapeScript by using the built-in [transform commands](transforms.md#relative-transforms) to manipulate geometry rather than manually calculating the positions of vertices.
 
 But sometimes you may wish to do something more complex (e.g. generating a path in the shape of a sign wave) that can only be achieved through explicit calculations, and to support that, ShapeScript provides a standard suite of trigonometric functions.
 

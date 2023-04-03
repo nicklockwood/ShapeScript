@@ -296,6 +296,26 @@ extension Dictionary where Key == String, Value == Symbol {
             }
             return .path(subpaths[0].transformed(by: context.transform))
         },
+        "arc": .block(.custom(.polygon, [
+            "angle": .angle,
+        ], .void, .list(.point))) { context in
+            let angle = context.value(for: "angle")?.angleValue ?? .pi
+            let span = Swift.max(0, Swift.min(1, abs(angle.radians) / (2 * .pi)))
+            var segments = Int(ceil(span * Double(context.detail)))
+            switch span {
+            case 0 ..< 0.5:
+                segments = Swift.max(1, segments)
+            case 0.5 ..< 1:
+                segments = Swift.max(2, segments)
+            default:
+                segments = Swift.max(3, segments)
+            }
+            return .path(Path.arc(
+                angle: angle,
+                segments: segments,
+                color: context.material.color
+            ).transformed(by: context.transform))
+        },
         "circle": .block(.pathShape) { context in
             .path(Path.circle(
                 segments: context.detail,
