@@ -421,7 +421,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "not": .function(.boolean, .boolean) { value, _ in
             .boolean(!value.boolValue)
         },
-        // Math
+        // Randomness
         "rnd": .function(.void, .number) { _, context in
             .number(context.random.next())
         },
@@ -430,23 +430,31 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .number(Double(context.random.seed))
         }),
-        "round": .function(.number, .number) { value, _ in
-            .number(value.doubleValue.rounded())
+        // Math
+        "abs": .function(.number, .number) { value, _ in
+            .number(value.doubleValue.magnitude)
+        },
+        "sign": .function(.number, .number) { value, _ in
+            switch value.doubleValue {
+            case 0: return .number(0)
+            case ..<0: return .number(-1)
+            default: return .number(1)
+            }
+        },
+        "ceil": .function(.number, .number) { value, _ in
+            .number(value.doubleValue.rounded(.up))
         },
         "floor": .function(.number, .number) { value, _ in
             .number(value.doubleValue.rounded(.down))
         },
-        "ceil": .function(.number, .number) { value, _ in
-            .number(value.doubleValue.rounded(.up))
+        "round": .function(.number, .number) { value, _ in
+            .number(value.doubleValue.rounded())
         },
         "max": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.max() ?? 0)
         },
         "min": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.min() ?? 0)
-        },
-        "abs": .function(.number, .number) { value, _ in
-            .number(value.doubleValue.magnitude)
         },
         "sqrt": .function(.number, .number) { value, _ in
             .number(sqrt(value.doubleValue))
@@ -455,6 +463,7 @@ extension Dictionary where Key == String, Value == Symbol {
             let values = value.doublesValue
             return .number(pow(values[0], values[1]))
         },
+        // Trigonometry
         "cos": .function(.number, .number) { value, _ in
             .number(cos(value.doubleValue))
         },

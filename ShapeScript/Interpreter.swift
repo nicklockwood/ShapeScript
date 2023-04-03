@@ -526,6 +526,8 @@ private extension RuntimeError {
         "magnitude": ["length"],
         "norm": ["length"],
         "radius": ["size"],
+        "sine": ["sin"],
+        "cosine": ["cos"],
         "x": ["width", "position"],
         "y": ["height", "position"],
         "z": ["depth", "position"],
@@ -536,6 +538,11 @@ private extension RuntimeError {
         "head": ["first"],
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],
+        "rands": ["rnd", "seed"],
+        "rand": ["rnd"],
+        "random": ["rnd"],
+        "noise": ["rnd"],
+        "signum": ["sign"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {

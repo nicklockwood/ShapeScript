@@ -58,6 +58,14 @@ abs 4.5 // returns 4.5
 abs -51 // returns 51
 ```
 
+The `sign` function (not to be confused with [sin](#trigonometry)) returns `1`, `-1` or `0` depending on the sign of the input:
+
+```swift
+sign 4.5 // returns 1
+sign -51 // returns -1
+sign 0 // returns 0
+```
+
 The `sqrt` function returns the square root of a value:
 
 ```swift

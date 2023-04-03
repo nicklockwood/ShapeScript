@@ -2613,6 +2613,18 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [2])
     }
 
+    func testSignFunction() {
+        let program = """
+        print sign -10
+        print sign 7.5
+        print sign 0
+        print sign -0
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [-1, 1, 0, 0])
+    }
+
     func testFunctionAmbiguity() {
         let program = "print -cos(pi) + sin(pi)"
         let delegate = TestDelegate()
