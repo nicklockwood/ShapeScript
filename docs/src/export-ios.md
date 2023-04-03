@@ -3,17 +3,17 @@ Export
 
 Once you've finished crafting your 3D scene, you'll probably want to *do something* with it. For that you will need to use the *Export* feature.
 
-**Export is a paid upgrade that can be unlocked via in-app purchase in the [ShapeScript Mac App](https://apps.apple.com/app/id1441135869). Export is not available in the free ShapesScript Viewer.**
+**Export is a paid upgrade that can be unlocked via in-app purchase in the [ShapeScript iOS App](https://apps.apple.com/app/id1606439346). Export is not available in the free ShapesScript Viewer.**
 
-To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-Shift-E**) to unlock the export functionality. Once unlocked, this menu will change to `Export…`.
+To export your scene, select the export menu in the top-right of the window to unlock the export functionality. Once unlocked, this menu will display the export options.
 
-**Note:** If the `Export…` menu is grayed-out, it is most likely because your scene is still loading. Wait for the loading spinner in the top-left of the ShapeScript document window to finish before trying to export.
+**Note:** If the `Export Image/Model` menu is grayed-out, it is most likely because your scene is still loading. Wait for the loading spinner in the top-left of the ShapeScript window to finish before trying to export.
 
-![Loading](../../images/loading.png)
+![Loading](../images/loading.png)
 
 ## Export Formats
 
-ShapeScript can export your scene in a variety of model formats, selectable from the export window:
+ShapeScript can export your scene in a variety of model file formats, selectable from the export menu:
 
 Extension             | File Type                                        | Supports All Features
 :-------------------- | :------------------------------------------------|:------------------------------
@@ -45,7 +45,7 @@ ShapeScript can export models in Stereolithography (STL) format, used by many 3D
 
 When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine all the parts of your model into a single shape, eliminating internal faces.
 
-ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export window to export your model in this orientation.
+ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export menu to export your model in this orientation.
 
 ## Image Formats
 
@@ -55,12 +55,8 @@ The following image formats are supported:
 
 Extension             | File Type                                         | Supports Transparency
 :---------------------| :-------------------------------------------------|:------------------------------
-gif                   | Graphics Interchange Format                       | Yes
 png                   | Portable Network Graphics                         | Yes
 jpg / jpeg            | Joint Photographic Experts Group                  | No
-jpf / jp2             | JPEG 2000                                         | Yes
-tif / tiff            | Tagged Image File Format                          | Yes 
-bmp                   | Bitmap                                            | No
 
 <br/>
 
@@ -68,9 +64,9 @@ If you aren't sure which format to use, the PNG format is a good all-rounder, wi
 
 ## Image Options
 
-The size of the exported image defaults to the current window size at the current display resolution. You can override this size in your script file by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions), or by clicking on the size label in the export window and selecting a different size:
+The size of the exported image defaults to the current window size at the current display resolution. You can override this size in your script file by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions), or by tapping on the size label in the export menu and selecting a different size:
 
-![Export size](../../images/export-size.png)
+![Export size](../images/export-size.png)
 
 Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background).
 

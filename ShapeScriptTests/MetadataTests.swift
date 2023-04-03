@@ -190,7 +190,7 @@ class MetadataTests: XCTestCase {
             }.joined(separator: "\n")
         }
 
-        let indexMac = try """
+        let index = try """
         ShapeScript Help
         ---
 
@@ -204,27 +204,9 @@ class MetadataTests: XCTestCase {
 
         """
 
-        let indexIOS = try """
-        ShapeScript Help
-        ---
-
-        \(buildLinks(headerLinks, indent: 0))
-        - Geometry
-        \(buildLinks(geometryLinks, indent: 1))
-        - Syntax
-        \(buildLinks(syntaxLinks, indent: 1))
-        \(buildLinks(footerLinks, indent: 0))
-
-        """
-
-        for (index, url) in [
-            (indexMac, helpIndexURL),
-            (indexIOS, helpIndexURL.appendingSuffix("-ios")),
-        ] {
-            let existing = try String(contentsOf: url)
-            XCTAssertEqual(existing, index)
-            try index.write(to: url, atomically: true, encoding: .utf8)
-        }
+        let existing = try String(contentsOf: helpIndexURL)
+        XCTAssertEqual(existing, index)
+        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
     }
 
     func testHelpFooterLinks() throws {

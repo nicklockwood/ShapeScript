@@ -21,9 +21,10 @@ ShapeScript is also the scripting language used for the ShapeScript [Mac](https:
 
 ShapeScript is implemented on top of [Euclid](https://github.com/nicklockwood/Euclid), a cross-platform 3D modeling library written in Swift. Anything you can construct using ShapeScript can be replicated programmatically in Swift using Euclid.
 
-If you would like to support the development of Euclid and the ShapeScript language, please consider buying a copy of [ShapeScript for Mac](https://apps.apple.com/app/id1441135869) (the app itself is free, but there is an in-app purchase to unlock some features).
+If you would like to support the development of Euclid and the ShapeScript language, please consider buying a copy of ShapeScript for Mac or iOS (the apps themselves are free, but there is an in-app purchase to unlock some features).
 
 [<img alt="Mac App Store" height="115" src="images/mac-app-store-badge.png?raw=true"/>](https://apps.apple.com/app/id1441135869)
+[<img alt="App Store" height="115" src="images/app-store-badge.png?raw=true"/>](https://apps.apple.com/app/id1606439346)
 
 # Installation
 

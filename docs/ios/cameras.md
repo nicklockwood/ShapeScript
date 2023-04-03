@@ -15,7 +15,7 @@ camera
 
 The location of the camera in the file is mostly unimportant - it will behave the same if it is placed before or after the visible geometry. Cameras added to your `.shape` file will appear in the camera menu below the other cameras.
 
-![Custom camera menu](../images/custom-camera-menu-ios-1.6.3.png)
+![Custom camera menu](../images/custom-camera-menu-ios-1.6.4.png)
 
 You may add multiple cameras to a scene and they will be named "Custom", "Custom 2", "Custom 3", and so on. You can use the `name` command to assign a more meaningful name to a given camera, and this will be reflected in the menu:
 

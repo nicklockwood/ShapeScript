@@ -9,7 +9,7 @@ If you do not have any existing ShapeScript files, you can create one using the 
 
 After pressing OK you should see a new screen appear containing a cube, sphere and cone. These are the default contents for a new file (don't worry, you can replace them with your own shapes).
 
-![New document window](../images/new-document-ios-1.6.3.png)
+![New document window](../images/new-document-ios-1.6.4.png)
 
 ## Viewing
 
@@ -19,7 +19,7 @@ You are not actually moving the shapes themselves, but rotating the camera aroun
 
 To help you orient yourself, you can enable the `Show Axes` option in the camera menu, which displays the direction of the X, Y and Z axes.
 
-![Show axes](../images/show-axes-ios-1.6.3.png)
+![Show axes](../images/show-axes-ios-1.6.4.png)
 
 For more information about navigating around the scene, see [Camera Control](camera-control.md).
 
@@ -37,7 +37,7 @@ ShapeScript files are just ordinary text documents, so they can be opened in any
 
 If you are using an iPad, you can use the [Split View](https://support.apple.com/en-gb/guide/ipad/ipad08c9970c/ipados) feature to show both ShapeScript Viewer and your text editor app on screen simultaneously:
 
-![Split View](../images/split-view-ios-1.6.3.png)
+![Split View](../images/split-view-ios-1.6.4.png)
 
 **Note:** Not all iOS text editors support *live editing* (where changes in the text are reflected automatically in ShapeScript as you make them). You may find you have to explicitly save or close the document in your editor for changes to take effect. External editors may also not immediately pick up changes you make using the built-in source editor, so be careful when switching between them.
 
@@ -88,13 +88,13 @@ The groups of instructions after the cube are similar, but define a sphere and c
 
 Change the `color 1 0 0` instruction to `color 1 1 0`, and then save the file. If you switch back to the ShapeScript app you should now see that the red cube has changed to yellow. ShapeScript tracks changes to any open files and will automatically update the view whenever they are saved.
 
-![Yellow cube](../images/yellow-cube-ios-1.6.3.png)
+![Yellow cube](../images/yellow-cube-ios-1.6.4.png)
 
 Try tweaking the values for the `position`  and `color` instructions and observing the effects. You could also try adding a `size` option, which works like the others, but controls the *size* of the shape.
 
 If you make a mistake, you will see a screen like this:
 
-![Error screen](../images/error-screen-ios-1.6.3.png)
+![Error screen](../images/error-screen-ios-1.6.4.png)
 
 There is no cause for alarm if you see this screen. Just fix your mistake and save again to clear the error. If you aren't sure what you did, and the error message doesn't help, use undo feature in your editor to backtrack to a working state and try again.
 
@@ -108,7 +108,7 @@ To get information about your scene (such as polygon count and overall dimension
 
 To get info about a particular shape in the scene, tap on it in the viewer to select it then press the info button. This will also tell you which line in the `.shape` file defines that component. Tap outside of the shape to deselect it again.
 
-![Object info](../images/object-info-ios-1.6.3.png)
+![Object info](../images/object-info-ios-1.6.4.png)
 
 **Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
 

@@ -46,6 +46,8 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             If this is your first time using ShapeScript, we recommend you check out the Getting Started guide in the online documentation.
 
             ShapeScript is free to use for viewing and editing models in ShapeScript's own shape file format.
+
+            There is a one-time in-app purchase required to unlock the ability to export ShapeScript models for use with other applications.
             """,
             preferredStyle: .alert
         )
