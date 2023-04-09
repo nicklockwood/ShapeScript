@@ -543,6 +543,7 @@ private extension RuntimeError {
         "random": ["rnd"],
         "noise": ["rnd"],
         "signum": ["sign"],
+        "echo": ["print"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {
