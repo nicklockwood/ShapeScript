@@ -690,13 +690,8 @@ extension Expression {
                 )
             }
             switch symbol {
-            case .block:
+            case .block, .constant, .property, .function((.void, _), _):
                 return symbol.type
-            case .property, .constant, .function((.void, _), _):
-                throw RuntimeError(
-                    .unexpectedArgument(for: name, max: 0),
-                    at: block.range
-                )
             case let .function((parameterType, _), _):
                 throw RuntimeError(.typeMismatch(
                     for: name,
