@@ -384,6 +384,16 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(type.returnType, .mesh)
     }
 
+    func testInferFunctionParameterUsedInImport() throws {
+        let type = try functionType("""
+        define foo(bar) {
+            import bar
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.string]))
+        XCTAssertEqual(type.returnType, .any)
+    }
+
     func testComplexNestedFunctionParameters() throws {
         let type = try functionType("""
         define foo(bar) { bar + 1 }

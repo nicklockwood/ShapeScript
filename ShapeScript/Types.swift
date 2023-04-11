@@ -862,7 +862,9 @@ extension Statement {
             condition.inferTypes(for: &params, in: context, with: .boolean)
             body.inferTypes(for: &params, in: context)
             elseBody?.inferTypes(for: &params, in: context)
-        case .import, .option:
+        case let .import(expression):
+            expression.inferTypes(for: &params, in: context, with: .string)
+        case .option:
             return
         }
     }
