@@ -937,9 +937,23 @@ extension Statement {
                 type.formUnion(.void)
             }
             return type
-        case .import:
-            // TODO: how can we handle imports statically?
-            return .void
+        case let .import(expression):
+            var file: String?
+            switch expression.type {
+            case let .string(string):
+                file = string
+            case let .tuple(expressions):
+                if case let .string(string)? = expressions.last?.type {
+                    file = string
+                }
+            default:
+                break
+            }
+            switch file?.components(separatedBy: ".").last?.lowercased() ?? "" {
+            case "txt": return .string
+            case "shape", "json", "": return .any
+            default: return .mesh
+            }
         }
     }
 }

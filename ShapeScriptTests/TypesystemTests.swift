@@ -325,6 +325,39 @@ class TypesystemTests: XCTestCase {
         """), .color)
     }
 
+    func testImportShapeType() {
+        XCTAssertEqual(try expressionType("""
+        import "foo.shape"
+        """), .any)
+    }
+
+    func testImportModelType() {
+        XCTAssertEqual(try expressionType("""
+        import "foo.obj"
+        """), .mesh)
+    }
+
+    func testImportModelType2() {
+        XCTAssertEqual(try expressionType("""
+        define foo {
+            import "foo.obj"
+        }
+        foo
+        """), .mesh)
+    }
+
+    func testImportTextType() {
+        XCTAssertEqual(try expressionType("""
+        import "foo.txt"
+        """), .string)
+    }
+
+    func testImportJSONType() {
+        XCTAssertEqual(try expressionType("""
+        import "foo.json"
+        """), .any)
+    }
+
     // MARK: Function parameter inference
 
     func testInferSimpleFunctionParameter() throws {
