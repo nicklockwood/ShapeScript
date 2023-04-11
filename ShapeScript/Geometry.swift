@@ -675,25 +675,24 @@ private extension Geometry {
 }
 
 private extension Collection where Element == Path {
+    func fixupColors(current: Color?) -> ([Path], Color?) {
+        let current = current ?? first?.points.first?.color
+        if contains(where: {
+            $0.points.contains(where: { $0.color != current })
+        }) {
+            return (Array(self), nil)
+        }
+        return (map { $0.withColor(nil) }, current)
+    }
+
     func fixupColors(material: Material) -> ([Path], Material) {
         guard material.texture == nil else {
             return (Array(self), material)
         }
-        var current: Color?
-        for path in self {
-            for point in path.points {
-                if current == nil {
-                    current = point.color
-                } else if point.color != current {
-                    var material = material
-                    material.albedo = .color(.white)
-                    return (Array(self), material)
-                }
-            }
-        }
+        let (paths, color) = fixupColors(current: material.color)
         var material = material
-        material.albedo = (current ?? material.color).map { .color($0) }
-        return (map { $0.withColor(nil) }, material)
+        material.albedo = (color ?? material.color).map { .color($0) }
+        return (paths, material)
     }
 }
 
