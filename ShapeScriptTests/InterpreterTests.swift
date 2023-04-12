@@ -1829,6 +1829,14 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
 
+    func testImportExpression() throws {
+        let program = try parse("define foo import \"File1.shape\"")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, ["File1.shape"])
+    }
+
     // MARK: Command invocation
 
     func testInvokeCustomVoidFunctionInsideExpression() {

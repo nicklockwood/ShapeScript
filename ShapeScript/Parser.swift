@@ -32,7 +32,6 @@ public enum StatementType: Equatable {
     case ifelse(Expression, Block, else: Block?)
     case switchcase(Expression, [CaseStatement], else: Block?)
     case expression(Expression)
-    case `import`(Expression)
 }
 
 public struct Statement: Equatable {
@@ -68,6 +67,7 @@ public enum ExpressionType: Equatable {
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
     indirect case member(Expression, Identifier)
+    indirect case `import`(Expression)
 }
 
 public struct Expression: Equatable {
@@ -403,13 +403,6 @@ private extension ArraySlice where Element == Token {
         return .switchcase(condition, cases, else: defaultCase)
     }
 
-    mutating func readImport() throws -> StatementType? {
-        guard readToken(.keyword(.import)) else {
-            return nil
-        }
-        return try .import(require(readExpressions(), as: "file path"))
-    }
-
     mutating func readOperand() throws -> Expression? {
         let start = self
         let token = readToken()
@@ -466,6 +459,8 @@ private extension ArraySlice where Element == Token {
             }
             type = .tuple(expressions)
             range = range.lowerBound ..< endToken.range.upperBound
+        case .keyword(.import):
+            type = try .import(require(readExpressions(), as: "file path"))
         case .dot, .linebreak, .keyword, .infix, .lbrace, .rbrace, .rparen, .eof:
             self = start
             return nil
@@ -635,7 +630,7 @@ private extension ArraySlice where Element == Token {
 
     mutating func readStatementType() throws -> StatementType? {
         if let statement = try readDefine() ?? readOption() ??
-            readForLoop() ?? readIfElse() ?? readSwitch() ?? readImport()
+            readForLoop() ?? readIfElse() ?? readSwitch()
         {
             return statement
         }

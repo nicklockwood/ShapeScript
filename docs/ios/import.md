@@ -41,9 +41,7 @@ Depending on the format, imported models may include their own [materials](mater
 In addition to scripts and standard model formats, text files can be imported as a [string](literals.md#strings) value.
 
 ```swift
-define text {
-    import "Text.txt"  
-}
+define text import "Text.txt"
 ```
 
 Imported strings can then be displayed directly, or further processed using ShapeScript's [string functions](functions.md#strings):
@@ -57,9 +55,7 @@ for line in text.lines {
 As well as plain text, ShapeScript also supports importing JSON files as [structured data](literals.md#structured-data):
 
 ```swift
-define data {
-    import "Data.json"  
-}
+define data import "Data.json"
 ```
 
 ## Dynamic Imports

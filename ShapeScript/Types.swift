@@ -613,6 +613,8 @@ extension Expression {
                     return
                 }
             }
+        case let .import(expression):
+            expression.inferTypes(for: &params, in: context, with: .string)
         case let .infix(lhs, .step, rhs):
             lhs.inferTypes(for: &params, in: context, with: .range)
             rhs.inferTypes(for: &params, in: context, with: .number)
@@ -746,6 +748,23 @@ extension Expression {
         case let .member(expression, member):
             let type = try expression.staticType(in: context)
             return type.memberType(member.name) ?? .any
+        case let .import(expression):
+            var file: String?
+            switch expression.type {
+            case let .string(string):
+                file = string
+            case let .tuple(expressions):
+                if case let .string(string)? = expressions.last?.type {
+                    file = string
+                }
+            default:
+                break
+            }
+            switch file?.components(separatedBy: ".").last?.lowercased() ?? "" {
+            case "txt": return .string
+            case "shape", "json", "": return .any
+            default: return .mesh
+            }
         }
     }
 }
@@ -856,8 +875,6 @@ extension Statement {
                 caseStatement.inferTypes(for: &params, in: context, with: type)
             }
             elseBody?.inferTypes(for: &params, in: context)
-        case let .import(expression):
-            expression.inferTypes(for: &params, in: context, with: .string)
         case .option:
             return
         }
@@ -946,23 +963,6 @@ extension Statement {
                 }
             }
             return type
-        case let .import(expression):
-            var file: String?
-            switch expression.type {
-            case let .string(string):
-                file = string
-            case let .tuple(expressions):
-                if case let .string(string)? = expressions.last?.type {
-                    file = string
-                }
-            default:
-                break
-            }
-            switch file?.components(separatedBy: ".").last?.lowercased() ?? "" {
-            case "txt": return .string
-            case "shape", "json", "": return .any
-            default: return .mesh
-            }
         }
     }
 }
@@ -976,7 +976,7 @@ extension Array where Element == Statement {
                     let type = (try? definition.staticType(in: context)) ?? .any
                     context.define(identifier.name, as: .placeholder(type))
                 }
-            case .command, .option, .forloop, .ifelse, .switchcase, .expression, .import:
+            case .command, .option, .forloop, .ifelse, .switchcase, .expression:
                 break
             }
         }

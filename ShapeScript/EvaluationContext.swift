@@ -328,7 +328,7 @@ extension EvaluationContext {
         #endif
     }
 
-    func importFile(at path: String) throws {
+    func importFile(at path: String) throws -> Value {
         let url = try resolveURL(for: path)
         if importStack.contains(url) {
             throw RuntimeErrorType.circularImport(for: url)
@@ -370,6 +370,7 @@ extension EvaluationContext {
             }
             do {
                 try program.evaluate(in: self)
+                return .void
             } catch {
                 throw RuntimeErrorType.importError(
                     ProgramError(error),
@@ -378,9 +379,8 @@ extension EvaluationContext {
                 )
             }
         case "txt":
-            let text: String
             do {
-                text = try String(contentsOf: url)
+                return try .string(String(contentsOf: url))
             } catch {
                 throw RuntimeErrorType.fileParsingError(
                     for: path,
@@ -388,30 +388,23 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-            try addValue(.string(text))
         case "json":
-            let data: Data
             do {
-                data = try Data(contentsOf: url)
-            } catch {
-                throw RuntimeErrorType.fileParsingError(
-                    for: path,
-                    at: url,
-                    message: error.localizedDescription
-                )
-            }
-            let value: Value
-            do {
-                value = try Value(jsonData: data)
-            } catch {
+                return try Value(jsonData: Data(contentsOf: url))
+            } catch let error as ParserError {
                 let source = try String(contentsOf: url)
                 throw RuntimeErrorType.importError(
-                    ProgramError(error),
+                    .parserError(error),
                     for: url,
                     in: source
                 )
+            } catch {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path,
+                    at: url,
+                    message: error.localizedDescription
+                )
             }
-            try addValue(value)
         default:
             do {
                 if let geometry = try delegate?.importGeometry(for: url)?.with(
@@ -419,8 +412,7 @@ extension EvaluationContext {
                     material: material,
                     sourceLocation: sourceLocation
                 ) {
-                    children.append(.mesh(geometry))
-                    return
+                    return .mesh(geometry)
                 }
             } catch let error as ProgramError {
                 guard let source = try? String(contentsOf: url) else {

@@ -1071,15 +1071,6 @@ extension Statement {
                 }
                 try elseBody?.evaluate(in: context)
             }
-        case let .import(expression):
-            let pathValue = try expression.evaluate(
-                as: .string,
-                for: Keyword.import.rawValue,
-                in: context
-            )
-            let path = pathValue.stringValue
-            context.sourceIndex = expression.range.lowerBound
-            try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
         }
     }
 }
@@ -1366,6 +1357,15 @@ extension Expression {
                 of: value.errorDescription,
                 options: value.members
             ), at: member.range)
+        case let .import(expression):
+            let pathValue = try expression.evaluate(
+                as: .string,
+                for: Keyword.import.rawValue,
+                in: context
+            )
+            let path = pathValue.stringValue
+            context.sourceIndex = expression.range.lowerBound
+            return try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
         }
     }
 
