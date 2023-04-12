@@ -41,7 +41,7 @@ Depending on the format, imported models may include their own [materials](mater
 In addition to scripts and standard model formats, text files can be imported as a [string](literals.md#strings) value.
 
 ```swift
-define data {
+define text {
     import "Text.txt"  
 }
 ```
