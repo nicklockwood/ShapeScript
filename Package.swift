@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "ShapeScript",
     platforms: [
-        .macOS(.v10_13),
+        .macOS(.v10_14),
         .iOS(.v11),
         .tvOS(.v11),
     ],

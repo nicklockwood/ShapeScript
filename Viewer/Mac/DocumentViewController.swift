@@ -155,15 +155,8 @@ class DocumentViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        var options: [String: Any]?
-        if useOpenGL {
-            options = [
-                SCNView.Option.preferredRenderingAPI.rawValue: SCNRenderingAPI.openGLLegacy.rawValue,
-            ]
-        }
-
         // create view
-        scnView = SCNView(frame: containerView.bounds, options: options)
+        scnView = SCNView(frame: containerView.bounds)
         scnView.autoresizingMask = [.width, .height]
         containerView.insertArrangedSubview(scnView, at: 0)
 

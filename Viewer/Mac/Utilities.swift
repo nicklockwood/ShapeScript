@@ -14,13 +14,6 @@ import ShapeScript
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!
 
-let isHighSierra: Bool = {
-    let os = ProcessInfo.processInfo.operatingSystemVersion
-    return os.majorVersion == 10 && os.minorVersion == 13
-}()
-
-let useOpenGL = isHighSierra
-
 func loadRTF(_ file: String) -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
     let data = try! Data(contentsOf: file)
