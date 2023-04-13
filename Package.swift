@@ -10,6 +10,7 @@ let package = Package(
     ],
     products: [
         .library(name: "ShapeScript", targets: ["ShapeScript"]),
+        .executable(name: "shapescript", targets: ["CLI"]),
     ],
     dependencies: [
         .package(
@@ -30,6 +31,11 @@ let package = Package(
             name: "ShapeScript",
             dependencies: ["Euclid", "LRUCache", "SVGPath"],
             path: "ShapeScript"
+        ),
+        .target(
+            name: "CLI",
+            dependencies: ["ShapeScript"],
+            path: "Viewer/CLI"
         ),
         .testTarget(
             name: "ShapeScriptTests",

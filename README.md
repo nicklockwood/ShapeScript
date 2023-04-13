@@ -9,7 +9,8 @@
 
 - [Introduction](#introduction)
 - [Installation](#installation)
-- [Usage](#usage)
+- [Usage (Mac)](#usage-mac)
+- [Usage (Linux)](#usage-linux)
 - [Contributing](#contributing)
 - [Credits](#credits)
 
@@ -48,11 +49,11 @@ To install using Swift Package Manager, add this to the `dependencies:` section 
 .package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.6.0")),
 ```
 
-The repository also includes ShapeScript Viewer apps for iOS and macOS, a cut-down version of the full ShapeScript apps available on the [Mac](https://apps.apple.com/app/id1441135869) and [iOS](https://apps.apple.com/app/id1606439346) app stores. It is not currently possible to install or run these apps using CocoaPods, Carthage or Swift Package Manager but you can run them by opening the included Xcode project and selecting the `Viewer (Mac)` or `Viewer (iOS)` schemes.
+The repository also includes ShapeScript Viewer apps for iOS and macOS, a cut-down version of the full ShapeScript apps available on the [Mac](https://apps.apple.com/app/id1441135869) and [iOS](https://apps.apple.com/app/id1606439346) app stores. It is not currently possible to install or run these apps using CocoaPods, Carthage or Swift Package Manager but you can run them by opening the included Xcode project and selecting the `Viewer (Mac)` or `Viewer (iOS)` schemes. For Linux, see [usage instructions](#usage-linux) below.
 
 **Note:** ShapeScript Viewer requires Xcode 11+ to build, and runs on macOS 10.13+ or iOS 14+.
 
-# Usage
+# Usage (Mac)
 
 The best way to try out ShapeScript is to run the ShapeScript Viewer app (see above).
 
@@ -63,6 +64,30 @@ ShapeScript does not include a built-in editor. Instead, after opening a shape f
 The ShapeScript Viewer will track changes to the source file and update in real-time as you edit it.
 
 For more information, check out the [help section](docs/index.md).
+
+# Usage (Linux)
+
+ShapeScript provides a command-line interface for Linux machines.
+
+To build the CLI, you will need to install the [latest Swift toolchain](https://www.swift.org/download/), then run the following commands:
+
+```bash
+$ git clone https://github.com/nicklockwood/ShapeScript
+$ cd ShapeScript
+$ swift build -c release
+```
+
+Like the GUI app, the ShapeScript CLI does not include an editor. Use a text editor of your choice to create your `.shape` file, then pass it to the CLI as follows:
+
+```bash
+shapescript myfile.shape
+```
+
+This will run the file and report any errors. On success, it will print some info about the model. To export the model, add a second parameter with the path you'd like to export an STL (Stereolithography) file:
+
+```bash
+shapescript myfile.shape myfile.stl
+```
 
 # Contributing
 
