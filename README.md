@@ -1,6 +1,6 @@
 [![Build](https://github.com/nicklockwood/ShapeScript/actions/workflows/build.yml/badge.svg)](https://github.com/nicklockwood/ShapeScript/actions/workflows/build.yml)
 [![Codecov](https://codecov.io/gh/nicklockwood/ShapeScript/graphs/badge.svg)](https://codecov.io/gh/nicklockwood/ShapeScript)
-[![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20Mac%20|%20tvOS%20|%20Linux-lightgray.svg)]()
+[![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20Mac%20|%20Linux-lightgray.svg)]()
 [![Swift 5.1](https://img.shields.io/badge/swift-5.1-red.svg?style=flat)](https://developer.apple.com/swift)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 [![Mastodon](https://img.shields.io/badge/mastodon-@nicklockwood@mastodon.social-636dff.svg)](https://mastodon.social/@nicklockwood)
@@ -83,7 +83,7 @@ Like the GUI app, the ShapeScript CLI does not include an editor. Use a text edi
 shapescript myfile.shape
 ```
 
-This will run the file and report any errors. On success, it will print some info about the model. To export the model, add a second parameter with the path you'd like to export an STL (Stereolithography) file:
+This will run the file and report any errors. On success, it will print some info about the model. To export the model, add a second parameter with the path you'd like to export an STL (Stereolithography) file to:
 
 ```bash
 shapescript myfile.shape myfile.stl
@@ -97,4 +97,4 @@ If you wish to contribute improvements to the documentation or the code itself, 
 
 # Credits
 
-The ShapeScript framework and viewer are primarily the work of [Nick Lockwood](https://github.com/nicklockwood).
+The ShapeScript framework and apps are primarily the work of [Nick Lockwood](https://github.com/nicklockwood).

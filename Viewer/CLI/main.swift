@@ -10,7 +10,12 @@ import Foundation
 
 let arguments = CommandLine.arguments
 let directory = FileManager.default.currentDirectoryPath
-guard let cli = CLI(in: directory, with: arguments) else {
+
+do {
+    let cli = try CLI(in: directory, with: arguments)
+    try cli.run()
     exit(0)
+} catch {
+    print(error.localizedDescription)
+    exit(-1)
 }
-exit(cli.run())

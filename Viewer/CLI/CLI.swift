@@ -14,41 +14,69 @@ import ShapeScript
 import SceneKit
 #endif
 
-class CLI {
-    let inputURL: URL
-    let outputURL: URL?
+struct CLIError: Error, CustomNSError {
+    let message: String
 
-    init?(in directory: String, with arguments: [String]) {
-        guard arguments.count > 1 else {
-            print("Usage: shapescript <input_path> [<output_path>]")
-            return nil
-        }
-
-        inputURL = expandPath(arguments[1], in: directory)
-        guard inputURL.pathExtension == "shape" else {
-            print("Error: Unsupported file type '\(inputURL.pathExtension)'")
-            return nil
-        }
-
-        if arguments.count > 2 {
-            let outputURL = expandPath(arguments[2], in: directory)
-            guard outputURL.pathExtension == "stl" else {
-                print("Error: Unsupported export file type '\(outputURL.pathExtension)'")
-                return nil
-            }
-            self.outputURL = outputURL
-        } else {
-            outputURL = nil
-        }
+    init(_ message: String) {
+        self.message = message
     }
 
-    func run() -> Int32 {
+    var errorUserInfo: [String: Any] {
+        if message.hasPrefix("Error") {
+            return [NSLocalizedDescriptionKey: message]
+        }
+        return [NSLocalizedDescriptionKey: "Error: \(message)"]
+    }
+}
+
+class CLI {
+    let inputURL: URL?
+    let outputURL: URL?
+    let zUp: Bool
+
+    init(in directory: String, with arguments: [String]) throws {
+        let args = try preprocessArguments(arguments, ["z-up"])
+        inputURL = try args["1"].map {
+            let url = expandPath($0, in: directory)
+            guard url.pathExtension == "shape" else {
+                throw CLIError("Unsupported file type '\(url.pathExtension)'")
+            }
+            return url
+        }
+        outputURL = try args["2"].map {
+            let url = expandPath($0, in: directory)
+            guard url.pathExtension == "stl" else {
+                throw CLIError("Unsupported export file type '\(url.pathExtension)'")
+            }
+            return url
+        }
+        zUp = try args["z-up"].map {
+            guard $0 == "" else {
+                throw CLIError("--z-up option does not expect a value")
+            }
+            return true
+        } ?? false
+    }
+
+    func run() throws {
+        guard let inputURL = inputURL else {
+            print("""
+            ShapeScript, version \(version)
+            Copyright (c) 2023 Nick Lockwood
+
+            USAGE:
+              shapescript <input_path> [<output_path>] [<options>]
+
+            OPTIONS:
+              --z-up  Output model using Z as up axis instead of Y
+            """)
+            return
+        }
         let input: String
         do {
             input = try String(contentsOf: inputURL)
         } catch {
-            print("Error: \(error.localizedDescription)")
-            return -1
+            throw CLIError("\(error.localizedDescription)")
         }
         do {
             print("Loading file '\(inputURL.lastPathComponent)' ...")
@@ -70,20 +98,23 @@ class CLI {
             guard let outputURL = outputURL else {
                 // Show model info
                 print(geometry.modelInfo)
-                return 0
+                return
             }
             // Export model
             print("Exporting to '\(outputURL.lastPathComponent)' ...")
-            let mesh = geometry.merged()
+            var mesh = geometry.merged()
+            if zUp {
+                mesh.rotate(by: .pitch(.degrees(-90)))
+            }
             let name = inputURL.deletingPathExtension().lastPathComponent
             let stl = mesh.stlString(name: name)
             try stl.write(to: outputURL, atomically: true, encoding: .utf8)
             print("Export complete")
-            return 0
+        } catch let error as CLIError {
+            throw error
         } catch {
             let error = ProgramError(error)
-            print(error.message(with: input))
-            return -1
+            throw CLIError(error.message(with: input))
         }
     }
 }
@@ -104,14 +135,14 @@ extension CLI: EvaluationDelegate {
             }
         }
         #if canImport(SceneKit)
-            let scene = try SCNScene(url: url, options: [
-                .flattenScene: false,
-                .createNormalsIfAbsent: true,
-                .convertToYUp: true,
-            ])
-            return try Geometry(scene.rootNode)
+        let scene = try SCNScene(url: url, options: [
+            .flattenScene: false,
+            .createNormalsIfAbsent: true,
+            .convertToYUp: true,
+        ])
+        return try Geometry(scene.rootNode)
         #else
-            return nil
+        return nil
         #endif
     }
 
@@ -139,4 +170,50 @@ private func expandPath(_ path: String, in directory: String) -> URL {
         return URL(fileURLWithPath: NSString(string: path).expandingTildeInPath).standardized
     }
     return URL(fileURLWithPath: directory).appendingPathComponent(path).standardized
+}
+
+private func preprocessArguments(
+    _ args: [String],
+    _ names: [String]
+) throws -> [String: String] {
+    var anonymousArgs = 0
+    var namedArgs: [String: String] = [:]
+    var name = ""
+    for arg in args {
+        if arg.hasPrefix("--") {
+            // Long argument names
+            let key = String(arg.unicodeScalars.dropFirst(2))
+            guard names.contains(key) else {
+                guard let match = key.bestMatches(in: names).first else {
+                    throw CLIError("Unknown option --\(key)")
+                }
+                throw CLIError("Unknown option --\(key). Did you mean --\(match)?")
+            }
+            name = key
+            namedArgs[name] = namedArgs[name] ?? ""
+            continue
+        } else if arg.hasPrefix("-") {
+            // Short argument names
+            let flag = String(arg.unicodeScalars.dropFirst())
+            guard let match = names.first(where: { $0.hasPrefix(flag) }) else {
+                guard let match = flag.bestMatches(in: names).first else {
+                    throw CLIError("Unknown flag -\(flag)")
+                }
+                throw CLIError("Unknown flag -\(flag). Did you mean -\(match)?")
+            }
+            name = match
+            namedArgs[name] = namedArgs[name] ?? ""
+            continue
+        }
+        if name == "" {
+            // Argument is anonymous
+            name = String(anonymousArgs)
+            anonymousArgs += 1
+        } else if namedArgs[name] != "" {
+            throw CLIError("Duplicate option --\(name)")
+        }
+        namedArgs[name] = arg
+        name = ""
+    }
+    return namedArgs
 }

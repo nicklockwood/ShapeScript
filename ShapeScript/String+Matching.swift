@@ -7,8 +7,8 @@
 //
 
 extension String {
-    // Find best match for the string in a list of options
-    func bestMatches(in options: [String]) -> [String] {
+    /// Return the closest matches for the string in the given list of options
+    public func bestMatches(in options: [String]) -> [String] {
         let lowercaseQuery = lowercased()
         // Sort matches by Levenshtein edit distance
         return options
