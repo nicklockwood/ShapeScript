@@ -317,12 +317,12 @@ extension EvaluationContext {
         if importStack.contains(url) {
             throw RuntimeErrorType.circularImport(for: url)
         }
-        let program: Program
-        if let entry = importCache.store[url] {
-            program = entry
-        } else {
-            switch url.pathExtension.lowercased() {
-            case "shape":
+        switch url.pathExtension.lowercased() {
+        case "shape":
+            let program: Program
+            if let entry = importCache.store[url] {
+                program = entry
+            } else {
                 let source: String
                 do {
                     source = try String(contentsOf: url)
@@ -344,94 +344,94 @@ extension EvaluationContext {
                         in: source
                     )
                 }
-            case "txt":
-                let text: String
-                do {
-                    text = try String(contentsOf: url)
-                } catch {
-                    throw RuntimeErrorType.fileParsingError(
-                        for: path,
-                        at: url,
-                        message: error.localizedDescription
-                    )
+            }
+            let oldURL = baseURL
+            baseURL = url
+            importStack.append(url)
+            defer {
+                baseURL = oldURL
+                importStack.removeLast()
+            }
+            do {
+                try program.evaluate(in: self)
+            } catch {
+                throw RuntimeErrorType.importError(
+                    ProgramError(error),
+                    for: url,
+                    in: program.source
+                )
+            }
+        case "txt":
+            let text: String
+            do {
+                text = try String(contentsOf: url)
+            } catch {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path,
+                    at: url,
+                    message: error.localizedDescription
+                )
+            }
+            try addValue(.string(text))
+        case "json":
+            let data: Data
+            do {
+                data = try Data(contentsOf: url)
+            } catch {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path,
+                    at: url,
+                    message: error.localizedDescription
+                )
+            }
+            let value: Value
+            do {
+                value = try Value(jsonData: data)
+            } catch {
+                let source = try String(contentsOf: url)
+                throw RuntimeErrorType.importError(
+                    ProgramError(error),
+                    for: url,
+                    in: source
+                )
+            }
+            try addValue(value)
+        default:
+            do {
+                if let geometry = try delegate?.importGeometry(for: url)?.with(
+                    transform: childTransform,
+                    material: material,
+                    sourceLocation: sourceLocation
+                ) {
+                    children.append(.mesh(geometry))
                 }
-                try addValue(.string(text))
-                return
-            case "json":
-                let data: Data
-                do {
-                    data = try Data(contentsOf: url)
-                } catch {
-                    throw RuntimeErrorType.fileParsingError(
-                        for: path,
-                        at: url,
-                        message: error.localizedDescription
-                    )
-                }
-                let value: Value
-                do {
-                    value = try Value(jsonData: data)
-                } catch {
-                    let source = try String(contentsOf: url)
-                    throw RuntimeErrorType.importError(
-                        ProgramError(error),
-                        for: url,
-                        in: source
-                    )
-                }
-                try addValue(value)
-                return
-            default:
-                do {
-                    if let geometry = try delegate?.importGeometry(for: url)?.with(
-                        transform: childTransform,
-                        material: material,
-                        sourceLocation: sourceLocation
-                    ) {
-                        children.append(.mesh(geometry))
-                        return
-                    }
-                } catch let error as ProgramError {
+            } catch let error as ProgramError {
+                guard let source = try? String(contentsOf: url) else {
                     throw RuntimeErrorType.fileParsingError(
                         for: path, at: url, message: error.message
                     )
-                } catch {
-                    var error: Error? = error
-                    while let nsError = error as NSError? {
-                        if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
-                            // Not a recognized model file format
-                            break
-                        }
-                        if let description = (
-                            nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
-                                nsError.userInfo[NSLocalizedDescriptionKey]
-                        ) as? String {
-                            throw RuntimeErrorType.fileParsingError(
-                                for: path, at: url, message: description
-                            )
-                        }
-                        error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
-                    }
                 }
-                throw RuntimeErrorType.fileTypeMismatch(
-                    for: path, at: url, expected: nil
-                )
+                throw RuntimeErrorType.importError(error, for: url, in: source)
+            } catch {
+                var error: Error? = error
+                while let nsError = error as NSError? {
+                    if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
+                        // Not a recognized model file format
+                        break
+                    }
+                    if let description = (
+                        nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
+                            nsError.userInfo[NSLocalizedDescriptionKey]
+                    ) as? String {
+                        throw RuntimeErrorType.fileParsingError(
+                            for: path, at: url, message: description
+                        )
+                    }
+                    error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
+                }
             }
-        }
-        let oldURL = baseURL
-        baseURL = url
-        importStack.append(url)
-        defer {
-            baseURL = oldURL
-            importStack.removeLast()
-        }
-        do {
-            try program.evaluate(in: self)
-        } catch {
-            throw RuntimeErrorType.importError(
-                ProgramError(error),
-                for: url,
-                in: program.source
+            throw RuntimeErrorType.fileTypeMismatch(
+                for: path, at: url, expected: nil
             )
         }
     }
