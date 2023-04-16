@@ -31,7 +31,6 @@
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
 		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
 		016F9ED229DB2315008206CE /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */; };
-		016F9ED429DB24F8008206CE /* CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = 016F9ED329DB24F8008206CE /* CHANGELOG.md */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
 		0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
 		0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
@@ -104,6 +103,7 @@
 		01D753E729E89BD000B326F0 /* ProgramError+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */; };
 		01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */; };
 		01D753EB29E93B7600B326F0 /* Mesh+STL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753EA29E93B7600B326F0 /* Mesh+STL.swift */; };
+		01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */; };
 		01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D8796A285FBDC800C65135 /* ImportExportTests.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
 		01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0926CB920000E0B287 /* LoggingTests.swift */; };
@@ -335,7 +335,6 @@
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
-		016F9ED329DB24F8008206CE /* CHANGELOG.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
 		01746BF126C5D226009DADEF /* GeometryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryType.swift; sourceTree = "<group>"; };
 		0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
@@ -402,6 +401,7 @@
 		01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProgramError+Formatting.swift"; sourceTree = "<group>"; };
 		01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Geometry+ModelInfo.swift"; sourceTree = "<group>"; };
 		01D753EA29E93B7600B326F0 /* Mesh+STL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+STL.swift"; sourceTree = "<group>"; };
+		01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
 		01D8796A285FBDC800C65135 /* ImportExportTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImportExportTests.swift; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		01E3AA0926CB920000E0B287 /* LoggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTests.swift; sourceTree = "<group>"; };
@@ -565,7 +565,7 @@
 				0183AADB28EC3ACB00AD1984 /* Document.swift */,
 				0183AADC28EC3ACB00AD1984 /* Viewer.entitlements */,
 				0183AADD28EC3ACB00AD1984 /* Welcome.rtf */,
-				016F9ED329DB24F8008206CE /* CHANGELOG.md */,
+				01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */,
 				0183AADE28EC3ACB00AD1984 /* AppDelegate.swift */,
 				0183AADF28EC3ACB00AD1984 /* DocumentViewController.swift */,
 				0183AAE028EC3ACB00AD1984 /* Info.plist */,
@@ -937,7 +937,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0183AAE728EC3ACB00AD1984 /* Main.storyboard in Resources */,
-				016F9ED429DB24F8008206CE /* CHANGELOG.md in Resources */,
+				01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */,
 				0183AAE928EC3ACB00AD1984 /* Welcome.rtf in Resources */,
 				0183AAE428EC3ACB00AD1984 /* Assets.xcassets in Resources */,
 				01BD9437219367D2005FFAEC /* Examples in Resources */,
@@ -1277,7 +1277,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1305,7 +1305,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1335,7 +1335,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -1367,7 +1367,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -1530,7 +1530,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
@@ -1561,7 +1561,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.7;
+				MARKETING_VERSION = 1.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;

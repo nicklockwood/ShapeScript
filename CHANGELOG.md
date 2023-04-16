@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.6.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.8) (2023-16-04)
+
+- Improved static type inference for import statements
+- Fixed type error for constant transform overrides
+- Removed OpenGL support for High Sierra
+- Fixed range precision issue
+- Added Linux CLI support
+
 ## [1.6.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.7) (2023-04-04)
 
 - Added `arc` command

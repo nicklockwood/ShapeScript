@@ -1,1 +1,0 @@
-/Users/nick/Dropbox/Open Source (GIT)/ShapeScript/CHANGELOG.md

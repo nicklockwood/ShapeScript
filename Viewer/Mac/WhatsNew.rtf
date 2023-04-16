@@ -1,0 +1,1487 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2639
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 HelveticaNeue-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0\cname textColor;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww24140\viewh18420\viewkind0
+\deftab720
+\pard\pardeftab720\qc\partightenfactor0
+
+\f0\fs50 \cf2 \expnd0\expndtw0\kerning0
+What's New in ShapeScript?\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\f1\b\fs34 \cf2 ShapeScript 1.6.8 \'97 2023-16-04\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved static type inference for import statements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed type error for constant transform overrides.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed OpenGL support for High Sierra.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed range precision issue.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added Linux CLI support.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.7 \'97 2023-04-04\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `arc` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added vector algebra operators.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Setting unequal width/height no longer distorts corner radius for `roundrect` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `sign`, `dot`, `cross`, `length` and `normalize` functions.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added implicit casting between vector and size values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Select Shape menu is now disabled when empty.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved argument error messages.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where modulo operator sometimes returned negative values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug when mixing points and subpaths in a `path` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed retain cycle in iOS file dialog.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed potential crash in `selectCamera()` function.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Increased code sharing between Mac and iOS Viewer implementations.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.12.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.6 \'97 2023-03-25\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The position and transform of mesh and path values can now be set as if they were a block.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Setting name on a block that returns a path no longer makes the result unusable in a builder.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Constants and property symbols are no longer called "function" in error messages.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed unhelpful "did you mean" suggestions when a valid symbol is used in wrong context.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error description for numeric list type.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed various bugs in the iOS source editor.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped SVGPath to version 1.1.3.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.5 \'97 2023-03-02\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed performance regression in `GeometryType.bounds` when using lathe shapes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed line number display in iOS source editor.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.11.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.4 \'97 2023-02-28\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `bounds` and `polygons` members now correctly take object transform into account.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  ShapeScript Viewer for iPad now supports multiple viewer/editor windows.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed some bugs and improved editing experience for source editor on iOS.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where iOS editor would sometimes close spontaneously while editing.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `shapescript:` URL scheme and improved URL handling.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.10.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.3 \'97 2023-01-31\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  iOS Viewer now supports editing `.shape` files directly inside the app.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `Edit > Select Shape` and `Clear Selection` menus in macOS viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added selection hotkeys and VoiceOver support for macOS viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed selection being cleared whenever geometry is refreshed.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed dynamic dark mode updates on iOS viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed iOS split view bounds crash.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where camera hotkeys failed after reload.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed error overlay translucency.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed various member type bugs.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.2 \'97 2023-01-16\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved info panel display.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed twisted extrusion offset.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed `roundrect` detail level (previously 4x higher than intended).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed incorrect output when intersecting groups of meshes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Empty scenes are no longer hidden if they contain debug geometry.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Scene now conforms to Equatable protocol.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed misleading error message for excess color arguments.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed spurious forward declaration error for options that shadow global define.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added automatic casting of hex strings to colors (useful for JSON data).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made `.polygon` members available on all geometries, not just manually-created meshes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Excluded source location from Geometry equality comparisons.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed vector member access on tuples containing string elements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed vector member access on nested numeric tuples.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed color member access on tuples and strings.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed polygon member lookup on meshes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed handling of blocks with optional children (e.g. `polygon`).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved symbol lookup performance.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.8.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.1 \'97 2023-01-02\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `twist` option to `extrude` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed inconsistent View menu options when switching between open documents.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.7.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.6.0 \'97 2022-12-27\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added hull command for creating convex hulls from points, paths or other meshes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added mesh command for manually creating meshes from individual polygons.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `axisAligned` property for controlling extrusion along  paths.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for importing plain text files as a string and JSON files as a tuple.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added modulo operator for calculating remainder of division.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Significantly overhauled type system to support lists, unions and objects.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved static analysis, allowing type errors to be caught earlier.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved handling of background property scope.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The min and max functions are now variadic (accept any number of arguments).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `split()`, `join()` and `trim()` functions for working with strings.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added automatic conversion of strings to numbers or boolean values where applicable.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `string.lines`, `.words` and `.characters` members.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `tuple.count`, `.last`, `.allButFirst` and `.allButLast` members.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed member lookup on numeric literals.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where material of imported shapes could not be overridden.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Background and texture can now be cleared by setting them to an empty string.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Logging geometry values to console now produces more useful output.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added proper logging for bounds and point values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `fileTimedOut` and `circularImport` errors.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Refactored and improved error handling.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Renamed `ImportError` to `ProgramError`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Raised minimum Euclid version to 0.6.6.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added Spirals example.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.14 \'97 2022-12-18\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for C-style block comments using `/* ... */` syntax.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where source file could incorrectly be inferred as UTF-7, causing parsing errors.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed issue where error messages would sometimes suggest the same identifier you already used.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved script execution performance by making source location lookup lazy.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.6.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.13 \'97 2022-12-08\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed crash when importing external `.shape` files.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  When error occurs in imported file, Cmd-E now opens that file instead of the main file.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.5.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.12 \'97 2022-11-21\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.4 (includes fixes for single-point path crash and path extrusions).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed parsing ambiguity in tuple expressions where identifier is followed by opening paren.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved bounds accuracy for circle-based shapes.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.11 \'97 2022-11-06\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed source code view on iOS.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed loading of external iCloud assets when file has not been downloaded.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  ShapeScript now monitors changes to external textures, fonts and imports on iOS.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Original topology for imported models is now preserved, instead of being triangulated.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error messaging for file imports.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.2.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.10 \'97 2022-10-29\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved documentation for strings and trigonometry functions.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed empty bounds returned for `lathe`, `fill`, `extrude` and `loft` shapes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed runtime warning about postscript font names.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed range bug in error formatting logic.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed inconsistent handling of functions that return tuples.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed inconsistent member lookup handling.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.6.0.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed Linux build warnings.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.9 \'97 2022-10-06\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed getting started link in Welcome modal.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed bad suggestions from editors list.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added iOS target for ShapeScript Viewer.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.8 \'97 2022-10-03\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added shared `SCNGeometry` cache, significantly improving performance for scenes with repeated objects.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Significantly reduced time to calculate mesh stats (as displayed in object info window).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Optimized source line lookup that affected script execution performance.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.7 \'97 2022-09-26\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where a `define` inside a block couldn't refer to `option` value.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug when parsing expressions ending in a `not` identifier.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where view unexpectedly jumped to custom camera after reload.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.30.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped LRUCache to version 1.0.3.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped SVGPath to version 1.1.1.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added iOS help pages.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.6 \'97 2022-09-06\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added ability to copy the current camera configuration for easy creation of custom cameras.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved logic for when camera position is reset after document update or window resize.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where custom cameras did not correctly inherit the document background.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where scale was doubled for custom orthographic cameras.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed live updating of document background when switching between light and dark mode.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed race condition in view rendering sometimes resulting in a blank scene.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed member suggestions for empty tuple.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Renamed `Geometry(scnNode:)` initializer for consistency.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Deprecated `Geometry.cameras` accessor.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.29.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.5 \'97 2022-08-11\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Significantly improved performance for bulk fill/extrude operations (e.g. text).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed camera position continuously being reset in ShapeScript Viewer while loading.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added indicator to Camera menu when camera has been moved.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.28.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.4 \'97 2022-07-25\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed setting font inside a `text` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error messages for missing block arguments.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Multiple arguments passed to `text` command are now treated as single coalesced string.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Extruding along a path now more reliably produces watertight output.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed parsing of tuple statements starting with constant.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed parsing of a prefix minus immediately followed by decimal point.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Increased detail multiplier for `svgpath` command to match path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed `svgpath` crash when missing `M` command after `Z`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed camera clipping issue when resizing objects.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.26.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.3 \'97 2022-07-03\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `loft` command now supports joining shapes with unequal numbers of sides or points.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `fill`, `lathe` and `extrude` commands now more reliably produce watertight output.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed incorrect polygon/triangle counts in model info.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed line numbers in selected object info.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.25.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed some flaky tests.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.2 \'97 2022-05-28\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where path lines were drawn too thin for large models.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error messaging for invalid use of option.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed suggestions for misspelled commands.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.21.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.1 \'97 2022-05-07\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Add implicit `detail/smoothing`, `color/texture`, `position/orientation/size` and `font` options to custom blocks .\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Logical `and/or` expressions now short circuit (don't evaluate their second parameter unless needed).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for creating `MaterialProperty` from `SCNMaterials` using `NS/UIImage`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed setting camera position on locked documents (such as the Example projects).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added slightly stronger type safety when calling commands.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed axes contrast when using per-camera backgrounds.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed font inheritance for user-defined blocks.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added custom fonts to model info display.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added USDZ to list of supported export types.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved iOS compatibility.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.5.0 \'97 2022-04-29\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for custom light sources using the `light` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added user-defined functions/commands (previously only blocks could be defined).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The width and/or height for exported images can now be set on a per-camera basis.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `polygon` command for more easily creating regular polygon paths.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The scene background can now be set individually for each camera.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Using `position`, `orientation` and `size` inside a `path` now works again (broken since 1.4.4).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Using `rnd` command in option default expressions no longer has a knock-on effect on the sequence.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Options can now reference local constants in their default values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Material brightness logic used in Viewer app is now part of the ShapeScript core.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Using `wrapwidth` or `linespacing` text commands inside an `svgpath` block now raises an error.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed blank screen when scene contains empty `camera` node.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed `StatementType.block` case in favor of expression form.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed some bugs in path generation relating to point colors.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `OSColor` typealias is now private.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added SVGPath dependency.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.7 \'97 2022-04-14\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Camera is no longer reset on every reload.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed camera snapback if moved during initial model load.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `smoothing` command for controlling surface normal generation.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Disallowed used of `detail` and `font` commands in scopes where they have no effect.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `svgpath` command now works on Linux.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.20.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.6 \'97 2022-04-08\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed `svgpath` command (broken in 1.4.5).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where axes were rendered in the wrong color.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Watertight status is now displayed in object info panel.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `roundrect` command now works on Linux.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped LRUCache to version 1.0.3.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.18.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.5 \'97 2022-03-07\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for setting per-vertex colors in a path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Font, text color and linespacing can now be specified per-line within a text block.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed underestimated bounds calculation for extrusion along a path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made logic for child count calculation more consistent.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.17.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.4 \'97 2021-01-21\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed infinite recursion crash when a shape file tries to import itself.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error message when imported model file is not readable.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed assertion failure when evaluating imported block due to source confusion.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added stricter symbol checking in stdlib so, e.g. name can't be used inside a path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in viewer where examples always open in orthographic mode.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Imported gifs are now counted as textures rather than models in info panel.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Model type is now displayed correctly in info panel.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed some iOS compatibility issues.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.3 \'97 2021-12-25\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  ShapeScript will now attempt to ensure generated meshes are watertight by default.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed unintended behavior change with blocks returning multiple shapes (introduced in 1.3.7).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed precondition failure when calling a block from inside a `path` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Camera nodes are no longer included in object count in model info.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Handle repeated parameter lists without command tokens in `svgpath`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added additional `svgpath` error handling.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.15.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.2 \'97 2021-12-10\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The `svgpath` command now supports arc instructions ('A' and 'a').\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in `svgpath` affecting absolute horizontal ('H') and vertical ('V') lines.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Save panel in viewer now adds `.shape` extension to file name if not present.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made online documentation link logic more robust.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.1 \'97 2021-11-22\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where `along` property was ignored in `extrude` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed wireframe rendering mode in viewer.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.4.0 \'97 2021-11-03\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added user-defined cameras.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added boolean constants and operators.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added comparison operators (greater than, equals, etc).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `if`/`else` statements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `assert` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved suggestions for mistyped operators.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Replaced range expression with separate `to` and `step` operators.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Failure to load an external model now displays an error instead of failing silently.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added distinct error type for invalid text escape sequences.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Simplified identifier expression representation.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Converted `option` keyword to contextual keyword.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `Geometry.worldTransform` property.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.10 \'97 2021-11-01\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  DAE files containing triangle strips or non-triangular polygons are now loaded correctly.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed empty Geometry names not being set to nil.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed broken footer links in help pages.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.5.14.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.9 \'97 2021-10-22\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added multiple camera options.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added orthographic view option.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Reorganized camera menu and keyboard shortcuts.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  View settings are now saved per-document instead of globally.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where camera would reset when toggling wireframe mode.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Documents now open in tabs automatically when tab bar is shown.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.8 \'97 2021-10-10\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `svgpath` command for creating paths using SVG-compatible syntax.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `bounds` member property for calculating dimensions of complex shapes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `wrapwidth` and `linespacing` options for text.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved debug command behavior for children of CSG containers.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug when setting `background` color with a single number (e.g. `0` for black).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where only first expression argument was highlighted in a type-mismatch error.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.7 \'97 2021-09-26\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added debug command for highlighting invisible geometry.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Custom blocks can now return any value type, not just meshes or paths.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Infix expressions are now handled correctly when used in a statement position.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved type mismatch error messages for block parameters.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  String values are no longer nullable and empty strings are handled more correctly.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Nested command calls without parentheses are now handled correctly.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved type reporting for single-value tuples in error messages.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Updated print behavior to better match text interpolation.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.6 \'97 2021-09-21\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added text interpolation, allowing text strings to be constructed dynamically.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Import and textures file paths can now be constructed dynamically.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Alpha component of colors can now be overridden with a convenient syntax.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed confusing references to "string" and "identifier" from error messages.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added ability to load text fonts from a file name or path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where font getter returned texture instead.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved help documentation.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.5 \'97 2021-09-19\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Numbers can now be used in text blocks.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug with times/divide operator associativity.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed default zoom level in viewer when axes are shown.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in scene bounds calculation when children have a transform applied.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error message for missing files specified by full path.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Limited maximum lineWidth when rendering paths.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.4 \'97 2021-09-17\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  The position/size/orientation options can now be used inside `text` blocks.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed parsing error when using inline expressions in loop range.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Unsupported string escape sequences are now treated as an error.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Command parameters are now included in assertion failure error highlighting.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug with sequential escape sequences in text.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.3 \'97 2021-09-14\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed crash when font is set to an empty string.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed incorrect suggestion of `option` for typos in contexts where it isn't available.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Print logging in a long/infinite loop no longer freezes UI.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Help index is now generated automatically.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved help for colors and text.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.2 \'97 2021-09-13\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added stack overflow detection, preventing crashes due to infinite recursion.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for underscores in identifiers.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Empty and single-element tuples are now permitted (useful in loops and data structures).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Looping over vector, size and color values is no longer permitted (only tuples and ranges).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Geometry `Hashable` implementation is now based on value rather than reference.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.12, which fixes the getters for `Rotation.pitch`/`yaw`/`roll`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Shape position/orientation/size are now read/write properties instead of setters.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Wireframes are now rendered with polygons instead of lines on x86, for better quality.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added open/create document prompt when opening app.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved Welcome view.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.1 \'97 2021-09-07\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Disabled axes by default and added instructions for enabling to help.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added ordinal members for accessing arbitrary tuple elements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed rendering bug when using negative scale values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where functions were able to access local variables of the caller.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed dot operator (member lookup) chaining.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added documentation for tuples and structured data access.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.11, which includes several performance optimizations.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed issue where console would not clear correctly when reloading.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed hint message when missing closing brace.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `colour` and `grey` as aliases for `color` and `gray`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made stroke line width proportional to the scene size.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved logic for default camera zoom level.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Increase antialiasing quality in viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Updated screenshots and fixed bugs in help examples.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.3.0 \'97 2021-08-31\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added new standalone range expression with optional `step` value.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  For loops can now be used with either range or tuple/vector values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for hex color literals.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added standard color names as constants.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Inherited standard library symbols no longer override user-defined constants.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  All ShapeScript value types now conform to `AnyHashable`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed `CustomStringConvertible` conformance from `GeometryType` as it made debugging harder.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Renamed `StatementType.node` to `StatementType.block`, since the term was confusing.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.10, which includes several bug fixes and features.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed crash when trying to access vector or color members from a non-numeric tuple.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed crash when trying to color members from a tuple with more than 4 elements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Accessing vector members on a tuple with more than 3 elements now raises an error.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made unchecked Color initializer private.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed SceneViewController.snapshot() method.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added option to show axes in ShapeScript Viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Wireframe view option in viewer is now rendered using lines instead of SceneKit Debug option.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made wireframe view option persistent across app launches.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.2.4 \'97 2021-08-25\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed a crash when logging large integer values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where negative numbers would be logged as zero when using the print command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved formatting of logged numeric values generally.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.2.3 \'97 2021-08-24\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Enabled parenthesized expressions to span multiple lines.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error message when assigning multiple values to single type.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed assigning color literal value to background without parens.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added Color initializers.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added SceneViewController.snapshot() method.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.2.2 \'97 2021-08-24\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Blocks that accept child values can now be called without braces around them.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed confusing error messages caused by mesh commands being unavailable in certain scopes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made script evaluation cancellable in case of infinite iteration or recursion.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in Viewer app where view fails to refresh after loading geometry.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved and simplified error handling logic.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.2.1 \'97 2021-08-19\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed crash when `for` loop end index < start index.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved `print` log output, especially for arrays/tuples and nested values.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added `Loggable` protocol for stringifying values logged using the ShapeScript `print` command.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Replaced `TokenType.description` with `TokenType.errorDescription` to aid debugging.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Text now supports using \n for line-breaks (this was documented as working, but never implemented).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed confusing error message when first value of tuple matches expected type.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed nonsensical error message when a command is used in an expression.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.9, which includes fixes for extruded paths.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Extruding along a compound path now forms a union between the resultant shapes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed typos and improved help documentation.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed member lookup precedence.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved test coverage.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.2.0 \'97 2021-08-15\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved progressive rendering logic, reducing wait before seeing first results in viewer.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Geometry cache is now limited to ~1GB per open document instead of being unbounded.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Cached geometry is now cleared when document is closed instead of persisting for app lifetime.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Invalid font names now produce an error instead of silently falling back to Helvetica.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Paths are now drawn in white when background is set to a dark color or texture.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed an index out-of-bounds crash in the Levenshtein distance function.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.8, which includes several bug fixes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Renamed `GeometryType.none` to the more descriptive `GeometryType.group`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made `Geometry.mesh` and `Geometry.associatedData` properties thread-safe using `NSLock`.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Removed `Scene.deepCopy()` and `Geometry.deepCopy()` methods as instances are now thread-safe.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Moved selection logic out of `ShapeScriptLib` and into Viewer example application.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in Viewer where geometries would be deselected during progressive loading.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added LRUCache dependency.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.6 \'97 2021-08-04\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Paths are now drawn using polygons strips, which looks sharper and renders more consistently.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made further improvements to cancelling in-progress rendering when reloading a file.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to 0.5.4, which includes several bug fixes and performance improvements.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved performance when rendering scenes with nested CSG operations or groups.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed rendering and bounds calculation of non-planar extruded shapes.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.5 \'97 2021-08-02\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Info window in ShapeScript Viewer no longer includes imported models in texture count.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed a regression in ShapeScript Viewer 1.1.4 where error message wouldn't refresh correctly on reload.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved error messaging for errors that occur in an imported file.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Reloading a partially-rendered scene should now terminate the rendering more quickly, freeing up CPU.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Rendering is now cancelled when document is closed (previously it continued in background).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved responsiveness of incremental rendering for complex scenes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Program `source` and `statements` properties are now public .\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.4 \'97 2021-07-31\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Increased time precision of document file monitoring in ShapeScript Viewer app.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved threading a progress logging in ShapeScript Viewer app.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added Linux support for ShapeScriptLib (excluding rendering and text functions).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Made static color constants immutable.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid version to 0.5.3.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.3 \'97 2021-07-10\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed assertion failure if a parsing error occurs at the last character in the `.shape` file.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug in Path plane calculation that could result in corrupted extrusion shapes.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed a tessellation bug affecting anti-clockwise polygons.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.2 \'97 2021-07-03\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed bug where CRLF was treated as two separate linebreaks, resulting in a crash.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Error column indicator is now better aligned when code contains wide characters (e.g. emoji).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed inverted black/white squares on chessboard example.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.1 \'97 2021-06-26\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed operator associativity (addition/subtraction were previously right-associative).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Performing CSG operations on complex geometry no longer causes a stack overflow.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid version to 0.4.5.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.1.0 \'97 2021-04-08\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added support for background colors and images.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added debug console.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Improved ShapeScript error handling.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Object names are now included in info popup.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Upgraded project to Swift 5.1.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid version to 0.4.0.\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Fixed Xcode warnings.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.0.1 \'97 2020-09-03\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Added iOS and tvOS support to ShapeScript framework (Viewer app is still macOS only).\
+\   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid version to 0.3.5.\
+\
+\f1\b\fs34 \cf2 ShapeScript 1.0.0 \'97 2020-09-02\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+\fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0   \'95
+\f0\b0 \expnd0\expndtw0\kerning0
+  First release.\
+\
+}

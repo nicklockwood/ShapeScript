@@ -13,7 +13,6 @@ class WhatsNewViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let file = Bundle.main.url(forResource: "CHANGELOG", withExtension: "md")!
-        whatsNewView.string = try! String(contentsOf: file)
+        whatsNewView.textStorage?.setAttributedString(loadRTF("WhatsNew"))
     }
 }

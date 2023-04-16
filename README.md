@@ -67,9 +67,9 @@ For more information, check out the [help section](docs/index.md).
 
 # Usage (Linux)
 
-ShapeScript provides a command-line interface for Linux machines.
+ShapeScript provides a command-line interface for Linux machines. You can download the latest CLI build from the [releases page](https://github.com/nicklockwood/ShapeScript/releases).
 
-To build the CLI, you will need to install the [latest Swift toolchain](https://www.swift.org/download/), then run the following commands:
+Alternatively, to build the tool yourself from source, you will need to install the [latest Swift toolchain](https://www.swift.org/download/), then run the following commands:
 
 ```bash
 $ git clone https://github.com/nicklockwood/ShapeScript

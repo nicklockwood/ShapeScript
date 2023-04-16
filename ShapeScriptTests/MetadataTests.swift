@@ -15,6 +15,9 @@ private let projectDirectory: URL = URL(fileURLWithPath: #file)
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")
 
+private let whatsNewURL = projectDirectory
+    .appendingPathComponent("Viewer/Mac/WhatsNew.rtf")
+
 private let podspecURL: URL = projectDirectory
     .appendingPathComponent("ShapeScript.podspec.json")
 
@@ -161,6 +164,69 @@ class MetadataTests: XCTestCase {
 
     func testVersionConstantUpdated() {
         XCTAssertEqual(ShapeScript.version, shapeScriptVersion)
+    }
+
+    func testUpdateWhatsNew() throws {
+        let changelog = try! String(contentsOf: changelogURL, encoding: .utf8)
+        var releases = [(version: String, date: String, notes: [String])]()
+        var notes = [String]()
+        for line in changelog.split(separator: "\n") {
+            if line.hasPrefix("## [") {
+                if !notes.isEmpty, !releases.isEmpty {
+                    releases[releases.count - 1].notes = notes
+                    notes.removeAll()
+                }
+                let versionStart = try XCTUnwrap(line.firstIndex(of: "["))
+                let versionEnd = try XCTUnwrap(line.firstIndex(of: "]"))
+                let version = line[line.index(after: versionStart) ..< versionEnd]
+                let dateStart = try XCTUnwrap(line.lastIndex(of: "("))
+                let dateEnd = try XCTUnwrap(line.lastIndex(of: ")"))
+                let date = line[line.index(after: dateStart) ..< dateEnd]
+                releases.append((String(version), String(date), []))
+            } else if line.hasPrefix("-") {
+                notes.append(String(line[line.index(after: line.startIndex)...]))
+            }
+        }
+        if !notes.isEmpty, !releases.isEmpty {
+            releases[releases.count - 1].notes = notes
+            notes.removeAll()
+        }
+
+        let body = releases.map {
+            #"""
+            \f1\b\fs34 \cf2 ShapeScript \#($0.version) \'97 \#($0.date)\
+            \
+            \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+            \fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0\#($0.notes.map {
+                #"""
+                   \'95
+                \f0\b0 \expnd0\expndtw0\kerning0
+                 \#($0).\
+                \
+                """#
+            }.joined())
+            """#
+        }.joined(separator: "\n")
+
+        let whatsNew = #"""
+        {\rtf1\ansi\ansicpg1252\cocoartf2639
+        \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 HelveticaNeue-Bold;}
+        {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+        {\*\expandedcolortbl;;\cssrgb\c0\c0\c0\cname textColor;}
+        \paperw11900\paperh16840\margl1440\margr1440\vieww24140\viewh18420\viewkind0
+        \deftab720
+        \pard\pardeftab720\qc\partightenfactor0
+
+        \f0\fs50 \cf2 \expnd0\expndtw0\kerning0
+        What's New in ShapeScript?\
+        \
+        \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+
+        \#(body)
+        }
+        """#
+        try whatsNew.write(to: whatsNewURL, atomically: true, encoding: .utf8)
     }
 
     // MARK: Help
