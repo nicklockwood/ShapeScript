@@ -2369,6 +2369,22 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testForLoopRangePrecision() {
+        for i in 1 ... 100 {
+            let program = """
+            define a \(i)
+            define b 8
+            define c (b/a)
+            for i in 1 to b + (1 - c) step c {
+                print(i)
+            }
+            """
+            let delegate = TestDelegate()
+            XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+            XCTAssertEqual(delegate.log.count, i)
+        }
+    }
+
     // MARK: If/else
 
     func testIfTrue() {
