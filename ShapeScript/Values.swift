@@ -97,7 +97,7 @@ struct RangeValue: Hashable, Sequence {
     }
 
     func makeIterator() -> StrideThrough<Double>.Iterator {
-        let end = self.end + (step > 0 ? 1 : -1) * 0.0000001
+        let end = self.end + (step > 0 ? 1 : -1) * Value.epsilon
         return stride(from: start, through: end, by: step).makeIterator()
     }
 }

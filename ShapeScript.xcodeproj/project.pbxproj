@@ -12,6 +12,7 @@
 		010A906427FB250700D54A6F /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
+		011539B929EDBDBF006411E3 /* Value+Equality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011539B829EDBDBF006411E3 /* Value+Equality.swift */; };
 		0118098328F216D200E0C8D8 /* Value+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0118098228F216D200E0C8D8 /* Value+JSON.swift */; };
 		011E57AC29F577F900CA0778 /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */; };
 		011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 011E57B429F57BBC00CA0778 /* WhatsNew.rtf */; };
@@ -337,6 +338,7 @@
 		0107A0562A7326D800AD33A1 /* RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegressionTests.swift; sourceTree = "<group>"; };
 		010A904F27FB222400D54A6F /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SVGPath.xcodeproj; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
+		011539B829EDBDBF006411E3 /* Value+Equality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+Equality.swift"; sourceTree = "<group>"; };
 		0118098228F216D200E0C8D8 /* Value+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+JSON.swift"; sourceTree = "<group>"; };
 		011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
 		011E57B429F57BBC00CA0778 /* WhatsNew.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
@@ -639,6 +641,7 @@
 				01DE8AEB2AEA98A800107FA1 /* Values.swift */,
 				01A6FE7C2AEF5BCB006AE113 /* Members.swift */,
 				01F1A9B2281F41DE00A1621B /* Symbols.swift */,
+				011539B829EDBDBF006411E3 /* Value+Equality.swift */,
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
 				01DE96702A082A6A0080DB79 /* ProgramError.swift */,
 				013312D221C9BBCC00626F1B /* EvaluationContext.swift */,
@@ -1134,6 +1137,7 @@
 				01FDE3D526BD766C00A46F66 /* GeometryCache.swift in Sources */,
 				0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */,
 				01BD943921936B90005FFAEC /* RandomSequence.swift in Sources */,
+				011539B929EDBDBF006411E3 /* Value+Equality.swift in Sources */,
 				014F85DB215BE1A900461FB7 /* Parser.swift in Sources */,
 				01F1A9B7281F41DE00A1621B /* Symbols.swift in Sources */,
 				01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */,
