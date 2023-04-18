@@ -112,8 +112,8 @@ class ParserTests: XCTestCase {
         let bRange = input.range(of: "b")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
-                type: .command(
-                    Identifier(name: "not", range: notRange),
+                type: .expression(Expression(type: .tuple([
+                    Expression(type: .identifier("not"), range: notRange),
                     Expression(
                         type: .infix(
                             Expression(type: .identifier("a"), range: aRange),
@@ -121,8 +121,8 @@ class ParserTests: XCTestCase {
                             Expression(type: .identifier("b"), range: bRange)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
-                    )
-                ),
+                    ),
+                ]), range: input.startIndex ..< input.endIndex)),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -136,8 +136,8 @@ class ParserTests: XCTestCase {
         let bRange = input.range(of: "b")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
-                type: .command(
-                    Identifier(name: "not", range: notRange),
+                type: .expression(Expression(type: .tuple([
+                    Expression(type: .identifier("not"), range: notRange),
                     Expression(
                         type: .infix(
                             Expression(type: .identifier("a"), range: aRange),
@@ -148,8 +148,8 @@ class ParserTests: XCTestCase {
                             ]), range: notRange2.lowerBound ..< bRange.upperBound)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
-                    )
-                ),
+                    ),
+                ]), range: input.startIndex ..< input.endIndex)),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -227,6 +227,60 @@ class ParserTests: XCTestCase {
         }
     }
 
+    func testCommandVsOperatorPrecedence() {
+        let input = "print (a + b) * c"
+        let printRange = input.range(of: "print")!
+        let tupleRange = input.range(of: "(a + b)")!
+        let aRange = input.range(of: "a")!
+        let bRange = input.range(of: "b")!
+        let cRange = input.range(of: "c")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "print", range: printRange),
+                    Expression(type: .infix(
+                        Expression(type: .tuple([
+                            Expression(type: .infix(
+                                Expression(type: .identifier("a"), range: aRange),
+                                .plus,
+                                Expression(type: .identifier("b"), range: bRange)
+                            ), range: aRange.lowerBound ..< bRange.upperBound),
+                        ]), range: tupleRange),
+                        .times,
+                        Expression(type: .identifier("c"), range: cRange)
+                    ), range: tupleRange.lowerBound ..< input.endIndex)
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
+    func testFunctionVsOperatorPrecedence() {
+        let input = "floor(a + b) * c"
+        let floorRange = input.range(of: "floor")!
+        let tupleRange = input.range(of: "(a + b)")!
+        let aRange = input.range(of: "a")!
+        let bRange = input.range(of: "b")!
+        let cRange = input.range(of: "c")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .expression(Expression(type: .infix(
+                    Expression(type: .tuple([
+                        Expression(type: .identifier("floor"), range: floorRange),
+                        Expression(type: .infix(
+                            Expression(type: .identifier("a"), range: aRange),
+                            .plus,
+                            Expression(type: .identifier("b"), range: bRange)
+                        ), range: aRange.lowerBound ..< bRange.upperBound),
+                    ]), range: floorRange.lowerBound ..< tupleRange.upperBound),
+                    .times,
+                    Expression(type: .identifier("c"), range: cRange)
+                ), range: input.startIndex ..< input.endIndex)),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
     // MARK: Parentheses
 
     func testMultilineParentheses() {
@@ -258,17 +312,17 @@ class ParserTests: XCTestCase {
     }
 
     func testEmptyFunctionArguments() {
-        let input = "foo bar()"
-        let fooRange = input.range(of: "foo")!
+        let input = "print bar()"
+        let printRange = input.range(of: "print")!
         let barRange = input.range(of: "bar")!
         let parensRange = input.range(of: "()")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(type: .command(
-                Identifier(name: "foo", range: fooRange),
+                Identifier(name: "print", range: printRange),
                 Expression(type: .tuple([
                     Expression(type: .identifier("bar"), range: barRange),
                 ]), range: barRange.lowerBound ..< parensRange.upperBound)
-            ), range: fooRange.lowerBound ..< parensRange.upperBound),
+            ), range: printRange.lowerBound ..< parensRange.upperBound),
         ]))
     }
 

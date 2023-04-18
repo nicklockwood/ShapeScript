@@ -565,7 +565,14 @@ private extension ArraySlice where Element == Token {
             return statement
         }
         let start = self
-        guard let name = readIdentifier() else {
+        guard let identifier = readIdentifier() else {
+            return try readExpressions().map { .expression($0) }
+        }
+        if case let .function(type, _) = Symbols.all[identifier.name],
+           type.parameterType != .void, type.returnType != .void
+        {
+            // Not a command or read-only property getter
+            self = start
             return try readExpressions().map { .expression($0) }
         }
         switch nextToken.type {
@@ -575,7 +582,7 @@ private extension ArraySlice where Element == Token {
                 return nil
             }
             switch expression.type {
-            case var .tuple(expressions) where expressions[0].type == .identifier(name.name):
+            case var .tuple(expressions) where expressions[0].type == .identifier(identifier.name):
                 expressions.removeFirst()
                 let expression: Expression
                 if expressions.count > 1 {
@@ -584,13 +591,13 @@ private extension ArraySlice where Element == Token {
                 } else {
                     expression = expressions[0]
                 }
-                return .command(name, expression)
+                return .command(identifier, expression)
             default:
                 return .expression(expression)
             }
         case .number, .linebreak, .keyword, .hexColor,
              .prefix, .string, .rbrace, .lparen, .rparen, .eof:
-            return try .command(name, readExpressions())
+            return try .command(identifier, readExpressions())
         }
     }
 

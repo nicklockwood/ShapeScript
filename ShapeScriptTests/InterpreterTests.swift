@@ -1734,30 +1734,6 @@ class InterpreterTests: XCTestCase {
 
     // MARK: Command invocation
 
-    func testInvokeCommandInsideExpression() {
-        let program = "print print 4"
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'print'")
-            guard case .unknownSymbol("print", _) = error?.type else {
-                XCTFail()
-                return
-            }
-        }
-    }
-
-    func testInvokeCommandInsideExpression2() {
-        let program = "print scale 4"
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'scale'")
-            guard case .unknownSymbol("scale", _) = error?.type else {
-                XCTFail()
-                return
-            }
-        }
-    }
-
     func testInvokeCustomVoidFunctionInsideExpression() {
         let program = """
         define foo() {}
@@ -1772,6 +1748,16 @@ class InterpreterTests: XCTestCase {
         print foo(3)
         """
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCommandParameterPrecedence() throws {
+        let program = """
+        define foo(bar) {}
+        print (4 + 5) / 3
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
     }
 
     // MARK: Block invocation
@@ -2667,6 +2653,22 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [-1, Double.pi])
+    }
+
+    func testFunctionAmbiguity4() {
+        let program = """
+        define a 0.999999
+        define b 1000
+        define trunc() {
+            floor(a * b) / b
+        }
+        print floor(a * b) / b
+        print (floor a * b) / b
+        print trunc()
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.999, 0.999, 0.999])
     }
 
     // MARK: Numeric comparison
