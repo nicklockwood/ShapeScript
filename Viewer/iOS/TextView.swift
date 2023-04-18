@@ -260,17 +260,6 @@ private extension TextView {
         }
     }
 
-    func scrollToCaret() {
-        if let range = textView.selectedTextRange?.start {
-            var caretRect = convert(textView.caretRect(for: range), from: textView)
-            caretRect = caretRect.insetBy(dx: -40, dy: -40) // allow breathing room
-            if caretRect.origin.x < frame.width {
-                caretRect.origin.x = 0 // don't cut off start of line
-            }
-            scrollRectToVisible(caretRect, animated: true)
-        }
-    }
-
     func updateLineCount() {
         guard showLineNumbers else {
             return
@@ -351,6 +340,28 @@ private final class _UITextView: UITextView {
         super.replace(range, withText: text)
         (delegate as? TextView)?.updateLineCount()
     }
+
+    override func caretRect(for position: UITextPosition) -> CGRect {
+        var rect = super.caretRect(for: position)
+        guard let textView = superview as? TextView, !textView.wrapLines else {
+            return rect
+        }
+        // workaround for wrong value when caret is offscreen
+        let offset = self.offset(from: beginningOfDocument, to: position)
+        let newlineRange = textStorage.mutableString.rangeOfCharacter(
+            from: .newlines,
+            options: .backwards,
+            range: NSRange(location: 0, length: offset)
+        )
+        let lineStart = newlineRange.location == NSNotFound ? 0 : newlineRange.upperBound
+        let line = textStorage.mutableString.substring(
+            with: NSRange(location: lineStart, length: offset - lineStart)
+        )
+        rect.origin.x = max(rect.origin.x, (line as NSString).size(
+            withAttributes: font.map { [.font: $0] } ?? [:]
+        ).width)
+        return rect
+    }
 }
 
 extension UITextView {
@@ -409,7 +420,18 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
     }
 
     func textViewDidChangeSelection(_: UITextView) {
-        scrollToCaret()
+        // Scroll to caret position
+        if !wrapLines, let range = textView.selectedTextRange?.start {
+            var caretRect = convert(textView.caretRect(for: range), from: textView)
+            caretRect = caretRect.insetBy(dx: -40, dy: 0) // allow breathing room
+            caretRect.origin.x = max(0, caretRect.minX)
+            if caretRect.minX < bounds.minX {
+                setContentOffset(CGPoint(x: caretRect.minX, y: contentOffset.y), animated: true)
+            } else if caretRect.maxX > bounds.maxX {
+                let offset = contentOffset.x + (caretRect.maxX - bounds.maxX)
+                setContentOffset(CGPoint(x: offset, y: contentOffset.y), animated: true)
+            }
+        }
     }
 
     private func replace(_ range: NSRange, with text: String, for action: String) {
