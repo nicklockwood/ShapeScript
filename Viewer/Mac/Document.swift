@@ -410,6 +410,10 @@ class Document: NSDocument {
         viewController?.copyCamera()
     }
 
+    @IBAction func toggleAnimation(_: Any? = nil) {
+        viewController?.isAnimating.toggle()
+    }
+
     @IBAction func showWireframe(_: NSMenuItem) {
         showWireframe.toggle()
     }
@@ -426,6 +430,8 @@ class Document: NSDocument {
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(toggleAnimation(_:)):
+            menuItem.state = (viewController?.isAnimating == true) ? .on : .off
         case #selector(showWireframe(_:)):
             menuItem.state = showWireframe ? .on : .off
         case #selector(showAxes(_:)):

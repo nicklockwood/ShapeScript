@@ -205,6 +205,11 @@
                                                 <action selector="selectCameras:" target="Ady-hI-5gd" id="HZd-JH-W4K"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Animate Rotation" keyEquivalent="r" id="HOL-Bv-wDo">
+                                            <connections>
+                                                <action selector="toggleAnimation:" target="Ady-hI-5gd" id="YHc-yb-C38"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem title="Orthographic" keyEquivalent="O" id="B4E-h4-Tuy">
                                             <connections>
                                                 <action selector="setOrthographic:" target="Ady-hI-5gd" id="Nmz-MT-00a"/>
