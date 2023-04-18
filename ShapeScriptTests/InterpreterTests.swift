@@ -1782,7 +1782,7 @@ class InterpreterTests: XCTestCase {
 
     func testInvokeBuilderWithoutBlock() {
         let program = "lathe"
-        let range = program.range(of: "lathe")!
+        let range = program.endIndex ..< program.endIndex
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
@@ -1794,7 +1794,7 @@ class InterpreterTests: XCTestCase {
 
     func testInvokeGroupWithoutBlock() {
         let program = "group"
-        let range = program.range(of: "group")!
+        let range = program.endIndex ..< program.endIndex
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")

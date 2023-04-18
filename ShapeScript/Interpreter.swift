@@ -1033,7 +1033,7 @@ extension Statement {
                     throw RuntimeError(.missingArgument(
                         for: name,
                         types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
-                    ), at: range)
+                    ), at: range.upperBound ..< range.upperBound)
                 } else {
                     let childContext = context.push(type)
                     childContext.userSymbols.removeAll()
