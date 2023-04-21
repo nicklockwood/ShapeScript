@@ -518,7 +518,7 @@ public extension Path {
         }
 
         func twistShape(_ p1p2: Vector) {
-            if !twist.isEqual(to: .zero) {
+            if !twist.isZero {
                 let angle = twist * (p1p2.length / length)
                 rotateShape(by: Rotation(unchecked: shapeNormal, angle: angle))
             }
@@ -560,7 +560,7 @@ public extension Path {
 
         // Fix up angles
         let r = rotationBetween(shapes[0], shape)
-        if along.isClosed, !r.isEqual(to: .identity) {
+        if along.isClosed, !r.isIdentity {
             let delta = r.axis.dot(shapes[0].faceNormal) > 0 ? r.angle : -r.angle
             var distance = 0.0
             var prev = along.points[0].position

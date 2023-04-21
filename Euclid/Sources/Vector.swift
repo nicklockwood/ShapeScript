@@ -240,6 +240,16 @@ public extension Vector {
         return length == 0 ? .zero : self / length
     }
 
+    /// All vector components are zero (or  close to zero) in length.
+    var isZero: Bool {
+        isEqual(to: .zero)
+    }
+
+    /// All vector components are one (or  close to one) in length.
+    var isOne: Bool {
+        isEqual(to: .one)
+    }
+
     /// Linearly interpolate between this vector and another.
     /// - Parameters:
     ///   - a: The vector to interpolate towards.

@@ -102,7 +102,6 @@
 		01D753E529E8939700B326F0 /* CLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E429E8939700B326F0 /* CLI.swift */; };
 		01D753E729E89BD000B326F0 /* ProgramError+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */; };
 		01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */; };
-		01D753EB29E93B7600B326F0 /* Mesh+STL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753EA29E93B7600B326F0 /* Mesh+STL.swift */; };
 		01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */; };
 		01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D8796A285FBDC800C65135 /* ImportExportTests.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
@@ -400,7 +399,6 @@
 		01D753E429E8939700B326F0 /* CLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLI.swift; sourceTree = "<group>"; };
 		01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProgramError+Formatting.swift"; sourceTree = "<group>"; };
 		01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Geometry+ModelInfo.swift"; sourceTree = "<group>"; };
-		01D753EA29E93B7600B326F0 /* Mesh+STL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+STL.swift"; sourceTree = "<group>"; };
 		01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
 		01D8796A285FBDC800C65135 /* ImportExportTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImportExportTests.swift; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
@@ -661,7 +659,6 @@
 		01D753CC29E88ED700B326F0 /* CLI */ = {
 			isa = PBXGroup;
 			children = (
-				01D753EA29E93B7600B326F0 /* Mesh+STL.swift */,
 				01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */,
 				01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */,
 				01D753E429E8939700B326F0 /* CLI.swift */,
@@ -1142,7 +1139,6 @@
 				01D753E729E89BD000B326F0 /* ProgramError+Formatting.swift in Sources */,
 				01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */,
 				01D753E529E8939700B326F0 /* CLI.swift in Sources */,
-				01D753EB29E93B7600B326F0 /* Mesh+STL.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
