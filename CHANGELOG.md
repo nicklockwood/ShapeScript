@@ -1,6 +1,13 @@
 # Change Log
 
-## [1.6.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.8) (2023-16-04)
+## [1.6.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.9) (2023-04-21)
+
+- Fixed confusing function / operator precedence
+- Improved scroll-to-cursor behavior in iOS source editor
+- Bumped Euclid to version 0.6.13 (includes fix for cracking/holes issue)
+- Added What's New in ShapeScript screen to iOS Viewer
+
+## [1.6.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.8) (2023-04-16)
 
 - Improved static type inference for import statements
 - Fixed type error for constant transform overrides
@@ -282,7 +289,7 @@
 - Made logic for child count calculation more consistent
 - Bumped Euclid to version 0.5.17
 
-## [1.4.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.4) (2021-01-21)
+## [1.4.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.4.4) (2022-01-21)
 
 - Fixed infinite recursion crash when a shape file tries to import itself
 - Improved error message when imported model file is not readable

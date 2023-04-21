@@ -55,6 +55,21 @@ private let shapeScriptVersion: String = {
     return String(string[start ..< end])
 }()
 
+private let changelogTitles: [Substring] = {
+    let changelog = try! String(contentsOf: changelogURL, encoding: .utf8)
+    var range = changelog.startIndex ..< changelog.endIndex
+    var matches = [Substring]()
+    while let match = changelog.range(
+        of: "## \\[[^]]+\\]\\([^)]+\\) \\([^)]+\\)",
+        options: .regularExpression,
+        range: range
+    ) {
+        matches.append(changelog[match])
+        range = match.upperBound ..< changelog.endIndex
+    }
+    return matches
+}()
+
 private func findHeadings(in string: String) -> [String] {
     string.components(separatedBy: "\n")
         .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -167,6 +182,24 @@ class MetadataTests: XCTestCase {
 
     func testVersionConstantUpdated() {
         XCTAssertEqual(ShapeScript.version, shapeScriptVersion)
+    }
+
+    func testChangelogDatesAreAscending() throws {
+        var lastDate: Date?
+        let dateParser = DateFormatter()
+        dateParser.timeZone = TimeZone(identifier: "UTC")
+        dateParser.locale = Locale(identifier: "en_GB")
+        dateParser.dateFormat = " (yyyy-MM-dd)"
+        for title in changelogTitles {
+            let dateRange = try XCTUnwrap(title.range(of: " \\([^)]+\\)$", options: .regularExpression))
+            let dateString = String(title[dateRange])
+            let date = try XCTUnwrap(dateParser.date(from: dateString))
+            if let lastDate = lastDate, date > lastDate {
+                XCTFail("\(title) has newer date than subsequent version (\(date) vs \(lastDate))")
+                return
+            }
+            lastDate = date
+        }
     }
 
     func testUpdateWhatsNew() throws {
