@@ -400,7 +400,7 @@ extension EvaluationContext {
                 }
                 do {
                     // TODO: async source loading?
-                    program = try parse(source)
+                    program = try parse(source, at: url)
                     importCache.store[url] = program
                 } catch {
                     throw RuntimeErrorType.importError(
@@ -410,11 +410,8 @@ extension EvaluationContext {
                     )
                 }
             }
-            let oldURL = baseURL
-            baseURL = url
             importStack.append(url)
             defer {
-                baseURL = oldURL
                 importStack.removeLast()
             }
             do {

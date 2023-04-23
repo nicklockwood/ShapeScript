@@ -208,6 +208,7 @@ extension Document {
         }
         let camera = self.camera
         let showWireframe = self.showWireframe
+        let fileURL = fileURL
         let input = sourceString ?? ""
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self = self else {
@@ -254,16 +255,19 @@ extension Document {
                 return
             }
 
-            let program = try parse(input)
+            let program = try parse(input, at: fileURL)
             let parsed = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
             if logCancelled() {
                 return
             }
 
-            let (scene, error) = evaluate(program, delegate: self, cache: cache, isCancelled: {
-                progress.isCancelled
-            })
+            let (scene, error) = evaluate(
+                program,
+                delegate: self,
+                cache: cache,
+                isCancelled: { progress.isCancelled }
+            )
             let evaluated = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
             if logCancelled() {

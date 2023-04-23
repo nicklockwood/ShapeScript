@@ -18,7 +18,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let range3 = input.range(of: "3")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "print", range: printRange),
@@ -49,7 +49,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let range3 = input.range(of: "3")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "color", range: colorRange),
@@ -80,7 +80,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let range3 = input.range(of: "3")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "color", range: colorRange),
@@ -110,7 +110,7 @@ class ParserTests: XCTestCase {
         let notRange = input.range(of: "not")!
         let aRange = input.range(of: "a")!
         let bRange = input.range(of: "b")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.tuple([
                     Expression(type: .identifier("not"), range: notRange),
@@ -134,7 +134,7 @@ class ParserTests: XCTestCase {
         let aRange = input.range(of: "a")!
         let notRange2 = input.range(of: "not", range: input.range(of: "not b")!)!
         let bRange = input.range(of: "b")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.tuple([
                     Expression(type: .identifier("not"), range: notRange),
@@ -159,7 +159,7 @@ class ParserTests: XCTestCase {
         let input = "print not"
         let printRange = input.range(of: "print")!
         let notRange = input.range(of: "not")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "print", range: printRange),
@@ -234,7 +234,7 @@ class ParserTests: XCTestCase {
         let aRange = input.range(of: "a")!
         let bRange = input.range(of: "b")!
         let cRange = input.range(of: "c")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "print", range: printRange),
@@ -262,7 +262,7 @@ class ParserTests: XCTestCase {
         let aRange = input.range(of: "a")!
         let bRange = input.range(of: "b")!
         let cRange = input.range(of: "c")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "print", range: printRange),
@@ -289,7 +289,7 @@ class ParserTests: XCTestCase {
         let aRange = input.range(of: "a")!
         let bRange = input.range(of: "b")!
         let cRange = input.range(of: "c")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
                     Identifier(name: "point", range: pointRange),
@@ -316,7 +316,7 @@ class ParserTests: XCTestCase {
         let aRange = input.range(of: "a")!
         let bRange = input.range(of: "b")!
         let cRange = input.range(of: "c")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.infix(
                     Expression(type: .tuple([
@@ -343,7 +343,7 @@ class ParserTests: XCTestCase {
         let lengthRange = input.range(of: "length")!
         let numberRange = input.range(of: "40")!
         let bodyRange = input.range(of: "{ length 40 }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.block(
                 Identifier(name: "foo", range: fooRange),
                 Block(statements: [
@@ -381,7 +381,7 @@ class ParserTests: XCTestCase {
         let input = "foo()"
         let fooRange = input.range(of: "foo")!
         let parensRange = input.range(of: "()")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
                 Identifier(name: "foo", range: fooRange),
                 Expression(type: .tuple([]), range: parensRange)
@@ -394,7 +394,7 @@ class ParserTests: XCTestCase {
         let printRange = input.range(of: "print")!
         let barRange = input.range(of: "bar")!
         let parensRange = input.range(of: "()")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
                 Identifier(name: "print", range: printRange),
                 Expression(type: .tuple([
@@ -497,7 +497,7 @@ class ParserTests: XCTestCase {
         let fooRange = input.range(of: "foo")!
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
                     Identifier(name: "foo", range: fooRange),
@@ -522,7 +522,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "5")!
         let range3 = input.range(of: "2")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
                     Identifier(name: "foo", range: fooRange),
@@ -580,7 +580,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
                 Expression(type: .number(1), range: range1),
                 .plus,
@@ -594,7 +594,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .plus,
@@ -608,7 +608,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .to,
@@ -622,7 +622,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .step,
@@ -636,7 +636,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "step")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
                 Identifier(name: "foo", range: range1),
                 Expression(type: .identifier("step"), range: range2)
@@ -649,7 +649,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "foo")!
         let range2 = input.range(of: "true")!
         let range = range1.lowerBound ..< range2.upperBound
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .and,
@@ -667,7 +667,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let blockRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
                     Identifier(name: "i", range: iRange),
@@ -692,7 +692,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let blockRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
                     nil,
@@ -717,7 +717,7 @@ class ParserTests: XCTestCase {
         let iRange = input.range(of: "i")!
         let fooRange = input.range(of: "foo")!
         let blockRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
                     Identifier(name: "i", range: iRange),
@@ -737,7 +737,7 @@ class ParserTests: XCTestCase {
         let range3 = input.range(of: "3")!
         let tupleRange = input.range(of: "(1 2 3)")!
         let blockRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
                     nil,
@@ -844,7 +844,7 @@ class ParserTests: XCTestCase {
         let ifRange = input.range(of: "if")!
         let fooRange = input.range(of: "foo")!
         let bodyRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -867,7 +867,7 @@ class ParserTests: XCTestCase {
         let if2Range = input.range(of: "if", range: input.range(of: "if bar")!)!
         let barRange = input.range(of: "bar")!
         let body2Range = input.range(of: "{ }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -893,7 +893,7 @@ class ParserTests: XCTestCase {
         let fooRange = input.range(of: "foo")!
         let bodyRange = input.range(of: "{}")!
         let elseBodyRange = input.range(of: "{ }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -914,7 +914,7 @@ class ParserTests: XCTestCase {
         let if2Range = input.range(of: "if", range: elseBodyRange)!
         let barRange = input.range(of: "bar")!
         let body2Range = input.range(of: "{ }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -944,7 +944,7 @@ class ParserTests: XCTestCase {
         let fooRange = input.range(of: "foo")!
         let bodyRange = input.range(of: "{}")!
         let elseBodyRange = input.range(of: "{ }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -1026,7 +1026,7 @@ class ParserTests: XCTestCase {
         let fooRange = input.range(of: "foo")!
         let barRange = input.range(of: "bar")!
         let bodyRange = input.range(of: "{}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
                     Expression(type: .infix(
@@ -1052,7 +1052,7 @@ class ParserTests: XCTestCase {
         let switchRange = input.range(of: "switch")!
         let fooRange = input.range(of: "foo")!
         let endBraceRange = input.range(of: "}")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .switchcase(
                     Expression(type: .identifier("foo"), range: fooRange),
@@ -1144,7 +1144,7 @@ class ParserTests: XCTestCase {
         let range1 = input.range(of: "1")!
         let range2 = input.range(of: "2")!
         let bodyRange = input.range(of: "{ 1 2 }")!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.block(
                 Identifier(name: "text", range: textRange),
                 Block(statements: [
@@ -1169,7 +1169,7 @@ class ParserTests: XCTestCase {
         let sumRange = input.range(of: "a + b")!
         let aRange2 = input.range(of: "a", range: bodyRange)!
         let bRange2 = input.range(of: "b", range: bodyRange)!
-        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
                     Identifier(name: "foo", range: fooRange),

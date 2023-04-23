@@ -7,20 +7,22 @@
 //
 
 import Euclid
+import Foundation
 
 // MARK: Public interface
 
-public func parse(_ input: String) throws -> Program {
+public func parse(_ input: String, at url: URL? = nil) throws -> Program {
     var tokens = try ArraySlice(tokenize(input))
     let statements = try tokens.readStatements()
     if let token = tokens.first, token.type != .eof {
         throw ParserError(.unexpectedToken(token, expected: nil))
     }
-    return Program(source: input, statements: statements)
+    return Program(source: input, fileURL: url, statements: statements)
 }
 
 public struct Program: Equatable {
     public let source: String
+    public let fileURL: URL?
     public let statements: [Statement]
 }
 

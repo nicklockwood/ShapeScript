@@ -538,11 +538,14 @@ extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
         let oldSourceIndex = context.sourceIndex
+        let oldBaseURL = context.baseURL
         context.source = source
         context.sourceIndex = nil
+        context.baseURL = fileURL ?? oldBaseURL
         defer {
             context.source = oldSource
             context.sourceIndex = oldSourceIndex
+            context.baseURL = oldBaseURL
         }
         statements.gatherDefinitions(in: context)
         do {
