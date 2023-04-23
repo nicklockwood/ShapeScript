@@ -197,11 +197,10 @@ class MetadataTests: XCTestCase {
 
         let macBody = releases.map {
             #"""
-            \f1\b\fs34 \cf2 ShapeScript \#($0.version) \'97 \#($0.date)\
+            \f1\b\fs28 \cf2 ShapeScript \#($0.version) \'97 \#($0.date)\
             \
             \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
-
-            \fs33\fsmilli16867 \cf2 \kerning1\expnd0\expndtw0\#($0.notes.map {
+            \cf2 \kerning1\expnd0\expndtw0\#($0.notes.map {
                 #"""
                    \'95
                 \f0\b0 \expnd0\expndtw0\kerning0
