@@ -37,7 +37,7 @@ class DocumentViewController: UIViewController {
     var document: Document? {
         didSet {
             document?.viewController = self
-            editButton?.isEnabled = document?.isEditable ?? false
+            updateEditButton()
             document?.rerender()
         }
     }
@@ -222,6 +222,11 @@ class DocumentViewController: UIViewController {
         setNeedsStatusBarAppearanceUpdate()
     }
 
+    func updateEditButton() {
+        editButton?.image = UIImage(systemName: document?.isEditable ?? false ?
+                                    "square.and.pencil" : "doc.plaintext")
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
         isBrightBackground ? .darkContent : .lightContent
     }
@@ -294,7 +299,7 @@ class DocumentViewController: UIViewController {
         scnView.antialiasingMode = .multisampling4X // .multisampling16X
         scnView.allowsCameraControl = geometry != nil
         updateInterfaceColor()
-        editButton?.isEnabled = document?.isEditable ?? false
+        updateEditButton()
         updateAxesAndCamera()
         resetView()
 
