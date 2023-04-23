@@ -8,10 +8,6 @@
 
 import AppKit
 
-extension NSApplication {
-    static let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as! String
-}
-
 struct EditorApp: Comparable {
     var name: String
     var url: URL
@@ -27,18 +23,6 @@ struct EditorApp: Comparable {
 }
 
 extension Settings {
-    // MARK: App version
-
-    var appVersion: String? {
-        get { defaults.object(forKey: #function) as? String }
-        set { defaults.set(newValue, forKey: #function) }
-    }
-
-    var previousAppVersion: String? {
-        get { defaults.object(forKey: #function) as? String }
-        set { defaults.set(newValue, forKey: #function) }
-    }
-
     // MARK: Editor
 
     var editorApps: [EditorApp] {

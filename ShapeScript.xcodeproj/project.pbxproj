@@ -12,6 +12,8 @@
 		010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
 		0118098328F216D200E0C8D8 /* Value+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0118098228F216D200E0C8D8 /* Value+JSON.swift */; };
+		011E57AC29F577F900CA0778 /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */; };
+		011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 011E57B429F57BBC00CA0778 /* WhatsNew.rtf */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013A0FC1290905C40015FD28 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
@@ -326,6 +328,8 @@
 		010A904F27FB222400D54A6F /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SVGPath.xcodeproj; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0118098228F216D200E0C8D8 /* Value+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+JSON.swift"; sourceTree = "<group>"; };
+		011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
+		011E57B429F57BBC00CA0778 /* WhatsNew.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardLibrary.swift; sourceTree = "<group>"; };
@@ -545,6 +549,8 @@
 				01BAFC51299D3B4B00F1D473 /* SceneDelegate.swift */,
 				0183AAC328EC3AB200AD1984 /* DocumentViewController.swift */,
 				0183AAC428EC3AB200AD1984 /* DocumentBrowserViewController.swift */,
+				011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */,
+				011E57B429F57BBC00CA0778 /* WhatsNew.rtf */,
 				0183AAC528EC3AB200AD1984 /* Info.plist */,
 			);
 			path = iOS;
@@ -946,6 +952,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0183AACA28EC3AB200AD1984 /* LaunchScreen.storyboard in Resources */,
+				011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */,
 				0183AAC828EC3AB200AD1984 /* Assets.xcassets in Resources */,
 				0183AAC628EC3AB200AD1984 /* Untitled.shape in Resources */,
 				0183AACB28EC3AB200AD1984 /* Main.storyboard in Resources */,
@@ -1071,6 +1078,7 @@
 				0183AAC928EC3AB200AD1984 /* SplitView.swift in Sources */,
 				01BAFC52299D3B4B00F1D473 /* SceneDelegate.swift in Sources */,
 				0174CD6D2917FC1F0007B6DF /* FileMonitor.swift in Sources */,
+				011E57AC29F577F900CA0778 /* WhatsNewViewController.swift in Sources */,
 				0183AAAD28EC3AA600AD1984 /* Axes.swift in Sources */,
 				0183AACF28EC3AB200AD1984 /* AppDelegate.swift in Sources */,
 				0183AAD128EC3AB200AD1984 /* DocumentBrowserViewController.swift in Sources */,

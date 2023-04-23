@@ -224,7 +224,7 @@ class DocumentViewController: UIViewController {
 
     func updateEditButton() {
         editButton?.image = UIImage(systemName: document?.isEditable ?? false ?
-                                    "square.and.pencil" : "doc.plaintext")
+            "square.and.pencil" : "doc.plaintext")
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {

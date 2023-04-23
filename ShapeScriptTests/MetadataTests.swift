@@ -15,8 +15,11 @@ private let projectDirectory: URL = URL(fileURLWithPath: #file)
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")
 
-private let whatsNewURL = projectDirectory
+private let whatsNewMacURL = projectDirectory
     .appendingPathComponent("Viewer/Mac/WhatsNew.rtf")
+
+private let whatsNewIOSURL = projectDirectory
+    .appendingPathComponent("Viewer/iOS/WhatsNew.rtf")
 
 private let podspecURL: URL = projectDirectory
     .appendingPathComponent("ShapeScript.podspec.json")
@@ -192,7 +195,7 @@ class MetadataTests: XCTestCase {
             notes.removeAll()
         }
 
-        let body = releases.map {
+        let macBody = releases.map {
             #"""
             \f1\b\fs34 \cf2 ShapeScript \#($0.version) \'97 \#($0.date)\
             \
@@ -209,7 +212,7 @@ class MetadataTests: XCTestCase {
             """#
         }.joined(separator: "\n")
 
-        let whatsNew = #"""
+        let macWhatsNew = #"""
         {\rtf1\ansi\ansicpg1252\cocoartf2639
         \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 HelveticaNeue-Bold;}
         {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
@@ -223,10 +226,40 @@ class MetadataTests: XCTestCase {
         \
         \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
 
-        \#(body)
+        \#(macBody)
         }
         """#
-        try whatsNew.write(to: whatsNewURL, atomically: true, encoding: .utf8)
+        try macWhatsNew.write(to: whatsNewMacURL, atomically: true, encoding: .utf8)
+
+        let iosBody = releases.map {
+            #"""
+            \f0\b \cf2 ShapeScript \#($0.version) \'97 \#($0.date)\
+            \
+            \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+            \cf2 \kerning1\expnd0\expndtw0
+            \f1\b0 \expnd0\expndtw0\kerning0\#($0.notes.map {
+                #"""
+                   \'95
+                \f1\b0 \expnd0\expndtw0\kerning0
+                 \#($0).\
+                \
+                """#
+            }.joined())
+            """#
+        }.joined(separator: "\n")
+
+        let iosWhatsNew = #"""
+        {\rtf1\ansi\ansicpg1252\cocoartf2639
+        \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue-Bold;\f1\fnil\fcharset0 HelveticaNeue;}
+        {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+        {\*\expandedcolortbl;;\cssrgb\c0\c0\c0\cname textColor;}
+        \paperw11900\paperh16840\margl1440\margr1440\vieww24140\viewh18420\viewkind0
+        \deftab720
+
+        \#(iosBody)
+        }
+        """#
+        try iosWhatsNew.write(to: whatsNewIOSURL, atomically: true, encoding: .utf8)
     }
 
     // MARK: Help

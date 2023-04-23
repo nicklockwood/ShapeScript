@@ -40,10 +40,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        let firstLaunchOfNewVersion = (Settings.shared.appVersion != NSApplication.appVersion)
+        let firstLaunchOfNewVersion = (Settings.shared.appVersion != appVersion)
         if firstLaunchOfNewVersion {
             Settings.shared.previousAppVersion = Settings.shared.appVersion
-            Settings.shared.appVersion = NSApplication.appVersion
+            Settings.shared.appVersion = appVersion
         }
         if WelcomeViewController.shouldShowAtStartup {
             welcomeWindowController.showWindow(self)

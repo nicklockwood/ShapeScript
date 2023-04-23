@@ -9,6 +9,10 @@
 import CoreServices
 import Foundation
 
+let appVersion: String = Bundle.main.object(
+    forInfoDictionaryKey: "CFBundleShortVersionString"
+) as! String
+
 extension Notification.Name {
     static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
 }
@@ -62,6 +66,18 @@ final class Settings {
                                   andGlobally applyGlobally: Bool = false)
     {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
+    }
+
+    // MARK: App version
+
+    var appVersion: String? {
+        get { defaults.object(forKey: #function) as? String }
+        set { defaults.set(newValue, forKey: #function) }
+    }
+
+    var previousAppVersion: String? {
+        get { defaults.object(forKey: #function) as? String }
+        set { defaults.set(newValue, forKey: #function) }
     }
 
     // MARK: Welcome screen

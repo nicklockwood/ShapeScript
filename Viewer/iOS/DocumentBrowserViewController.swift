@@ -30,9 +30,15 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
         )]
     }
 
-    override func viewDidAppear(_: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        let appDelegate = UIApplication.shared.delegate as? AppDelegate
         if Settings.shared.showWelcomeScreenAtStartup {
             showWelcomeScreen()
+        } else if appDelegate?.firstLaunchOfNewVersion ?? false {
+            showWhatsNewScreen()
+            appDelegate?.firstLaunchOfNewVersion = false
         }
     }
 
@@ -60,6 +66,14 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
         present(alert, animated: true)
     }
 
+    func showWhatsNewScreen() {
+        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
+        let viewController = storyBoard.instantiateViewController(withIdentifier: "WhatsNewViewController") as! WhatsNewViewController
+        let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.modalPresentationStyle = .formSheet
+        present(navigationController, animated: true)
+    }
+
     @objc func showHelpMenu() {
         let alert = UIAlertController(
             title: "ShapeScript Help",
@@ -71,6 +85,12 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             style: .default
         ) { _ in
             UIApplication.shared.open(onlineHelpURL)
+        })
+        alert.addAction(UIAlertAction(
+            title: "What's New in ShapeScript?",
+            style: .default
+        ) { [weak self] _ in
+            self?.showWhatsNewScreen()
         })
         alert.addAction(UIAlertAction(
             title: "Online Community",
