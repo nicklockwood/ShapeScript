@@ -26,6 +26,7 @@
 		013A0FC9290905F70015FD28 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
 		013FBF6A2834D7EF00EAF795 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013FBF692834D7EF00EAF795 /* Types.swift */; };
+		0144878B29F58F3E0050D4D2 /* Untitled.shape in Resources */ = {isa = PBXBuildFile; fileRef = 0183AAB728EC3AB200AD1984 /* Untitled.shape */; };
 		01460C3321D63F3300BFC4FF /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
 		01460C3921D63FA200BFC4FF /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01460C3B21D6406500BFC4FF /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -529,6 +530,7 @@
 				0183AA9F28EC3AA500AD1984 /* Settings.swift */,
 				0183AAA028EC3AA500AD1984 /* Camera.swift */,
 				0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */,
+				0183AAB728EC3AB200AD1984 /* Untitled.shape */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -536,7 +538,6 @@
 		0183AAB628EC3AB200AD1984 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
-				0183AAB728EC3AB200AD1984 /* Untitled.shape */,
 				0183AAB828EC3AB200AD1984 /* SourceViewController.swift */,
 				0183AAB928EC3AB200AD1984 /* Assets.xcassets */,
 				0183AABA28EC3AB200AD1984 /* SplitView.swift */,
@@ -939,6 +940,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0144878B29F58F3E0050D4D2 /* Untitled.shape in Resources */,
 				0183AAE728EC3ACB00AD1984 /* Main.storyboard in Resources */,
 				01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */,
 				0183AAE928EC3ACB00AD1984 /* Welcome.rtf in Resources */,

@@ -53,26 +53,16 @@ func showNewDocumentPanel() {
             return
         }
         do {
-            let string = """
-            // ShapeScript document
-
-            detail 32
-
-            cube {
-                position -1.5
-                color 1 0 0
+            let data: Data
+            if let templateURL = Bundle.main.url(
+                forResource: "Untitled",
+                withExtension: "shape"
+            ) {
+                data = try Data(contentsOf: templateURL)
+            } else {
+                data = Data()
             }
-
-            sphere {
-                color 0 1 0
-            }
-
-            cone {
-                position 1.5
-                color 0 0 1
-            }
-            """
-            try string.write(to: url, atomically: true, encoding: .utf8)
+            try data.write(to: url, options: .atomic)
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
                 if let error = error {
                     NSDocumentController.shared.presentError(error)
