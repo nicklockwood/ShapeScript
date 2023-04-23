@@ -16,6 +16,7 @@ public let version = "1.8.3"
 public func evaluate(
     _ program: Program,
     delegate: EvaluationDelegate?,
+    baseURL: URL? = nil,
     cache: GeometryCache? = GeometryCache(),
     isCancelled: @escaping () -> Bool = { false }
 ) throws -> Scene {
@@ -24,6 +25,7 @@ public func evaluate(
         delegate: delegate,
         isCancelled: isCancelled
     )
+    context.baseURL = baseURL
     try program.evaluate(in: context)
     return Scene(
         background: context.background ?? .color(.clear),
