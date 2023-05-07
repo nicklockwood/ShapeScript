@@ -32,10 +32,11 @@ struct CLIError: Error, CustomNSError {
 class CLI {
     let inputURL: URL?
     let outputURL: URL?
-    let zUp: Bool
+    let exportOptions: ExportOptions
 
     init(in directory: String, with arguments: [String]) throws {
-        let args = try preprocessArguments(arguments, ["z-up"])
+        let argNames = ExportOptions.arguments.map { $0.name }
+        let args = try preprocessArguments(arguments, argNames)
         inputURL = try args["1"].map {
             let url = expandPath($0, in: directory)
             guard url.pathExtension == "shape" else {
@@ -45,20 +46,21 @@ class CLI {
         }
         outputURL = try args["2"].map {
             let url = expandPath($0, in: directory)
-            guard url.pathExtension == "stl" else {
+            guard Self.exportTypes.contains(url.pathExtension) else {
                 throw CLIError("Unsupported export file type '\(url.pathExtension)'")
             }
             return url
         }
-        zUp = try args["z-up"].map {
-            guard $0 == "" else {
-                throw CLIError("--z-up option does not expect a value")
-            }
-            return true
-        } ?? false
+        exportOptions = try ExportOptions(arguments: args)
     }
 
     func run() throws {
+        let args = ExportOptions.arguments
+        let indent = args.map { $0.name.count }.max() ?? 0
+        let help = args.map { name, help -> String in
+            let indent = String(repeating: " ", count: indent - name.count)
+            return "  --\(name)\(indent)  \(help)"
+        }
         guard let inputURL = inputURL else {
             print("""
             ShapeScript, version \(version)
@@ -68,7 +70,7 @@ class CLI {
               shapescript <input_path> [<output_path>] [<options>]
 
             OPTIONS:
-              --z-up  Output model using Z as up axis instead of Y
+            \(help.joined(separator: "\n"))
             """)
             return
         }
@@ -102,13 +104,7 @@ class CLI {
             }
             // Export model
             print("Exporting to '\(outputURL.lastPathComponent)' ...")
-            var mesh = geometry.merged()
-            if zUp {
-                mesh.rotate(by: .pitch(.degrees(-90)))
-            }
-            let name = inputURL.deletingPathExtension().lastPathComponent
-            let stl = mesh.stlString(name: name)
-            try stl.write(to: outputURL, atomically: true, encoding: .utf8)
+            try export(geometry, to: outputURL, with: exportOptions)
             print("Export complete")
         } catch let error as CLIError {
             throw error

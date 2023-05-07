@@ -108,6 +108,7 @@
 		01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */; };
 		01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D8796A285FBDC800C65135 /* ImportExportTests.swift */; };
 		01DE96712A082A6A0080DB79 /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96702A082A6A0080DB79 /* ProgramError.swift */; };
+		01DE96782A085E900080DB79 /* CLI+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96762A085DC40080DB79 /* CLI+Export.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Logging.swift */; };
 		01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0926CB920000E0B287 /* LoggingTests.swift */; };
 		01E5A4F328EE3DFC00EE7CD9 /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01BD943521936514005FFAEC /* Examples */; };
@@ -408,6 +409,7 @@
 		01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
 		01D8796A285FBDC800C65135 /* ImportExportTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImportExportTests.swift; sourceTree = "<group>"; };
 		01DE96702A082A6A0080DB79 /* ProgramError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramError.swift; sourceTree = "<group>"; };
+		01DE96762A085DC40080DB79 /* CLI+Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CLI+Export.swift"; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		01E3AA0926CB920000E0B287 /* LoggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTests.swift; sourceTree = "<group>"; };
 		01F01A4C2804CC5300FA1EBB /* SVGPath+Path.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SVGPath+Path.swift"; sourceTree = "<group>"; };
@@ -671,6 +673,7 @@
 			children = (
 				01D753E629E89BD000B326F0 /* ProgramError+Formatting.swift */,
 				01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */,
+				01DE96762A085DC40080DB79 /* CLI+Export.swift */,
 				01D753E429E8939700B326F0 /* CLI.swift */,
 				01D753CD29E88ED700B326F0 /* main.swift */,
 			);
@@ -1152,6 +1155,7 @@
 				01D753CE29E88ED700B326F0 /* main.swift in Sources */,
 				01D753E729E89BD000B326F0 /* ProgramError+Formatting.swift in Sources */,
 				01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */,
+				01DE96782A085E900080DB79 /* CLI+Export.swift in Sources */,
 				01D753E529E8939700B326F0 /* CLI.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
