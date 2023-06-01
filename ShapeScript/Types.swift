@@ -255,7 +255,7 @@ extension ValueType {
         "blue": .number,
         "alpha": .number,
         "bounds": .bounds,
-        "color": .color,
+        "color": .optional(.color),
         "start": .number,
         "end": .number,
         "step": .number,

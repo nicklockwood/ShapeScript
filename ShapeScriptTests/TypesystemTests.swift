@@ -328,7 +328,13 @@ class TypesystemTests: XCTestCase {
     func testPointColorMemberType() {
         XCTAssertEqual(try expressionType("""
         (square { color red }).points.first.color
-        """), .color)
+        """), .optional(.color))
+    }
+
+    func testPointColorMemberType2() {
+        XCTAssertEqual(try expressionType("""
+        square.points.first.color
+        """), .optional(.color))
     }
 
     func testImportShapeType() {

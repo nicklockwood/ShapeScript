@@ -346,10 +346,8 @@ extension Value {
             return members
         case .path, .polygon:
             return ["bounds", "points"]
-        case let .point(point):
-            return ["x", "y", "z", "position"] + (point.color.map { _ in
-                ["color"]
-            } ?? [])
+        case .point:
+            return ["x", "y", "z", "position", "color"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
@@ -475,7 +473,7 @@ extension Value {
             case "position":
                 return .vector(point.position)
             case "color":
-                return point.color.map { .color($0) } // TODO: return default?
+                return point.color.map { .color($0) } ?? .void
             default:
                 return Value.vector(point.position)[name, isCancelled]
             }
