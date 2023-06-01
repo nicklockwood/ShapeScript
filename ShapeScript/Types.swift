@@ -182,6 +182,7 @@ extension ValueType {
         case .any: return "any"
         case let .tuple(types) where types.count == 1:
             return types[0].errorDescription
+        case .tuple([]): return "empty tuple"
         case .tuple, .list: return "tuple"
         case let .union(types):
             return types.sorted().errorDescription

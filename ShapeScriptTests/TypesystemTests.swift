@@ -654,7 +654,7 @@ class TypesystemTests: XCTestCase {
         XCTAssertThrowsError(try evaluate("()", as: .color)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.type, .typeMismatch(
-                for: "", expected: "color", got: "tuple"
+                for: "", expected: "color", got: "empty tuple"
             ))
         }
     }

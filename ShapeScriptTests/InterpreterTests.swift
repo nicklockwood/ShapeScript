@@ -3368,9 +3368,9 @@ class InterpreterTests: XCTestCase {
         let program = "print ().blue"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'blue'")
+            XCTAssertEqual(error?.message, "Unknown empty tuple member property 'blue'")
             XCTAssertNotEqual(error?.suggestion, "blue")
-            guard case .unknownMember("blue", of: "tuple", _) = error?.type else {
+            guard case .unknownMember("blue", of: "empty tuple", _) = error?.type else {
                 XCTFail()
                 return
             }
