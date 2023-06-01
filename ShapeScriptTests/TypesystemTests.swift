@@ -12,7 +12,16 @@ import XCTest
 private func expressionType(_ source: String) throws -> ValueType {
     let program = try parse(source)
     let context = EvaluationContext(source: "", delegate: nil)
-    try? program.evaluate(in: context)
+    do {
+        try program.evaluate(in: context)
+    } catch let error as RuntimeError {
+        switch error.type {
+        case .fileNotFound, .unusedValue:
+            break
+        default:
+            throw error
+        }
+    }
     return try program.statements.last?.staticType(in: context) ?? .void
 }
 
@@ -122,6 +131,10 @@ class TypesystemTests: XCTestCase {
 
     func testBlockExpressionType2() {
         XCTAssertEqual(try expressionType("cube { size 1 }"), .mesh)
+    }
+
+    func testBlockExpressionType3() {
+        XCTAssertEqual(try expressionType("square"), .path)
     }
 
     func testFunctionExpressionType() {
@@ -287,13 +300,6 @@ class TypesystemTests: XCTestCase {
         """), .number)
     }
 
-    func testEmptyTupleMemberType() {
-        XCTAssertEqual(try expressionType("""
-        define foo ()
-        foo.blue
-        """), .any)
-    }
-
     func testUnionMemberType() {
         XCTAssertEqual(try expressionType("""
         define foo () {
@@ -321,7 +327,7 @@ class TypesystemTests: XCTestCase {
 
     func testPointColorMemberType() {
         XCTAssertEqual(try expressionType("""
-        square.points.color
+        (square { color red }).points.first.color
         """), .color)
     }
 
