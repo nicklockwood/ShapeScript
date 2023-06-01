@@ -384,7 +384,7 @@ extension Value {
         case .polygon:
             return ["bounds", "center", "points"]
         case .point:
-            return ["x", "y", "z", "position", "color"]
+            return ["x", "y", "z", "position", "color", "isCurved"]
         case .bounds:
             return ["min", "max", "size", "center", "width", "height", "depth"]
         case .string:
@@ -511,6 +511,8 @@ extension Value {
             switch name {
             case "position":
                 return .vector(point.position)
+            case "isCurved":
+                return .boolean(point.isCurved)
             case "color":
                 return point.color.map { .color($0) } ?? .void
             default:

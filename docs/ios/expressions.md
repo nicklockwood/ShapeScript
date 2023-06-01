@@ -198,6 +198,15 @@ for word in sentence {
 }
 ```
 
+For [paths](paths.md) you can access the `bounds` and `points` members. For each point you can access the `position`, `isCurved` and `color`:
+
+```swift
+// Print the points in a circle
+for point in circle.points {
+    print "position: " point.position ", isCurved: " point.isCurved
+}
+```
+
 For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members:
 
 ```swift
@@ -217,7 +226,7 @@ define triangle polygon {
     point 1 1
 }
 
-// Print the vertex colors
+// Print the vertex positions and colors
 for point in triangle.points {
     print "position: " point.position ", color: " point.color
 }

@@ -262,6 +262,7 @@ extension ValueType {
         "alpha": .number,
         "bounds": .bounds,
         "color": .optional(.color),
+        "isCurved": .boolean,
         "start": .number,
         "end": .number,
         "step": .number,

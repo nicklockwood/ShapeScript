@@ -337,6 +337,12 @@ class TypesystemTests: XCTestCase {
         """), .optional(.color))
     }
 
+    func testPointCurvedMemberType() {
+        XCTAssertEqual(try expressionType("""
+        square.points.first.isCurved
+        """), .boolean)
+    }
+
     func testImportShapeType() {
         XCTAssertEqual(try expressionType("""
         import "foo.shape"
