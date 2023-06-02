@@ -3718,8 +3718,8 @@ class InterpreterTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown mesh member property 'polygons'")
-            guard case .unknownMember("polygons", of: "mesh", _)? = error?.type else {
+            XCTAssertEqual(error?.message, "Unknown camera member property 'polygons'")
+            guard case .unknownMember("polygons", of: "camera", _)? = error?.type else {
                 XCTFail()
                 return
             }

@@ -287,7 +287,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     )
                 default:
                     throw RuntimeErrorType.assertionFailure(
-                        "Unexpected child of type \(child.type.errorDescription) in path"
+                        "Unexpected child of type \(child.errorDescription) in path"
                     )
                 }
             }

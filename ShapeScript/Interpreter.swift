@@ -761,7 +761,7 @@ extension Definition {
                                 return value
                             }
                             throw RuntimeErrorType.assertionFailure(
-                                "Blocks that return \(aOrAn(value.type.errorDescription)) " +
+                                "Blocks that return \(aOrAn(value.errorDescription)) " +
                                     "value cannot be assigned a name"
                             )
                         }
@@ -804,7 +804,7 @@ extension Definition {
                                 return geometry
                             default:
                                 throw RuntimeErrorType.assertionFailure(
-                                    "Blocks that return \(aOrAn($0.type.errorDescription)) " +
+                                    "Blocks that return \(aOrAn($0.errorDescription)) " +
                                         "value cannot be assigned a name"
                                 )
                             }
@@ -1304,7 +1304,7 @@ extension Expression {
             var value = try expression.evaluate(in: context)
             if let memberValue = value[member.name, context.isCancelled] {
                 assert(value.members.contains(member.name),
-                       "\(value.type.errorDescription) does not have member '\(member.name)'")
+                       "\(value.errorDescription) does not have member '\(member.name)'")
                 return memberValue
             }
             // TODO: find less hacky way to do this unwrap
@@ -1312,10 +1312,10 @@ extension Expression {
                 value = values[0]
             }
             assert(!value.members.contains(member.name),
-                   "\(value.type.errorDescription) should have member '\(member.name)'")
+                   "\(value.errorDescription) should have member '\(member.name)'")
             throw RuntimeError(.unknownMember(
                 member.name,
-                of: value.type.errorDescription,
+                of: value.errorDescription,
                 options: value.members
             ), at: member.range)
         }

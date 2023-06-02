@@ -176,6 +176,26 @@ extension Value {
         }
     }
 
+    var errorDescription: String {
+        switch self {
+        case let .mesh(geometry):
+            switch geometry.type {
+            case .path: return "path"
+            case .cone: return "cone"
+            case .cylinder: return "cylinder"
+            case .sphere: return "sphere"
+            case .cube: return "cube"
+            case .group, .extrude, .lathe, .loft, .fill, .hull, .union,
+                 .difference, .intersection, .xor, .stencil, .mesh:
+                return "mesh"
+            case .camera: return "camera"
+            case .light: return "light"
+            }
+        default:
+            return type.errorDescription
+        }
+    }
+
     var value: AnyHashable {
         switch self {
         case let .color(color): return color
