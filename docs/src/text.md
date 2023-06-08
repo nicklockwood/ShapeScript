@@ -102,7 +102,7 @@ To adjust the text size, you can use the [size](transforms.md#size) option:
 ```swift
 text {
     size 2 // increase text size by 200%
-    text "Hello, World!"
+    "Hello, World!"
 }
 ```
 
@@ -113,7 +113,7 @@ You can resize the text non-uniformly by passing separate width and height value
 ```swift
 text {
     size 2 1.5 // set width to 200% and height to 150%
-    text "Hello, World!"
+    "Hello, World!"
 }
 ```
 
