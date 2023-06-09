@@ -888,7 +888,21 @@ extension Statement {
         }
         switch type {
         case let .command(identifier, parameter):
-            let name = identifier.name
+            var name = identifier.name
+            if let type = context.options[name] ?? {
+                if name == "colour", let type = context.options["color"] {
+                    name = "color"
+                    return type
+                }
+                return nil
+            }() {
+                return try context.define(name, as: .option(
+                    evaluateParameter(parameter,
+                                      as: type,
+                                      for: identifier,
+                                      in: context)
+                ))
+            }
             guard let symbol = context.symbol(for: name) else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.commandSymbols),
@@ -1076,47 +1090,17 @@ extension Expression {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
                 }
-                let sourceIndex = context.sourceIndex
                 let newContext = context.push(type)
                 defer {
                     // TODO: find better solution for this
                     context.background = newContext.background
                 }
-                block.statements.gatherDefinitions(in: newContext)
-                for statement in block.statements {
-                    switch statement.type {
-                    case let .command(identifier, parameter):
-                        var name = identifier.name
-                        guard let type = type.options[name] ?? {
-                            switch name {
-                            case "colour":
-                                name = "color"
-                                return type.options[name]
-                            default:
-                                return nil
-                            }
-                        }() else {
-                            fallthrough
-                        }
-                        try newContext.define(name, as: .option(
-                            evaluateParameter(parameter,
-                                              as: type,
-                                              for: identifier,
-                                              in: newContext)
-                        ))
-                    case .define, .forloop, .ifelse, .expression, .import, .option:
+                try newContext.pushScope { newContext in
+                    block.statements.gatherDefinitions(in: newContext)
+                    for statement in block.statements {
                         try statement.evaluate(in: newContext)
                     }
                 }
-                for (name, symbol) in newContext.userSymbols {
-                    switch symbol {
-                    case .option:
-                        break // Only options are preserved from call scope
-                    case .block, .function, .property, .constant, .placeholder:
-                        newContext.userSymbols.removeValue(forKey: name)
-                    }
-                }
-                newContext.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(newContext), at: range)
             case let .constant(value), let .option(value):
                 guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),

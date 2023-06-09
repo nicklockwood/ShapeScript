@@ -536,6 +536,37 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [6])
     }
 
+    func testConditionalOptionPassedToCommand() {
+        let program = """
+        define foo polygon {
+            if true {
+                sides 7
+            }
+        }
+        print foo.points.count - 1
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [7])
+    }
+
+    func testConditionalOptionPassedToCustomCommand() {
+        let program = """
+        define foo {
+            option baz 1
+            print baz
+        }
+        foo {
+            if true {
+                baz 5
+            }
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     func testOptionDefaultValueFromGlobalConstant() {
         let program = """
         define baz 5

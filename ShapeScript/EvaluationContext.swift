@@ -35,8 +35,9 @@ final class EvaluationContext {
     }
 
     private weak var delegate: EvaluationDelegate?
-    private var symbols = Symbols.root
-    var userSymbols = Symbols()
+    private var symbols: Symbols = .root
+    var userSymbols: Symbols = [:]
+    var options: Options = [:]
     private let importCache: ImportCache
     private var importStack: [URL]
     let isCancelled: Mesh.CancellationHandler
@@ -123,6 +124,7 @@ final class EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.childTypes = type.childTypes
         new.symbols = type.symbols
+        new.options = type.options
         for (name, symbol) in type.symbols {
             if case .placeholder = symbol, new.userSymbols[name] != nil {
                 continue
@@ -137,7 +139,12 @@ final class EvaluationContext {
         let oldSymbols = userSymbols
         defer {
             sourceIndex = oldSourceIndex
-            userSymbols = oldSymbols
+            userSymbols = oldSymbols.merging(userSymbols.filter {
+                if case .option = $0.value, options[$0.key] != nil {
+                    return true
+                }
+                return false
+            }) { $1 }
         }
         try block(self)
     }
