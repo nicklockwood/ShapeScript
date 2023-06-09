@@ -491,6 +491,32 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testDefineNotPassedToCustomCommand() {
+        let program = """
+        define foo {
+            option baz 2
+            print baz
+        }
+        foo { define baz 5 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2])
+    }
+
+    func testDefineNotPassedToBuiltInCommand() {
+        let program = """
+        define foo polygon {
+            define sides 7
+        }
+        // should match default of 5 sides
+        print foo.points.count - 1
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     func testDuplicateOptionsPassedToCommand() {
         let program = """
         define foo {
@@ -3835,6 +3861,24 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [6])
+    }
+
+    func testCustomFunctionDoesntInheritSymbolsFromCallerScope() {
+        let program = """
+        define foo(a b) { a + b + c }
+        define bar {
+            define c 3
+            print foo(1 2)
+        }
+        bar
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("c", options: _) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
     }
 
     func testCustomFunctionDoesntOverrideSymbolsFromParentScope() {

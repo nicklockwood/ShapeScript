@@ -361,7 +361,7 @@ extension Symbol {
             return type.returnType
         case let .property(type, _, _), let .placeholder(type):
             return type
-        case let .constant(value):
+        case let .constant(value), let .option(value):
             return value.type
         }
     }
@@ -595,16 +595,7 @@ extension Definition {
     }
 
     func staticType(in context: EvaluationContext) throws -> ValueType {
-        switch try staticSymbol(in: context) {
-        case let .function(type, _):
-            return type.returnType
-        case let .block(type, _):
-            return type.returnType
-        case let .property(type, _, _), let .placeholder(type):
-            return type
-        case let .constant(value):
-            return value.type
-        }
+        try staticSymbol(in: context).type
     }
 }
 
@@ -691,17 +682,15 @@ extension Expression {
                 )
             }
             switch symbol {
-            case .block, .constant, .property, .function((.void, _), _):
-                return symbol.type
-            case let .function((parameterType, _), _):
+            case let .function((parameterType, _), _) where parameterType != .void:
                 throw RuntimeError(.typeMismatch(
                     for: name,
                     index: 0,
                     expected: parameterType.errorDescription,
                     got: "block"
                 ), at: block.range)
-            case let .placeholder(type):
-                return type
+            case .block, .function, .property, .constant, .option, .placeholder:
+                return symbol.type
             }
         case let .tuple(expressions):
             switch expressions.count {
@@ -722,7 +711,7 @@ extension Expression {
                         return type.returnType
                     case let .block(type, _) where type.childTypes != .void:
                         return type.returnType
-                    case .property, .constant, .placeholder, .function, .block:
+                    case .property, .constant, .option, .placeholder, .function, .block:
                         break
                     }
                 }
@@ -847,7 +836,7 @@ extension Statement {
                     in: context,
                     with: type.childTypes
                 )
-            case .constant, .placeholder:
+            case .constant, .option, .placeholder:
                 return
             }
         case let .expression(expression):
@@ -883,7 +872,7 @@ extension Statement {
             switch symbol {
             case .property:
                 return .void
-            case .function, .block, .constant, .placeholder:
+            case .function, .block, .constant, .option, .placeholder:
                 return symbol.type
             }
         case let .expression(expression):

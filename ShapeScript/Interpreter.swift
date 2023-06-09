@@ -518,7 +518,7 @@ private func evaluateParameters(
             )
             try RuntimeError.wrap(values.append((i, fn(childContext))), at: param.range)
             break loop
-        case .function, .block, .property, .constant, .placeholder:
+        case .function, .block, .property, .constant, .option, .placeholder:
             try values.append((i, param.evaluate(in: context)))
         }
     }
@@ -693,7 +693,13 @@ extension Definition {
                         throw RuntimeErrorType.assertionFailure("Too much recursion")
                     }
                     for (name, symbol) in _context.userSymbols {
-                        context.define(name, as: symbol)
+                        switch symbol {
+                        case .option:
+                            // Only options are copied from call scope
+                            context.define(name, as: symbol)
+                        case .block, .function, .property, .constant, .placeholder:
+                            break
+                        }
                     }
                     context.children += _context.children
                     context.name = _context.name
@@ -937,11 +943,12 @@ extension Statement {
                     childContext.userSymbols.removeAll()
                     try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
                 }
-            case var .constant(v):
+            case let .constant(value), let .option(value):
+                var value = value
                 if let parameter = parameter {
-                    v = .tuple([v, try parameter.evaluate(in: context)])
+                    value = .tuple([value, try parameter.evaluate(in: context)])
                 }
-                try RuntimeError.wrap(context.addValue(v), at: range)
+                try RuntimeError.wrap(context.addValue(value), at: range)
             case .placeholder:
                 throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
@@ -1051,7 +1058,7 @@ extension Expression {
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(context.push(type)), at: range)
-            case let .constant(value):
+            case let .constant(value), let .option(value):
                 return value
             case .placeholder:
                 throw RuntimeError(.forwardReference(name), at: range)
@@ -1091,7 +1098,7 @@ extension Expression {
                         }() else {
                             fallthrough
                         }
-                        try newContext.define(name, as: .constant(
+                        try newContext.define(name, as: .option(
                             evaluateParameter(parameter,
                                               as: type,
                                               for: identifier,
@@ -1101,9 +1108,17 @@ extension Expression {
                         try statement.evaluate(in: newContext)
                     }
                 }
+                for (name, symbol) in newContext.userSymbols {
+                    switch symbol {
+                    case .option:
+                        break // Only options are preserved from call scope
+                    case .block, .function, .property, .constant, .placeholder:
+                        newContext.userSymbols.removeValue(forKey: name)
+                    }
+                }
                 newContext.sourceIndex = sourceIndex
                 return try RuntimeError.wrap(fn(newContext), at: range)
-            case let .constant(value):
+            case let .constant(value), let .option(value):
                 guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),
                       case let .tuple(values) = value
                 else {

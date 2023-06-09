@@ -21,6 +21,7 @@ enum Symbol {
     case block(BlockType, Getter)
     case constant(Value)
     case placeholder(ValueType)
+    case option(Value)
 }
 
 extension Symbol {
@@ -52,6 +53,7 @@ extension Symbol {
         case .function: return "function"
         case .property: return "property"
         case .constant: return "constant"
+        case .option: return "option"
         case .placeholder: return "placeholder"
         }
     }

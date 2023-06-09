@@ -175,33 +175,38 @@ extension EvaluationContext {
         Symbols.global.merging(symbols) { $1 }.merging(userSymbols) { $1 }
     }
 
+    /// Symbols that can be used in an expression (i.e. that return a value)
     var expressionSymbols: [String] {
         Array(allSymbols.filter {
             switch $1 {
             case let .function(type, _) where type.returnType == .void:
                 return false
-            case .function, .property, .block, .constant, .placeholder:
+            case .function, .property, .block, .constant, .option, .placeholder:
                 return true
             }
         }.keys)
     }
 
+    /// Symbols that can be used as a command (i.e. that accept an argument)
     var commandSymbols: [String] {
         Array(allSymbols.filter {
             switch $1 {
             case .function, .property, .block, .placeholder:
                 return true
-            case .constant:
+            case .constant, .option:
                 return false
             }
         }.keys) + Keyword.allCases.map { $0.rawValue }
     }
 
+    /// Return the value of the specified symbol in the current context
     func value(for name: String) -> Value? {
-        if case let .constant(value)? = symbol(for: name) {
+        switch symbol(for: name) {
+        case let .constant(value), let .option(value):
             return value
+        case .function, .property, .block, .placeholder, nil:
+            return nil
         }
-        return nil
     }
 }
 
