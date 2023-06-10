@@ -296,12 +296,13 @@ class DocumentViewController: UIViewController {
         containerView.backgroundColor = Document.backgroundColor
         scnView.backgroundColor = Document.backgroundColor
         scnView.antialiasingMode = .multisampling4X // .multisampling16X
+        scnView.defaultCameraController.delegate = self
         scnView.pointOfView = cameraNode
         updateInterfaceColor()
         updateEditButton()
         refreshGeometry()
 
-        // configure camera button
+        // configure camera menu
         rebuildMenu()
 
         // add a tap gesture recognizer
@@ -481,6 +482,7 @@ class DocumentViewController: UIViewController {
     @IBAction func resetCamera() {
         updateAxesAndCamera()
         resetView()
+        rebuildMenu()
     }
 
     @IBAction func copyCamera() {
@@ -526,5 +528,15 @@ class DocumentViewController: UIViewController {
         dismiss(animated: true) {
             self.document?.close(completionHandler: nil)
         }
+    }
+}
+
+extension DocumentViewController: SCNCameraControllerDelegate {
+    func cameraInertiaWillStart(for _: SCNCameraController) {
+        rebuildMenu()
+    }
+
+    func cameraInertiaDidEnd(for _: SCNCameraController) {
+        rebuildMenu()
     }
 }
