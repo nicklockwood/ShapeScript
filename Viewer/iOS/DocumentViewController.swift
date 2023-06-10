@@ -295,13 +295,11 @@ class DocumentViewController: UIViewController {
         // configure the view
         containerView.backgroundColor = Document.backgroundColor
         scnView.backgroundColor = Document.backgroundColor
-        scnView.autoenablesDefaultLighting = true
         scnView.antialiasingMode = .multisampling4X // .multisampling16X
-        scnView.allowsCameraControl = geometry != nil
+        scnView.pointOfView = cameraNode
         updateInterfaceColor()
         updateEditButton()
-        updateAxesAndCamera()
-        resetView()
+        refreshGeometry()
 
         // configure camera button
         rebuildMenu()

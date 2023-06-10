@@ -65,12 +65,10 @@ extension DocumentViewController {
         // clear scene
         scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
 
-        // update axes
-        updateAxesAndCamera()
-
         guard let geometry = geometry else {
             scnView.allowsCameraControl = showAxes
-            refreshView()
+            updateAxesAndCamera()
+            resetView()
             return
         }
 
@@ -85,6 +83,7 @@ extension DocumentViewController {
         // update camera
         updateAxesAndCamera()
         scnView.allowsCameraControl = true
+        scnView.autoenablesDefaultLighting = true
         if !cameraHasMoved {
             resetView()
         } else {

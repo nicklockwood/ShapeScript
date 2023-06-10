@@ -168,11 +168,9 @@ class DocumentViewController: NSViewController {
 
         // configure the view
         scnView.backgroundColor = .clear
-        scnView.autoenablesDefaultLighting = true
         scnView.antialiasingMode = .multisampling16X
-        scnView.allowsCameraControl = geometry != nil
-        updateAxesAndCamera()
-        resetView()
+        scnView.pointOfView = cameraNode
+        refreshGeometry()
 
         // add a click gesture recognizer
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
