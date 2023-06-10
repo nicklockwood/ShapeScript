@@ -37,7 +37,7 @@ union {
 }
 
 // add a small gap between board and pieces to prevent z-fighting
-translate 0 -0.01
+translate 0 0.01
 
 // pawns
 translate 3.5 0 -2.5
