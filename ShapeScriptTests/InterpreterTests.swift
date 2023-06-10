@@ -738,6 +738,18 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testShadowedColorInheritedByBlock() throws {
+        let program = """
+        define black 1 0 0
+        union {
+            color black
+            cube
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.material.color, Color(1, 0, 0))
+    }
+
     // MARK: Position
 
     func testCumulativePosition() throws {

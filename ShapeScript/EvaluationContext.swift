@@ -125,8 +125,8 @@ final class EvaluationContext {
         new.childTypes = type.childTypes
         new.symbols = type.symbols
         new.options = type.options
-        for (name, symbol) in type.symbols {
-            if case .placeholder = symbol, new.userSymbols[name] != nil {
+        for (name, symbol) in type.symbols where Symbols.global[name] == nil {
+            if case .placeholder = symbol {
                 continue
             }
             new.userSymbols[name] = nil
