@@ -1,5 +1,18 @@
 # Change Log
 
+## [1.6.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.10) (2023-06-12)
+
+- Removed Reddit community links
+- Fixed precedence issue with `point`/`curve` commands (introduced in 1.6.9)
+- Fixed broken importing of external model file formats (introduced in 1.6.8)
+- Block options can now be set conditionally within `if` blocks
+- Overrides to global constants and functions are now usable inside block invocations
+- Fixed bug where local defines in a block invocation were mistaken for options
+- The `point.color` member now returns an empty tuple instead of an error if unset
+- Fixed occasional blank screen glitch when first opening a file
+- Fixed iOS camera menu not updating after camera is moved
+- Bumped Euclid to version 0.6.14
+
 ## [1.6.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.9) (2023-04-21)
 
 - Fixed confusing function / operator precedence
