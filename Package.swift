@@ -15,7 +15,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/nicklockwood/Euclid.git",
-            .upToNextMinor(from: "0.6.13")
+            .upToNextMinor(from: "0.6.14")
         ),
         .package(
             url: "https://github.com/nicklockwood/LRUCache.git",
