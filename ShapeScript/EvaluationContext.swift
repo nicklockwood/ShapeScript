@@ -416,6 +416,7 @@ extension EvaluationContext {
                     sourceLocation: sourceLocation
                 ) {
                     children.append(.mesh(geometry))
+                    return
                 }
             } catch let error as ProgramError {
                 guard let source = try? String(contentsOf: url) else {
