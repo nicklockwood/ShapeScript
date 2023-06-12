@@ -255,6 +255,60 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testCommandVsOperatorPrecedence2() {
+        let input = "print (a + b) c"
+        let printRange = input.range(of: "print")!
+        let tupleRange = input.range(of: "(a + b)")!
+        let aRange = input.range(of: "a")!
+        let bRange = input.range(of: "b")!
+        let cRange = input.range(of: "c")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "print", range: printRange),
+                    Expression(type: .tuple([
+                        Expression(type: .tuple([
+                            Expression(type: .infix(
+                                Expression(type: .identifier("a"), range: aRange),
+                                .plus,
+                                Expression(type: .identifier("b"), range: bRange)
+                            ), range: aRange.lowerBound ..< bRange.upperBound),
+                        ]), range: tupleRange),
+                        Expression(type: .identifier("c"), range: cRange),
+                    ]), range: tupleRange.lowerBound ..< input.endIndex)
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
+    func testCommandVsOperatorPrecedence3() {
+        let input = "point (a + b) c"
+        let pointRange = input.range(of: "point")!
+        let tupleRange = input.range(of: "(a + b)")!
+        let aRange = input.range(of: "a")!
+        let bRange = input.range(of: "b")!
+        let cRange = input.range(of: "c")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .command(
+                    Identifier(name: "point", range: pointRange),
+                    Expression(type: .tuple([
+                        Expression(type: .tuple([
+                            Expression(type: .infix(
+                                Expression(type: .identifier("a"), range: aRange),
+                                .plus,
+                                Expression(type: .identifier("b"), range: bRange)
+                            ), range: aRange.lowerBound ..< bRange.upperBound),
+                        ]), range: tupleRange),
+                        Expression(type: .identifier("c"), range: cRange),
+                    ]), range: tupleRange.lowerBound ..< input.endIndex)
+                ),
+                range: input.startIndex ..< input.endIndex
+            ),
+        ]))
+    }
+
     func testFunctionVsOperatorPrecedence() {
         let input = "floor(a + b) * c"
         let floorRange = input.range(of: "floor")!

@@ -388,20 +388,20 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let points: Symbols = [
-        "point": .function(.vector, .point) { parameter, context in
-            .point(.point(
+        "point": .command(.vector) { parameter, context in
+            try context.addValue(.point(.point(
                 parameter.vectorValue,
                 color: context.material.color
-            ))
+            )))
         },
     ]
 
     static let pathPoints: Symbols = _merge(points, [
-        "curve": .function(.vector, .point) { parameter, context in
-            .point(.curve(
+        "curve": .command(.vector) { parameter, context in
+            try context.addValue(.point(.curve(
                 parameter.vectorValue,
                 color: context.material.color
-            ))
+            )))
         },
     ])
 

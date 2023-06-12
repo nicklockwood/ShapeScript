@@ -3989,7 +3989,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected symbol 'point'")
-            XCTAssertEqual(error?.hint, "The point function is not available in this context.")
+            XCTAssertEqual(error?.hint, "The point command is not available in this context.")
             guard case .unknownSymbol("point", options: _)? = error?.type else {
                 XCTFail()
                 return
