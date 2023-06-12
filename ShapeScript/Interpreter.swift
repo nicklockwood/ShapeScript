@@ -1138,7 +1138,21 @@ extension Expression {
                 throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
         case let .tuple(expressions):
-            return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })
+            guard let identifier = expressions.first,
+                  case let .identifier(name) = identifier.type,
+                  let type = context.options[name],
+                  expressions.count > 1
+            else {
+                return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })
+            }
+            let params = Array(expressions.dropFirst())
+            let param = Expression(
+                type: .tuple(params),
+                range: params[0].range.lowerBound ..< params.last!.range.upperBound
+            )
+            let value = try param.evaluate(as: type, for: name, in: context)
+            context.define(name, as: .option(value))
+            return .void
         case let .prefix(op, expression):
             let value = try expression.evaluate(
                 as: .union([.number, .list(.number)]),

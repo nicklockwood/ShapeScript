@@ -335,6 +335,38 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    // NOTE: this should be treated as a command, but because of parsing
+    // limitations gets interpreted as a tuple and must be disambiguated later
+    func testLengthOptionTreatedAsTupleExpression() {
+        let input = "foo { length 40 }"
+        let fooRange = input.range(of: "foo")!
+        let lengthRange = input.range(of: "length")!
+        let numberRange = input.range(of: "40")!
+        let bodyRange = input.range(of: "{ length 40 }")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(type: .expression(
+                Expression(
+                    type: .block(
+                        Identifier(name: "foo", range: fooRange),
+                        Block(statements: [
+                            Statement(
+                                type: .expression(Expression(
+                                    type: .tuple([
+                                        Expression(type: .identifier("length"), range: lengthRange),
+                                        Expression(type: .number(40), range: numberRange),
+                                    ]),
+                                    range: lengthRange.lowerBound ..< numberRange.upperBound
+                                )),
+                                range: lengthRange.lowerBound ..< numberRange.upperBound
+                            ),
+                        ], range: bodyRange)
+                    ),
+                    range: fooRange.lowerBound ..< bodyRange.upperBound
+                )
+            ), range: fooRange.lowerBound ..< bodyRange.upperBound),
+        ]))
+    }
+
     // MARK: Parentheses
 
     func testMultilineParentheses() {

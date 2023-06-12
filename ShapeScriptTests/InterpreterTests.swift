@@ -2740,6 +2740,21 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.999, 0.999, 0.999])
     }
 
+    func testFunctionAmbiguity5() {
+        let program = """
+        define foo {
+            option length 120
+            print length
+        }
+        foo {
+            length 40
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [40])
+    }
+
     // MARK: Numeric comparison
 
     func testGT() {
