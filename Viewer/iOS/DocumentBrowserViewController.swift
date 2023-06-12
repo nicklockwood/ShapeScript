@@ -93,18 +93,6 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             self?.showWhatsNewScreen()
         })
         alert.addAction(UIAlertAction(
-            title: "Online Community",
-            style: .default
-        ) { _ in
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                UIApplication.shared.open(URL(
-                    string: "https://old.reddit.com/r/shapescript/")!)
-            } else {
-                UIApplication.shared.open(URL(
-                    string: "https://reddit.com/r/shapescript/")!)
-            }
-        })
-        alert.addAction(UIAlertAction(
             title: "Welcome Screen",
             style: .default
         ) { [weak self] _ in

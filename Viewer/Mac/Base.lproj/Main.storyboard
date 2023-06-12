@@ -301,12 +301,6 @@
                                                 <action selector="showWhatsNew:" target="Voe-Tx-rLC" id="uQy-5i-nnf"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Online Community" id="3JC-Qk-eIw" userLabel="Community">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="openCommunity:" target="Voe-Tx-rLC" id="QMv-SP-Qol"/>
-                                            </connections>
-                                        </menuItem>
                                         <menuItem title="Examples" id="XDm-it-IvQ" userLabel="Examples">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <menu key="submenu" id="eqm-NN-0UU"/>

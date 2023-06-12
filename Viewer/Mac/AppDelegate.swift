@@ -73,11 +73,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(onlineHelpURL)
     }
 
-    @IBAction func openCommunity(_: Any) {
-        NSWorkspace.shared.open(URL(string:
-            "https://www.reddit.com/r/shapescript/")!)
-    }
-
     @IBAction func openExample(sender: NSMenuItem) {
         if let url = exampleURLs[sender.title] {
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
