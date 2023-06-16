@@ -30,6 +30,7 @@ public enum StatementType: Equatable {
     case option(Identifier, Expression)
     case forloop(Identifier?, in: Expression, Block)
     case ifelse(Expression, Block, else: Block?)
+    case switchcase(Expression, [CaseStatement], else: Block?)
     case expression(Expression)
     case `import`(Expression)
 }
@@ -77,6 +78,12 @@ public struct Expression: Equatable {
 public struct Block: Equatable {
     public let statements: [Statement]
     public let range: SourceRange
+}
+
+public struct CaseStatement: Equatable {
+    var pattern: Expression
+    var body: Block
+    var range: SourceRange
 }
 
 public struct Identifier: Equatable {
@@ -331,6 +338,67 @@ private extension ArraySlice where Element == Token {
         throw ParserError(.unexpectedToken(nextToken, expected: "else body"))
     }
 
+    mutating func readSwitch() throws -> StatementType? {
+        guard readToken(.identifier("switch")) else {
+            return nil
+        }
+        let condition = try require(readExpression(), as: "condition")
+        try requireToken(.lbrace)
+        var cases = [CaseStatement]()
+        var statements = [Statement]()
+        var defaultCase: Block?
+        func closeCase() {
+            if let start = statements.first, let end = statements.last {
+                let block = Block(
+                    statements: statements,
+                    range: start.range.lowerBound ..< end.range.upperBound
+                )
+                if defaultCase != nil {
+                    defaultCase = block
+                } else if var caseStatement = cases.last {
+                    caseStatement.body = block
+                    let range = caseStatement.range.lowerBound ..< end.range.upperBound
+                    caseStatement.range = range
+                    cases[cases.count - 1] = caseStatement
+                }
+            }
+            statements.removeAll()
+        }
+        loop: while let token = first {
+            switch token.type {
+            case .rbrace:
+                closeCase()
+                break loop
+            case .identifier("case"):
+                if defaultCase != nil {
+                    break loop
+                }
+                closeCase()
+                let start = removeFirst()
+                try cases.append(CaseStatement(
+                    pattern: require(readExpressions(), as: "pattern"),
+                    body: Block(statements: [], range: start.range),
+                    range: start.range
+                ))
+            case .keyword(.else):
+                closeCase()
+                let start = removeFirst()
+                defaultCase = Block(statements: [], range: start.range)
+            case .linebreak:
+                removeFirst()
+            default:
+                if cases.isEmpty, defaultCase == nil {
+                    throw ParserError(.unexpectedToken(
+                        token, expected: "case statement"
+                    ))
+                }
+                try statements.append(require(readStatement(), as: "statement"))
+            }
+        }
+        try requireToken(.rbrace)
+        return .switchcase(condition, cases, else: defaultCase)
+    }
+
     mutating func readImport() throws -> StatementType? {
         guard readToken(.keyword(.import)) else {
             return nil
@@ -561,9 +629,9 @@ private extension ArraySlice where Element == Token {
         }
     }
 
-    mutating func readStatement() throws -> StatementType? {
+    mutating func readStatementType() throws -> StatementType? {
         if let statement = try readDefine() ?? readOption() ??
-            readForLoop() ?? readIfElse() ?? readImport()
+            readForLoop() ?? readIfElse() ?? readSwitch() ?? readImport()
         {
             return statement
         }
@@ -605,14 +673,21 @@ private extension ArraySlice where Element == Token {
         }
     }
 
+    mutating func readStatement() throws -> Statement? {
+        let start = self
+        guard let type = try readStatementType() else {
+            return nil
+        }
+        let end = start[start.index(before: startIndex)]
+        let range = start.nextToken.range.lowerBound ..< end.range.upperBound
+        return Statement(type: type, range: range)
+    }
+
     mutating func readStatements() throws -> [Statement] {
         _ = readToken(.linebreak)
-        var start = self
         var statements = [Statement]()
-        while let type = try readStatement() {
-            let end = start[start.index(before: startIndex)]
-            let range = start.nextToken.range.lowerBound ..< end.range.upperBound
-            statements.append(Statement(type: type, range: range))
+        while let statement = try readStatement() {
+            statements.append(statement)
             switch nextToken.type {
             case .linebreak:
                 removeFirst()
@@ -621,7 +696,6 @@ private extension ArraySlice where Element == Token {
             default:
                 throw ParserError(.unexpectedToken(nextToken, expected: nil))
             }
-            start = self
         }
         return statements
     }

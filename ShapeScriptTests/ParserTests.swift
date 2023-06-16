@@ -986,6 +986,86 @@ class ParserTests: XCTestCase {
         }
     }
 
+    // MARK: Switch/case
+
+    func testEmptySwitch() {
+        let input = """
+        switch foo {
+        }
+        """
+        let switchRange = input.range(of: "switch")!
+        let fooRange = input.range(of: "foo")!
+        let endBraceRange = input.range(of: "}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .switchcase(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    [],
+                    else: nil
+                ),
+                range: switchRange.lowerBound ..< endBraceRange.upperBound
+            ),
+        ]))
+    }
+
+    func testCaseAfterElse() {
+        let input = """
+        switch 1 {
+        else
+            print "foo"
+        case 1
+            print "bar"
+        }
+        """
+        let caseRange = input.range(of: "case")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .identifier("case"), range: caseRange),
+                expected: "closing brace"
+            ))
+            // TODO: Improve this error hint
+            XCTAssertEqual(error?.hint, "Expected closing brace.")
+        }
+    }
+
+    func testSwitchCaseWithoutPattern() {
+        let input = """
+        switch 1 {
+        case
+            print "foo"
+        }
+        """
+        let caseRange = input.range(of: "case")!
+        let eolRange = caseRange.upperBound ..< input.index(after: caseRange.upperBound)
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.type, .unexpectedToken(
+                Token(type: .linebreak, range: eolRange),
+                expected: "pattern"
+            ))
+        }
+    }
+
+    func testSwitchStatementOutsideCaseError() {
+        let input = """
+        switch 1 {
+            print "foo"
+        }
+        """
+        let printRange = input.range(of: "print")!
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            guard case .unexpectedToken(
+                Token(type: .identifier("print"), range: printRange),
+                expected: "case statement"
+            ) = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     // MARK: Blocks
 
     func testTupleInBlock() {

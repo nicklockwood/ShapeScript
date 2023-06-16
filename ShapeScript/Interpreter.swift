@@ -1011,17 +1011,52 @@ extension Statement {
                 }
             }
         case let .ifelse(condition, body, else: elseBody):
-            let value = try condition.evaluate(
-                as: .boolean,
-                for: "if condition",
-                in: context
-            )
             try context.pushScope { context in
+                let value = try condition.evaluate(
+                    as: .boolean,
+                    for: "if condition",
+                    in: context
+                )
                 if value.boolValue {
                     try body.evaluate(in: context)
                 } else if let elseBody = elseBody {
                     try elseBody.evaluate(in: context)
                 }
+            }
+        case let .switchcase(condition, cases, else: elseBody):
+            try context.pushScope { context in
+                let value = try condition.evaluate(
+                    as: .any,
+                    for: "switch condition",
+                    in: context
+                )
+                for caseStatement in cases {
+                    let pattern = try caseStatement.pattern.evaluate(
+                        as: .any,
+                        for: "case pattern",
+                        in: context
+                    )
+                    let type = value.type
+                    if pattern.as(type) != value {
+                        switch pattern {
+                        case let .range(range) where type == .number:
+                            if !range.contains(value.doubleValue) {
+                                continue
+                            }
+                        case let .tuple(values):
+                            if !values.contains(where: {
+                                $0.as(type) == value
+                            }) {
+                                continue
+                            }
+                        default:
+                            continue
+                        }
+                    }
+                    try caseStatement.body.evaluate(in: context)
+                    return
+                }
+                try elseBody?.evaluate(in: context)
             }
         case let .import(expression):
             let pathValue = try expression.evaluate(

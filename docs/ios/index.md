@@ -132,6 +132,7 @@ ShapeScript Help
         - [Looping Backwards](control-flow.md#looping-backwards)
         - [Looping Over Values](control-flow.md#looping-over-values)
         - [If-Else](control-flow.md#if-else)
+        - [Switch-Case](control-flow.md#switch-case)
         - [Conditional Defines](control-flow.md#conditional-defines)
     - [Blocks](blocks.md)
         - [Options](blocks.md#options)

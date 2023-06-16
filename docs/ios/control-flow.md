@@ -137,9 +137,59 @@ if showCube {
 }
 ```
 
+## Switch-Case
+
+To select between multiple mutually-exclusive cases based on some value, you can use an `else if` chain, but it can be a bit cumbersome:
+
+```swift
+if value == 1 {
+    // Do something
+} else if value == 2 {
+    // Do something else
+} else if value == 3 {
+    // Do something different
+} else {
+    // And so on ...
+}
+```
+
+Instead, you can use a `switch` statement. This takes an input and performs one of several `case`s depending on its value:
+
+```swift
+switch value {
+case 1
+    // Do something
+case 2
+    // Do something else
+case 3
+    // Do something different
+else
+    // And so on ...
+}
+```
+
+**Note:** If you are familiar with the C family of languages you'll probably recognize this, but you should note that there are a few differences between the ShapeScript and C `switch` semantics:
+
+* ShapeScript can switch over any type of value, not just integers.
+* Cases do not *fall through* in ShapeScript - only one case will be evaluated for any given value.
+* Case bodies are not delimited with a colon, just a line break.
+* Each case body defines its own [scope](scope.md) - there is no need for additional braces.
+* ShapeScript's default case is called `else` instead of `default`.
+
+Although there is no way to fall through from one case to another, you can group cases together using [tuples](literals.md#vectors-and-tuples) to avoid repeating the case body:
+
+```swift
+switch value {
+case 1 2
+    print("Value was 1 or 2")
+case 3
+    print("Value was 3")
+}
+```
+
 ## Conditional Defines
 
-Something you might want to do with an `if` statement is to conditionally define a constant value, for example:
+Something you might want to do with an `if` or `switch` statement is to conditionally define a constant value, for example:
 
 ```swift
 define highlighted true

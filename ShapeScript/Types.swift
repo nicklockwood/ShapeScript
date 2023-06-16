@@ -793,6 +793,19 @@ extension Block {
     }
 }
 
+extension CaseStatement {
+    func inferTypes(
+        for params: inout [String: ValueType],
+        in context: EvaluationContext,
+        with type: ValueType
+    ) {
+        context.pushScope { context in
+            pattern.inferTypes(for: &params, in: context, with: type)
+            body.inferTypes(for: &params, in: context)
+        }
+    }
+}
+
 extension Statement {
     func inferTypes(
         for params: inout [String: ValueType],
@@ -835,6 +848,13 @@ extension Statement {
         case let .ifelse(condition, body, else: elseBody):
             condition.inferTypes(for: &params, in: context, with: .boolean)
             body.inferTypes(for: &params, in: context)
+            elseBody?.inferTypes(for: &params, in: context)
+        case let .switchcase(condition, cases, else: elseBody):
+            condition.inferTypes(for: &params, in: context, with: .any)
+            let type = (try? condition.staticType(in: context)) ?? .any
+            for caseStatement in cases {
+                caseStatement.inferTypes(for: &params, in: context, with: type)
+            }
             elseBody?.inferTypes(for: &params, in: context)
         case let .import(expression):
             expression.inferTypes(for: &params, in: context, with: .string)
@@ -913,6 +933,19 @@ extension Statement {
                 type.formUnion(.void)
             }
             return type
+        case let .switchcase(_, cases, else: elseBody):
+            var type: ValueType = .void
+            for caseStatement in cases {
+                try context.pushScope { context in
+                    try type.formUnion(caseStatement.body.staticType(in: context))
+                }
+            }
+            if let elseBody = elseBody {
+                try context.pushScope { context in
+                    try type.formUnion(elseBody.staticType(in: context))
+                }
+            }
+            return type
         case let .import(expression):
             var file: String?
             switch expression.type {
@@ -943,7 +976,7 @@ extension Array where Element == Statement {
                     let type = (try? definition.staticType(in: context)) ?? .any
                     context.define(identifier.name, as: .placeholder(type))
                 }
-            case .command, .option, .forloop, .ifelse, .expression, .import:
+            case .command, .option, .forloop, .ifelse, .switchcase, .expression, .import:
                 break
             }
         }

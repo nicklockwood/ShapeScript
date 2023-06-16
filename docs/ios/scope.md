@@ -17,7 +17,7 @@ When you define a [custom function](functions.md#custom-functions), it also crea
 
 ## Conditional Scope
 
-Control flow statements like [for loops](control-flow.md#loops) and [if statements](control-flow.md#if-else) also creates a local scope around their body. Like function scope, loop and if/else scope does not apply to transforms or materials, but only to symbols created using the `define` command.
+Control flow statements like [for loops](control-flow.md#loops) and [if statements](control-flow.md#if-else) or [switch cases](control-flow.md#switch-case) also create local scopes around their bodies. Like function scope, loops and conditional scopes do not apply to transforms or materials, but only to symbols created using the `define` command.
 
 Any symbols defined inside a `for` loop will be restricted to the inside of the loop body. This also applies to the optional loop index variable.
 

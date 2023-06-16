@@ -2513,6 +2513,118 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    // MARK: Switch/case
+
+    func testSwitchCase() {
+        let program = """
+        switch 3 {
+        case 1
+            print("a")
+        case 3
+            print("b")
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["b"])
+    }
+
+    func testSwitchCaseNoElse() {
+        let program = """
+        switch 5 {
+        case 1
+            print("a")
+        case 3
+            print("b")
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
+    func testSwitchCaseElse() {
+        let program = """
+        switch 1 {
+        case 1
+            print("a")
+        case 3
+            print("b")
+        else
+            print("c")
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["a"])
+    }
+
+    func testSwitchCaseElse2() {
+        let program = """
+        switch 5 {
+        case 1
+            print("a")
+        case 3
+            print("b")
+        else
+            print("c")
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["c"])
+    }
+
+    func testSwitchCaseGrouping() {
+        let program = """
+        switch 4 {
+        case 1 2
+            print("a")
+        case 3 4 5
+            print("b")
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["b"])
+    }
+
+    func testSwitchTruthTable() {
+        let program = """
+        define values (
+            (false false)
+            (true false)
+            (false true)
+            (true true)
+        )
+        for value in values {
+            switch value {
+            case (false false)
+                print 1
+            case (true false)
+                print 2
+            case (false true)
+                print 3
+            case (true true)
+                print 4
+            }
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 2, 3, 4])
+    }
+
+    func testEmptySwitch() {
+        let program = """
+        switch 1 {
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
     // MARK: Math functions
 
     func testInvokeMonadicFunction() {
