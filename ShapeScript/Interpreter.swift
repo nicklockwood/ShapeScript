@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version = "1.6.10"
+public let version = "1.6.11"
 
 public protocol EvaluationDelegate: AnyObject {
     func resolveURL(for path: String) -> URL
@@ -960,7 +960,7 @@ extension Statement {
             case let .constant(value), let .option(value):
                 var value = value
                 if let parameter = parameter {
-                    value = .tuple([value, try parameter.evaluate(in: context)])
+                    value = try .tuple([value, parameter.evaluate(in: context)])
                 }
                 try RuntimeError.wrap(context.addValue(value), at: range)
             case .placeholder:

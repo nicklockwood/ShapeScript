@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.6.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.11) (2023-06-21)
+
+- Fixed bug where block options could clash with global functions of the same name
+
 ## [1.6.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.10) (2023-06-12)
 
 - Removed Reddit community links
