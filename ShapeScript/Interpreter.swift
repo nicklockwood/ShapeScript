@@ -715,9 +715,9 @@ extension Definition {
                     block.statements.gatherDefinitions(in: context)
                     for statement in block.statements {
                         if case let .option(identifier, expression) = statement.type {
-                            if case .placeholder = context.symbol(
-                                for: identifier.name
-                            ) ?? .placeholder(.any) {
+                            if case .option? = context.symbol(for: identifier.name) {
+                                // Ignore default
+                            } else {
                                 try context.define(
                                     identifier.name,
                                     as: .constant(expression.evaluate(in: context))

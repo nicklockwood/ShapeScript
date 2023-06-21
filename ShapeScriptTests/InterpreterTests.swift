@@ -452,6 +452,34 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
+    func testOptionShadowsGlobalFunction() throws {
+        let program = try parse("""
+        define blob {
+            option length 2
+            cube { size length }
+        }
+        blob
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.transform.scale, .init(size: 2))
+    }
+
+    func testOptionShadowsGlobalFunction2() throws {
+        let program = try parse("""
+        define blob {
+            option length 2
+            cube { size length }
+        }
+        blob { length 3 }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.transform.scale, .init(size: 3))
+    }
+
     // MARK: Block scope
 
     func testLocalSymbolsNotPassedToCommand() {
