@@ -391,8 +391,7 @@ class DocumentViewController: UIViewController {
                             identifier: nil,
                             discoverabilityTitle: nil,
                             attributes: camera.isOrthographic.map { _ in .disabled } ?? [],
-                            state: isOrthographic ||
-                                camera.isOrthographic == true ? .on : .off
+                            state: camera.isOrthographic ?? isOrthographic ? .on : .off
                         ) { [weak self] _ in
                             self?.toggleOrthographic()
                         },
