@@ -18,6 +18,7 @@ class TextView: UIScrollView {
     private let layoutManager: LayoutManager
     private let gutterView = LineNumberView()
     private var lineCount = 0
+    private var lastSpaceIndex: Int?
     fileprivate var currentAction: TextAction?
     let textView: UITextView
 
@@ -57,6 +58,8 @@ class TextView: UIScrollView {
             textView.reloadInputViews()
         }
     }
+
+    var disableDoubleSpacePeriodShortcut: Bool = false
 
     var text: String {
         get { textView.text }
@@ -401,6 +404,17 @@ private extension UITextView {
 extension TextView: UITextViewDelegate, UIScrollViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
         if currentAction == nil {
+            // Check for period insertion
+            if disableDoubleSpacePeriodShortcut,
+               let lastSpaceIndex = lastSpaceIndex,
+               textView.textStorage.mutableString
+               .character(at: lastSpaceIndex) == ".".utf16.first
+            {
+                textView.textStorage.mutableString.replaceCharacters(in: NSRange(
+                    location: lastSpaceIndex,
+                    length: 1
+                ), with: " ")
+            }
             // Content was not pre-processed, so need to update everything
             if let newText = (delegate as? TextViewDelegate)?.textView?(
                 self,
@@ -497,6 +511,7 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         shouldChangeTextIn range: NSRange,
         replacementText text: String
     ) -> Bool {
+        lastSpaceIndex = nil
         guard undoManager?.isUndoing != true,
               undoManager?.isRedoing != true
         else {
@@ -539,6 +554,13 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         case "\n" where indentNewLines:
             text = "\n" + self.text.indentForLine(at: newRange.location)
             actionName = actionName ?? "Typing"
+        case " " where disableDoubleSpacePeriodShortcut:
+            if range.location > 0,
+               textView.textStorage.mutableString
+               .character(at: range.location - 1) == " ".utf16.first
+            {
+                lastSpaceIndex = range.location - 1
+            }
         default:
             break
         }

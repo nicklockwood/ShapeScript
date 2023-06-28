@@ -36,6 +36,7 @@ class SourceViewController: UIViewController {
         textView.font = .monospacedSystemFont(ofSize: 15, weight: .regular)
         textView.showLineNumbers = true
         textView.wrapLines = false
+        textView.disableDoubleSpacePeriodShortcut = true
         textView.delegate = self
         didSetDocument()
 
