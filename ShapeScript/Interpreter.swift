@@ -859,8 +859,8 @@ extension EvaluationContext {
                     color: material.color,
                     linespacing: self.value(for: "linespacing")?.doubleValue
                 )))
-            case let .tuple(values) where value.type.isSubtype(of: childTypes):
-                try values.forEach(addValue)
+            case .void:
+                break
             default:
                 children.append(value)
             }

@@ -3827,6 +3827,20 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [6])
     }
 
+    func testFunctionResultNestedTupleValueLookup() {
+        let program = """
+        define a(b) {
+            (b + 1 b + 2)
+            (b + 3 b + 4)
+        }
+        define c a(4)
+        print c.second.first
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [7])
+    }
+
     // MARK: Recursion
 
     func testRecursiveLookupInBlockDefinition() {
