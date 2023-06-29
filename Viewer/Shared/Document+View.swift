@@ -165,9 +165,7 @@ extension Document {
     }
 
     func updateViews() {
-        guard let viewController = viewController else {
-            return
-        }
+        guard let viewController = viewController else { return }
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
@@ -201,9 +199,7 @@ extension Document {
         }
         if input != sourceString {
             sourceString = input
-            // Only dismiss source view if source has changed
-            // TODO: what if we're viewing source or info of an imported file?
-            viewController?.dismissModals(animated: true)
+            viewController?.updateModals()
         } else if viewController != nil {
             // Trigger reload anyway in case imported file has changed
             didUpdateSource()

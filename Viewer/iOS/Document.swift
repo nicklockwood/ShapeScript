@@ -55,20 +55,19 @@ class Document: UIDocument {
 
     var sourceString: String? {
         didSet {
-            if oldValue == sourceString {
-                return
-            } else {
-                saveTimer?.invalidate()
-                saveTimer = Timer.scheduledTimer(
-                    withTimeInterval: 1,
-                    repeats: false
-                ) { [weak self] _ in
-                    self?.autosave()
-                }
-            }
             if viewController != nil {
                 didUpdateSource()
             }
+        }
+    }
+
+    func scheduleAutosave() {
+        saveTimer?.invalidate()
+        saveTimer = Timer.scheduledTimer(
+            withTimeInterval: 1,
+            repeats: false
+        ) { [weak self] _ in
+            self?.autosave()
         }
     }
 

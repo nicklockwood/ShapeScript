@@ -54,9 +54,7 @@ class Document: NSDocument {
     }
 
     var loadingProgress: LoadingProgress? {
-        didSet {
-            updateViews()
-        }
+        didSet { updateViews() }
     }
 
     var errorMessage: NSAttributedString?

@@ -114,13 +114,20 @@ class DocumentViewController: UIViewController {
         }
     }
 
-    func dismissModals(animated: Bool = true) {
+    func updateModals() {
         var presentedViewController = presentedViewController
         while let vc = presentedViewController?.presentedViewController {
             presentedViewController = vc
         }
-        presentedViewController?.dismiss(animated: animated) { [weak self] in
-            self?.dismissModals(animated: animated)
+        if let navController = presentedViewController as? UINavigationController,
+           let viewController = navController.viewControllers.first as? SourceViewController,
+           let fileURL = viewController.document?.fileURL
+        {
+            openSourceFile(fileURL, in: viewController)
+        } else {
+            presentedViewController?.dismiss(animated: true) { [weak self] in
+                self?.updateModals()
+            }
         }
     }
 
@@ -458,9 +465,7 @@ class DocumentViewController: UIViewController {
         present(sheet, animated: true, completion: {})
     }
 
-    func openSourceView(withContentsOf fileURL: URL) {
-        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard.instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
+    func openSourceFile(_ fileURL: URL, in viewController: SourceViewController) {
         if fileURL == document?.fileURL {
             viewController.document = document
         } else {
@@ -473,6 +478,12 @@ class DocumentViewController: UIViewController {
                 }
             }
         }
+    }
+
+    func openSourceView(withContentsOf fileURL: URL) {
+        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
+        let viewController = storyBoard.instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
+        openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)
         present(navigationController, animated: true, completion: nil)

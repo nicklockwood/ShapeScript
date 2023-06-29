@@ -80,7 +80,7 @@ class DocumentViewController: NSViewController {
         }
     }
 
-    func dismissModals(animated _: Bool = true) {
+    func updateModals() {
         // Does nothing on macOS
     }
 
@@ -145,9 +145,7 @@ class DocumentViewController: NSViewController {
     }
 
     var geometry: Geometry? {
-        didSet {
-            refreshGeometry()
-        }
+        didSet { refreshGeometry() }
     }
 
     weak var selectedGeometry: Geometry?
