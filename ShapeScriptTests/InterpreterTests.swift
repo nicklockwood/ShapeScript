@@ -3841,6 +3841,30 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [7])
     }
 
+    func testFunctionResultNestedTuplesCollapsedIfNeeded() {
+        let program = """
+        define triangle {
+            polygon {
+                point 1 0
+                point 1 1
+                point 0 1
+            }
+        }
+        define triangles {
+            for 1 to 3 {
+                triangle
+            }
+        }
+        define triangles2 {
+            for 1 to 3 {
+                triangles
+            }
+        }
+        mesh { triangles2 }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
     // MARK: Recursion
 
     func testRecursiveLookupInBlockDefinition() {

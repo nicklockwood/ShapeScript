@@ -864,7 +864,7 @@ extension EvaluationContext {
             default:
                 children.append(value)
             }
-        } else if case let .tuple(values)? = try value.as(.list(childTypes), in: self) {
+        } else if case let .tuple(values) = value {
             try values.forEach(addValue)
         } else {
             throw RuntimeErrorType.unusedValue(type: value.type)
