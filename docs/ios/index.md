@@ -158,6 +158,7 @@ ShapeScript Help
     - [Chessboard](examples.md#chessboard)
     - [Cog](examples.md#cog)
     - [Earth](examples.md#earth)
+    - [Icosahedron](examples.md#icosahedron)
     - [Spirals](examples.md#spirals)
     - [Spring](examples.md#spring)
     - [Train](examples.md#train)

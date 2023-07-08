@@ -27,6 +27,12 @@ The Earth example demonstrates use of the [texture](materials.md#texture) comman
 
 ![Earth](../images/earth.png)
 
+## Icosahedron
+
+The Icosahedron demonstrates the use of the [mesh command](meshes.md) along with [structured data](literals.md#structured-data) and [custom functions](functions.md#custom-functions) to create a complex shape that cannot easily be derived from the built-in primitives.
+
+![Icosahedron](../images/icosahedron.png)
+
 ## Spirals
 
 The Spirals example demonstrates using the [extrude](builders.md#extrude) command to create a spiral. This example also demonstrates the use of [for loops](control-flow.md#loops) and user-defined [options](blocks.md#options).

@@ -1,0 +1,58 @@
+// ShapeScript document
+
+define points {
+    define t 1 + sqrt(2) / 2
+
+    (-1  t  0)
+    ( 1  t  0)
+    (-1 -t  0)
+    ( 1 -t  0)
+
+    ( 0 -1  t)
+    ( 0  1  t)
+    ( 0 -1 -t)
+    ( 0  1 -t)
+
+    ( t  0 -1)
+    ( t  0  1)
+    (-t  0 -1)
+    (-t  0  1)
+}
+
+define triangle(a b c) {
+    polygon {
+        point a
+        point b
+        point c
+    }
+}
+
+mesh {
+    // 5 triangles around first point
+    triangle points.first points.twelfth points.sixth
+    triangle points.first points.sixth points.second
+    triangle points.first points.second points.eighth
+    triangle points.first points.eighth points.eleventh
+    triangle points.first points.eleventh points.twelfth
+
+    // 5 adjacent triangles
+    triangle points.second points.sixth points.tenth
+    triangle points.sixth points.twelfth points.fifth
+    triangle points.twelfth points.eleventh points.third
+    triangle points.eleventh points.eighth points.seventh
+    triangle points.eighth points.second points.ninth
+
+    // 5 triangles around fourth point
+    triangle points.fourth points.tenth points.fifth
+    triangle points.fourth points.fifth points.third
+    triangle points.fourth points.third points.seventh
+    triangle points.fourth points.seventh points.ninth
+    triangle points.fourth points.ninth points.tenth
+
+    // 5 adjacent triangles
+    triangle points.fifth points.tenth points.sixth
+    triangle points.third points.fifth points.twelfth
+    triangle points.seventh points.third points.eleventh
+    triangle points.ninth points.seventh points.eighth
+    triangle points.tenth points.ninth points.second
+}
