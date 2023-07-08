@@ -350,7 +350,10 @@ private final class _UITextView: UITextView {
             return rect
         }
         // workaround for wrong value when caret is offscreen
-        let offset = self.offset(from: beginningOfDocument, to: position)
+        let offset = min(
+            textStorage.mutableString.length,
+            self.offset(from: beginningOfDocument, to: position)
+        )
         let newlineRange = textStorage.mutableString.rangeOfCharacter(
             from: .newlines,
             options: .backwards,
