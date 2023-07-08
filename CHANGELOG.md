@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.6.12](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.12) (2023-07-08)
+
+- Fixed bug where structured data was flattened when returned from a block or function
+- Source editor on iOS no longer closes when shape file is reloaded
+- Disabled double space period shortcut in iOS source editor
+- Fixed orthographic checkbox not updating on iOS
+- Added Icosahedron example project
+- Improved camera control docs
+
 ## [1.6.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.11) (2023-06-21)
 
 - Fixed bug where block options could clash with global functions of the same name
