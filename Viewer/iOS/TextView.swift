@@ -462,8 +462,7 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
                 string: text, attributes: [.font: font, .foregroundColor: textColor]
             ))
         } else {
-            textView.textStorage.mutableString
-                .replaceCharacters(in: range, with: text)
+            textView.textStorage.mutableString.replaceCharacters(in: range, with: text)
         }
         textView.selectedRange = NSRange(location: newRange.upperBound, length: 0)
         if showLineNumbers {
@@ -515,10 +514,21 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         guard undoManager?.isUndoing != true,
               undoManager?.isRedoing != true
         else {
-            if undoManager?.undoActionName == NSLocalizedString(
-                "Paste", comment: ""
-            ) {
+            let uiBundle = Bundle(for: UITextView.self)
+            func localized(_ key: String) -> String {
+                uiBundle.localizedString(forKey: key, value: nil, table: nil)
+            }
+            let pasteActions = ["Paste", localized("Paste")]
+            if pasteActions.contains(undoManager?.undoActionName ?? "") {
                 // This is handled by TextView so we need to block the default
+                return false
+            }
+            let dictationActions = ["Dictation", localized("Dictation")]
+            if undoManager?.isUndoing == true, range.length == 0,
+               dictationActions.contains(undoManager?.undoActionName ?? "")
+            {
+                // Block weird behavior where undoing Dictation immediately
+                // tries to re-insert the text
                 return false
             }
             return true
