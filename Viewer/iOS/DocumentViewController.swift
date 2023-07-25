@@ -518,6 +518,7 @@ class DocumentViewController: UIViewController {
 
     @IBAction func toggleWireframe() {
         document?.showWireframe.toggle()
+        rebuildMenu()
     }
 
     @IBAction func toggleAxes() {
