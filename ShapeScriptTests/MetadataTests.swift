@@ -303,7 +303,7 @@ class MetadataTests: XCTestCase {
                     .replacingOccurrences(of: "'", with: "")
                     .replacingOccurrences(of: " ", with: "-")
                 XCTAssert(!fragment.contains(where: {
-                    !"abcdefghijklmnopqrstuvwxyz0123456789_-".contains($0)
+                    !"abcdefghijklmnopqrstuvwxyz0123456789_-/".contains($0)
                 }))
                 return (heading, fragment)
             }
