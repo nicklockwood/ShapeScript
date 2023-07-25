@@ -113,6 +113,7 @@ extension Token {
 extension SourceViewController: TokenViewDelegate {
     func tokens(for input: String) -> [TokenView.Token] {
         var stack = [Set<String>()]
+        var isSwitch = [false]
         var lastKeyword: String?
         var lastToken: ShapeScript.Token?
         return (try? tokenize(input).flatMap { token -> [TokenView.Token] in
@@ -121,8 +122,10 @@ extension SourceViewController: TokenViewDelegate {
             switch token.type {
             case .lbrace:
                 stack.append(stack.last!)
+                isSwitch.append(lastKeyword == "switch")
             case .rbrace where stack.count > 1:
                 stack.removeLast()
+                isSwitch.removeLast()
             case .linebreak, .eof:
                 lastKeyword = nil
             case let .keyword(name):
@@ -144,6 +147,10 @@ extension SourceViewController: TokenViewDelegate {
                     lastKeyword = nil
                     break
                 }
+                if isSwitch.last == true, name == "case" {
+                    viewToken.type = .keyword
+                    break
+                }
                 if case .keyword(.define)? = lastToken?.type {
                     stack[stack.count - 1].insert(name)
                     lastKeyword = nil
@@ -156,7 +163,7 @@ extension SourceViewController: TokenViewDelegate {
                     break
                 }
                 switch name {
-                case "to", "step", "option", "not", "true", "false":
+                case "to", "step", "option", "not", "true", "false", "switch":
                     // contextual keywords
                     viewToken.type = .keyword
                     lastKeyword = name
