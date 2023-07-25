@@ -118,31 +118,32 @@ public extension ParserError {
 
     var suggestion: String? {
         switch type {
-        case let .unexpectedToken(token, expected) where [
-            "if body",
-            "operator",
-        ].contains(expected):
+        case let .unexpectedToken(token, expected):
             guard case let .identifier(string) = token.type else {
                 return nil
             }
-            let options = InfixOperator.allCases.map { $0.rawValue }
-
-            return Self.alternatives[string.lowercased()] ??
-                string.bestMatches(in: options).first
-        case .unexpectedToken, .custom:
+            guard let expected = expected else {
+                let options = Keyword.allCases.map { $0.rawValue }
+                return string.bestMatches(in: options).first
+            }
+            if ["if body", "operator"].contains(expected) {
+                let options = InfixOperator.allCases.map { $0.rawValue }
+                return Self.alternatives[string.lowercased()] ??
+                    string.bestMatches(in: options).first
+            }
+            return nil
+        case .custom:
             return nil
         }
     }
 
     var hint: String? {
         switch type {
-        case let .unexpectedToken(_, expected: expected?):
+        case let .unexpectedToken(_, expected: expected):
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
-            return "Expected \(expected)."
-        case .unexpectedToken(_, expected: nil):
-            return nil
+            return expected.map { "Expected \($0)." }
         case let .custom(_, hint: hint, _):
             return hint
         }

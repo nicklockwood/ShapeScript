@@ -949,6 +949,15 @@ class ParserTests: XCTestCase {
         }
     }
 
+    func testIfWithMisspelledElse() {
+        let input = "if foo {} els {}"
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Unexpected token 'els'")
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
     func testIfStatementWithMisspelledOrOperator() {
         let input = "if foo nor bar {}"
         let norRange = input.range(of: "nor")!
