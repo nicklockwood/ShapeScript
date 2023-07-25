@@ -133,12 +133,16 @@ public extension ParserError {
                 let options = Keyword.allCases.map { $0.rawValue }
                 return string.bestMatches(in: options).first
             }
-            if ["if body", "operator"].contains(expected) {
+            switch expected {
+            case "if body", "operator":
                 let options = InfixOperator.allCases.map { $0.rawValue }
                 return Self.alternatives[string.lowercased()] ??
                     string.bestMatches(in: options).first
+            case "case statement":
+                return string == "default" ? "else" : nil
+            default:
+                return nil
             }
-            return nil
         case .custom:
             return nil
         }

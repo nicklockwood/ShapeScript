@@ -442,6 +442,7 @@ private extension RuntimeError {
         "noise": ["rnd"],
         "signum": ["sign"],
         "echo": ["print"],
+        "default": ["else"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {
@@ -1030,6 +1031,18 @@ extension Statement {
                     for: "switch condition",
                     in: context
                 )
+                if let lastCaseBody = cases.last?.body {
+                    for statement in lastCaseBody.statements {
+                        if case let .command(identifier, nil) = statement.type,
+                           identifier.name == "default"
+                        {
+                            throw RuntimeError(
+                                .unknownSymbol("default", options: []),
+                                at: identifier.range
+                            )
+                        }
+                    }
+                }
                 for caseStatement in cases {
                     let pattern = try caseStatement.pattern.evaluate(
                         as: .any,

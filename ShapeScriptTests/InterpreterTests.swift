@@ -2625,6 +2625,27 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [])
     }
 
+    func testSwitchDefaultSyntaxError() {
+        let program = """
+        switch 1 {
+        case 1
+            print "1"
+        case 2
+            print "2"
+        default
+            print "?"
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("default", _) = error?.type else {
+                XCTFail()
+                return
+            }
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
     // MARK: Math functions
 
     func testInvokeMonadicFunction() {

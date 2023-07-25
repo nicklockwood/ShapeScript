@@ -1066,6 +1066,19 @@ class ParserTests: XCTestCase {
         }
     }
 
+    func testSwitchStatementWithDefault() {
+        let input = """
+        switch 1 {
+        default
+            print "foo"
+        }
+        """
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
     // MARK: Blocks
 
     func testTupleInBlock() {
