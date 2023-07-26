@@ -1418,7 +1418,7 @@ extension Expression {
                 expected: type,
                 got: value.type
             ), at: range)
-        case let (_, .tuple(types)) where types.count > 1:
+        case let (_, .tuple(types)) where types.count > 1 && !types[1].isOptional:
             throw RuntimeError(
                 .missingArgument(for: name, index: 1, type: types[1]),
                 at: range.upperBound ..< range.upperBound

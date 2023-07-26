@@ -429,7 +429,8 @@ extension Value {
             return nil
         case let (_, .list(type)) where self.type.isSubtype(of: type):
             return [self]
-        case let (_, .tuple(types)) where types.count == 1:
+        case let (_, .tuple(types)) where
+            types.count == 1 || types.count > 1 && types[1].isOptional:
             return try self.as(types[0], in: context).map { [$0] }
         case (_, .text):
             return try self.as(.string, in: context).flatMap {

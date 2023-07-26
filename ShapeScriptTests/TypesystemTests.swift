@@ -828,4 +828,11 @@ class TypesystemTests: XCTestCase {
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [["baz", true], ["foo", 1]])
     }
+
+    func testCastValueToTupleWithOptional() throws {
+        let type = ValueType.tuple([.boolean, .optional(.string)])
+        let value = Value.boolean(true)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), [true])
+    }
 }
