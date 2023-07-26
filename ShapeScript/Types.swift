@@ -549,7 +549,7 @@ extension Value {
             }
             return .tuple(values)
         case let (_, .list(type)):
-            return self.as(type).map { [$0] }
+            return try self.as(type, in: context).map { [$0] }
         case let (.path(path), .mesh):
             return .mesh(Geometry(
                 type: .path(path),
