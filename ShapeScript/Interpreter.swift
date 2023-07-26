@@ -1392,6 +1392,23 @@ extension Expression {
                 .unexpectedArgument(for: name, max: 3),
                 at: expressions[3].range
             )
+        case let (.tuple(expressions), type) where ValueType.rotation.isSubtype(of: type):
+            if let index = values.firstIndex(where: {
+                !$0.value.isConvertible(to: .halfturns)
+            }) {
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: index,
+                    expected: .halfturns,
+                    got: values[index].value.type
+                ), at: expressions[index].range)
+            }
+            throw RuntimeError(.typeMismatch(
+                for: name,
+                index: index,
+                expected: type,
+                got: value.type
+            ), at: range)
         case let (.tuple(expressions), type) where expressions.count > 1:
             var value = value
             if InfixOperator(rawValue: name) == nil,

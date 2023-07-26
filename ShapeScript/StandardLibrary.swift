@@ -132,7 +132,7 @@ extension Dictionary where Key == String, Value == Symbol {
         // builders
         "extrude": .block(.custom(.builder, [
             "along": .list(.path),
-            "twist": .angle,
+            "twist": .halfturns,
             "axisAligned": .boolean,
         ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
@@ -229,7 +229,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "position": .vector,
             "orientation": .rotation,
             "color": .color,
-            "spread": .angle,
+            "spread": .halfturns,
             "penumbra": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
@@ -298,7 +298,7 @@ extension Dictionary where Key == String, Value == Symbol {
             return .path(subpaths[0].transformed(by: context.transform))
         },
         "arc": .block(.custom(.polygon, [
-            "angle": .angle,
+            "angle": .halfturns,
         ], .void, .list(.point))) { context in
             let angle = context.value(for: "angle")?.angleValue ?? .pi
             let span = Swift.max(0, Swift.min(1, abs(angle.radians) / (2 * .pi)))
@@ -464,27 +464,27 @@ extension Dictionary where Key == String, Value == Symbol {
             return .number(pow(values[0], values[1]))
         },
         // Trigonometry
-        "cos": .function(.number, .number) { value, _ in
+        "cos": .function(.radians, .number) { value, _ in
             .number(cos(value.doubleValue))
         },
-        "acos": .function(.number, .number) { value, _ in
-            .number(acos(value.doubleValue))
+        "acos": .function(.number, .radians) { value, _ in
+            .radians(acos(value.doubleValue))
         },
-        "sin": .function(.number, .number) { value, _ in
+        "sin": .function(.radians, .number) { value, _ in
             .number(sin(value.doubleValue))
         },
-        "asin": .function(.number, .number) { value, _ in
-            .number(asin(value.doubleValue))
+        "asin": .function(.number, .radians) { value, _ in
+            .radians(asin(value.doubleValue))
         },
-        "tan": .function(.number, .number) { value, _ in
+        "tan": .function(.radians, .number) { value, _ in
             .number(tan(value.doubleValue))
         },
-        "atan": .function(.number, .number) { value, _ in
-            .number(atan(value.doubleValue))
+        "atan": .function(.number, .radians) { value, _ in
+            .radians(atan(value.doubleValue))
         },
-        "atan2": .function(.numberPair, .number) { value, _ in
+        "atan2": .function(.numberPair, .radians) { value, _ in
             let values = value.doublesValue
-            return .number(atan2(values[0], values[1]))
+            return .radians(atan2(values[0], values[1]))
         },
         "pi": .constant(.number(.pi)),
         // Linear algebra
@@ -564,12 +564,12 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let smoothing: Symbols = [
-        "smoothing": .property(.angle, { parameter, context in
+        "smoothing": .property(.halfturns, { parameter, context in
             // TODO: find a better way to represent null/auto
-            let angle = Swift.min(.pi, parameter.angleValue)
+            let angle = Swift.min(.pi, parameter.angleValue ?? .zero)
             context.smoothing = angle < .zero ? nil : angle
         }, { context in
-            context.smoothing.map { .angle($0) } ?? .number(-1)
+            .halfturns(context.smoothing.map { $0.halfturns } ?? -1)
         }),
     ]
 
@@ -579,7 +579,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "orientation": .rotation,
             "size": .size,
             "background": .colorOrTexture,
-            "fov": .angle,
+            "fov": .halfturns,
             "width": .number,
             "height": .number,
         ], .void, .mesh)) { context in

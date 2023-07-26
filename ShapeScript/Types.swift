@@ -18,6 +18,8 @@ enum ValueType: Hashable {
     case boolean
     case font
     case number
+    case radians
+    case halfturns
     case vector
     case size
     case rotation
@@ -40,10 +42,10 @@ extension ValueType: Comparable {
         switch self {
         case .any: return 0
         case .color: return 1
-        case .texture: return 2
-        case .boolean: return 3
-        case .font: return 4
-        case .number: return 5
+        case .boolean: return 2
+        case .number: return 3
+        case .radians: return 4
+        case .halfturns: return 5
         case .vector: return 6
         case .size: return 7
         case .rotation: return 8
@@ -54,11 +56,13 @@ extension ValueType: Comparable {
         case .polygon: return 13
         case .point: return 14
         case .range: return 15
-        case .bounds: return 16
-        case .union: return 17
-        case .tuple: return 18
-        case .list: return 19
-        case .object: return 20
+        case .texture: return 16
+        case .font: return 17
+        case .bounds: return 18
+        case .union: return 19
+        case .tuple: return 20
+        case .list: return 21
+        case .object: return 22
         }
     }
 
@@ -78,9 +82,10 @@ extension ValueType: Comparable {
             return lhs < rhs
         case let (lhs, rhs):
             switch lhs {
-            case .any, .color, .texture, .boolean, .font, .number, .vector,
-                 .size, .rotation, .string, .text, .path, .mesh, .polygon,
-                 .point, .range, .bounds, .union, .tuple, .list, .object:
+            case .any, .color, .texture, .boolean, .font, .number, .radians,
+                 .halfturns, .vector, .size, .rotation, .string, .text, .path,
+                 .mesh, .polygon, .point, .range, .bounds, .union, .tuple, .list,
+                 .object:
                 return lhs.sortIndex < rhs.sortIndex
             }
         }
@@ -89,7 +94,6 @@ extension ValueType: Comparable {
 
 extension ValueType {
     static let void: ValueType = .tuple([])
-    static let angle: ValueType = .number
     static let sequence: ValueType = .union([.range, .list(.any)])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
@@ -127,9 +131,9 @@ extension ValueType {
                 result.append(type)
             }
             return result.count == 1 ? result[0] : .union(Set(result))
-        case .any, .color, .texture, .boolean, .font, .number, .vector, .size,
-             .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds, .tuple, .list, .object:
+        case .any, .color, .texture, .boolean, .font, .number, .radians,
+             .halfturns, .vector, .size, .rotation, .string, .text, .path, .mesh,
+             .polygon, .point, .range, .bounds, .tuple, .list, .object:
             return self
         }
     }
@@ -168,6 +172,8 @@ extension ValueType {
         case .font: return "font"
         case .boolean: return "boolean"
         case .number: return "number"
+        case .radians: return "angle in radians"
+        case .halfturns: return "angle in half-turns"
         case .vector, .list(.number): return "vector"
         case .size: return "size"
         case .rotation: return "rotation"
@@ -229,9 +235,9 @@ extension ValueType {
         case let .union(types):
             let types = Set(types.compactMap { $0.memberType(name) })
             return types.isEmpty ? nil : ValueType.union(types).simplified()
-        case .color, .texture, .boolean, .font, .number, .vector, .size,
-             .rotation, .string, .text, .path, .mesh, .polygon, .point, .range,
-             .bounds:
+        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds:
             return Self.memberTypes[name]
         case let .object(members):
             return members[name]
@@ -374,6 +380,8 @@ extension Value {
         case .texture: return .texture
         case .boolean: return .boolean
         case .number: return .number
+        case .radians: return .radians
+        case .halfturns: return .halfturns
         case .vector: return .vector
         case .size: return .size
         case .rotation: return .rotation
@@ -404,11 +412,15 @@ extension Value {
     /// Note: context is used to verify that font or texture values exist. Errors are only thrown for
     /// non-existent font or texture and will never be thrown if context is nil.
     func `as`(_ type: ValueType, in context: EvaluationContext?) throws -> Value? {
-        func numerify(_ values: [Value], range: ClosedRange<Int>) -> [Double]? {
+        func numerify(
+            _ values: [Value],
+            as numericType: ValueType = .number,
+            range: ClosedRange<Int>
+        ) -> [Double]? {
             guard range.contains(values.count) else {
                 return nil
             }
-            let numbers = values.compactMap { $0.as(.number)?.doubleValue }
+            let numbers = values.compactMap { $0.as(numericType)?.doubleValue }
             guard numbers.count == values.count else {
                 return nil
             }
@@ -472,6 +484,14 @@ extension Value {
         case let (.tuple(values), .string):
             let stringifyable = values.allSatisfy { $0.isConvertible(to: .string) }
             return stringifyable ? .string(stringValue) : nil
+        case let (.radians(value), .number):
+            return .number(value)
+        case let (.halfturns(value), .number):
+            return .number(value)
+        case let (.number(value), .radians):
+            return .radians(value)
+        case let (.number(value), .halfturns):
+            return .halfturns(value)
         case let (.number(value), .color):
             return .color(Color(value, 1))
         case let (.number(value), .vector):
@@ -517,7 +537,7 @@ extension Value {
         case let (.tuple(values), .size):
             return numerify(values, range: 1 ... 3).map { .size(Vector(size: $0)) }
         case let (.tuple(values), .rotation):
-            return numerify(values, range: 1 ... 3).map {
+            return numerify(values, as: .halfturns, range: 1 ... 3).map {
                 .rotation(Rotation(unchecked: $0))
             }
         case let (.color(value), .list(.number)):

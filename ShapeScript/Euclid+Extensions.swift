@@ -63,6 +63,20 @@ extension Color {
     }
 }
 
+extension Angle {
+    var halfturns: Double {
+        radians / .pi
+    }
+
+    init(halfturns: Double) {
+        self.init(radians: halfturns * .pi)
+    }
+
+    static func halfturns(_ halfturns: Double) -> Angle {
+        self.init(halfturns: halfturns)
+    }
+}
+
 extension Rotation {
     var rollYawPitchInHalfTurns: [Double] {
         [roll.radians / .pi, yaw.radians / .pi, pitch.radians / .pi]

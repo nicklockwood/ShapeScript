@@ -2528,7 +2528,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .missingArgument(for: "cos", type: "number"), at: range
+                .missingArgument(for: "cos", type: "angle in radians"), at: range
             ))
         }
     }
@@ -3397,7 +3397,7 @@ class InterpreterTests: XCTestCase {
         let program = "print (1 0.5).roll"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssert(delegate.log == [1.0] || delegate.log == [-1.0])
+        XCTAssert(delegate.log == [1.0] || delegate.log == [-1])
     }
 
     func testTupleRotationPitchLookup() {

@@ -835,4 +835,38 @@ class TypesystemTests: XCTestCase {
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [true])
     }
+
+    func testCastRadiansToNumber() throws {
+        let type = ValueType.number
+        let value = Value.radians(.pi)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .number(.pi))
+    }
+
+    func testCastHalfturnsToNumber() throws {
+        let type = ValueType.number
+        let value = Value.halfturns(1)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .number(1))
+    }
+
+    func testCastNumberToRadians() throws {
+        let type = ValueType.radians
+        let value = Value.number(.pi)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .radians(.pi))
+    }
+
+    func testCastNumberToHalfturns() throws {
+        let type = ValueType.halfturns
+        let value = Value.number(1)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .halfturns(1))
+    }
+
+    func testCastRadiansToHalfturns() throws {
+        let type = ValueType.halfturns
+        let value = Value.radians(.pi)
+        XCTAssertFalse(value.isConvertible(to: type))
+    }
 }

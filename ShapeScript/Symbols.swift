@@ -70,6 +70,8 @@ enum Value: Hashable {
     case texture(Texture?)
     case boolean(Bool)
     case number(Double)
+    case radians(Double)
+    case halfturns(Double)
     case vector(Vector)
     case size(Vector)
     case rotation(Rotation)
@@ -163,10 +165,6 @@ struct TextValue: Hashable {
 extension Value {
     static let void: Value = .tuple([])
 
-    static func angle(_ value: Angle) -> Value {
-        .number(value.radians / .pi)
-    }
-
     static func colorOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
         case let .color(color):
@@ -203,6 +201,8 @@ extension Value {
             return texture.map { $0 as AnyHashable } ?? AnyHashable("")
         case let .boolean(boolean): return boolean
         case let .number(number): return number
+        case let .radians(radians): return radians
+        case let .halfturns(halfturns): return halfturns
         case let .vector(vector): return vector
         case let .size(size): return size
         case let .rotation(rotation): return rotation
@@ -237,8 +237,16 @@ extension Value {
         }
     }
 
-    var angleValue: Angle {
-        .radians(doubleValue * .pi)
+    var angleValue: Angle? {
+        switch self {
+        case let .radians(radians):
+            return .radians(radians)
+        case let .halfturns(halfturns):
+            return .halfturns(halfturns)
+        default:
+            assertionFailure()
+            return nil
+        }
     }
 
     var intValue: Int {
@@ -288,10 +296,14 @@ extension Value {
             }
             return AnySequence(values)
         case let .object(values):
-            let values: [Value] = values.sorted(by: { $0.0 < $1.0 }).map { [.string($0), $1] }
-            return AnySequence(values)
+            return AnySequence(values.sorted(by: {
+                $0.0 < $1.0
+            }).map {
+                [.string($0), $1]
+            })
         case .boolean, .vector, .size, .rotation, .color, .texture, .number,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds:
+             .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
+             .point, .bounds:
             return nil
         }
     }
@@ -318,7 +330,8 @@ extension Value {
         case let .texture(texture):
             return texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
+             .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
+             .point, .bounds, .object:
             return nil
         }
     }
@@ -380,7 +393,7 @@ extension Value {
             return members
         case let .object(values):
             return values.keys.sorted()
-        case .texture, .boolean, .number, .text:
+        case .texture, .boolean, .number, .radians, .halfturns, .text:
             return []
         }
     }
@@ -410,9 +423,9 @@ extension Value {
             }
         case let .rotation(rotation):
             switch name {
-            case "roll": return .number(rotation.roll.radians / .pi)
-            case "yaw": return .number(rotation.yaw.radians / .pi)
-            case "pitch": return .number(rotation.pitch.radians / .pi)
+            case "roll": return .halfturns(rotation.roll.halfturns)
+            case "yaw": return .halfturns(rotation.yaw.halfturns)
+            case "pitch": return .halfturns(rotation.pitch.halfturns)
             default: return nil
             }
         case let .color(color):
@@ -531,7 +544,7 @@ extension Value {
             }
         case let .object(values):
             return values[name]
-        case .boolean, .texture, .number, .text:
+        case .boolean, .texture, .number, .radians, .halfturns, .text:
             return nil
         }
     }
