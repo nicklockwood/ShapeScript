@@ -9,10 +9,14 @@
 import Foundation
 import ShapeScript
 
-let testsDirectory = URL(fileURLWithPath: #file)
-    .deletingLastPathComponent()
+let testsDirectory = URL(fileURLWithPath: #file).deletingLastPathComponent()
 
 class TestDelegate: EvaluationDelegate {
+    let directory: URL
+    init(directory: URL = testsDirectory) {
+        self.directory = directory
+    }
+
     func importGeometry(for _: URL) throws -> Geometry? {
         preconditionFailure()
     }
@@ -20,7 +24,7 @@ class TestDelegate: EvaluationDelegate {
     var imports = [String]()
     func resolveURL(for name: String) -> URL {
         imports.append(name)
-        return testsDirectory.appendingPathComponent(name)
+        return directory.appendingPathComponent(name)
     }
 
     var log = [AnyHashable?]()

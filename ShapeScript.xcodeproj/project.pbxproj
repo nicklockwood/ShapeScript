@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0104EB7E271F66A000B60058 /* Euclid+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */; };
+		0107A0572A7326D800AD33A1 /* RegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0107A0562A7326D800AD33A1 /* RegressionTests.swift */; };
 		010A906427FB250700D54A6F /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		010A906527FB250F00D54A6F /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
 		0111130A269A0AD600BE9490 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01111309269A0AD600BE9490 /* MetadataTests.swift */; };
@@ -328,6 +329,7 @@
 
 /* Begin PBXFileReference section */
 		0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Extensions.swift"; sourceTree = "<group>"; };
+		0107A0562A7326D800AD33A1 /* RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegressionTests.swift; sourceTree = "<group>"; };
 		010A904F27FB222400D54A6F /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SVGPath.xcodeproj; sourceTree = "<group>"; };
 		01111309269A0AD600BE9490 /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0118098228F216D200E0C8D8 /* Value+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+JSON.swift"; sourceTree = "<group>"; };
@@ -662,6 +664,7 @@
 				01E3AA0926CB920000E0B287 /* LoggingTests.swift */,
 				017F72FD28270F290023231C /* PlatformTests.swift */,
 				01111309269A0AD600BE9490 /* MetadataTests.swift */,
+				0107A0562A7326D800AD33A1 /* RegressionTests.swift */,
 				01C6F9BF284A6E52000B57B1 /* TestDelegate.swift */,
 				01BFB3A621425C8500E47A7C /* Info.plist */,
 			);
@@ -1163,6 +1166,7 @@
 				01F1A703280AD2BA00A1621B /* StringMatchingTests.swift in Sources */,
 				01E3AA0A26CB920000E0B287 /* LoggingTests.swift in Sources */,
 				01F1A6182806BD1A00A1621B /* StandardLibraryTests.swift in Sources */,
+				0107A0572A7326D800AD33A1 /* RegressionTests.swift in Sources */,
 				017F72FE28270F290023231C /* PlatformTests.swift in Sources */,
 				01BFB3A521425C8500E47A7C /* LexerTests.swift in Sources */,
 			);
