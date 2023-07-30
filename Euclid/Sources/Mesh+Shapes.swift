@@ -223,7 +223,7 @@ public extension Mesh {
     ///   - height: The height of the cone.
     ///   - slices: The number of vertical slices that make up the cone.
     ///   - poleDetail: Optionally add extra detail around top pole to prevent texture warping.
-    ///   - addDetailAtBottomPole: Whether detail should be added at bottom pil.
+    ///   - addDetailAtBottomPole: Whether detail should be added at bottom pole.
     ///   - faces: The direction of the generated polygon faces.
     ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
     ///   - material: The optional material for the mesh.
@@ -242,8 +242,6 @@ public extension Mesh {
     ) -> Mesh {
         let radius = max(abs(radius), scaleLimit / 2)
         let height = max(abs(height), scaleLimit)
-        let poleDetail = poleDetail ?? Int(sqrt(Double(slices)))
-        let wrapMode = wrapMode == .default ? .tube : wrapMode
         return lathe(
             unchecked: Path(unchecked: [
                 .point(0, height / 2),
@@ -251,10 +249,10 @@ public extension Mesh {
                 .point(0, -height / 2),
             ], plane: .xy, subpathIndices: []),
             slices: slices,
-            poleDetail: poleDetail,
+            poleDetail: poleDetail ?? 3,
             addDetailForFlatPoles: addDetailAtBottomPole,
             faces: faces,
-            wrapMode: wrapMode,
+            wrapMode: wrapMode == .default ? .tube : wrapMode,
             material: material,
             isConvex: true,
             isWatertight: true

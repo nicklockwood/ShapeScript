@@ -138,14 +138,19 @@ func triangulateVertices(
                 attempts += 1
             }
             if attempts > vertices.count * 2 {
+                assert(plane == nil || triangles.allSatisfy { $0.plane == plane })
                 return triangles
             }
         }
         if addTriangle(vertices) {
+            assert(plane == nil || triangles.allSatisfy { $0.plane == plane })
             return triangles
         }
         triangles.removeAll()
     }
+    let faceNormal = plane?.normal ?? faceNormalForPolygonPoints(vertices.map {
+        $0.position
+    }, convex: isConvex, closed: true)
     var start = 0, i = 0
     outer: while start < vertices.count {
         var attempts = 0
@@ -157,7 +162,10 @@ func triangulateVertices(
             let triangle = Polygon([p0, p1, p2], material: material)
             if triangle == nil || vertices.enumerated().contains(where: { index, v in
                 ![i, j, k].contains(index) && triangle!.containsPoint(v.position)
-            }) || plane.map({ triangle!.plane.normal.dot($0.normal) <= 0 }) ?? false {
+            }) || plane.map({ !triangle!.plane.isEqual(to: $0) })
+                ?? (triangle!.plane.normal.dot(faceNormal) <= 0)
+                || !addTriangle([p0, p1, p2])
+            {
                 i += 1
                 if i == vertices.count {
                     i = 0
@@ -170,7 +178,6 @@ func triangulateVertices(
                     }
                 }
             } else {
-                triangles.append(triangle!.with(id: id))
                 attempts = 0
                 vertices.remove(at: i)
                 if i == vertices.count {
@@ -198,6 +205,7 @@ func triangulateVertices(
         ).inverted()
     }
 //    assert(triangles.count == vertices.count - 2)
+    assert(plane == nil || triangles.allSatisfy { $0.plane == plane })
     return triangles
 }
 
@@ -298,8 +306,11 @@ func pointsAreSelfIntersecting(_ points: [Vector]) -> Bool {
         }
         for j in i + 2 ..< points.count - 1 {
             let p2 = points[j], p3 = points[j + 1]
-            guard !p1.isEqual(to: p2), !p1.isEqual(to: p3),
-                  !p0.isEqual(to: p2), !p0.isEqual(to: p3),
+            let precision = 1e-6
+            guard !p1.isEqual(to: p2, withPrecision: precision),
+                  !p1.isEqual(to: p3, withPrecision: precision),
+                  !p0.isEqual(to: p2, withPrecision: precision),
+                  !p0.isEqual(to: p3, withPrecision: precision),
                   let l2 = LineSegment(p2, p3)
             else {
                 continue
@@ -433,7 +444,8 @@ func shortestLineBetween(
     _ p1: Vector,
     _ p2: Vector,
     _ p3: Vector,
-    _ p4: Vector
+    _ p4: Vector,
+    inSegment: Bool
 ) -> (Vector, Vector)? {
     let p21 = p2 - p1
     assert(p21.length > 0)
@@ -457,6 +469,10 @@ func shortestLineBetween(
     let mua = numerator / denominator
     let mub = (d1343 + d4321 * mua) / d4343
 
+    if inSegment, mua < 0 || mua > 1 || mub < 0 || mub > 1 {
+        return nil
+    }
+
     return (p1 + mua * p21, p3 + mub * p43)
 }
 
@@ -477,7 +493,7 @@ func lineIntersection(
     _ p2: Vector,
     _ p3: Vector
 ) -> Vector? {
-    guard let (p0, p1) = shortestLineBetween(p0, p1, p2, p3) else {
+    guard let (p0, p1) = shortestLineBetween(p0, p1, p2, p3, inSegment: false) else {
         return nil
     }
     return p0.isEqual(to: p1) ? p0 : nil
@@ -489,10 +505,10 @@ func lineSegmentsIntersection(
     _ p2: Vector,
     _ p3: Vector
 ) -> Vector? {
-    guard let pi = lineIntersection(p0, p1, p2, p3) else {
-        return nil // lines don't intersect
+    guard let (p0, p1) = shortestLineBetween(p0, p1, p2, p3, inSegment: true) else {
+        return nil
     }
-    return Bounds(p0, p1).containsPoint(pi) && Bounds(p2, p3).containsPoint(pi) ? pi : nil
+    return p0.isEqual(to: p1) ? p0 : nil
 }
 
 // MARK: Path utilities
