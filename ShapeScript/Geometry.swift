@@ -232,7 +232,7 @@ public final class Geometry: Hashable {
 
         self.cacheKey = GeometryCache.Key(
             type: type,
-            material: nil,
+            material: material.texture == nil ? nil : material,
             smoothing: smoothing,
             wrapMode: wrapMode,
             transform: .identity,
@@ -515,7 +515,10 @@ private extension Geometry {
         case .group, .path, .camera, .light:
             mesh = .empty
         case let .cone(segments):
-            mesh = .cone(slices: segments)
+            mesh = .cone(
+                slices: segments,
+                poleDetail: material.texture == nil ? 0 : nil
+            )
         case let .cylinder(segments):
             mesh = .cylinder(slices: segments)
         case let .sphere(segments):
