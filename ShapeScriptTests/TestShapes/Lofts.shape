@@ -1,0 +1,102 @@
+// ShapeScript document
+
+detail 32
+smoothing 0
+
+loft {
+    polygon { sides 11 }
+    translate 0 0 1
+    polygon { sides 8 }
+    translate 0 0 1
+    rotate 0.4
+
+    path {
+        point -1 -1
+        point 1 -1
+        point 1 1
+        point -1 1
+        point -1 -1
+    }
+
+    translate 0 0 1
+    rotate 0.4
+
+    path {
+        point -1 -1
+        point 1 -1
+        point 1 1
+        point -1 1
+        point -1 -1
+    }
+}
+
+translate 3
+
+loft {
+    square
+    rotate 0.5
+    translate 0 0 1
+    path {
+        point -1 -1
+        point 1 -1
+        point 1 1
+        point -1 1
+    }
+    translate 0 0 1
+    square
+}
+
+translate 3
+
+loft {
+    rotate 0 -0.1
+    detail 10
+    circle
+    translate 0 0 1
+    rotate 0.4
+    detail 3
+    circle
+}
+
+translate -6 3
+
+loft {
+    circle
+    translate 0 0 1
+    square
+}
+
+translate 3
+
+define star {
+    option sides 5
+    option closed true
+    path {
+        for 1 to sides {
+            point 0 -0.5
+            rotate 1 / sides
+            point 0 -1
+            rotate 1 / sides
+        }
+        if closed {
+            point 0 -0.5
+        }
+    }
+}
+
+loft {
+    star { sides 8
+        closed true
+    }
+    translate 0 0 1
+    star { sides 6
+        closed true
+    }
+}
+
+translate 3
+
+extrude {
+    circle { size 0.1 }
+    along text "A"
+}

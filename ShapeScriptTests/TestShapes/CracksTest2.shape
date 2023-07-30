@@ -1,0 +1,22 @@
+// ShapeScript document
+
+detail 80
+
+rotate 0 1
+difference {
+    extrude {
+        circle {
+            size 0.025
+        }
+        color green
+        along circle {
+            position 0 0 (0.49) * 1.07
+            size 0.08
+        }
+    }
+
+    sphere {
+        size 1.06
+        color black
+    }
+}

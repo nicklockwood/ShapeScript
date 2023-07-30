@@ -1,0 +1,141 @@
+//// ShapeScript document
+
+detail 64
+
+define spring {
+    option coils 2 // number of coils
+    option spacing 0.3 // spacing between coils
+    option radius 0.5 // radius of coil
+    define steps detail
+    path {
+        detail 0
+        translate 0 -spacing * coils / 2
+        for i in 0 to steps * coils {
+            rotate 0 1/steps 0
+            translate radius
+            curve 0
+            translate -radius
+            rotate 0 1/steps 0
+            translate 0 spacing/steps
+        }
+    }
+}
+
+define foo path {
+    orientation 0.1 0.2 0.5
+    curve 0 1
+    curve -1 0 0.75
+    curve 0 -1 0.25
+    curve 1 0 1
+    curve 1 1 1
+    curve 0 1
+}
+
+define foo2 path {
+    orientation 0 0 0.5
+    curve 0 1 0.75
+    curve -1 0
+    curve 0 -1 0.25
+    curve 1 0
+    curve 1 1
+    curve 0 1 0.75
+}
+
+extrude {
+    orientation 0
+    position 0 1.5
+//    polygon {
+//        sides 3
+//        size 0.1
+//    }
+    square {
+        orientation 0//-0.25
+        size 0.1
+    }
+    along spring {
+        orientation 0
+        coils 5
+    }
+}
+
+extrude {
+    square {
+//        orientation 0.3
+        size 0.1
+    }
+    along foo
+}
+
+extrude {
+    position 0 1
+    square {
+//        orientation 0.3
+        size 0.1
+    }
+    along foo2
+//    twist 2
+    axisAligned false
+}
+
+define bar path {
+    point 0 0
+    curve 0 0 1
+    curve 0 1 1
+    curve 1 1 1
+    point 1 1 2
+}
+
+extrude {
+//    square { size 0.1 }
+//    polygon {
+//        sides 3
+//        size 0.1
+//    }
+    text {
+        orientation -0.5
+        "Hello"
+        size 0.1
+    }
+    along bar
+}
+
+define foo path {
+//    point 0 0
+    point 0.5 0
+    point 0.5 1
+    point -0.5 1
+    point -0.5 0
+    point 0.5 0
+//    point 0.5 0
+//    point 0 0
+}
+
+extrude {
+    square {
+        size 0.1
+//        orientation 0.25
+    }
+//    polygon {
+//        orientation 1
+//        sides 3
+//        size 0.1
+//    }
+    along polygon {
+        sides 6
+        orientation 0 0.25
+    }
+//    along foo
+//    twist 0.9
+}
+
+extrude {
+    square { size 0.1 }
+    along square
+//    twist 2
+}
+
+cube {
+    size 0.1
+    position -0.5 0 0.1
+}
+

@@ -9,8 +9,7 @@
 @testable import ShapeScript
 import XCTest
 
-private let projectDirectory: URL = URL(fileURLWithPath: #file)
-    .deletingLastPathComponent().deletingLastPathComponent()
+private let projectDirectory: URL = testsDirectory.deletingLastPathComponent()
 
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")

@@ -9,27 +9,35 @@
 @testable import ShapeScript
 import XCTest
 
-private let projectDirectory: URL = URL(fileURLWithPath: #file)
-    .deletingLastPathComponent().deletingLastPathComponent()
-
-private let examplesDirectory: URL = projectDirectory
-    .appendingPathComponent("Examples")
+private let projectDirectory: URL = testsDirectory.deletingLastPathComponent()
 
 private let exampleURLs: [URL] = try! FileManager.default
-    .contentsOfDirectory(atPath: examplesDirectory.path)
-    .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
+    .contentsOfDirectory(
+        at: projectDirectory.appendingPathComponent("Examples"),
+        includingPropertiesForKeys: nil
+    )
+    .filter { $0.pathExtension == "shape" }
+
+private let testShapesURLs: [URL] = try! FileManager.default
+    .contentsOfDirectory(
+        at: testsDirectory.appendingPathComponent("TestShapes"),
+        includingPropertiesForKeys: nil
+    )
     .filter { $0.pathExtension == "shape" }
 
 final class RegressionTests: XCTestCase {
     func testExamples() throws {
-        for url in exampleURLs {
+        XCTAssertFalse(exampleURLs.isEmpty)
+        XCTAssertFalse(testShapesURLs.isEmpty)
+        for url in exampleURLs + testShapesURLs {
+            let name = url.lastPathComponent
             let input = try String(contentsOf: url)
             let program = try parse(input)
-            let delegate = TestDelegate(directory: examplesDirectory)
+            let delegate = TestDelegate(directory: url.deletingLastPathComponent())
             let context = EvaluationContext(source: program.source, delegate: delegate)
-            XCTAssertNoThrow(try program.evaluate(in: context))
+            XCTAssertNoThrow(try program.evaluate(in: context), "\(name) errored")
             let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-            XCTAssert(geometry.isWatertight)
+            XCTAssert(geometry.isWatertight, "\(name) was not watertight")
         }
     }
 }

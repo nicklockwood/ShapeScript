@@ -1,0 +1,49 @@
+// Tends to crack with low epsilon
+
+detail 80
+
+difference {
+    // outer
+    cylinder {
+        size 10.6 9
+    }
+
+    // inner
+    cylinder {
+        size 9.8 8.5
+        position 0 0.5
+    }
+
+    // tip
+    difference {
+        cylinder {
+            size 10.6 9
+        }
+        cone {
+            size 30 20
+            orientation -1
+            position 0 -1
+        }
+    }
+}
+
+
+// Tends to crack with high epsilon
+
+font "comic sans ms"
+
+//scale 0.0001
+
+detail 16
+opacity 1
+difference {
+    extrude {
+        text {
+            "Hello"
+            "World!"
+        }
+        along circle { size 1 }
+    }
+    translate 6
+    cube { size 12 }
+}

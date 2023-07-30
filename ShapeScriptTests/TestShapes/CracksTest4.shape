@@ -1,0 +1,35 @@
+// ShapeScript document
+
+detail 190
+
+define RADIUSBOTTOM    94
+define RADIUSTOP       104.8
+define HEIGHT          64
+define DEPTH           (HEIGHT / 2)
+define THICKNESS       (RADIUSBOTTOM / 10)
+define WALLTHICKNESS   1
+define DIAMETER        (THICKNESS * (pi / 2) - WALLTHICKNESS * 2)
+
+difference {
+    union {
+        lathe path {
+            point 0  (HEIGHT - WALLTHICKNESS)
+            point (RADIUSTOP / 2 + WALLTHICKNESS / 1.67)  (HEIGHT - WALLTHICKNESS)
+            point (RADIUSBOTTOM / 2 + WALLTHICKNESS / 1.67)  WALLTHICKNESS + (DIAMETER / 2)
+            point 0  WALLTHICKNESS + (DIAMETER / 2)
+        }
+
+        /// Put angle into the inner chamber to prevent final layers from sagging
+        cone {
+            orientation 1
+            size (RADIUSTOP + THICKNESS * 2 + WALLTHICKNESS * 2)  (THICKNESS * 2)
+            position 0 (HEIGHT / 2 + THICKNESS / 2 - WALLTHICKNESS)
+        }
+    }
+
+    /// Cut off the top
+    cube {
+        size (RADIUSTOP + THICKNESS * 3)  (HEIGHT - DEPTH)  (RADIUSTOP + THICKNESS * 3)
+        position 0  ((HEIGHT + DIAMETER) - ((HEIGHT - DEPTH) / 2) - WALLTHICKNESS)
+    }
+}
