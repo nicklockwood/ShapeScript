@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.6.13](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.13) (2023-07-30)
+
+- Fixed "Show Wireframe" menu item not updating correctly on iOS
+- Added error hint for misspelled else keyword
+- Added Value.errorDescription for clearer error messages
+- Fixed out of bounds crash in iOS source editor
+- Fixed some typesystem edge cases for optionals, unions and lists
+- Added checked angular types to help prevent mixed angle errors
+- Added regression tests for example shape files
+- Bumped Euclid to version 0.6.15
+
 ## [1.6.12](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.12) (2023-07-08)
 
 - Fixed bug where structured data was flattened when returned from a block or function
