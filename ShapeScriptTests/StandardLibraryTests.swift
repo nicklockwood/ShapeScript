@@ -984,4 +984,19 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [0.0, 0.0, 0.0, 0.0])
     }
+
+    // MARK: Commands
+
+    func testSizeCommandWithConfusingParens() throws {
+        let program = try parse("""
+        cube {
+            define y 2
+            size 1 y (3)
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.transform.scale, Vector(1, 2, 3))
+    }
 }

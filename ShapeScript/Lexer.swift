@@ -42,7 +42,7 @@ public func tokenize(_ input: String) throws -> [Token] {
         spaceBefore = characters.skipWhitespaceAndComments()
         if !spaceBefore, let lastTokenType = tokens.last?.type {
             switch lastTokenType {
-            case .infix, .prefix, .dot, .lparen, .lbrace, .linebreak:
+            case .infix, .prefix, .dot, .lparen, .lbrace, .call, .linebreak:
                 spaceBefore = true
             case .identifier, .keyword, .hexColor,
                  .number, .string, .rbrace, .rparen, .eof:
@@ -107,6 +107,7 @@ public enum TokenType: Equatable {
     case lparen
     case rparen
     case dot
+    case call
     case eof
 }
 
@@ -385,7 +386,7 @@ private extension Substring {
         switch popFirst() {
         case "{": return .lbrace
         case "}": return .rbrace
-        case "(": return .lparen
+        case "(": return spaceBefore ? .lparen : .call
         case ")": return .rparen
         case "." where !spaceBefore:
             if let next = first, !next.isWhitespace, !next.isLinebreak {

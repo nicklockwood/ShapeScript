@@ -175,7 +175,7 @@ private extension TokenType {
         case .string: return "text literal"
         case .lbrace: return "opening brace"
         case .rbrace: return "closing brace"
-        case .lparen: return "opening paren"
+        case .lparen, .call: return "opening paren"
         case .rparen: return "closing paren"
         case .dot: return "dot"
         case .eof: return "end of file"
@@ -276,7 +276,8 @@ private extension ArraySlice where Element == Token {
         }
         let name = try require(readIdentifier(), as: "symbol name")
         let start = self
-        guard readToken(.lparen),
+        // TODO: should lparen be permitted here?
+        guard readToken(.call) || readToken(.lparen),
               let names = try readParameters(),
               readToken(.rparen),
               let block = try readBlock()
@@ -343,7 +344,8 @@ private extension ArraySlice where Element == Token {
         var range = token.range
         let type: ExpressionType
         switch token.type {
-        case .lparen:
+        // TODO: should call be permitted here?
+        case .lparen, .call:
             _ = readToken(.linebreak)
             let expression = try readExpressions(allowLinebreaks: true) ??
                 Expression(
@@ -370,7 +372,7 @@ private extension ArraySlice where Element == Token {
         case let .hexColor(string):
             type = .color(Color(hexString: string) ?? .black)
         case let .identifier(name):
-            guard readToken(.lparen) else {
+            guard readToken(.call) else {
                 type = .identifier(name)
                 break
             }
@@ -596,8 +598,9 @@ private extension ArraySlice where Element == Token {
             default:
                 return .expression(expression)
             }
-        case .number, .linebreak, .keyword, .hexColor,
-             .prefix, .string, .rbrace, .lparen, .rparen, .eof:
+        // TODO: should call be treated differently here?
+        case .number, .linebreak, .keyword, .hexColor, .prefix,
+             .string, .rbrace, .lparen, .call, .rparen, .eof:
             return try .command(identifier, readExpressions())
         }
     }
