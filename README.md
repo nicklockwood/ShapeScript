@@ -69,6 +69,12 @@ For more information, check out the [help section](docs/index.md).
 
 ShapeScript provides a command-line interface for Linux machines. You can download the latest CLI build from the [releases page](https://github.com/nicklockwood/ShapeScript/releases).
 
+You can also install or run the ShapeScript CLI using [Mint](https://github.com/yonaskolb/Mint). If Mint is installed, you can run ShapeScript using:
+
+```bash
+$ mint run nicklockwood/ShapeScript@main
+```
+
 Alternatively, to build the tool yourself from source, you will need to install the [latest Swift toolchain](https://www.swift.org/download/), then run the following commands:
 
 ```bash
