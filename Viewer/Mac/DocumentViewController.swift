@@ -1,5 +1,5 @@
 //
-//  SceneViewController.swift
+//  DocumentViewController.swift
 //  Viewer
 //
 //  Created by Nick Lockwood on 09/09/2018.

@@ -1,5 +1,5 @@
 //
-//  CameraType.swift
+//  Camera.swift
 //  ShapeScript
 //
 //  Created by Nick Lockwood on 19/10/2021.

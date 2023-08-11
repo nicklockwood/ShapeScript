@@ -1,5 +1,5 @@
 //
-//  Axis.swift
+//  Axes.swift
 //  ShapeScript Viewer
 //
 //  Created by Nick Lockwood on 23/08/2021.

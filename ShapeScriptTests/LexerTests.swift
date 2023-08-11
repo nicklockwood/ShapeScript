@@ -1,5 +1,5 @@
 //
-//  ShapeScriptTests.swift
+//  LexerTests.swift
 //  ShapeScriptTests
 //
 //  Created by Nick Lockwood on 07/09/2018.

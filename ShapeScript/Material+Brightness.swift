@@ -1,5 +1,5 @@
 //
-//  MaterialProperty+Brightness.swift
+//  Material+Brightness.swift
 //  ShapeScript Lib
 //
 //  Created by Nick Lockwood on 17/04/2022.

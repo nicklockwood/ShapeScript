@@ -1,5 +1,5 @@
 //
-//  ProgramError.swift
+//  ProgramError+Formatting.swift
 //  ShapeScript Viewer
 //
 //  Created by Nick Lockwood on 01/08/2021.

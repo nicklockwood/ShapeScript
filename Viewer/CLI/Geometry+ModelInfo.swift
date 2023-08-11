@@ -1,5 +1,5 @@
 //
-//  Document+ModelInfo.swift
+//  Geometry+ModelInfo.swift
 //  Viewer
 //
 //  Created by Nick Lockwood on 21/01/2022.

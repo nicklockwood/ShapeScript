@@ -1,5 +1,5 @@
 //
-//  DocumentController.swift
+//  WindowController.swift
 //  ShapeScript Viewer
 //
 //  Created by Nick Lockwood on 19/10/2021.

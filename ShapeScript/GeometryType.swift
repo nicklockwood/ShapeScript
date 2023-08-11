@@ -158,7 +158,7 @@ public extension GeometryType {
     }
 }
 
-internal extension GeometryType {
+extension GeometryType {
     var isLeafGeometry: Bool {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _):
