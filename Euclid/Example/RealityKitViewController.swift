@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  RealityKitViewController.swift
 //  Example
 //
 //  Created by Nick Lockwood on 22/10/2022.
@@ -16,21 +16,6 @@ class RealityKitViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        #if targetEnvironment(simulator)
-
-        let alert = UIAlertController(
-            title: "Unsupported",
-            message: """
-            RealityKit is not supported on iOS simulator. Run on a real
-            iPhone/iPad or using Designed for iPad on an ARM Mac.
-            """,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
-        present(alert, animated: true)
-
-        #else
 
         let arView = ARView(
             frame: view.frame,
@@ -83,7 +68,5 @@ class RealityKitViewController: UIViewController {
             camera.transform = Transform(translation: cameraTranslation)
             camera.look(at: .zero, from: cameraTranslation, relativeTo: nil)
         }
-
-        #endif
     }
 }

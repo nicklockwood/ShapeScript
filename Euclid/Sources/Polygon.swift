@@ -148,9 +148,19 @@ public extension Polygon {
         vertices.contains(where: { $0.texcoord != .zero })
     }
 
+    /// A Boolean value that indicates whether the polygon includes vertex normals that differ from the face normal.
+    var hasVertexNormals: Bool {
+        vertices.contains(where: { !$0.normal.isEqual(to: plane.normal) && $0.normal != .zero })
+    }
+
     /// A Boolean value that indicates whether the polygon includes vertex colors.
     var hasVertexColors: Bool {
         vertices.contains(where: { $0.color != .white })
+    }
+
+    /// The position of the center of the polygon.
+    var center: Vector {
+        vertices.reduce(.zero) { $0 + $1.position } / Double(vertices.count)
     }
 
     /// Returns the ordered array of polygon edges.
@@ -281,6 +291,18 @@ public extension Polygon {
         return merge(unchecked: other, ensureConvex: ensureConvex)
     }
 
+    /// Return a copy of the polygon without texture coordinates
+    func withoutTexcoords() -> Polygon {
+        Polygon(
+            unchecked: vertices.withoutTexcoords(),
+            plane: plane,
+            isConvex: isConvex,
+            sanitizeNormals: false,
+            material: material,
+            id: id
+        )
+    }
+
     /// Flips the polygon along its plane and reverses the order and surface normals of the vertices.
     /// - Returns: The inverted polygon.
     func inverted() -> Polygon {
@@ -346,7 +368,7 @@ public extension Polygon {
     }
 }
 
-internal extension Collection where Element == LineSegment {
+extension Collection where Element == LineSegment {
     /// Set of all unique start/end points in edge collection.
     var endPoints: Set<Vector> {
         var endPoints = Set<Vector>()
@@ -377,10 +399,15 @@ internal extension Collection where Element == LineSegment {
     }
 }
 
-internal extension Collection where Element == Polygon {
+extension Collection where Element == Polygon {
     /// Does any polygon include texture coordinates?
     var hasTexcoords: Bool {
         contains(where: { $0.hasTexcoords })
+    }
+
+    /// Does any polygon have vertex normals that differ from the face normal?
+    var hasVertexNormals: Bool {
+        contains(where: { $0.hasVertexNormals })
     }
 
     /// Does any polygon have vertex colors?
@@ -517,6 +544,11 @@ internal extension Collection where Element == Polygon {
         }
     }
 
+    /// Return polygons without texture coordinates
+    func withoutTexcoords() -> [Polygon] {
+        map { $0.withoutTexcoords() }
+    }
+
     /// Flip each polygon along its plane
     func inverted() -> [Polygon] {
         map { $0.inverted() }
@@ -630,7 +662,7 @@ internal extension Collection where Element == Polygon {
     }
 }
 
-internal extension MutableCollection where Element == Polygon, Index == Int {
+extension MutableCollection where Element == Polygon, Index == Int {
     /// Merge coplanar polygons that share one or more edges
     var areSortedByPlane: Bool {
         guard !isEmpty else {
@@ -655,7 +687,7 @@ internal extension MutableCollection where Element == Polygon, Index == Int {
     }
 }
 
-internal extension Array where Element == Polygon {
+extension Array where Element == Polygon {
     mutating func addPoint(
         _ point: Vector,
         material: Polygon.Material?,
@@ -729,7 +761,7 @@ internal extension Array where Element == Polygon {
     }
 }
 
-internal extension Polygon {
+extension Polygon {
     // Create polygon from points with nearest matches in a vertex collection
     init?<T: Collection>(
         points: T,
@@ -953,7 +985,7 @@ private extension Polygon {
 extension Polygon.Storage: @unchecked Sendable {}
 #endif
 
-internal struct CodableMaterial: Codable {
+struct CodableMaterial: Codable {
     let value: Polygon.Material?
 
     init(_ value: Polygon.Material?) {

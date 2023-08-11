@@ -511,6 +511,18 @@ func lineSegmentsIntersection(
     return p0.isEqual(to: p1) ? p0 : nil
 }
 
+// Returns distance of plane intersection along a line (or nil if parallel)
+func linePlaneIntersection(_ origin: Vector, _ direction: Vector, _ plane: Plane) -> Double? {
+    // https://en.wikipedia.org/wiki/Line–plane_intersection#Algebraic_form
+    let lineDotPlaneNormal = direction.dot(plane.normal)
+    guard lineDotPlaneNormal > 0 else {
+        // Line and plane are parallel
+        return nil
+    }
+    let planePoint = plane.normal * plane.w
+    return (planePoint - origin).dot(plane.normal) / lineDotPlaneNormal
+}
+
 // MARK: Path utilities
 
 // Sanitize a set of path points by removing duplicates and invalid points
@@ -574,7 +586,7 @@ func subpathIndicesFor(_ points: [PathPoint]) -> [Int] {
                     indices.append(j)
                 }
                 indices.append(i)
-                lastIndex = i
+                lastIndex = i + 1
                 break
             }
         }
@@ -617,6 +629,61 @@ protocol UnkeyedCodable {
     init(from container: inout UnkeyedDecodingContainer) throws
     /// Encode directly into an unkeyedContainer
     func encode(to container: inout UnkeyedEncodingContainer) throws
+}
+
+// MARK: Data
+
+class Buffer {
+    private(set) var buffer: UnsafeMutablePointer<UInt8>
+    let capacity: Int
+    var count: Int = 0 {
+        didSet { assert((0 ... capacity).contains(count)) }
+    }
+
+    init(capacity: Int) {
+        self.capacity = capacity
+        self.buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+        buffer.initialize(repeating: 0, count: capacity)
+    }
+
+    deinit {
+        buffer.deallocate()
+    }
+
+    func append(_ int: UInt16) {
+        assert(count <= capacity - 2)
+        var int = int
+        withUnsafeMutablePointer(to: &int) {
+            let pointer = $0.withMemoryRebound(to: UInt8.self, capacity: 2) { $0 }
+            for i in 0 ..< 2 {
+                buffer[count] = pointer[i]
+                count += 1
+            }
+        }
+    }
+
+    func append(_ int: UInt32) {
+        assert(count <= capacity - 4)
+        var int = int
+        withUnsafeMutablePointer(to: &int) {
+            let pointer = $0.withMemoryRebound(to: UInt8.self, capacity: 4) { $0 }
+            for i in 0 ..< 4 {
+                buffer[count] = pointer[i]
+                count += 1
+            }
+        }
+    }
+
+    func append(_ float: Float) {
+        append(float.bitPattern)
+    }
+}
+
+extension Data {
+    init(_ buffer: Buffer) {
+        // TODO: any way to avoid the copy here?
+        self.init(bytes: buffer.buffer, count: buffer.count)
+    }
 }
 
 // MARK: Parallel processing

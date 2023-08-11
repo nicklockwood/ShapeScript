@@ -1,5 +1,5 @@
 //
-//  Line.swift
+//  LineSegment.swift
 //  Euclid
 //
 //  Created by Nick Lockwood on 20/11/2019.
@@ -130,6 +130,13 @@ public extension LineSegment {
         return Bounds(start, end).inset(by: -epsilon).containsPoint(point)
     }
 
+    /// Returns the point where the specified plane intersects the line segment.
+    /// - Parameter plane: The plane to compare with.
+    /// - Returns: The point of intersection, or `nil` if the line segment and plane don't intersect.
+    func intersection(with plane: Plane) -> Vector? {
+        plane.intersection(with: self)
+    }
+
     /// Returns the intersection point between the specified line segment and this one.
     /// - Parameter segment: The line segment to compare with.
     /// - Returns: The point of intersection, or `nil` if the line segments don't intersect.
@@ -145,7 +152,7 @@ public extension LineSegment {
     }
 }
 
-internal extension LineSegment {
+extension LineSegment {
     init(unchecked start: Vector, _ end: Vector) {
         assert(start != end)
         self.start = start

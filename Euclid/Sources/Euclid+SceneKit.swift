@@ -79,15 +79,6 @@ public extension SCNMatrix4 {
     }
 }
 
-private extension Data {
-    mutating func append(_ int: UInt32) {
-        var int = int
-        withUnsafeMutablePointer(to: &int) { pointer in
-            append(UnsafeBufferPointer(start: pointer, count: 1))
-        }
-    }
-}
-
 public extension SCNNode {
     /// Applies the transform to the node.
     ///
@@ -155,7 +146,7 @@ public extension SCNGeometry {
     ///   - mesh: The mesh to convert into a SceneKit geometry.
     ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     convenience init(triangles mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
-        var elementIndices = [[UInt32]]()
+        var elements = [SCNGeometryElement]()
         var vertices = [SCNVector3]()
         var normals = [SCNVector3]()
         var texcoords = [CGPoint]()
@@ -163,53 +154,51 @@ public extension SCNGeometry {
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
         let hasTexcoords = mesh.hasTexcoords
+        let hasVertexNormals = mesh.hasVertexNormals
         let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
         let polygonsByMaterial = mesh.polygonsByMaterial
         for material in mesh.materials {
             let polygons = polygonsByMaterial[material] ?? []
-            var indices = [UInt32]()
-            func addVertex(_ vertex: Vertex) {
-                if let index = indicesByVertex[vertex] {
-                    indices.append(index)
-                    return
-                }
-                let index = UInt32(indicesByVertex.count)
-                indicesByVertex[vertex] = index
-                indices.append(index)
-                vertices.append(SCNVector3(vertex.position))
-                normals.append(SCNVector3(vertex.normal))
-                if hasTexcoords {
-                    texcoords.append(CGPoint(vertex.texcoord))
-                }
-                if hasVertexColors {
-                    colors.append(SCNVector4(vertex.color))
-                }
-            }
             materials.append(materialLookup(material) ?? SCNMaterial())
-            for polygon in polygons {
-                for triangle in polygon.triangulate() {
-                    triangle.vertices.forEach(addVertex)
+            var indices = [UInt32]()
+            for triangle in polygons.triangulate() {
+                for var vertex in triangle.vertices {
+                    if !hasVertexNormals {
+                        vertex.normal = .zero
+                    }
+                    if let index = indicesByVertex[vertex] {
+                        indices.append(index)
+                        continue
+                    }
+                    let index = UInt32(indicesByVertex.count)
+                    indicesByVertex[vertex] = index
+                    indices.append(index)
+                    vertices.append(SCNVector3(vertex.position))
+                    if hasVertexNormals {
+                        normals.append(SCNVector3(vertex.normal))
+                    }
+                    if hasTexcoords {
+                        texcoords.append(CGPoint(vertex.texcoord))
+                    }
+                    if hasVertexColors {
+                        colors.append(SCNVector4(vertex.color))
+                    }
                 }
             }
-            elementIndices.append(indices)
+            elements.append(SCNGeometryElement(indices: indices, primitiveType: .triangles))
         }
-        var sources = [
-            SCNGeometrySource(vertices: vertices),
-            SCNGeometrySource(normals: normals),
-        ]
+        var sources = [SCNGeometrySource(vertices: vertices)]
+        if hasVertexNormals {
+            sources.append(SCNGeometrySource(normals: normals))
+        }
         if hasTexcoords {
             sources.append(SCNGeometrySource(textureCoordinates: texcoords))
         }
         if hasVertexColors {
             sources.append(SCNGeometrySource(colors: colors))
         }
-        self.init(
-            sources: sources,
-            elements: elementIndices.map { indices in
-                SCNGeometryElement(indices: indices, primitiveType: .triangles)
-            }
-        )
+        self.init(sources: sources, elements: elements)
         self.materials = materials
     }
 
@@ -227,43 +216,48 @@ public extension SCNGeometry {
         var materials = [SCNMaterial]()
         var indicesByVertex = [Vertex: UInt32]()
         let hasTexcoords = mesh.hasTexcoords
+        let hasVertexNormals = mesh.hasVertexNormals
         let hasVertexColors = mesh.hasVertexColors
         let materialLookup = materialLookup ?? defaultMaterialLookup
         let polygonsByMaterial = mesh.polygonsByMaterial
         for material in mesh.materials {
-            var polygons = polygonsByMaterial[material] ?? []
-            var indexData = Data()
-            func addVertex(_ vertex: Vertex) {
-                if let index = indicesByVertex[vertex] {
-                    indexData.append(index)
-                    return
-                }
-                let index = UInt32(indicesByVertex.count)
-                indicesByVertex[vertex] = index
-                indexData.append(index)
-                vertices.append(SCNVector3(vertex.position))
-                normals.append(SCNVector3(vertex.normal))
-                if hasTexcoords {
-                    texcoords.append(CGPoint(vertex.texcoord))
-                }
-                if hasVertexColors {
-                    colors.append(SCNVector4(vertex.color))
-                }
-            }
             materials.append(materialLookup(material) ?? SCNMaterial())
-            polygons = polygons.tessellate()
+            let polygons = polygonsByMaterial[material]?.tessellate() ?? []
+            let bufferSize = polygons.reduce(polygons.count) { $0 + $1.vertices.count }
+            let indexBuffer = Buffer(capacity: bufferSize * 4)
             for polygon in polygons {
-                indexData.append(UInt32(polygon.vertices.count))
+                indexBuffer.append(UInt32(polygon.vertices.count))
             }
             for polygon in polygons {
-                polygon.vertices.forEach(addVertex)
+                for var vertex in polygon.vertices {
+                    if !hasVertexNormals {
+                        vertex.normal = .zero
+                    }
+                    if let index = indicesByVertex[vertex] {
+                        indexBuffer.append(index)
+                        continue
+                    }
+                    let index = UInt32(indicesByVertex.count)
+                    indicesByVertex[vertex] = index
+                    indexBuffer.append(index)
+                    vertices.append(SCNVector3(vertex.position))
+                    if hasVertexNormals {
+                        normals.append(SCNVector3(vertex.normal))
+                    }
+                    if hasTexcoords {
+                        texcoords.append(CGPoint(vertex.texcoord))
+                    }
+                    if hasVertexColors {
+                        colors.append(SCNVector4(vertex.color))
+                    }
+                }
             }
-            elementData.append((polygons.count, indexData))
+            elementData.append((polygons.count, Data(indexBuffer)))
         }
-        var sources = [
-            SCNGeometrySource(vertices: vertices),
-            SCNGeometrySource(normals: normals),
-        ]
+        var sources = [SCNGeometrySource(vertices: vertices)]
+        if hasVertexNormals {
+            sources.append(SCNGeometrySource(normals: normals))
+        }
         if hasTexcoords {
             sources.append(SCNGeometrySource(textureCoordinates: texcoords))
         }
@@ -725,7 +719,7 @@ public extension Mesh {
         self.init(scnGeometry) { _ in material }
     }
 
-    @available(*, deprecated, message: "Use `init(_:material:)` instead")
+    @available(*, deprecated, message: "Use `init(_:materialLookup:)` instead")
     init?(scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }
