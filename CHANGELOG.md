@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.6.14](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.14) (2023-09-23)
+
+- Bumped Euclid to version 0.6.18 (fixes crash when building with Xcode 15)
+
 ## [1.6.13](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.13) (2023-07-30)
 
 - Fixed "Show Wireframe" menu item not updating correctly on iOS
