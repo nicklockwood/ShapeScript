@@ -122,7 +122,7 @@ public extension Mesh {
     ///   - mesh: The mesh to subtract from this one.
     ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the result of the subtraction.
-    func subtract(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
+    func subtracting(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
         let intersection = bounds.intersection(mesh.bounds)
         guard !intersection.isEmpty else {
             return self
@@ -154,6 +154,11 @@ public extension Mesh {
         )
     }
 
+    @available(*, deprecated, renamed: "subtracting(_:isCancelled:)")
+    func subtract(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
+        subtracting(mesh, isCancelled: isCancelled)
+    }
+
     /// Efficiently gets the difference between multiple meshes.
     /// - Parameters
     ///   - meshes: An ordered collection of meshes. All but the first will be subtracted from the first.
@@ -163,7 +168,7 @@ public extension Mesh {
         _ meshes: T,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh where T.Element == Mesh {
-        reduce(meshes, using: { $0.subtract($1, isCancelled: $2) }, isCancelled)
+        reduce(meshes, using: { $0.subtracting($1, isCancelled: $2) }, isCancelled)
     }
 
     /// Returns a new mesh reprenting only the volume exclusively occupied by
@@ -182,7 +187,7 @@ public extension Mesh {
     ///   - mesh: The mesh to be XORed with this one.
     ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the XOR of the meshes.
-    func xor(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
+    func symmetricDifference(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
         let intersection = bounds.intersection(mesh.bounds)
         guard !intersection.isEmpty else {
             return merge(mesh)
@@ -215,16 +220,29 @@ public extension Mesh {
         )
     }
 
+    @available(*, deprecated, renamed: "symmetricDifference(_:isCancelled:)")
+    func xor(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
+        symmetricDifference(mesh, isCancelled: isCancelled)
+    }
+
     /// Efficiently XORs multiple meshes.
     /// - Parameters
     ///   - meshes: A collection of meshes to be XORed.
     ///   - isCancelled: Callback used to cancel the operation
     /// - Returns: A new mesh representing the XOR of the meshes.
+    static func symmetricDifference<T: Collection>(
+        _ meshes: T,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh where T.Element == Mesh {
+        merge(meshes, using: { $0.symmetricDifference($1, isCancelled: $2) }, isCancelled)
+    }
+
+    @available(*, deprecated, renamed: "symmetricDifference(_:isCancelled:)")
     static func xor<T: Collection>(
         _ meshes: T,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh where T.Element == Mesh {
-        merge(meshes, using: { $0.xor($1, isCancelled: $2) }, isCancelled)
+        symmetricDifference(meshes, isCancelled: isCancelled)
     }
 
     /// Returns a new mesh representing the volume shared by both the mesh
@@ -243,10 +261,7 @@ public extension Mesh {
     ///   - mesh: The mesh to be intersected with this one.
     ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the intersection of the meshes.
-    func intersect(
-        _ mesh: Mesh,
-        isCancelled: CancellationHandler = { false }
-    ) -> Mesh {
+    func intersection(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
         let intersection = bounds.intersection(mesh.bounds)
         guard !intersection.isEmpty else {
             return .empty
@@ -275,6 +290,11 @@ public extension Mesh {
         )
     }
 
+    @available(*, deprecated, renamed: "intersection(_:isCancelled:)")
+    func intersect(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
+        intersection(mesh, isCancelled: isCancelled)
+    }
+
     /// Efficiently computes the intersection of multiple meshes.
     /// - Parameters
     ///   - meshes: A collection of meshes to be intersected.
@@ -290,7 +310,7 @@ public extension Mesh {
             return .empty
         }
         return tail.reduce(into: head) {
-            $0 = $0.intersect($1, isCancelled: isCancelled)
+            $0 = $0.intersection($1, isCancelled: isCancelled)
         }
     }
 
@@ -310,10 +330,7 @@ public extension Mesh {
     ///   - mesh: The mesh to be stencilled onto this one.
     ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the result of stencilling.
-    func stencil(
-        _ mesh: Mesh,
-        isCancelled: CancellationHandler = { false }
-    ) -> Mesh {
+    func stencil(_ mesh: Mesh, isCancelled: CancellationHandler = { false }) -> Mesh {
         let intersection = bounds.intersection(mesh.bounds)
         guard !intersection.isEmpty else {
             return self
@@ -324,7 +341,7 @@ public extension Mesh {
         let (outside, inside) = bsp.split(ap, .greaterThan, .lessThanEqual, isCancelled)
         let material = mesh.polygons.first?.material
         return Mesh(
-            unchecked: aout! + outside + inside.map { $0.with(material: material) },
+            unchecked: aout! + outside + inside.mapMaterials { _ in material },
             bounds: bounds,
             isConvex: isKnownConvex,
             isWatertight: nil,
@@ -484,7 +501,7 @@ private func boundsTest(
 }
 
 private extension Mesh {
-    // Merge all the meshes into a single mesh using fn
+    /// Merge all the meshes into a single mesh using fn
     static func merge<T: Collection>(
         _ meshes: T,
         using fn: (Mesh, Mesh, CancellationHandler) -> Mesh,
@@ -499,7 +516,7 @@ private extension Mesh {
         return .merge(meshes)
     }
 
-    // Merge each intersecting mesh after i into the mesh at index i using fn
+    /// Merge each intersecting mesh after i into the mesh at index i using fn
     static func reduce<T: Collection>(
         _ meshes: T,
         using fn: (Mesh, Mesh, CancellationHandler) -> Mesh,

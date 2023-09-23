@@ -8,11 +8,12 @@
 
 ### Geometric Primitives
 
-- ``Mesh/cone(radius:height:slices:poleDetail:addDetailAtBottomPole:faces:wrapMode:material:)``
-- ``Mesh/cube(center:size:faces:material:)-7wdr2``
-- ``Mesh/cube(center:size:faces:material:)-imdm``
+- ``Mesh/cone(radius:height:slices:stacks:poleDetail:addDetailAtBottomPole:faces:wrapMode:material:)``
+- ``Mesh/cube(center:size:faces:wrapMode:material:)-8t5q8``
+- ``Mesh/cube(center:size:faces:wrapMode:material:)-eado``
 - ``Mesh/cylinder(radius:height:slices:poleDetail:faces:wrapMode:material:)``
 - ``Mesh/sphere(radius:slices:stacks:poleDetail:faces:wrapMode:material:)``
+- ``Mesh/icosahedron(radius:faces:wrapMode:material:)``
 
 - ``Mesh/WrapMode``
 - ``Mesh/Faces``
@@ -23,12 +24,12 @@
 - ``Mesh/convexHull(of:)-6c896``
 - ``Mesh/union(_:isCancelled:)-swift.method``
 - ``Mesh/union(_:isCancelled:)-swift.type.method``
-- ``Mesh/intersect(_:isCancelled:)``
-- ``Mesh/intersection(_:isCancelled:)``
-- ``Mesh/subtract(_:isCancelled:)``
+- ``Mesh/intersection(_:isCancelled:)-swift.method``
+- ``Mesh/intersection(_:isCancelled:)-swift.type.method``
+- ``Mesh/subtracting(_:isCancelled:)``
 - ``Mesh/difference(_:isCancelled:)``
-- ``Mesh/xor(_:isCancelled:)-swift.method``
-- ``Mesh/xor(_:isCancelled:)-swift.type.method``
+- ``Mesh/symmetricDifference(_:isCancelled:)-swift.method``
+- ``Mesh/symmetricDifference(_:isCancelled:)-swift.type.method``
 - ``Mesh/stencil(_:isCancelled:)-swift.method``
 - ``Mesh/stencil(_:isCancelled:)-swift.type.method``
 
@@ -108,7 +109,12 @@
 ### Updating Materials and Texture Coordinates
 
 - ``Mesh/replacing(_:with:)``
+- ``Mesh/withMaterial(_:)``
 - ``Mesh/withoutTexcoords()``
+- ``Mesh/withTextureTransform(_:)``
+- ``Mesh/sphereMapped()``
+- ``Mesh/cylinderMapped()``
+- ``Mesh/cubeMapped()``
 
 ### Merging Meshes
 
@@ -128,4 +134,4 @@
 - ``Mesh/detessellate()``
 - ``Mesh/detriangulate()``
 - ``Mesh/makeWatertight()``
-- ``Mesh/smoothNormals(_:)``
+- ``Mesh/smoothingNormals(forAnglesGreaterThan:)``

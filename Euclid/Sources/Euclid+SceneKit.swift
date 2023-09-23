@@ -33,6 +33,8 @@
 
 import SceneKit
 
+let scnMaterialTypes: [AnyClass] = [SCNMaterial.self]
+
 public extension SCNVector3 {
     /// Creates a 3D SceneKit vector from a vector.
     /// - Parameter v: The vector to convert.
@@ -104,6 +106,9 @@ private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial
     case is OSColor, is OSImage:
         let scnMaterial = SCNMaterial()
         scnMaterial.diffuse.contents = material
+        scnMaterial.diffuse.wrapS = .repeat
+        scnMaterial.diffuse.wrapT = .repeat
+        scnMaterial.diffuse.magnificationFilter = .nearest
         return scnMaterial
     default:
         return nil
@@ -318,7 +323,7 @@ public extension SCNGeometry {
     ///   - scale: The line length of the normal indicators.
     convenience init(normals mesh: Mesh, scale: Double = 1) {
         self.init(Set(mesh.polygons.flatMap { $0.vertices.compactMap {
-            LineSegment($0.position, $0.position + $0.normal * scale)
+            LineSegment(start: $0.position, end: $0.position + $0.normal * scale)
         }}))
     }
 
@@ -378,7 +383,7 @@ public extension SCNGeometry {
         )
     }
 
-    @available(*, deprecated, message: "Use `init(_:)` instead")
+    @available(*, deprecated, renamed: "init(_:)")
     convenience init(bounds: Bounds) {
         self.init(bounds)
     }
@@ -719,10 +724,14 @@ public extension Mesh {
         self.init(scnGeometry) { _ in material }
     }
 
-    @available(*, deprecated, message: "Use `init(_:materialLookup:)` instead")
+    @available(*, deprecated, renamed: "init(_:materialLookup:)")
     init?(scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }
 }
+
+#else
+
+let scnMaterialTypes: [AnyClass] = []
 
 #endif

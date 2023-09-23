@@ -848,7 +848,7 @@ extension EvaluationContext {
             case let .polygon(p):
                 children.append(.polygon(p
                         .transformed(by: childTransform)
-                        .with(material: material)
+                        .withMaterial(material)
                 ))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))

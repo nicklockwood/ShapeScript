@@ -253,11 +253,11 @@ public extension Geometry {
                 bounds.formIntersection(child.bounds.transformed(by: child.transform))
             }
         case .union, .xor, .group:
-            return Bounds(bounds: children.map {
+            return Bounds(children.map {
                 $0.bounds.transformed(by: $0.transform)
             })
         case .lathe, .fill, .extrude, .loft, .hull:
-            return type.bounds.union(Bounds(bounds: children.map {
+            return type.bounds.union(Bounds(children.map {
                 $0.bounds.transformed(by: $0.transform)
             }))
         case .cone, .cube, .cylinder, .sphere, .path, .mesh:
@@ -527,7 +527,7 @@ private extension Geometry {
         case .union, .lathe, .extrude:
             mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
-            mesh = Mesh.xor(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
+            mesh = Mesh.symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
         case .difference:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
@@ -544,7 +544,7 @@ private extension Geometry {
         }
         if callback() {
             if let smoothing = smoothing {
-                mesh = mesh?.smoothNormals(smoothing)
+                mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
             cache?[mesh: self] = mesh
             return true
@@ -607,7 +607,7 @@ private extension Collection where Element == Path {
         }
         var material = material
         material.color = current ?? material.color
-        return (map { $0.with(color: nil) }, material)
+        return (map { $0.withColor(nil) }, material)
     }
 }
 
@@ -680,9 +680,9 @@ public extension Geometry {
             if transform.rotation == .identity {
                 return type.bounds.transformed(by: transform)
             }
-            return Bounds(points: type.representativePoints.transformed(by: transform))
+            return Bounds(type.representativePoints.transformed(by: transform))
         case .hull:
-            var bounds = Bounds(points: type.representativePoints.transformed(by: transform))
+            var bounds = Bounds(type.representativePoints.transformed(by: transform))
             for child in children {
                 bounds.formUnion(child.exactBounds(with: child.transform * transform))
             }
@@ -692,7 +692,7 @@ public extension Geometry {
         case let .fill(paths), let .loft(paths):
             return paths.transformed(by: transform).bounds
         case .group, .union, .lathe, .extrude:
-            return Bounds(bounds: children.map {
+            return Bounds(children.map {
                 $0.exactBounds(with: $0.transform * transform)
             })
         case .xor, .difference, .intersection:

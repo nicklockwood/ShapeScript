@@ -10,7 +10,7 @@
 import XCTest
 
 extension Euclid.Polygon {
-    // Convenience constructor for testing
+    /// Convenience constructor for testing
     init(unchecked vertices: [Vertex], plane: Plane? = nil) {
         self.init(
             unchecked: vertices,
@@ -21,7 +21,7 @@ extension Euclid.Polygon {
         )
     }
 
-    // Convenience constructor for testing
+    /// Convenience constructor for testing
     init(unchecked points: [Vector]) {
         let normal = faceNormalForPolygonPoints(points, convex: nil, closed: nil)
         self.init(unchecked: points.map { Vertex($0, normal) })
@@ -805,7 +805,7 @@ class PolygonTests: XCTestCase {
             .point(1, 0),
             .point(0, 1),
         ])
-        guard let polygon = Polygon(shape: path)?.with(id: 5) else {
+        guard let polygon = Polygon(shape: path)?.withID(5) else {
             XCTFail()
             return
         }
@@ -821,7 +821,7 @@ class PolygonTests: XCTestCase {
             .point(1, 0),
             .point(0, 1),
         ])
-        guard let polygon = Polygon(shape: path)?.with(id: 5) else {
+        guard let polygon = Polygon(shape: path)?.withID(5) else {
             XCTFail()
             return
         }

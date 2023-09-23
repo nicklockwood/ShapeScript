@@ -136,7 +136,7 @@ public extension GeometryType {
                 }
             }.bounds
         case let .lathe(paths, segments):
-            return .init(bounds: paths.map { path in
+            return .init(paths.map { path -> Bounds in
                 let profileBounds = path.latheProfile.bounds
                 let diameter = abs(profileBounds.min.x) * 2
                 let bounds = Path.circle(segments: segments).bounds
@@ -147,9 +147,9 @@ public extension GeometryType {
                     .union(bounds.translated(by: profileBounds.max.y * .unitY))
             })
         case let .loft(paths), let .fill(paths):
-            return .init(bounds: paths.map { $0.bounds })
+            return .init(paths.map { $0.bounds })
         case let .hull(vertices):
-            return .init(points: vertices.map { $0.position })
+            return .init(vertices.map { $0.position })
         case let .path(path):
             return path.bounds
         case let .mesh(mesh):

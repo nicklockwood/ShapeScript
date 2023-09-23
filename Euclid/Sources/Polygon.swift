@@ -38,7 +38,7 @@ import Foundation
 public struct Polygon: Hashable, Sendable {
     private var storage: Storage
 
-    // Used to track split/join.
+    /// Used to track split/join.
     var id: Int
 }
 
@@ -111,18 +111,30 @@ extension Polygon: Codable {
     }
 }
 
+extension Polygon: Bounded {
+    /// The bounding box containing the polygon.
+    public var bounds: Bounds { Bounds(vertices.map { $0.position }) }
+}
+
 public extension Polygon {
     /// Material used by a given polygon.
     /// This can be any type that conforms to `Hashable`, but encoding/decoding is only supported
-    /// for the following types: `Color`, `String`, `Int`, `Data` or any `NSCodable` type.
+    /// for the following types: `Color`, `String`, `Int`, `Data` or any `NSSecureCodable` type.
     typealias Material = AnyHashable
+
+    /// Supported `NSSecureCodable` Material base classes.
+    static var codableClasses: [AnyClass] = {
+        #if canImport(AppKit) || canImport(UIKit)
+        return [OSImage.self, OSColor.self] + scnMaterialTypes
+        #else
+        return []
+        #endif
+    }()
 
     /// The array of vertices that make up the polygon.
     var vertices: [Vertex] { storage.vertices }
     /// The plane on which all vertices lie.
     var plane: Plane { storage.plane }
-    /// The bounding box containing the polygon.
-    var bounds: Bounds { Bounds(points: vertices.map { $0.position }) }
     /// A Boolean value that indicates whether the polygon is convex.
     var isConvex: Bool { storage.isConvex }
 
@@ -159,6 +171,7 @@ public extension Polygon {
     }
 
     /// The position of the center of the polygon.
+    /// This is calculated as the average of the vertex positions, and may not be equal to the center of the polygon's ``bounds``.
     var center: Vector {
         vertices.reduce(.zero) { $0 + $1.position } / Double(vertices.count)
     }
@@ -203,10 +216,16 @@ public extension Polygon {
 
     /// Creates a copy of the polygon with the specified material.
     /// - Parameter material: The replacement material, or `nil` to remove the material.
-    func with(material: Material?) -> Polygon {
+    func withMaterial(_ material: Material?) -> Polygon {
         var polygon = self
         polygon.material = material
         return polygon
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "withMaterial(_:)")
+    func with(material: Material?) -> Polygon {
+        withMaterial(material)
     }
 
     /// Creates a polygon from an array of vertices.
@@ -294,7 +313,7 @@ public extension Polygon {
     /// Return a copy of the polygon without texture coordinates
     func withoutTexcoords() -> Polygon {
         Polygon(
-            unchecked: vertices.withoutTexcoords(),
+            unchecked: vertices.mapTexcoords { _ in .zero },
             plane: plane,
             isConvex: isConvex,
             sanitizeNormals: false,
@@ -488,7 +507,7 @@ extension Collection where Element == Polygon {
                 if modified || v != u {
                     modified = true
                     if let w = merged.last, w.position == u.position {
-                        merged[merged.count - 1] = w.lerp(v, 0.5).with(position: u.position)
+                        merged[merged.count - 1] = w.lerp(v, 0.5).withPosition(u.position)
                         continue
                     }
                 }
@@ -506,13 +525,13 @@ extension Collection where Element == Polygon {
         }
     }
 
-    /// Smooth vertex normals
-    func smoothNormals(_ threshold: Angle) -> [Polygon] {
+    /// Smooth vertex normals.
+    func smoothingNormals(forAnglesGreaterThan threshold: Angle) -> [Polygon] {
         guard threshold > .zero else {
             return map { p0 in
                 let n0 = p0.plane.normal
                 return Polygon(
-                    unchecked: p0.vertices.map { $0.with(normal: n0) },
+                    unchecked: p0.vertices.map { $0.withNormal(n0) },
                     plane: p0.plane,
                     isConvex: p0.isConvex,
                     sanitizeNormals: false,
@@ -531,7 +550,7 @@ extension Collection where Element == Polygon {
             return Polygon(
                 unchecked: p0.vertices.map { v0 in
                     let polygons = polygonsByVertex[v0.position] ?? []
-                    return v0.with(normal: polygons.compactMap { p1 in
+                    return v0.withNormal(polygons.compactMap { p1 in
                         let n1 = p1.plane.normal
                         return .acos(n0.dot(n1)) < threshold ? n1 : nil
                     }.reduce(.zero) { $0 + $1 })
@@ -544,9 +563,14 @@ extension Collection where Element == Polygon {
         }
     }
 
-    /// Return polygons without texture coordinates
-    func withoutTexcoords() -> [Polygon] {
-        map { $0.withoutTexcoords() }
+    /// Return polygons with materials replaced by the function
+    func mapMaterials(_ fn: (Polygon.Material?) -> Polygon.Material?) -> [Polygon] {
+        map { $0.withMaterial(fn($0.material)) }
+    }
+
+    /// Return polygons with transformed texture coordinates
+    func mapTexcoords(_ fn: (Vector) -> Vector) -> [Polygon] {
+        map { $0.mapTexcoords(fn) }
     }
 
     /// Flip each polygon along its plane
@@ -762,7 +786,7 @@ extension Array where Element == Polygon {
 }
 
 extension Polygon {
-    // Create polygon from points with nearest matches in a vertex collection
+    /// Create polygon from points with nearest matches in a vertex collection
     init?<T: Collection>(
         points: T,
         verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]],
@@ -790,8 +814,8 @@ extension Polygon {
         self.init(vertices, material: material)
     }
 
-    // Create polygon from vertices and face normal without performing validation
-    // Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
+    /// Create polygon from vertices and face normal without performing validation
+    /// Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
     init(
         unchecked vertices: [Vertex],
         normal: Vector,
@@ -809,9 +833,9 @@ extension Polygon {
         )
     }
 
-    // Create polygon from vertices and (optional) plane without performing validation
-    // Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
-    // Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
+    /// Create polygon from vertices and (optional) plane without performing validation
+    /// Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
+    /// Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
     init(
         unchecked vertices: [Vertex],
         plane: Plane?,
@@ -828,7 +852,7 @@ extension Polygon {
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
             vertices: sanitizeNormals ? vertices.map {
-                $0.with(normal: $0.normal == .zero ? plane.normal : $0.normal)
+                $0.withNormal($0.normal == .zero ? plane.normal : $0.normal)
             } : vertices,
             plane: plane,
             isConvex: isConvex,
@@ -837,7 +861,7 @@ extension Polygon {
         self.id = id
     }
 
-    // Join touching polygons (without checking they are coplanar or share the same material)
+    /// Join touching polygons (without checking they are coplanar or share the same material)
     func merge(unchecked other: Polygon, ensureConvex: Bool) -> Polygon? {
         assert(material == other.material)
         assert(plane.isEqual(to: other.plane))
@@ -943,11 +967,23 @@ extension Polygon {
         return comparison
     }
 
-    // Create copy of polygon with specified id
-    func with(id: Int) -> Polygon {
+    /// Create copy of polygon with specified id
+    func withID(_ id: Int) -> Polygon {
         var polygon = self
         polygon.id = id
         return polygon
+    }
+
+    /// Return a copy of the polygon with transformed texture coordinates
+    func mapTexcoords(_ fn: (Vector) -> Vector) -> Polygon {
+        Polygon(
+            unchecked: vertices.mapTexcoords(fn),
+            plane: plane,
+            isConvex: isConvex,
+            sanitizeNormals: false,
+            material: material,
+            id: id
+        )
     }
 }
 
@@ -1007,7 +1043,9 @@ struct CodableMaterial: Codable {
             } else if let color = try container.decodeIfPresent(Color.self, forKey: .color) {
                 self.value = color
             } else if let data = try container.decodeIfPresent(Data.self, forKey: .nscoded) {
-                guard let value = NSKeyedUnarchiver.unarchiveObject(with: data) as? Polygon.Material else {
+                guard let value = try NSKeyedUnarchiver.unarchivedObject(
+                    ofClasses: Polygon.codableClasses, from: data
+                ) as? Polygon.Material else {
                     throw DecodingError.dataCorruptedError(
                         forKey: .nscoded,
                         in: container,
@@ -1047,7 +1085,10 @@ struct CodableMaterial: Codable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(data, forKey: .data)
         case let object as NSCoding:
-            let data = NSKeyedArchiver.archivedData(withRootObject: object)
+            let data = try NSKeyedArchiver.archivedData(
+                withRootObject: object,
+                requiringSecureCoding: true
+            )
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(data, forKey: .nscoded)
         default:

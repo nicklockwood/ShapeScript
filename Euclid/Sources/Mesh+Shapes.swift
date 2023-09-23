@@ -57,6 +57,8 @@ public extension Mesh {
         case shrink
         /// Texture is tube-wrapped.
         case tube
+        /// Do not generate texture coordinates.
+        case none
     }
 
     /// Creates an axis-aligned cuboidal mesh.
@@ -64,11 +66,13 @@ public extension Mesh {
     ///   - center: The center point of the mesh.
     ///   - size: The size of the cuboid mesh.
     ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The way that texture coordinates are calculated for the cube.
     ///   - material: The optional material for the mesh.
     static func cube(
         center: Vector = .zero,
         size: Vector,
         faces: Faces = .default,
+        wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
         let coordinates: [(indices: [Int], normal: Vector)] = [
@@ -87,11 +91,11 @@ public extension Mesh {
                         i & 2 > 0 ? 0.5 : -0.5,
                         i & 4 > 0 ? 0.5 : -0.5
                     ).scaled(by: size)
-                    let uv = Vector(
+                    let texcoord = wrapMode == .default ? Vector(
                         (1 ... 2).contains(index) ? 1 : 0,
                         (0 ... 1).contains(index) ? 1 : 0
-                    )
-                    return Vertex(unchecked: pos, normal, uv, nil)
+                    ) : .zero
+                    return Vertex(unchecked: pos, normal, texcoord, nil)
                 },
                 normal: normal,
                 isConvex: true,
@@ -104,9 +108,10 @@ public extension Mesh {
             min: center - halfSize,
             max: center + halfSize
         )
+        let mesh: Mesh
         switch faces {
         case .front, .default:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons,
                 bounds: bounds,
                 isConvex: true,
@@ -114,7 +119,7 @@ public extension Mesh {
                 submeshes: []
             )
         case .back:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons.inverted(),
                 bounds: bounds,
                 isConvex: false,
@@ -122,13 +127,21 @@ public extension Mesh {
                 submeshes: []
             )
         case .frontAndBack:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: bounds,
                 isConvex: false,
                 isWatertight: true,
                 submeshes: []
             )
+        }
+        switch wrapMode {
+        case .default, .none:
+            return mesh
+        case .shrink:
+            return mesh.sphereMapped()
+        case .tube:
+            return mesh.cylinderMapped()
         }
     }
 
@@ -137,14 +150,123 @@ public extension Mesh {
     ///   - center: The center point of the mesh.
     ///   - size: The size of the mesh.
     ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The way that texture coordinates are calculated for the cube.
     ///   - material: The optional material for the mesh.
     static func cube(
         center c: Vector = .zero,
         size s: Double = 1,
         faces: Faces = .default,
+        wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
-        cube(center: c, size: Vector(s, s, s), faces: faces, material: material)
+        cube(center: c, size: Vector(s, s, s), faces: faces, wrapMode: wrapMode, material: material)
+    }
+
+    /// Creates a sphere by subdividing an icosahedron.
+    /// - Parameters:
+    ///   - radius: The radius of the icosahedron.
+    ///   - faces: The direction the polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
+    static func icosahedron(
+        radius: Double = 0.5,
+        faces: Faces = .default,
+        wrapMode: WrapMode = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        let t = 1 + sqrt(2) / 2
+        let coordinates: [Vector] = [
+            .init(-1, t, 0),
+            .init(1, t, 0),
+            .init(-1, -t, 0),
+            .init(1, -t, 0),
+
+            .init(0, -1, t),
+            .init(0, 1, t),
+            .init(0, -1, -t),
+            .init(0, 1, -t),
+
+            .init(t, 0, -1),
+            .init(t, 0, 1),
+            .init(-t, 0, -1),
+            .init(-t, 0, 1),
+        ]
+        let transform = Transform(rotation: .pitch(.atan(t)), scale: .init(size: radius / sqrt(t * t + 1)))
+        let v = coordinates.map { Vertex($0.transformed(by: transform)) }
+        func triangle(_ a: Vertex, _ b: Vertex, _ c: Vertex) -> Polygon {
+            Polygon(
+                unchecked: [a, b, c],
+                plane: nil,
+                isConvex: true,
+                sanitizeNormals: true,
+                material: material
+            )
+        }
+        let triangles = [
+            // 5 faces around point 0
+            triangle(v[0], v[11], v[5]),
+            triangle(v[0], v[5], v[1]),
+            triangle(v[0], v[1], v[7]),
+            triangle(v[0], v[7], v[10]),
+            triangle(v[0], v[10], v[11]),
+
+            // 5 adjacent faces
+            triangle(v[1], v[5], v[9]),
+            triangle(v[5], v[11], v[4]),
+            triangle(v[11], v[10], v[2]),
+            triangle(v[10], v[7], v[6]),
+            triangle(v[7], v[1], v[8]),
+
+            // 5 faces around point 3
+            triangle(v[3], v[9], v[4]),
+            triangle(v[3], v[4], v[2]),
+            triangle(v[3], v[2], v[6]),
+            triangle(v[3], v[6], v[8]),
+            triangle(v[3], v[8], v[9]),
+
+            // 5 adjacent faces
+            triangle(v[4], v[9], v[5]),
+            triangle(v[2], v[4], v[11]),
+            triangle(v[6], v[2], v[10]),
+            triangle(v[8], v[6], v[7]),
+            triangle(v[9], v[8], v[1]),
+        ]
+        let mesh: Mesh
+        let bounds = Bounds(triangles)
+        switch faces {
+        case .front, .default:
+            mesh = Mesh(
+                unchecked: triangles,
+                bounds: bounds,
+                isConvex: true,
+                isWatertight: true,
+                submeshes: []
+            )
+        case .back:
+            mesh = Mesh(
+                unchecked: triangles.inverted(),
+                bounds: bounds,
+                isConvex: false,
+                isWatertight: true,
+                submeshes: []
+            )
+        case .frontAndBack:
+            mesh = Mesh(
+                unchecked: triangles + triangles.inverted(),
+                bounds: bounds,
+                isConvex: false,
+                isWatertight: true,
+                submeshes: []
+            )
+        }
+        switch wrapMode {
+        case .default, .shrink:
+            return mesh.sphereMapped()
+        case .tube:
+            return mesh.cylinderMapped()
+        case .none:
+            return mesh
+        }
     }
 
     /// Creates a spherical mesh.
@@ -154,7 +276,7 @@ public extension Mesh {
     ///   - stacks: The number of horizontal stacks that make up the sphere.
     ///   - poleDetail: Optionally add extra detail around poles to prevent texture warping
     ///   - faces: The direction the polygon faces.
-    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - wrapMode: The way that texture coordinates are calculated for the sphere.
     ///   - material: The optional material for the mesh.
     static func sphere(
         radius: Double = 0.5,
@@ -185,7 +307,7 @@ public extension Mesh {
     ///   - slices: The number of vertical slices that make up the cylinder.
     ///   - poleDetail: Optionally add extra detail around poles to prevent texture warping.
     ///   - faces: The direction of the generated polygon faces.
-    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - wrapMode: The way that texture coordinates are calculated for the cylinder.
     ///   - material: The optional material for the mesh.
     static func cylinder(
         radius: Double = 0.5,
@@ -197,14 +319,17 @@ public extension Mesh {
         material: Material? = nil
     ) -> Mesh {
         let radius = max(abs(radius), scaleLimit / 2)
-        let height = max(abs(height), scaleLimit)
         let wrapMode = wrapMode == .default ? .tube : wrapMode
         return lathe(
-            unchecked: Path(unchecked: [
+            unchecked: Path(unchecked: abs(height) > scaleLimit ? [
                 .point(0, height / 2),
                 .point(-radius, height / 2),
                 .point(-radius, -height / 2),
                 .point(0, -height / 2),
+            ] : [
+                .point(0, 0),
+                .point(-radius, 0),
+                .point(0, 0),
             ], plane: .xy, subpathIndices: []),
             slices: slices,
             poleDetail: poleDetail,
@@ -222,10 +347,11 @@ public extension Mesh {
     ///   - radius: The radius of the cone.
     ///   - height: The height of the cone.
     ///   - slices: The number of vertical slices that make up the cone.
+    ///   - stacks: The number of horizontal stacks that make up the cone.
     ///   - poleDetail: Optionally add extra detail around top pole to prevent texture warping.
     ///   - addDetailAtBottomPole: Whether detail should be added at bottom pole.
     ///   - faces: The direction of the generated polygon faces.
-    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - wrapMode: The way that texture coordinates are calculated for the cone.
     ///   - material: The optional material for the mesh.
     ///
     /// > Note: The default `nil` value for poleDetail will derive value automatically.
@@ -234,6 +360,7 @@ public extension Mesh {
         radius: Double = 0.5,
         height: Double = 1,
         slices: Int = 16,
+        stacks: Int = 1,
         poleDetail: Int? = nil,
         addDetailAtBottomPole: Bool = false,
         faces: Faces = .default,
@@ -241,13 +368,13 @@ public extension Mesh {
         material: Material? = nil
     ) -> Mesh {
         let radius = max(abs(radius), scaleLimit / 2)
-        let height = max(abs(height), scaleLimit)
+        let stacks = max(1, stacks)
+        let ystep = height / Double(stacks), xstep = radius / Double(stacks)
+        let points = (0 ... stacks).map { i -> PathPoint in
+            .point(Double(i) * xstep, height / 2 - Double(i) * ystep)
+        } + [PathPoint.point(0, -height / 2)]
         return lathe(
-            unchecked: Path(unchecked: [
-                .point(0, height / 2),
-                .point(-radius, -height / 2),
-                .point(0, -height / 2),
-            ], plane: .xy, subpathIndices: []),
+            unchecked: Path(unchecked: points, plane: .xy, subpathIndices: []),
             slices: slices,
             poleDetail: poleDetail ?? 3,
             addDetailForFlatPoles: addDetailAtBottomPole,
@@ -276,7 +403,7 @@ public extension Mesh {
     ///   - poleDetail: The number of segments used to make the pole.
     ///   - addDetailForFlatPoles: A Boolean value that indicates whether to add detail to the poles.
     ///   - faces: The direction of the generated polygon faces.
-    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - wrapMode: The way that texture coordinates are calculated for the lathed mesh.
     ///   - material: The optional material for the mesh.
     static func lathe(
         _ profile: Path,
@@ -441,7 +568,7 @@ public extension Mesh {
     ) -> Mesh {
         let subpaths = shape.subpaths
         if subpaths.count > 1 {
-            return .xor(subpaths.map { .fill($0, faces: faces, material: material) })
+            return .symmetricDifference(subpaths.map { .fill($0, faces: faces, material: material) })
         }
 
         let polygons = shape.closed().facePolygons(material: material)
@@ -606,7 +733,7 @@ public extension Mesh {
         let polygons = meshes.enumerated().flatMap { i, mesh in
             i == bestIndex ? [] : mesh.polygons
         }
-        let bounds = Bounds(bounds: meshes.map { $0.bounds })
+        let bounds = Bounds(meshes)
         return .convexHull(of: polygons, with: best, bounds: bounds)
     }
 
@@ -787,7 +914,7 @@ private extension Mesh {
     ) -> Mesh {
         let subpaths = profile.subpaths
         if subpaths.count > 1 {
-            return .xor(subpaths.map {
+            return .symmetricDifference(subpaths.map {
                 .lathe(
                     $0,
                     slices: slices,
@@ -1033,7 +1160,7 @@ private extension Mesh {
                     subshapes[i].append(subpath)
                 }
             }
-            return .xor(subshapes.map { .loft($0, faces: faces, material: material) })
+            return .symmetricDifference(subshapes.map { .loft($0, faces: faces, material: material) })
         }
         let shapes = shapes.filter { !$0.points.isEmpty }
         guard let first = shapes.first, let last = shapes.last else {
@@ -1226,7 +1353,7 @@ private extension Mesh {
         }
         func nearestIndex(to a: Vector, in e: [Vertex]) -> Int {
             let a = a.translated(by: t1).rotated(by: r)
-            let e = e.map { $0.with(position: $0.position.translated(by: t0)) }
+            let e = e.map { $0.withPosition($0.position.translated(by: t0)) }
             var closestIndex = 0
             var best = Double.infinity
             for i in stride(from: 0, to: e.count, by: 2) {

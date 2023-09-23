@@ -54,7 +54,7 @@ extension Mesh: Codable {
             if let materials = try container.decodeIfPresent([CodableMaterial].self, forKey: .materials) {
                 let polygonsByMaterial = try container.decode([[Polygon]].self, forKey: .polygons)
                 polygons = zip(materials, polygonsByMaterial).flatMap { material, polygons in
-                    polygons.map { $0.with(material: material.value) }
+                    polygons.mapMaterials { _ in material.value }
                 }
             } else {
                 polygons = try container.decode([Polygon].self, forKey: .polygons)
@@ -84,10 +84,15 @@ extension Mesh: Codable {
             try container.encode(materials.map { CodableMaterial($0) }, forKey: .materials)
             let polygonsByMaterial = self.polygonsByMaterial
             try container.encode(materials.map { material -> [Polygon] in
-                polygonsByMaterial[material]!.map { $0.with(material: nil) }
+                polygonsByMaterial[material]!.mapMaterials { _ in nil }
             }, forKey: .polygons)
         }
     }
+}
+
+extension Mesh: Bounded {
+    /// The bounds of the mesh.
+    public var bounds: Bounds { storage.bounds }
 }
 
 public extension Mesh {
@@ -107,9 +112,6 @@ public extension Mesh {
 
     /// The distinct (disconnected) submeshes that make up the mesh.
     var submeshes: [Mesh] { storage.submeshes }
-
-    /// The bounds of the mesh.
-    var bounds: Bounds { storage.bounds }
 
     /// The polygons in the mesh, grouped by material.
     var polygonsByMaterial: [Material?: [Polygon]] {
@@ -163,16 +165,25 @@ public extension Mesh {
         self = .merge(submeshes)
     }
 
-    /// Replaces an existing material with the specified new one.
+    /// Returns a copy of the mesh with the specified old material replaced by a new one.
     /// - Parameters:
     ///     - old: The ``Material`` to be replaced.
     ///     - new: The ``Material`` to use instead.
     /// - Returns: a new ``Mesh`` with the material replaced.
     func replacing(_ old: Material?, with new: Material?) -> Mesh {
         Mesh(
-            unchecked: polygons.map {
-                $0.material == old ? $0.with(material: new) : $0
-            },
+            unchecked: polygons.mapMaterials { $0 == old ? new : $0 },
+            bounds: boundsIfSet,
+            isConvex: isKnownConvex,
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
+        )
+    }
+
+    /// Returns a copy of the mesh with the new material applied to all polygons.
+    func withMaterial(_ material: Material?) -> Mesh {
+        Mesh(
+            unchecked: polygons.mapMaterials { _ in material },
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
@@ -217,7 +228,7 @@ public extension Mesh {
         }
         return Mesh(
             unchecked: polygons,
-            bounds: allBoundsSet ? Bounds(bounds: meshes.map { $0.bounds }) : nil,
+            bounds: allBoundsSet ? Bounds(meshes) : nil,
             isConvex: false,
             isWatertight: nil,
             submeshes: nil // TODO: can we preserve this?
@@ -318,12 +329,12 @@ public extension Mesh {
         )
     }
 
-    /// Smooth vertex normals for corners with angles greater than the specified threshold.
-    /// - Parameter threshold: The minimum edge angle that should appear smooth.
+    /// Smooth vertex normals for corners with angles greater (more obtuse) than the specified threshold.
+    /// - Parameter threshold: The minimum corner angle that should appear smooth.
     ///   Values should be in the range zero (no smoothing) to pi (smooth all edges).
-    func smoothNormals(_ threshold: Angle) -> Mesh {
+    func smoothingNormals(forAnglesGreaterThan threshold: Angle) -> Mesh {
         Mesh(
-            unchecked: polygons.smoothNormals(threshold),
+            unchecked: polygons.smoothingNormals(forAnglesGreaterThan: threshold),
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
@@ -331,15 +342,10 @@ public extension Mesh {
         )
     }
 
-    /// Return a copy of the mesh without texture coordinates
-    func withoutTexcoords() -> Mesh {
-        Mesh(
-            unchecked: polygons.withoutTexcoords(),
-            bounds: boundsIfSet,
-            isConvex: isKnownConvex,
-            isWatertight: watertightIfSet,
-            submeshes: submeshesIfEmpty
-        )
+    /// Deprecated.
+    @available(*, deprecated, renamed: "smoothingNormals(forAnglesGreaterThan:)")
+    func smoothNormals(_ threshold: Angle) -> Mesh {
+        smoothingNormals(forAnglesGreaterThan: threshold)
     }
 
     /// Returns a Boolean value that indicates if the specified point is inside the mesh.
@@ -393,7 +399,7 @@ extension Mesh {
 }
 
 private extension Mesh {
-    final class Storage: Hashable {
+    final class Storage: Hashable, Bounded {
         let polygons: [Polygon]
         let isConvex: Bool
 
@@ -423,7 +429,7 @@ private extension Mesh {
         private(set) var boundsIfSet: Bounds?
         var bounds: Bounds {
             if boundsIfSet == nil {
-                boundsIfSet = Bounds(polygons: polygons)
+                boundsIfSet = Bounds(polygons)
             }
             return boundsIfSet!
         }

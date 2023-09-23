@@ -31,21 +31,27 @@
 
 /// A finite line segment in 3D space.
 public struct LineSegment: Hashable, Sendable {
-    // The starting point of the line segment.
+    /// The starting point of the line segment.
     public let start: Vector
-    // The end point of the line segment.
+    /// The end point of the line segment.
     public let end: Vector
 
     /// Creates a line segment with a start and end point.
     /// - Parameters:
     ///   - start: The start of the line segment.
     ///   - end: The end of the line segment.
-    public init?(_ start: Vector, _ end: Vector) {
+    public init?(start: Vector, end: Vector) {
         guard start != end else {
             return nil
         }
         self.start = start
         self.end = end
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "init(start:end:)")
+    public init?(_ start: Vector, _ end: Vector) {
+        self.init(start: start, end: end)
     }
 }
 
@@ -70,8 +76,8 @@ extension LineSegment: Codable {
     public init(from decoder: Decoder) throws {
         if let container = try? decoder.container(keyedBy: CodingKeys.self) {
             guard let segment = try LineSegment(
-                container.decode(Vector.self, forKey: .start),
-                container.decode(Vector.self, forKey: .end)
+                start: container.decode(Vector.self, forKey: .start),
+                end: container.decode(Vector.self, forKey: .end)
             ) else {
                 throw DecodingError.dataCorruptedError(
                     forKey: .end,
@@ -83,8 +89,8 @@ extension LineSegment: Codable {
         } else {
             var container = try decoder.unkeyedContainer()
             guard let segment = try LineSegment(
-                Vector(from: &container),
-                Vector(from: &container)
+                start: Vector(from: &container),
+                end: Vector(from: &container)
             ) else {
                 throw DecodingError.dataCorruptedError(
                     in: container,
@@ -102,6 +108,11 @@ extension LineSegment: Codable {
         try start.encode(to: &container)
         try end.encode(to: &container)
     }
+}
+
+extension LineSegment: Bounded {
+    /// The bounding box containing the line segment.
+    public var bounds: Bounds { Bounds(start, end) }
 }
 
 public extension LineSegment {
@@ -127,7 +138,7 @@ public extension LineSegment {
         guard vectorFromPointToLine(point, start, direction).isZero else {
             return false
         }
-        return Bounds(start, end).inset(by: -epsilon).containsPoint(point)
+        return bounds.inset(by: -epsilon).containsPoint(point)
     }
 
     /// Returns the point where the specified plane intersects the line segment.

@@ -90,6 +90,11 @@ extension Path: Codable {
     }
 }
 
+extension Path: Bounded {
+    /// The bounds of all the path's points.
+    public var bounds: Bounds { Bounds(points.map { $0.position }) }
+}
+
 public extension Path {
     /// An empty path.
     static let empty: Path = .init([])
@@ -97,11 +102,6 @@ public extension Path {
     /// Indicates whether all the path's points lie on a single plane.
     var isPlanar: Bool {
         plane != nil
-    }
-
-    /// The bounds of all the path's points.
-    var bounds: Bounds {
-        Bounds(points: points.map { $0.position })
     }
 
     /// The total length of the path.
@@ -127,10 +127,16 @@ public extension Path {
 
     /// Replace/remove path point colors.
     /// - Parameter color: The color to apply to each point in the path.
-    func with(color: Color?) -> Path {
+    func withColor(_ color: Color?) -> Path {
         Path(unchecked: points.map {
-            $0.with(color: color)
+            $0.withColor(color)
         }, plane: plane, subpathIndices: subpathIndices)
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "withColor(_:)")
+    func with(color: Color?) -> Path {
+        withColor(color)
     }
 
     /// Closes the path by joining last point to first.
@@ -197,7 +203,7 @@ public extension Path {
         )
     }
 
-    @available(*, deprecated, message: "Use `init(_:)` instead")
+    @available(*, deprecated, renamed: "init(_:)")
     init(polygon: Polygon) {
         let hasTexcoords = polygon.hasTexcoords
         self.init(
@@ -343,7 +349,7 @@ public extension Path {
         }
 
         // get path length
-        var totalLength: Double = 0
+        var totalLength = 0.0
         switch wrapMode {
         case .shrink, .default:
             var prev = points[0].position
@@ -360,6 +366,8 @@ public extension Path {
                 max = Swift.max(max, point.position.y)
             }
             totalLength = max - min
+        case .none:
+            break
         }
 
         let count = isClosed ? points.count - 1 : points.count
@@ -393,6 +401,8 @@ public extension Path {
                 v += p1p2.length / totalLength
             case .tube:
                 v += abs(p1p2.y) / totalLength
+            case .none:
+                break
             }
             if p1.isCurved {
                 let v = Vertex(
@@ -475,13 +485,13 @@ extension Path {
         points.contains(where: { $0.color != nil })
     }
 
-    // Test if path is self-intersecting
+    /// Test if path is self-intersecting
     var isSimple: Bool {
         // TODO: what should we do about subpaths?
         !pointsAreSelfIntersecting(points.map { $0.position })
     }
 
-    // Returns the most suitable FlatteningPlane for the path
+    /// Returns the most suitable FlatteningPlane for the path
     var flatteningPlane: FlatteningPlane {
         FlatteningPlane(normal: faceNormal)
     }
@@ -492,7 +502,7 @@ extension Path {
         points.count < (isClosed ? 4 : 3)
     }
 
-    // flattens z-axis
+    /// flattens z-axis
     // TODO: this is a hack and should be replaced by a better solution
     func flattened() -> Path {
         guard subpathIndices.isEmpty else {
@@ -597,7 +607,7 @@ extension Path {
         }
     }
 
-    // Returns the path with its first point recentered on the origin
+    /// Returns the path with its first point recentered on the origin
     func withNormalizedPosition() -> (path: Path, offset: Vector) {
         guard let offset = points.first?.position, offset != .zero else {
             return (self, .zero)
