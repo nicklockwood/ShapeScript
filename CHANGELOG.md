@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.7.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.7.0) (2023-10-14)
+
+- Fixed ambiguity when calling functions with parenthesized arguments
+- Added error message when using more than 8 lights in a scene
+- Bumped Euclid to version 0.7.1
+
 ## [1.6.14](https://github.com/nicklockwood/ShapeScript/releases/tag/1.6.14) (2023-09-23)
 
 - Bumped Euclid to version 0.6.18 (fixes crash when building with Xcode 15)
@@ -10,7 +16,7 @@
 - Added error hint for misspelled else keyword
 - Added Value.errorDescription for clearer error messages
 - Fixed out of bounds crash in iOS source editor
-- Fixed some typesystem edge cases for optionals, unions and lists
+- Fixed some type-system edge cases for optionals, unions and lists
 - Added checked angular types to help prevent mixed angle errors
 - Added regression tests for example shape files
 - Bumped Euclid to version 0.6.15
