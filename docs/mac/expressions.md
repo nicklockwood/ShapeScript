@@ -198,7 +198,14 @@ for word in sentence {
 }
 ```
 
-For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members, and for [polygons](meshes.md#polygons-and-points) you can use `points` to access the individual vertices. For points you can access the `position` and `color`:
+For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members:
+
+```swift
+print cube.bounds.size // 1 1 1
+print cube.polygons.count // 6
+```
+
+For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, or use `points` to access the individual vertices. For points you can access the `position` and `color`:
 
 ```swift
 define triangle polygon {

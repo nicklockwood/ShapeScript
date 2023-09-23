@@ -379,8 +379,10 @@ extension Value {
                 members.append("polygons")
             }
             return members
-        case .path, .polygon:
+        case .path:
             return ["bounds", "points"]
+        case .polygon:
+            return ["bounds", "center", "points"]
         case .point:
             return ["x", "y", "z", "position", "color"]
         case .bounds:
@@ -498,6 +500,8 @@ extension Value {
             switch name {
             case "bounds":
                 return .bounds(polygon.bounds)
+            case "center":
+                return .vector(polygon.center)
             case "points":
                 return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
             default:

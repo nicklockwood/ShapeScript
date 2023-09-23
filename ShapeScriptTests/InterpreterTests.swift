@@ -3750,6 +3750,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(points.count, 4)
     }
 
+    func testPolygonCenterLookup() throws {
+        let program = """
+        print cube.polygons.first.center
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let center = try XCTUnwrap(delegate.log as? [Vector]).first
+        XCTAssertEqual(center, Vector(0.5, 0, 0))
+    }
+
     func testPointColorLookup() throws {
         let program = """
         define foo path {
