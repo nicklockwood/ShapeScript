@@ -855,8 +855,8 @@ extension Statement {
             case .constant, .option, .placeholder:
                 return
             }
-        case let .expression(expression):
-            expression.inferTypes(for: &params, in: context, with: .any)
+        case let .expression(type):
+            Expression(type: type, range: range).inferTypes(for: &params, in: context, with: .any)
         case let .define(identifier, definition):
             if let symbol = try? definition.staticSymbol(in: context) {
                 context.define(identifier.name, as: symbol)
@@ -896,8 +896,8 @@ extension Statement {
             case .function, .block, .constant, .option, .placeholder:
                 return symbol.type
             }
-        case let .expression(expression):
-            return try expression.staticType(in: context)
+        case let .expression(type):
+            return try Expression(type: type, range: range).staticType(in: context)
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         case let .define(identifier, definition):

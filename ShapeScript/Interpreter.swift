@@ -967,7 +967,8 @@ extension Statement {
             case .placeholder:
                 throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
-        case let .expression(expression):
+        case let .expression(type):
+            let expression = Expression(type: type, range: range)
             try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
             switch definition.type {

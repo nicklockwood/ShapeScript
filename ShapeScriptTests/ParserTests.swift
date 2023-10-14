@@ -112,7 +112,7 @@ class ParserTests: XCTestCase {
         let bRange = input.range(of: "b")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
-                type: .expression(Expression(type: .tuple([
+                type: .expression(.tuple([
                     Expression(type: .identifier("not"), range: notRange),
                     Expression(
                         type: .infix(
@@ -122,7 +122,7 @@ class ParserTests: XCTestCase {
                         ),
                         range: aRange.lowerBound ..< input.endIndex
                     ),
-                ]), range: input.startIndex ..< input.endIndex)),
+                ])),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -136,7 +136,7 @@ class ParserTests: XCTestCase {
         let bRange = input.range(of: "b")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
-                type: .expression(Expression(type: .tuple([
+                type: .expression(.tuple([
                     Expression(type: .identifier("not"), range: notRange),
                     Expression(
                         type: .infix(
@@ -149,7 +149,7 @@ class ParserTests: XCTestCase {
                         ),
                         range: aRange.lowerBound ..< input.endIndex
                     ),
-                ]), range: input.startIndex ..< input.endIndex)),
+                ])),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -318,7 +318,7 @@ class ParserTests: XCTestCase {
         let cRange = input.range(of: "c")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
             Statement(
-                type: .expression(Expression(type: .infix(
+                type: .expression(.infix(
                     Expression(type: .tuple([
                         Expression(type: .identifier("floor"), range: floorRange),
                         Expression(type: .infix(
@@ -329,7 +329,7 @@ class ParserTests: XCTestCase {
                     ]), range: floorRange.lowerBound ..< tupleRange.upperBound),
                     .times,
                     Expression(type: .identifier("c"), range: cRange)
-                ), range: input.startIndex ..< input.endIndex)),
+                )),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -344,26 +344,18 @@ class ParserTests: XCTestCase {
         let numberRange = input.range(of: "40")!
         let bodyRange = input.range(of: "{ length 40 }")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(
-                Expression(
-                    type: .block(
-                        Identifier(name: "foo", range: fooRange),
-                        Block(statements: [
-                            Statement(
-                                type: .expression(Expression(
-                                    type: .tuple([
-                                        Expression(type: .identifier("length"), range: lengthRange),
-                                        Expression(type: .number(40), range: numberRange),
-                                    ]),
-                                    range: lengthRange.lowerBound ..< numberRange.upperBound
-                                )),
-                                range: lengthRange.lowerBound ..< numberRange.upperBound
-                            ),
-                        ], range: bodyRange)
+            Statement(type: .expression(.block(
+                Identifier(name: "foo", range: fooRange),
+                Block(statements: [
+                    Statement(
+                        type: .expression(.tuple([
+                            Expression(type: .identifier("length"), range: lengthRange),
+                            Expression(type: .number(40), range: numberRange),
+                        ])),
+                        range: lengthRange.lowerBound ..< numberRange.upperBound
                     ),
-                    range: fooRange.lowerBound ..< bodyRange.upperBound
-                )
-            ), range: fooRange.lowerBound ..< bodyRange.upperBound),
+                ], range: bodyRange)
+            )), range: fooRange.lowerBound ..< bodyRange.upperBound),
         ]))
     }
 
@@ -589,11 +581,11 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .infix(
+            Statement(type: .expression(.infix(
                 Expression(type: .number(1), range: range1),
                 .plus,
                 Expression(type: .number(2), range: range2)
-            ), range: range)), range: range),
+            )), range: range),
         ]))
     }
 
@@ -603,11 +595,11 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .infix(
+            Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .plus,
                 Expression(type: .number(2), range: range2)
-            ), range: range)), range: range),
+            )), range: range),
         ]))
     }
 
@@ -617,11 +609,11 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .infix(
+            Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .to,
                 Expression(type: .number(2), range: range2)
-            ), range: range)), range: range),
+            )), range: range),
         ]))
     }
 
@@ -631,11 +623,11 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "2")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .infix(
+            Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .step,
                 Expression(type: .number(2), range: range2)
-            ), range: range)), range: range),
+            )), range: range),
         ]))
     }
 
@@ -658,11 +650,11 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "true")!
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(Expression(type: .infix(
+            Statement(type: .expression(.infix(
                 Expression(type: .identifier("foo"), range: range1),
                 .and,
                 Expression(type: .identifier("true"), range: range2)
-            ), range: range)), range: range),
+            )), range: range),
         ]))
     }
 
@@ -1089,23 +1081,15 @@ class ParserTests: XCTestCase {
         let range2 = input.range(of: "2")!
         let bodyRange = input.range(of: "{ 1 2 }")!
         XCTAssertEqual(try parse(input), Program(source: input, statements: [
-            Statement(type: .expression(
-                Expression(
-                    type: .block(
-                        Identifier(name: "text", range: textRange),
-                        Block(statements: [
-                            Statement(type: .expression(
-                                Expression(type: .tuple([
-                                    Expression(type: .number(1), range: range1),
-                                    Expression(type: .number(2), range: range2),
-                                ]),
-                                range: tupleRange)
-                            ), range: tupleRange),
-                        ], range: bodyRange)
-                    ),
-                    range: textRange.lowerBound ..< bodyRange.upperBound
-                )
-            ), range: textRange.lowerBound ..< bodyRange.upperBound),
+            Statement(type: .expression(.block(
+                Identifier(name: "text", range: textRange),
+                Block(statements: [
+                    Statement(type: .expression(.tuple([
+                        Expression(type: .number(1), range: range1),
+                        Expression(type: .number(2), range: range2),
+                    ])), range: tupleRange),
+                ], range: bodyRange)
+            )), range: textRange.lowerBound ..< bodyRange.upperBound),
         ]))
     }
 
@@ -1128,19 +1112,14 @@ class ParserTests: XCTestCase {
                     Definition(type: .function([
                         Identifier(name: "a", range: aRange1),
                         Identifier(name: "b", range: bRange1),
-                    ], Block(
-                        statements: [
-                            Statement(type: .expression(
-                                Expression(type: .infix(
-                                    Expression(type: .identifier("a"), range: aRange2),
-                                    .plus,
-                                    Expression(type: .identifier("b"), range: bRange2)
-                                ),
-                                range: sumRange)
-                            ), range: sumRange),
-                        ],
-                        range: bodyRange
-                    )))
+                    ], Block(statements: [
+                        Statement(type: .expression(.infix(
+                            Expression(type: .identifier("a"), range: aRange2),
+                            .plus,
+                            Expression(type: .identifier("b"), range: bRange2)
+                        )), range: sumRange),
+                    ],
+                    range: bodyRange)))
                 ),
                 range: defineRange.lowerBound ..< bodyRange.upperBound
             ),

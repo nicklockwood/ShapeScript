@@ -31,7 +31,7 @@ public enum StatementType: Equatable {
     case forloop(Identifier?, in: Expression, Block)
     case ifelse(Expression, Block, else: Block?)
     case switchcase(Expression, [CaseStatement], else: Block?)
-    case expression(Expression)
+    case expression(ExpressionType)
 }
 
 public struct Statement: Equatable {
@@ -636,14 +636,14 @@ private extension ArraySlice where Element == Token {
         }
         let start = self
         guard let identifier = readIdentifier() else {
-            return try readExpressions().map { .expression($0) }
+            return try readExpressions().map { .expression($0.type) }
         }
         if case let .function(type, _) = Symbols.all[identifier.name],
            type.parameterType != .void, type.returnType != .void
         {
             // Not a command or read-only property getter
             self = start
-            return try readExpressions().map { .expression($0) }
+            return try readExpressions().map { .expression($0.type) }
         }
         switch nextToken.type {
         case .infix, .dot, .identifier, .lbrace:
@@ -663,7 +663,7 @@ private extension ArraySlice where Element == Token {
                 }
                 return .command(identifier, expression)
             default:
-                return .expression(expression)
+                return .expression(expression.type)
             }
         // TODO: should call be treated differently here?
         case .number, .linebreak, .keyword, .hexColor, .prefix,
