@@ -200,7 +200,7 @@ public extension LexerError {
 }
 
 public extension String {
-    func lineRange(at index: String.Index, includingIndent: Bool = false) -> SourceRange {
+    func lineRange(at index: Index, includingIndent: Bool = false) -> SourceRange {
         var endIndex = self.endIndex
         var startIndex = self.startIndex
         var i = startIndex
@@ -223,7 +223,7 @@ public extension String {
         return startIndex ..< endIndex
     }
 
-    func lineAndColumn(at index: String.Index) -> (line: Int, column: Int) {
+    func lineAndColumn(at index: Index) -> (line: Int, column: Int) {
         var line = 1, column = 1
         var i = startIndex
         assert(index <= endIndex)
@@ -239,8 +239,21 @@ public extension String {
         return (line: line, column: column)
     }
 
-    func line(at index: String.Index) -> Int {
+    func line(at index: Index) -> Int {
         lineAndColumn(at: index).line
+    }
+
+    func range(ofLine line: Int) -> SourceRange {
+        var line = line
+        var start = startIndex
+        while let end = self[start...].firstIndex(where: { $0.isLinebreak }) {
+            line -= 1
+            guard line > 0 else {
+                return start ..< end
+            }
+            start = index(after: end)
+        }
+        return start ..< endIndex
     }
 }
 

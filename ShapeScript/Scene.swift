@@ -13,6 +13,7 @@ public final class Scene {
     public let background: MaterialProperty
     public let children: [Geometry]
     public let cameras: [Geometry]
+    public let lights: [Geometry]
     public let cache: GeometryCache?
 
     public init(
@@ -23,6 +24,7 @@ public final class Scene {
         self.background = background
         self.children = children
         cameras = children.flatMap { $0._cameras }
+        lights = children.flatMap { $0._lights }
         self.cache = cache
         children.forEach { $0.cache = cache }
     }
@@ -58,6 +60,13 @@ private extension Geometry {
     var _cameras: [Geometry] {
         guard case .camera = type else {
             return children.flatMap { $0._cameras }
+        }
+        return [self]
+    }
+
+    var _lights: [Geometry] {
+        guard case .light = type else {
+            return children.flatMap { $0._lights }
         }
         return [self]
     }

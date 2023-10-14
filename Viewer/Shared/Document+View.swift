@@ -275,6 +275,19 @@ extension Document {
                 return
             }
 
+            // Check for too many lights
+            let maxLights = 8
+            let nonAmbientLights = scene.lights.filter {
+                $0.light.map { SCNLight($0).type != .ambient } ?? false
+            }
+            if nonAmbientLights.count > maxLights {
+                throw RuntimeError(.assertionFailure("""
+                There is a maximum of \(maxLights) non-ambient lights per scene. \
+                This scene has \(nonAmbientLights.count) lights
+                """), at: nonAmbientLights[maxLights].sourceLocation?
+                    .range(in: input) ?? input.startIndex ..< input.startIndex)
+            }
+
             // Clear errors and previous geometry
             progress.setStatus(.partial(.empty))
 

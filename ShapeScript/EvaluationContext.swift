@@ -27,6 +27,10 @@ public struct SourceLocation: Hashable {
         self.line = line
         self.file = file
     }
+
+    public func range(in source: String) -> SourceRange {
+        source.range(ofLine: line)
+    }
 }
 
 final class EvaluationContext {
