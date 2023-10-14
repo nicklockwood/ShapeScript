@@ -7,6 +7,8 @@ ShapeScript allows you to add your own lights to the scene, which can help produ
 
 Lights come in four basic types, all created using the `light` command.
 
+**Note:** there is a maximum of 8 non-ambient lights per scene. If you need more, consider pre-lighting your models using [colors](materials.md#color) or [textures](materials.md#texture).
+
 ## Ambient
 
 An ambient light is one that illuminates all objects in the scene uniformly. It does not have a position or direction, and does not cast shadows.
