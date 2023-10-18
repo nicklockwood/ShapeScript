@@ -23,8 +23,8 @@ public final class Scene {
     ) {
         self.background = background
         self.children = children
-        cameras = children.flatMap { $0._cameras }
-        lights = children.flatMap { $0._lights }
+        self.cameras = children.flatMap { $0._cameras }
+        self.lights = children.flatMap { $0._lights }
         self.cache = cache
         children.forEach { $0.cache = cache }
     }

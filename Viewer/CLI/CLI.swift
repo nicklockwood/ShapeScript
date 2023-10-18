@@ -37,21 +37,21 @@ class CLI {
     init(in directory: String, with arguments: [String]) throws {
         let argNames = ExportOptions.arguments.map { $0.name }
         let args = try preprocessArguments(arguments, argNames)
-        inputURL = try args["1"].map {
+        self.inputURL = try args["1"].map {
             let url = expandPath($0, in: directory)
             guard url.pathExtension == "shape" else {
                 throw CLIError("Unsupported file type '\(url.pathExtension)'")
             }
             return url
         }
-        outputURL = try args["2"].map {
+        self.outputURL = try args["2"].map {
             let url = expandPath($0, in: directory)
             guard Self.exportTypes.contains(url.pathExtension) else {
                 throw CLIError("Unsupported export file type '\(url.pathExtension)'")
             }
             return url
         }
-        exportOptions = try ExportOptions(arguments: args)
+        self.exportOptions = try ExportOptions(arguments: args)
     }
 
     func run() throws {

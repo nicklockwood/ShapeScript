@@ -26,7 +26,7 @@ struct Axes {
         let brightness = background?.brightness(over: color) ?? color.brightness
         let lineColor = brightness > 0.5 ? Color.black : .white
         let material = Material(color: lineColor)
-        geometry = Geometry(transform: .scale(scale), children: [
+        self.geometry = Geometry(transform: .scale(scale), children: [
             Geometry(type: .path(.line(-.unitX, .unitX, color: lineColor))),
             Geometry(
                 label: "+X",

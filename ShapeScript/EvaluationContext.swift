@@ -89,39 +89,39 @@ final class EvaluationContext {
         self.source = source
         self.delegate = delegate
         self.isCancelled = isCancelled
-        importCache = ImportCache()
-        importStack = []
-        random = RandomSequence(seed: 0)
+        self.importCache = ImportCache()
+        self.importStack = []
+        self.random = RandomSequence(seed: 0)
     }
 
     private init(parent: EvaluationContext) {
         // preserve
-        source = parent.source
-        sourceIndex = parent.sourceIndex
-        baseURL = parent.baseURL
-        delegate = parent.delegate
-        isCancelled = parent.isCancelled
-        symbols = parent.symbols
-        userSymbols = parent.userSymbols
-        importCache = parent.importCache
-        importStack = parent.importStack
-        material = parent.material
-        childTypes = parent.childTypes
-        namedObjects = parent.namedObjects
-        random = parent.random
-        detail = parent.detail
-        smoothing = parent.smoothing
-        font = parent.font
+        self.source = parent.source
+        self.sourceIndex = parent.sourceIndex
+        self.baseURL = parent.baseURL
+        self.delegate = parent.delegate
+        self.isCancelled = parent.isCancelled
+        self.symbols = parent.symbols
+        self.userSymbols = parent.userSymbols
+        self.importCache = parent.importCache
+        self.importStack = parent.importStack
+        self.material = parent.material
+        self.childTypes = parent.childTypes
+        self.namedObjects = parent.namedObjects
+        self.random = parent.random
+        self.detail = parent.detail
+        self.smoothing = parent.smoothing
+        self.font = parent.font
         // root-only
-        background = parent.background
+        self.background = parent.background
         // opacity is cumulative
-        opacity = parent.material.opacity
+        self.opacity = parent.material.opacity
         // reset
-        transform = .identity
-        childTransform = .identity
-        children = []
+        self.transform = .identity
+        self.childTransform = .identity
+        self.children = []
         // stack
-        stackDepth = parent.stackDepth + 1
+        self.stackDepth = parent.stackDepth + 1
     }
 
     func push(_ type: BlockType) -> EvaluationContext {

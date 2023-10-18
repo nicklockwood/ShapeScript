@@ -198,8 +198,7 @@ extension Path {
                     return [prev.lerp(point, 0.5).curved(), point]
                 }
                 return [point]
-            }
-        )
+            })
         return split ? path.withDetail(detail, twist: twist) : path
     }
 }

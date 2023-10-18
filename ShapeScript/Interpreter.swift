@@ -849,8 +849,7 @@ extension EvaluationContext {
             case let .polygon(p):
                 children.append(.polygon(p
                         .transformed(by: childTransform)
-                        .withMaterial(material)
-                ))
+                        .withMaterial(material)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
             case _ where childTypes.subtypes.contains(.text):
@@ -1370,7 +1369,9 @@ extension Expression {
         }
     }
 
-    func evaluate(as type: ValueType, for name: String, index: Int = -1, in context: EvaluationContext) throws -> Value {
+    func evaluate(as type: ValueType, for name: String, index: Int = -1,
+                  in context: EvaluationContext) throws -> Value
+    {
         let value: Value, values: [(index: Int, value: Value)]
         do {
             if case let .tuple(expressions) = self.type {

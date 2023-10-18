@@ -99,11 +99,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @IBAction func reportBug(_: Any) {
-        composeEmail(subject: "ShapeScript bug report", body: "Write your bug report here.\n\nRemember to include all relevant information needed to reproduce the issue.\n\nIf you have a .shape file or screenshot that demonstrates the problem, please attach it.", error: "No email client is set up on this machine. Please report bugs to support@charcoaldesign.co.uk with the subject line 'ShapeScript bug report'.")
+        composeEmail(
+            subject: "ShapeScript bug report",
+            body: "Write your bug report here.\n\nRemember to include all relevant information needed to reproduce the issue.\n\nIf you have a .shape file or screenshot that demonstrates the problem, please attach it.",
+            error: "No email client is set up on this machine. Please report bugs to support@charcoaldesign.co.uk with the subject line 'ShapeScript bug report'."
+        )
     }
 
     @IBAction func requestFeature(_: Any) {
-        composeEmail(subject: "ShapeScript feature request", body: "Write your feature request here.", error: "No email client is set up on this machine. Please send feature requests to support@charcoaldesign.co.uk with the subject line 'ShapeScript feature request'.")
+        composeEmail(
+            subject: "ShapeScript feature request",
+            body: "Write your feature request here.",
+            error: "No email client is set up on this machine. Please send feature requests to support@charcoaldesign.co.uk with the subject line 'ShapeScript feature request'."
+        )
     }
 
     @IBAction func showWelcomeWindow(_: Any) {

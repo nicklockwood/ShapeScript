@@ -1,6 +1,16 @@
---hexgrouping ignore
---decimalgrouping ignore
---enable isEmpty
---ifdef no-indent
+# file options
 
 --exclude Build, Euclid, LRUCache, SVGPath, Package.swift
+
+# format options
+
+--hexgrouping ignore
+--decimalgrouping ignore
+--ifdef no-indent
+--self init-only
+--maxwidth 120
+
+# rules
+
+--lintonly unusedArguments
+--enable isEmpty

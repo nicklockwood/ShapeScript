@@ -11,7 +11,9 @@ import UIKit
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
 
-class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate, UITextFieldDelegate {
+class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate,
+    UITextFieldDelegate
+{
     private var openingDocument = false
 
     override func viewDidLoad() {
@@ -68,7 +70,8 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
 
     func showWhatsNewScreen() {
         let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard.instantiateViewController(withIdentifier: "WhatsNewViewController") as! WhatsNewViewController
+        let viewController = storyBoard
+            .instantiateViewController(withIdentifier: "WhatsNewViewController") as! WhatsNewViewController
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .formSheet
         present(navigationController, animated: true)
@@ -131,7 +134,12 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
 
     // MARK: UIDocumentBrowserViewControllerDelegate
 
-    func documentBrowser(_: UIDocumentBrowserViewController, didRequestDocumentCreationWithHandler importHandler: @escaping (URL?, UIDocumentBrowserViewController.ImportMode) -> Void) {
+    func documentBrowser(
+        _: UIDocumentBrowserViewController,
+        didRequestDocumentCreationWithHandler importHandler: @escaping (URL?,
+                                                                        UIDocumentBrowserViewController.ImportMode)
+            -> Void
+    ) {
         presentNewFileAlert("Untitled") { url in
             importHandler(url, .move)
         }
@@ -145,7 +153,11 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
         presentDocument(at: sourceURL)
     }
 
-    func documentBrowser(_: UIDocumentBrowserViewController, didImportDocumentAt sourceURL: URL, toDestinationURL destinationURL: URL) {
+    func documentBrowser(
+        _: UIDocumentBrowserViewController,
+        didImportDocumentAt sourceURL: URL,
+        toDestinationURL destinationURL: URL
+    ) {
         print("importing", sourceURL, destinationURL)
         // Present the Document View Controller for the new newly created document
         presentDocument(at: destinationURL)
@@ -172,7 +184,8 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
         }
 
         let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard.instantiateViewController(withIdentifier: "DocumentViewController") as! DocumentViewController
+        let viewController = storyBoard
+            .instantiateViewController(withIdentifier: "DocumentViewController") as! DocumentViewController
         viewController.document = document
         viewController.modalPresentationStyle = .fullScreen
 

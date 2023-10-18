@@ -14,7 +14,7 @@ struct EditorApp: Comparable {
 
     init(_ url: URL) {
         self.url = url
-        name = url.deletingPathExtension().lastPathComponent
+        self.name = url.deletingPathExtension().lastPathComponent
     }
 
     static func < (lhs: EditorApp, rhs: EditorApp) -> Bool {

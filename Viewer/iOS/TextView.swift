@@ -106,15 +106,15 @@ class TextView: UIScrollView {
     }
 
     override init(frame: CGRect) {
-        layoutManager = LayoutManager()
-        textView = TextView.textView(with: layoutManager)
+        self.layoutManager = LayoutManager()
+        self.textView = TextView.textView(with: layoutManager)
         super.init(frame: frame)
         setUp()
     }
 
     required init?(coder: NSCoder) {
-        layoutManager = LayoutManager()
-        textView = TextView.textView(with: layoutManager)
+        self.layoutManager = LayoutManager()
+        self.textView = TextView.textView(with: layoutManager)
         super.init(coder: coder)
         setUp()
     }

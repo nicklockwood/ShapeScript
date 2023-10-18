@@ -77,12 +77,12 @@ class Document: UIDocument {
 
     override init(fileURL url: URL) {
         super.init(fileURL: url)
-        fileMonitor = FileMonitor(url) { [weak self] url in
+        self.fileMonitor = FileMonitor(url) { [weak self] url in
             try self?.read(from: url)
         }
 
         // Observe settings changes.
-        observer = NotificationCenter.default.addObserver(
+        self.observer = NotificationCenter.default.addObserver(
             forName: .settingsUpdated,
             object: nil,
             queue: .main

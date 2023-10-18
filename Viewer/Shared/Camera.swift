@@ -42,7 +42,7 @@ extension Camera: Equatable {
 
     init(geometry: Geometry, index: Int) {
         self.geometry = geometry
-        type = .custom(index)
+        self.type = .custom(index)
     }
 
     var name: String {

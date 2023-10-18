@@ -201,7 +201,7 @@ public final class Geometry: Hashable {
         self.material = material
         self.smoothing = smoothing
         self.children = children
-        _sourceLocation = sourceLocation
+        self._sourceLocation = sourceLocation
         self.debug = debug
 
         var isOpaque = material.isOpaque
@@ -217,7 +217,7 @@ public final class Geometry: Hashable {
             )
         }
 
-        cacheKey = GeometryCache.Key(
+        self.cacheKey = GeometryCache.Key(
             type: type,
             material: nil,
             smoothing: smoothing,

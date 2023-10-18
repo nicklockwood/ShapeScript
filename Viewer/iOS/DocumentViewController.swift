@@ -482,7 +482,8 @@ class DocumentViewController: UIViewController {
 
     func openSourceView(withContentsOf fileURL: URL) {
         let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard.instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
+        let viewController = storyBoard
+            .instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
         openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)

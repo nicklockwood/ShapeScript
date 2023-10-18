@@ -25,10 +25,11 @@ class FileMonitor {
         }
         self.url = url
         self.reload = reload
-        modified = Date.timeIntervalSinceReferenceDate
+        self.modified = Date.timeIntervalSinceReferenceDate
 
         func getModifiedDate(_ url: URL) -> TimeInterval? {
-            let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
+            let date = (try? FileManager.default
+                .attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
             return date.map { $0.timeIntervalSinceReferenceDate }
         }
 
@@ -39,7 +40,7 @@ class FileMonitor {
             return true
         }
 
-        timer = Timer.scheduledTimer(
+        self.timer = Timer.scheduledTimer(
             withTimeInterval: 0.5,
             repeats: true
         ) { [weak self] _ in

@@ -19,7 +19,7 @@ extension ExportOptions {
     ]
 
     init(arguments: [String: String]) throws {
-        convertToZUp = try arguments["z-up"].map {
+        self.convertToZUp = try arguments["z-up"].map {
             guard $0 == "" else {
                 throw CLIError("--z-up option does not expect a value")
             }

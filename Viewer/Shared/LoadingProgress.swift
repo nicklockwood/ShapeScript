@@ -22,7 +22,7 @@ final class LoadingProgress {
 
     init(observer: @escaping (Status) -> Void) {
         self.observer = observer
-        queue = DispatchQueue(label: "shapescript.progress.\(id)")
+        self.queue = DispatchQueue(label: "shapescript.progress.\(id)")
         queue.async { self.setStatus(.waiting) }
     }
 

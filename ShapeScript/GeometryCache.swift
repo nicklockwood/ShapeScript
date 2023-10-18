@@ -16,7 +16,7 @@ public final class GeometryCache {
     private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>
 
     public init(memoryLimit: Int = 1_000_000_000) {
-        cache = LRUCache(totalCostLimit: memoryLimit)
+        self.cache = LRUCache(totalCostLimit: memoryLimit)
     }
 }
 
