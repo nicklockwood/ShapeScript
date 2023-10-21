@@ -217,7 +217,7 @@ public extension Geometry {
                         .point(0, 0, 0),
                         .point(0, -opposite, adjacent),
                         .point(0, 0, adjacent),
-                    ]), slices: 64).rotated(by: transform.rotation)
+                    ]), slices: 64).rotated(by: .pitch(.halfPi))
                 }
                 let geometry = SCNGeometry(mesh)
                 let material = SCNMaterial(material, isOpaque: false)
