@@ -389,6 +389,8 @@ public extension SCNLight {
         intensity = CGFloat(light.color.a * 1000)
         spotOuterAngle = CGFloat(light.spread.degrees)
         spotInnerAngle = CGFloat(1 - max(0, min(1, light.penumbra))) * spotOuterAngle
+        castsShadow = light.shadowOpacity > 0
+        shadowColor = OSColor(Color.black.withAlpha(light.shadowOpacity))
     }
 }
 

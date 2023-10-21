@@ -68,6 +68,8 @@ light {
 }
 ```
 
+**Note:** unlike ambient light, adding a directional light to the scene disables/replaces the default lighting.
+
 An orientation of `0 0 0` (or just `0` for short) creates a light that points directly down the Z axis, and is equivalent to the default light for a front-facing camera (unlike the default lighting, this light won't move with the camera if you rotate the view however).
 
 The three values represent the rotation around the Z, Y and X axes respectively. To create a light that shines from the left you could use:
@@ -81,8 +83,6 @@ light {
 This rotates the light by 90 degrees (`0.5 * 180`) around the vertical (Y) axis.
 
 ![Directional light shining from the left](../images/left-light.png)
-
-**Note:** unlike ambient light, adding a directional light to the scene disables/replaces the default lighting.
 
 Lights are also affected by [relative transforms](transforms.md#relative-transforms), so the following would be equivalent to the above:
 
@@ -158,6 +158,17 @@ light {
 The `penumbra` is specified as a value between 0 and 1 representing the proportion of the total spotlight cone that should be blurred. The default is `1` (meaning the blur is spread right across the cone). A value of zero results in a completely sharp edge:
 
 ![Sharp spotlight](../images/spotlight-sharp.png)
+
+## Shadows
+
+Directional lights, point lights and spotlights can all cast shadows, but by default they do not. To enable shadows, use the `shadow` property. This property accepts a value between 0 and 1 that controls the shadow opacity:
+
+```swift
+light {
+    orientation 0 0.5 0
+    shadow 0.5 // 50% transparent shadows
+}
+```
 
 ## Debugging
 

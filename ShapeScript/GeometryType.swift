@@ -32,6 +32,7 @@ public struct Light: Hashable {
     public var color: Color
     public var spread: Angle
     public var penumbra: Double
+    public var shadowOpacity: Double
 }
 
 public extension Light {

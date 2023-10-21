@@ -79,6 +79,7 @@ ShapeScript Help
         - [Directional](lights.md#directional)
         - [Point Lights](lights.md#point-lights)
         - [Spotlights](lights.md#spotlights)
+        - [Shadows](lights.md#shadows)
         - [Debugging](lights.md#debugging)
     - [Cameras](cameras.md)
         - [Custom Cameras](cameras.md#custom-cameras)

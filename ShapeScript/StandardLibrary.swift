@@ -231,6 +231,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "color": .color,
             "spread": .halfturns,
             "penumbra": .number,
+            "shadow": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
             position.map { context.transform.offset = $0 }
@@ -242,7 +243,8 @@ extension Dictionary where Key == String, Value == Symbol {
                     orientation: orientation,
                     color: context.value(for: "color")?.colorValue ?? .white,
                     spread: context.value(for: "spread")?.angleValue ?? (.pi / 4),
-                    penumbra: context.value(for: "penumbra")?.doubleValue ?? 1
+                    penumbra: context.value(for: "penumbra")?.doubleValue ?? 1,
+                    shadowOpacity: context.value(for: "shadow")?.doubleValue ?? 0
                 )),
                 in: context
             ))
