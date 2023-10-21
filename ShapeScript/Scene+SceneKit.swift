@@ -26,6 +26,8 @@ public extension MaterialProperty {
         case let .color(color):
             property.contents = OSColor(color)
         case let .texture(texture):
+            property.magnificationFilter = .nearest
+            property.minificationFilter = .linear
             switch texture {
             case let .file(_, url):
                 property.contents = url
