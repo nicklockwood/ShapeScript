@@ -296,64 +296,26 @@ extension Array where Element == ValueType {
 
 typealias Options = [String: ValueType]
 
-enum BlockType {
-    case builder
-    case shape
-    case group
-    case path
-    case pathShape
-    case hull
-    case mesh
-    case polygons
-    case custom(Symbols, Options, _ childTypes: ValueType, _ returns: ValueType)
+struct BlockType {
+    let symbols: Symbols
+    let options: Options
+    let childTypes: ValueType
+    let returnType: ValueType
+
+    init(_ symbols: Symbols, _ options: Options, _ childTypes: ValueType, _ returnType: ValueType) {
+        self.symbols = options.mapValues { .placeholder($0) }.merging(symbols) { $1 }
+        self.options = options
+        self.childTypes = childTypes
+        self.returnType = returnType
+    }
 }
 
 extension BlockType {
-    var options: Options {
-        switch self {
-        case let .custom(_, options, _, _):
-            return options
-        case .builder, .group, .path, .shape, .pathShape, .hull, .mesh, .polygons:
-            return [:]
-        }
-    }
-
-    var childTypes: ValueType {
-        switch self {
-        case .builder: return .path
-        case .group: return .mesh
-        case .path: return .union([.point, .path])
-        case .shape, .pathShape: return .void
-        case .hull: return .union([.point, .path, .mesh])
-        case .mesh: return .polygon
-        case .polygons: return .point
-        case let .custom(_, _, childTypes, _): return childTypes
-        }
-    }
-
-    var returnType: ValueType {
-        switch self {
-        case .builder, .group, .shape, .hull, .mesh: return .mesh
-        case .path, .pathShape: return .path
-        case .polygons: return .list(.polygon)
-        case let .custom(_, _, _, returnType): return returnType
-        }
-    }
-
-    var symbols: Symbols {
-        switch self {
-        case .shape: return .shape
-        case .group: return .group
-        case .builder: return .builder
-        case .hull: return .hull
-        case .path: return .path
-        case .pathShape: return .pathShape
-        case .mesh: return .mesh
-        case .polygons: return .polygon
-        case let .custom(symbols, options, _, _):
-            return options.mapValues { .placeholder($0) }.merging(symbols) { $1 }
-        }
-    }
+    static let builder: Self = .init(.builder, [:], .path, .mesh)
+    static let shape: Self = .init(.shape, [:], .void, .mesh)
+    static let group: Self = .init(.group, [:], .mesh, .mesh)
+    static let path: Self = .init(.path, [:], .union([.point, .path]), .path)
+    static let pathShape: Self = .init(.pathShape, [:], .void, .path)
 }
 
 // MARK: Inference
@@ -909,7 +871,7 @@ extension Statement {
                 context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
             case .block:
                 // In case of recursion
-                context.define(identifier.name, as: .block(.custom([:], [:], .void, .any)) { _ in .void })
+                context.define(identifier.name, as: .block(.init([:], [:], .void, .any)) { _ in .void })
             case .expression:
                 break
             }

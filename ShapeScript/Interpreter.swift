@@ -608,7 +608,7 @@ extension Definition {
                 ($0.name, ValueType.any)
             })
             do {
-                let context = context.push(.custom(.all, [:], .any, .any))
+                let context = context.push(.init(.all, [:], .any, .any))
                 block.inferTypes(for: &params, in: context)
                 for (name, type) in params {
                     context.define(name, as: .placeholder(type))
@@ -670,7 +670,7 @@ extension Definition {
             var options: Options? = [:]
             let returnType: ValueType
             do {
-                let context = context.push(.custom(.definition, [:], .void, .any))
+                let context = context.push(.init(.definition, [:], .void, .any))
                 returnType = try block.staticType(in: context, options: &options)
             } catch var error as RuntimeError {
                 if case let .unknownSymbol(name, options: options) = error.type {
@@ -685,7 +685,7 @@ extension Definition {
             let source = context.source
             let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
-            return .block(.custom(.user, options ?? [:], .void, returnType)) { _context in
+            return .block(.init(.user, options ?? [:], .void, returnType)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
@@ -977,7 +977,7 @@ extension Statement {
                 context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
             case .block:
                 // In case of recursion
-                context.define(identifier.name, as: .block(.custom([:], [:], .void, .any)) { _ in .void })
+                context.define(identifier.name, as: .block(.init([:], [:], .void, .any)) { _ in .void })
             case .expression:
                 break
             }
@@ -1109,7 +1109,7 @@ extension Expression {
                     fallthrough
                 }
                 let sourceIndex = context.sourceIndex
-                let newContext = context.push(.custom(.transform, [:], .mesh, value.type))
+                let newContext = context.push(.init(.transform, [:], .mesh, value.type))
                 block.statements.gatherDefinitions(in: newContext)
                 for statement in block.statements {
                     try statement.evaluate(in: newContext)

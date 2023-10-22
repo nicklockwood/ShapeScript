@@ -102,7 +102,7 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let polygons: Symbols = [
-        "polygon": .block(.polygons) { context in
+        "polygon": .block(.init(.polygon, [:], .point, .list(.polygon))) { context in
             let path = Path(context.children.compactMap {
                 $0.value as? PathPoint
             }).transformed(by: context.transform)
@@ -130,7 +130,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .group, in: context))
         },
         // builders
-        "extrude": .block(.custom(.builder, [
+        "extrude": .block(.init(.builder, [
             "along": .list(.path),
             "twist": .halfturns,
             "axisAligned": .boolean,
@@ -183,7 +183,7 @@ extension Dictionary where Key == String, Value == Symbol {
         "fill": .block(.builder) { context in
             .mesh(Geometry(type: .fill(context.paths), in: context))
         },
-        "hull": .block(.hull) { context in
+        "hull": .block(.init(.hull, [:], .union([.point, .path, .mesh]), .mesh)) { context in
             let vertices = try context.children.flatMap { child -> [Vertex] in
                 switch child {
                 case let .point(point):
@@ -204,7 +204,7 @@ extension Dictionary where Key == String, Value == Symbol {
             return .mesh(Geometry(type: .hull(vertices), in: context))
         },
         // mesh
-        "mesh": .block(.mesh) { context in
+        "mesh": .block(.init(.mesh, [:], .polygon, .mesh)) { context in
             let polygons = context.children.compactMap { $0.value as? Polygon }
             return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },
@@ -225,7 +225,7 @@ extension Dictionary where Key == String, Value == Symbol {
             .mesh(Geometry(type: .stencil, in: context))
         },
         // lights
-        "light": .block(.custom(.node, [
+        "light": .block(.init(.node, [
             "position": .vector,
             "orientation": .rotation,
             "color": .color,
@@ -297,7 +297,7 @@ extension Dictionary where Key == String, Value == Symbol {
             }
             return .path(subpaths[0].transformed(by: context.transform))
         },
-        "arc": .block(.custom(.polygon, [
+        "arc": .block(.init(.polygon, [
             "angle": .halfturns,
         ], .void, .list(.point))) { context in
             let angle = context.value(for: "angle")?.angleValue ?? .pi
@@ -328,7 +328,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "polygon": .block(.custom(.polygon, [
+        "polygon": .block(.init(.polygon, [
             "sides": .number,
         ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
             let sides = context.value(for: "sides")?.intValue
@@ -346,7 +346,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "roundrect": .block(.custom(.pathShape, [
+        "roundrect": .block(.init(.pathShape, [
             "radius": .number,
             "size": .size,
         ], .void, .path)) { context in
@@ -361,7 +361,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 color: context.material.color
             ).transformed(by: context.transform))
         },
-        "text": .block(.custom(.pathShape, [
+        "text": .block(.init(.pathShape, [
             "font": .font,
             "wrapwidth": .number,
             "linespacing": .number,
@@ -371,7 +371,7 @@ extension Dictionary where Key == String, Value == Symbol {
             let paths = Path.text(text, width: width, detail: context.detail / 8)
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
-        "svgpath": .block(.custom(.pathShape, [:], .string, .path)) { context in
+        "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
             let text = context.children.map { $0.stringValue }.joined(separator: "\n")
             let svgPath: SVGPath
             do {
@@ -574,7 +574,7 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let root: Symbols = _merge(global, font, detail, smoothing, material, childTransform, [
-        "camera": .block(.custom(.node, [
+        "camera": .block(.init(.node, [
             "position": .vector,
             "orientation": .rotation,
             "size": .size,
