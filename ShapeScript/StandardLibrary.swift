@@ -114,6 +114,11 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .colorOrTexture(context.material.glow ?? .color(.black))
         }),
+        "material": .property(.material, { parameter, context in
+            context.material = parameter.value as? Material ?? .default
+        }, { context in
+            .material(context.material)
+        }),
     ]
 
     static let polygons: Symbols = [

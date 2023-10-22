@@ -55,7 +55,7 @@ The `smoothing` command can be used anywhere in the ShapeScript file to override
 
 ## Materials
 
-The `color`, `texture` and `opacity` commands are used to specify the appearance of shapes when rendered. These commands are documented in the [materials](materials.md) section.
+The `material` command (along with individual material property commands such as `color` and `texture`) are used to specify the appearance of shapes when rendered. These commands are documented in the [materials](materials.md) section.
 
 ## Font
 

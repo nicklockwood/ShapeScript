@@ -1415,6 +1415,44 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Material
+
+    func testDefaultMaterial() {
+        let program = """
+        print color
+        print material.color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.white, .white])
+    }
+
+    func testColorMaterial() {
+        let program = """
+        material {
+            color (1 0 0)
+        }
+        print color
+        print material.color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red, .red])
+    }
+
+    func testStoredMaterial() {
+        let program = """
+        define foo material {
+            color (1 0 0)
+        }
+        print color
+        print foo.color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.white, .red])
+    }
+
     // MARK: Background
 
     func testSetBackgroundColorWithParens() throws {
