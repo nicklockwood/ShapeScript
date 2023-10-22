@@ -33,6 +33,10 @@ public extension MaterialProperty {
         }
     }
 
+    var opacity: Double {
+        averageColor.a
+    }
+
     var color: Color? {
         switch self {
         case let .color(color):
@@ -73,7 +77,7 @@ public extension Material {
     }
 
     var isOpaque: Bool {
-        opacity > 0.999 && (color?.a ?? 1) > 0.999
+        opacity > 0.999 && (diffuse?.opacity ?? 1) > 0.999
     }
 
     var isUniform: Bool {
