@@ -328,7 +328,8 @@ public extension Geometry {
             name: name,
             transform: nil,
             material: nil,
-            sourceLocation: nil
+            sourceLocation: nil,
+            removingLights: false
         )
     }
 
@@ -346,7 +347,19 @@ public extension Geometry {
             name: nil,
             transform: transform,
             material: material,
-            sourceLocation: sourceLocation
+            sourceLocation: sourceLocation,
+            removingLights: false
+        )
+    }
+
+    /// Returns a copy of the geometry with light nodes removed
+    func withoutLights() -> Geometry {
+        _with(
+            name: nil,
+            transform: nil,
+            material: nil,
+            sourceLocation: nil,
+            removingLights: true
         )
     }
 
@@ -556,9 +569,13 @@ private extension Geometry {
         name: String?,
         transform: Transform?,
         material: Material?,
-        sourceLocation: (() -> SourceLocation?)?
+        sourceLocation: (() -> SourceLocation?)?,
+        removingLights: Bool
     ) -> Geometry {
         var type = self.type
+        if removingLights, case .light = type {
+            preconditionFailure()
+        }
         var m = self.material
         if let material = material, case let .mesh(mesh) = type {
             m.opacity *= material.opacity
@@ -572,12 +589,16 @@ private extension Geometry {
             transform: transform.map { self.transform * $0 } ?? self.transform,
             material: m,
             smoothing: smoothing,
-            children: children.map {
-                $0._with(
+            children: children.compactMap {
+                if case .light = $0.type, removingLights {
+                    return nil
+                }
+                return $0._with(
                     name: nil,
                     transform: .identity,
                     material: material,
-                    sourceLocation: sourceLocation
+                    sourceLocation: sourceLocation,
+                    removingLights: removingLights
                 )
             },
             sourceLocation: _sourceLocation ?? sourceLocation,
