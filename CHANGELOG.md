@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.7.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.7.1) (2023-10-23)
+
+- Fixed spotlight debug shape orientation
+- Added `Geometry.withoutLights()` method
+- Added `Geometry.withoutGroupTransform()` method
+- Deprecated `Geometry.with(name:)` method
+- Added `point.isCurved` and `polygon.center` member properties
+- Added `object` type logging and made logging less error-prone
+- Added documentation for lights limit introduced in 1.7.0
+
 ## [1.7.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.7.0) (2023-10-14)
 
 - Fixed ambiguity when calling functions with parenthesized arguments
