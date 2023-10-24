@@ -334,6 +334,31 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "(\"foo\" (\"bar\" \"baz\"))")
     }
 
+    // MARK: Objects
+
+    func testObjectWithOneKey() {
+        let input = ["foo": 1]
+        XCTAssertEqual(input.logDescription, "object { foo 1 }")
+        XCTAssertEqual(input.nestedLogDescription, "object")
+    }
+
+    func testObjectWithMultipleKeys() {
+        let input = ["foo": 1, "bar": 2]
+        XCTAssertEqual(input.logDescription, """
+        object {
+            bar 2
+            foo 1
+        }
+        """)
+        XCTAssertEqual(input.nestedLogDescription, "object")
+    }
+
+    func testEmptyObject() {
+        let input = [String: Any]()
+        XCTAssertEqual(input.logDescription, "object {}")
+        XCTAssertEqual(input.nestedLogDescription, "object")
+    }
+
     // MARK: Ranges
 
     func testIntRange() {

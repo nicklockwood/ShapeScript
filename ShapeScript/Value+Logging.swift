@@ -1,5 +1,5 @@
 //
-//  Logging.swift
+//  Value+Logging.swift
 //  ShapeScript Lib
 //
 //  Created by Nick Lockwood on 17/08/2021.
@@ -325,6 +325,24 @@ extension Array: Loggable {
     }
 }
 
+extension Dictionary: Loggable where Key == String {
+    public var logDescription: String {
+        let fields = map { "\($0.key) \(String(nestedLogDescriptionFor: $0.value))" }
+        switch fields.count {
+        case 0:
+            return "object {}"
+        case 1:
+            return "object { \(fields[0]) }"
+        default:
+            return "object {\n    \(fields.sorted().joined(separator: "\n    "))\n}"
+        }
+    }
+
+    public var nestedLogDescription: String {
+        "object"
+    }
+}
+
 extension RangeValue: Loggable {
     public var logDescription: String {
         let stepText = (step == 1) ? "" : " step \(step.logDescription)"
@@ -333,5 +351,41 @@ extension RangeValue: Loggable {
 
     public var nestedLogDescription: String {
         "(\(logDescription))"
+    }
+}
+
+extension Value: Loggable {
+    public var loggableValue: Loggable {
+        // Note: this switch is technically not needed, but serves to
+        // ensure logging conformance is not forgotten for new types
+        switch self {
+        case let .color(color): return color
+        case let .texture(texture): return texture
+        case let .boolean(boolean): return boolean
+        case let .number(number): return number
+        case let .radians(radians): return radians
+        case let .halfturns(halfturns): return halfturns
+        case let .vector(vector): return vector
+        case let .size(size): return size
+        case let .rotation(rotation): return rotation
+        case let .string(string): return string
+        case let .text(text): return text
+        case let .path(path): return path
+        case let .mesh(mesh): return mesh
+        case let .polygon(polygon): return polygon
+        case let .point(point): return point
+        case let .tuple(tuple): return tuple
+        case let .range(range): return range
+        case let .bounds(bounds): return bounds
+        case let .object(object): return object
+        }
+    }
+
+    public var logDescription: String {
+        loggableValue.logDescription
+    }
+
+    public var nestedLogDescription: String {
+        loggableValue.nestedLogDescription
     }
 }
