@@ -85,7 +85,7 @@ But they can also be assigned to a symbol and passed around:
 ```swift
 define averageColor (color.red + color.green + color.blue) / 3
 define isBrightColor averageColor >= 0.5
-print isBrightColor // true or false
+print isBrightColor // prints true or false
 ```
 
 ## Linear Algebra
@@ -159,7 +159,7 @@ Unlike some languages, ShapeScript's boolean operators are implemented as keywor
 
 ```swift
 if a and b {
-  print "both a and b were true"    
+    print "both a and b were true"    
 }
 ```
 
@@ -186,7 +186,7 @@ Like other operators, the dot operator can be used as part of a larger expressio
 ```swift
 color 1 0.5 0.2
 define averageColor (color.red + color.green + color.blue) / 3
-print averageColor // 0.5667
+print averageColor // prints 0.5667
 ```
 
 For strings, you can use the `lines`, `words` and `characters` members:
@@ -210,8 +210,8 @@ for point in circle.points {
 For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members:
 
 ```swift
-print cube.bounds.size // 1 1 1
-print cube.polygons.count // 6
+print cube.bounds.size // prints 1 1 1
+print cube.polygons.count // prints 6
 ```
 
 For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, or use `points` to access the individual vertices. For points you can access the `position` and `color`:

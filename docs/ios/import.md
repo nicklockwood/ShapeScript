@@ -25,7 +25,7 @@ In this way, the loaded shape is bound to a symbol of your choice, and can be us
 
 ## Models
 
-The `import` command is not limited to loading `.shape` files. It can load models in any of the [export formats](export.md) supported by ShapeScript. Imported models can be used just like imported script files:
+The `import` command is not limited to loading `.shape` files. It can load models in many of the [export formats](export.md) supported by ShapeScript. Imported models can be used just like imported script files:
 
 ```swift
 define rocket {
