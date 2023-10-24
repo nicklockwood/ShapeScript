@@ -285,13 +285,6 @@ public extension Geometry {
         (parent?.worldTransform ?? .identity) * transform
     }
 
-    internal func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
-        if let name = name {
-            dictionary[name] = self
-        }
-        children.forEach { $0.gatherNamedObjects(&dictionary) }
-    }
-
     var childDebug: Bool {
         debug || children.contains(where: { $0.childDebug })
     }
@@ -322,7 +315,8 @@ public extension Geometry {
         }
     }
 
-    /// Returns a copy of the geometry with the specified name
+    /// Deprecated, do not use.
+    @available(*, deprecated, message: "No longer needed")
     func with(name: String?) -> Geometry {
         _with(
             name: name,
@@ -401,6 +395,15 @@ public extension Geometry {
         return result
             .replacing(nil, with: material)
             .transformed(by: transform)
+    }
+}
+
+extension Geometry {
+    func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
+        if let name = name {
+            dictionary[name] = self
+        }
+        children.forEach { $0.gatherNamedObjects(&dictionary) }
     }
 }
 
