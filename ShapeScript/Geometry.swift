@@ -329,7 +329,8 @@ public extension Geometry {
             transform: nil,
             material: nil,
             sourceLocation: nil,
-            removingLights: false
+            removingLights: false,
+            removingGroupTransform: false
         )
     }
 
@@ -348,7 +349,8 @@ public extension Geometry {
             transform: transform,
             material: material,
             sourceLocation: sourceLocation,
-            removingLights: false
+            removingLights: false,
+            removingGroupTransform: false
         )
     }
 
@@ -359,7 +361,20 @@ public extension Geometry {
             transform: nil,
             material: nil,
             sourceLocation: nil,
-            removingLights: true
+            removingLights: true,
+            removingGroupTransform: false
+        )
+    }
+
+    /// Returns a copy of the geometry with group transforms transferred to their children
+    func withoutGroupTransform() -> Geometry {
+        _with(
+            name: nil,
+            transform: nil,
+            material: nil,
+            sourceLocation: nil,
+            removingLights: false,
+            removingGroupTransform: true
         )
     }
 
@@ -570,7 +585,8 @@ private extension Geometry {
         transform: Transform?,
         material: Material?,
         sourceLocation: (() -> SourceLocation?)?,
-        removingLights: Bool
+        removingLights: Bool,
+        removingGroupTransform: Bool
     ) -> Geometry {
         var type = self.type
         if removingLights, case .light = type {
@@ -583,10 +599,16 @@ private extension Geometry {
             m.texture = material.texture ?? self.material.texture
             type = .mesh(mesh.replacing(self.material, with: m))
         }
+        var transform = transform.map { self.transform * $0 } ?? self.transform
+        var childTransform = Transform.identity
+        if case .group = type, removingGroupTransform {
+            childTransform = transform
+            transform = .identity
+        }
         let copy = Geometry(
             type: type,
             name: name ?? self.name,
-            transform: transform.map { self.transform * $0 } ?? self.transform,
+            transform: transform,
             material: m,
             smoothing: smoothing,
             children: children.compactMap {
@@ -595,10 +617,11 @@ private extension Geometry {
                 }
                 return $0._with(
                     name: nil,
-                    transform: .identity,
+                    transform: childTransform,
                     material: material,
                     sourceLocation: sourceLocation,
-                    removingLights: removingLights
+                    removingLights: removingLights,
+                    removingGroupTransform: removingGroupTransform
                 )
             },
             sourceLocation: _sourceLocation ?? sourceLocation,
