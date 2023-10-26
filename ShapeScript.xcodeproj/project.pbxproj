@@ -108,6 +108,7 @@
 		01D753E929E8A22A00B326F0 /* Geometry+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */; };
 		01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */; };
 		01D8796F285FBDC800C65135 /* ImportExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D8796A285FBDC800C65135 /* ImportExportTests.swift */; };
+		01DE8AEC2AEA98A800107FA1 /* Values.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE8AEB2AEA98A800107FA1 /* Values.swift */; };
 		01DE96712A082A6A0080DB79 /* ProgramError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96702A082A6A0080DB79 /* ProgramError.swift */; };
 		01DE96782A085E900080DB79 /* CLI+Export.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DE96762A085DC40080DB79 /* CLI+Export.swift */; };
 		01E3AA0526CB8E8200E0B287 /* Value+Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E3AA0426CB8E8200E0B287 /* Value+Logging.swift */; };
@@ -410,6 +411,7 @@
 		01D753E829E8A22A00B326F0 /* Geometry+ModelInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Geometry+ModelInfo.swift"; sourceTree = "<group>"; };
 		01D7548E29ECAEA400B326F0 /* WhatsNew.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
 		01D8796A285FBDC800C65135 /* ImportExportTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImportExportTests.swift; sourceTree = "<group>"; };
+		01DE8AEB2AEA98A800107FA1 /* Values.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Values.swift; sourceTree = "<group>"; };
 		01DE96702A082A6A0080DB79 /* ProgramError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgramError.swift; sourceTree = "<group>"; };
 		01DE96762A085DC40080DB79 /* CLI+Export.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CLI+Export.swift"; sourceTree = "<group>"; };
 		01E3AA0426CB8E8200E0B287 /* Value+Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+Logging.swift"; sourceTree = "<group>"; };
@@ -626,6 +628,7 @@
 				01BFB3B021425C9A00E47A7C /* Lexer.swift */,
 				014F85DA215BE1A900461FB7 /* Parser.swift */,
 				013FBF692834D7EF00EAF795 /* Types.swift */,
+				01DE8AEB2AEA98A800107FA1 /* Values.swift */,
 				01F1A9B2281F41DE00A1621B /* Symbols.swift */,
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
 				01DE96702A082A6A0080DB79 /* ProgramError.swift */,
@@ -1149,6 +1152,7 @@
 				01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */,
 				013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */,
 				01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */,
+				01DE8AEC2AEA98A800107FA1 /* Values.swift in Sources */,
 				01746BF226C5D226009DADEF /* GeometryType.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
