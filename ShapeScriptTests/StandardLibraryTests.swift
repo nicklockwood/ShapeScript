@@ -999,4 +999,20 @@ class StandardLibraryTests: XCTestCase {
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.transform.scale, Vector(1, 2, 3))
     }
+
+    // MARK: Objects
+
+    func testObjectConstructor() throws {
+        let program = try parse("""
+        define foo object {
+            bar 5
+            baz "hello"
+        }
+        print foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [["bar": 5, "baz": "hello"] as [String: AnyHashable]])
+    }
 }

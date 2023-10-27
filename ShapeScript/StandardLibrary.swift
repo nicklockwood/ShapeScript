@@ -547,6 +547,14 @@ extension Dictionary where Key == String, Value == Symbol {
                 in: .whitespacesAndNewlines
             ))
         },
+        // Object
+        "object": .block(.init([:], ["*": .any], .void, .any)) { context in
+            var result = [String: ShapeScript.Value]()
+            for name in context.options.keys {
+                result[name] = context.value(for: name)
+            }
+            return .object(result)
+        },
     ]
 
     static let name: Symbols = [

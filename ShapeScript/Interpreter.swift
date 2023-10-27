@@ -899,6 +899,10 @@ extension Statement {
                     name = "color"
                     return type
                 }
+                if let type = context.options["*"] {
+                    context.options[name] = .any
+                    return type
+                }
                 return nil
             }() {
                 return try context.define(name, as: .option(

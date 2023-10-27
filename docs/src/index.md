@@ -101,6 +101,7 @@ ShapeScript Help
         - [Strings](literals.md#strings)
         - [Vectors and Tuples](literals.md#vectors-and-tuples)
         - [Structured Data](literals.md#structured-data)
+        - [Objects](literals.md#objects)
     - [Symbols](symbols.md)
     - [Expressions](expressions.md)
         - [Operators](expressions.md#operators)

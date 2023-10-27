@@ -173,7 +173,7 @@ if (not a) and (b or c) {
 
 ## Members
 
-Compound values like [vectors and tuples](literals.md#vectors-and-tuples) can be decomposed by using the *dot* operator to access individual components:
+Compound values like [vectors and tuples](literals.md#vectors-and-tuples) and [objects](literals.md#objects) can be decomposed by using the *dot* operator to access individual components or *members*:
 
 ```swift
 define vector 0.5 0.2 0.4

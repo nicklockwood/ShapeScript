@@ -196,5 +196,46 @@ for row in data {
 }
 ```
 
+## Objects
+
+For more complex [structured data](#structured-data) you can use the `object` command to create an object with arbitrary, named members:
+
+```swift
+define data object {
+    type "box"
+    width 5
+    height 10
+    depth 15
+}
+
+print data.height // prints 10
+```
+
+Objects can also be nested:
+
+```swift
+define data object {
+    type "box"
+    position 1 2 0
+    dimensions object {
+        width 5
+        height 10
+        depth 15
+    }
+}
+
+print data.dimensions.height // prints 10
+```
+
+To enumerate all the members of an object, you can use a [for loop](control-flow.md#looping-over-values). Each member is returned as a tuple of the key (member name) and value:
+
+```swift
+for row in data {
+    print "key: " row.first ", value: " row.second
+}
+```
+
+**Note:** object members are *unordered*, meaning that the order in which they are defined has no special significance. When looping through members of an object, the order will be alphabetical rather than the order in which the members were defined.
+
 ---
 [Index](index.md) | Next: [Symbols](symbols.md)
