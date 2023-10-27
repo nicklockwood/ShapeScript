@@ -162,7 +162,7 @@ extension Value {
         case let .tuple(values): return values.map { $0.value }
         case let .range(range): return range
         case let .bounds(bounds): return bounds
-        case let .object(values): return values
+        case let .object(values): return values.mapValues { $0.value }
         }
     }
 
@@ -230,6 +230,10 @@ extension Value {
             return values.map { $0.value }
         }
         return [value]
+    }
+
+    var objectValue: [String: AnyHashable] {
+        value as? [String: AnyHashable] ?? [:]
     }
 
     var sequenceValue: AnySequence<Value>? {
