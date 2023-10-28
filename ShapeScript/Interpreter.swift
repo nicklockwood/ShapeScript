@@ -977,16 +977,7 @@ extension Statement {
             }
         case let .expression(type):
             let expression = Expression(type: type, range: range)
-            do {
-                try context.addValue(expression.evaluate(in: context))
-            } catch let error as RuntimeErrorType {
-                // TODO: generalize this
-                guard case .unusedValue(type: ValueType.material.errorDescription) = error,
-                      case .block = type
-                else {
-                    throw RuntimeError(error, at: range)
-                }
-            }
+            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
             switch definition.type {
             case let .function(names, _):
@@ -1181,44 +1172,26 @@ extension Expression {
                     .mesh(($0.value as! Geometry).transformed(by: newContext.transform))
                 })
             case let .property(type, setter, _):
-                switch type {
-                case .material:
-                    // TODO: generalize this
-                    let blockType = BlockType([:], [
-                        "color": .color,
-                        "opacity": .number,
-                        "texture": .texture,
-                        "metallicity": .colorOrTexture,
-                        "roughness": .colorOrTexture,
-                        "glow": .colorOrTexture,
-                    ], .void, .material)
-                    let newContext = context.push(blockType)
-                    try newContext.pushScope { newContext in
-                        block.statements.gatherDefinitions(in: newContext)
-                        for statement in block.statements {
-                            try statement.evaluate(in: newContext)
-                        }
+                let blockType = BlockType([:], type.memberTypes, .void, type)
+                let newContext = context.push(blockType)
+                try newContext.pushScope { newContext in
+                    block.statements.gatherDefinitions(in: newContext)
+                    for statement in block.statements {
+                        try statement.evaluate(in: newContext)
                     }
-                    let diffuse = newContext.value(for: "color") ?? newContext.value(for: "texure")
-                    let material = Material(
-                        opacity: newContext.value(for: "opacity")?.doubleValue ?? 1,
-                        diffuse: diffuse?.colorOrTextureValue,
-                        metallicity: newContext.value(for: "metallicity")?.colorOrTextureValue,
-                        roughness: newContext.value(for: "roughness")?.colorOrTextureValue,
-                        glow: newContext.value(for: "glow")?.colorOrTextureValue
-                    )
-                    try RuntimeError.wrap(setter(.material(material), context), at: range)
-                    return .material(material)
-                case .object, .any, .color, .texture, .boolean, .font, .number, .radians,
-                     .halfturns, .vector, .size, .rotation, .string, .text, .path,
-                     .mesh, .polygon, .point, .range, .bounds, .union, .tuple, .list:
-                    break
                 }
-                throw RuntimeError(.typeMismatch(
-                    for: name,
-                    expected: type.errorDescription,
-                    got: "block"
-                ), at: block.range)
+                let values = Dictionary(uniqueKeysWithValues: newContext.options.keys.compactMap { key in
+                    newContext.value(for: key).map { (key, $0) }
+                })
+                guard let instance = type.instance(with: values) else {
+                    throw RuntimeError(.typeMismatch(
+                        for: name,
+                        expected: type.errorDescription,
+                        got: "block"
+                    ), at: block.range)
+                }
+                try RuntimeError.wrap(setter(instance, context), at: range)
+                return type.isSubtype(of: context.childTypes) ? instance : .void
             case .function((.void, _), _):
                 throw RuntimeError(.unexpectedArgument(for: name, max: 0), at: block.range)
             case let .function((type, _), _):

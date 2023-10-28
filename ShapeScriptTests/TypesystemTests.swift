@@ -875,4 +875,28 @@ class TypesystemTests: XCTestCase {
         let value = Value.radians(.pi)
         XCTAssertFalse(value.isConvertible(to: type))
     }
+
+    func testCastObjectToMaterial() throws {
+        let type = ValueType.material
+        let value = Value.object(["color": .color(.red), "metallicity": .number(0.5)])
+        XCTAssertEqual(value.as(type), .material(.init(
+            opacity: 1,
+            diffuse: .color(.red),
+            metallicity: .color(.gray),
+            roughness: nil,
+            glow: nil
+        )))
+    }
+
+    func testCastInvalidObjectToMaterial() throws {
+        let type = ValueType.material
+        let value = Value.object(["color": .color(.red), "metalicity": .number(0.5)])
+        XCTAssertFalse(value.isConvertible(to: type))
+    }
+
+    func testCastObjectToCompatibleObjectType() throws {
+        let type = ValueType.object(["foo": .color, "bar": .string])
+        let value = Value.object(["foo": .number(1), "bar": .boolean(true)])
+        XCTAssertEqual(value.as(type), .object(["foo": .color(.white), "bar": .string("true")]))
+    }
 }

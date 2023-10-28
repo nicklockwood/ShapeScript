@@ -219,6 +219,50 @@ extension ValueType {
         }
     }
 
+    /// Create an instance from a dictionary of values
+    /// Note: this function assumes values have already been validated and cast to correct types
+    func instance(with values: [String: Value]) -> Value? {
+        switch self {
+        case .object:
+            return .object(values)
+        case .material:
+            return .material(.init(
+                opacity: values["opacity"]?.doubleValue ?? 1,
+                diffuse: (values["color"] ?? values["texture"])?.colorOrTextureValue,
+                metallicity: values["metallicity"]?.colorOrTextureValue,
+                roughness: values["roughness"]?.colorOrTextureValue,
+                glow: values["glow"]?.colorOrTextureValue
+            ))
+        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds, .union, .tuple, .list, .any:
+            return nil
+        }
+    }
+
+    var memberTypes: [String: ValueType] {
+        switch self {
+        case let .object(members):
+            return members
+        case .material:
+            return [
+                "color": .color,
+                "opacity": .number,
+                "texture": .texture,
+                "metallicity": .colorOrTexture,
+                "roughness": .colorOrTexture,
+                "glow": .colorOrTexture,
+            ]
+        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds, .union, .tuple, .list:
+            // TODO: something better
+            return Self.memberTypes
+        case .any:
+            return [:]
+        }
+    }
+
     func memberType(_ name: String) -> ValueType? {
         switch self {
         case let .list(type):
@@ -236,22 +280,10 @@ extension ValueType {
         case let .union(types):
             let types = Set(types.compactMap { $0.memberType(name) })
             return types.isEmpty ? nil : ValueType.union(types).simplified()
-        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+        case .color, .texture, .material, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .bounds:
-            return Self.memberTypes[name]
-        case .material:
-            switch name {
-            case "opacity": return .number
-            case "color": return .color
-            case "texture": return .texture
-            case "metallicity": return .colorOrTexture
-            case "roughness": return .colorOrTexture
-            case "glow": return .colorOrTexture
-            default: return nil
-            }
-        case let .object(members):
-            return members[name]
+             .point, .range, .bounds, .object:
+            return memberTypes[name]
         case .any:
             return nil
         }
@@ -550,6 +582,15 @@ extension Value {
                 return nil
             }
             return .tuple(values)
+        case let (.object(values), type):
+            var values = values
+            for (key, value) in values {
+                guard let type = type.memberType(key), let value = try value.as(type, in: context) else {
+                    return nil
+                }
+                values[key] = value
+            }
+            return type.instance(with: values)
         case let (_, .list(type)):
             return try self.as(type, in: context).map { [$0] }
         case let (.path(path), .mesh):
