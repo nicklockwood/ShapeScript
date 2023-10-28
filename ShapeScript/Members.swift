@@ -1,0 +1,370 @@
+//
+//  Members.swift
+//  ShapeScript Lib
+//
+//  Created by Nick Lockwood on 30/10/2023.
+//  Copyright © 2023 Nick Lockwood. All rights reserved.
+//
+
+import Euclid
+
+extension ValueType {
+    /// Create an instance from a dictionary of memberwise values
+    /// Note: this function assumes values have already been validated and cast to correct types
+    func instance(with values: [String: Value]) -> Value? {
+        switch self {
+        case .object:
+            return .object(values)
+        case .material:
+            return .material(.init(
+                opacity: values["opacity"]?.doubleValue ?? 1,
+                diffuse: (values["color"] ?? values["texture"])?.colorOrTextureValue,
+                metallicity: values["metallicity"]?.numberOrTextureValue,
+                roughness: values["roughness"]?.numberOrTextureValue,
+                glow: values["glow"]?.colorOrTextureValue
+            ))
+        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds, .union, .tuple, .list, .any:
+            return nil
+        }
+    }
+
+    var memberTypes: [String: ValueType] {
+        switch self {
+        case let .object(members):
+            return members
+        case .material:
+            return [
+                "color": .color,
+                "opacity": .number,
+                "texture": .texture,
+                "metallicity": .numberOrTexture,
+                "roughness": .numberOrTexture,
+                "glow": .colorOrTexture,
+            ]
+        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds, .union, .tuple, .list:
+            // TODO: something better
+            return Self.memberTypes
+        case .any:
+            return [:]
+        }
+    }
+
+    func memberType(_ name: String) -> ValueType? {
+        switch self {
+        case let .list(type):
+            return (name.isOrdinal || name == "last") ? type : type.memberType(name)
+        case let .tuple(types):
+            if let index = name.ordinalIndex {
+                return types.indices.contains(index) ? types[index] : nil
+            }
+            switch name {
+            case "count": return .number
+            case "last": return types.last
+            case _ where types.count <= 1: return types.first?.memberType(name)
+            default: return Self.memberTypes[name]
+            }
+        case let .union(types):
+            let types = Set(types.compactMap { $0.memberType(name) })
+            return types.isEmpty ? nil : ValueType.union(types).simplified()
+        case .color, .texture, .material, .boolean, .font, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
+             .point, .range, .bounds, .object:
+            return memberTypes[name]
+        case .any:
+            return nil
+        }
+    }
+
+    private static let memberTypes: [String: ValueType] = [
+        "x": .number,
+        "y": .number,
+        "z": .number,
+        "width": .number,
+        "height": .number,
+        "depth": .number,
+        "roll": .halfturns,
+        "yaw": .halfturns,
+        "pitch": .halfturns,
+        "red": .number,
+        "green": .number,
+        "blue": .number,
+        "alpha": .number,
+        "bounds": .bounds,
+        "opacity": .number,
+        "color": .optional(.color),
+        "texture": .texture,
+        "metallicity": .numberOrTexture,
+        "roughness": .numberOrTexture,
+        "glow": .colorOrTexture,
+        "isCurved": .boolean,
+        "start": .number,
+        "end": .number,
+        "step": .number,
+        "min": .number,
+        "max": .number,
+        "size": .size,
+        "center": .vector,
+        "count": .number,
+        "points": .list(.point),
+        "polygons": .list(.polygon),
+        "lines": .list(.string),
+        "words": .list(.string),
+        "characters": .list(.string),
+        "linespacing": .optional(.number),
+        "font": .optional(.string),
+    ]
+}
+
+extension Value {
+    var members: [String] {
+        switch self {
+        case .vector:
+            return ["x", "y", "z"]
+        case .size:
+            return ["width", "height", "depth"]
+        case .rotation:
+            return ["roll", "yaw", "pitch"]
+        case .color:
+            return ["red", "green", "blue", "alpha"]
+        case .material:
+            return ["opacity", "color", "texture", "metallicity", "roughness", "glow"]
+        case let .tuple(values):
+            var members = Array(String.ordinals(upTo: values.count))
+            if !members.isEmpty {
+                members.append("last")
+            }
+            members += ["count", "allButFirst", "allButLast"]
+            if let vector = self.as(.vector) {
+                members += vector.members
+            }
+            if let size = self.as(.size) {
+                members += size.members
+            }
+            if let rotation = self.as(.rotation) {
+                members += rotation.members
+            }
+            if values.count == 1 {
+                return members + values[0].members
+            }
+            if let string = self.as(.string) {
+                members += string.members
+            }
+            if !members.contains("alpha"), let color = self.as(.color) {
+                members += color.members
+            }
+            return members
+        case .range:
+            return ["start", "end", "step"]
+        case let .mesh(geometry):
+            var members = ["name", "bounds"]
+            if geometry.hasMesh {
+                members += ["polygons", "material"]
+            }
+            return members
+        case .path:
+            return ["bounds", "points"]
+        case .polygon:
+            return ["bounds", "center", "points"]
+        case .point:
+            return ["x", "y", "z", "position", "color", "isCurved"]
+        case .bounds:
+            return ["min", "max", "size", "center", "width", "height", "depth"]
+        case .string:
+            var members = ["lines", "words", "characters"]
+            if let color = self.as(.color) {
+                members += color.members
+            }
+            return members
+        case .text:
+            return ["string", "font", "color", "linespacing"]
+        case let .object(values):
+            return values.keys.sorted()
+        case .texture, .boolean, .number, .radians, .halfturns:
+            return []
+        }
+    }
+
+    subscript(name: String) -> Value? {
+        self[name, { false }]
+    }
+
+    subscript(
+        name: String,
+        isCancelled: @escaping Mesh.CancellationHandler
+    ) -> Value? {
+        switch self {
+        case let .vector(vector):
+            switch name {
+            case "x": return .number(vector.x)
+            case "y": return .number(vector.y)
+            case "z": return .number(vector.z)
+            default: return nil
+            }
+        case let .size(size):
+            switch name {
+            case "width": return .number(size.x)
+            case "height": return .number(size.y)
+            case "depth": return .number(size.z)
+            default: return nil
+            }
+        case let .rotation(rotation):
+            switch name {
+            case "roll": return .halfturns(rotation.roll.halfturns)
+            case "yaw": return .halfturns(rotation.yaw.halfturns)
+            case "pitch": return .halfturns(rotation.pitch.halfturns)
+            default: return nil
+            }
+        case let .color(color):
+            switch name {
+            case "red": return .number(color.r)
+            case "green": return .number(color.g)
+            case "blue": return .number(color.b)
+            case "alpha": return .number(color.a)
+            default: return nil
+            }
+        case let .material(material):
+            switch name {
+            case "opacity": return .number(material.opacity)
+            case "color": return .color(material.diffuse?.color ?? .white)
+            case "texture": return .texture(material.diffuse?.texture)
+            case "metallicity": return material.metallicity.map { .numberOrTexture($0) } ?? .number(0)
+            case "roughness": return material.roughness.flatMap { .numberOrTexture($0) } ?? .number(0)
+            case "glow": return material.glow.flatMap { .colorOrTexture($0) } ?? .color(.black)
+            default: return nil
+            }
+        case let .tuple(values):
+            switch name {
+            case "last":
+                return values.last
+            case "allButFirst":
+                return .tuple(Array(values.dropFirst()))
+            case "allButLast":
+                return .tuple(Array(values.dropLast()))
+            case "count":
+                return .number(Double(values.count))
+            case "lines", "words", "characters":
+                return self.as(.string)?[name, isCancelled]
+            case "x", "y", "z":
+                return self.as(.vector)?[name, isCancelled]
+            case "width", "height", "depth":
+                return self.as(.size)?[name, isCancelled]
+            case "roll", "yaw", "pitch":
+                return self.as(.rotation)?[name, isCancelled]
+            case "red", "green", "blue", "alpha":
+                return self.as(.color)?[name, isCancelled]
+            default:
+                if let index = name.ordinalIndex {
+                    return index < values.count ? values[index] : nil
+                }
+                if values.count == 1 {
+                    return values[0][name, isCancelled]
+                }
+                return nil
+            }
+        case let .range(range):
+            switch name {
+            case "start": return .number(range.start)
+            case "end": return .number(range.end)
+            case "step": return .number(range.step)
+            default: return nil
+            }
+        case let .mesh(geometry):
+            switch name {
+            case "name":
+                return .string(geometry.name ?? "")
+            case "bounds":
+                return .bounds(geometry.exactBounds(with: geometry.transform) {
+                    !isCancelled()
+                })
+            case "polygons" where geometry.hasMesh:
+                _ = geometry.build { !isCancelled() }
+                let polygons = (geometry.mesh?.polygons ?? [])
+                    .transformed(by: geometry.transform)
+                return .tuple(polygons.map { .polygon($0) })
+            case "material" where geometry.hasMesh:
+                return .material(geometry.material)
+            default:
+                return nil
+            }
+        case let .path(path):
+            switch name {
+            case "bounds": return .bounds(path.bounds)
+            case "points": return .tuple(path.points.map { .point($0) })
+            default: return nil
+            }
+        case let .polygon(polygon):
+            switch name {
+            case "bounds":
+                return .bounds(polygon.bounds)
+            case "center":
+                return .vector(polygon.center)
+            case "points":
+                return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
+            default:
+                return nil
+            }
+        case let .point(point):
+            switch name {
+            case "position":
+                return .vector(point.position)
+            case "isCurved":
+                return .boolean(point.isCurved)
+            case "color":
+                return point.color.map { .color($0) } ?? .void
+            default:
+                return Value.vector(point.position)[name, isCancelled]
+            }
+        case let .bounds(bounds):
+            switch name {
+            case "min": return .vector(bounds.min)
+            case "max": return .vector(bounds.max)
+            case "size": return .size(bounds.size)
+            case "center": return .vector(bounds.center)
+            case "width": return .number(bounds.size.x)
+            case "height": return .number(bounds.size.y)
+            case "depth": return .number(bounds.size.z)
+            default: return nil
+            }
+        case let .string(string):
+            switch name {
+            case "lines":
+                return .tuple(string
+                    .split { $0.isNewline }
+                    .map { .string("\($0)") })
+            case "words":
+                return .tuple(string
+                    .split(omittingEmptySubsequences: true) {
+                        $0.isWhitespace || $0.isNewline
+                    }
+                    .map { .string("\($0)") })
+            case "characters":
+                return .tuple(string.map { .string("\($0)") })
+            case "red", "green", "blue", "alpha":
+                return self.as(.color)?[name, isCancelled]
+            default:
+                return nil
+            }
+        case let .text(text):
+            switch name {
+            case "string":
+                return .string(text.string)
+            case "font":
+                return text.font.map { .string($0) } ?? .void
+            case "color":
+                return text.color.map { .color($0) } ?? .void
+            case "linespacing":
+                return text.linespacing.map { .number($0) } ?? .void
+            default:
+                return nil
+            }
+        case let .object(values):
+            return values[name]
+        case .boolean, .texture, .number, .radians, .halfturns:
+            return nil
+        }
+    }
+}
