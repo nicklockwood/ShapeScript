@@ -997,7 +997,7 @@ extension Statement {
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
             // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
-            // unneccessary, however because <type> can always be cast to .list(<type>)
+            // unnecessary, however because <type> can always be cast to .list(<type>)
             // it isn't. Need to find a static solution for this (or abandon this check)
             guard let sequence = value.sequenceValue else {
                 throw RuntimeError(
