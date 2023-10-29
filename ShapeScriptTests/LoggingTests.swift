@@ -210,7 +210,39 @@ class LoggingTests: XCTestCase {
     func testTextureData() {
         let input = Texture.data(Data())
         XCTAssertEqual(input.logDescription, "texture { #data }")
-        XCTAssertEqual(input.nestedLogDescription, "texture { #data }")
+        XCTAssertEqual(input.nestedLogDescription, "texture")
+    }
+
+    // MARK: Materials
+
+    func testDefaultMaterial() {
+        let input = Material.default
+        XCTAssertEqual(input.logDescription, "material { default }")
+        XCTAssertEqual(input.nestedLogDescription, "material")
+    }
+
+    func testColorMaterial() {
+        let input = Material(color: .red)
+        XCTAssertEqual(input.logDescription, "material { color 1 0 0 }")
+        XCTAssertEqual(input.nestedLogDescription, "material")
+    }
+
+    func testPBRMaterial() {
+        let input = Material(
+            opacity: 0.5,
+            diffuse: .color(.red),
+            metallicity: .color(.white),
+            roughness: nil,
+            glow: nil
+        )
+        XCTAssertEqual(input.logDescription, """
+        material {
+            opacity 0.5
+            color 1 0 0
+            metallicity 1 1 1
+        }
+        """)
+        XCTAssertEqual(input.nestedLogDescription, "material")
     }
 
     // MARK: MaterialProperties

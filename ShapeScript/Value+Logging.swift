@@ -140,7 +140,7 @@ extension Texture: Loggable {
         case let .file(name: _, url: url):
             return url.path.nestedLogDescription
         case .data:
-            return logDescription
+            return "texture"
         }
     }
 }
@@ -162,6 +162,32 @@ extension MaterialProperty: Loggable {
         case let .texture(texture):
             return texture.nestedLogDescription
         }
+    }
+}
+
+extension Material: Loggable {
+    public var logDescription: String {
+        let fields = [
+            opacity != 1 ? "opacity \(opacity.logDescription)" : nil,
+            color.map { "color \($0.logDescription)" },
+            texture.map { "texture \($0.logDescription)" },
+            metallicity.map { "metallicity \($0.logDescription)" },
+            roughness.map { "roughness \($0.logDescription)" },
+            glow.map { "glow \($0.logDescription)" },
+        ].compactMap { $0 }
+
+        switch fields.count {
+        case 0:
+            return "material { default }"
+        case 1:
+            return "material { \(fields[0]) }"
+        default:
+            return "material {\n    \(fields.joined(separator: "\n    "))\n}"
+        }
+    }
+
+    public var nestedLogDescription: String {
+        "material"
     }
 }
 
@@ -361,6 +387,7 @@ extension Value: Loggable {
         switch self {
         case let .color(color): return color
         case let .texture(texture): return texture
+        case let .material(material): return material
         case let .boolean(boolean): return boolean
         case let .number(number): return number
         case let .radians(radians): return radians

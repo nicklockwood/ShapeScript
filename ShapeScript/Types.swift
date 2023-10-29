@@ -15,6 +15,7 @@ enum ValueType: Hashable {
     case any
     case color
     case texture
+    case material
     case boolean
     case font
     case number
@@ -63,6 +64,7 @@ extension ValueType: Comparable {
         case .tuple: return 20
         case .list: return 21
         case .object: return 22
+        case .material: return 23
         }
     }
 
@@ -82,10 +84,10 @@ extension ValueType: Comparable {
             return lhs < rhs
         case let (lhs, rhs):
             switch lhs {
-            case .any, .color, .texture, .boolean, .font, .number, .radians,
-                 .halfturns, .vector, .size, .rotation, .string, .text, .path,
-                 .mesh, .polygon, .point, .range, .bounds, .union, .tuple, .list,
-                 .object:
+            case .any, .color, .texture, .material, .boolean, .font, .number,
+                 .radians, .halfturns, .vector, .size, .rotation, .string, .text,
+                 .path, .mesh, .polygon, .point, .range, .bounds, .union, .tuple,
+                 .list, .object:
                 return lhs.sortIndex < rhs.sortIndex
             }
         }
@@ -131,7 +133,7 @@ extension ValueType {
                 result.append(type)
             }
             return result.count == 1 ? result[0] : .union(Set(result))
-        case .any, .color, .texture, .boolean, .font, .number, .radians,
+        case .any, .color, .texture, .material, .boolean, .font, .number, .radians,
              .halfturns, .vector, .size, .rotation, .string, .text, .path, .mesh,
              .polygon, .point, .range, .bounds, .tuple, .list, .object:
             return self
@@ -169,6 +171,7 @@ extension ValueType {
         switch self {
         case .color: return "color"
         case .texture: return "texture"
+        case .material: return "material"
         case .font: return "font"
         case .boolean: return "boolean"
         case .number: return "number"
@@ -227,10 +230,8 @@ extension ValueType {
             switch name {
             case "count": return .number
             case "last": return types.last
-            case _ where types.count <= 1:
-                return types.first?.memberType(name)
-            default:
-                return Self.memberTypes[name]
+            case _ where types.count <= 1: return types.first?.memberType(name)
+            default: return Self.memberTypes[name]
             }
         case let .union(types):
             let types = Set(types.compactMap { $0.memberType(name) })
@@ -239,6 +240,16 @@ extension ValueType {
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
              .point, .range, .bounds:
             return Self.memberTypes[name]
+        case .material:
+            switch name {
+            case "opacity": return .number
+            case "color": return .color
+            case "texture": return .texture
+            case "metallicity": return .colorOrTexture
+            case "roughness": return .colorOrTexture
+            case "glow": return .colorOrTexture
+            default: return nil
+            }
         case let .object(members):
             return members[name]
         case .any:
@@ -261,7 +272,12 @@ extension ValueType {
         "blue": .number,
         "alpha": .number,
         "bounds": .bounds,
+        "opacity": .number,
         "color": .optional(.color),
+        "texture": .texture,
+        "metallicity": .colorOrTexture,
+        "roughness": .colorOrTexture,
+        "glow": .colorOrTexture,
         "isCurved": .boolean,
         "start": .number,
         "end": .number,
@@ -343,6 +359,7 @@ extension Value {
         switch self {
         case .color: return .color
         case .texture: return .texture
+        case .material: return .material
         case .boolean: return .boolean
         case .number: return .number
         case .radians: return .radians

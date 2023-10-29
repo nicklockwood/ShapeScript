@@ -14,6 +14,7 @@ typealias Polygon = Euclid.Polygon
 enum Value: Hashable {
     case color(Color)
     case texture(Texture?)
+    case material(Material)
     case boolean(Bool)
     case number(Double)
     case radians(Double)
@@ -145,6 +146,7 @@ extension Value {
         case let .color(color): return color
         case let .texture(texture):
             return texture.map { $0 as AnyHashable } ?? AnyHashable("")
+        case let .material(material): return material
         case let .boolean(boolean): return boolean
         case let .number(number): return number
         case let .radians(radians): return radians
@@ -251,8 +253,8 @@ extension Value {
             }).map {
                 [.string($0), $1]
             })
-        case .boolean, .vector, .size, .rotation, .color, .texture, .number,
-             .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
+        case .boolean, .vector, .size, .rotation, .color, .texture, .material,
+             .number, .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
              .point, .bounds:
             return nil
         }
@@ -280,8 +282,8 @@ extension Value {
         case let .texture(texture):
             return texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
-             .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
-             .point, .bounds, .object:
+             .radians, .halfturns, .string, .text, .path, .material, .mesh,
+             .polygon, .point, .bounds, .object:
             return nil
         }
     }
@@ -296,6 +298,8 @@ extension Value {
             return ["roll", "yaw", "pitch"]
         case .color:
             return ["red", "green", "blue", "alpha"]
+        case .material:
+            return ["opacity", "color", "texture", "metallicity", "roughness", "glow"]
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
             if !members.isEmpty {
@@ -326,7 +330,7 @@ extension Value {
         case let .mesh(geometry):
             var members = ["name", "bounds"]
             if geometry.hasMesh {
-                members.append("polygons")
+                members += ["polygons", "material"]
             }
             return members
         case .path:
@@ -390,6 +394,16 @@ extension Value {
             case "alpha": return .number(color.a)
             default: return nil
             }
+        case let .material(material):
+            switch name {
+            case "opacity": return .number(material.opacity)
+            case "color": return .color(material.diffuse?.color ?? .white)
+            case "texture": return .texture(material.diffuse?.texture)
+            case "metallicity": return material.metallicity.map { .colorOrTexture($0) } ?? .color(.black)
+            case "roughness": return material.roughness.flatMap { .colorOrTexture($0) } ?? .color(.white)
+            case "glow": return material.glow.flatMap { .colorOrTexture($0) } ?? .color(.black)
+            default: return nil
+            }
         case let .tuple(values):
             switch name {
             case "last":
@@ -439,6 +453,8 @@ extension Value {
                 let polygons = (geometry.mesh?.polygons ?? [])
                     .transformed(by: geometry.transform)
                 return .tuple(polygons.map { .polygon($0) })
+            case "material" where geometry.hasMesh:
+                return .material(geometry.material)
             default:
                 return nil
             }

@@ -207,7 +207,7 @@ for point in circle.points {
 }
 ```
 
-For [meshes](meshes.md) you can access the `name`, `bounds` and `polygons` members:
+For [meshes](meshes.md) you can access the `name`, `bounds`, `polygons` and `material` members:
 
 ```swift
 print cube.bounds.size // prints 1 1 1
