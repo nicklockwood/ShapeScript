@@ -121,6 +121,15 @@ extension Value {
         }
     }
 
+    static func numberOrTexture(_ value: MaterialProperty) -> Value {
+        switch value {
+        case let .color(color):
+            return .number(color.r)
+        case let .texture(texture):
+            return .texture(texture)
+        }
+    }
+
     var errorDescription: String {
         switch self {
         case let .mesh(geometry):
@@ -288,6 +297,21 @@ extension Value {
         }
     }
 
+    var numberOrTextureValue: MaterialProperty? {
+        switch self {
+        case let .number(value):
+            return .color(.init(value, 1))
+        case let .color(color):
+            return .color(.init(color.r, 1))
+        case let .texture(texture):
+            return texture.map { .texture($0) }
+        case .boolean, .vector, .size, .rotation, .range, .tuple,
+             .radians, .halfturns, .string, .text, .path, .material, .mesh,
+             .polygon, .point, .bounds, .object:
+            return nil
+        }
+    }
+
     var members: [String] {
         switch self {
         case .vector:
@@ -399,8 +423,8 @@ extension Value {
             case "opacity": return .number(material.opacity)
             case "color": return .color(material.diffuse?.color ?? .white)
             case "texture": return .texture(material.diffuse?.texture)
-            case "metallicity": return material.metallicity.map { .colorOrTexture($0) } ?? .color(.black)
-            case "roughness": return material.roughness.flatMap { .colorOrTexture($0) } ?? .color(.white)
+            case "metallicity": return material.metallicity.map { .numberOrTexture($0) } ?? .number(0)
+            case "roughness": return material.roughness.flatMap { .numberOrTexture($0) } ?? .number(0)
             case "glow": return material.glow.flatMap { .colorOrTexture($0) } ?? .color(.black)
             default: return nil
             }

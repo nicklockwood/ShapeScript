@@ -99,6 +99,7 @@ extension ValueType {
     static let sequence: ValueType = .union([.range, .list(.any)])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
+    static let numberOrTexture: ValueType = .union([.number, .texture])
     static let numberOrVector: ValueType = .union([.number, .list(.number)])
 
     static func optional(_ type: ValueType) -> ValueType {
@@ -229,8 +230,8 @@ extension ValueType {
             return .material(.init(
                 opacity: values["opacity"]?.doubleValue ?? 1,
                 diffuse: (values["color"] ?? values["texture"])?.colorOrTextureValue,
-                metallicity: values["metallicity"]?.colorOrTextureValue,
-                roughness: values["roughness"]?.colorOrTextureValue,
+                metallicity: values["metallicity"]?.numberOrTextureValue,
+                roughness: values["roughness"]?.numberOrTextureValue,
                 glow: values["glow"]?.colorOrTextureValue
             ))
         case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
@@ -249,8 +250,8 @@ extension ValueType {
                 "color": .color,
                 "opacity": .number,
                 "texture": .texture,
-                "metallicity": .colorOrTexture,
-                "roughness": .colorOrTexture,
+                "metallicity": .numberOrTexture,
+                "roughness": .numberOrTexture,
                 "glow": .colorOrTexture,
             ]
         case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
@@ -307,8 +308,8 @@ extension ValueType {
         "opacity": .number,
         "color": .optional(.color),
         "texture": .texture,
-        "metallicity": .colorOrTexture,
-        "roughness": .colorOrTexture,
+        "metallicity": .numberOrTexture,
+        "roughness": .numberOrTexture,
         "glow": .colorOrTexture,
         "isCurved": .boolean,
         "start": .number,

@@ -99,15 +99,15 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .texture(context.material.texture)
         }),
-        "metallicity": .property(.colorOrTexture, { parameter, context in
-            context.material.metallicity = parameter.colorOrTextureValue
+        "metallicity": .property(.numberOrTexture, { parameter, context in
+            context.material.metallicity = parameter.numberOrTextureValue
         }, { context in
-            .colorOrTexture(context.material.metallicity ?? .color(.black))
+            .numberOrTexture(context.material.metallicity ?? .color(.black))
         }),
-        "roughness": .property(.colorOrTexture, { parameter, context in
-            context.material.roughness = parameter.colorOrTextureValue
+        "roughness": .property(.numberOrTexture, { parameter, context in
+            context.material.roughness = parameter.numberOrTextureValue
         }, { context in
-            .colorOrTexture(context.material.roughness ?? .color(.white))
+            .numberOrTexture(context.material.roughness ?? .color(.black))
         }),
         "glow": .property(.colorOrTexture, { parameter, context in
             context.material.glow = parameter.colorOrTextureValue
