@@ -39,6 +39,8 @@ public extension MaterialProperty {
         case let .texture(texture):
             property.magnificationFilter = .nearest
             property.minificationFilter = .linear
+            property.wrapS = .repeat
+            property.wrapT = .repeat
             if texture.intensity > 0 {
                 switch texture {
                 case let .file(name: _, url: url, intensity: intensity):

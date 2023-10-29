@@ -94,6 +94,7 @@ class CLI {
                 transform: .identity,
                 material: .default,
                 smoothing: nil,
+                wrapMode: nil,
                 children: scene.children,
                 sourceLocation: nil
             )

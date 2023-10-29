@@ -97,6 +97,7 @@ final class EvaluationContext {
     var random: RandomSequence
     var detail: Int = 16
     var smoothing: Angle?
+    var wrapMode: WrapMode?
     var font: String = ""
     var opacity: Double = 1
 
@@ -141,6 +142,7 @@ final class EvaluationContext {
         self.random = parent.random
         self.detail = parent.detail
         self.smoothing = parent.smoothing
+        self.wrapMode = parent.wrapMode
         self.font = parent.font
         // root-only
         self.background = parent.background
@@ -374,6 +376,7 @@ extension EvaluationContext {
                     transform: .identity,
                     material: .default,
                     smoothing: nil,
+                    wrapMode: nil,
                     children: [],
                     sourceLocation: nil
                 )

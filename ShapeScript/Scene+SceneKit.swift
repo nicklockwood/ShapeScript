@@ -309,6 +309,7 @@ public extension Geometry {
             transform: transform,
             material: .default,
             smoothing: nil,
+            wrapMode: nil,
             children: scnNode.childNodes.map(Geometry.init(_:)),
             sourceLocation: nil
         )

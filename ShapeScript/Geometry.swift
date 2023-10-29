@@ -9,12 +9,20 @@
 import Euclid
 import Foundation
 
+public enum WrapMode: String {
+    case none
+    case cube
+    case sphere
+    case cylinder
+}
+
 public final class Geometry: Hashable {
     public let type: GeometryType
     public let name: String?
     public let transform: Transform
     public let material: Material
     public let smoothing: Angle?
+    public let wrapMode: WrapMode?
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
     private let _sourceLocation: (() -> SourceLocation?)?
@@ -117,6 +125,7 @@ public final class Geometry: Hashable {
         transform: Transform,
         material: Material,
         smoothing: Angle?,
+        wrapMode: WrapMode?,
         children: [Geometry],
         sourceLocation: (() -> SourceLocation?)?,
         debug: Bool = false
@@ -144,6 +153,7 @@ public final class Geometry: Hashable {
                         transform: .identity,
                         material: material,
                         smoothing: smoothing,
+                        wrapMode: wrapMode,
                         children: [],
                         sourceLocation: sourceLocation
                     )
@@ -167,6 +177,7 @@ public final class Geometry: Hashable {
                         transform: .identity,
                         material: material,
                         smoothing: smoothing,
+                        wrapMode: wrapMode,
                         children: [],
                         sourceLocation: sourceLocation
                     )
@@ -200,6 +211,7 @@ public final class Geometry: Hashable {
         self.transform = transform
         self.material = material
         self.smoothing = smoothing
+        self.wrapMode = wrapMode
         self.children = children
         self._sourceLocation = sourceLocation
         self.debug = debug
@@ -211,6 +223,7 @@ public final class Geometry: Hashable {
                 type: geometry.type,
                 material: geometry.material == material ? nil : geometry.material,
                 smoothing: geometry.smoothing,
+                wrapMode: geometry.wrapMode,
                 transform: geometry.transform,
                 flipped: geometry.transform.isFlipped,
                 children: geometry.children.map(flattenedCacheKey)
@@ -221,6 +234,7 @@ public final class Geometry: Hashable {
             type: type,
             material: nil,
             smoothing: smoothing,
+            wrapMode: wrapMode,
             transform: .identity,
             flipped: transform.isFlipped,
             children: type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
@@ -296,6 +310,7 @@ public extension Geometry {
             transform: self.transform * transform,
             material: material,
             smoothing: smoothing,
+            wrapMode: wrapMode,
             children: children,
             sourceLocation: _sourceLocation,
             debug: debug
@@ -551,6 +566,18 @@ private extension Geometry {
             if let smoothing = smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
+            if let wrapMode = wrapMode {
+                switch wrapMode {
+                case .none:
+                    mesh = mesh?.withoutTexcoords()
+                case .cube:
+                    mesh = mesh?.cubeMapped()
+                case .sphere:
+                    mesh = mesh?.sphereMapped()
+                case .cylinder:
+                    mesh = mesh?.cylinderMapped()
+                }
+            }
             cache?[mesh: self] = mesh
             return true
         }
@@ -604,6 +631,7 @@ private extension Geometry {
             transform: transform,
             material: m,
             smoothing: smoothing,
+            wrapMode: wrapMode,
             children: children.compactMap {
                 if case .light = $0.type, removingLights {
                     return nil

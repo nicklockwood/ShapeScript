@@ -20,6 +20,7 @@ class GeometryTests: XCTestCase {
             transform: .identity,
             material: .default,
             smoothing: nil,
+            wrapMode: nil,
             children: [],
             sourceLocation: nil
         )
@@ -42,6 +43,7 @@ class GeometryTests: XCTestCase {
             ),
             material: .default,
             smoothing: nil,
+            wrapMode: nil,
             children: [],
             sourceLocation: nil
         )
@@ -51,6 +53,7 @@ class GeometryTests: XCTestCase {
             transform: .identity,
             material: .default,
             smoothing: nil,
+            wrapMode: nil,
             children: [cube, camera],
             sourceLocation: nil
         )

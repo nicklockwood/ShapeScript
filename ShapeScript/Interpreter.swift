@@ -749,6 +749,7 @@ extension Definition {
                     context.opacity = _context.opacity
                     context.detail = _context.detail
                     context.smoothing = _context.smoothing
+                    context.wrapMode = _context.wrapMode
                     context.baseURL = baseURL
                     context.source = source
                     context.sourceIndex = sourceIndex
@@ -778,6 +779,7 @@ extension Definition {
                                     transform: context.transform,
                                     material: .default,
                                     smoothing: nil,
+                                    wrapMode: nil,
                                     children: [],
                                     sourceLocation: context.sourceLocation
                                 ))
@@ -790,6 +792,7 @@ extension Definition {
                                 transform: geometry.transform * context.transform,
                                 material: geometry.material,
                                 smoothing: geometry.smoothing,
+                                wrapMode: geometry.wrapMode,
                                 children: geometry.children,
                                 sourceLocation: context.sourceLocation,
                                 debug: geometry.debug
@@ -828,6 +831,7 @@ extension Definition {
                         transform: context.transform,
                         material: .default,
                         smoothing: context.smoothing,
+                        wrapMode: context.wrapMode,
                         children: children.map {
                             switch $0 {
                             case let .path(path):
@@ -837,6 +841,7 @@ extension Definition {
                                     transform: .identity,
                                     material: .default,
                                     smoothing: nil,
+                                    wrapMode: nil,
                                     children: [],
                                     sourceLocation: context.sourceLocation
                                 )

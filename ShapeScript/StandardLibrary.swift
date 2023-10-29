@@ -614,7 +614,7 @@ extension Dictionary where Key == String, Value == Symbol {
         }),
     ]
 
-    static let smoothing: Symbols = [
+    static let geometry: Symbols = [
         "smoothing": .property(.halfturns, { parameter, context in
             // TODO: find a better way to represent null/auto
             let angle = Swift.min(.pi, parameter.angleValue ?? .zero)
@@ -622,9 +622,14 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .halfturns(context.smoothing.map { $0.halfturns } ?? -1)
         }),
+        "wrapmode": .property(.string, { parameter, context in
+            context.wrapMode = WrapMode(rawValue: parameter.stringValue)
+        }, { context in
+            .string(context.wrapMode?.rawValue ?? "default")
+        }),
     ]
 
-    static let root: Symbols = _merge(global, font, detail, smoothing, material, childTransform, [
+    static let root: Symbols = _merge(global, font, detail, geometry, material, childTransform, [
         "camera": .block(.init(.node, [
             "position": .vector,
             "orientation": .rotation,
@@ -684,13 +689,13 @@ extension Dictionary where Key == String, Value == Symbol {
 
     static let global: Symbols = _merge(functions, colors, meshes, paths)
     static let node: Symbols = _merge(transform, name, background)
-    static let shape: Symbols = _merge(node, detail, smoothing, material)
+    static let shape: Symbols = _merge(node, detail, geometry, material)
     static let group: Symbols = _merge(shape, childTransform, font)
     static let user: Symbols = _merge(shape, font)
     static let builder: Symbols = group
     static let hull: Symbols = _merge(group, points)
     static let polygon: Symbols = _merge(transform, childTransform, points, color)
-    static let mesh: Symbols = _merge(node, smoothing, color, childTransform, polygons)
+    static let mesh: Symbols = _merge(node, geometry, color, childTransform, polygons)
     static let pathShape: Symbols = _merge(transform, detail, color, background)
     static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
     static let definition: Symbols = _merge(root, pathPoints)
@@ -711,6 +716,7 @@ extension Geometry {
             transform: context.transform,
             material: context.material,
             smoothing: context.smoothing,
+            wrapMode: context.wrapMode,
             children: context.children.compactMap { $0.value as? Geometry },
             sourceLocation: context.sourceLocation
         )

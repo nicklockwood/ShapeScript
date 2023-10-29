@@ -92,6 +92,7 @@ private extension Geometry {
         transform: Transform = .identity,
         material: Material = .default,
         smoothing: Angle? = nil,
+        wrapMode: WrapMode? = nil,
         children: [Geometry] = []
     ) {
         self.init(
@@ -100,6 +101,7 @@ private extension Geometry {
             transform: transform,
             material: material,
             smoothing: smoothing,
+            wrapMode: wrapMode,
             children: children,
             sourceLocation: nil
         )
