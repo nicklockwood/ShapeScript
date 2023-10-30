@@ -598,7 +598,12 @@ private extension Geometry {
         }
         var m = self.material
         if let material = material, case let .mesh(mesh) = type {
-            m.opacity *= material.opacity
+            if m.opacity?.opacity ?? 1 == 1 {
+                m.opacity = material.opacity
+            } else if m.opacity?.texture == nil, material.opacity?.color != nil {
+                let opacity = (m.opacity?.opacity ?? 1) * (material.opacity?.opacity ?? 1)
+                m.opacity = .color(.init(opacity, opacity))
+            }
             m.diffuse = material.diffuse ?? m.diffuse
             m.glow = material.glow ?? m.glow
             m.metallicity = material.metallicity ?? m.metallicity

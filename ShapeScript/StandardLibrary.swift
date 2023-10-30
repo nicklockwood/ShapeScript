@@ -89,10 +89,26 @@ extension Dictionary where Key == String, Value == Symbol {
     ]
 
     static let material: Symbols = color + [
-        "opacity": .property(.number, { parameter, context in
-            context.material.opacity = parameter.doubleValue * context.opacity
+        "opacity": .property(.numberOrTexture, { parameter, context in
+            switch parameter {
+            case let .number(opacity):
+                let opacity = opacity * context.opacity
+                context.material.opacity = .color(.init(opacity, opacity))
+            case let .texture(texture):
+                context.material.opacity = texture.map { .texture($0) }
+            default:
+                let opacity = context.opacity
+                context.material.opacity = .color(.init(opacity, opacity))
+            }
         }, { context in
-            .number(context.material.opacity / context.opacity)
+            switch context.material.opacity {
+            case nil:
+                return .number(1 / context.opacity)
+            case let .color(color)?:
+                return .number(color.a / context.opacity)
+            case let .texture(texture)?:
+                return .texture(texture)
+            }
         }),
         "texture": .property(.texture, { parameter, context in
             context.material.diffuse = parameter.colorOrTextureValue

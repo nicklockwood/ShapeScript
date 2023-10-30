@@ -66,10 +66,10 @@ final class EvaluationContext {
     }
 
     var random: RandomSequence
-    var detail = 16
+    var detail: Int = 16
     var smoothing: Angle?
     var font: String = ""
-    var opacity = 1.0
+    var opacity: Double = 1
 
     var stackDepth = 1
 
@@ -115,7 +115,7 @@ final class EvaluationContext {
         // root-only
         self.background = parent.background
         // opacity is cumulative
-        self.opacity = parent.material.opacity
+        self.opacity = parent.material.opacity?.color?.a ?? parent.opacity
         // reset
         self.transform = .identity
         self.childTransform = .identity

@@ -229,7 +229,7 @@ class LoggingTests: XCTestCase {
 
     func testPBRMaterial() {
         let input = Material(
-            opacity: 0.5,
+            opacity: .color(.gray),
             diffuse: .color(.red),
             metallicity: .color(.white),
             roughness: nil,
@@ -239,7 +239,7 @@ class LoggingTests: XCTestCase {
         material {
             opacity 0.5
             color 1 0 0
-            metallicity 1 1 1
+            metallicity 1
         }
         """)
         XCTAssertEqual(input.nestedLogDescription, "material")

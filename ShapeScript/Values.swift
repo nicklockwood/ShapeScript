@@ -300,12 +300,10 @@ extension Value {
     var numberOrTextureValue: MaterialProperty? {
         switch self {
         case let .number(value):
-            return .color(.init(value, 1))
-        case let .color(color):
-            return .color(.init(color.r, 1))
+            return .color(.init(value, value))
         case let .texture(texture):
             return texture.map { .texture($0) }
-        case .boolean, .vector, .size, .rotation, .range, .tuple,
+        case .boolean, .vector, .size, .rotation, .range, .tuple, .color,
              .radians, .halfturns, .string, .text, .path, .material, .mesh,
              .polygon, .point, .bounds, .object:
             return nil

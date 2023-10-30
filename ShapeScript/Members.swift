@@ -17,7 +17,7 @@ extension ValueType {
             return .object(values)
         case .material:
             return .material(.init(
-                opacity: values["opacity"]?.doubleValue ?? 1,
+                opacity: values["opacity"]?.numberOrTextureValue,
                 diffuse: (values["color"] ?? values["texture"])?.colorOrTextureValue,
                 metallicity: values["metallicity"]?.numberOrTextureValue,
                 roughness: values["roughness"]?.numberOrTextureValue,
@@ -228,7 +228,7 @@ extension Value {
             }
         case let .material(material):
             switch name {
-            case "opacity": return .number(material.opacity)
+            case "opacity": return material.opacity.map { .numberOrTexture($0) } ?? .number(1)
             case "color": return .color(material.diffuse?.color ?? .white)
             case "texture": return .texture(material.diffuse?.texture)
             case "metallicity": return material.metallicity.map { .numberOrTexture($0) } ?? .number(0)

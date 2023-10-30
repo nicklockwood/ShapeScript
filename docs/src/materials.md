@@ -235,17 +235,29 @@ group {
 }
 ```
 
+The `opacity` property can be set to a texture (image) instead of a simple number by providing the name of an external image file:
+
+```swift
+sphere {
+    opacity "checkerboard.png"
+}
+```
+
+![Checkered transparent sphere](../images/checkered-sphere.png)
+
+Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. Only the alpha channel of the texture image is used to compute the transparency.
+
 ## Glow
 
 Materials in ShapeScript are affected by scene lighting, but sometimes you might want to model something like a lightbulb that appears to glow with its own light. You might be tempted to use a [light source](lights.md) for this, but that probably won't produce the effect you want because lights themselves are invisible, and placing a light inside a translucent shape will only illuminate the objects around it.
 
-Instead you can use the `glow` material property. The `glow` property accepts a color or texture argument. Glow works in a similar way to [metallicity](#metallicity), where you can pass either an intensity value in the range 0 to 1, or a texture if you want a non-uniform emission:
+Instead you can use the `glow` material property. The `glow` property accepts a color or texture argument. Glow works in a similar way to [opacity](#opacity), where you can pass either an intensity value in the range 0 to 1, or a texture if you want a non-uniform brightness:
 
 ```swift
 glow 0.5 // 50% brightness
 ```
 
-Unlike `metallicity` however, `glow` can accept color values, so for example the following would produce a bright red glow:
+Unlike `opacity` however, `glow` can accept color values, so for example the following would produce a bright red glow:
 
 ```swift
 glow red

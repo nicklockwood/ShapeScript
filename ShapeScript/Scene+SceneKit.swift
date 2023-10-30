@@ -42,7 +42,7 @@ public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
         m.diffuse?.configureProperty(diffuse)
-        transparency = CGFloat(m.opacity)
+        m.opacity?.configureProperty(transparent)
 
         isDoubleSided = !isOpaque
         transparencyMode = .dualLayer
@@ -339,7 +339,10 @@ private extension MaterialProperty {
 
 public extension Material {
     init?(_ scnMaterial: SCNMaterial) {
-        opacity = Double(scnMaterial.transparency)
+        opacity = (MaterialProperty(scnMaterial.transparent) ?? .color(.init(
+            scnMaterial.transparency,
+            scnMaterial.transparency
+        )))?.ifNot(.white)
         diffuse = MaterialProperty(scnMaterial.diffuse)?.ifNot(.white)
         glow = MaterialProperty(scnMaterial.emission)?.ifNot(.black)
         switch scnMaterial.lightingModel {

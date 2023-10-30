@@ -168,11 +168,11 @@ extension MaterialProperty: Loggable {
 extension Material: Loggable {
     public var logDescription: String {
         let fields = [
-            opacity != 1 ? "opacity \(opacity.logDescription)" : nil,
+            opacity.map { "opacity \(Value.numberOrTexture($0).logDescription)" },
             color.map { "color \($0.logDescription)" },
             texture.map { "texture \($0.logDescription)" },
-            metallicity.map { "metallicity \($0.logDescription)" },
-            roughness.map { "roughness \($0.logDescription)" },
+            metallicity.map { "metallicity \(Value.numberOrTexture($0).logDescription)" },
+            roughness.map { "roughness \(Value.numberOrTexture($0).logDescription)" },
             glow.map { "glow \($0.logDescription)" },
         ].compactMap { $0 }
 
