@@ -315,19 +315,6 @@ public extension Geometry {
         }
     }
 
-    /// Deprecated, do not use.
-    @available(*, deprecated, message: "No longer needed")
-    func with(name: String?) -> Geometry {
-        _with(
-            name: name,
-            transform: nil,
-            material: nil,
-            sourceLocation: nil,
-            removingLights: false,
-            removingGroupTransform: false
-        )
-    }
-
     func with(
         transform: Transform,
         material: Material?,
@@ -769,21 +756,6 @@ public extension Geometry {
                 $0.exactBounds(with: $0.transform * transform)
             } ?? .empty
         }
-    }
-
-    /// Returns the exact bounds transformed to world coordinates
-    @available(*, deprecated, message: "Use exactBounds(with:) instead")
-    var exactBounds: Bounds {
-        if let mesh = mesh, !mesh.polygons.isEmpty {
-            if worldTransform.rotation == .identity {
-                return mesh.bounds.transformed(by: worldTransform)
-            }
-            return mesh.transformed(by: worldTransform).bounds
-        } else if let path = path {
-            return path.bounds
-        }
-        let bounds = children.map { $0.exactBounds }
-        return Bounds(bounds: bounds)
     }
 
     var isWatertight: Bool {

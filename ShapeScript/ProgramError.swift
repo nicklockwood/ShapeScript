@@ -8,9 +8,6 @@
 
 import Foundation
 
-@available(*, deprecated, renamed: "ProgramError")
-public typealias ImportError = ProgramError
-
 public enum ProgramError: Error, Equatable {
     case lexerError(LexerError)
     case parserError(ParserError)
