@@ -11,6 +11,8 @@
 import XCTest
 
 final class MemberTests: XCTestCase {
+    // MARK: member access
+
     func testTupleVectorLookup() {
         let program = "print (1 0).x"
         let delegate = TestDelegate()
@@ -565,5 +567,79 @@ final class MemberTests: XCTestCase {
         mesh { triangles2 }
         """
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    // MARK: subscripting
+
+    func testTupleVectorSubscripting() {
+        let program = "print (1 0)[\"x\"]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
+    func testTupleVectorIndexing() {
+        let program = "print (1 0)[0]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
+    func testOutOfBoundsTupleVectorSubscripting() {
+        let program = "print (1 0)[\"z\"]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
+    func testNonExistentTupleVectorSubscripting() {
+        let program = "print (1 0)[\"w\"]"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownMember("w", of: "tuple", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testOutOfBoundsTupleVectorIndexing() {
+        let program = "print (1 0)[2]"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .invalidIndex(2, range: 0 ..< 2)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testFunctionResultNestedTupleValueIndexing() {
+        let program = """
+        define a(b) {
+            (b + 1 b + 2)
+            (b + 3 b + 4)
+        }
+        define c a(4)
+        print c[1][0]
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [7])
+    }
+
+    func testFunctionMixedTupleValueLookupAndIndexing() {
+        let program = """
+        define a(b) {
+            (b + 1 b + 2)
+            (b + 3 b + 4)
+        }
+        define c a(4)
+        print c.second[0]
+        print c[1].first
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [7, 7])
     }
 }

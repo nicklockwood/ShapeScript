@@ -41,6 +41,7 @@ public func evaluate(
 public enum RuntimeErrorType: Error, Equatable {
     case unknownSymbol(String, options: [String])
     case unknownMember(String, of: String, options: [String])
+    case invalidIndex(Double, range: Range<Int>)
     case unknownFont(String, options: [String])
     case typeMismatch(for: String, index: Int, expected: String, got: String)
     case forwardReference(String)
@@ -77,6 +78,8 @@ public extension RuntimeError {
             return "Unexpected symbol '\(name)'"
         case let .unknownMember(name, type, _):
             return "Unknown \(type) member property '\(name)'"
+        case let .invalidIndex(index, _):
+            return "Index \(index.logDescription) out of bounds"
         case let .unknownFont(name, _):
             return name.isEmpty ? "Font name cannot be blank" : "Unknown font '\(name)'"
         case .typeMismatch:
@@ -130,6 +133,7 @@ public extension RuntimeError {
              .forwardReference,
              .unexpectedArgument,
              .missingArgument,
+             .invalidIndex,
              .unusedValue,
              .assertionFailure,
              .fileNotFound,
@@ -185,6 +189,8 @@ public extension RuntimeError {
             return hint
         case .unknownMember:
             return suggestion.map { "Did you mean '\($0)'?" }
+        case let .invalidIndex(_, range: range):
+            return range.isEmpty ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
         case .unknownFont:
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
@@ -266,6 +272,7 @@ public extension RuntimeError {
              .circularImport,
              .unknownSymbol,
              .unknownMember,
+             .invalidIndex,
              .unknownFont:
             return nil
         }
@@ -1384,6 +1391,32 @@ extension Expression {
                 of: value.errorDescription,
                 options: value.members
             ), at: member.range)
+        case let .subscript(lhs, rhs):
+            let value = try lhs.evaluate(in: context)
+            let index = try rhs.evaluate(in: context)
+            switch index.as(.union([.number, .string])) {
+            case let .number(number)?:
+                let index = Int(truncating: number as NSNumber)
+                guard let member = value[index] else {
+                    throw RuntimeError(.invalidIndex(number, range: value.indices), at: rhs.range)
+                }
+                return member
+            case let .string(key)?:
+                guard let member = value[key, context.isCancelled] else {
+                    throw RuntimeError(.unknownMember(
+                        index.logDescription,
+                        of: value.errorDescription,
+                        options: value.members
+                    ), at: rhs.range)
+                }
+                return member
+            default:
+                throw RuntimeError(.typeMismatch(
+                    for: "index",
+                    expected: .union([.number, .string]),
+                    got: index.type
+                ), at: rhs.range)
+            }
         case let .import(expression):
             let pathValue = try expression.evaluate(
                 as: .string,

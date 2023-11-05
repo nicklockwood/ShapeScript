@@ -67,6 +67,7 @@ public enum ExpressionType: Equatable {
     indirect case prefix(PrefixOperator, Expression)
     indirect case infix(Expression, InfixOperator, Expression)
     indirect case member(Expression, Identifier)
+    indirect case `subscript`(Expression, Expression)
     indirect case `import`(Expression)
 }
 
@@ -188,6 +189,8 @@ private extension TokenType {
         case .rbrace: return "closing brace"
         case .lparen, .call: return "opening paren"
         case .rparen: return "closing paren"
+        case .lbracket, .subscript: return "opening bracket"
+        case .rbracket: return "closing bracket"
         case .dot: return "dot"
         case .eof: return "end of file"
         }
@@ -461,18 +464,32 @@ private extension ArraySlice where Element == Token {
             range = range.lowerBound ..< endToken.range.upperBound
         case .keyword(.import):
             type = try .import(require(readExpressions(), as: "file path"))
-        case .dot, .linebreak, .keyword, .infix, .lbrace, .rbrace, .rparen, .eof:
+        case .dot, .linebreak, .keyword, .infix, .lbrace, .lbracket,
+             .subscript, .rbrace, .rparen, .rbracket, .eof:
             self = start
             return nil
         }
         var expression = Expression(type: type, range: range)
-        while case .dot = nextToken.type {
-            removeFirst()
-            let rhs = try require(readIdentifier(), as: "member name")
-            expression = Expression(
-                type: .member(expression, rhs),
-                range: range.lowerBound ..< rhs.range.upperBound
-            )
+        loop: while true {
+            switch nextToken.type {
+            case .dot:
+                removeFirst()
+                let rhs = try require(readIdentifier(), as: "member name")
+                expression = Expression(
+                    type: .member(expression, rhs),
+                    range: range.lowerBound ..< rhs.range.upperBound
+                )
+            case .subscript:
+                removeFirst()
+                let rhs = try require(readExpression(), as: "expression")
+                try requireToken(.rbracket)
+                expression = Expression(
+                    type: .subscript(expression, rhs),
+                    range: range.lowerBound ..< rhs.range.upperBound
+                )
+            default:
+                break loop
+            }
         }
         return expression
     }
@@ -665,9 +682,9 @@ private extension ArraySlice where Element == Token {
             default:
                 return .expression(expression.type)
             }
-        // TODO: should call be treated differently here?
-        case .number, .linebreak, .keyword, .hexColor, .prefix,
-             .string, .rbrace, .lparen, .call, .rparen, .eof:
+        // TODO: should call and subscript be treated differently here?
+        case .number, .linebreak, .keyword, .hexColor, .prefix, .string,
+             .rbrace, .lparen, .call, .rparen, .lbracket, .rbracket, .subscript, .eof:
             return try .command(identifier, readExpressions())
         }
     }

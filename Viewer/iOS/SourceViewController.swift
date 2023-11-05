@@ -83,7 +83,7 @@ extension TokenView.TokenType {
 extension TokenType {
     var tokenViewType: TokenView.TokenType {
         switch self {
-        case .dot, .prefix, .infix, .lbrace, .rbrace, .lparen, .rparen, .call:
+        case .dot, .prefix, .infix, .lbrace, .rbrace, .lparen, .rparen, .call, .lbracket, .rbracket, .subscript:
             return .operator
         case .identifier:
             return .identifier

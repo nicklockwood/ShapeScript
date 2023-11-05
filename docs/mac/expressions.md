@@ -171,70 +171,6 @@ if (not a) and (b or c) {
 }
 ```
 
-## Members
-
-Compound values like [vectors and tuples](literals.md#vectors-and-tuples) and [objects](literals.md#objects) can be decomposed by using the *dot* operator to access individual components or *members*:
-
-```swift
-define vector 0.5 0.2 0.4
-define yComponent vector.y
-print yComponent 0.2
-```
-
-Like other operators, the dot operator can be used as part of a larger expression:
-
-```swift
-color 1 0.5 0.2
-define averageColor (color.red + color.green + color.blue) / 3
-print averageColor // prints 0.5667
-```
-
-For strings, you can use the `lines`, `words` and `characters` members:
-
-```swift
-define sentence "The quick brown fox"
-for word in sentence {
-    print word // prints each word on a new line
-}
-```
-
-For [paths](paths.md) you can access the `bounds` and `points` members. For each point you can access the `position`, `isCurved` and `color`:
-
-```swift
-// Print the points in a circle
-for point in circle.points {
-    print "position: " point.position ", isCurved: " point.isCurved
-}
-```
-
-For [meshes](meshes.md) you can access the `name`, `bounds`, `polygons` and `material` members:
-
-```swift
-print cube.bounds.size // prints 1 1 1
-print cube.polygons.count // prints 6
-```
-
-For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, or use `points` to access the individual vertices. For points you can access the `position` and `color`:
-
-```swift
-define triangle polygon {
-    color red
-    point 0 0
-    color green
-    point 1 0
-    color blue
-    point 1 1
-}
-
-// Print the vertex positions and colors
-for point in triangle.points {
-    print "position: " point.position ", color: " point.color
-}
-```
-
-For more information about the members that can be accessed on various data types, see [structured data](literals.md#structured-data).
-
-
 ## Ranges
 
 Another type of expression you can create is a *range* expression. This consists of two numeric values separated by a `to` keyword:
@@ -308,6 +244,112 @@ for i in 5 to 1 step -1 {
     print i // prints 5, 4, 3, 2, 1
 }
 ```
+
+## Members
+
+Compound values like [vectors and tuples](literals.md#vectors-and-tuples) and [objects](literals.md#objects) can be decomposed by using the *dot* operator to access individual components or *members*:
+
+```swift
+define vector 0.5 0.2 0.4
+define yComponent vector.y
+print yComponent 0.2
+```
+
+Like other operators, the dot operator can be used as part of a larger expression:
+
+```swift
+color 1 0.5 0.2
+define averageColor (color.red + color.green + color.blue) / 3
+print averageColor // prints 0.5667
+```
+
+To access members by index instead of name, you can use the ordinal members (`first`, `second`, `third`, ... `last`):
+
+```swift
+define vector 0.5 0.2 0.4
+
+print vector.first // prints 0.5
+print vector.second // prints 0.2
+print vector.last // prints 0.4
+```
+
+For strings, you can use the `lines`, `words` and `characters` members:
+
+```swift
+define sentence "The quick brown fox"
+for word in sentence {
+    print word // prints each word on a new line
+}
+```
+
+For [paths](paths.md) you can access the `bounds` and `points` members. For each point you can access the `position`, `isCurved` and `color`:
+
+```swift
+// Print the points in a circle
+for point in circle.points {
+    print "position: " point.position ", isCurved: " point.isCurved
+}
+```
+
+For [meshes](meshes.md) you can access the `name`, `bounds`, `polygons` and `material` members:
+
+```swift
+print cube.bounds.size // prints 1 1 1
+print cube.polygons.count // prints 6
+```
+
+For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, or use `points` to access the individual vertices. For points you can access the `position` and `color`:
+
+```swift
+define triangle polygon {
+    color red
+    point 0 0
+    color green
+    point 1 0
+    color blue
+    point 1 1
+}
+
+// Print the vertex positions and colors
+for point in triangle.points {
+    print "position: " point.position ", color: " point.color
+}
+```
+
+To access members via a computed name or index, see the [subscripting](#subscripting) section below. For more information about the members that are available to access on various data types, see [structured data](literals.md#structured-data).
+
+## Subscripting
+
+As discussed in the [members](#members) and [structured data](literals.md#structured-data) sections, you can decompose a tuple or other compound value using the dot operator followed by the name or ordinal index of the element you wish to retrieve.
+
+But it is often useful to be able to access a tuple's members using an index that is computed at runtime rather than a hard-coded offset. ShapeScript supports this via a mechanism called *subscripting*.
+
+Using square brackets (`[` and `]`) you can use a string value to access a named member of a value:
+
+```swift
+define vector 1 2 3
+print vector["y"] // prints 2 - equivalent to vector.y
+```
+
+To access an member by its ordinal position, you can use a numeric subscript value instead of a string:
+
+```swift
+define vector 1 2 3
+print vector[0] // prints 1 - equivalent to vector.first
+```
+
+**Note:** subscript indices start at zero, not one. This means that the last available member in a tuple will have an index of `count - 1`:
+
+```swift
+define foo 1 2 3 4
+
+// print all the elements of foo
+for i in 0 to foo.count - 1 {
+    print foo[i]
+}
+```
+
+Trying to access elements outside the range `0 to count - 1` will result in an error.
 
 ---
 [Index](index.md) | Next: [Functions](functions.md)

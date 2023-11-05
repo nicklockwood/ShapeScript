@@ -559,6 +559,20 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
     }
 
+    // MARK: subscripting
+
+    func testSubscriptOnIdentifier() {
+        let input = "a[\"x\"]"
+        let tokens: [TokenType] = [.identifier("a"), .subscript, .string("x"), .rbracket, .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
+    func testSubscriptOnIdentifier2() {
+        let input = "a[1]"
+        let tokens: [TokenType] = [.identifier("a"), .subscript, .number(1), .rbracket, .eof]
+        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+    }
+
     // MARK: lineRange
 
     func testLineRangeOfIndexAtStartOfInput() {

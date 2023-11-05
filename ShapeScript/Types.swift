@@ -560,11 +560,18 @@ extension Expression {
                     for (type, expression) in zip(types, expressions) {
                         expression.inferTypes(for: &params, in: context, with: type)
                     }
+                case let .list(type):
+                    for expression in expressions {
+                        expression.inferTypes(for: &params, in: context, with: type)
+                    }
                 default:
                     // TODO: other cases
                     return
                 }
             }
+        case let .subscript(_, rhs):
+            // TODO: lhs
+            rhs.inferTypes(for: &params, in: context, with: .union([.number, .string]))
         case let .import(expression):
             expression.inferTypes(for: &params, in: context, with: .string)
         case let .infix(lhs, .step, rhs):
@@ -700,6 +707,16 @@ extension Expression {
         case let .member(expression, member):
             let type = try expression.staticType(in: context)
             return type.memberType(member.name) ?? .any
+        case let .subscript(lhs, _):
+            switch try lhs.staticType(in: context) {
+            case let .list(type):
+                return type
+            case let .tuple(types):
+                return .union(Set(types))
+            default:
+                // TODO: other cases
+                return .any
+            }
         case let .import(expression):
             var file: String?
             switch expression.type {

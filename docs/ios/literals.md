@@ -96,25 +96,25 @@ To extract individual values from a tuple, you can use [member syntax](expressio
 
 ```swift
 define pos 1 2
-print pos.x // 1
-print pos.y // 2
-print pos.z // 0
+print pos.x // prints 1
+print pos.y // prints 2
+print pos.z // prints 0
 
 define size 3 4 5
-print size.width // 3
-print size.height // 4
-print size.depth // 5
+print size.width // prints 3
+print size.height // prints 4
+print size.depth // prints 5
 
 define rotation 0.5 0.25 0
-print rotation.roll // 0.5
-print rotation.yaw // 0.25
-print rotation.pitch // 0
+print rotation.roll // prints 0.5
+print rotation.yaw // prints 0.25
+print rotation.pitch // prints 0
 
 define col 1 0 0
-print col.red // 1
-print col.green // 0
-print col.blue // 0
-print col.alpha // 1
+print col.red // prints 1
+print col.green // prints 0
+print col.blue // prints 0
+print col.alpha // prints 1
 ```
 
 For more abstract data, you can use the ordinal members (`first`, `second`, `third`, ... `last`) to access members by index:
@@ -126,7 +126,7 @@ define data (
     #ff0000 // color
 )
 
-print data.count // 3
+print data.count // prints 3
 print data.first // name
 print data.second // position
 print data.last // color
@@ -143,8 +143,8 @@ You can split up lists of data using the `allButFirst` and `allButLast` members:
 ```swift
 define data (1 2 3 4 5)
 
-print data.allButFirst // 2 3 4 5
-print data.allButLast // 1 2 3 4
+print data.allButFirst // prints 2 3 4 5
+print data.allButLast // prints 1 2 3 4
 ```
 
 For list-like data, you can use a [for loop](control-flow.md#looping-over-values) to loop over the top-level values:
@@ -177,6 +177,12 @@ for row in matrix {
         print column // prints 1 to 9
     }
 }
+```
+
+You can also access elements using a computed index via [subscripting](expressions.md#subscripting):
+
+```swift
+print matrix[0][2] // prints 3 (first row, third column)
 ```
 
 **Note:** There is no requirement that rows in such a structure are the same type or length:

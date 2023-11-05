@@ -367,4 +367,43 @@ extension Value {
             return nil
         }
     }
+
+    var indices: Range<Int> {
+        switch self {
+        case .vector, .size:
+            return 0 ..< 3
+        case .color:
+            return 0 ..< 4
+        case let .tuple(values):
+            return values.startIndex ..< values.endIndex
+        case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
+             .string, .text, .path, .mesh, .polygon, .point, .range, .bounds, .object:
+            return 0 ..< 0
+        }
+    }
+
+    subscript(index: Int) -> Value? {
+        switch self {
+        case let .vector(vector), let .size(vector):
+            switch index {
+            case 0: return .number(vector.x)
+            case 1: return .number(vector.y)
+            case 2: return .number(vector.z)
+            default: return nil
+            }
+        case let .color(color):
+            switch index {
+            case 0: return .number(color.r)
+            case 1: return .number(color.g)
+            case 2: return .number(color.b)
+            case 3: return .number(color.a)
+            default: return nil
+            }
+        case let .tuple(values):
+            return values.indices.contains(index) ? values[index] : nil
+        case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
+             .string, .text, .path, .mesh, .polygon, .point, .range, .bounds, .object:
+            return nil
+        }
+    }
 }
