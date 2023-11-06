@@ -87,6 +87,7 @@
 		019853A228360F7500047DF2 /* TypesystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019853A128360F7500047DF2 /* TypesystemTests.swift */; };
 		01A6FE7D2AEF5BCB006AE113 /* Members.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FE7C2AEF5BCB006AE113 /* Members.swift */; };
 		01A6FE832AEF5D2A006AE113 /* MemberTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FE822AEF5D2A006AE113 /* MemberTests.swift */; };
+		01A6FECD2AF9ADB1006AE113 /* Material+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FECC2AF9ADB1006AE113 /* Material+SceneKit.swift */; };
 		01A9CA4028BB483500440FDA /* GeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A9CA3F28BB483500440FDA /* GeometryTests.swift */; };
 		01AA1D8721EF31860086BF86 /* Material.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA1D8621EF31860086BF86 /* Material.swift */; };
 		01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AA49F926B621C1009BB2C6 /* Geometry.swift */; };
@@ -392,6 +393,7 @@
 		019853A128360F7500047DF2 /* TypesystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypesystemTests.swift; sourceTree = "<group>"; };
 		01A6FE7C2AEF5BCB006AE113 /* Members.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Members.swift; sourceTree = "<group>"; };
 		01A6FE822AEF5D2A006AE113 /* MemberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberTests.swift; sourceTree = "<group>"; };
+		01A6FECC2AF9ADB1006AE113 /* Material+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Material+SceneKit.swift"; sourceTree = "<group>"; };
 		01A9CA3F28BB483500440FDA /* GeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryTests.swift; sourceTree = "<group>"; };
 		01AA1D8621EF31860086BF86 /* Material.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Material.swift; sourceTree = "<group>"; };
 		01AA49F926B621C1009BB2C6 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
@@ -640,16 +642,17 @@
 				013312D221C9BBCC00626F1B /* EvaluationContext.swift */,
 				013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */,
 				01BD943821936B90005FFAEC /* RandomSequence.swift */,
-				01AA1D8621EF31860086BF86 /* Material.swift */,
 				01FDE3D426BD766C00A46F66 /* GeometryCache.swift */,
 				01746BF126C5D226009DADEF /* GeometryType.swift */,
 				01AA49F926B621C1009BB2C6 /* Geometry.swift */,
 				01977FCA215D0BD400D65D5E /* Scene.swift */,
 				01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */,
+				01AA1D8621EF31860086BF86 /* Material.swift */,
+				01A6FECC2AF9ADB1006AE113 /* Material+SceneKit.swift */,
+				01F1A7A1280F724600A1621B /* Material+Brightness.swift */,
 				01CF787126EA36AD0097907A /* String+Ordinals.swift */,
 				01C8AAB226F0B28A0055F522 /* String+Matching.swift */,
 				0104EB7D271F66A000B60058 /* Euclid+Extensions.swift */,
-				01F1A7A1280F724600A1621B /* Material+Brightness.swift */,
 				01F01A4C2804CC5300FA1EBB /* SVGPath+Path.swift */,
 				0118098228F216D200E0C8D8 /* Value+JSON.swift */,
 				01E3AA0426CB8E8200E0B287 /* Value+Logging.swift */,
@@ -1159,6 +1162,7 @@
 				01BFB3B121425C9A00E47A7C /* Lexer.swift in Sources */,
 				013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */,
 				01AA49FA26B621C1009BB2C6 /* Geometry.swift in Sources */,
+				01A6FECD2AF9ADB1006AE113 /* Material+SceneKit.swift in Sources */,
 				01DE8AEC2AEA98A800107FA1 /* Values.swift in Sources */,
 				01746BF226C5D226009DADEF /* GeometryType.swift in Sources */,
 			);
