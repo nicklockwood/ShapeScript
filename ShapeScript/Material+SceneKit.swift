@@ -59,6 +59,7 @@ public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
         m.diffuse?.configureProperty(diffuse)
+        m.normals.flatMap(MaterialProperty.init)?.configureProperty(normal)
         m.opacity?.configureProperty(transparent)
 
         isDoubleSided = !isOpaque
@@ -88,6 +89,7 @@ public extension Material {
             scnMaterial.transparency
         )))?.ifNot(.white)
         diffuse = MaterialProperty(scnMaterial.diffuse)?.ifNot(.white)
+        normals = MaterialProperty(scnMaterial.normal)?.texture
         glow = MaterialProperty(scnMaterial.emission)?.ifNot(.black)
         switch scnMaterial.lightingModel {
         case .physicallyBased:

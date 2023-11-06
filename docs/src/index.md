@@ -27,6 +27,7 @@ ShapeScript Help
     - [Materials](materials.md)
         - [Color](materials.md#color)
         - [Texture](materials.md#texture)
+        - [Normals](materials.md#normals)
         - [Opacity](materials.md#opacity)
         - [Glow](materials.md#glow)
         - [Metallicity](materials.md#metallicity)

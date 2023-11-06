@@ -882,6 +882,7 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), .material(.init(
             opacity: nil,
             diffuse: .color(.red),
+            normals: nil,
             metallicity: .color(.init(0.5, 0.5)),
             roughness: nil,
             glow: nil

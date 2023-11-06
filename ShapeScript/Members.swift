@@ -19,6 +19,7 @@ extension ValueType {
             return .material(.init(
                 opacity: values["opacity"]?.numberOrTextureValue,
                 diffuse: (values["color"] ?? values["texture"])?.colorOrTextureValue,
+                normals: values["normals"]?.value as? Texture,
                 metallicity: values["metallicity"]?.numberOrTextureValue,
                 roughness: values["roughness"]?.numberOrTextureValue,
                 glow: values["glow"]?.colorOrTextureValue
@@ -39,6 +40,7 @@ extension ValueType {
                 "color": .color,
                 "opacity": .number,
                 "texture": .texture,
+                "normals": .texture,
                 "metallicity": .numberOrTexture,
                 "roughness": .numberOrTexture,
                 "glow": .colorOrTexture,

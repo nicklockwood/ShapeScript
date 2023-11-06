@@ -231,6 +231,7 @@ class LoggingTests: XCTestCase {
         let input = Material(
             opacity: .color(.gray),
             diffuse: .color(.red),
+            normals: nil,
             metallicity: .color(.white),
             roughness: nil,
             glow: nil

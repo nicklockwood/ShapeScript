@@ -117,6 +117,11 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .texture(context.material.texture)
         }),
+        "normals": .property(.texture, { parameter, context in
+            context.material.normals = parameter.value as? Texture
+        }, { context in
+            .texture(context.material.normals)
+        }),
         "metallicity": .property(.numberOrTexture, { parameter, context in
             context.material.metallicity = parameter.numberOrTextureValue
         }, { context in

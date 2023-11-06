@@ -149,7 +149,7 @@ color #ff0 0.5 // 50% transparent yellow
 
 ## Texture
 
-A texture is an image that is wrapped around a 3D shape, either as decoration, or to give the appearance of more surface detail than is actually there.
+A texture is an image that is wrapped around a 3D shape, either as decoration, or to give the appearance of more surface detail than is actually there. Contrary to what the name implies, textures do not actually affect the smoothness of surface to which they are applied - they only affect its color.
 
 You can set the texture for your shapes using the `texture` command:
 
@@ -203,6 +203,30 @@ How a texture is applied depends on the shape. Different shape types have differ
 Currently there is no way to override the default wrapping scheme, but the way that you create a shape affects the way that it is textured.
 
 For example, creating a cube using the `cube` command will result in a different texture wrapping effect than creating it by [extruding](builders.md#extrude) a square.
+
+## Normals
+
+As mentioned above, [textures](#texture) merely give the appearance of more detail, without actually modifying the surface geometry. While this can be quite effective, if you attempt to use textures to simulate indents or protrusions then the illusion is easily shattered by changing the camera angle, revealing that the texture lacks depth.
+
+This can be remedied through the used of another type of texture called a [normal map](https://en.wikipedia.org/wiki/Normal_mapping). The term "normal" in this context refers to [surface normals](https://en.wikipedia.org/wiki/Normal_(geometry)) - i.e. the direction facing outwards from the surface of the shape at any given point.
+
+ShapeScript automatically generates vertex normals for your shapes, and these can be modified via the [smoothing command](commands.md#smoothing) to remove unwanted corners or add visible facets to smooth surfaces. But you can control the surface normals on a more granular level by using a *normal map*.
+
+A normal map is an ordinary full-color texture image, except that the red, green and blue channels are interpreted as the X, Y and Z components of a normal vector respectively. Using a normal map you can specify fine details such as bumps and scratches on a surface, and ShapeScript is able to apply realistic, real-time lighting to make those details appear truly 3D (although the actual underlying geometry remains the same).
+
+To apply a normal map, use the `normals` command and pass the name of a texture image:
+
+```swift
+cube {
+    normals "cobblestones.png"
+}
+```
+
+The result is shown below. On the left is the normal texture as it appears when viewed as an ordinary image. On the right is a sphere with the normal map applied using the `normals` command:
+
+![Normal map](../images/normal-map.png)
+
+**Note:** you can combine a normal map with an ordinary texture to control both the color and lighting of a surface.
 
 ## Opacity
 
