@@ -17,7 +17,7 @@ class PlatformTests: XCTestCase {
     func testTextureToImage() throws {
         let file = testsDirectory.appendingPathComponent("Stars1.jpg")
         let input = try XCTUnwrap(OSImage(contentsOfFile: file.path))
-        let texture = try XCTUnwrap(Texture(input))
+        let texture = try XCTUnwrap(Texture(input, intensity: 1))
         let output = try XCTUnwrap(OSImage(texture))
         XCTAssertEqual(input.size, output.size)
     }

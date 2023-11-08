@@ -365,7 +365,7 @@ extension Value {
                     return .texture(nil)
                 }
                 let url = try context?.resolveURL(for: name)
-                return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name)))
+                return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name), intensity: 1))
             }
         case let (.tuple(values), .font) where values.contains { $0.type == .string }:
             fallthrough

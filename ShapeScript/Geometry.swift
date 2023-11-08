@@ -600,9 +600,17 @@ private extension Geometry {
         if let material = material, case let .mesh(mesh) = type {
             if m.opacity?.opacity ?? 1 == 1 {
                 m.opacity = material.opacity
-            } else if m.opacity?.texture == nil, material.opacity?.color != nil {
-                let opacity = (m.opacity?.opacity ?? 1) * (material.opacity?.opacity ?? 1)
-                m.opacity = .color(.init(opacity, opacity))
+            } else if material.opacity?.color != nil {
+                let opacity = material.opacity?.opacity ?? 1
+                switch m.opacity ?? .color(.white) {
+                case let .color(color):
+                    let opacity = color.a * opacity
+                    m.opacity = .color(.init(opacity, opacity))
+                case let .texture(texture):
+                    // Since user cannot specify texture opacity, this should always be 1
+                    let opacity = texture.intensity * opacity
+                    m.opacity = .texture(texture.withIntensity(opacity))
+                }
             }
             m.diffuse = material.diffuse ?? m.diffuse
             m.glow = material.glow ?? m.glow

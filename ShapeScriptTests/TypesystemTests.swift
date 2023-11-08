@@ -744,7 +744,7 @@ class TypesystemTests: XCTestCase {
 
     func testCastTextureToString() throws {
         let url = TestDelegate().resolveURL(for: "Stars1.jpg")
-        let texture = Texture.file(name: "Stars1.jpg", url: url)
+        let texture = Texture.file(name: "Stars1.jpg", url: url, intensity: 1)
         XCTAssert(Value.texture(texture).isConvertible(to: .string))
         XCTAssertEqual(try evaluate("""
         texture "Stars1.jpg"

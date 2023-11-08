@@ -12,8 +12,27 @@ import Foundation
 public typealias Color = Euclid.Color
 
 public enum Texture: Hashable {
-    case file(name: String, url: URL)
-    case data(Data)
+    case file(name: String, url: URL, intensity: Double)
+    case data(Data, intensity: Double)
+}
+
+public extension Texture {
+    var intensity: Double {
+        switch self {
+        case let .file(name: _, url: _, intensity: intensity),
+             let .data(_, intensity: intensity):
+            return intensity
+        }
+    }
+
+    func withIntensity(_ intensity: Double) -> Self {
+        switch self {
+        case let .file(name: name, url: url, intensity: _):
+            return .file(name: name, url: url, intensity: intensity)
+        case let .data(data, intensity: _):
+            return .data(data, intensity: intensity)
+        }
+    }
 }
 
 public enum MaterialProperty: Hashable {

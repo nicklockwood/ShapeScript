@@ -1313,7 +1313,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1326,7 +1326,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1338,7 +1338,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1350,7 +1350,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1363,7 +1363,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1529,7 +1529,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1542,7 +1542,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1554,7 +1554,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1567,7 +1567,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 
@@ -1580,7 +1580,7 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [Texture.file(
-            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 1
         )])
     }
 

@@ -25,14 +25,23 @@ public extension MaterialProperty {
         switch self {
         case let .color(color):
             property.contents = OSColor(color)
+            property.intensity = 1
         case let .texture(texture):
             property.magnificationFilter = .nearest
             property.minificationFilter = .linear
-            switch texture {
-            case let .file(_, url):
-                property.contents = url
-            case let .data(data):
-                property.contents = data
+            property.wrapS = .repeat
+            property.wrapT = .repeat
+            if texture.intensity > 0 {
+                switch texture {
+                case let .file(name: _, url: url, intensity: intensity):
+                    property.contents = url
+                    property.intensity = intensity
+                case let .data(data, intensity: intensity):
+                    property.contents = data
+                    property.intensity = intensity
+                }
+            } else {
+                property.contents = 0
             }
         }
     }
@@ -317,14 +326,14 @@ public extension MaterialProperty {
         case let color as OSColor:
             self = .color(Color(color))
         case let image as OSImage:
-            guard let texture = Texture(image) else {
+            guard let texture = Texture(image, intensity: scnMaterialProperty.intensity) else {
                 return nil
             }
             self = .texture(texture)
         case let data as Data:
-            self = .texture(.data(data))
+            self = .texture(.data(data, intensity: scnMaterialProperty.intensity))
         case let url as URL:
-            self = .texture(.file(name: url.lastPathComponent, url: url))
+            self = .texture(.file(name: url.lastPathComponent, url: url, intensity: scnMaterialProperty.intensity))
         default:
             return nil
         }
@@ -420,7 +429,7 @@ public extension SCNLight {
 }
 
 extension Texture {
-    init?(_ image: OSImage) {
+    init?(_ image: OSImage, intensity: Double) {
         #if canImport(UIKit)
         guard let data = image.pngData() else {
             return nil
@@ -434,16 +443,16 @@ extension Texture {
             return nil
         }
         #endif
-        self = .data(data)
+        self = .data(data, intensity: intensity)
     }
 }
 
 extension OSImage {
     convenience init?(_ texture: Texture) {
         switch texture {
-        case let .data(data):
+        case let .data(data, intensity: _):
             self.init(data: data)
-        case let .file(name: _, url: url):
+        case let .file(name: _, url: url, intensity: _):
             self.init(contentsOfFile: url.path)
         }
     }

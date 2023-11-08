@@ -202,13 +202,13 @@ class LoggingTests: XCTestCase {
     // MARK: Textures
 
     func testTextureFile() {
-        let input = Texture.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar"))
+        let input = Texture.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar"), intensity: 1)
         XCTAssertEqual(input.logDescription, "/foo/bar")
         XCTAssertEqual(input.nestedLogDescription, "\"/foo/bar\"")
     }
 
     func testTextureData() {
-        let input = Texture.data(Data())
+        let input = Texture.data(Data(), intensity: 1)
         XCTAssertEqual(input.logDescription, "texture { #data }")
         XCTAssertEqual(input.nestedLogDescription, "texture")
     }
@@ -248,8 +248,7 @@ class LoggingTests: XCTestCase {
     // MARK: MaterialProperties
 
     func testTextureFileMaterial() {
-        let input = MaterialProperty
-            .texture(.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar")))
+        let input = MaterialProperty.texture(.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar"), intensity: 1))
         XCTAssertEqual(input.logDescription, "/foo/bar")
         XCTAssertEqual(input.nestedLogDescription, "\"/foo/bar\"")
     }

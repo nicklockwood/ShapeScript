@@ -95,19 +95,21 @@ extension Dictionary where Key == String, Value == Symbol {
                 let opacity = opacity * context.opacity
                 context.material.opacity = .color(.init(opacity, opacity))
             case let .texture(texture):
-                context.material.opacity = texture.map { .texture($0) }
+                guard let texture = texture else { fallthrough }
+                let opacity = texture.intensity * context.opacity
+                context.material.opacity = .texture(texture.withIntensity(opacity))
             default:
                 let opacity = context.opacity
                 context.material.opacity = .color(.init(opacity, opacity))
             }
         }, { context in
-            switch context.material.opacity {
-            case nil:
-                return .number(1 / context.opacity)
-            case let .color(color)?:
+            switch context.material.opacity ?? .color(.white) {
+            case let .color(color):
                 return .number(color.a / context.opacity)
-            case let .texture(texture)?:
-                return .texture(texture)
+            case let .texture(texture):
+                // Since user cannot specify texture opacity, this should always be 1
+                let opacity = texture.intensity / context.opacity
+                return .texture(texture.withIntensity(opacity))
             }
         }),
         "texture": .property(.texture, { parameter, context in
