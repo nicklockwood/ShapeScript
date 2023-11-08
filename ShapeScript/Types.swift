@@ -341,10 +341,18 @@ extension Value {
             if types.contains(where: { self.type.isSubtype(of: $0) }) {
                 return self
             }
+            var errors = [Error]()
             for type in types.sorted() {
-                if let value = try self.as(type, in: context) {
-                    return value
+                do {
+                    if let value = try self.as(type, in: context) {
+                        return value
+                    }
+                } catch {
+                    errors.append(error)
                 }
+            }
+            if let error = errors.first {
+                throw error
             }
             return nil
         case let (_, .list(type)) where self.type.isSubtype(of: type):
@@ -364,8 +372,15 @@ extension Value {
                 if name.isEmpty {
                     return .texture(nil)
                 }
-                let url = try context?.resolveURL(for: name)
-                return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name), intensity: 1))
+                do {
+                    let url = try context?.resolveURL(for: name)
+                    return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name), intensity: 1))
+                } catch {
+                    if URL(fileURLWithPath: name).pathExtension.isEmpty {
+                        return nil
+                    }
+                    throw error
+                }
             }
         case let (.tuple(values), .font) where values.contains { $0.type == .string }:
             fallthrough

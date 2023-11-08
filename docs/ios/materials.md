@@ -228,6 +228,14 @@ The result is shown below. On the left is the normal texture as it appears when 
 
 **Note:** you can combine a normal map with an ordinary texture to control both the color and lighting of a surface.
 
+To vary the intensity of the surface perturbation, you can apply a multiplier to the texture. The following code increases the apparent depth of the stones by 2x (you can also reduce the intensity by using a fractional value):
+
+```swift
+cube {
+    normals "cobblestones.png" * 2
+}
+```
+
 ## Opacity
 
 Opacity is a measure of how transparent an object is. You can vary the opacity for an object or group using the alpha property of the `color` (as described [above](#color)), but sometimes you may want to vary the opacity of a whole tree of differently-colored objects, and for that you can use the `opacity` command:
@@ -316,6 +324,12 @@ metallicity "weathered-metal.png"
 ```
 
 Using a metallicity texture allows you to create composite surfaces that are only partly metallic, or which have patches of rust, dirt or paint that reduce the shininess. Since metallicity is a scalar rather than color property, the texture should be in grayscale. If a full-color image is supplied, only the red channel will be used.
+
+As with the [normal map](#normals) above, you can apply a multiplier to the metallicity texture to vary its overall intensity:
+
+```swift
+metallicity "weathered-metal.png" * 0.5 // half as metallic
+```
 
 ## Roughness
 

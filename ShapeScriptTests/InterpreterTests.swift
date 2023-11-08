@@ -3452,13 +3452,25 @@ class InterpreterTests: XCTestCase {
             guard case .typeMismatch(
                 for: "*",
                 index: 0,
-                expected: "number or vector",
+                expected: "number, texture, or vector",
                 got: "tuple"
             )? = error?.type else {
                 XCTFail()
                 return
             }
         }
+    }
+
+    func testTextureIntensityMultiply() throws {
+        let program = """
+        texture "Stars1.jpg" * 0.5
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.file(
+            name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg"), intensity: 0.5
+        )])
     }
 
     func testNumericTupleScalarAdd() {

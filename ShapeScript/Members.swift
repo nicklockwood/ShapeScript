@@ -97,6 +97,7 @@ extension ValueType {
         "alpha": .number,
         "bounds": .bounds,
         "opacity": .number,
+        "intensity": .number,
         "color": .optional(.color),
         "texture": .texture,
         "metallicity": .numberOrTexture,
@@ -132,6 +133,8 @@ extension Value {
             return ["roll", "yaw", "pitch"]
         case .color:
             return ["red", "green", "blue", "alpha"]
+        case .texture:
+            return ["intensity"]
         case .material:
             return ["opacity", "color", "texture", "metallicity", "roughness", "glow"]
         case let .tuple(values):
@@ -185,7 +188,7 @@ extension Value {
             return ["string", "font", "color", "linespacing"]
         case let .object(values):
             return values.keys.sorted()
-        case .texture, .boolean, .number, .radians, .halfturns:
+        case .boolean, .number, .radians, .halfturns:
             return []
         }
     }
@@ -226,6 +229,11 @@ extension Value {
             case "green": return .number(color.g)
             case "blue": return .number(color.b)
             case "alpha": return .number(color.a)
+            default: return nil
+            }
+        case let .texture(texture):
+            switch name {
+            case "intensity": return .number(texture?.intensity ?? 0)
             default: return nil
             }
         case let .material(material):
@@ -365,7 +373,7 @@ extension Value {
             }
         case let .object(values):
             return values[name]
-        case .boolean, .texture, .number, .radians, .halfturns:
+        case .boolean, .number, .radians, .halfturns:
             return nil
         }
     }

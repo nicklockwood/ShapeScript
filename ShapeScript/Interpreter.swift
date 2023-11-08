@@ -1339,9 +1339,10 @@ extension Expression {
             }
             func tupleApply(
                 _ fn: (Double, Double) -> Double,
+                lhs value: Value? = nil,
                 widen: Bool
             ) throws -> Value {
-                let lhs = try tupleValue(lhs)
+                let lhs = try value ?? tupleValue(lhs)
                 let rhs = try tupleValue(rhs, index: 1)
                 switch (apply(lhs, rhs, fn), lhs) {
                 case let (.tuple(values), .tuple(lhs)) where widen:
@@ -1350,15 +1351,31 @@ extension Expression {
                     return value
                 }
             }
+            func tupleOrTextureApply(_ fn: (Double, Double) -> Double) throws -> Value {
+                let lhs = try lhs.evaluate(
+                    as: .union([.number, .list(.number), .texture]),
+                    for: String(op.rawValue),
+                    index: 0,
+                    in: context
+                )
+                if case let .texture(texture) = lhs {
+                    guard let texture = texture else {
+                        return .texture(nil)
+                    }
+                    let rhs = try doubleValue(rhs)
+                    return .texture(texture.withIntensity(fn(texture.intensity, rhs)))
+                }
+                return try tupleApply(fn, lhs: lhs, widen: false)
+            }
             switch op {
             case .minus:
                 return try tupleApply(-, widen: true)
             case .plus:
                 return try tupleApply(+, widen: true)
             case .times:
-                return try tupleApply(*, widen: false)
+                return try tupleOrTextureApply(*)
             case .divide:
-                return try tupleApply(/, widen: false)
+                return try tupleOrTextureApply(/)
             case .modulo:
                 return try tupleApply(fmod, widen: false)
             case .lt:
