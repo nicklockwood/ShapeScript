@@ -343,7 +343,7 @@ As with the [metallicity](#metallicity) property, `roughness` is specified in th
 
 ## Material
 
-It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can define a collection of material properties and assign them to a [symbol](Symbols.md) by using the `material` command:
+It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can define a collection of material properties and assign them to a [symbol](symbols.md) by using the `material` command:
 
 ```swift
 define redMetal material {

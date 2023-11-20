@@ -1,5 +1,24 @@
 # Change Log
 
+## [1.8.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.0) (2023-11-25)
+
+- Added `switch/case` statements
+- Added subscripting support for objects and tuples
+- Added `object` constructor command
+- Objects can now be cast to/from memberwise types
+- Added `light.shadow` property
+- The `opacity` property can now be set to a texture
+- Textures now use nearest-neighbor filtering for upscaling instead of linear
+- Added `normals` command for setting surface normals with a texture
+- Added `roughness` and `metallicity` properties for physically based rendering (PBR) 
+- Added `material` command for setting all material properties at once
+- Combined `Material.color` and `texture` properties into single property internally
+- The `Material.isOpaque` property is now correctly computed when using a texture
+- Added `text.string`, `font`, `color` and `linespacing` members
+- You can now use `import` statements in expressions
+- Object values are now correctly unwrapped
+- Removed some deprecated methods
+
 ## [1.7.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.7.1) (2023-10-23)
 
 - Fixed spotlight debug shape orientation

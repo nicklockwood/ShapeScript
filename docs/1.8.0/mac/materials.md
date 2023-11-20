@@ -184,7 +184,7 @@ texture ""
 
 The first time you try to use an image, you will see an error screen like the one below.
 
-![Sandbox error](../images/sandbox-error-ios-1.6.4.png)
+![Sandbox error](../../images/sandbox-error.png)
 
 This is because Apple employs a security feature called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)) to prevent apps from accessing files without the user's permission. Use the `Grant Access` button to open the containing folder for your images. If you prefer, you can just grant access to the specific image file, but in that case you will need to grant access individually to each new texture that you use.
 
@@ -192,13 +192,13 @@ This is because Apple employs a security feature called [sandboxing](https://en.
 
 How a texture is applied depends on the shape. Different shape types have different default wrapping schemes:
 
-![Textured cube](../images/textured-cube.png)
+![Textured cube](../../images/textured-cube.png)
 
-![Textured sphere](../images/textured-sphere.png)
+![Textured sphere](../../images/textured-sphere.png)
 
-![Textured cylinder](../images/textured-cylinder.png)
+![Textured cylinder](../../images/textured-cylinder.png)
 
-![Textured cone](../images/textured-cone.png)
+![Textured cone](../../images/textured-cone.png)
 
 Currently there is no way to override the default wrapping scheme, but the way that you create a shape affects the way that it is textured.
 
@@ -224,7 +224,7 @@ cube {
 
 The result is shown below. On the left is the normal texture as it appears when viewed as an ordinary image. On the right is a sphere with the normal map applied using the `normals` command:
 
-![Normal map](../images/normal-map.png)
+![Normal map](../../images/normal-map.png)
 
 **Note:** you can combine a normal map with an ordinary texture to control both the color and lighting of a surface.
 
@@ -275,7 +275,7 @@ sphere {
 }
 ```
 
-![Checkered transparent sphere](../images/checkered-sphere.png)
+![Checkered transparent sphere](../../images/checkered-sphere.png)
 
 Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. Only the alpha channel of the texture image is used to compute the transparency.
 
@@ -301,7 +301,7 @@ The alpha channel is ignored, so if you wish to vary the brightness of a colored
 glow green * 0.5
 ```
 
-![50% green glow](../images/green-glow.png)
+![50% green glow](../../images/green-glow.png)
 
 **Note:** glowing materials do not illuminate other objects in the scene. To get the effect of a glowing light bulb that actually lights the scene, you can combine a glowing material with a [point light](lights.md#point-lights) located nearby.
 
@@ -315,7 +315,7 @@ As the name implies, metallicity controls how *metallic* the material is. A valu
 metallicity 0.9
 ```
 
-![Metallic shapes](../images/metallicity.png)
+![Metallic shapes](../../images/metallicity.png)
 
 The `metallicity` property can be set to a texture (image) instead of a simple number by providing the name of an external image file:
 
