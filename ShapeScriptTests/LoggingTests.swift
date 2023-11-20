@@ -230,7 +230,7 @@ class LoggingTests: XCTestCase {
     func testPBRMaterial() {
         let input = Material(
             opacity: .color(.gray),
-            diffuse: .color(.red),
+            albedo: .color(.red),
             normals: nil,
             metallicity: .color(.white),
             roughness: nil,

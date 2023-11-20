@@ -324,7 +324,7 @@ public extension Geometry {
         // If mesh has a non-uniform material, don't replace it with the current
         // scope material, otherwise do (TODO: is this logic correct/sufficient?)
         if material != nil, !hasUniformMaterial() {
-            material?.diffuse = nil
+            material?.albedo = nil
         }
         return _with(
             name: nil,
@@ -599,7 +599,7 @@ private extension Geometry {
                     m.opacity = .texture(texture.withIntensity(opacity))
                 }
             }
-            m.diffuse = material.diffuse ?? m.diffuse
+            m.albedo = material.albedo ?? m.albedo
             m.glow = material.glow ?? m.glow
             m.metallicity = material.metallicity ?? m.metallicity
             m.roughness = material.roughness ?? m.roughness
@@ -650,13 +650,13 @@ private extension Collection where Element == Path {
                     current = point.color
                 } else if point.color != current {
                     var material = material
-                    material.diffuse = .color(.white)
+                    material.albedo = .color(.white)
                     return (Array(self), material)
                 }
             }
         }
         var material = material
-        material.diffuse = (current ?? material.color).map { .color($0) }
+        material.albedo = (current ?? material.color).map { .color($0) }
         return (map { $0.withColor(nil) }, material)
     }
 }

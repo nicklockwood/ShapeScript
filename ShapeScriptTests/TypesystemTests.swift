@@ -881,7 +881,7 @@ class TypesystemTests: XCTestCase {
         let value = Value.object(["color": .color(.red), "metallicity": .number(0.5)])
         XCTAssertEqual(value.as(type), .material(.init(
             opacity: nil,
-            diffuse: .color(.red),
+            albedo: .color(.red),
             normals: nil,
             metallicity: .color(.init(0.5, 0.5)),
             roughness: nil,

@@ -77,7 +77,7 @@ public extension MaterialProperty {
 
 public struct Material: Hashable {
     public var opacity: Optional<MaterialProperty>
-    public var diffuse: Optional<MaterialProperty>
+    public var albedo: Optional<MaterialProperty>
     public var normals: Optional<Texture>
     public var metallicity: Optional<MaterialProperty>
     public var roughness: Optional<MaterialProperty>
@@ -90,7 +90,7 @@ public extension Material {
     init(color: Color? = nil) {
         self.init(
             opacity: nil,
-            diffuse: color.map { .color($0) },
+            albedo: color.map { .color($0) },
             normals: nil,
             metallicity: nil,
             roughness: nil,
@@ -99,12 +99,12 @@ public extension Material {
     }
 
     var isOpaque: Bool {
-        (opacity?.opacity ?? 1) > 0.999 && (diffuse?.opacity ?? 1) > 0.999
+        (opacity?.opacity ?? 1) > 0.999 && (albedo?.opacity ?? 1) > 0.999
     }
 
     var isUniform: Bool {
         opacity?.texture == nil
-            && diffuse?.texture == nil
+            && texture == nil
             && normals == nil
             && metallicity?.texture == nil
             && roughness?.texture == nil
@@ -112,10 +112,10 @@ public extension Material {
     }
 
     var color: Color? {
-        diffuse?.color
+        albedo?.color
     }
 
     var texture: Texture? {
-        diffuse?.texture
+        albedo?.texture
     }
 }
