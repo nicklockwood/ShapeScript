@@ -39,11 +39,7 @@ public extension MaterialProperty {
 public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
-        if let texture = m.texture {
-            MaterialProperty.texture(texture).configureProperty(diffuse)
-        } else if let color = m.color {
-            MaterialProperty.color(color).configureProperty(diffuse)
-        }
+        m.diffuse?.configureProperty(diffuse)
         transparency = CGFloat(m.opacity)
 
         isDoubleSided = !isOpaque
@@ -308,7 +304,11 @@ public extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let color as OSColor:
-            self = .color(Color(color))
+            let color = Color(color)
+            guard color != .white else {
+                return nil
+            }
+            self = .color(color)
         case let image as OSImage:
             guard let texture = Texture(image) else {
                 return nil
@@ -327,17 +327,7 @@ public extension MaterialProperty {
 public extension Material {
     init?(_ scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
-        switch MaterialProperty(scnMaterial.diffuse) {
-        case let .color(color)? where color != .white:
-            self.color = color
-            texture = nil
-        case let .texture(texture)?:
-            color = nil
-            self.texture = texture
-        default:
-            color = nil
-            texture = nil
-        }
+        diffuse = MaterialProperty(scnMaterial.diffuse)
     }
 }
 

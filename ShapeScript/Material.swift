@@ -33,20 +33,36 @@ public enum MaterialProperty: Hashable {
 }
 
 public struct Material: Hashable {
-    public var opacity = 1.0
-    public var texture: Texture?
-    public var color: Color? {
-        // Color and texture are mutually exclusive
-        didSet { texture = (color != nil) ? nil : texture }
+    public var opacity: Double = 1
+    public var diffuse: MaterialProperty?
+}
+
+public extension Material {
+    static let `default`: Material = .init()
+
+    init(color: Color? = nil) {
+        self.diffuse = color.map { .color($0) }
     }
 
-    public var isOpaque: Bool {
+    var isOpaque: Bool {
         opacity > 0.999 && (color?.a ?? 1) > 0.999
     }
 
-    public static let `default` = Material()
+    var color: Color? {
+        switch diffuse {
+        case let .color(color)?:
+            return color
+        case .texture, nil:
+            return nil
+        }
+    }
 
-    public init(color: Color? = nil) {
-        self.color = color
+    var texture: Texture? {
+        switch diffuse {
+        case let .texture(texture)?:
+            return texture
+        case .color, nil:
+            return nil
+        }
     }
 }

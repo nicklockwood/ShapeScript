@@ -335,8 +335,7 @@ public extension Geometry {
     ) -> Geometry {
         var material = material
         if material != nil, !hasUniformMaterial() {
-            material?.color = nil
-            material?.texture = nil
+            material?.diffuse = nil
         }
         return _with(
             name: nil,
@@ -598,8 +597,7 @@ private extension Geometry {
         var m = self.material
         if let material = material, case let .mesh(mesh) = type {
             m.opacity *= material.opacity
-            m.color = material.color ?? self.material.color
-            m.texture = material.texture ?? self.material.texture
+            m.diffuse = material.diffuse ?? self.material.diffuse
             type = .mesh(mesh.replacing(self.material, with: m))
         }
         var transform = transform.map { self.transform * $0 } ?? self.transform
@@ -647,13 +645,13 @@ private extension Collection where Element == Path {
                     current = point.color
                 } else if point.color != current {
                     var material = material
-                    material.color = .white
+                    material.diffuse = .color(.white)
                     return (Array(self), material)
                 }
             }
         }
         var material = material
-        material.color = current ?? material.color
+        material.diffuse = (current ?? material.color).map { .color($0) }
         return (map { $0.withColor(nil) }, material)
     }
 }
