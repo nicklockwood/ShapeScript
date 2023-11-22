@@ -99,6 +99,21 @@ extension Dictionary where Key == String, Value == Symbol {
         }, { context in
             .texture(context.material.texture)
         }),
+        "metallicity": .property(.colorOrTexture, { parameter, context in
+            context.material.metallicity = parameter.colorOrTextureValue
+        }, { context in
+            .colorOrTexture(context.material.metallicity ?? .color(.black))
+        }),
+        "roughness": .property(.colorOrTexture, { parameter, context in
+            context.material.roughness = parameter.colorOrTextureValue
+        }, { context in
+            .colorOrTexture(context.material.roughness ?? .color(.white))
+        }),
+        "glow": .property(.colorOrTexture, { parameter, context in
+            context.material.glow = parameter.colorOrTextureValue
+        }, { context in
+            .colorOrTexture(context.material.glow ?? .color(.black))
+        }),
     ]
 
     static let polygons: Symbols = [

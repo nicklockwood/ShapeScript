@@ -3,9 +3,7 @@ Materials
 
 By default, all geometry that you create in ShapeScript appears as if it were made of a matte white plastic. You can alter this appearance using *materials*.
 
-Material support in ShapeScript is fairly limited at the moment, but you can set the *color* and *texture* of shapes.
-
-A given shape can only have either a color or texture, but not both. Setting the texture will clear the color and vice-versa.
+Materials in ShapeScript allow you to alter the [color](#color) and [texture](#texture) of a shape, as well as its physical properties such as [metallicity](#metallicity) and [roughness](#roughness), which affect how light is reflected from the surface.
 
 ## Color
 
@@ -180,6 +178,8 @@ As with `color`, once a texture has been set it will be applied to all subsequen
 texture ""
 ```
 
+**Note:** a given shape can only have either a color or texture, but not both. Setting the texture will clear the color and vice-versa.
+
 ### Access Permission
 
 The first time you try to use an image, you will see an error screen like the one below.
@@ -232,6 +232,97 @@ group {
     color 0 1 0 // opaque green
     opacity 2 // cancel out the 50% opacity
     sphere // opaque green sphere
+}
+```
+
+## Glow
+
+Materials in ShapeScript are affected by scene lighting, but sometimes you might want to model something like a lightbulb that appears to glow with its own light. You might be tempted to use a [light source](lights.md) for this, but that probably won't produce the effect you want because lights themselves are invisible, and placing a light inside a translucent shape will only illuminate the objects around it.
+
+Instead you can use the `glow` material property. The `glow` property accepts a color or texture argument. Glow works in a similar way to [metallicity](#metallicity), where you can pass either an intensity value in the range 0 to 1, or a texture if you want a non-uniform emission:
+
+```swift
+glow 0.5 // 50% brightness
+```
+
+Unlike `metallicity` however, `glow` can accept color values, so for example the following would produce a bright red glow:
+
+```swift
+glow red
+```
+
+The alpha channel is ignored, so if you wish to vary the brightness of a colored glow, the easiest way is to multiply the color by a constant. This would emit a green glow at 50% brightness:
+
+```swift
+glow green * 0.5
+```
+
+![50% green glow](../images/green-glow.png)
+
+**Note:** glowing materials do not illuminate other objects in the scene. To get the effect of a glowing light bulb that actually lights the scene, you can combine a glowing material with a [point light](lights.md#point-lights) located nearby.
+
+## Metallicity
+
+Metallicity (sometimes called "metallicness" or just "metalness") is used as part of a [Physically Based Rendering](https://en.wikipedia.org/wiki/Physically_based_rendering) (PBR) shading pipeline designed to give a realistic appearance to your shapes. Setting either or both of the metallicity and [roughness](#roughness) properties will enable the PBR shader for all subsequent shapes in the current scope.
+
+As the name implies, metallicity controls how *metallic* the material is. A value of 1 means completely metallic and a value of 0 means not metallic at all. Values in between might be used for metal materials covered with paint or dirt that reduces their sheen:
+
+```swift
+metallicity 0.9
+```
+
+![Metallic shapes](../images/metallicity.png)
+
+The `metallicity` property can be set to a texture (image) instead of a simple number by providing the name of an external image file:
+
+```swift
+metallicity "weathered-metal.png"
+```
+
+Using a metallicity texture allows you to create composite surfaces that are only partly metallic, or which have patches of rust, dirt or paint that reduce the shininess. Since metallicity is a scalar rather than color property, the texture should be in grayscale. If a full-color image is supplied, only the red channel will be used.
+
+## Roughness
+
+The `roughness` property counteracts the shininess applied by the [metallicity](#metallicity) property by simulating surface scratches or texture. This doesn't completely negate the effect of metallicity, but it can be used to create surfaces that are recognizably both metallic and also non-smooth, like an old scratched-up piece of iron:
+
+```swift
+roughness 0.7
+```
+
+As with the [metallicity](#metallicity) property, `roughness` is specified in the range 0 to 1, but can also be set to a texture image in order to apply non-uniform roughness.
+
+## Material
+
+It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can define a collection of material properties and assign them to a [symbol](Symbols.md) by using the `material` command:
+
+```swift
+define redMetal material {
+    color red
+    metallicity 1
+}
+```
+
+Your custom material can then be re-applied at any time by using the `material` command again and passing your previously-defined symbol:
+
+```swift
+material redMetal // set material for all subsequent shapes in this scope
+
+sphere {
+    material redMetal // set material for just this shape
+}
+```
+
+You can also get the material of an existing shape using its `material` [member](expressions.md#members) and then apply it to another shape:
+
+```swift
+define greenSphere sphere {
+    color green
+    metallicity 0.5
+    glow 0.2
+}
+
+cube {
+    material greenSphere.material
 }
 ```
 

@@ -304,7 +304,7 @@ public extension Geometry {
 
     // object graph shares a common color and no texture
     func hasUniformMaterial(_ material: Material? = nil) -> Bool {
-        if self.material.texture != nil {
+        guard self.material.isUniform else {
             return false
         }
         if material != nil, material != self.material {
@@ -334,6 +334,8 @@ public extension Geometry {
         sourceLocation: @escaping () -> SourceLocation?
     ) -> Geometry {
         var material = material
+        // If mesh has a non-uniform material, don't replace it with the current
+        // scope material, otherwise do (TODO: is this logic correct/sufficient?)
         if material != nil, !hasUniformMaterial() {
             material?.diffuse = nil
         }
@@ -597,7 +599,10 @@ private extension Geometry {
         var m = self.material
         if let material = material, case let .mesh(mesh) = type {
             m.opacity *= material.opacity
-            m.diffuse = material.diffuse ?? self.material.diffuse
+            m.diffuse = material.diffuse ?? m.diffuse
+            m.glow = material.glow ?? m.glow
+            m.metallicity = material.metallicity ?? m.metallicity
+            m.roughness = material.roughness ?? m.roughness
             type = .mesh(mesh.replacing(self.material, with: m))
         }
         var transform = transform.map { self.transform * $0 } ?? self.transform

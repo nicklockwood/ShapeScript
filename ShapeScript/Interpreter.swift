@@ -443,6 +443,11 @@ private extension RuntimeError {
         "signum": ["sign"],
         "echo": ["print"],
         "default": ["else"],
+        "metalness": ["metallicity"],
+        "metallicness": ["metallicity"],
+        "smoothness": ["roughness"],
+        "emission": ["glow"],
+        "emissiveness": ["glow"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {

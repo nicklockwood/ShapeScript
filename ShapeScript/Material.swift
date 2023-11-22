@@ -19,7 +19,9 @@ public enum Texture: Hashable {
 public enum MaterialProperty: Hashable {
     case color(Color)
     case texture(Texture)
+}
 
+public extension MaterialProperty {
     init?(_ value: Any) {
         switch value {
         case let color as Color:
@@ -30,39 +32,62 @@ public enum MaterialProperty: Hashable {
             return nil
         }
     }
+
+    var color: Color? {
+        switch self {
+        case let .color(color):
+            return color
+        case .texture:
+            return nil
+        }
+    }
+
+    var texture: Texture? {
+        switch self {
+        case let .texture(texture):
+            return texture
+        case .color:
+            return nil
+        }
+    }
 }
 
 public struct Material: Hashable {
     public var opacity: Double = 1
-    public var diffuse: MaterialProperty?
+    public var diffuse: Optional<MaterialProperty>
+    public var metallicity: Optional<MaterialProperty>
+    public var roughness: Optional<MaterialProperty>
+    public var glow: Optional<MaterialProperty>
 }
 
 public extension Material {
     static let `default`: Material = .init()
 
     init(color: Color? = nil) {
-        self.diffuse = color.map { .color($0) }
+        self.init(
+            diffuse: color.map { .color($0) },
+            metallicity: nil,
+            roughness: nil,
+            glow: nil
+        )
     }
 
     var isOpaque: Bool {
         opacity > 0.999 && (color?.a ?? 1) > 0.999
     }
 
+    var isUniform: Bool {
+        diffuse?.texture == nil
+            && metallicity?.texture == nil
+            && roughness?.texture == nil
+            && glow?.texture == nil
+    }
+
     var color: Color? {
-        switch diffuse {
-        case let .color(color)?:
-            return color
-        case .texture, nil:
-            return nil
-        }
+        diffuse?.color
     }
 
     var texture: Texture? {
-        switch diffuse {
-        case let .texture(texture)?:
-            return texture
-        case .color, nil:
-            return nil
-        }
+        diffuse?.texture
     }
 }

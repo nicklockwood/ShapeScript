@@ -8,6 +8,7 @@
 --decimalgrouping ignore
 --ifdef no-indent
 --self init-only
+--shortoptionals except-properties
 --maxwidth 120
 
 # rules

@@ -45,7 +45,16 @@ public extension SCNMaterial {
         transparency = CGFloat(m.opacity)
 
         isDoubleSided = !isOpaque
-        transparencyMode = isOpaque ? .default : .dualLayer
+        transparencyMode = .dualLayer
+
+        m.glow?.configureProperty(emission)
+        if m.roughness != nil || m.metallicity != nil {
+            lightingModel = .physicallyBased
+            m.metallicity?.configureProperty(metalness)
+            m.roughness?.configureProperty(roughness)
+        } else {
+            lightingModel = .blinn
+        }
     }
 }
 
@@ -306,11 +315,7 @@ public extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let color as OSColor:
-            let color = Color(color)
-            guard color != .white else {
-                return nil
-            }
-            self = .color(color)
+            self = .color(Color(color))
         case let image as OSImage:
             guard let texture = Texture(image) else {
                 return nil
@@ -326,10 +331,25 @@ public extension MaterialProperty {
     }
 }
 
+private extension MaterialProperty {
+    func ifNot(_ color: Color) -> MaterialProperty? {
+        self == .color(color) ? nil : self
+    }
+}
+
 public extension Material {
     init?(_ scnMaterial: SCNMaterial) {
         opacity = Double(scnMaterial.transparency)
-        diffuse = MaterialProperty(scnMaterial.diffuse)
+        diffuse = MaterialProperty(scnMaterial.diffuse)?.ifNot(.white)
+        glow = MaterialProperty(scnMaterial.emission)?.ifNot(.black)
+        switch scnMaterial.lightingModel {
+        case .physicallyBased:
+            metallicity = MaterialProperty(scnMaterial.metalness)
+            roughness = MaterialProperty(scnMaterial.roughness)
+        default:
+            metallicity = nil
+            roughness = nil
+        }
     }
 }
 
