@@ -102,15 +102,6 @@ public extension Material {
         (opacity?.opacity ?? 1) > 0.999 && (albedo?.opacity ?? 1) > 0.999
     }
 
-    var isUniform: Bool {
-        opacity?.texture == nil
-            && texture == nil
-            && normals == nil
-            && metallicity?.texture == nil
-            && roughness?.texture == nil
-            && glow?.texture == nil
-    }
-
     var color: Color? {
         albedo?.color
     }

@@ -302,17 +302,9 @@ public extension Geometry {
         )
     }
 
-    // object graph shares a common color and no texture
+    @available(*, deprecated, message: "Do not use")
     func hasUniformMaterial(_ material: Material? = nil) -> Bool {
-        guard self.material.isUniform else {
-            return false
-        }
-        if material != nil, material != self.material {
-            return false
-        }
-        return children.allSatisfy {
-            $0.hasUniformMaterial(material ?? self.material)
-        }
+        hasUniformColor(material)
     }
 
     func with(
@@ -323,7 +315,7 @@ public extension Geometry {
         var material = material
         // If mesh has a non-uniform material, don't replace it with the current
         // scope material, otherwise do (TODO: is this logic correct/sufficient?)
-        if material != nil, !hasUniformMaterial() {
+        if material != nil, !hasUniformColor() {
             material?.albedo = nil
         }
         return _with(
@@ -392,6 +384,19 @@ extension Geometry {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
+    }
+
+    // object graph shares a common color and no texture
+    func hasUniformColor(_ material: Material? = nil) -> Bool {
+        guard self.material.texture == nil else {
+            return false
+        }
+        if material != nil, material?.albedo != self.material.albedo {
+            return false
+        }
+        return children.allSatisfy {
+            $0.hasUniformColor(material ?? self.material)
+        }
     }
 }
 
