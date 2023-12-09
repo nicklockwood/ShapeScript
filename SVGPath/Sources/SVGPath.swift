@@ -492,7 +492,7 @@ public extension SVGArc {
     func asBezierPath(from currentPoint: SVGPoint) -> [SVGCommand] {
         let px = currentPoint.x, py = currentPoint.y
         var rx = abs(radius.x), ry = abs(radius.y)
-        let xr = rotation
+        let xr = -rotation
         let largeArcFlag = largeArc
         let sweepFlag = sweep
         let cx = end.x, cy = end.y

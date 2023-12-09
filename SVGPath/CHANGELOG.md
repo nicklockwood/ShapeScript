@@ -1,3 +1,7 @@
+## [1.1.3](https://github.com/nicklockwood/LRUCache/releases/tag/1.1.3) (2023-12-09)
+
+- Fixed inverted arc rotation argument
+
 ## [1.1.3](https://github.com/nicklockwood/LRUCache/releases/tag/1.1.3) (2023-03-17)
 
 - Fixed bug with parsing paths that use a leading `+` as a delimiter between numbers
