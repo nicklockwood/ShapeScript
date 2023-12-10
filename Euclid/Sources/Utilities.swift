@@ -262,7 +262,7 @@ func pointsAreDegenerate(_ points: [Vector]) -> Bool {
     return false
 }
 
-// Note: assumes points are not degenerate
+/// Note: assumes points are not degenerate
 func pointsAreConvex(_ points: [Vector]) -> Bool {
     let count = points.count
     guard count > 3, let a = points.last else {
@@ -277,7 +277,7 @@ func pointsAreConvex(_ points: [Vector]) -> Bool {
         var n = ab.cross(bc)
         let length = n.length
         // check result is large enough to be reliable
-        if length > epsilon {
+        if length > planeEpsilon {
             n = n / length
             if let normal = normal {
                 if n.dot(normal) < 0 {

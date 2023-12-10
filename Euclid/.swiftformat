@@ -1,12 +1,20 @@
---hexgrouping ignore
---decimalgrouping ignore
---enable isEmpty
---ifdef no-indent
---self init-only
---wraparguments before-first
---wrapcollections before-first
---maxwidth 120
-
---lintonly unusedArguments
+# file options
 
 --exclude Build, Tests/XCTestManifests.swift
+
+# format options
+
+--hexgrouping ignore
+--decimalgrouping ignore
+--ifdef no-indent
+--self init-only
+--shortoptionals except-properties
+--wraparguments before-first
+--wrapcollections before-first
+--wrapconditions after-first
+--maxwidth 120
+
+# rules
+
+--lintonly unusedArguments
+--enable isEmpty, docComments
