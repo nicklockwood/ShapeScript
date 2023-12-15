@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 55;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -17,14 +17,14 @@
 		011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 011E57B429F57BBC00CA0778 /* WhatsNew.rtf */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
-		013A0FC1290905C40015FD28 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
-		013A0FC2290905C40015FD28 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; };
-		013A0FC3290905C40015FD28 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; };
-		013A0FC4290905C40015FD28 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; };
-		013A0FC6290905F70015FD28 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		013A0FC7290905F70015FD28 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		013A0FC8290905F70015FD28 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		013A0FC9290905F70015FD28 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		013A0FC1290905C40015FD28 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; platformFilters = (ios, xros, ); };
+		013A0FC2290905C40015FD28 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; platformFilters = (ios, xros, ); };
+		013A0FC3290905C40015FD28 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; platformFilters = (ios, xros, ); };
+		013A0FC4290905C40015FD28 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; platformFilters = (ios, xros, ); };
+		013A0FC6290905F70015FD28 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAC2321C149C300AF60DC /* Euclid.framework */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		013A0FC7290905F70015FD28 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01FDE3C026BD736700A46F66 /* LRUCache.framework */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		013A0FC8290905F70015FD28 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 010A905527FB222400D54A6F /* SVGPath.framework */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		013A0FC9290905F70015FD28 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; platformFilters = (ios, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		013DB0BE21C8731C00DFB0D2 /* StandardLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */; };
 		013FBF6A2834D7EF00EAF795 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013FBF692834D7EF00EAF795 /* Types.swift */; };
 		0144878B29F58F3E0050D4D2 /* Untitled.shape in Resources */ = {isa = PBXBuildFile; fileRef = 0183AAB728EC3AB200AD1984 /* Untitled.shape */; };
@@ -1231,22 +1231,38 @@
 		};
 		0183AA9028EC10CE00AD1984 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			target = 01BFB39521425C8500E47A7C /* ShapeScript Lib */;
 			targetProxy = 0183AA8F28EC10CE00AD1984 /* PBXContainerItemProxy */;
 		};
 		0183AA9228EC10CE00AD1984 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = Euclid;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			targetProxy = 0183AA9128EC10CE00AD1984 /* PBXContainerItemProxy */;
 		};
 		0183AA9428EC10CE00AD1984 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = LRUCache;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			targetProxy = 0183AA9328EC10CE00AD1984 /* PBXContainerItemProxy */;
 		};
 		0183AA9628EC10CE00AD1984 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = SVGPath;
+			platformFilters = (
+				ios,
+				xros,
+			);
 			targetProxy = 0183AA9528EC10CE00AD1984 /* PBXContainerItemProxy */;
 		};
 		019551B221B5897500292771 /* PBXTargetDependency */ = {
@@ -1277,6 +1293,12 @@
 		01FDE3CD26BD738C00A46F66 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = LRUCache;
+			platformFilters = (
+				ios,
+				macos,
+				tvos,
+				xros,
+			);
 			targetProxy = 01FDE3CC26BD738C00A46F66 /* PBXContainerItemProxy */;
 		};
 		01FDE3D126BD73B200A46F66 /* PBXTargetDependency */ = {
@@ -1395,9 +1417,11 @@
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
 			name = Debug;
 		};
@@ -1427,10 +1451,12 @@
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -1592,12 +1618,12 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3,6";
+				TARGETED_DEVICE_FAMILY = "1,2,3,6,7";
 			};
 			name = Debug;
 		};
@@ -1629,11 +1655,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
 				PRODUCT_NAME = ShapeScript;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3,6";
+				TARGETED_DEVICE_FAMILY = "1,2,3,6,7";
 			};
 			name = Release;
 		};

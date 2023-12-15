@@ -137,7 +137,9 @@ class TextView: UIScrollView {
         textView.showsVerticalScrollIndicator = true
         textView.alwaysBounceVertical = true
         textView.alwaysBounceHorizontal = false
+        #if os(iOS)
         textView.keyboardDismissMode = .interactive
+        #endif
         textView.autocorrectionType = .no
         textView.spellCheckingType = spellCheckingType
         textView.autocapitalizationType = .none

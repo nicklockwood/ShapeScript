@@ -384,7 +384,7 @@ private extension UITextField {
             label.font = self.font
             container.frame = self.textRect(forBounds: self.bounds)
             label.frame = container.bounds
-            if self.window?.screen.scale == 3, UIDevice.current.systemVersion
+            if self.window?.contentScaleFactor == 3, UIDevice.current.systemVersion
                 .compare("16", options: .numeric) == .orderedAscending
             {
                 // Fix for slight baseline misalignment on @3x displays

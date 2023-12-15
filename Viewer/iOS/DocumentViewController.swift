@@ -226,7 +226,9 @@ class DocumentViewController: UIViewController {
         navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
+        #if os(iOS)
         setNeedsStatusBarAppearanceUpdate()
+        #endif
     }
 
     func updateEditButton() {

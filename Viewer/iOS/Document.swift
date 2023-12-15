@@ -132,10 +132,8 @@ class Document: UIDocument {
 }
 
 extension Document: UIDocumentPickerDelegate {
-    func documentPicker(_: UIDocumentPickerViewController,
-                        didPickDocumentAt url: URL)
-    {
-        bookmarkURL(url)
+    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        urls.forEach(bookmarkURL)
         try? read(from: fileURL)
     }
 }
