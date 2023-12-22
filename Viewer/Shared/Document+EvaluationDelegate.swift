@@ -6,6 +6,7 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
 import Foundation
 import SceneKit
 import ShapeScript
@@ -36,6 +37,25 @@ extension Document: EvaluationDelegate {
             if FileManager.default.fileExists(atPath: newURL.path) {
                 url = newURL
             }
+        }
+        let data = try Data(contentsOf: url)
+        switch url.pathExtension.lowercased() {
+        case "stl":
+            if let mesh = Mesh(stlData: data, materialLookup: {
+                Material(color: $0)
+            }) {
+                return Geometry(
+                    type: .mesh(mesh),
+                    name: nil,
+                    transform: .identity,
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                )
+            }
+        default:
+            break
         }
         let scene = try SCNScene(url: url, options: [
             .flattenScene: false,
