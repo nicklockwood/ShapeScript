@@ -422,26 +422,29 @@ extension EvaluationContext {
                 }
                 throw RuntimeErrorType.importError(error, for: url, in: source)
             } catch {
-                var error: Error? = error
+                var error = error
                 while let nsError = error as NSError? {
                     if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
                         // Not a recognized model file format
                         break
                     }
-                    if let description = (
-                        nsError.userInfo[NSLocalizedRecoverySuggestionErrorKey] ??
-                            nsError.userInfo[NSLocalizedDescriptionKey]
-                    ) as? String {
+                    var underlyingError: Error?
+                    #if !os(Linux)
+                    if #available(macOS 11.3, iOS 14.5, tvOS 14.5, *) {
+                        underlyingError = nsError.underlyingErrors.first
+                    }
+                    #endif
+                    underlyingError = underlyingError ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
+                    if let underlyingError = underlyingError {
+                        error = underlyingError
+                    } else {
                         throw RuntimeErrorType.fileParsingError(
-                            for: path, at: url, message: description
+                            for: path, at: url, message: error.localizedDescription
                         )
                     }
-                    error = nsError.userInfo[NSUnderlyingErrorKey] as? Error
                 }
             }
-            throw RuntimeErrorType.fileTypeMismatch(
-                for: path, at: url, expected: nil
-            )
+            throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
         }
     }
 }
