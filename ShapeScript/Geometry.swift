@@ -303,8 +303,8 @@ public extension Geometry {
     }
 
     @available(*, deprecated, message: "Do not use")
-    func hasUniformMaterial(_ material: Material? = nil) -> Bool {
-        hasUniformColor(material)
+    func hasUniformMaterial(_: Material? = nil) -> Bool {
+        true
     }
 
     func with(
@@ -312,13 +312,7 @@ public extension Geometry {
         material: Material?,
         sourceLocation: @escaping () -> SourceLocation?
     ) -> Geometry {
-        var material = material
-        // If mesh has a non-uniform material, don't replace it with the current
-        // scope material, otherwise do (TODO: is this logic correct/sufficient?)
-        if material != nil, !hasUniformColor() {
-            material?.albedo = nil
-        }
-        return _with(
+        _with(
             name: nil,
             transform: transform,
             material: material,
@@ -384,19 +378,6 @@ extension Geometry {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
-    }
-
-    // object graph shares a common color and no texture
-    func hasUniformColor(_ material: Material? = nil) -> Bool {
-        guard self.material.texture == nil else {
-            return false
-        }
-        if material != nil, material?.albedo != self.material.albedo {
-            return false
-        }
-        return children.allSatisfy {
-            $0.hasUniformColor(material ?? self.material)
-        }
     }
 }
 
@@ -608,6 +589,7 @@ private extension Geometry {
             m.glow = material.glow ?? m.glow
             m.metallicity = material.metallicity ?? m.metallicity
             m.roughness = material.roughness ?? m.roughness
+            // Note: this only replaces the mesh base material, not merged mesh materials
             type = .mesh(mesh.replacing(self.material, with: m))
         }
         var transform = transform.map { self.transform * $0 } ?? self.transform
