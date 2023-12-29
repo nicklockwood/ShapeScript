@@ -13,12 +13,6 @@ import Foundation
 
 public let version = "1.8.0"
 
-public protocol EvaluationDelegate: AnyObject {
-    func resolveURL(for path: String) -> URL
-    func importGeometry(for url: URL) throws -> Geometry?
-    func debugLog(_ values: [AnyHashable])
-}
-
 public func evaluate(
     _ program: Program,
     delegate: EvaluationDelegate?,

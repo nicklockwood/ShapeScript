@@ -85,6 +85,7 @@
 		0183AAED28EC3ACB00AD1984 /* Settings+Editor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AAE128EC3ACB00AD1984 /* Settings+Editor.swift */; };
 		01977FCB215D0BD400D65D5E /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01977FCA215D0BD400D65D5E /* Scene.swift */; };
 		019853A228360F7500047DF2 /* TypesystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019853A128360F7500047DF2 /* TypesystemTests.swift */; };
+		01994BF82B3EB7EE004DE69C /* EvaluationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01994BF72B3EB7EE004DE69C /* EvaluationDelegate.swift */; };
 		01A6FE7D2AEF5BCB006AE113 /* Members.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FE7C2AEF5BCB006AE113 /* Members.swift */; };
 		01A6FE832AEF5D2A006AE113 /* MemberTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FE822AEF5D2A006AE113 /* MemberTests.swift */; };
 		01A6FECD2AF9ADB1006AE113 /* Material+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A6FECC2AF9ADB1006AE113 /* Material+SceneKit.swift */; };
@@ -391,6 +392,7 @@
 		0183AAE128EC3ACB00AD1984 /* Settings+Editor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Settings+Editor.swift"; sourceTree = "<group>"; };
 		01977FCA215D0BD400D65D5E /* Scene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
 		019853A128360F7500047DF2 /* TypesystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypesystemTests.swift; sourceTree = "<group>"; };
+		01994BF72B3EB7EE004DE69C /* EvaluationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationDelegate.swift; sourceTree = "<group>"; };
 		01A6FE7C2AEF5BCB006AE113 /* Members.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Members.swift; sourceTree = "<group>"; };
 		01A6FE822AEF5D2A006AE113 /* MemberTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberTests.swift; sourceTree = "<group>"; };
 		01A6FECC2AF9ADB1006AE113 /* Material+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Material+SceneKit.swift"; sourceTree = "<group>"; };
@@ -640,6 +642,7 @@
 				014F85D8215B890100461FB7 /* Interpreter.swift */,
 				01DE96702A082A6A0080DB79 /* ProgramError.swift */,
 				013312D221C9BBCC00626F1B /* EvaluationContext.swift */,
+				01994BF72B3EB7EE004DE69C /* EvaluationDelegate.swift */,
 				013DB0BD21C8731C00DFB0D2 /* StandardLibrary.swift */,
 				01BD943821936B90005FFAEC /* RandomSequence.swift */,
 				01FDE3D426BD766C00A46F66 /* GeometryCache.swift */,
@@ -1140,6 +1143,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01994BF82B3EB7EE004DE69C /* EvaluationDelegate.swift in Sources */,
 				01CF787226EA36AD0097907A /* String+Ordinals.swift in Sources */,
 				014F85D9215B890100461FB7 /* Interpreter.swift in Sources */,
 				01E3AA0526CB8E8200E0B287 /* Value+Logging.swift in Sources */,

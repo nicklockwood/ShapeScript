@@ -120,28 +120,6 @@ extension CLI: EvaluationDelegate {
         URL(fileURLWithPath: path, relativeTo: inputURL)
     }
 
-    func importGeometry(for url: URL) throws -> Geometry? {
-        var isDirectory: ObjCBool = false
-        _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        var url = url
-        if isDirectory.boolValue {
-            let newURL = url.appendingPathComponent(url.lastPathComponent)
-            if FileManager.default.fileExists(atPath: newURL.path) {
-                url = newURL
-            }
-        }
-        #if canImport(SceneKit)
-        let scene = try SCNScene(url: url, options: [
-            .flattenScene: false,
-            .createNormalsIfAbsent: true,
-            .convertToYUp: true,
-        ])
-        return try Geometry(scene.rootNode)
-        #else
-        return nil
-        #endif
-    }
-
     func debugLog(_ values: [AnyHashable]) {
         var spaceNeeded = false
         print(values.compactMap {

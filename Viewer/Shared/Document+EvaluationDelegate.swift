@@ -28,44 +28,6 @@ extension Document: EvaluationDelegate {
         return url
     }
 
-    func importGeometry(for url: URL) throws -> Geometry? {
-        var isDirectory: ObjCBool = false
-        _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        var url = url
-        if isDirectory.boolValue {
-            let newURL = url.appendingPathComponent(url.lastPathComponent)
-            if FileManager.default.fileExists(atPath: newURL.path) {
-                url = newURL
-            }
-        }
-        let data = try Data(contentsOf: url)
-        switch url.pathExtension.lowercased() {
-        case "stl":
-            if let mesh = Mesh(stlData: data, materialLookup: {
-                Material(color: $0)
-            }) {
-                return Geometry(
-                    type: .mesh(mesh),
-                    name: nil,
-                    transform: .identity,
-                    material: .default,
-                    smoothing: nil,
-                    children: [],
-                    sourceLocation: nil
-                )
-            }
-        default:
-            break
-        }
-        let scene = try SCNScene(url: url, options: [
-            .flattenScene: false,
-            .createNormalsIfAbsent: true,
-            .convertToYUp: true,
-            .preserveOriginalTopology: true,
-        ])
-        return try Geometry(scene.rootNode)
-    }
-
     func debugLog(_ values: [AnyHashable]) {
         let line: String
         if values.count == 1 {

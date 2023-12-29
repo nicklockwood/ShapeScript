@@ -17,10 +17,6 @@ class TestDelegate: EvaluationDelegate {
         self.directory = directory
     }
 
-    func importGeometry(for _: URL) throws -> Geometry? {
-        preconditionFailure()
-    }
-
     var imports = [String]()
     func resolveURL(for name: String) -> URL {
         imports.append(name)

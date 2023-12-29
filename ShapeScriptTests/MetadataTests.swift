@@ -608,7 +608,6 @@ class MetadataTests: XCTestCase {
 
     func testExamplesAllRunWithoutError() {
         class TestDelegate: EvaluationDelegate {
-            func importGeometry(for _: URL) throws -> Geometry? { nil }
             func debugLog(_: [AnyHashable]) {}
 
             func resolveURL(for name: String) -> URL {

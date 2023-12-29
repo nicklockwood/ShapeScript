@@ -17,6 +17,10 @@ import CoreGraphics
 import CoreText
 #endif
 
+#if canImport(SceneKit)
+import SceneKit
+#endif
+
 // MARK: Implementation
 
 public struct SourceLocation: Hashable {
@@ -328,6 +332,52 @@ extension EvaluationContext {
         #endif
     }
 
+    func importGeometry(at url: URL) throws -> Geometry? {
+        if let geometry = try delegate?.importGeometry(for: url) {
+            // Allow delegate to implement alternative loading mechanism, e.g. hard-coded geometry for testing
+            return geometry
+        }
+        switch url.pathExtension.lowercased() {
+        case "stl", "stla":
+            let data = try Data(contentsOf: url)
+            if let mesh = Mesh(stlData: data, materialLookup: {
+                Material(color: $0)
+            }) {
+                return Geometry(
+                    type: .mesh(mesh),
+                    name: nil,
+                    transform: .identity,
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                )
+            }
+        default:
+            break
+        }
+        var isDirectory: ObjCBool = false
+        _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        var url = url
+        if isDirectory.boolValue {
+            let newURL = url.appendingPathComponent(url.lastPathComponent)
+            if FileManager.default.fileExists(atPath: newURL.path) {
+                url = newURL
+            }
+        }
+        #if canImport(SceneKit)
+        let scene = try SCNScene(url: url, options: [
+            .flattenScene: false,
+            .createNormalsIfAbsent: true,
+            .convertToYUp: true,
+            .preserveOriginalTopology: true,
+        ])
+        return try Geometry(scene.rootNode)
+        #else
+        return nil
+        #endif
+    }
+
     func importFile(at path: String) throws -> Value {
         let url = try resolveURL(for: path)
         if importStack.contains(url) {
@@ -407,7 +457,7 @@ extension EvaluationContext {
             }
         default:
             do {
-                if let geometry = try delegate?.importGeometry(for: url)?.with(
+                if let geometry = try importGeometry(at: url)?.with(
                     transform: childTransform,
                     material: material,
                     sourceLocation: sourceLocation
