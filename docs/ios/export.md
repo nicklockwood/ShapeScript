@@ -23,7 +23,7 @@ obj                   | Wavefront Object                                 | No
 scn / scnz            | SceneKit Scene Document                          | Yes
 usd / usdz            | Universal Scene Description                      | No
 ply                   | Polygon File Format                              | No
-stl                   | Stereolithography                                | No
+stl / stla            | Stereolithography                                | No
 
 <br/>
 
@@ -41,7 +41,7 @@ You can import DAE files into a game development tool like Unity, or use USD(Z) 
 
 ## 3D Printing
 
-ShapeScript can export models in Stereolithography (STL) format, used by many 3D printing applications. 
+ShapeScript can export models in the Stereolithography (STL) format, used by many 3D printing applications. Both binary and ASCII STL files are supported, but binary is recommended for file size and compatibility reasons. To export as ASCII use the `.stla` file extension, but note that you may need to rename the extension to `.stl` for it to be recognized by some applications. 
 
 When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine all the parts of your model into a single shape, eliminating internal faces.
 
@@ -55,8 +55,12 @@ The following image formats are supported:
 
 Extension             | File Type                                         | Supports Transparency
 :---------------------| :-------------------------------------------------|:------------------------------
+gif                   | Graphics Interchange Format                       | Yes
 png                   | Portable Network Graphics                         | Yes
 jpg / jpeg            | Joint Photographic Experts Group                  | No
+jpf / jp2             | JPEG 2000                                         | Yes
+tif / tiff            | Tagged Image File Format                          | Yes 
+bmp                   | Bitmap                                            | No
 
 <br/>
 
