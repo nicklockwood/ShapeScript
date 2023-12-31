@@ -49,6 +49,7 @@ extension DocumentViewController {
     func resetView() {
         scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.pointOfView = cameraNode
+        scnView.antialiasingMode = (camera.settings?.antialiased ?? true) ? .multisampling4X : .none
         refreshView()
     }
 

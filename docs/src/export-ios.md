@@ -72,9 +72,9 @@ The size of the exported image defaults to the current window size at the curren
 
 ![Export size](../images/export-size.png)
 
-Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background).
+Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background). If you are planning to composite the image onto a different background later, you may wish to disable [antialiasing](cameras.md#antialiasing).
 
-When exporting an image (or exporting a model for non-realtime use), you may wish to use the `detail` command to increase the detail level. A detail level of 100 should be good enough for even a very large or high-resolution image, but this may take a long time to generate for a complex model.
+When exporting an image (or exporting a model for non-realtime use) you can improve the quality by using the `detail` command. A detail level of 100 should be good enough for even a very large or high-resolution image, but this can take a long time to generate/render.
 
 **Note:** Although ShapeScript can export images, for best results you should export as a 3D model and then import that into a [ray tracing](https://en.wikipedia.org/wiki/Ray_tracing_(graphics)) program that provides fine-grained control over scene lighting and camera placement.
 

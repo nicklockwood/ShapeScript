@@ -13,6 +13,7 @@ public struct Camera: Hashable {
     public var orientation: Rotation?
     public var scale: Vector?
     public var background: MaterialProperty?
+    public var antialiased: Bool
     public var fov: Angle?
     public var width: Double?
     public var height: Double?
@@ -20,9 +21,7 @@ public struct Camera: Hashable {
 
 public extension Camera {
     var hasPosition: Bool { position != nil }
-
     var hasOrientation: Bool { orientation != nil }
-
     var hasScale: Bool { scale != nil }
 }
 
@@ -37,7 +36,6 @@ public struct Light: Hashable {
 
 public extension Light {
     var hasPosition: Bool { position != nil }
-
     var hasOrientation: Bool { orientation != nil }
 }
 

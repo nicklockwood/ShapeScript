@@ -128,5 +128,20 @@ camera {
 }
 ```
 
+## Antialiasing
+
+ShapeScript uses an *antialiasing* technique called [multisampling](https://en.wikipedia.org/wiki/Multisample_anti-aliasing) to eliminate jagged, pixelated edges around shapes. This improves the quality of the rendered image without needing to increase the output size or resolution.
+
+Multisampling works by taking multiple color samples per pixel and blending them to prevent sudden discontinuities at pixel boundaries, but a consequence of this is that colors from the background can bleed into the edges of the foreground shape.
+
+For this reason, when exporting images for composition onto other backgrounds it may be desirable to turn off antialiasing. You can do this by setting the `antialiased` property of the camera to `false`:
+
+
+```swift
+camera {
+    antialiased false
+}
+```
+
 ---
 [Index](index.md) | Next: [Comments](comments.md)

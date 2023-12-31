@@ -304,7 +304,6 @@ class DocumentViewController: UIViewController {
         // configure the view
         containerView.backgroundColor = Document.backgroundColor
         scnView.backgroundColor = Document.backgroundColor
-        scnView.antialiasingMode = .multisampling4X // .multisampling16X
         scnView.defaultCameraController.delegate = self
         scnView.pointOfView = cameraNode
         updateInterfaceColor()

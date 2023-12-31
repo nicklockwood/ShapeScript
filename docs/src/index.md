@@ -94,6 +94,7 @@ ShapeScript Help
         - [Orthographic View](cameras.md#orthographic-view)
         - [Background](cameras.md#background)
         - [Pixel Dimensions](cameras.md#pixel-dimensions)
+        - [Antialiasing](cameras.md#antialiasing)
 - Syntax
     - [Comments](comments.md)
         - [Block Comments](comments.md#block-comments)

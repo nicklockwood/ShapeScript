@@ -166,7 +166,6 @@ class DocumentViewController: NSViewController {
 
         // configure the view
         scnView.backgroundColor = .clear
-        scnView.antialiasingMode = .multisampling16X
         scnView.pointOfView = cameraNode
         refreshGeometry()
 

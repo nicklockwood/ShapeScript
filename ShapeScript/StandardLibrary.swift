@@ -632,6 +632,7 @@ extension Dictionary where Key == String, Value == Symbol {
             "orientation": .rotation,
             "size": .size,
             "background": .colorOrTexture,
+            "antialiased": .boolean,
             "fov": .halfturns,
             "width": .number,
             "height": .number,
@@ -648,6 +649,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     orientation: orientation,
                     scale: scale,
                     background: context.value(for: "background")?.colorOrTextureValue,
+                    antialiased: context.value(for: "antialiased")?.boolValue ?? true,
                     fov: context.value(for: "fov")?.angleValue,
                     width: context.value(for: "width")?.doubleValue,
                     height: context.value(for: "height")?.doubleValue

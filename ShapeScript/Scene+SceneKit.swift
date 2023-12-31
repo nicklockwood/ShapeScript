@@ -287,6 +287,7 @@ public extension Geometry {
                 orientation: transform.rotation,
                 scale: isOrtho ? transform.scale : nil,
                 background: nil,
+                antialiased: true,
                 fov: .degrees(isOrtho ? 0 : Double(scnCamera.fieldOfView)),
                 width: nil,
                 height: nil

@@ -27,7 +27,8 @@ class GeometryTests: XCTestCase {
             type: .camera(Camera(
                 position: nil,
                 orientation: nil,
-                scale: nil
+                scale: nil,
+                antialiased: true
             )),
             name: nil,
             transform: Transform(
