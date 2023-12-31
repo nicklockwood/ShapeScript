@@ -737,7 +737,6 @@
 				01545353216AAC3A00EDF56E /* Copy Frameworks */,
 				019551B721B6BBD500292771 /* Unlock Examples */,
 				0152E5C3214500990082A5A3 /* Resources */,
-				019551AE21B57CA400292771 /* Lock Examples */,
 			);
 			buildRules = (
 			);
@@ -1005,25 +1004,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		019551AE21B57CA400292771 /* Lock Examples */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Lock Examples";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "chflags -R uchg \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/Examples/\"\n";
-		};
 		019551B721B6BBD500292771 /* Unlock Examples */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
