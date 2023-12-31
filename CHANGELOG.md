@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.8.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.1) (2023-12-31)
+
+- Improved color replacement for imported shapes
+- STL import now supports facet colors
+- Linux CLI now supports binary STL export
+- Improved reporting of system errors
+- Added `camera.antialiased` property
+- Bumped Euclid to version 0.7.3
+- Bumped SVGPath to version 1.1.4
+- Added visionOS support
+
 ## [1.8.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.0) (2023-11-25)
 
 - Added `switch/case` statements

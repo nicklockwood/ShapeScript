@@ -479,7 +479,7 @@ extension EvaluationContext {
                         break
                     }
                     var underlyingError: Error?
-                    #if !os(Linux)
+                    #if os(macOS) || os(iOS)
                     if #available(macOS 11.3, iOS 14.5, tvOS 14.5, *) {
                         underlyingError = nsError.underlyingErrors.first
                     }
