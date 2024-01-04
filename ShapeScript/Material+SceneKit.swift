@@ -49,7 +49,7 @@ public extension MaterialProperty {
                     property.intensity = intensity
                 }
             } else {
-                property.contents = 0
+                property.contents = OSColor.clear
             }
         }
     }
@@ -58,9 +58,27 @@ public extension MaterialProperty {
 public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool) {
         self.init()
-        m.albedo?.configureProperty(diffuse)
         m.normals.flatMap(MaterialProperty.init)?.configureProperty(normal)
         m.opacity?.configureProperty(transparent)
+        if case let .color(albedo)? = m.albedo, albedo.a < 1 {
+            // Workaround for SceneKit blending bugs with translucent colors
+            diffuse.contents = OSColor(albedo.withAlpha(1))
+            switch m.opacity {
+            case let .texture(texture):
+                let intensity = texture.intensity * albedo.a
+                if intensity > 0 {
+                    transparent.intensity = intensity
+                } else {
+                    transparent.contents = 0
+                }
+            case let .color(color):
+                transparent.contents = color.a * albedo.a
+            case nil:
+                transparent.contents = albedo.a
+            }
+        } else {
+            m.albedo?.configureProperty(diffuse)
+        }
 
         isDoubleSided = !isOpaque
         transparencyMode = .dualLayer

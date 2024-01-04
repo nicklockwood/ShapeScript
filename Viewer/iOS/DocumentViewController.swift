@@ -303,7 +303,7 @@ class DocumentViewController: UIViewController {
 
         // configure the view
         containerView.backgroundColor = Document.backgroundColor
-        scnView.backgroundColor = Document.backgroundColor
+        scnView.backgroundColor = .clear // Important!
         scnView.defaultCameraController.delegate = self
         scnView.pointOfView = cameraNode
         updateInterfaceColor()
