@@ -11,8 +11,11 @@ import ShapeScript
 
 private var _processID = 0
 
+typealias LoadingTask = (LoadingProgress) throws -> Void
+
 final class LoadingProgress {
-    private let queue: DispatchQueue
+    private var thread: Thread?
+    private var queue: [LoadingTask] = []
     private let observer: (Status) -> Void
     private(set) var status: Status = .waiting
     private(set) var id: Int = {
@@ -22,8 +25,9 @@ final class LoadingProgress {
 
     init(observer: @escaping (Status) -> Void) {
         self.observer = observer
-        self.queue = DispatchQueue(label: "shapescript.progress.\(id)")
-        queue.async { self.setStatus(.waiting) }
+        dispatch { _ in
+            self.setStatus(.waiting)
+        }
     }
 
     deinit {
@@ -84,16 +88,29 @@ extension LoadingProgress {
         }
     }
 
-    func dispatch(_ block: @escaping (LoadingProgress) throws -> Void) {
-        queue.async { [weak self] in
-            guard let self = self else {
-                return
-            }
+    func dispatch(_ block: @escaping LoadingTask) {
+        DispatchQueue.main.async { [weak self] in
+            self?.queue.append(block)
+        }
+        if thread?.isExecuting == true {
+            return
+        }
+        thread = Thread { [weak self] in
             do {
-                try block(self)
+                while let task = DispatchQueue.main.sync(execute: { [weak self] () -> LoadingTask? in
+                    guard let self = self, !self.queue.isEmpty else {
+                        return nil
+                    }
+                    return self.queue.removeFirst()
+                }), let self = self {
+                    try task(self)
+                }
             } catch {
-                self.setStatus(.failure(ProgramError(error)))
+                self?.setStatus(.failure(ProgramError(error)))
             }
         }
+        thread?.name = "shapescript.progress.\(id)"
+        thread?.stackSize = 4 * 1024 * 1024
+        thread?.start()
     }
 }
