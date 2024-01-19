@@ -396,6 +396,31 @@ extension RuntimeErrorType {
         }
         return unusedValue(type: typeDescription)
     }
+
+    static func fileError(_ error: Error, for path: String, at url: URL) -> RuntimeErrorType {
+        var error = error
+        while let nsError = error as NSError? {
+            if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
+                // Not a recognized model file format
+                break
+            }
+            var underlyingError: Error?
+            #if !os(Linux)
+            if #available(macOS 11.3, iOS 14.5, tvOS 14.5, *) {
+                underlyingError = nsError.underlyingErrors.first
+            }
+            #endif
+            underlyingError = underlyingError ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
+            if let underlyingError = underlyingError {
+                error = underlyingError
+            } else {
+                break
+            }
+        }
+        return RuntimeErrorType.fileParsingError(
+            for: path, at: url, message: error.localizedDescription
+        )
+    }
 }
 
 private extension RuntimeError {

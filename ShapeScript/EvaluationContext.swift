@@ -265,16 +265,22 @@ extension EvaluationContext {
         // TODO: move this logic out of EvaluationContext into delegate
         // so we can more easily mock the filesystem for testing purposes
         let isRemote = isUndownloadedUbiquitousFile(url)
-        #if os(macOS)
+        #if !os(iOS)
         // macOS can check for existence of files even without access permission
         guard isRemote || fileManager.fileExists(atPath: url.path) else {
             throw RuntimeErrorType.fileNotFound(for: path, at: url)
         }
         #endif
         let directory = url.deletingLastPathComponent()
-        guard isRemote || fileManager.isReadableFile(atPath: url.path) ||
-            fileManager.isReadableFile(atPath: directory.path)
-        else {
+        guard isRemote || fileManager.isReadableFile(atPath: url.path) else {
+            if fileManager.isReadableFile(atPath: directory.path) {
+                do {
+                    // Attempt to read file
+                    _ = try Data(contentsOf: url)
+                } catch {
+                    throw RuntimeErrorType.fileError(error, for: path, at: url)
+                }
+            }
             throw RuntimeErrorType.fileAccessRestricted(for: path, at: directory)
         }
         guard isRemote || fileManager.fileExists(atPath: url.path) else {
@@ -465,6 +471,7 @@ extension EvaluationContext {
                 ) {
                     return .mesh(geometry)
                 }
+                throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
             } catch let error as ProgramError {
                 guard let source = try? String(contentsOf: url) else {
                     throw RuntimeErrorType.fileParsingError(
@@ -473,29 +480,8 @@ extension EvaluationContext {
                 }
                 throw RuntimeErrorType.importError(error, for: url, in: source)
             } catch {
-                var error = error
-                while let nsError = error as NSError? {
-                    if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
-                        // Not a recognized model file format
-                        break
-                    }
-                    var underlyingError: Error?
-                    #if !os(Linux)
-                    if #available(macOS 11.3, iOS 14.5, tvOS 14.5, *) {
-                        underlyingError = nsError.underlyingErrors.first
-                    }
-                    #endif
-                    underlyingError = underlyingError ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
-                    if let underlyingError = underlyingError {
-                        error = underlyingError
-                    } else {
-                        throw RuntimeErrorType.fileParsingError(
-                            for: path, at: url, message: error.localizedDescription
-                        )
-                    }
-                }
+                throw RuntimeErrorType.fileError(error, for: path, at: url)
             }
-            throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
         }
     }
 }
