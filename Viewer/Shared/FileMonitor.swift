@@ -70,8 +70,8 @@ class FileMonitor {
 
     deinit {
         timer?.invalidate()
-        securityScopedResources.forEach {
-            $0.stopAccessingSecurityScopedResource()
+        for resource in securityScopedResources {
+            resource.stopAccessingSecurityScopedResource()
         }
     }
 }

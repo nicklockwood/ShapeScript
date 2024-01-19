@@ -10,10 +10,12 @@ import ShapeScript
 
 #if canImport(UIKit)
 import UIKit
+
 typealias OSColor = UIColor
 typealias OSFont = UIFont
 #else
 import Cocoa
+
 typealias OSColor = NSColor
 typealias OSFont = NSFont
 #endif

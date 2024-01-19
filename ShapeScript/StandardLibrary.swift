@@ -294,10 +294,8 @@ extension Dictionary where Key == String, Value == Symbol {
         },
         // debug
         "debug": .block(.group) { context in
-            context.children.forEach {
-                if case let .mesh(geometry) = $0 {
-                    geometry.debug = true
-                }
+            for case let .mesh(geometry) in context.children {
+                geometry.debug = true
             }
             if context.children.count == 1,
                case let .mesh(child) = context.children[0]

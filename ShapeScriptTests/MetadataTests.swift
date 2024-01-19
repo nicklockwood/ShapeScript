@@ -47,7 +47,7 @@ private let exampleURLs: [URL] = try! FileManager.default
     .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
     .filter { $0.pathExtension == "shape" }
 
-private let shapeScriptVersion: String = {
+private let projectVersion: String = {
     let string = try! String(contentsOf: projectURL)
     let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
     let end = string.range(of: ";", range: start ..< string.endIndex)!.lowerBound
@@ -118,7 +118,7 @@ private let footerLinks: [(String, String)] = [
 
 private let versions: [String] = {
     let fm = FileManager.default
-    var versions = Set([shapeScriptVersion])
+    var versions = Set([projectVersion])
     let files = try! fm.contentsOfDirectory(atPath: helpDirectory.path)
     for file in files where file.hasPrefix("1.") {
         versions.insert(file)
@@ -158,29 +158,38 @@ private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]*)\\)", o
 class MetadataTests: XCTestCase {
     // MARK: Releases
 
-    func testLatestVersionInChangelog() {
-        let changelog = try! String(contentsOf: changelogURL, encoding: .utf8)
-        XCTAssertTrue(changelog.contains("[\(shapeScriptVersion)]"), "CHANGELOG.md does not mention latest release")
+    func testProjectVersionMatchesChangelog() throws {
+        let changelog = try String(contentsOf: changelogURL, encoding: .utf8)
+        let range = try XCTUnwrap(changelog.range(of: "releases/tag/"))
         XCTAssertTrue(
-            changelog.contains("(https://github.com/nicklockwood/ShapeScript/releases/tag/\(shapeScriptVersion))"),
+            changelog[range.upperBound...].hasPrefix(projectVersion),
+            "Project version \(projectVersion) does not match most recent tag in CHANGELOG.md"
+        )
+    }
+
+    func testLatestVersionInChangelog() throws {
+        let changelog = try String(contentsOf: changelogURL, encoding: .utf8)
+        XCTAssertTrue(changelog.contains("[\(projectVersion)]"), "CHANGELOG.md does not mention latest release")
+        XCTAssertTrue(
+            changelog.contains("(https://github.com/nicklockwood/ShapeScript/releases/tag/\(projectVersion))"),
             "CHANGELOG.md does not include correct link for latest release"
         )
     }
 
-    func testLatestVersionInPodspec() {
-        let podspec = try! String(contentsOf: podspecURL, encoding: .utf8)
+    func testLatestVersionInPodspec() throws {
+        let podspec = try String(contentsOf: podspecURL, encoding: .utf8)
         XCTAssertTrue(
-            podspec.contains("\"version\": \"\(shapeScriptVersion)\""),
+            podspec.contains("\"version\": \"\(projectVersion)\""),
             "Podspec version does not match latest release"
         )
         XCTAssertTrue(
-            podspec.contains("\"tag\": \"\(shapeScriptVersion)\""),
+            podspec.contains("\"tag\": \"\(projectVersion)\""),
             "Podspec tag does not match latest release"
         )
     }
 
     func testVersionConstantUpdated() {
-        XCTAssertEqual(ShapeScript.version, shapeScriptVersion)
+        XCTAssertEqual(ShapeScript.version, projectVersion)
     }
 
     func testChangelogDatesAreAscending() throws {
@@ -202,7 +211,7 @@ class MetadataTests: XCTestCase {
     }
 
     func testUpdateWhatsNew() throws {
-        let changelog = try! String(contentsOf: changelogURL, encoding: .utf8)
+        let changelog = try String(contentsOf: changelogURL, encoding: .utf8)
         var releases = [(version: String, date: String, notes: [String])]()
         var notes = [String]()
         for line in changelog.split(separator: "\n") {
@@ -550,9 +559,9 @@ class MetadataTests: XCTestCase {
 
     func testExportVersionedHelp() throws {
         let fm = FileManager.default
-        let outputDirectory = helpDirectory.appendingPathComponent(shapeScriptVersion)
+        let outputDirectory = helpDirectory.appendingPathComponent(projectVersion)
         guard fm.fileExists(atPath: outputDirectory.path) else {
-            XCTFail("Help directory for \(shapeScriptVersion) not found")
+            XCTFail("Help directory for \(projectVersion) not found")
             return
         }
         let attrs = try fm.attributesOfItem(atPath: outputDirectory.path)

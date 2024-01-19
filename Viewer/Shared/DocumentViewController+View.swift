@@ -74,8 +74,8 @@ extension DocumentViewController {
         }
 
         // create geometry
-        geometry.children.forEach {
-            scnScene.rootNode.addChildNode(SCNNode($0))
+        for child in geometry.children {
+            scnScene.rootNode.addChildNode(SCNNode(child))
         }
 
         // restore selection

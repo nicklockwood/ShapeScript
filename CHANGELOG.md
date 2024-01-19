@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.8.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.2) (2024-01-20)
+
+- Fixed alpha blending bugs in rendered images
+- Uniform vertex colors are now converted to a material
+- Improved error messaging for file access errors
+- Increased stack limit to prevent overflow for trivial recursion
+- Fixed double application of local transform to imported shapes
+- Fixed double application of local transform in functions
+- Bumped Euclid to version 0.7.4
+- Bumped LRUCache to version 1.0.5
+
 ## [1.8.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.1) (2023-12-31)
 
 - Improved color replacement for imported shapes

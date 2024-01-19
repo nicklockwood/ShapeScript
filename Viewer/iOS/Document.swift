@@ -113,8 +113,8 @@ class Document: UIDocument {
         loadingProgress?.cancel()
         super.close { hasChanges in
             completionHandler?(hasChanges)
-            self.securityScopedResources.forEach {
-                $0.stopAccessingSecurityScopedResource()
+            for resource in self.securityScopedResources {
+                resource.stopAccessingSecurityScopedResource()
             }
         }
     }
