@@ -884,7 +884,7 @@ extension EvaluationContext {
             case let .polygon(p):
                 children.append(.polygon(p
                         .transformed(by: childTransform)
-                        .withMaterial(material)))
+                        .fixupColors(material: material)))
             case let .path(path):
                 children.append(.path(path.transformed(by: childTransform)))
             case _ where childTypes.subtypes.contains(.text):

@@ -648,6 +648,27 @@ private extension Collection where Element == Path {
     }
 }
 
+extension Polygon {
+    func fixupColors(material: ShapeScript.Material) -> Polygon {
+        guard material.texture == nil else {
+            return withMaterial(material)
+        }
+        var current: Color?
+        for point in vertices {
+            if current == nil {
+                current = point.color
+            } else if point.color != current {
+                var material = material
+                material.albedo = .color(.white)
+                return withMaterial(material)
+            }
+        }
+        var material = material
+        material.albedo = (current ?? material.color).map { .color($0) }
+        return mapVertexColors { _ in nil }.withMaterial(material)
+    }
+}
+
 // MARK: Stats
 
 public extension Geometry {
