@@ -11,7 +11,10 @@ import UIKit
 func loadRTF(_ file: String) throws -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
     let data = try! Data(contentsOf: file)
-    return try NSAttributedString(data: data, documentAttributes: nil)
+    let string = try NSMutableAttributedString(data: data, documentAttributes: nil)
+    let range = NSRange(location: 0, length: string.length)
+    string.addAttributes([.foregroundColor: UIColor.label], range: range)
+    return string
 }
 
 class WhatsNewViewController: UIViewController {
