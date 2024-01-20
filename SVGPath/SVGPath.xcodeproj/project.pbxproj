@@ -10,6 +10,7 @@
 		0148ECA82789C44D00B3F836 /* SVGPath+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0148ECA72789C44D00B3F836 /* SVGPath+CoreGraphics.swift */; };
 		0148ECAA2789CA5B00B3F836 /* CGPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0148ECA92789CA5B00B3F836 /* CGPathTests.swift */; };
 		0162A09923795EB30078AE84 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* SVGPath.framework */; };
+		01E677802B5BE299005594D6 /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E6777F2B5BE299005594D6 /* MetadataTests.swift */; };
 		0A240137256A64FB00C1535C /* SVGPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A240136256A64FB00C1535C /* SVGPathTests.swift */; };
 		0A24013F256A671600C1535C /* SVGPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A24013E256A671600C1535C /* SVGPath.swift */; };
 /* End PBXBuildFile section */
@@ -31,6 +32,7 @@
 		016FAB2D21BFE78100AF60DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		016FAB3221BFE78100AF60DC /* SVGPathTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SVGPathTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		016FAB3921BFE78100AF60DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		01E6777F2B5BE299005594D6 /* MetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		0A240136256A64FB00C1535C /* SVGPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGPathTests.swift; sourceTree = "<group>"; };
 		0A24013E256A671600C1535C /* SVGPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGPath.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -97,6 +99,7 @@
 			children = (
 				0A240136256A64FB00C1535C /* SVGPathTests.swift */,
 				0148ECA92789CA5B00B3F836 /* CGPathTests.swift */,
+				01E6777F2B5BE299005594D6 /* MetadataTests.swift */,
 				016FAB3921BFE78100AF60DC /* Info.plist */,
 			);
 			path = Tests;
@@ -266,6 +269,7 @@
 			files = (
 				0148ECAA2789CA5B00B3F836 /* CGPathTests.swift in Sources */,
 				0A240137256A64FB00C1535C /* SVGPathTests.swift in Sources */,
+				01E677802B5BE299005594D6 /* MetadataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,7 +444,8 @@
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,6,7";
@@ -476,7 +481,8 @@
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,3,6,7";
 			};
