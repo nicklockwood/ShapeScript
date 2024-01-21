@@ -3756,6 +3756,26 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
+    func testCustomFunctionDoesntDoubleApplyTransform() {
+        let program = """
+        define foo() {
+            mesh {
+                polygon{
+                    point 1 0
+                    point 0.5 1
+                    point 0 0
+                }
+            }
+        }
+        translate 1
+        foo
+        """
+        let context = EvaluationContext(source: program, delegate: nil)
+        XCTAssertNoThrow(try parse(program).evaluate(in: context))
+        let mesh = context.children.first?.value as? Geometry
+        XCTAssertEqual(mesh?.transform.offset, Vector(1, 0, 0))
+    }
+
     // MARK: Text command
 
     func testNumberConvertedToText() {

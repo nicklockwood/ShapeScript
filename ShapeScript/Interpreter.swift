@@ -630,12 +630,14 @@ extension Definition {
                     let oldSymbols = context.userSymbols
                     let oldSource = context.source
                     let oldBaseURL = context.baseURL
+                    let wasFunctionScope = context.isFunctionScope
                     context.children = []
                     context.childTypes = .any
                     context.source = declarationContext.source
                     context.baseURL = declarationContext.baseURL
                     context.userSymbols = declarationContext.userSymbols
                     context.stackDepth += 1
+                    context.isFunctionScope = true
                     defer {
                         context.children = oldChildren
                         context.childTypes = oldChildTypes
@@ -643,6 +645,7 @@ extension Definition {
                         context.baseURL = oldBaseURL
                         context.userSymbols = oldSymbols
                         context.stackDepth -= 1
+                        context.isFunctionScope = wasFunctionScope
                     }
                     if context.stackDepth > 25 {
                         throw RuntimeErrorType.assertionFailure("Too much recursion")
@@ -845,6 +848,7 @@ extension Definition {
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
         if let value = try value.as(childTypes, in: self) {
+            let childTransform: Transform = isFunctionScope ? .identity : self.childTransform
             switch value {
             case let .mesh(m):
                 children.append(.mesh(m.transformed(by: childTransform)))
