@@ -459,7 +459,7 @@ extension EvaluationContext {
         default:
             do {
                 if let geometry = try importGeometry(at: url)?.with(
-                    transform: childTransform,
+                    transform: .identity,
                     material: material,
                     sourceLocation: sourceLocation
                 ) {
