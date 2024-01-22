@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:/Users/nick/Dropbox/Open Source (GIT)/LRUCache/LRUCache.xcodeproj">
+      location = "self:">
    </FileRef>
 </Workspace>

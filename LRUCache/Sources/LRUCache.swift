@@ -33,7 +33,7 @@
 
 import Foundation
 
-#if os(iOS) || os(tvOS)
+#if canImport(UIKit) && !os(watchOS)
 import UIKit
 
 /// Notification that cache should be cleared
@@ -190,6 +190,7 @@ public extension LRUCache {
         values.removeAll()
         head = nil
         tail = nil
+        totalCost = 0
         lock.unlock()
     }
 }
