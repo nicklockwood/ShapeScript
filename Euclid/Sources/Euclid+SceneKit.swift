@@ -100,7 +100,7 @@ public extension SCNQuaternion {
     /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
     /// careful to avoid type ambiguity when using this value.
     init(_ rotation: Rotation) {
-        self.init(rotation.quaternion)
+        self.init(rotation.x, rotation.y, rotation.z, rotation.w)
     }
 
     /// Creates a new SceneKit quaternion from a Euclid `Quaternion`
@@ -108,6 +108,7 @@ public extension SCNQuaternion {
     ///
     /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
     /// careful to avoid type ambiguity when using this value.
+    @available(*, deprecated)
     init(_ quaternion: Quaternion) {
         self.init(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
     }
@@ -135,7 +136,7 @@ public extension SCNNode {
     }
 }
 
-private func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
+func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
     switch material {
     case let scnMaterial as SCNMaterial:
         return scnMaterial
@@ -504,12 +505,13 @@ public extension Vector {
 
 public extension Rotation {
     /// Creates a rotation from a SceneKit quaternion.
-    /// - Parameter quaternion: The `SCNQuaternion` to convert.
-    init(_ quaternion: SCNQuaternion) {
-        self.init(.init(quaternion))
+    /// - Parameter q: The `SCNQuaternion` to convert.
+    init(_ q: SCNQuaternion) {
+        self.init(Double(q.x), Double(q.y), Double(q.z), Double(q.w))
     }
 }
 
+@available(*, deprecated)
 public extension Quaternion {
     /// Creates a Euclid `Quaternion` from a SceneKit quaternion.
     /// - Parameter q: The `SCNQuaternion` to convert.
@@ -784,7 +786,7 @@ public extension Mesh {
     }
 
     @available(*, deprecated, renamed: "init(_:materialLookup:)")
-    init?(scnGeometry: SCNGeometry, materialLookup: MaterialProvider? = nil) {
+    init?(scnGeometry: SCNGeometry, materialLookup: SCNMaterialProvider? = nil) {
         self.init(scnGeometry, materialLookup: materialLookup)
     }
 }
