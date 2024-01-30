@@ -19,6 +19,7 @@ class TextView: UIScrollView {
     private let gutterView = LineNumberView()
     private var lineCount = 0
     private var lastSpaceIndex: Int?
+    private var updateLock: Int = 0
     fileprivate var currentAction: TextAction?
     let textView: UITextView
 
@@ -51,12 +52,26 @@ class TextView: UIScrollView {
 
     var indentNewLines: Bool = true
 
+    var showInvisibleCharacters: Bool = false {
+        didSet {
+            layoutManager.invalidateDisplay(forCharacterRange: NSRange(
+                location: 0,
+                length: (textView.text as NSString).length
+            ))
+            setNeedsLayout()
+        }
+    }
+
     var spellCheckingType: UITextSpellCheckingType = .no {
         didSet {
             textView.spellCheckingType = spellCheckingType
             // Workaround for spellcheck mode not updating
             textView.reloadInputViews()
         }
+    }
+
+    var disableAutocorrection: Bool = true {
+        didSet { updateAutocorrectOptions() }
     }
 
     var disableDoubleSpacePeriodShortcut: Bool = false
@@ -137,12 +152,10 @@ class TextView: UIScrollView {
         textView.showsVerticalScrollIndicator = true
         textView.alwaysBounceVertical = true
         textView.alwaysBounceHorizontal = false
-        #if os(iOS)
+        #if !os(visionOS)
         textView.keyboardDismissMode = .interactive
         #endif
-        textView.autocorrectionType = .no
         textView.spellCheckingType = spellCheckingType
-        textView.autocapitalizationType = .none
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
@@ -151,15 +164,25 @@ class TextView: UIScrollView {
         textView.delegate = self
         textView.textDragDelegate = self
         textView.textDropDelegate = self
+        updateAutocorrectOptions()
         addSubview(textView)
         gutterView.font = UIFontMetrics.default.scaledFont(for: font)
-        gutterView.backgroundColor = .secondarySystemBackground
+        gutterView.backgroundColor = textView.backgroundColor
         gutterView.contentMode = .right
         gutterView.isHidden = true
         addSubview(gutterView)
         avoidKeyboard()
         updateLineCount()
         updateInsets()
+
+        if #available(iOS 16.0, *) {
+            textView.isFindInteractionEnabled = true
+        }
+    }
+
+    private func updateAutocorrectOptions() {
+        textView.autocorrectionType = .no // disableAutocorrection ? .no : .default
+        textView.autocapitalizationType = disableAutocorrection ? .none : .sentences
     }
 
     private var previousSize: CGSize = .zero
@@ -242,6 +265,8 @@ private extension TextView {
             bottom: _contentInset.bottom + safeAreaInsets.bottom,
             right: _contentInset.right + safeAreaInsets.right
         )
+        layoutManager.font = UIFontMetrics.default.scaledFont(for: font)
+        layoutManager.drawInvisibleChars = showInvisibleCharacters
         if showLineNumbers {
             layoutManager.gutterWidth = ceil(String(lineCount).size(withAttributes: [
                 .font: UIFontMetrics.default.scaledFont(for: font),
@@ -365,9 +390,10 @@ private final class _UITextView: UITextView {
         let line = textStorage.mutableString.substring(
             with: NSRange(location: lineStart, length: offset - lineStart)
         )
-        rect.origin.x = max(rect.origin.x, (line as NSString).size(
+        let x = max(rect.origin.x, (line as NSString).size(
             withAttributes: font.map { [.font: $0] } ?? [:]
         ).width)
+        rect.origin.x = x.isFinite ? x : 0
         return rect
     }
 }
@@ -469,7 +495,9 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         } else {
             textView.textStorage.mutableString.replaceCharacters(in: range, with: text)
         }
+        updateLock += 1
         textView.selectedRange = NSRange(location: newRange.upperBound, length: 0)
+        updateLock -= 1
         if showLineNumbers {
             updateLineCount(oldText: oldText, newText: text)
         }
@@ -515,6 +543,9 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         shouldChangeTextIn range: NSRange,
         replacementText text: String
     ) -> Bool {
+        if updateLock > 0 {
+            return false
+        }
         lastSpaceIndex = nil
         guard undoManager?.isUndoing != true,
               undoManager?.isRedoing != true
@@ -641,6 +672,18 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
 }
 
 extension TextView: NSLayoutManagerDelegate {
+    func layoutManager(
+        _ layoutManager: NSLayoutManager,
+        shouldUse action: NSLayoutManager.ControlCharacterAction,
+        forControlCharacterAt characterIndex: Int
+    ) -> NSLayoutManager.ControlCharacterAction {
+        if action.contains(.lineBreak) {
+            let glyphIndex = layoutManager.glyphIndexForCharacter(at: characterIndex)
+            layoutManager.setNotShownAttribute(false, forGlyphAt: glyphIndex)
+        }
+        return action
+    }
+
     func layoutManager(_: NSLayoutManager, didCompleteLayoutFor _: NSTextContainer?,
                        atEnd _: Bool)
     {
@@ -712,9 +755,11 @@ private class LayoutManager: NSLayoutManager {
     private var lastParaLocation: Int = 0
     private var lastParaNumber: Int = 0
 
+    var font: UIFont?
     var gutterWidth: CGFloat = 0
     private(set) var indexRects: [Int: CGRect] = [:]
     private var indexRectsNeedUpdate: Bool = false
+    var drawInvisibleChars = false
 
     func invalidateIndexRects() {
         indexRectsNeedUpdate = true
@@ -751,6 +796,10 @@ private class LayoutManager: NSLayoutManager {
         var gutterRect: CGRect = .zero
         var paraNumber = 0
         let text = textStorage?.mutableString ?? ""
+        let atts: [NSAttributedString.Key: Any] = [
+            .font: font ?? .preferredFont(forTextStyle: .body),
+            .foregroundColor: UIColor.tertiaryLabel,
+        ]
 
         if indexRectsNeedUpdate {
             indexRects.removeAll()
@@ -759,13 +808,14 @@ private class LayoutManager: NSLayoutManager {
 
         enumerateLineFragments(
             forGlyphRange: glyphsToShow
-        ) { rect, _, _, glyphRange, _ in
+        ) { rect, _, textContainer, glyphRange, _ in
             let charRange = self.characterRange(
                 forGlyphRange: glyphRange,
                 actualGlyphRange: nil
             )
-            let paraRange = text.paragraphRange(for: charRange)
 
+            // Calculate line number offsets
+            let paraRange = text.paragraphRange(for: charRange)
             if charRange.location == paraRange.location {
                 paraNumber = self.paraNumber(for: charRange, in: text)
                 gutterRect = CGRect(
@@ -775,6 +825,44 @@ private class LayoutManager: NSLayoutManager {
                     height: rect.size.height
                 )
                 self.indexRects[paraNumber + 1] = gutterRect
+            }
+
+            // Draw invisible characters
+            if self.drawInvisibleChars {
+                text.enumerateSubstrings(
+                    in: charRange,
+                    options: .byComposedCharacterSequences
+                ) { string, range, _, _ in
+                    let symbol: String
+                    switch string {
+                    case "\t":
+                        symbol = "\u{21E5}"
+                    case " ":
+                        symbol = "\u{00B7}" // "\u{2423}"
+                    case let char? where char.first?.isNewline == true:
+                        symbol = "\u{00B6}"
+                    case let string:
+                        guard let char = string?.unicodeScalars.first,
+                              CharacterSet.controlCharacters.contains(char) ||
+                              CharacterSet.whitespaces.contains(char)
+                        else {
+                            return
+                        }
+                        symbol = "█" // "\u{00B7}"
+                    }
+                    let characterRect = self.boundingRect(
+                        forGlyphRange: range,
+                        in: textContainer
+                    )
+                    guard characterRect.origin.x > 0 else {
+                        // Workaround for spurious \n on last line
+                        return
+                    }
+                    symbol.draw(
+                        in: characterRect.offsetBy(dx: origin.x, dy: origin.y),
+                        withAttributes: atts
+                    )
+                }
             }
         }
 
