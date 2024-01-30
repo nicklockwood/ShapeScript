@@ -13,6 +13,11 @@ import XCTest
 class InterpreterTests: XCTestCase {
     // MARK: Random numbers
 
+    func testRandomSeedTruncation() {
+        let random = RandomSequence(seed: Double(Int.max))
+        XCTAssert(random.seed < Double(Int.max))
+    }
+
     func testRandomNumberConsistency() {
         let context = EvaluationContext(source: "", delegate: nil)
         XCTAssertEqual(context.random.seed, 0)
