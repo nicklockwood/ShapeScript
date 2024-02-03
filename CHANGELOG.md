@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.8.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.3) (2024-02-03)
+
+- Fixed file access bug for iCloud hosted files
+- Fixed issue where initial seed for random sequence wasn't truncated to correct range
+- Updated iOS TextView with some bug fixes
+- Bumped Euclid to version 0.7.6
+- Bumped LRUCache to version 1.0.7
+
 ## [1.8.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.2) (2024-01-20)
 
 - Fixed alpha blending bugs in rendered images
