@@ -13,7 +13,7 @@ To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-
 
 ## Export Formats
 
-ShapeScript can export your scene in a variety of model formats, selectable from the export window:
+ShapeScript can export your scene in a variety of formats, selectable from the export window:
 
 Extension             | File Type                                        | Supports All Features
 :-------------------- | :------------------------------------------------|:------------------------------
@@ -24,6 +24,7 @@ scn / scnz            | SceneKit Scene Document                          | Yes
 usd / usdz            | Universal Scene Description                      | No
 ply                   | Polygon File Format                              | No
 stl / stla            | Stereolithography                                | No
+svg                   | Scalable Vector Graphics                         | No
 
 <br/>
 
@@ -47,9 +48,13 @@ When exporting for 3D printing, you will usually want to avoid having internal g
 
 ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export window to export your model in this orientation.
 
+## Plotters and CNC Machines
+
+By selecting the SVG option, you can export your model as a 2D cross-section. Unlike the other model export formats, the SVG export option does not preserve any depth or material information, but simply takes a slice across the XY plane and captures a vector outline suitable for printing or carving by a [plotter](https://en.wikipedia.org/wiki/Plotter) or [CNC machine](https://en.wikipedia.org/wiki/Numerical_control).
+
 ## Image Formats
 
-In addition to 3D model formats, ShapeScript can also export 2D images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window. 
+In addition to 3D models and 2D vector paths, ShapeScript can also export bitmap images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window. 
 
 The following image formats are supported:
 

@@ -161,6 +161,7 @@ ShapeScript Help
     - [Export Formats](export.md#export-formats)
     - [Games and AR](export.md#games-and-ar)
     - [3D Printing](export.md#3d-printing)
+    - [Plotters and CNC Machines](export.md#plotters-and-cnc-machines)
     - [Image Formats](export.md#image-formats)
     - [Image Options](export.md#image-options)
 - [Examples](examples.md)
