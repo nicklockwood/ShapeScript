@@ -131,15 +131,6 @@ extension SourceViewController: TokenViewDelegate {
             case let .keyword(name):
                 lastKeyword = name.rawValue
             case let .identifier(name):
-                if lastKeyword == "for", ["in", "to", "step"].contains(name) {
-                    if case let .identifier(name) = lastToken?.type,
-                       ["in", "to", "step"].contains(name)
-                    {
-                        break
-                    }
-                    viewToken.type = .keyword
-                    break
-                }
                 if lastKeyword == "option",
                    case .identifier("option")? = lastToken?.type
                 {
@@ -163,7 +154,7 @@ extension SourceViewController: TokenViewDelegate {
                     break
                 }
                 switch name {
-                case "to", "step", "option", "not", "true", "false", "switch":
+                case "in", "to", "step", "option", "not", "true", "false", "switch":
                     // contextual keywords
                     viewToken.type = .keyword
                     lastKeyword = name

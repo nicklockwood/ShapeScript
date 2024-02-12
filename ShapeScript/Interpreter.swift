@@ -1288,6 +1288,10 @@ extension Expression {
                 )
             }
             return .range(value)
+        case let .infix(lhs, .in, rhs):
+            let lhs = try lhs.evaluate(in: context)
+            let rhs = try rhs.evaluate(as: .sequence, for: "range value", in: context)
+            return .boolean(rhs.sequenceValue!.contains(lhs))
         case let .infix(lhs, .equal, rhs):
             let lhs = try lhs.evaluate(in: context)
             let rhs = try rhs.evaluate(in: context)
@@ -1409,7 +1413,7 @@ extension Expression {
                 return try .boolean(doubleValue(lhs) <= doubleValue(rhs, index: 1))
             case .gte:
                 return try .boolean(doubleValue(lhs) >= doubleValue(rhs, index: 1))
-            case .to, .step, .equal, .unequal, .and, .or:
+            case .in, .to, .step, .equal, .unequal, .and, .or:
                 throw RuntimeErrorType
                     .assertionFailure("\(op.rawValue) should be handled by earlier case")
             }

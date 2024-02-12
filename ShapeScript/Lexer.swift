@@ -91,7 +91,7 @@ public enum InfixOperator: String, CaseIterable {
     // Boolean operators
     case and, or
     // Range operators
-    case to, step
+    case `in`, to, step
 }
 
 public enum TokenType: Equatable {

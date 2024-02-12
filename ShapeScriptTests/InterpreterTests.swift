@@ -2564,6 +2564,33 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    func testIfInRange() {
+        let program = "if 1 in 0 to 4 { print true }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testIfInTuple() {
+        let program = "if 3 in (1 2 3) { print true }"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testIfInObject() {
+        let program = """
+        define foo object {
+            a 1
+            b 2
+        }
+        if ("a" 1) in foo { print true }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
     // MARK: Switch/case
 
     func testSwitchCase() {

@@ -307,17 +307,27 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readForLoop() throws -> StatementType? {
-        guard readToken(.keyword(.for)) else {
+        guard readToken(.keyword(.for)), let indexToken = first else {
             return nil
         }
-        var identifier: Identifier?
+        let start = self
         var expression = try require(readExpression(), as: "index or range")
-        if case let .identifier(name) = expression.type, readToken(.identifier("in")) {
-            identifier = Identifier(name: name, range: expression.range)
-            expression = try require(readExpression(), as: "range")
-        }
         let body = try require(readBlock(), as: "loop body")
-        return .forloop(identifier, in: expression, body)
+        if case let .tuple(elements) = expression.type,
+           case .infix(_, .in, _)? = elements.first?.type,
+           elements.count == 1
+        {
+            expression = elements[0]
+        }
+        if case let .infix(lhs, .in, rhs) = expression.type {
+            guard case let .identifier(name) = lhs.type else {
+                self = start
+                throw ParserError(.unexpectedToken(indexToken, expected: "loop index"))
+            }
+            let identifier = Identifier(name: name, range: lhs.range)
+            return .forloop(identifier, in: rhs, body)
+        }
+        return .forloop(nil, in: expression, body)
     }
 
     mutating func readIfElse() throws -> StatementType? {
@@ -565,9 +575,27 @@ private extension ArraySlice where Element == Token {
         )
     }
 
+    mutating func readInRange() throws -> Expression? {
+        guard let lhs = try readStep() else {
+            return nil
+        }
+        if case let .infix(_, op, _) = lhs.type, [.to, .step].contains(op) {
+            return lhs
+        }
+        guard case .identifier("in") = nextToken.type else {
+            return lhs
+        }
+        removeFirst()
+        let rhs = try require(readStep(), as: "range")
+        return Expression(
+            type: .infix(lhs, .in, rhs),
+            range: lhs.range.lowerBound ..< rhs.range.upperBound
+        )
+    }
+
     mutating func readComparison() throws -> Expression? {
         let not = nextToken.type == .identifier("not") ? readToken() : nil
-        guard var lhs = try readStep() else {
+        guard var lhs = try readInRange() else {
             return not.map {
                 Expression(type: .identifier("not"), range: $0.range)
             }
@@ -599,7 +627,7 @@ private extension ArraySlice where Element == Token {
         } ?? lhs
     }
 
-    mutating func readBooleanLogic() throws -> Expression? {
+    mutating func readExpression() throws -> Expression? {
         guard var lhs = try readComparison() else {
             return nil
         }
@@ -615,10 +643,6 @@ private extension ArraySlice where Element == Token {
             )
         }
         return lhs
-    }
-
-    mutating func readExpression() throws -> Expression? {
-        try readBooleanLogic()
     }
 
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {

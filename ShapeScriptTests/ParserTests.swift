@@ -711,6 +711,48 @@ class ParserTests: XCTestCase {
         ]))
     }
 
+    func testForLoopWithParensAroundConditione() {
+        let input = "for (i in foo) {}"
+        let forRange = input.range(of: "for")!
+        let iRange = input.range(of: "i")!
+        let fooRange = input.range(of: "foo")!
+        let blockRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .forloop(
+                    Identifier(name: "i", range: iRange),
+                    in: Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [], range: blockRange)
+                ),
+                range: forRange.lowerBound ..< blockRange.upperBound
+            ),
+        ]))
+    }
+
+    func testForLoopWithParenthesizedTuple() {
+        let input = "for (1 2 3) {}"
+        let forRange = input.range(of: "for")!
+        let range1 = input.range(of: "1")!
+        let range2 = input.range(of: "2")!
+        let range3 = input.range(of: "3")!
+        let tupleRange = input.range(of: "(1 2 3)")!
+        let blockRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .forloop(
+                    nil,
+                    in: Expression(type: .tuple([
+                        Expression(type: .number(1), range: range1),
+                        Expression(type: .number(2), range: range2),
+                        Expression(type: .number(3), range: range3),
+                    ]), range: tupleRange),
+                    Block(statements: [], range: blockRange)
+                ),
+                range: forRange.lowerBound ..< blockRange.upperBound
+            ),
+        ]))
+    }
+
     func testForLoopWithoutCondition() {
         let input = "for i in {}"
         let braceRange = input.range(of: "{")!
@@ -726,15 +768,15 @@ class ParserTests: XCTestCase {
     }
 
     func testForLoopWithInvalidIndex() {
-        let input = "for 5 in {}"
-        let inRange = input.range(of: "in")!
+        let input = "for 5 in foo {}"
+        let indexRange = input.range(of: "5")!
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected token 'in'")
-            XCTAssertEqual(error?.hint, "Expected loop body.")
+            XCTAssertEqual(error?.message, "Unexpected numeric literal")
+            XCTAssertEqual(error?.hint, "Expected loop index.")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .identifier("in"), range: inRange),
-                expected: "loop body"
+                Token(type: .number(5), range: indexRange),
+                expected: "loop index"
             )))
         }
     }
@@ -976,6 +1018,28 @@ class ParserTests: XCTestCase {
                 expected: "if body"
             )))
         }
+    }
+
+    func testIfIn() {
+        let input = "if foo in bar {}"
+        let ifRange = input.range(of: "if")!
+        let fooRange = input.range(of: "foo")!
+        let barRange = input.range(of: "bar")!
+        let bodyRange = input.range(of: "{}")!
+        XCTAssertEqual(try parse(input), Program(source: input, statements: [
+            Statement(
+                type: .ifelse(
+                    Expression(type: .infix(
+                        Expression(type: .identifier("foo"), range: fooRange),
+                        .in,
+                        Expression(type: .identifier("bar"), range: barRange)
+                    ), range: fooRange.lowerBound ..< barRange.upperBound),
+                    Block(statements: [], range: bodyRange),
+                    else: nil
+                ),
+                range: ifRange.lowerBound ..< bodyRange.upperBound
+            ),
+        ]))
     }
 
     // MARK: Switch/case

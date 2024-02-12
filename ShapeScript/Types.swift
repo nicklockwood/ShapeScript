@@ -601,6 +601,9 @@ extension Expression {
              let .infix(lhs, .modulo, rhs):
             lhs.inferTypes(for: &params, in: context, with: .numberOrVector)
             rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
+        case let .infix(lhs, .in, rhs):
+            lhs.inferTypes(for: &params, in: context, with: .any)
+            rhs.inferTypes(for: &params, in: context, with: .sequence)
         case let .infix(lhs, .to, rhs),
              let .infix(lhs, .lt, rhs),
              let .infix(lhs, .gt, rhs),
@@ -717,7 +720,8 @@ extension Expression {
              .infix(_, .lte, _),
              .infix(_, .gte, _),
              .infix(_, .and, _),
-             .infix(_, .or, _):
+             .infix(_, .or, _),
+             .infix(_, .in, _):
             return .boolean
         case let .member(expression, member):
             let type = try expression.staticType(in: context)
