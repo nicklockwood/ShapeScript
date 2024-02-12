@@ -1,5 +1,5 @@
 //
-//  SVGPath+Path.swift
+//  Euclid+SVGPath.swift
 //  ShapeScript Lib
 //
 //  Created by Nick Lockwood on 11/04/2022.
@@ -12,28 +12,45 @@ import Euclid
 import SVGPath
 #endif
 
-extension Vector {
-    init(_ svgPoint: SVGPoint) {
-        self.init(svgPoint.x, svgPoint.y)
-    }
-}
-
-extension SVGPoint {
+public extension SVGPoint {
+    /// Creates an `SVGPoint` from a Euclid `Vector`.
+    /// - Parameter point: A Euclid vector.
     init(_ point: Vector) {
         self.init(x: point.x, y: point.y)
     }
 }
 
-extension Path {
-    /// Creates a path from an SVGPath
-    init(_ svgPath: SVGPath, detail: Int = 4, color: Color? = nil) {
-        self.init(subpaths: svgPath.paths(detail: detail, color: color))
+public extension SVGPath {
+    /// Creates an`SVGPath` from a Euclid `Path`.
+    /// - Parameter path: The `Path` to convert.
+    init(_ path: Path) {
+        self.init(commands: path.subpaths.flatMap { path -> [SVGCommand] in
+            guard let start = path.points.first?.position else { return [] }
+            var commands: [SVGCommand] = [.moveTo(SVGPoint(start))]
+            for point in path.points.dropFirst() {
+                commands.append(.lineTo(.init(point.position)))
+            }
+            commands.append(.end)
+            return commands
+        })
     }
 }
 
-extension SVGPath {
-    /// Creates an array of paths from an SVGPath
-    func paths(detail: Int = 4, color: Color? = nil) -> [Path] {
+public extension Vector {
+    /// Creates a `Vector` from an `SVGPoint`.
+    /// - Parameter svgPoint: An SVG point.
+    init(_ svgPoint: SVGPoint) {
+        self.init(svgPoint.x, svgPoint.y)
+    }
+}
+
+public extension Path {
+    /// Creates a `Path` from an `SVGPath`.
+    /// - Parameters:
+    ///   - svgPath: The `SVGPath` to convert.
+    ///   - detail: The detail level to apply when converting curves to line segments.
+    ///   - color: An optional `Color` to apply to the path.
+    init(_ svgPath: SVGPath, detail: Int = 4, color: Color? = nil) {
         var paths = [Path]()
         var points = [PathPoint]()
         var startingPoint = Vector.zero
@@ -166,16 +183,13 @@ extension SVGPath {
             }
             lastCommand = command
         }
-        commands.forEach(addCommand)
+        svgPath.commands.forEach(addCommand)
         endPath()
-        return paths
+        self.init(subpaths: paths)
     }
 }
 
-private func quadraticBezier(
-    _ p0: Double, _ p1: Double,
-    _ p2: Double, _ t: Double
-) -> Double {
+private func quadraticBezier(_ p0: Double, _ p1: Double, _ p2: Double, _ t: Double) -> Double {
     let oneMinusT = 1 - t
     let c0 = oneMinusT * oneMinusT * p0
     let c1 = 2 * oneMinusT * t * p1
@@ -183,10 +197,7 @@ private func quadraticBezier(
     return c0 + c1 + c2
 }
 
-private func cubicBezier(
-    _ p0: Double, _ p1: Double,
-    _ p2: Double, _ p3: Double, _ t: Double
-) -> Double {
+private func cubicBezier(_ p0: Double, _ p1: Double, _ p2: Double, _ p3: Double, _ t: Double) -> Double {
     let oneMinusT = 1 - t
     let oneMinusTSquared = oneMinusT * oneMinusT
     let c0 = oneMinusTSquared * oneMinusT * p0
