@@ -44,11 +44,11 @@ public struct ExtrudeOptions: Hashable {
     public var twist: Angle
     public var align: Path.Alignment
 
-    public static let `default`: Self = .init()
+    public static let `default`: Self = .init(along: [], twist: .zero, align: nil)
 
-    init(along: [Path] = [], twist: Angle? = nil, align: Path.Alignment? = nil) {
+    init(along: [Path], twist: Angle, align: Path.Alignment?) {
         self.along = along
-        self.twist = twist ?? .zero
+        self.twist = twist
         self.align = (along.isEmpty ? nil : align) ?? .default
     }
 }
