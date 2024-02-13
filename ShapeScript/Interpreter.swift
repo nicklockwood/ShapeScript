@@ -1291,10 +1291,10 @@ extension Expression {
         case let .infix(lhs, .in, rhs):
             let lhs = try lhs.evaluate(in: context)
             let rhs = try rhs.evaluate(as: .sequence, for: "range value", in: context)
-            if case let .object(dictionary) = rhs.as(.anyObject),
-               dictionary[lhs.stringValue] != nil
-            {
+            if case let .object(values) = rhs.as(.anyObject), values[lhs.stringValue] != nil {
                 return .boolean(true)
+            } else if case let (.number(number)?, .range(range)?) = (lhs.as(.number), rhs.as(.range)) {
+                return .boolean(range.contains(number))
             }
             return .boolean(rhs.sequenceValue!.contains(lhs))
         case let .infix(lhs, .equal, rhs):

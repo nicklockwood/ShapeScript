@@ -81,13 +81,16 @@ extension Value: ExpressibleByDictionaryLiteral {
 }
 
 struct RangeValue: Hashable, Sequence {
-    var start, end, step: Double
+    var start, end: Double
+    var step: Double?
 
     init(from start: Double, to end: Double) {
-        self.init(from: start, to: end, step: 1)!
+        self.start = start
+        self.end = end
+        self.step = nil
     }
 
-    init?(from start: Double, to end: Double, step: Double) {
+    init?(from start: Double, to end: Double, step: Double?) {
         guard step != 0 else {
             return nil
         }
@@ -97,8 +100,14 @@ struct RangeValue: Hashable, Sequence {
     }
 
     func makeIterator() -> StrideThrough<Double>.Iterator {
-        let end = self.end + (step > 0 ? 1 : -1) * 0.0000001
-        return stride(from: start, through: end, by: step).makeIterator()
+        let end = self.end + (step ?? 1 > 0 ? 1 : -1) * 0.0000001
+        return stride(from: start, through: end, by: step ?? 1).makeIterator()
+    }
+
+    func contains(_ value: Double) -> Bool {
+        step.map {
+            stride(from: start, through: end, by: $0).contains(value)
+        } ?? (value >= start && value <= end)
     }
 }
 

@@ -2519,6 +2519,29 @@ class InterpreterTests: XCTestCase {
         }
     }
 
+    func testValueInRange() {
+        let program = """
+        define range 0 to 4
+        print 1.5 in range
+        print -1 in range
+        print -4.0001 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false, false])
+    }
+
+    func testValueInRangeWithStep() {
+        let program = """
+        define range 0 to 4 step 1
+        print 1.5 in range
+        print 1 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false, true])
+    }
+
     // MARK: If/else
 
     func testIfTrue() {

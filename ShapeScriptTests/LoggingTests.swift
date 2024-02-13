@@ -418,7 +418,7 @@ class LoggingTests: XCTestCase {
     }
 
     func testRangeWithDefaultStep() {
-        let input = RangeValue(from: 0, to: 5, step: 1)
+        let input = RangeValue(from: 0, to: 5)
         XCTAssertEqual(input.logDescription, "0 to 5")
         XCTAssertEqual(input.nestedLogDescription, "(0 to 5)")
     }

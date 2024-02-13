@@ -279,7 +279,7 @@ extension Value {
             switch name {
             case "start": return .number(range.start)
             case "end": return .number(range.end)
-            case "step": return .number(range.step)
+            case "step": return range.step.map(Value.number)
             default: return nil
             }
         case let .mesh(geometry):
