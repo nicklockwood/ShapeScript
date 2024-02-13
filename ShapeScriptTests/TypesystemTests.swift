@@ -929,4 +929,10 @@ class TypesystemTests: XCTestCase {
         let value = Value.object(["foo": .number(1), "bar": .boolean(true)])
         XCTAssertEqual(value.as(type), .object(["foo": .color(.white), "bar": .string("true")]))
     }
+
+    func testCastObjectToAnyObjectType() throws {
+        let type = ValueType.anyObject
+        let value = Value.object(["foo": .color(.red), "bar": .string("baz")])
+        XCTAssertEqual(value.as(type), value)
+    }
 }

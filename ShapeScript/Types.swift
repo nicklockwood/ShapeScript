@@ -97,6 +97,7 @@ extension ValueType: Comparable {
 extension ValueType {
     static let void: ValueType = .tuple([])
     static let sequence: ValueType = .union([.range, .list(.any)])
+    static let anyObject: ValueType = .object(["*": .any])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
     static let numberOrTexture: ValueType = .union([.number, .texture])
@@ -490,9 +491,13 @@ extension Value {
             }
             return .tuple(values)
         case let (.object(values), type):
+            // Note: fails if any member value is not found in the type
+            // Does not necessarily fail if type fields are missing (they may be optional)
             var values = values
             for (key, value) in values {
-                guard let type = type.memberType(key), let value = try value.as(type, in: context) else {
+                guard let type = type.memberType(key) ?? type.memberType("*"),
+                      let value = try value.as(type, in: context)
+                else {
                     return nil
                 }
                 values[key] = value
@@ -603,7 +608,7 @@ extension Expression {
             rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
         case let .infix(lhs, .in, rhs):
             lhs.inferTypes(for: &params, in: context, with: .any)
-            rhs.inferTypes(for: &params, in: context, with: .sequence)
+            rhs.inferTypes(for: &params, in: context, with: .any)
         case let .infix(lhs, .to, rhs),
              let .infix(lhs, .lt, rhs),
              let .infix(lhs, .gt, rhs),

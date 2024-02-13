@@ -2578,13 +2578,13 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
-    func testIfInObject() {
+    func testIfKeyInObject() {
         let program = """
         define foo object {
             a 1
             b 2
         }
-        if ("a" 1) in foo { print true }
+        if "a" in foo { print true }
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
