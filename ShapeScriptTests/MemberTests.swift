@@ -607,10 +607,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 0)[2]"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .invalidIndex(2, range: 0 ..< 2)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.type, .invalidIndex(2, range: 0 ..< 2))
         }
     }
 
@@ -641,5 +638,78 @@ final class MemberTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [7, 7])
+    }
+
+    func testObjectSubscripting() {
+        let program = """
+        define foo object {
+            a 5
+            b "hello"
+        }
+        print foo.a
+        print foo.b
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5.0, "hello"])
+    }
+
+    func testObjectFirstIndex() {
+        let program = """
+        define foo object {
+            a 5
+            b "hello"
+        }
+        // You can always access first element due to automatic tuple promotion
+        print foo.first
+        print foo[0]
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let object: [String: AnyHashable] = ["a": 5.0, "b": "hello"]
+        XCTAssertEqual(delegate.log, [object, object])
+    }
+
+    func testObjectOrdinalSubscripting() {
+        let program = """
+        define foo object {
+            a 5
+            b "hello"
+        }
+        print foo.second
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unknownMember("second", of: "object", options: ["a", "b"]))
+        }
+    }
+
+    func testInvalidObjectSubscripting() {
+        let program = """
+        define foo object {
+            a 5
+            b "hello"
+        }
+        print foo.c
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unknownMember("c", of: "object", options: ["a", "b"]))
+        }
+    }
+
+    func testObjectIndexedSubscripting() {
+        let program = """
+        define foo object {
+            a 5
+            b "hello"
+        }
+        print foo[1]
+        """
+        let delegate = TestDelegate()
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .invalidIndex(1, range: 0 ..< 1))
+        }
     }
 }
