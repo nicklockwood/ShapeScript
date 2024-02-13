@@ -70,6 +70,35 @@ define size 1 2 3
 define myTuple2 "hello" 5.3 size
 ```
 
+Tuple values can be accessed by index using [ordinal members](expressions.md#members) or [subscripting](expressions.md#subscripting):
+
+```swift
+define size 1 2 3
+
+print size.second // prints 2
+print size[0] // prints 1
+```
+
+To check if a tuple contains a particular value, you can use the `in` operator:
+
+```swift
+define values 1 2 3
+
+if 2 in values {
+    print "values includes the number 2"
+}
+```
+
+You can also enumerate the values in a tuple using a [for loop](control-flow.md#looping-over-values):
+
+```swift
+define values 1 2 3
+
+for value in values {
+    print value // prints 1 2 3
+}
+```
+
 ## Structured Data
 
 As well as simple values like numbers and text, it can sometimes be useful to group together sets of related data. Tuples can be nested arbitrarily to create complex data structures:
@@ -213,11 +242,16 @@ define data object {
     height 10
     depth 15
 }
-
-print data.height // prints 10
 ```
 
-Objects can also be nested:
+To access the members of an object you can either use the [dot operator](expressions.md#members) or [subscripting](expressions.md#subscripting):
+
+```swift
+print data.height // prints 10
+print data["height"] // also prints 10
+```
+
+Objects can be nested inside each other:
 
 ```swift
 define data object {
@@ -231,6 +265,21 @@ define data object {
 }
 
 print data.dimensions.height // prints 10
+print data["dimensions"]["height"] // also prints 10
+```
+
+Attempting to access a non-existent member of an object will cause an error. To check if an object contains a particular member before you try to access it, you can use the `in` operator:
+
+```swift
+define axes object {
+    x (1 0 0)
+    y (0 1 0)
+    z (0 0 1)
+}
+
+if "x" in axes {
+    print "axes object contains an x component"
+}
 ```
 
 To enumerate all the members of an object, you can use a [for loop](control-flow.md#looping-over-values). Each member is returned as a tuple of the key (member name) and value:
@@ -241,7 +290,7 @@ for row in data {
 }
 ```
 
-**Note:** object members are *unordered*, meaning that the order in which they are defined has no special significance. When looping through members of an object, the order will be alphabetical rather than the order in which the members were defined.
+**Note:** object members are *unordered*, meaning that the order in which they are defined has no special significance. When looping through members of an object, the order will be alphabetical rather than reflecting the order in which the members were defined.
 
 ---
 [Index](index.md) | Next: [Symbols](symbols.md)

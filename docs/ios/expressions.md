@@ -197,6 +197,16 @@ for i in loops {
 }
 ```
 
+You can also use the `in` operator to check if a range contains a particular value:
+
+```swift
+define range 1 to 5
+
+if 2.5 in range {
+    print "range contains 2.5"
+}
+```
+
 **Note:** Ranges are inclusive of both the start and end values, so a loop from `0 to 5` would loop *6* times and not 5 as you might expect.
 
 Range values can be fractional and/or negative:
@@ -243,6 +253,17 @@ A negative `step` can be used to create a [backwards loop](control-flow.md#loopi
 for i in 5 to 1 step -1 {
     print i // prints 5, 4, 3, 2, 1
 }
+```
+
+For stepped ranges, `in` will only return true for values that align with the steps:
+
+```swift
+define range 1 to 5 step 2
+
+print 1 in range // prints true
+print 2 in range // prints false
+print 2.5 in range // prints false
+print 3 in range // prints true
 ```
 
 ## Members
@@ -349,7 +370,25 @@ for i in 0 to foo.count - 1 {
 }
 ```
 
-Trying to access elements outside the range `0 to count - 1` will result in an error.
+To access elements relative to the end of the tuple, you can use negative indices. An index of `-1` is shorthand for `count - 1`:
+
+
+```swift
+define foo 1 2 3 4
+
+print foo[-1] // prints 4
+print foo[-2] // prints 3
+```
+
+Trying to access tuple elements outside the range `-count to count - 1` will result in an error, as will attempting to access a named member that does not exist. To avoid the error you can check if a given member exists by using the `in` operator, as follows:
+
+```swift
+define purple 0.6 0 1
+
+if "red" in purple {
+    print "the red value of purple is " purple["red"] // prints 0.6
+}
+```
 
 ---
 [Index](index.md) | Next: [Functions](functions.md)
