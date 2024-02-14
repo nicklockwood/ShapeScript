@@ -386,8 +386,10 @@ extension Value {
             return 0 ..< 4
         case let .tuple(values):
             return values.startIndex ..< values.endIndex
+        case let .range(range):
+            return Array(range.stride).indices
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
-             .string, .text, .path, .mesh, .polygon, .point, .range, .bounds, .object:
+             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return 0 ..< 0
         }
     }
@@ -410,9 +412,13 @@ extension Value {
             default: return nil
             }
         case let .tuple(values):
+            if values.count == 1, let result = values[0][index] { return result }
             return values.indices.contains(index) ? values[index] : nil
+        case let .range(range):
+            let values = Array(range.stride)
+            return values.indices.contains(index) ? .number(values[index]) : nil
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
-             .string, .text, .path, .mesh, .polygon, .point, .range, .bounds, .object:
+             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil
         }
     }

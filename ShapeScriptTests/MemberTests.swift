@@ -585,6 +585,16 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1.0])
     }
 
+    func testNestedTupleVectorIndexing() {
+        let program = """
+        define values 1 0
+        print (values)[1]
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
     func testOutOfBoundsTupleVectorSubscripting() {
         let program = "print (1 0)[\"z\"]"
         let delegate = TestDelegate()
@@ -638,6 +648,13 @@ final class MemberTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [7, 7])
+    }
+
+    func testRangeSubscripting() {
+        let program = "print (1 to 4)[1]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2.0])
     }
 
     func testObjectSubscripting() {
@@ -706,7 +723,6 @@ final class MemberTests: XCTestCase {
         }
         print foo[1]
         """
-        let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.type, .invalidIndex(1, range: 0 ..< 1))
