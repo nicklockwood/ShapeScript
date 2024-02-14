@@ -184,7 +184,7 @@ public extension RuntimeError {
         case .unknownMember:
             return suggestion.map { "Did you mean '\($0)'?" }
         case let .invalidIndex(_, range: range):
-            return range.isEmpty ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
+            return range.upperBound == 0 ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
         case .unknownFont:
             if let suggestion = suggestion {
                 return "Did you mean '\(suggestion)'?"
@@ -1449,7 +1449,8 @@ extension Expression {
             case let .number(number)?:
                 let index = Int(truncating: number as NSNumber)
                 guard let member = value[index] else {
-                    throw RuntimeError(.invalidIndex(number, range: value.indices), at: rhs.range)
+                    let indices = -value.indices.upperBound ..< value.indices.upperBound
+                    throw RuntimeError(.invalidIndex(number, range: indices), at: rhs.range)
                 }
                 return member
             case let .string(key)?:

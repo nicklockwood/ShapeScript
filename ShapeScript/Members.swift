@@ -381,13 +381,14 @@ extension Value {
     var indices: Range<Int> {
         switch self {
         case .vector, .size:
-            return 0 ..< 3
+            return -3 ..< 3
         case .color:
-            return 0 ..< 4
+            return -4 ..< 4
         case let .tuple(values):
-            return values.startIndex ..< values.endIndex
+            return -values.endIndex ..< values.endIndex
         case let .range(range):
-            return Array(range.stride).indices
+            let indices = Array(range.stride).indices
+            return -indices.upperBound ..< indices.upperBound
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return 0 ..< 0
@@ -413,9 +414,11 @@ extension Value {
             }
         case let .tuple(values):
             if values.count == 1, let result = values[0][index] { return result }
+            let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? values[index] : nil
         case let .range(range):
             let values = Array(range.stride)
+            let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? .number(values[index]) : nil
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:

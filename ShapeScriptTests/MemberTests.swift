@@ -595,6 +595,13 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.0])
     }
 
+    func testTupleVectorNegativeIndexing() {
+        let program = "print (1 0)[-1]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
     func testOutOfBoundsTupleVectorSubscripting() {
         let program = "print (1 0)[\"z\"]"
         let delegate = TestDelegate()
@@ -617,7 +624,15 @@ final class MemberTests: XCTestCase {
         let program = "print (1 0)[2]"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .invalidIndex(2, range: 0 ..< 2))
+            XCTAssertEqual(error?.type, .invalidIndex(2, range: -2 ..< 2))
+        }
+    }
+
+    func testOutOfBoundsTupleVectorNegativeIndexing() {
+        let program = "print (1 0)[-3]"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .invalidIndex(-3, range: -2 ..< 2))
         }
     }
 
@@ -650,11 +665,18 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [7, 7])
     }
 
-    func testRangeSubscripting() {
+    func testRangeIndexing() {
         let program = "print (1 to 4)[1]"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [2.0])
+    }
+
+    func testRangeNegativeIndexing() {
+        let program = "print (1 to 4)[-2]"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3.0])
     }
 
     func testObjectSubscripting() {
@@ -725,7 +747,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .invalidIndex(1, range: 0 ..< 1))
+            XCTAssertEqual(error?.type, .invalidIndex(1, range: -1 ..< 1))
         }
     }
 }
