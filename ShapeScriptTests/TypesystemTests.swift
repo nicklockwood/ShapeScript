@@ -796,6 +796,11 @@ class TypesystemTests: XCTestCase {
         XCTAssertEqual(try evaluate("\"1.5\" \"2.3\" \"0\"", as: .vector), .vector(.init(1.5, 2.3, 0)))
     }
 
+    func testCastStringToNumberOrList() throws {
+        let type = ValueType.union([.list(.any), .number])
+        XCTAssertEqual(try evaluate("\"foo\"", as: type), ["foo"])
+    }
+
     func testCastHexStringToColor() throws {
         XCTAssertEqual(try evaluate("\"#f00\"", as: .color), .color(.red))
     }
@@ -874,6 +879,30 @@ class TypesystemTests: XCTestCase {
         let type = ValueType.halfturns
         let value = Value.radians(.pi)
         XCTAssertFalse(value.isConvertible(to: type))
+    }
+
+    func testCastSingleElementTupleToList() throws {
+        let type = ValueType.list(.number)
+        let value = Value.tuple([5])
+        XCTAssertEqual(value.as(type), [5])
+    }
+
+    func testCastSingleElementTupleToNumber() throws {
+        let type = ValueType.number
+        let value = Value.tuple([5])
+        XCTAssertEqual(value.as(type), 5.0)
+    }
+
+    func testCastSingleElementTupleToString() throws {
+        let type = ValueType.string
+        let value = Value.tuple([5])
+        XCTAssertEqual(value.as(type), "5")
+    }
+
+    func testCastSingleElementTupleToAny() throws {
+        let type = ValueType.any
+        let value = Value.tuple(["foo"])
+        XCTAssertEqual(value.as(type), "foo")
     }
 
     func testCastObjectToMaterial() throws {

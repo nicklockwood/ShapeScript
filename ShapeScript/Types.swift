@@ -333,10 +333,10 @@ extension Value {
             return numbers
         }
         switch (self, type) {
-        case _ where self.type.isSubtype(of: type):
-            return self
         case let (.tuple(values), type) where values.count == 1:
             return try values[0].as(type, in: context)
+        case _ where self.type.isSubtype(of: type):
+            return self
         case let (_, .union(types)):
             if types.contains(where: { self.type.isSubtype(of: $0) }) {
                 return self
