@@ -2614,6 +2614,16 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    func testIfKeyInVector() {
+        let program = """
+        define vector 1 2 3
+        if "x" in vector { print true }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true])
+    }
+
     // MARK: Switch/case
 
     func testSwitchCase() {

@@ -1289,14 +1289,16 @@ extension Expression {
             }
             return .range(value)
         case let .infix(lhs, .in, rhs):
+            let rhs = try rhs.evaluate(in: context)
             let lhs = try lhs.evaluate(in: context)
-            let rhs = try rhs.evaluate(as: .sequence, for: "range value", in: context)
-            if case let .object(values) = rhs.as(.anyObject), values[lhs.stringValue] != nil {
+            switch rhs.as(.union([.range, .list(.any), .anyObject])) {
+            case let .range(range) where lhs.isConvertible(to: .number):
+                return .boolean(range.contains(lhs.doubleValue))
+            case let .tuple(values) where values.contains(lhs):
                 return .boolean(true)
-            } else if case let (.number(number)?, .range(range)?) = (lhs.as(.number), rhs.as(.range)) {
-                return .boolean(range.contains(number))
+            default:
+                return .boolean(rhs[lhs.stringValue, context.isCancelled] != nil)
             }
-            return .boolean(rhs.sequenceValue!.contains(lhs))
         case let .infix(lhs, .equal, rhs):
             let lhs = try lhs.evaluate(in: context)
             let rhs = try rhs.evaluate(in: context)
