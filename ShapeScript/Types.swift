@@ -491,7 +491,7 @@ extension Value {
             }
             return .tuple(values)
         case let (.object(values), type):
-            // Note: fails if any member value is not found in the type
+            // Note: fails if any member value is not found for the type
             // Does not necessarily fail if type fields are missing (they may be optional)
             var values = values
             for (key, value) in values {

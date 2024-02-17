@@ -15,7 +15,7 @@ extension String {
         indicesByOrdinal[lowercased()]
     }
 
-    static var ordinals: [String] = {
+    static let ordinals: [String] = {
         let ordinalsToNinth = [
             "first", "second", "third", "fourth", "fifth",
             "sixth", "seventh", "eighth", "ninth",

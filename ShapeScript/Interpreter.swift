@@ -71,7 +71,7 @@ public extension RuntimeError {
             }
             return "Unexpected symbol '\(name)'"
         case let .unknownMember(name, type, _):
-            return "Unknown \(type) member property '\(name)'"
+            return "Member '\(name)' not found for \(type)"
         case let .invalidIndex(index, _):
             return "Index \(index.logDescription) out of bounds"
         case let .unknownFont(name, _):
@@ -120,7 +120,8 @@ public extension RuntimeError {
             if Symbols.all[name] != nil {
                 return alternative
             }
-            return alternative ?? name.bestMatches(in: options).first
+            let ordinals = !name.isOrdinal && options.contains { $0.isOrdinal } ? String.ordinals : []
+            return alternative ?? name.bestMatches(in: options + ordinals).first
         case let .unknownFont(name, options):
             return name.bestMatches(in: options).first
         case .typeMismatch,
@@ -181,7 +182,15 @@ public extension RuntimeError {
                 hint += (hint.isEmpty ? "" : " ") + "Did you mean '\(suggestion)'?"
             }
             return hint
-        case .unknownMember:
+        case let .unknownMember(name, of: _, options: options):
+            if let index = name.ordinalIndex, index > 0 {
+                for i in (0 ..< index).reversed() where options.contains(String.ordinals[i]) {
+                    guard String.ordinals(upTo: i).allSatisfy(options.contains) else {
+                        break
+                    }
+                    return "Valid range is 'first' to '\(String.ordinals[i])'."
+                }
+            }
             return suggestion.map { "Did you mean '\($0)'?" }
         case let .invalidIndex(_, range: range):
             return range.upperBound == 0 ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
@@ -395,6 +404,17 @@ extension RuntimeErrorType {
             typeDescription = type.errorDescription
         }
         return unusedValue(type: typeDescription)
+    }
+
+    static func unknownMember(_ name: String, of value: Value) -> RuntimeErrorType {
+        // TODO: find less hacky way to do this unwrap
+        var value = value
+        while case let .tuple(values) = value, values.count == 1 {
+            value = values[0]
+        }
+        assert(!value.members.contains(name),
+               "\(value.errorDescription) should have member '\(name)'")
+        return unknownMember(name, of: value.errorDescription, options: value.members)
     }
 
     static func fileError(_ error: Error, for path: String, at url: URL) -> RuntimeErrorType {
@@ -1425,23 +1445,13 @@ extension Expression {
                     .assertionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):
-            var value = try expression.evaluate(in: context)
+            let value = try expression.evaluate(in: context)
             if let memberValue = value[member.name, context.isCancelled] {
                 assert(value.members.contains(member.name),
                        "\(value.errorDescription) does not have member '\(member.name)'")
                 return memberValue
             }
-            // TODO: find less hacky way to do this unwrap
-            if case let .tuple(values) = value, values.count == 1 {
-                value = values[0]
-            }
-            assert(!value.members.contains(member.name),
-                   "\(value.errorDescription) should have member '\(member.name)'")
-            throw RuntimeError(.unknownMember(
-                member.name,
-                of: value.errorDescription,
-                options: value.members
-            ), at: member.range)
+            throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)
         case let .subscript(lhs, rhs):
             let value = try lhs.evaluate(in: context)
             let index = try rhs.evaluate(in: context)
@@ -1449,25 +1459,14 @@ extension Expression {
             case let .number(number)?:
                 let index = Int(truncating: number as NSNumber)
                 guard let member = value[index] else {
-                    let indices = -value.indices.upperBound ..< value.indices.upperBound
-                    throw RuntimeError(.invalidIndex(number, range: indices), at: rhs.range)
-                }
-                return member
-            case let .string(key)?:
-                guard let member = value[key, context.isCancelled] else {
-                    throw RuntimeError(.unknownMember(
-                        index.logDescription,
-                        of: value.errorDescription,
-                        options: value.members
-                    ), at: rhs.range)
+                    throw RuntimeError(.invalidIndex(number, range: value.indices), at: rhs.range)
                 }
                 return member
             default:
-                throw RuntimeError(.typeMismatch(
-                    for: "index",
-                    expected: .union([.number, .string]),
-                    got: index.type
-                ), at: rhs.range)
+                if let member = value[index.stringValue, context.isCancelled] {
+                    return member
+                }
+                throw RuntimeError(.unknownMember(index.logDescription, of: value), at: rhs.range)
             }
         case let .import(expression):
             let pathValue = try expression.evaluate(

@@ -161,7 +161,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 2 3 4 5).red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'red'")
+            XCTAssertEqual(error?.message, "Member 'red' not found for tuple")
             XCTAssertNotEqual(error?.suggestion, "red")
             guard case .unknownMember("red", of: "tuple", _) = error?.type else {
                 XCTFail()
@@ -174,7 +174,7 @@ final class MemberTests: XCTestCase {
         let program = "print ().blue"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown empty tuple member property 'blue'")
+            XCTAssertEqual(error?.message, "Member 'blue' not found for empty tuple")
             XCTAssertNotEqual(error?.suggestion, "blue")
             guard case .unknownMember("blue", of: "empty tuple", _) = error?.type else {
                 XCTFail()
@@ -201,7 +201,7 @@ final class MemberTests: XCTestCase {
         let program = "print (\"foo\" \"bar\").red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'red'")
+            XCTAssertEqual(error?.message, "Member 'red' not found for tuple")
             guard case .unknownMember("red", of: "tuple", _)? = error?.type else {
                 XCTFail()
                 return
@@ -213,7 +213,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 2).foo"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'foo'")
+            XCTAssertEqual(error?.message, "Member 'foo' not found for tuple")
             guard case .unknownMember("foo", of: "tuple", _) = error?.type else {
                 XCTFail()
                 return
@@ -225,7 +225,7 @@ final class MemberTests: XCTestCase {
         let program = "color 1 0.5\nprint color.width"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown color member property 'width'")
+            XCTAssertEqual(error?.message, "Member 'width' not found for color")
             guard case .unknownMember("width", of: "color", _)? = error?.type else {
                 XCTFail()
                 return
@@ -241,7 +241,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown rotation member property 'x'")
+            XCTAssertEqual(error?.message, "Member 'x' not found for rotation")
             guard case .unknownMember("x", of: "rotation", _)? = error?.type else {
                 XCTFail()
                 return
@@ -268,15 +268,34 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log.first as? Double ?? 0, 0.5, accuracy: epsilon)
     }
 
+    func testTupleMisspelledOrdinalLookup() {
+        let program = "define col 1 0.5\nprint col.scond"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Member 'scond' not found for tuple")
+            XCTAssertEqual(error?.hint, "Did you mean 'second'?")
+        }
+    }
+
     func testTupleOrdinalOutOfBoundsLookup() {
         let program = "define col 1 0.5\nprint col.third"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown tuple member property 'third'")
+            XCTAssertEqual(error?.message, "Member 'third' not found for tuple")
+            XCTAssertEqual(error?.hint, "Valid range is 'first' to 'second'.")
             guard case .unknownMember("third", of: "tuple", _)? = error?.type else {
                 XCTFail()
                 return
             }
+        }
+    }
+
+    func testTupleMisspelledOutOfBoundsOrdinalLookup() {
+        let program = "define col 1 0.5\nprint col.thidr"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Member 'thidr' not found for tuple")
+            XCTAssertEqual(error?.hint, "Did you mean 'third'?")
         }
     }
 
@@ -398,7 +417,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown path member property 'polygons'")
+            XCTAssertEqual(error?.message, "Member 'polygons' not found for path")
             guard case .unknownMember("polygons", of: "path", _)? = error?.type else {
                 XCTFail()
                 return
@@ -412,7 +431,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown camera member property 'polygons'")
+            XCTAssertEqual(error?.message, "Member 'polygons' not found for camera")
             guard case .unknownMember("polygons", of: "camera", _)? = error?.type else {
                 XCTFail()
                 return
@@ -426,7 +445,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown mesh member property 'x'")
+            XCTAssertEqual(error?.message, "Member 'x' not found for mesh")
             guard case .unknownMember("x", of: "mesh", _)? = error?.type else {
                 XCTFail()
                 return
