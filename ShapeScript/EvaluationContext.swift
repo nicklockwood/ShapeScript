@@ -265,7 +265,7 @@ extension EvaluationContext {
         // TODO: move this logic out of EvaluationContext into delegate
         // so we can more easily mock the filesystem for testing purposes
         let isRemote = isUndownloadedUbiquitousFile(url)
-        #if !os(iOS) && !os(visionOS)
+        #if targetEnvironment(simulator) || !(os(iOS) || os(visionOS))
         // macOS/Linux/Windows can check for existence of files even without access permission
         guard isRemote || fileManager.fileExists(atPath: url.path) else {
             throw RuntimeErrorType.fileNotFound(for: path, at: url)

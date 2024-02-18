@@ -24,6 +24,13 @@ private let testShapesURLs: [URL] = try! FileManager.default
         includingPropertiesForKeys: nil
     )
     .filter { $0.pathExtension == "shape" }
+    .filter {
+        #if os(iOS)
+        return !$0.deletingPathExtension().lastPathComponent.hasSuffix("-mac")
+        #else
+        return !$0.deletingPathExtension().lastPathComponent.hasSuffix("-ios")
+        #endif
+    }
 
 final class RegressionTests: XCTestCase {
     func testExamples() throws {

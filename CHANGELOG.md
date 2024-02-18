@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.8.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.4) (2024-02-18)
+
+- Added `in` operator for testing if a value lies within a tuple or range
+- Negative subscript indices can now be used to access elements at the end of a list
+- Improved error messages for member access and subscripting
+- Fixed bug with subscripting parenthesized values
+- Fixed a bug with casting single-element tuples
+- Made SVGPath functions public
+- Bumped Euclid to version 0.7.7
+
 ## [1.8.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.3) (2024-02-03)
 
 - Fixed file access bug for iCloud hosted files
