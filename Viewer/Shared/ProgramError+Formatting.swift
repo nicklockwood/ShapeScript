@@ -24,8 +24,7 @@ extension ProgramError {
     /// Returns a nicely-formatted rich text error message.
     func message(with source: String) -> NSAttributedString {
         let errorMessage = NSMutableAttributedString()
-        let errorType = accessErrorURL == nil ? "Error" : "Permission Required"
-        errorMessage.append(NSAttributedString(string: "\(errorType)\n\n", attributes: [
+        errorMessage.append(NSAttributedString(string: "\(title)\n\n", attributes: [
             .foregroundColor: OSColor.white,
             .font: OSFont.systemFont(ofSize: 17, weight: .bold),
         ]))

@@ -11,14 +11,16 @@ import SceneKit
 import ShapeScript
 
 extension DocumentViewController {
-    var showAccessButton: Bool {
-        get { !grantAccessButton.isHidden }
-        set {
-            grantAccessButton.isHidden = !newValue
-            errorTextView.backgroundColor = newValue ?
-                OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1) :
-                OSColor(red: 0.8, green: 0, blue: 0, alpha: 0.8)
+    func setError(_ error: ProgramError?, message: NSAttributedString?) {
+        switch error?.type ?? .evaluation {
+        case .evaluation:
+            errorTextView.backgroundColor = OSColor(red: 0.8, green: 0, blue: 0, alpha: 0.8)
+            grantAccessButton.isHidden = true
+        case .fileAccess:
+            errorTextView.backgroundColor = OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1)
+            grantAccessButton.isHidden = false
         }
+        errorMessage = message
     }
 
     func makeCameraNode() -> SCNNode {

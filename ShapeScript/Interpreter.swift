@@ -19,17 +19,42 @@ public func evaluate(
     cache: GeometryCache? = GeometryCache(),
     isCancelled: @escaping () -> Bool = { false }
 ) throws -> Scene {
+    let (scene, error) = evaluate(
+        program,
+        delegate: delegate,
+        cache: cache,
+        isCancelled: isCancelled
+    )
+    if let error = error {
+        throw error
+    }
+    return scene
+}
+
+@_disfavoredOverload
+public func evaluate(
+    _ program: Program,
+    delegate: EvaluationDelegate?,
+    cache: GeometryCache?,
+    isCancelled: @escaping () -> Bool
+) -> (Scene, Error?) {
     let context = EvaluationContext(
         source: program.source,
         delegate: delegate,
         isCancelled: isCancelled
     )
-    try program.evaluate(in: context)
-    return Scene(
+    let result = Result { try program.evaluate(in: context) }
+    let scene = Scene(
         background: context.background ?? .color(.clear),
         children: context.children.compactMap { $0.value as? Geometry },
         cache: cache
     )
+    switch result {
+    case .success:
+        return (scene, nil)
+    case let .failure(error):
+        return (scene, error)
+    }
 }
 
 public enum RuntimeErrorType: Error, Equatable {

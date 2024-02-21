@@ -19,10 +19,6 @@ extension Document {
         } ?? false
     }
 
-    var isAccessError: Bool {
-        error?.accessErrorURL != nil
-    }
-
     var errorURL: URL? {
         let fileURL: URL? = self.fileURL
         return fileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
@@ -169,8 +165,7 @@ extension Document {
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
-        viewController.errorMessage = errorMessage
-        viewController.showAccessButton = (errorMessage != nil && isAccessError)
+        viewController.setError(error, message: errorMessage)
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
@@ -266,7 +261,7 @@ extension Document {
                 return
             }
 
-            let scene = try evaluate(program, delegate: self, cache: cache, isCancelled: {
+            let (scene, error) = evaluate(program, delegate: self, cache: cache, isCancelled: {
                 progress.isCancelled
             })
             let evaluated = CFAbsoluteTimeGetCurrent()
@@ -319,8 +314,14 @@ extension Document {
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
             scene.scnBuild(with: options)
-            progress.setStatus(.success(scene))
 
+            // Show error
+            if let error = error {
+                progress.setStatus(.partial(scene))
+                throw error
+            }
+
+            progress.setStatus(.success(scene))
             let end = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
         }

@@ -15,6 +15,11 @@ public enum ProgramError: Error, Equatable {
     case unknownError(String?)
 }
 
+public enum ErrorType: Equatable {
+    case evaluation
+    case fileAccess
+}
+
 public extension ProgramError {
     init(_ error: Error) {
         switch error {
@@ -25,6 +30,31 @@ public extension ProgramError {
         default:
             let message = error.localizedDescription
             self = .unknownError(message.hasSuffix(".") ? "\(message.dropLast())" : message)
+        }
+    }
+
+    var type: ErrorType {
+        switch underlyingError {
+        case let .runtimeError(runtimeError):
+            switch runtimeError.type {
+            case .fileAccessRestricted:
+                return .fileAccess
+            case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
+                 .typeMismatch, .forwardReference, .unexpectedArgument,
+                 .missingArgument, .unusedValue, .assertionFailure,
+                 .fileNotFound, .fileTimedOut, .fileTypeMismatch,
+                 .fileParsingError, .circularImport, .importError:
+                return .evaluation
+            }
+        case .parserError, .lexerError, .unknownError:
+            return .evaluation
+        }
+    }
+
+    var title: String {
+        switch type {
+        case .evaluation: return "Error"
+        case .fileAccess: return "Permission Required"
         }
     }
 
