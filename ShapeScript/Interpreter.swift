@@ -628,7 +628,7 @@ private func evaluateParameter(_ parameter: Expression?,
 {
     let (name, range) = (identifier.name, identifier.range)
     guard let parameter = parameter else {
-        if type == .void {
+        if type.isOptional {
             return .void
         }
         throw RuntimeError(
