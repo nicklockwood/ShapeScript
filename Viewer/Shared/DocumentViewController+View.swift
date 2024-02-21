@@ -42,6 +42,11 @@ extension DocumentViewController {
         case .fileAccess:
             errorTextView.backgroundColor = OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1)
             grantAccessButton.isHidden = false
+            grantAccessButton.title = "Grant Access"
+        case .breakpoint:
+            errorTextView.backgroundColor = OSColor(red: 0.4, green: 0.4, blue: 1, alpha: 0.5)
+            grantAccessButton.isHidden = false
+            grantAccessButton.title = "Continue"
         }
         errorMessage = message
     }

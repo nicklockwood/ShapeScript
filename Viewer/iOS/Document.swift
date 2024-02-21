@@ -18,6 +18,7 @@ final class Document: UIDocument {
 
     let cache = GeometryCache()
     let settings = Settings.shared
+    var lastBreakpoint: Int?
     private(set) var fileMonitor: FileMonitor?
 
     weak var viewController: DocumentViewController?
@@ -118,14 +119,22 @@ final class Document: UIDocument {
     }
 
     func grantAccess() {
-        let picker = UIDocumentPickerViewController(
-            forOpeningContentTypes: [.folder],
-            asCopy: false
-        )
-        picker.directoryURL = error?.accessErrorURL
-        picker.delegate = self
-        picker.modalPresentationStyle = .fullScreen
-        viewController?.present(picker, animated: true)
+        switch error?.type {
+        case .fileAccess?:
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.folder],
+                asCopy: false
+            )
+            picker.directoryURL = error?.accessErrorURL
+            picker.delegate = self
+            picker.modalPresentationStyle = .fullScreen
+            viewController?.present(picker, animated: true)
+        case let .breakpoint(index):
+            lastBreakpoint = index
+            didUpdateSource()
+        case .evaluation?, nil:
+            preconditionFailure()
+        }
     }
 }
 

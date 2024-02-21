@@ -75,6 +75,7 @@ public enum RuntimeErrorType: Error, Equatable {
     case fileParsingError(for: String, at: URL, message: String)
     case circularImport(for: URL)
     indirect case importError(ProgramError, for: URL?, in: String)
+    case breakpoint(Int)
 }
 
 public struct RuntimeError: Error, Equatable {
@@ -134,6 +135,8 @@ public extension RuntimeError {
             let name = url.map { " '\($0.lastPathComponent)'" } ?? ""
             let error = error.range.map { _ in ": \(error.message)" } ?? ""
             return "Error in imported file\(name)\(error)"
+        case .breakpoint:
+            return "Breakpoint encountered"
         }
     }
 
@@ -162,7 +165,8 @@ public extension RuntimeError {
              .fileTypeMismatch,
              .fileParsingError,
              .circularImport,
-             .importError:
+             .importError,
+             .breakpoint:
             return nil
         }
     }
@@ -281,6 +285,8 @@ public extension RuntimeError {
                 return error.message
             }
             return error.hint
+        case .breakpoint:
+            return nil
         }
     }
 
@@ -304,7 +310,8 @@ public extension RuntimeError {
              .unknownSymbol,
              .unknownMember,
              .invalidIndex,
-             .unknownFont:
+             .unknownFont,
+             .breakpoint:
             return nil
         }
     }

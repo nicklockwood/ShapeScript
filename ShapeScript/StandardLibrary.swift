@@ -451,6 +451,10 @@ extension Symbols {
                 throw RuntimeErrorType.assertionFailure("")
             }
         },
+        "pause": .function(.optional(.any), .any) { value, context in
+            try context.hitBreakpoint()
+            return value
+        },
         // Logic
         "true": .constant(.boolean(true)),
         "false": .constant(.boolean(false)),

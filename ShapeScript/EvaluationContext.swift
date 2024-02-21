@@ -37,6 +37,15 @@ public struct SourceLocation: Hashable {
     }
 }
 
+final class BreakpointManager {
+    private var breakpointIndex: Int = 0
+
+    func next() -> Int {
+        defer { breakpointIndex += 1 }
+        return breakpointIndex
+    }
+}
+
 final class EvaluationContext {
     private final class ImportCache {
         enum Import {
@@ -85,6 +94,7 @@ final class EvaluationContext {
     }
 
     var random: RandomSequence
+    var breakpoints: BreakpointManager
     var detail: Int = 16
     var smoothing: Angle?
     var font: String = ""
@@ -112,6 +122,7 @@ final class EvaluationContext {
         self.importCache = ImportCache()
         self.importStack = []
         self.random = RandomSequence(seed: 0)
+        self.breakpoints = BreakpointManager()
     }
 
     private init(parent: EvaluationContext) {
@@ -129,6 +140,7 @@ final class EvaluationContext {
         self.childTypes = parent.childTypes
         self.namedObjects = parent.namedObjects
         self.random = parent.random
+        self.breakpoints = parent.breakpoints
         self.detail = parent.detail
         self.smoothing = parent.smoothing
         self.font = parent.font
@@ -246,6 +258,13 @@ extension EvaluationContext {
 extension EvaluationContext {
     func debugLog(_ values: [AnyHashable]) {
         delegate?.debugLog(values)
+    }
+
+    func hitBreakpoint() throws {
+        let index = breakpoints.next()
+        if delegate?.shouldPauseAtBreakpoint(index) == true {
+            throw RuntimeErrorType.breakpoint(index)
+        }
     }
 }
 

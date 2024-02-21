@@ -24,6 +24,7 @@ final class Document: NSDocument {
 
     let cache = GeometryCache()
     let settings = Settings.shared
+    var lastBreakpoint: Int?
     private(set) var fileMonitor: FileMonitor?
 
     var viewController: DocumentViewController? {
@@ -178,19 +179,27 @@ final class Document: NSDocument {
     }
 
     @IBAction func grantAccess(_: Any?) {
-        let dialog = NSOpenPanel()
-        dialog.title = "Grant Access"
-        dialog.showsHiddenFiles = false
-        dialog.directoryURL = error?.accessErrorURL
-        dialog.canChooseDirectories = true
-        showSheet(dialog, in: windowForSheet) { response in
-            guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {
-                return
+        switch error?.type {
+        case .fileAccess?:
+            let dialog = NSOpenPanel()
+            dialog.title = "Grant Access"
+            dialog.showsHiddenFiles = false
+            dialog.directoryURL = error?.accessErrorURL
+            dialog.canChooseDirectories = true
+            showSheet(dialog, in: windowForSheet) { response in
+                guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {
+                    return
+                }
+                self.bookmarkURL(url)
+                do {
+                    _ = try self.read(from: fileURL, ofType: fileURL.pathExtension)
+                } catch {}
             }
-            self.bookmarkURL(url)
-            do {
-                _ = try self.read(from: fileURL, ofType: fileURL.pathExtension)
-            } catch {}
+        case let .breakpoint(index):
+            lastBreakpoint = index
+            didUpdateSource()
+        case .evaluation?, nil:
+            preconditionFailure()
         }
     }
 

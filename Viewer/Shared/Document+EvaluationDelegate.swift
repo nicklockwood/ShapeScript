@@ -56,4 +56,8 @@ extension Document: EvaluationDelegate {
             }
         }
     }
+
+    func shouldPauseAtBreakpoint(_ index: Int) -> Bool {
+        index > lastBreakpoint ?? -1
+    }
 }

@@ -198,6 +198,7 @@ extension Document {
                 """
             )
         }
+        lastBreakpoint = nil
         if input != sourceString {
             if !sourceString.isEmpty {
                 // Treat as edit

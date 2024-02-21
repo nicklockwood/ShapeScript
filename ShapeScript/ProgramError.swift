@@ -18,6 +18,7 @@ public enum ProgramError: Error, Equatable {
 public enum ErrorType: Equatable {
     case evaluation
     case fileAccess
+    case breakpoint(Int)
 }
 
 public extension ProgramError {
@@ -37,6 +38,8 @@ public extension ProgramError {
         switch underlyingError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
+            case let .breakpoint(index):
+                return .breakpoint(index)
             case .fileAccessRestricted:
                 return .fileAccess
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
@@ -55,6 +58,7 @@ public extension ProgramError {
         switch type {
         case .evaluation: return "Error"
         case .fileAccess: return "Permission Required"
+        case .breakpoint: return "Script Paused"
         }
     }
 
@@ -109,7 +113,8 @@ public extension ProgramError {
                  .typeMismatch, .forwardReference, .unexpectedArgument,
                  .missingArgument, .unusedValue, .assertionFailure,
                  .fileNotFound, .fileTimedOut, .fileAccessRestricted,
-                 .fileTypeMismatch, .fileParsingError, .circularImport:
+                 .fileTypeMismatch, .fileParsingError, .circularImport,
+                 .breakpoint:
                 return baseURL
             }
         case .lexerError, .parserError, .unknownError:
@@ -128,7 +133,7 @@ public extension ProgramError {
                  .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
                  .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError,
-                 .circularImport:
+                 .circularImport, .breakpoint:
                 return self
             }
         case .lexerError, .parserError, .unknownError:
@@ -145,6 +150,15 @@ public extension ProgramError {
            error.range != nil
         {
             return error.rangeAndSource(with: source)
+        }
+        var range = range
+        switch type {
+        case .breakpoint:
+            if let start = range?.lowerBound {
+                range = start ..< start
+            }
+        case .fileAccess, .evaluation:
+            break
         }
         return range.map { ($0, source) }
     }

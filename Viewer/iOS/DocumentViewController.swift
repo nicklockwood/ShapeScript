@@ -15,6 +15,13 @@ protocol ExportMenuProvider {
     func updateExportMenu()
 }
 
+extension UIButton {
+    var title: String? {
+        get { titleLabel?.text }
+        set { setTitle(newValue, for: .normal) }
+    }
+}
+
 final class DocumentViewController: UIViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?
