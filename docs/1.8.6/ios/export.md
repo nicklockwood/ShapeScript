@@ -9,7 +9,7 @@ To export your scene, select the export menu in the top-right of the window to u
 
 **Note:** If the `Export Image/Model` menu is grayed-out, it is most likely because your scene is still loading. Wait for the loading spinner in the top-left of the ShapeScript window to finish before trying to export.
 
-![Loading](../images/loading-ios.png)
+![Loading](../../images/loading-ios.png)
 
 ## Export Formats
 
@@ -76,7 +76,7 @@ If you aren't sure which format to use, the PNG format is a good all-rounder, wi
 
 The size of the exported image defaults to the current window size at the current display resolution. You can override this size in your script file by adding `width` and/or `height` options to your [custom camera](cameras.md#pixel-dimensions), or by tapping on the size label in the export menu and selecting a different size:
 
-![Export size](../images/export-size-ios.png)
+![Export size](../../images/export-size-ios.png)
 
 Images are exported with a transparent background by default if the selected format supports it, or white otherwise. To change the background color or set a background image, you can use the [background command](commands.md#background). If you are planning to composite the image onto a different background later, you may wish to disable [antialiasing](cameras.md#antialiasing).
 

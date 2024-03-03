@@ -24,6 +24,7 @@ scn / scnz            | SceneKit Scene Document                          | Yes
 usd / usdz            | Universal Scene Description                      | No
 ply                   | Polygon File Format                              | No
 stl / stla            | Stereolithography                                | No
+3mf                   | 3D Manufacturing Format                          | No
 svg                   | Scalable Vector Graphics                         | No
 
 <br/>
@@ -42,9 +43,9 @@ You can import DAE files into a game development tool like Unity, or use USD(Z) 
 
 ## 3D Printing
 
-ShapeScript can export models in the Stereolithography (STL) format, used by many 3D printing applications. Both binary and ASCII STL files are supported, but binary is recommended for file size and compatibility reasons. To export as ASCII use the `.stla` file extension, but note that you may need to rename the extension to `.stl` for it to be recognized by some applications.
+ShapeScript can export models in the 3D Manufacturing Format (3MF) and Stereolithography (STL) format used by many 3D printing applications. Both binary and ASCII STL files are supported, but binary is recommended for file size and compatibility reasons. To export as ASCII use the `.stla` file extension, but note that you may need to rename the extension to `.stl` for it to be recognized by some applications.
 
-When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine all the parts of your model into a single shape, eliminating internal faces.
+When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine overlapping parts of your model into a single shape, eliminating internal faces.
 
 ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export window to export your model in this orientation.
 
