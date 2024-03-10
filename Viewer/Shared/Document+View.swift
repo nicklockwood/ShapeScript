@@ -230,7 +230,7 @@ extension Document {
                 self.didUpdateSource()
                 return
             }
-            let wasFileAccessError = self.error?.type == .fileAccess
+            let wasEvaluationError = self.error?.type == .evaluation
             self.error = nil // Error is invalid if sourceString has changed
             switch status {
             case .waiting:
@@ -238,7 +238,7 @@ extension Document {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
-                if wasFileAccessError {
+                if !wasEvaluationError {
                     updateViews()
                 }
             case let .partial(scene), let .success(scene):

@@ -173,9 +173,11 @@ final class DocumentViewController: NSViewController {
 
         // add a click gesture recognizer
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
-        var gestureRecognizers = scnView.gestureRecognizers
-        gestureRecognizers.insert(clickGesture, at: 0)
-        scnView.gestureRecognizers = gestureRecognizers
+        scnView.gestureRecognizers.insert(clickGesture, at: 0)
+
+        // add click gesture to error view
+        let clickGesture2 = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
+        errorTextView.gestureRecognizers.insert(clickGesture2, at: 0)
     }
 
     override func viewDidAppear() {

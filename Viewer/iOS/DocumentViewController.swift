@@ -52,7 +52,6 @@ final class DocumentViewController: UIViewController {
                 errorScrollView.isHidden = true
                 navigationBar?.tintColor = interfaceColor
                 cameraButton.isEnabled = true
-                infoButton.isEnabled = true
                 exportButton.isEnabled = true
                 return
             }
@@ -60,7 +59,6 @@ final class DocumentViewController: UIViewController {
             errorScrollView.isHidden = false
             navigationBar?.tintColor = .white
             cameraButton.isEnabled = false
-            infoButton.isEnabled = false
             exportButton.isEnabled = false
         }
     }
@@ -324,6 +322,10 @@ final class DocumentViewController: UIViewController {
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
+
+        // add a tap gesture to error view
+        let tapGesture2 = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        errorTextView.addGestureRecognizer(tapGesture2)
 
         if self as Any is ExportMenuProvider {
             scheduleCameraMovedTimer()
