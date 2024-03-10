@@ -75,18 +75,18 @@ extension Document {
         let dimensions: String
         let volume: String
         let watertight: String
-        if loadingProgress?.didSucceed ?? true {
-            polygons = String(geometry.polygons { false }.count)
-            triangles = String(geometry.triangles { false }.count)
-            dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
-            volume = geometry.volume { false }.logDescription
-            watertight = geometry.isWatertight { false }.logDescription
-        } else {
+        if loadingProgress?.inProgress ?? true {
             polygons = "calculating…"
             triangles = "calculating…"
             dimensions = "calculating…"
             volume = "calculating…"
             watertight = "calculating…"
+        } else {
+            polygons = String(geometry.polygons { false }.count)
+            triangles = String(geometry.triangles { false }.count)
+            dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
+            volume = geometry.volume { false }.logDescription
+            watertight = geometry.isWatertight { false }.logDescription
         }
 
         if let selectedGeometry {
