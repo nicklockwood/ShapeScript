@@ -161,6 +161,16 @@ extension Value {
             if !members.contains("alpha"), let color = self.as(.color) {
                 members += color.members
             }
+            if values.allSatisfy({
+                switch $0 {
+                case .mesh, .path:
+                    return true
+                default:
+                    return false
+                }
+            }) {
+                members.append("bounds")
+            }
             return members
         case .range:
             return ["start", "end", "step"]
@@ -266,6 +276,20 @@ extension Value {
                 return self.as(.rotation)?[name, isCancelled]
             case "red", "green", "blue", "alpha":
                 return self.as(.color)?[name, isCancelled]
+            case "bounds":
+                return .bounds(Bounds(values.compactMap { value -> Bounds? in
+                    switch value {
+                    case let .mesh(geometry):
+                        return geometry.exactBounds(with: geometry.transform) {
+                            !isCancelled()
+                        }
+                    case let .path(path):
+                        return path.bounds
+                    default:
+                        assertionFailure()
+                        return nil
+                    }
+                }))
             default:
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
