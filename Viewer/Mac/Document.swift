@@ -200,7 +200,7 @@ class Document: NSDocument {
     @IBAction func showModelInfo(_: AnyObject) {
         let actionSheet = NSAlert()
         actionSheet.messageText = selectedGeometry.map { _ in
-            "Selected Object Info"
+            "Selected Shape Info"
         } ?? "Scene Info"
         actionSheet.informativeText = modelInfo
         actionSheet.addButton(withTitle: "OK")
@@ -456,7 +456,7 @@ class Document: NSDocument {
             return selectedGeometry != nil
         case #selector(showModelInfo(_:)):
             menuItem.title = selectedGeometry == nil ?
-                "Scene Info" : "Model Info"
+                "Scene Info" : "Selected Shape Info"
         default:
             break
         }
