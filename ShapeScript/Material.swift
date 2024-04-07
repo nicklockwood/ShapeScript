@@ -99,7 +99,11 @@ public extension Material {
     }
 
     var isOpaque: Bool {
-        (opacity?.opacity ?? 1) > 0.999 && (albedo?.opacity ?? 1) > 0.999
+        (opacity?.opacity ?? 1) * (albedo?.opacity ?? 1) > 0.999
+    }
+
+    var isVisible: Bool {
+        (opacity?.opacity ?? 1) * (albedo?.opacity ?? 1) > 0.001
     }
 
     var color: Color? {

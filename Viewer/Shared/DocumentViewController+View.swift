@@ -94,6 +94,15 @@ extension DocumentViewController {
         }
     }
 
+    func selectGeometry(at location: CGPoint) {
+        let hits = scnView.hitTest(location, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
+        let hit = hits.first(where: { hit in
+            let material = hit.node.geometry.map { $0.materials[hit.geometryIndex % $0.materials.count] }
+            return material.flatMap { Material($0)?.isVisible } ?? true
+        })
+        selectGeometry(hit?.node)
+    }
+
     func selectGeometry(_ scnNode: SCNNode?) {
         selectedGeometry = geometry?.select(with: scnNode)
     }
@@ -187,8 +196,7 @@ extension Geometry {
         }
         var selected = isSelected ? self : nil
         for child in children {
-            let g = child.select(with: scnNode)
-            selected = selected ?? g
+            selected = child.select(with: scnNode) ?? selected
         }
         return selected
     }

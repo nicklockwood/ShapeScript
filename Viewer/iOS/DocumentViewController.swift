@@ -533,8 +533,7 @@ class DocumentViewController: UIViewController {
 
     @objc private func handleTap(_ gestureRecognizer: UIGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
-        let hitResults = scnView.hitTest(location, options: [:])
-        selectGeometry(hitResults.first?.node)
+        selectGeometry(at: location)
     }
 
     @IBAction func dismissDocumentViewController() {

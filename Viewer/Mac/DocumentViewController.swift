@@ -205,8 +205,7 @@ class DocumentViewController: NSViewController {
 
     @objc func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
-        let hitResults = scnView.hitTest(location, options: [:])
-        selectGeometry(hitResults.first?.node)
+        selectGeometry(at: location)
     }
 
     override func keyDown(with event: NSEvent) {
