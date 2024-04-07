@@ -15,6 +15,8 @@ import SceneKit
 public extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
+        case let number as NSNumber:
+            self = .color(Color(number.doubleValue, number.doubleValue))
         case let color as OSColor:
             self = .color(Color(color))
         case let image as OSImage:
