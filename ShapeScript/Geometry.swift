@@ -742,7 +742,7 @@ public extension Geometry {
         case .hull:
             var bounds = Bounds(type.representativePoints.transformed(by: transform))
             for child in children {
-                bounds.formUnion(child.exactBounds(with: child.transform * transform))
+                bounds.formUnion(child.exactBounds(with: child.transform * transform, callback))
             }
             return bounds
         case let .path(path):
@@ -751,7 +751,7 @@ public extension Geometry {
             return paths.transformed(by: transform).bounds
         case .group, .union, .lathe, .extrude:
             return Bounds(children.map {
-                $0.exactBounds(with: $0.transform * transform)
+                $0.exactBounds(with: $0.transform * transform, callback)
             })
         case .xor, .difference, .intersection:
             _ = build(callback)
@@ -761,7 +761,7 @@ public extension Geometry {
             return mesh?.transformed(by: transform).bounds ?? .empty
         case .stencil:
             return children.first.map {
-                $0.exactBounds(with: $0.transform * transform)
+                $0.exactBounds(with: $0.transform * transform, callback)
             } ?? .empty
         }
     }
