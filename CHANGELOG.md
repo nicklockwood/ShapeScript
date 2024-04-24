@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.8.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.5) (2024-04-24)
+
+- The calculation of `exactBounds` is now cancellable
+- Fixed issue where `.bounds` member didn't work on `text` path output
+- Partial scene progress is now rendered after an error to facilitate debugging
+- Scalar `SCNMaterial` properties like `roughness` are now imported correctly
+- Mouse or tap selection now works through invisible objects
+- Optional function arguments can now be omitted
+- Added fileURL property to Program
+
 ## [1.8.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.4) (2024-02-18)
 
 - Added `in` operator for testing if a value lies within a tuple or range
