@@ -100,7 +100,7 @@ public struct SVGPath: Hashable {
             }
             var control = lastPoint - lastControl
             if !isRelative {
-                control = control + lastPoint
+                control += lastPoint
             }
             return .quadratic(control, SVGPoint(x: numbers[0], y: -numbers[1]))
         }
@@ -123,7 +123,7 @@ public struct SVGPath: Hashable {
             }
             var control = lastPoint - lastControl
             if !isRelative {
-                control = control + lastPoint
+                control += lastPoint
             }
             return .cubic(
                 control,
@@ -162,7 +162,7 @@ public struct SVGPath: Hashable {
 
         func appendCommand(_ command: SVGCommand) {
             commands.append(
-                isRelative ? command.relative(to: commands.lastPoint) : command
+                isRelative ? command.relative(to: commands) : command
             )
         }
 
@@ -317,6 +317,13 @@ private extension Array where Element == SVGCommand {
         }
         return .zero
     }
+
+    var lastMove: SVGPoint {
+        for case let .moveTo(point) in reversed() {
+            return point
+        }
+        return .zero
+    }
 }
 
 public enum SVGError: Error, Hashable {
@@ -356,6 +363,15 @@ public extension SVGCommand {
         case let .arc(arc):
             return arc.end
         case .end:
+            return nil
+        }
+    }
+
+    private var startPoint: SVGPoint? {
+        switch self {
+        case let .moveTo(point):
+            return point
+        default:
             return nil
         }
     }
@@ -441,18 +457,20 @@ public extension SVGCommand {
         }
     }
 
-    fileprivate func relative(to last: SVGPoint) -> SVGCommand {
+    fileprivate func relative(to commands: [SVGCommand]) -> SVGCommand {
         switch self {
         case let .moveTo(point):
-            return .moveTo(point + last)
+            return .moveTo(point + commands.lastMove)
         case let .lineTo(point):
-            return .lineTo(point + last)
+            return .lineTo(point + commands.lastPoint)
         case let .cubic(control1, control2, point):
+            let last = commands.lastPoint
             return .cubic(control1 + last, control2 + last, point + last)
         case let .quadratic(control, point):
+            let last = commands.lastPoint
             return .quadratic(control + last, point + last)
         case let .arc(arc):
-            return .arc(arc.relative(to: last))
+            return .arc(arc.relative(to: commands.lastPoint))
         case .end:
             return .end
         }
@@ -475,8 +493,16 @@ public extension SVGPoint {
         SVGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
     }
 
+    static func += (lhs: inout SVGPoint, rhs: SVGPoint) {
+        lhs = lhs + rhs
+    }
+
     static func - (lhs: SVGPoint, rhs: SVGPoint) -> SVGPoint {
         SVGPoint(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
+    }
+
+    static func -= (lhs: inout SVGPoint, rhs: SVGPoint) {
+        lhs = lhs - rhs
     }
 }
 

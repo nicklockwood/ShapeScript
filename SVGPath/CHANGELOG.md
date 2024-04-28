@@ -1,3 +1,8 @@
+## [1.1.5](https://github.com/nicklockwood/SVGPath/releases/tag/1.1.5) (2024-04-28)
+
+- Fixed incorrect calculation for relative `moveTo` commands
+- Added `+=` and `-=` operators for `SVGPoint`
+
 ## [1.1.4](https://github.com/nicklockwood/SVGPath/releases/tag/1.1.4) (2023-12-09)
 
 - Fixed inverted arc rotation argument
