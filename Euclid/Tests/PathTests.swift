@@ -653,6 +653,39 @@ class PathTests: XCTestCase {
         XCTAssertEqual(path.plane?.normal, .unitZ)
     }
 
+    func testPathWithLoopEndingInLineHasCorrectSubpaths2() {
+        let path = Path([
+            .curve(24, -32),
+            .point(16, -32),
+            .curve(16, -37.333333259259),
+            .curve(16, -42.666666740741),
+            .point(16, -48),
+            .point(24, -48),
+            .curve(24, -42.666666740741),
+            .curve(24, -37.333333259259),
+            .curve(24, -32),
+            .point(16, -48),
+            .point(10, -48),
+        ])
+        XCTAssertEqual(path.subpaths, [
+            Path([
+                .curve(24, -32),
+                .point(16, -32),
+                .curve(16, -37.333333259259),
+                .curve(16, -42.666666740741),
+                .point(16, -48),
+                .point(24, -48),
+                .curve(24, -42.666666740741),
+                .curve(24, -37.333333259259),
+                .curve(24, -32),
+            ]),
+            Path([
+                .point(16, -48),
+                .point(10, -48),
+            ]),
+        ])
+    }
+
     func testPathWithConjoinedLoopsHasCorrectSubpaths() {
         let path = Path([
             .point(0, 0),
@@ -739,13 +772,32 @@ class PathTests: XCTestCase {
             .point(2, 0),
         ])
         XCTAssertEqual(path1.plane?.normal, .unitZ)
+        XCTAssertEqual(path1.subpaths.count, 2)
+        XCTAssertEqual(path1.subpaths, [
+            Path([
+                .point(0, 0),
+                .point(1, 0),
+                .point(1, 1),
+                .point(0, 1),
+                .point(0, 0),
+            ]),
+            Path([
+                .point(2, 0),
+                .point(3, 0),
+                .point(3, 1),
+                .point(2, 1),
+                .point(2, 0),
+            ]),
+        ])
         let path2 = Path([
             .point(5, 1),
             .point(4, -1),
             .point(5, -1),
         ])
         XCTAssertEqual(path2.plane?.normal, .unitZ)
+        XCTAssertEqual(path2.subpaths.count, 1)
         let path3 = Path(subpaths: [path1, path2])
+        XCTAssertEqual(path3.subpaths.count, 3)
         XCTAssertEqual(path3.subpaths, [
             Path([
                 .point(0, 0),
@@ -762,13 +814,12 @@ class PathTests: XCTestCase {
                 .point(2, 0),
             ]),
             Path([
-                .point(2, 0),
                 .point(5, 1),
                 .point(4, -1),
                 .point(5, -1),
             ]),
         ])
-        XCTAssertNil(path3.plane)
+        XCTAssertEqual(path3.plane?.normal, .unitZ)
     }
 
     func testClosedPathWithOffshootSubpaths() {
