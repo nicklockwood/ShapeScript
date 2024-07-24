@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.8.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.6) (2024-07-24)
+
+- Bumped Euclid to version 0.7.8
+- Bumped SVGPath to version 1.1.5
+
 ## [1.8.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.5) (2024-04-24)
 
 - The calculation of `exactBounds` is now cancellable
