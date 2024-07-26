@@ -383,30 +383,32 @@ class MetadataTests: XCTestCase {
             let nsText = text as NSString
             var range = NSRange(location: 0, length: nsText.length)
             for match in urlRegex.matches(in: text, options: [], range: range) {
+                print("Matching \(match)")
                 range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
                 var url = nsText.substring(with: match.range(at: 1))
                     .trimmingCharacters(in: .whitespaces)
                 XCTAssertFalse(url.isEmpty, "Empty url reference in \(file)")
-                var fragment = ""
-                let parts = url.components(separatedBy: "#")
+                print("URL: \(url)")
                 guard !url.hasPrefix("http") else {
                     continue
                 }
-                let isImage = url.hasSuffix(".png")
+                var fragment = ""
+                let parts = url.components(separatedBy: "#")
                 if parts.count == 2 {
                     url = parts[0]
                     fragment = parts[1]
                     if url.isEmpty {
                         url = fileURL.path
                     }
+                    print("URL: \(url), fragment: \(fragment)")
                 }
                 let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpSourceDirectory)
+                print("path: \(absoluteURL.path)")
+                if url.hasSuffix(".png") {
+                    referencedImages.insert(absoluteURL.lastPathComponent)
+                }
                 guard fm.fileExists(atPath: absoluteURL.path) else {
                     XCTFail("\(url) referenced in \(file) does not exist")
-                    continue
-                }
-                if isImage {
-                    referencedImages.insert(absoluteURL.lastPathComponent)
                     continue
                 }
                 guard !fragment.isEmpty else {
