@@ -77,6 +77,15 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
         present(navigationController, animated: true)
     }
 
+    func showLicensesScreen() {
+        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
+        let viewController = storyBoard
+            .instantiateViewController(withIdentifier: "LicensesViewController") as! LicensesViewController
+        let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.modalPresentationStyle = .formSheet
+        present(navigationController, animated: true)
+    }
+
     @objc func showHelpMenu() {
         let alert = UIAlertController(
             title: "ShapeScript Help",
@@ -100,6 +109,12 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             style: .default
         ) { [weak self] _ in
             self?.showWelcomeScreen()
+        })
+        alert.addAction(UIAlertAction(
+            title: "Open Source Licenses",
+            style: .default
+        ) { [weak self] _ in
+            self?.showLicensesScreen()
         })
         alert.addAction(UIAlertAction(
             title: "Examples",

@@ -15,6 +15,10 @@
 		0118098328F216D200E0C8D8 /* Value+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0118098228F216D200E0C8D8 /* Value+JSON.swift */; };
 		011E57AC29F577F900CA0778 /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */; };
 		011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 011E57B429F57BBC00CA0778 /* WhatsNew.rtf */; };
+		0129396D2C528C1B00BD0A24 /* Licenses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 0129396C2C528C1B00BD0A24 /* Licenses.rtf */; };
+		0129396E2C528C1B00BD0A24 /* Licenses.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 0129396C2C528C1B00BD0A24 /* Licenses.rtf */; };
+		012939702C528DEC00BD0A24 /* LicensesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0129396F2C528DEC00BD0A24 /* LicensesViewController.swift */; };
+		012939722C5293C100BD0A24 /* LicensesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012939712C5293C100BD0A24 /* LicensesViewController.swift */; };
 		01326AFF215D617500BB8CB1 /* Scene+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */; };
 		013312D321C9BBCC00626F1B /* EvaluationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312D221C9BBCC00626F1B /* EvaluationContext.swift */; };
 		013888CC2B7A990800EDABE9 /* Euclid+SVGPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013888CB2B7A990800EDABE9 /* Euclid+SVGPath.swift */; };
@@ -341,6 +345,9 @@
 		0118098228F216D200E0C8D8 /* Value+JSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Value+JSON.swift"; sourceTree = "<group>"; };
 		011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
 		011E57B429F57BBC00CA0778 /* WhatsNew.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = WhatsNew.rtf; sourceTree = "<group>"; };
+		0129396C2C528C1B00BD0A24 /* Licenses.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Licenses.rtf; sourceTree = "<group>"; };
+		0129396F2C528DEC00BD0A24 /* LicensesViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LicensesViewController.swift; sourceTree = "<group>"; };
+		012939712C5293C100BD0A24 /* LicensesViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LicensesViewController.swift; sourceTree = "<group>"; };
 		01326AFE215D617500BB8CB1 /* Scene+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scene+SceneKit.swift"; sourceTree = "<group>"; };
 		013312D221C9BBCC00626F1B /* EvaluationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluationContext.swift; sourceTree = "<group>"; };
 		013888CB2B7A990800EDABE9 /* Euclid+SVGPath.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Euclid+SVGPath.swift"; sourceTree = "<group>"; };
@@ -549,6 +556,7 @@
 				0183AAA028EC3AA500AD1984 /* Camera.swift */,
 				0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */,
 				0183AAB728EC3AB200AD1984 /* Untitled.shape */,
+				0129396C2C528C1B00BD0A24 /* Licenses.rtf */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -569,6 +577,7 @@
 				0183AAC328EC3AB200AD1984 /* DocumentViewController.swift */,
 				0183AAC428EC3AB200AD1984 /* DocumentBrowserViewController.swift */,
 				011E57AB29F577F900CA0778 /* WhatsNewViewController.swift */,
+				012939712C5293C100BD0A24 /* LicensesViewController.swift */,
 				011E57B429F57BBC00CA0778 /* WhatsNew.rtf */,
 				0183AAC528EC3AB200AD1984 /* Info.plist */,
 			);
@@ -584,6 +593,7 @@
 				0183AAD728EC3ACB00AD1984 /* WelcomeViewController.swift */,
 				016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */,
 				0183AAD828EC3ACB00AD1984 /* PreferencesViewController.swift */,
+				0129396F2C528DEC00BD0A24 /* LicensesViewController.swift */,
 				0183AAD928EC3ACB00AD1984 /* Main.storyboard */,
 				0183AADB28EC3ACB00AD1984 /* Document.swift */,
 				0183AADC28EC3ACB00AD1984 /* Viewer.entitlements */,
@@ -969,6 +979,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0144878B29F58F3E0050D4D2 /* Untitled.shape in Resources */,
+				0129396D2C528C1B00BD0A24 /* Licenses.rtf in Resources */,
 				0183AAE728EC3ACB00AD1984 /* Main.storyboard in Resources */,
 				01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */,
 				0183AAE928EC3ACB00AD1984 /* Welcome.rtf in Resources */,
@@ -982,6 +993,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0183AACA28EC3AB200AD1984 /* LaunchScreen.storyboard in Resources */,
+				0129396E2C528C1B00BD0A24 /* Licenses.rtf in Resources */,
 				011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */,
 				0183AAC828EC3AB200AD1984 /* Assets.xcassets in Resources */,
 				0183AAC628EC3AB200AD1984 /* Untitled.shape in Resources */,
@@ -1071,6 +1083,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				012939702C528DEC00BD0A24 /* LicensesViewController.swift in Sources */,
 				0183AAEB28EC3ACB00AD1984 /* DocumentViewController.swift in Sources */,
 				0183AAAA28EC3AA600AD1984 /* LoadingProgress.swift in Sources */,
 				0183AAE328EC3ACB00AD1984 /* WindowController.swift in Sources */,
@@ -1102,6 +1115,7 @@
 				0183AACC28EC3AB200AD1984 /* TokenView.swift in Sources */,
 				0183AAAB28EC3AA600AD1984 /* LoadingProgress.swift in Sources */,
 				0183AAAF28EC3AA600AD1984 /* ProgramError+Formatting.swift in Sources */,
+				012939722C5293C100BD0A24 /* LicensesViewController.swift in Sources */,
 				0183AAB528EC3AA600AD1984 /* Document+Sandbox.swift in Sources */,
 				0183AAB128EC3AA600AD1984 /* Settings.swift in Sources */,
 				0183AAA928EC3AA600AD1984 /* DocumentViewController+View.swift in Sources */,

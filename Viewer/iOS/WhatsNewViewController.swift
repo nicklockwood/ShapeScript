@@ -18,7 +18,7 @@ func loadRTF(_ file: String) throws -> NSAttributedString {
 }
 
 class WhatsNewViewController: UIViewController {
-    @IBOutlet private var textView: UITextView!
+    @IBOutlet private(set) var textView: UITextView!
 
     override func viewDidLoad() {
         super.viewDidLoad()

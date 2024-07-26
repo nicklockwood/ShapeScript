@@ -25,6 +25,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var whatsNewWindowController: NSWindowController? = NSStoryboard(name: "Main", bundle: nil)
         .instantiateController(withIdentifier: "ReleaseNotesWindow") as? NSWindowController
 
+    lazy var licensesWindowController: NSWindowController? = NSStoryboard(name: "Main", bundle: nil)
+        .instantiateController(withIdentifier: "LicensesWindow") as? NSWindowController
+
     lazy var preferencesWindowController: NSWindowController = NSStoryboard(name: "Main", bundle: nil)
         .instantiateController(withIdentifier: "PreferencesWindow") as! NSWindowController
 
@@ -120,6 +123,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func showWhatsNew(_: Any) {
         whatsNewWindowController?.showWindow(self)
+    }
+
+    @IBAction func showLicenses(_: Any) {
+        licensesWindowController?.showWindow(self)
     }
 }
 
