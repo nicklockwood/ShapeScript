@@ -102,7 +102,7 @@ As mentioned in the [orientation](#orientation) section above, an advantage of t
 
 ```swift
 rotate 0 0 0.25 // pitch 45 degrees
-rotate 0.4 0 0 // roll 80 degrees
+rotate 0.4 0 0 // roll 72 degrees
 cube
 ```
 
