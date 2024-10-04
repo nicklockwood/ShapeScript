@@ -307,7 +307,9 @@ class Document: NSDocument {
     private var selectableGeometries: [Geometry] {
         var geometries = [Geometry]()
         enumerateGeometries(in: geometry) { geometry in
-            geometries.append(geometry)
+            if geometry.isSelectable {
+                geometries.append(geometry)
+            }
         }
         return geometries
     }
@@ -362,7 +364,9 @@ class Document: NSDocument {
     }
 
     @IBAction func selectShape(_ menuItem: NSMenuItem) {
-        selectShape(at: menuItem.tag - 1)
+        if menuItem.tag > 0 {
+            selectShape(at: menuItem.tag - 1)
+        }
     }
 
     @IBAction func clearSelection(_: NSMenuItem) {
