@@ -689,7 +689,7 @@ private extension ArraySlice where Element == Token {
             return try readExpressions().map { .expression($0.type) }
         }
         switch nextToken.type {
-        case .infix, .dot, .identifier, .lbrace:
+        case .infix, .dot, .identifier, .lbrace, .subscript:
             self = start
             guard let expression = try readExpressions() else {
                 return nil
@@ -697,20 +697,19 @@ private extension ArraySlice where Element == Token {
             switch expression.type {
             case var .tuple(expressions) where expressions[0].type == .identifier(identifier.name):
                 expressions.removeFirst()
-                let expression: Expression
+                let expression: Expression?
                 if expressions.count > 1 {
                     let range = expressions[0].range.lowerBound ..< expressions.last!.range.upperBound
                     expression = Expression(type: .tuple(expressions), range: range)
                 } else {
-                    expression = expressions[0]
+                    expression = expressions.first
                 }
                 return .command(identifier, expression)
             default:
                 return .expression(expression.type)
             }
-        // TODO: should call and subscript be treated differently here?
         case .number, .linebreak, .keyword, .hexColor, .prefix, .string,
-             .rbrace, .lparen, .call, .rparen, .lbracket, .rbracket, .subscript, .eof:
+             .rbrace, .lparen, .call, .rparen, .lbracket, .rbracket, .eof:
             return try .command(identifier, readExpressions())
         }
     }

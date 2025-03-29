@@ -684,6 +684,18 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [7, 7])
     }
 
+    func testParameterSubscripting() {
+        let program = """
+        define foo(bar) {
+            bar[0]
+        }
+        print foo(0 1)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
     func testRangeIndexing() {
         let program = "print (1 to 4)[1]"
         let delegate = TestDelegate()
