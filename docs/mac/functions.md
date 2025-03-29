@@ -95,6 +95,13 @@ max 2 4 // returns 4
 max 5 0 -5.1 // returns 5
 ```
 
+The `sum` function returns the sum of two or more values:
+
+```swift
+sum 2 4 // returns 6
+sum 5 0 -5.1 // returns -0.1
+```
+
 ## Linear Algebra
 
 ShapeScript also includes functions for operating on [vectors](literals.md#vectors-and-tuples):

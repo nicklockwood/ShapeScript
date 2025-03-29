@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.8.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.7) (2025-03-29)
+
+- Fixed bug with returning subscripted values
+- Fixed shape selection menu in the macOS viewer
+- Added `mesh.triangles` and `polygon.triangles` members
+- Added `sum()` function
+
 ## [1.8.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.6) (2024-07-24)
 
 - Bumped Euclid to version 0.7.8
