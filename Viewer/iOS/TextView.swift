@@ -38,9 +38,7 @@ class TextView: UIScrollView {
 
     var showLineNumbers: Bool = false {
         didSet {
-            guard showLineNumbers != oldValue else {
-                return
-            }
+            guard showLineNumbers != oldValue else { return }
             updateLineCount()
             setNeedsLayout()
         }
@@ -79,9 +77,7 @@ class TextView: UIScrollView {
     var text: String {
         get { textView.text }
         set {
-            guard newValue != textView.text else {
-                return
-            }
+            guard newValue != textView.text else { return }
             textView.text = newValue
             updateLineCount()
             previousSize = .zero
@@ -183,6 +179,13 @@ class TextView: UIScrollView {
     private func updateAutocorrectOptions() {
         textView.autocorrectionType = .no // disableAutocorrection ? .no : .default
         textView.autocapitalizationType = disableAutocorrection ? .none : .sentences
+
+        #if !os(visionOS)
+        // Disable writing tools as they bypass shouldChangeTextIn()
+        if #available(iOS 18.0, *) {
+            textView.writingToolsBehavior = .none
+        }
+        #endif
     }
 
     private var previousSize: CGSize = .zero
@@ -543,13 +546,9 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         shouldChangeTextIn range: NSRange,
         replacementText text: String
     ) -> Bool {
-        if updateLock > 0 {
-            return false
-        }
+        if updateLock > 0 { return false }
         lastSpaceIndex = nil
-        guard undoManager?.isUndoing != true,
-              undoManager?.isRedoing != true
-        else {
+        guard undoManager?.isUndoing != true, undoManager?.isRedoing != true else {
             let uiBundle = Bundle(for: UITextView.self)
             func localized(_ key: String) -> String {
                 uiBundle.localizedString(forKey: key, value: nil, table: nil)
@@ -691,9 +690,7 @@ extension TextView: NSLayoutManagerDelegate {
     }
 
     func updateLineNumbers() {
-        guard showLineNumbers else {
-            return
-        }
+        guard showLineNumbers else { return }
         gutterView.gutterWidth = layoutManager.gutterWidth
         gutterView.scrollOffset = textView.contentOffset.y
         gutterView.font = UIFontMetrics.default.scaledFont(for: font)
