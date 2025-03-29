@@ -499,6 +499,10 @@ extension Dictionary where Key == String, Value == Symbol {
         "min": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.min() ?? 0)
         },
+        "sum": .function(.list(.number), .number) { value, _ in
+            let values = value.tupleValue as! [Double]
+            return .number(values.reduce(0, +))
+        },
         "sqrt": .function(.number, .number) { value, _ in
             .number(sqrt(value.doubleValue))
         },
