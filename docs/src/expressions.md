@@ -312,14 +312,15 @@ for point in circle.points {
 }
 ```
 
-For [meshes](meshes.md) you can access the `name`, `bounds`, `polygons` and `material` members:
+For [meshes](meshes.md) you can access the `name`, `bounds`, `polygons`, `triangles` and `material` members:
 
 ```swift
 print cube.bounds.size // prints 1 1 1
 print cube.polygons.count // prints 6
+print cube.triangles.count // prints 12
 ```
 
-For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, or use `points` to access the individual vertices. For points you can access the `position` and `color`:
+For [polygons](meshes.md#polygons-and-points) you can get the `bounds` or `center`, use `triangles` to get the triangles that make up the polygon, or use `points` to access the individual vertices. For points you can access the `position` and `color`:
 
 ```swift
 define triangle polygon {

@@ -114,6 +114,7 @@ extension ValueType {
         "count": .number,
         "points": .list(.point),
         "polygons": .list(.polygon),
+        "triangles": .list(.polygon),
         "lines": .list(.string),
         "words": .list(.string),
         "characters": .list(.string),
@@ -177,13 +178,13 @@ extension Value {
         case let .mesh(geometry):
             var members = ["name", "bounds"]
             if geometry.hasMesh {
-                members += ["polygons", "material"]
+                members += ["polygons", "triangles", "material"]
             }
             return members
         case .path:
             return ["bounds", "points"]
         case .polygon:
-            return ["bounds", "center", "points"]
+            return ["bounds", "center", "points", "triangles"]
         case .point:
             return ["x", "y", "z", "position", "color", "isCurved"]
         case .bounds:
@@ -319,6 +320,11 @@ extension Value {
                 let polygons = (geometry.mesh?.polygons ?? [])
                     .transformed(by: geometry.transform)
                 return .tuple(polygons.map { .polygon($0) })
+            case "triangles" where geometry.hasMesh:
+                _ = geometry.build { !isCancelled() }
+                let triangles = (geometry.mesh?.triangulate().polygons ?? [])
+                    .transformed(by: geometry.transform)
+                return .tuple(triangles.map { .polygon($0) })
             case "material" where geometry.hasMesh:
                 return .material(geometry.material)
             default:
@@ -338,6 +344,8 @@ extension Value {
                 return .vector(polygon.center)
             case "points":
                 return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
+            case "triangles":
+                return .tuple(polygon.triangulate().map { .polygon($0) })
             default:
                 return nil
             }

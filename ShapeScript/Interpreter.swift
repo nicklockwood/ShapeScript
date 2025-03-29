@@ -484,7 +484,6 @@ private extension RuntimeError {
         "translation": ["position"],
         "position": ["translate", "bounds", "center"],
         "faces": ["polygons"],
-        "triangles": ["polygons"],
         "vertices": ["points"],
         "scale": ["size"],
         "size": ["scale", "bounds"],
