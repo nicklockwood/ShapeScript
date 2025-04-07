@@ -137,9 +137,8 @@ public extension Mesh {
             )
             lhs = aout! + ap
         }, {
-            var bout: [Polygon]?
             let bp = BSP(self, isCancelled).clip(
-                boundsTest(intersection, mesh.polygons, &bout),
+                boundsTest(intersection, mesh.polygons),
                 .lessThan,
                 isCancelled
             )
@@ -266,17 +265,16 @@ public extension Mesh {
         guard !intersection.isEmpty else {
             return .empty
         }
-        var out: [Polygon]?
         var lhs: [Polygon] = [], rhs: [Polygon] = []
         inParallel({
             lhs = BSP(mesh, isCancelled).clip(
-                boundsTest(intersection, polygons, &out),
+                boundsTest(intersection, polygons),
                 .lessThan,
                 isCancelled
             )
         }, {
             rhs = BSP(self, isCancelled).clip(
-                boundsTest(intersection, mesh.polygons, &out),
+                boundsTest(intersection, mesh.polygons),
                 .lessThanEqual,
                 isCancelled
             )
@@ -362,7 +360,7 @@ public extension Mesh {
     }
 
     /// Split the mesh along a plane.
-    /// - Parameter along: The ``Plane`` to split the mesh along.
+    /// - Parameter plane: The ``Plane`` to split the mesh along.
     /// - Returns: A pair of meshes representing the parts in front of and behind the plane respectively.
     ///
     /// > Note: If the plane and mesh do not intersect, one of the returned meshes will be `nil`.
@@ -443,7 +441,7 @@ public extension Mesh {
             // Project each corner of mesh bounds onto plane to find radius
             var radius = 0.0
             for corner in mesh.bounds.corners {
-                let p = corner.project(onto: plane)
+                let p = corner.projected(onto: plane)
                 radius = max(radius, p.lengthSquared)
             }
             radius = radius.squareRoot()
@@ -476,14 +474,47 @@ public extension Mesh {
 
     /// Computes a set of edges where the mesh intersects a plane.
     /// - Parameter plane: A ``Plane`` to test against the mesh.
-    /// - Returns: A `Set` of ``LineSegment`` representing the polygon edges intersecting the plane.
+    /// - Returns: A `Set` of ``LineSegment`` representing the polygon edges intersections.
     func edges(intersecting plane: Plane) -> Set<LineSegment> {
         var edges = Set<LineSegment>()
         for polygon in polygons {
-            polygon.intersect(with: plane, edges: &edges)
+            polygon.intersect(with: plane, segments: &edges)
         }
         return edges
     }
+
+    /// Computes a set of edges where the mesh intersects another mesh.
+    /// - Parameters
+    ///   - mesh: A ``Mesh`` to find the edge intersections with.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: A `Set` of ``LineSegment`` representing the polygon edge intersections.
+    func edges(
+        intersecting mesh: Mesh,
+        isCancelled: CancellationHandler = { false }
+    ) -> Set<LineSegment> {
+        let intersection = bounds.intersection(mesh.bounds)
+        guard !intersection.isEmpty else {
+            return []
+        }
+        var a = self, b = mesh
+        if a.polygons.count > b.polygons.count {
+            (a, b) = (b, a)
+        }
+        let bsp = BSP(a, isCancelled)
+        let polygons = boundsTest(intersection, b.polygons)
+        return bsp.clip(polygons, .lessThan, isCancelled).holeEdges
+    }
+
+    /// Reflects each polygon of the mesh along a plane.
+    /// - Parameter plane: The ``Plane`` against which the vertices are to be reflected.
+    /// - Returns: A ``Mesh`` representing the reflected mesh.
+    func reflected(along plane: Plane) -> Mesh {
+        Mesh(polygons.map { $0.reflected(along: plane) })
+    }
+}
+
+private func boundsTest(_ bounds: Bounds, _ polygons: [Polygon]) -> [Polygon] {
+    polygons.filter { $0.bounds.intersects(bounds) }
 }
 
 private func boundsTest(

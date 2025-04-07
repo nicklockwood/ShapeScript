@@ -366,89 +366,6 @@ private extension Array where Element == Polygon {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-private extension Mesh {
-    /// Creates a mesh from a RealityKit `MeshResource.Model`.
-    /// - Parameters:
-    ///   - model: The `MeshResource.Model` to convert into a mesh.
-    ///   - materials: An array of materials to apply to the mesh.
-    init(_ model: MeshResource.Model, materials: [Polygon.Material?]) {
-        var polygons = [Polygon]()
-        for part in model.parts {
-            guard let indices = part.triangleIndices?.elements else {
-                continue
-            }
-            polygons += .init(
-                positions: part.positions.elements,
-                normals: part.normals?.elements,
-                texcoords: part.textureCoordinates?.elements,
-                indices: indices,
-                counts: [UInt8](repeating: 3, count: indices.count / 3),
-                materials: materials.isEmpty ? [] : [materials[part.materialIndex % materials.count]]
-            )
-        }
-        self.init(polygons)
-    }
-
-    /// Creates a mesh from a RealityKit `ModelComponent` with optional material mapping.
-    /// - Parameters:
-    ///   - component: The `ModelComponent` to convert into a mesh.
-    ///   - materialLookup: An optional closure to map the RealityKit materials to Euclid materials.
-    init(_ component: ModelComponent, materialLookup: RealityKitMaterialProvider?) {
-        let materialLookup = materialLookup ?? {
-            switch $0 {
-            case let simpleMaterial as SimpleMaterial:
-                var material = SimpleMaterial()
-                material.color = simpleMaterial.color
-                material.roughness = simpleMaterial.roughness
-                material.metallic = simpleMaterial.metallic
-                return MaterialWrapper(material)
-            case let unlitMaterial as UnlitMaterial:
-                var material = UnlitMaterial()
-                material.color = unlitMaterial.color
-                material.opacityThreshold = unlitMaterial.opacityThreshold
-                material.blending = unlitMaterial.blending
-                return MaterialWrapper(material)
-            case let occlusionMaterial as OcclusionMaterial:
-                #if os(visionOS)
-                let material = OcclusionMaterial()
-                #else
-                let material = OcclusionMaterial(receivesDynamicLighting: occlusionMaterial.receivesDynamicLighting)
-                #endif
-                return MaterialWrapper(material)
-            case let videoMaterial as VideoMaterial:
-                guard let avPlayer = videoMaterial.avPlayer else { return nil }
-                return MaterialWrapper(VideoMaterial(avPlayer: avPlayer))
-            case let pbrMaterial as PhysicallyBasedMaterial:
-                var material = PhysicallyBasedMaterial()
-                material.baseColor = pbrMaterial.baseColor
-                material.metallic = pbrMaterial.metallic
-                material.roughness = pbrMaterial.roughness
-                material.emissiveColor = pbrMaterial.emissiveColor
-                material.emissiveIntensity = pbrMaterial.emissiveIntensity
-                material.specular = pbrMaterial.specular
-                material.clearcoat = pbrMaterial.clearcoat
-                material.clearcoatRoughness = pbrMaterial.clearcoatRoughness
-                material.opacityThreshold = pbrMaterial.opacityThreshold
-                material.faceCulling = pbrMaterial.faceCulling
-                material.blending = pbrMaterial.blending
-                material.normal = pbrMaterial.normal
-                material.ambientOcclusion = pbrMaterial.ambientOcclusion
-                material.anisotropyLevel = pbrMaterial.anisotropyLevel
-                material.anisotropyAngle = pbrMaterial.anisotropyAngle
-                material.sheen = pbrMaterial.sheen
-                material.textureCoordinateTransform = pbrMaterial.textureCoordinateTransform
-                material.secondaryTextureCoordinateTransform = pbrMaterial.secondaryTextureCoordinateTransform
-                return MaterialWrapper(material)
-            default:
-                // Not supported
-                return nil
-            }
-        }
-        self.init(component.mesh, materials: component.materials.map { materialLookup($0) })
-    }
-}
-
-@available(macOS 12.0, iOS 15.0, *)
 public extension Mesh {
     /// A closure that converts a RealityKit material to a Euclid material.
     /// - Parameter material: A RealityKit material to convert.
@@ -457,7 +374,7 @@ public extension Mesh {
 
     /// Creates a mesh from a RealityKit `MeshDescriptor` with optional material.
     /// - Parameters:
-    ///   - part: The `MeshDescriptor` to convert into a mesh.
+    ///   - meshDescriptor: The `MeshDescriptor` to convert into a mesh.
     ///   - materials: An array of materials to apply to the mesh.
     init(_ meshDescriptor: MeshDescriptor, materials: [Polygon.Material?] = []) {
         guard let primitives = meshDescriptor.primitives else {
@@ -501,7 +418,7 @@ public extension Mesh {
 
     /// Creates a mesh from a RealityKit `MeshResource`.
     /// - Parameters:
-    ///   - model: The `MeshResource` to convert into a mesh.
+    ///   - meshResource: The `MeshResource` to convert into a mesh.
     ///   - materials: An array of materials to apply to the mesh.
     init(_ meshResource: MeshResource, materials: [Polygon.Material?] = []) {
         var models = [String: Mesh]()
@@ -516,6 +433,28 @@ public extension Mesh {
         })
     }
 
+    /// Creates a mesh from a RealityKit `MeshResource.Model`.
+    /// - Parameters:
+    ///   - model: The `MeshResource.Model` to convert into a mesh.
+    ///   - materials: An array of materials to apply to the mesh.
+    init(_ model: MeshResource.Model, materials: [Polygon.Material?]) {
+        var polygons = [Polygon]()
+        for part in model.parts {
+            guard let indices = part.triangleIndices?.elements else {
+                continue
+            }
+            polygons += .init(
+                positions: part.positions.elements,
+                normals: part.normals?.elements,
+                texcoords: part.textureCoordinates?.elements,
+                indices: indices,
+                counts: [UInt8](repeating: 3, count: indices.count / 3),
+                materials: materials.isEmpty ? [] : [materials[part.materialIndex % materials.count]]
+            )
+        }
+        self.init(polygons)
+    }
+
     /// Creates a mesh from a RealityKit `ModelEntity` with optional material mapping.
     /// - Parameters:
     ///   - modelEntity: The `ModelEntity` to convert into a mesh.
@@ -527,6 +466,110 @@ public extension Mesh {
         }
         self.init(model, materialLookup: materialLookup)
         transform(by: .init(modelEntity.transform))
+    }
+
+    /// Creates a mesh from a RealityKit `ModelComponent` with optional material mapping.
+    /// - Parameters:
+    ///   - component: The `ModelComponent` to convert into a mesh.
+    ///   - materialLookup: An optional closure to map the RealityKit materials to Euclid materials.
+    init(_ component: ModelComponent, materialLookup: RealityKitMaterialProvider? = nil) {
+        let materialLookup = materialLookup ?? {
+            switch $0 {
+            case let simpleMaterial as SimpleMaterial:
+                var material = SimpleMaterial()
+                material.color = simpleMaterial.color
+                material.roughness = simpleMaterial.roughness
+                material.metallic = simpleMaterial.metallic
+                #if compiler(>=6)
+                if #available(visionOS 1.0, macOS 15.0, iOS 18.0, *) {
+                    material.triangleFillMode = simpleMaterial.triangleFillMode
+                    if #available(visionOS 2.0, *) {
+                        material.faceCulling = simpleMaterial.faceCulling
+                    }
+                }
+                #endif
+                return MaterialWrapper(material)
+            case let unlitMaterial as UnlitMaterial:
+                var material = UnlitMaterial()
+                material.color = unlitMaterial.color
+                material.opacityThreshold = unlitMaterial.opacityThreshold
+                material.blending = unlitMaterial.blending
+                #if compiler(>=6)
+                if #available(visionOS 1.0, macOS 15.0, iOS 18.0, *) {
+                    material.triangleFillMode = unlitMaterial.triangleFillMode
+                    if #available(visionOS 2.0, *) {
+                        material.faceCulling = unlitMaterial.faceCulling
+                    }
+                }
+                #endif
+                return MaterialWrapper(material)
+            case let occlusionMaterial as OcclusionMaterial:
+                #if os(visionOS)
+                let material = OcclusionMaterial()
+                #else
+                let material = OcclusionMaterial(receivesDynamicLighting: occlusionMaterial.receivesDynamicLighting)
+                #endif
+                return MaterialWrapper(material)
+            case let videoMaterial as VideoMaterial:
+                guard let avPlayer = videoMaterial.avPlayer else { return nil }
+                var material = VideoMaterial(avPlayer: avPlayer)
+                #if compiler(>=6)
+                if #available(visionOS 1.0, macOS 15.0, iOS 18.0, *) {
+                    material.controller.preferredViewingMode = videoMaterial.controller.preferredViewingMode
+                    material.triangleFillMode = videoMaterial.triangleFillMode
+                    if #available(visionOS 2.0, *) {
+                        material.faceCulling = videoMaterial.faceCulling
+                    }
+                }
+                #endif
+                return MaterialWrapper(material)
+            case let pbrMaterial as PhysicallyBasedMaterial:
+                var material = PhysicallyBasedMaterial()
+                material.baseColor = pbrMaterial.baseColor
+                material.metallic = pbrMaterial.metallic
+                material.roughness = pbrMaterial.roughness
+                material.emissiveColor = pbrMaterial.emissiveColor
+                material.emissiveIntensity = pbrMaterial.emissiveIntensity
+                material.specular = pbrMaterial.specular
+                material.clearcoat = pbrMaterial.clearcoat
+                material.clearcoatRoughness = pbrMaterial.clearcoatRoughness
+                material.opacityThreshold = pbrMaterial.opacityThreshold
+                material.faceCulling = pbrMaterial.faceCulling
+                material.blending = pbrMaterial.blending
+                material.normal = pbrMaterial.normal
+                material.ambientOcclusion = pbrMaterial.ambientOcclusion
+                material.anisotropyLevel = pbrMaterial.anisotropyLevel
+                material.anisotropyAngle = pbrMaterial.anisotropyAngle
+                material.sheen = pbrMaterial.sheen
+                material.textureCoordinateTransform = pbrMaterial.textureCoordinateTransform
+                material.secondaryTextureCoordinateTransform = pbrMaterial.secondaryTextureCoordinateTransform
+                #if compiler(>=6)
+                if #available(visionOS 1.0, macOS 15.0, iOS 18.0, *) {
+                    material.triangleFillMode = pbrMaterial.triangleFillMode
+                    if #available(visionOS 2.0, *) {
+                        material.faceCulling = pbrMaterial.faceCulling
+                    }
+                }
+                #endif
+                return MaterialWrapper(material)
+            default:
+                #if compiler(>=6)
+                if #available(visionOS 1.0, macOS 15.0, iOS 18.0, *),
+                   let portalMaterial = $0 as? PortalMaterial
+                {
+                    var material = PortalMaterial()
+                    material.triangleFillMode = portalMaterial.triangleFillMode
+                    if #available(visionOS 2.0, *) {
+                        material.faceCulling = portalMaterial.faceCulling
+                    }
+                    return MaterialWrapper(material)
+                }
+                #endif
+                // Not supported
+                return nil
+            }
+        }
+        self.init(component.mesh, materials: component.materials.map { materialLookup($0) })
     }
 }
 

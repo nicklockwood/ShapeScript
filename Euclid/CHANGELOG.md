@@ -1,5 +1,29 @@
 # Change Log
 
+## [0.7.11](https://github.com/nicklockwood/Euclid/releases/tag/0.7.11) (2025-04-15)
+
+- Added `Mesh.edges(intersecting mesh:)` method to get boundary between intersecting meshes
+- Added `LineSegment(undirected:)` initializers
+- Fixed some assertion failures in `Mesh.inset()` 
+
+## [0.7.10](https://github.com/nicklockwood/Euclid/releases/tag/0.7.10) (2025-04-05)
+
+- Added support for new RealityKit `Material` properties
+- Added `Mesh.volume` and `Mesh.surfaceArea` getters
+- Made `Mesh(_: MeshResource.Model)` and `Mesh(_: ModelComponent)` initializers public
+- Increased the tolerance for `isNormalized` checks
+- Fixed a deprecation warning
+
+## [0.7.9](https://github.com/nicklockwood/Euclid/releases/tag/0.7.9) (2024-10-09)
+
+- Fixed extrusion along zero length path
+- Vertex normals are no longer automatically stripped for flat-shaded meshes
+- Added `Mesh.reflected(along:)`, `Polygon.reflected(along:)` and `Vertex.reflected(along:)`
+- Added `Mesh.inset(by:)`, `Polygon.inset(by:)` and `Path.inset(by:)` methods
+- Added `Mesh.icosphere()` primitive
+- Added `Mesh.subdivide()` and `Polygon.subdivide()` methods
+- Added `Polygon.mapVertices()` method
+
 ## [0.7.8](https://github.com/nicklockwood/Euclid/releases/tag/0.7.8) (2024-07-23)
 
 - Fixed some bugs with `Path` subpaths

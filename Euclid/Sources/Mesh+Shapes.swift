@@ -153,16 +153,16 @@ public extension Mesh {
     ///   - wrapMode: The way that texture coordinates are calculated for the cube.
     ///   - material: The optional material for the mesh.
     static func cube(
-        center c: Vector = .zero,
-        size s: Double = 1,
+        center: Vector = .zero,
+        size: Double = 1,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
-        cube(center: c, size: Vector(s, s, s), faces: faces, wrapMode: wrapMode, material: material)
+        cube(center: center, size: Vector(size: size), faces: faces, wrapMode: wrapMode, material: material)
     }
 
-    /// Creates a sphere by subdividing an icosahedron.
+    /// Creates an icosahedron.
     /// - Parameters:
     ///   - radius: The radius of the icosahedron.
     ///   - faces: The direction the polygon faces.
@@ -259,6 +259,54 @@ public extension Mesh {
                 submeshes: []
             )
         }
+        switch wrapMode {
+        case .default, .shrink:
+            return mesh.sphereMapped()
+        case .tube:
+            return mesh.cylinderMapped()
+        case .none:
+            return mesh
+        }
+    }
+
+    /// Creates a sphere by subdividing an icosahedron.
+    /// - Parameters:
+    ///   - radius: The radius of the icosphere.
+    ///   - subdivisions: The number of times to subdivide (each iteration quadruples the triangle count).
+    ///   - faces: The direction the polygon faces.
+    ///   - wrapMode: The mode in which texture coordinates are wrapped around the mesh.
+    ///   - material: The optional material for the mesh.
+    static func icosphere(
+        radius: Double = 0.5,
+        subdivisions: Int = 2,
+        faces: Faces = .default,
+        wrapMode: WrapMode = .default,
+        material: Material? = nil
+    ) -> Mesh {
+        let icosahedron = self.icosahedron(
+            radius: 1,
+            faces: faces,
+            wrapMode: .none,
+            material: material
+        )
+        var triangles = icosahedron.polygons
+        for _ in 0 ..< subdivisions {
+            triangles = triangles.subdivide()
+        }
+        triangles = triangles.mapVertices {
+            let direction = $0.position.normalized()
+            return $0.withPosition(direction * radius).withNormal(direction)
+        }
+        let mesh = Mesh(
+            unchecked: triangles,
+            bounds: Bounds(
+                min: Vector(-radius, -radius, -radius),
+                max: Vector(radius, radius, radius)
+            ),
+            isConvex: true,
+            isWatertight: true,
+            submeshes: []
+        )
         switch wrapMode {
         case .default, .shrink:
             return mesh.sphereMapped()
@@ -478,6 +526,7 @@ public extension Mesh {
     ///   - sections: Number of sections to create along extrusion.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func extrude(
         _ shapes: [Path],
         depth: Double = 1,
@@ -507,6 +556,7 @@ public extension Mesh {
     ///   - align: The alignment mode to use for the extruded shape.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func extrude(
         _ shape: Path,
         along: Path,
@@ -600,11 +650,12 @@ public extension Mesh {
         }
     }
 
-    /// Efficiently fills an array of paths, avoiding unecessary work if there are duplicates.
+    /// Efficiently fills an array of paths, avoiding unnecessary work if there are duplicates.
     /// - Parameters:
     ///   - shapes: The array of paths to be filled.
     ///   - faces: The direction the polygon faces.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func fill(
         _ shapes: [Path],
         faces: Faces = .default,
@@ -622,6 +673,7 @@ public extension Mesh {
     ///   - width: The line width of the stroke.
     ///   - detail: The number of sides to use for the cross-sectional shape of the stroked mesh.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func stroke(
         _ shape: Path,
         width: Double = 0.01,
@@ -653,6 +705,7 @@ public extension Mesh {
     ///   - width: The line width of the stroke.
     ///   - detail: The number of sides to use for the cross-sectional shape of each stroked mesh.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func stroke(
         _ shapes: [Path],
         width: Double = 0.01,

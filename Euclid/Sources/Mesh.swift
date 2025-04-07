@@ -148,6 +148,16 @@ public extension Mesh {
         storage.isWatertight
     }
 
+    /// The surface area of a watertight mesh.
+    var surfaceArea: Double {
+        polygons.reduce(0) { $0 + $1.area }
+    }
+
+    /// The volume of a watertight mesh.
+    var volume: Double {
+        polygons.reduce(0) { $0 + $1.signedVolume }
+    }
+
     /// Creates a new mesh from an array of polygons.
     /// - Parameter polygons: The polygons making up the mesh.
     init(_ polygons: [Polygon]) {
@@ -349,6 +359,17 @@ public extension Mesh {
         smoothingNormals(forAnglesGreaterThan: threshold)
     }
 
+    /// Subdivides triangles and quads, leaving other polygons unchanged.
+    func subdivide() -> Mesh {
+        Mesh(
+            unchecked: polygons.subdivide(),
+            bounds: boundsIfSet,
+            isConvex: isKnownConvex,
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
+        )
+    }
+
     /// Returns a Boolean value that indicates if the specified point is inside the mesh.
     /// - Parameter point: The point to compare.
     /// - Returns: `true` if the point lies inside the mesh, and `false` otherwise.
@@ -370,6 +391,15 @@ public extension Mesh {
             }
         }
         return true
+    }
+
+    /// Applies a uniform inset to the faces of the mesh.
+    /// - Parameter distance: The distance by which to inset the polygon faces.
+    /// - Returns: A copy of the mesh, inset by the specified distance.
+    ///
+    /// > Note: Passing a negative `distance` will expand the mesh instead of shrinking it.
+    func inset(by distance: Double) -> Mesh {
+        Mesh(polygons.insetFaces(by: distance))
     }
 }
 

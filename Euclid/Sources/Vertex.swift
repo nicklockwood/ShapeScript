@@ -170,6 +170,28 @@ public extension Vertex {
         vertex.color = color ?? .white
         return vertex
     }
+
+    /// Reflects the vertex along a plane.
+    /// - Parameter plane: The ``Plane`` against which the vertices are to be reflected.
+    /// - Returns: A ``Vertex`` representing the reflected vertex.
+    func reflected(along plane: Plane) -> Vertex {
+        let p = position.projected(onto: plane)
+        let d = position - p
+        let reflectedPosition = p - d
+
+        let np = position + normal
+        let n = np.projected(onto: plane)
+        let nd = np - n
+        let reflectedNormalPosition = n - nd
+        let reflectedNormal = reflectedPosition - reflectedNormalPosition
+
+        return Vertex(
+            reflectedPosition,
+            reflectedNormal,
+            texcoord,
+            color
+        )
+    }
 }
 
 extension Vertex {
@@ -254,7 +276,7 @@ extension Collection where Element == Vertex {
         map { $0.withTexcoord(transform($0.texcoord)) }
     }
 
-    func mapVertexColors(_ transform: (Color) -> Color?) -> [Vertex] {
+    func mapColors(_ transform: (Color) -> Color?) -> [Vertex] {
         map { $0.withColor(transform($0.color)) }
     }
 

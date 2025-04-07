@@ -8,7 +8,7 @@
 
 public extension Polygon {
     /// Split the polygon along a plane.
-    /// - Parameter along: The ``Plane`` to split the polygon along.
+    /// - Parameter plane: The ``Plane`` to split the polygon along.
     /// - Returns: A pair of arrays representing the polygon fragments in front of and behind the plane respectively.
     ///
     /// > Note: If the plane and polygon do not intersect, one of the returned arrays will be empty.
@@ -27,13 +27,7 @@ public extension Polygon {
     /// - Parameter plane: The ``Plane``  to clip the polygon to.
     /// - Returns: An array of the polygon fragments that lie in front of the plane.
     func clip(to plane: Plane) -> [Polygon] {
-        var id = 0
-        var coplanar = [Polygon](), front = [Polygon](), back = [Polygon]()
-        split(along: plane, &coplanar, &front, &back, &id)
-        for polygon in coplanar where plane.normal.dot(polygon.plane.normal) > 0 {
-            front.append(polygon)
-        }
-        return front
+        split(along: plane).front
     }
 
     /// Computes a set of edges where the polygon intersects a plane.
@@ -41,8 +35,22 @@ public extension Polygon {
     /// - Returns: A `Set` of ``LineSegment`` representing the polygon edges intersecting the plane.
     func edges(intersecting plane: Plane) -> Set<LineSegment> {
         var edges = Set<LineSegment>()
-        intersect(with: plane, edges: &edges)
+        intersect(with: plane, segments: &edges)
         return edges
+    }
+
+    /// Reflects each vertex of the polygon along a plane.
+    /// - Parameter plane: The ``Plane`` against which the vertices are to be reflected.
+    /// - Returns: A ``Polygon`` representing the reflected vertices.
+    func reflected(along plane: Plane) -> Polygon {
+        Polygon(
+            unchecked: vertices.inverted().map { $0.reflected(along: plane) },
+            plane: nil,
+            isConvex: nil,
+            sanitizeNormals: true,
+            material: material,
+            id: id
+        )
     }
 }
 
@@ -168,15 +176,15 @@ extension Polygon {
     }
 
     /// Get all edges intersecting the plane
-    func intersect(with plane: Plane, edges: inout Set<LineSegment>) {
+    func intersect(with plane: Plane, segments: inout Set<LineSegment>) {
         var wasFront = false, wasBack = false
-        for edge in undirectedEdges {
-            switch edge.compare(with: plane) {
+        for segment in undirectedEdges {
+            switch segment.compare(with: plane) {
             case .front where wasBack, .back where wasFront, .spanning:
-                intersect(spanning: plane, intersections: &edges)
+                intersect(spanning: plane, segments: &segments)
                 return
             case .coplanar:
-                edges.insert(edge)
+                segments.insert(segment)
             case .front:
                 wasFront = true
             case .back:
@@ -185,11 +193,10 @@ extension Polygon {
         }
     }
 
-    func intersect(spanning plane: Plane, intersections: inout Set<LineSegment>) {
-        assert(compare(with: plane) == .spanning)
+    func intersect(spanning plane: Plane, segments: inout Set<LineSegment>) {
         guard isConvex else {
             for polygon in tessellate() {
-                polygon.intersect(spanning: plane, intersections: &intersections)
+                polygon.intersect(spanning: plane, segments: &segments)
             }
             return
         }
@@ -201,7 +208,7 @@ extension Polygon {
                 let t = (plane.w - plane.normal.dot(p0)) / plane.normal.dot(p1 - p0)
                 let p = p0.lerp(p1, t)
                 if let start = start {
-                    intersections.insert(LineSegment(normalized: start, p))
+                    LineSegment(undirected: start, p).map { _ = segments.insert($0) }
                     return
                 }
                 start = p

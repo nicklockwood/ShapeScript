@@ -12,6 +12,25 @@ import XCTest
 class PathTests: XCTestCase {
     // MARK: isSimple
 
+    func testSinglePoint() {
+        let path = Path([
+            .point(0, 0),
+        ])
+        XCTAssertTrue(path.isSimple)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.points.count, 1)
+    }
+
+    func testCoincidentPoints() {
+        let path = Path([
+            .point(0, 0),
+            .point(0, 0),
+        ])
+        XCTAssertTrue(path.isSimple)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.points.count, 1)
+    }
+
     func testSimpleLine() {
         let path = Path([
             .point(0, 1),
@@ -517,6 +536,44 @@ class PathTests: XCTestCase {
         XCTAssert(vertices[3].normal.isEqual(to: Vector(1, 1).normalized()))
         XCTAssertEqual(vertices[4].normal, Vector(0, -1))
         XCTAssertEqual(vertices[5].normal, Vector(0, -1))
+    }
+
+    // MARK: inset
+
+    func testInsetSquare() {
+        let path = Path.square()
+        let result = path.inset(by: 0.25)
+        XCTAssertEqual(result, .square(size: 0.5))
+    }
+
+    func testInsetCircle() {
+        let path = Path.circle(segments: 4)
+        let result = path.inset(by: 0.25)
+        let adjacent = sqrt(pow(0.5, 2) * 2) / 2
+        let radius = sqrt(pow(adjacent - 0.25, 2) * 2)
+        XCTAssertEqual(result, .circle(radius: radius, segments: 4))
+    }
+
+    func testInsetLShape() {
+        let path = Path([
+            .point(0, 0),
+            .point(0, 2),
+            .point(1, 2),
+            .point(1, 1),
+            .point(2, 1),
+            .point(2, 0),
+            .point(0, 0),
+        ])
+        let result = path.inset(by: 0.25)
+        XCTAssertEqual(result, Path([
+            .point(0.25, 0.25),
+            .point(0.25, 1.75),
+            .point(0.75, 1.75),
+            .point(0.75, 0.75),
+            .point(1.75, 0.75),
+            .point(1.75, 0.25),
+            .point(0.25, 0.25),
+        ]))
     }
 
     // MARK: Y-axis clipping

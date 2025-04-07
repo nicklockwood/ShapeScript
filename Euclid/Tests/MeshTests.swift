@@ -218,6 +218,25 @@ class MeshTests: XCTestCase {
         XCTAssertNil(material)
     }
 
+    // MARK: surfaceArea
+
+    func testCubeArea() {
+        let cube = Mesh.cube()
+        XCTAssertEqual(cube.surfaceArea, 6, accuracy: epsilon)
+    }
+
+    // MARK: volume
+
+    func testCubeVolume() {
+        let cube = Mesh.cube(size: 2)
+        XCTAssertEqual(cube.volume, 8, accuracy: epsilon)
+    }
+
+    func testSphereVolume() {
+        let cube = Mesh.sphere(slices: 128, stacks: 64)
+        XCTAssertEqual(cube.volume, (4.0 / 3) * .pi * pow(0.5, 3), accuracy: 0.001)
+    }
+
     // MARK: containsPoint
 
     func testCubeContainsPoint() {
@@ -336,10 +355,26 @@ class MeshTests: XCTestCase {
         XCTAssertFalse(mesh.hasTexcoords)
     }
 
-    func testMeshWithoutVertexNormals() {
-        let cube = Mesh.cube()
-        XCTAssertFalse(cube.hasVertexNormals)
-        let sphere = Mesh.sphere().smoothingNormals(forAnglesGreaterThan: .zero)
-        XCTAssertFalse(sphere.hasVertexNormals)
+    // MARK: Reflection
+
+    func testQuadReflectionAlongPlane() {
+        let quad = Polygon(unchecked: [
+            Vertex(Vector(-0.5, 1.0, 0.5), .unitY, Vector(0.0, 1.0), .black),
+            Vertex(Vector(0.5, 1.0, 0.5), .unitY, Vector(1.0, 1.0), .black),
+            Vertex(Vector(0.5, 1.0, -0.5), .unitY, Vector(1.0, 0.0), .white),
+            Vertex(Vector(-0.5, 1.0, -0.5), .unitY, Vector(0.0, 0.0), .white),
+        ])
+
+        let expected = Polygon(unchecked: [
+            Vertex(Vector(-0.5, -1.0, -0.5), -.unitY, Vector(0.0, 0.0), .white),
+            Vertex(Vector(0.5, -1.0, -0.5), -.unitY, Vector(1.0, 0.0), .white),
+            Vertex(Vector(0.5, -1.0, 0.5), -.unitY, Vector(1.0, 1.0), .black),
+            Vertex(Vector(-0.5, -1.0, 0.5), -.unitY, Vector(0.0, 1.0), .black),
+        ])
+
+        let reflection = quad.reflected(along: .xz)
+
+        XCTAssertEqual(reflection.plane.normal, -.unitY)
+        XCTAssertEqual(reflection.vertices, expected.vertices)
     }
 }
