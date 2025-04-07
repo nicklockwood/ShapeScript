@@ -160,38 +160,30 @@ public struct SVGPath: Hashable {
             throw SVGError.unexpectedToken(number)
         }
 
-        func appendCommand(_ command: SVGCommand) {
-            commands.append(
-                isRelative ? command.relative(to: commands) : command
-            )
-        }
-
         func processCommand() throws {
-            let command: SVGCommand
-            switch token {
-            case "m", "M":
-                command = try moveTo()
-                if !numbers.isEmpty {
-                    appendCommand(command)
+            repeat {
+                let command: SVGCommand
+                switch token {
+                case "m", "M":
+                    command = try moveTo()
+                    // Treat as l/L for subsequent numbers
                     token = UnicodeScalar(token.value - 1)!
-                    return try processCommand()
+                case "l", "L": command = try lineTo()
+                case "v", "V": command = try lineToVertical()
+                case "h", "H": command = try lineToHorizontal()
+                case "q", "Q": command = try quadCurve()
+                case "t", "T": command = try quadTo()
+                case "c", "C": command = try cubicCurve()
+                case "s", "S": command = try cubicTo()
+                case "a", "A": command = try arc()
+                case "z", "Z": command = try end()
+                case " ": return
+                default: throw SVGError.unexpectedToken(String(token))
                 }
-            case "l", "L": command = try lineTo()
-            case "v", "V": command = try lineToVertical()
-            case "h", "H": command = try lineToHorizontal()
-            case "q", "Q": command = try quadCurve()
-            case "t", "T": command = try quadTo()
-            case "c", "C": command = try cubicCurve()
-            case "s", "S": command = try cubicTo()
-            case "a", "A": command = try arc()
-            case "z", "Z": command = try end()
-            case " ": return
-            default: throw SVGError.unexpectedToken(String(token))
-            }
-            appendCommand(command)
-            if !numbers.isEmpty {
-                try processCommand()
-            }
+                commands.append(
+                    isRelative ? command.relative(to: commands) : command
+                )
+            } while !numbers.isEmpty
         }
 
         for char in string.unicodeScalars {

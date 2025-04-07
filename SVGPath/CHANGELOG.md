@@ -1,3 +1,7 @@
+## [1.1.6](https://github.com/nicklockwood/SVGPath/releases/tag/1.1.6) (2025-04-06)
+
+- Fixed stack overflow for large paths in debug builds
+
 ## [1.1.5](https://github.com/nicklockwood/SVGPath/releases/tag/1.1.5) (2024-04-28)
 
 - Fixed incorrect calculation for relative `moveTo` commands
