@@ -464,6 +464,10 @@ extension Dictionary where Key == String, Value == Symbol {
         "not": .function(.boolean, .boolean) { value, _ in
             .boolean(!value.boolValue)
         },
+        // Unbounded range
+        "from": .function(.number, .range) { value, _ in
+            .range(.init(from: value.doubleValue, to: nil))
+        },
         // Randomness
         "rnd": .function(.void, .number) { _, context in
             .number(context.random.next())

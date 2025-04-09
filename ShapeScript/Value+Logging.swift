@@ -372,6 +372,9 @@ extension Dictionary: Loggable where Key == String {
 extension RangeValue: Loggable {
     public var logDescription: String {
         let stepText = step.map { " step \($0.logDescription)" } ?? ""
+        guard let end = end else {
+            return "from \(start.logDescription)\(stepText)"
+        }
         return "\(start.logDescription) to \(end.logDescription)\(stepText)"
     }
 

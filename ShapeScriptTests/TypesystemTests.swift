@@ -892,6 +892,20 @@ class TypesystemTests: XCTestCase {
         let value = Value.tuple([5])
         XCTAssertEqual(value.as(type), 5.0)
     }
+    
+    func testCastSingleElementTupleToRange() throws {
+        let type = ValueType.range
+        let range = RangeValue(from: 5, to: 6)
+        let value = Value.tuple([.range(range)])
+        XCTAssertEqual(value.as(type), .range(range))
+    }
+    
+    func testCastSingleElementTupleToRangeOrString() throws {
+        let type = ValueType.union([.range, .string])
+        let range = RangeValue(from: 5, to: 6)
+        let value = Value.tuple([.range(range)])
+        XCTAssertEqual(value.as(type), .range(range))
+    }
 
     func testCastSingleElementTupleToString() throws {
         let type = ValueType.string

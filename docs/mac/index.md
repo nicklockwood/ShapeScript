@@ -111,6 +111,7 @@ ShapeScript Help
         - [Linear Algebra](expressions.md#linear-algebra)
         - [Boolean Algebra](expressions.md#boolean-algebra)
         - [Ranges](expressions.md#ranges)
+        - [Partial Ranges](expressions.md#partial-ranges)
         - [Members](expressions.md#members)
         - [Subscripting](expressions.md#subscripting)
     - [Functions](functions.md)

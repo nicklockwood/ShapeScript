@@ -31,6 +31,7 @@ enum ValueType: Hashable {
     case polygon
     case point
     case range
+    case partialRange
     case bounds
     indirect case union(Set<ValueType>)
     indirect case tuple([ValueType])
@@ -65,6 +66,7 @@ extension ValueType: Comparable {
         case .list: return 21
         case .object: return 22
         case .material: return 23
+        case .partialRange: return 24
         }
     }
 
@@ -86,8 +88,8 @@ extension ValueType: Comparable {
             switch lhs {
             case .any, .color, .texture, .material, .boolean, .font, .number,
                  .radians, .halfturns, .vector, .size, .rotation, .string, .text,
-                 .path, .mesh, .polygon, .point, .range, .bounds, .union, .tuple,
-                 .list, .object:
+                 .path, .mesh, .polygon, .point, .range, .partialRange, .bounds,
+                 .union, .tuple, .list, .object:
                 return lhs.sortIndex < rhs.sortIndex
             }
         }
@@ -137,7 +139,7 @@ extension ValueType {
             return result.count == 1 ? result[0] : .union(Set(result))
         case .any, .color, .texture, .material, .boolean, .font, .number, .radians,
              .halfturns, .vector, .size, .rotation, .string, .text, .path, .mesh,
-             .polygon, .point, .range, .bounds, .tuple, .list, .object:
+             .polygon, .point, .range, .partialRange, .bounds, .tuple, .list, .object:
             return self
         }
     }
@@ -189,6 +191,7 @@ extension ValueType {
         case .polygon: return "polygon"
         case .point: return "point"
         case .range: return "range"
+        case .partialRange: return "partial range"
         case .bounds: return "bounds"
         case .any: return "any"
         case let .tuple(types) where types.count == 1:
@@ -298,8 +301,9 @@ extension Value {
         case .mesh: return .mesh
         case .polygon: return .polygon
         case .point: return .point
-        case .range: return .range
         case .bounds: return .bounds
+        case let .range(range):
+            return range.end == nil ? .partialRange : .range
         case let .tuple(values):
             return .tuple(values.map { $0.type })
         case let .object(values):

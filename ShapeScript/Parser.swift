@@ -539,8 +539,16 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readRange() throws -> Expression? {
-        guard let lhs = try readSum() else {
+        guard var lhs = try readSum() else {
             return nil
+        }
+        if case .identifier("from") = lhs.type,
+           let rhs = try readSum()
+        {
+            lhs = Expression(
+                type: .tuple([lhs, rhs]),
+                range: lhs.range.lowerBound ..< rhs.range.upperBound
+            )
         }
         guard case .identifier("to") = nextToken.type else {
             return lhs

@@ -1324,7 +1324,8 @@ extension Expression {
             let end = try rhs.evaluate(as: .number, for: "to", index: 1, in: context)
             return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
         case let .infix(lhs, .step, rhs):
-            let rangeValue = try lhs.evaluate(as: .range, for: "range value", in: context)
+            let rangeType = ValueType.union([.range, .partialRange])
+            let rangeValue = try lhs.evaluate(as: rangeType, for: "step", index: 0, in: context)
             let stepValue = try rhs.evaluate(as: .number, for: "step", index: 1, in: context)
             let range = rangeValue.value as! RangeValue
             guard let value = RangeValue(
@@ -1340,7 +1341,7 @@ extension Expression {
             return .range(value)
         case let .infix(lhs, .in, rhs):
             let lhs = try lhs.evaluate(in: context)
-            let collectionType = ValueType.union([.range, .list(.any), .anyObject])
+            let collectionType = ValueType.union([.partialRange, .sequence, .anyObject])
             let rhs = try rhs.evaluate(as: collectionType, for: "in", index: 1, in: context)
             switch rhs {
             case let .range(range) where lhs.isConvertible(to: .number):
@@ -1485,14 +1486,32 @@ extension Expression {
             throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)
         case let .subscript(lhs, rhs):
             let value = try lhs.evaluate(in: context)
-            let index = try rhs.evaluate(in: context)
-            switch index.as(.union([.number, .string])) {
-            case let .number(number)?:
+            let indexType = ValueType.union([.number, .range, .partialRange, .string])
+            let index = try rhs.evaluate(as: indexType, for: "index", in: context)
+            switch index {
+            case let .number(number):
                 let index = Int(truncating: number as NSNumber)
                 guard let member = value[index] else {
                     throw RuntimeError(.invalidIndex(number, range: value.indices), at: rhs.range)
                 }
                 return member
+            case let .range(range):
+                let indices = value.indices
+                if !indices.contains(Int(truncating: range.start as NSNumber)) {
+                    throw RuntimeError(.invalidIndex(range.start, range: indices), at: rhs.range)
+                }
+                let stride = range.stride ?? stride(
+                    from: range.start,
+                    through: range.stepIsPositive ? Double(indices.last ?? 0) : 0,
+                    by: range.step ?? 1
+                )
+                return try .tuple(stride.map {
+                    let index = Int(truncating: $0 as NSNumber)
+                    guard let member = value[index] else {
+                        throw RuntimeError(.invalidIndex($0, range: indices), at: rhs.range)
+                    }
+                    return member
+                })
             default:
                 if let member = value[index.stringValue, context.isCancelled] {
                     return member

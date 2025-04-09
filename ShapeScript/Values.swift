@@ -81,17 +81,17 @@ extension Value: ExpressibleByDictionaryLiteral {
 }
 
 struct RangeValue: Hashable {
-    var start, end: Double
-    var step: Double?
+    var start: Double
+    var end, step: Double?
 
-    init(from start: Double, to end: Double) {
+    init(from start: Double, to end: Double?) {
         self.start = start
         self.end = end
     }
 }
 
 extension RangeValue {
-    init?(from start: Double, to end: Double, step: Double?) {
+    init?(from start: Double, to end: Double?, step: Double?) {
         guard step != 0 else {
             return nil
         }
@@ -99,14 +99,14 @@ extension RangeValue {
         self.step = step
     }
 
+    var stepIsPositive: Bool { step ?? 1 > 0 }
     private static let epsilon: Double = 0.0000001
-    private var stepIsPositive: Bool { step ?? 1 > 0 }
-    private var adjustedEnd: Double {
-        end + (stepIsPositive ? 1 : -1) * Self.epsilon
+    private var adjustedEnd: Double? {
+        end.map { $0 + (stepIsPositive ? 1 : -1) * Self.epsilon }
     }
 
-    var stride: StrideThrough<Double> {
-        Swift.stride(from: start, through: adjustedEnd, by: step ?? 1)
+    var stride: StrideThrough<Double>? {
+        adjustedEnd.map { Swift.stride(from: start, through: $0, by: step ?? 1) }
     }
 
     func contains(_ value: Double) -> Bool {
@@ -117,6 +117,7 @@ extension RangeValue {
         {
             return false
         }
+        guard let adjustedEnd = adjustedEnd else { return true }
         return stepIsPositive ? value <= adjustedEnd : value >= adjustedEnd
     }
 }
@@ -269,10 +270,15 @@ extension Value {
     var sequenceValue: AnySequence<Value>? {
         switch self {
         case let .range(range):
-            return AnySequence(range.stride.lazy.map { .number($0) })
+            return range.stride.map { AnySequence($0.lazy.map { .number($0) }) }
         case let .tuple(values):
-            if values.count == 1, let value = values.first?.sequenceValue {
-                return value
+            if values.count == 1, let first = values.first {
+                if case .range = first {
+                    // Special case to handle unbounded ranges
+                    return first.sequenceValue
+                } else if let value = first.sequenceValue {
+                    return value
+                }
             }
             return AnySequence(values)
         case let .object(values):

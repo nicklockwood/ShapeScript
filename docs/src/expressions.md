@@ -266,6 +266,29 @@ print 2.5 in range // prints false
 print 3 in range // prints true
 ```
 
+## Partial Ranges
+
+You can create a partial range using the `from` command. Partial ranges have a start value but no end:
+
+```swift
+define range from 5
+
+print 4 in range // prints false
+print 5 in range // prints true
+print 5000 in range // prints true
+```
+
+Partial ranges may also have a `step` value:
+
+```swift
+define range from 5 step -1
+
+print 0 in range // prints true
+print 5 in range // prints true
+print 6 in range // prints false
+print -5000 in range // prints true
+```
+
 ## Members
 
 Compound values like [vectors and tuples](literals.md#vectors-and-tuples) and [objects](literals.md#objects) can be decomposed by using the *dot* operator to access individual components or *members*:
@@ -374,7 +397,6 @@ for i in 0 to foo.count - 1 {
 
 To access elements relative to the end of the tuple, you can use negative indices. An index of `-1` is shorthand for `count - 1`:
 
-
 ```swift
 define foo 1 2 3 4
 
@@ -390,6 +412,16 @@ define purple 0.6 0 1
 if "red" in purple {
     print "the red value of purple is " purple["red"] // prints 0.6
 }
+```
+
+You can also use a [range](#ranges) or [partial range](#partial-ranges) of indices to access a subset of a tuple's values':
+
+```swift
+define foo 1 2 3 4 5
+
+print foo[0 to 2] // prints 1 2 3
+print foo[1 to 3] // prints 2 3 4
+print foo[from 2] // prints 3 4 5
 ```
 
 ---

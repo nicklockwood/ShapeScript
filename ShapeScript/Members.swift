@@ -26,7 +26,7 @@ extension ValueType {
             ))
         case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .bounds, .union, .tuple, .list, .any:
+             .point, .range, .partialRange, .bounds, .union, .tuple, .list, .any:
             return nil
         }
     }
@@ -47,7 +47,7 @@ extension ValueType {
             ]
         case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .bounds, .union, .tuple, .list:
+             .point, .range, .partialRange, .bounds, .union, .tuple, .list:
             // TODO: something better
             return Self.memberTypes
         case .any:
@@ -74,7 +74,7 @@ extension ValueType {
             return types.isEmpty ? nil : ValueType.union(types).simplified()
         case .color, .texture, .material, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .bounds, .object:
+             .point, .range, .partialRange, .bounds, .object:
             return memberTypes[name]
         case .any:
             return nil
@@ -352,7 +352,7 @@ extension Value {
         case let .range(range):
             switch name {
             case "start": return .number(range.start)
-            case "end": return .number(range.end)
+            case "end": return range.end.map(Value.number)
             case "step": return range.step.map(Value.number)
             default: return nil
             }
@@ -472,8 +472,8 @@ extension Value {
         case let .tuple(values):
             return -values.endIndex ..< values.endIndex
         case let .range(range):
-            let indices = Array(range.stride).indices
-            return -indices.upperBound ..< indices.upperBound
+            guard let values = range.stride.map(Array.init) else { fallthrough }
+            return -values.endIndex ..< values.endIndex
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return 0 ..< 0
@@ -502,7 +502,7 @@ extension Value {
             let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? values[index] : nil
         case let .range(range):
-            let values = Array(range.stride)
+            guard let values = range.stride.map(Array.init) else { return nil }
             let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? .number(values[index]) : nil
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
