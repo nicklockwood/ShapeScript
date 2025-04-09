@@ -766,6 +766,25 @@ public extension Geometry {
         }
     }
 
+    func volume(
+        with transform: Transform,
+        _ callback: @escaping () -> Bool = { true }
+    ) -> Double {
+        let scaleFactor = transform.scale.x * transform.scale.y * transform.scale.z
+        switch type {
+        case .cube:
+            return scaleFactor
+        case _ where hasMesh:
+            _ = build(callback)
+            if let mesh = mesh, !mesh.polygons.isEmpty {
+                return mesh.volume * scaleFactor
+            }
+            return children.reduce(0) { $0 + $1.volume(with: $1.transform) } * scaleFactor
+        default:
+            return 0
+        }
+    }
+
     var isWatertight: Bool {
         if let mesh = mesh, !mesh.polygons.isEmpty {
             return mesh.isWatertight

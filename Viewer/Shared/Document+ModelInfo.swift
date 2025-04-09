@@ -73,16 +73,19 @@ extension Document {
         let polygons: String
         let triangles: String
         let dimensions: String
+        let volume: String
         let watertight: String
         if loadingProgress?.didSucceed ?? true {
             polygons = String(geometry.polygonCount)
             triangles = String(geometry.triangleCount)
             dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
-            watertight = String(geometry.isWatertight)
+            volume = geometry.volume(with: geometry.worldTransform).logDescription
+            watertight = geometry.isWatertight.logDescription
         } else {
             polygons = "calculating…"
             triangles = "calculating…"
             dimensions = "calculating…"
+            volume = "calculating…"
             watertight = "calculating…"
         }
 
@@ -106,6 +109,7 @@ extension Document {
                 triangles == polygons ? nil : "Polygons: \(polygons)",
                 isMesh ? "Triangles: \(triangles)" : nil,
                 geometry.bounds.isEmpty ? nil : "Dimensions: \(dimensions)",
+                isMesh ? "Volume: \(volume)" : nil,
                 isMesh ? "Watertight: \(watertight)" : nil,
 //                "Size: \(selectedGeometry.transform.scale.logDescription)",
 //                "Position: \(selectedGeometry.transform.offset.logDescription)",
@@ -121,6 +125,7 @@ extension Document {
             triangles == polygons ? nil : "Polygons: \(polygons)",
             hasMeshes ? "Triangles: \(triangles)" : nil,
             geometry.bounds.isEmpty ? nil : "Dimensions: \(dimensions)",
+            hasMeshes ? "Volume: \(volume)" : nil,
             hasMeshes ? "Watertight: \(watertight)" : nil,
             "",
             importedFileCount == 0 ? nil : "Imports: \(importedFileCount)",
