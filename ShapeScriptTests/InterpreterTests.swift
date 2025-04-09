@@ -369,7 +369,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected symbol 'option'")
-            XCTAssertEqual(error?.hint, "The option command is not available in"
+            XCTAssertEqual(error?.hint, "The 'option' command is not available in"
                 + " this context. Did you mean 'define'?")
             guard case .unknownSymbol("option", _)? = error?.type else {
                 XCTFail()
@@ -1987,7 +1987,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for extrude should be a path or block, not a mesh.")
+            XCTAssertEqual(error?.hint, "The argument for 'extrude' should be a path or block, not a mesh.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "extrude",
                 expected: "path or block",
@@ -2119,7 +2119,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for along should be a path, not a number.")
+            XCTAssertEqual(error?.hint, "The argument for 'along' should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "along",
                 expected: "path",
@@ -2140,7 +2140,7 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             // TODO: this message isn't really ideal - need different handling for paths arguments
-            XCTAssertEqual(error?.hint, "The second argument for along should be a path, not a number.")
+            XCTAssertEqual(error?.hint, "The second argument for 'along' should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "along",
                 index: 1,
@@ -2226,7 +2226,8 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "start value",
+                for: "to",
+                index: 0,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2240,7 +2241,8 @@ class InterpreterTests: XCTestCase {
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "end value",
+                for: "to",
+                index: 1,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -2253,9 +2255,10 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The step value should be a number, not a string.")
+            XCTAssertEqual(error?.hint, "The right operand for 'step' should be a number, not a string.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "step value",
+                for: "step",
+                index: 1,
                 expected: "number",
                 got: "string"
             ), at: range))
@@ -3841,7 +3844,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected symbol 'point'")
-            XCTAssertEqual(error?.hint, "The point command is not available in this context.")
+            XCTAssertEqual(error?.hint, "The 'point' command is not available in this context.")
             guard case .unknownSymbol("point", options: _)? = error?.type else {
                 XCTFail()
                 return
@@ -4192,7 +4195,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
+            XCTAssertEqual(error?.hint, "The argument for 'debug' should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 expected: "mesh or block",
@@ -4210,7 +4213,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for debug should be a mesh or block, not a color.")
+            XCTAssertEqual(error?.hint, "The argument for 'debug' should be a mesh or block, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "debug",
                 expected: "mesh or block",
@@ -4227,7 +4230,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The second argument for fill should be a path, not a number.")
+            XCTAssertEqual(error?.hint, "The second argument for 'fill' should be a path, not a number.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "fill",
                 index: 1,
@@ -4245,7 +4248,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
-            XCTAssertEqual(error?.hint, "The print command expects an argument.")
+            XCTAssertEqual(error?.hint, "The 'print' command expects an argument.")
             XCTAssertEqual(error, RuntimeError(
                 .missingArgument(for: "print", type: "any"),
                 at: range
@@ -4289,7 +4292,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error?.hint, "The rnd function does not expect any arguments.")
+            XCTAssertEqual(error?.hint, "The 'rnd' function does not expect any arguments.")
             XCTAssertEqual(error, RuntimeError(
                 .unexpectedArgument(for: "rnd", max: 0),
                 at: range
@@ -4332,7 +4335,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error?.hint, "The rnd function does not expect any arguments.")
+            XCTAssertEqual(error?.hint, "The 'rnd' function does not expect any arguments.")
             XCTAssertEqual(error, RuntimeError(
                 .unexpectedArgument(for: "rnd", max: 0),
                 at: range
@@ -4369,7 +4372,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
-            XCTAssertEqual(error?.hint, "The foo symbol does not expect any arguments.")
+            XCTAssertEqual(error?.hint, "The 'foo' symbol does not expect any arguments.")
             XCTAssertEqual(error, RuntimeError(
                 .unexpectedArgument(for: "foo", max: 0),
                 at: range
@@ -4386,7 +4389,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The argument for foo should be a number or vector, not a block.")
+            XCTAssertEqual(error?.hint, "The argument for 'foo' should be a number or vector, not a block.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "foo",
                 expected: "number or vector",

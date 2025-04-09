@@ -182,9 +182,9 @@ public extension RuntimeError {
             } else if name.isEmpty {
                 return "Symbol"
             } else if let symbol = Symbols.all[name] {
-                return "The \(name) \(symbol.errorDescription)"
+                return "The '\(name)' \(symbol.errorDescription)"
             }
-            return "The \(name) symbol"
+            return "The '\(name)' symbol"
         }
         func formatMessage(_ message: String) -> String? {
             guard let last = message.last else {
@@ -199,9 +199,9 @@ public extension RuntimeError {
         case let .unknownSymbol(name, _):
             var hint = ""
             if let symbol = Symbols.all[name] {
-                hint = "The \(name) \(symbol.errorDescription) is not available in this context."
+                hint = "The '\(name)' \(symbol.errorDescription) is not available in this context."
             } else if Keyword(rawValue: name) != nil || name == "option" {
-                hint = "The \(name) command is not available in this context."
+                hint = "The '\(name)' command is not available in this context."
             }
             if let suggestion = suggestion {
                 hint += (hint.isEmpty ? "" : " ") + "Did you mean '\(suggestion)'?"
@@ -225,13 +225,16 @@ public extension RuntimeError {
             }
             return ""
         case let .typeMismatch(for: name, index: i, expected: type, got: got):
-            let name = [
-                "if condition",
-                "loop bounds",
-                "step value",
-            ].contains(name) ? name : "\(nthArgument(i)) for \(name)"
+            let description: String
+            if InfixOperator(rawValue: name) != nil, (0 ... 1).contains(i) {
+                description = "\(i == 0 ? "left" : "right") operand for '\(name)'"
+            } else if !["if condition", "loop bounds"].contains(name) {
+                description = "\(nthArgument(i)) for '\(name)'"
+            } else {
+                description = name
+            }
             let got = got.contains(",") ? got : aOrAn(got)
-            return "The \(name) should be \(aOrAn(type)), not \(got)."
+            return "The \(description) should be \(aOrAn(type)), not \(got)."
         case let .forwardReference(name):
             return "The symbol '\(name)' was used before it was defined."
         case let .unexpectedArgument(for: name, max: max):
@@ -1317,12 +1320,12 @@ extension Expression {
                 return value
             }
         case let .infix(lhs, .to, rhs):
-            let start = try lhs.evaluate(as: .number, for: "start value", in: context)
-            let end = try rhs.evaluate(as: .number, for: "end value", in: context)
+            let start = try lhs.evaluate(as: .number, for: "to", index: 0, in: context)
+            let end = try rhs.evaluate(as: .number, for: "to", index: 1, in: context)
             return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
         case let .infix(lhs, .step, rhs):
             let rangeValue = try lhs.evaluate(as: .range, for: "range value", in: context)
-            let stepValue = try rhs.evaluate(as: .number, for: "step value", in: context)
+            let stepValue = try rhs.evaluate(as: .number, for: "step", index: 1, in: context)
             let range = rangeValue.value as! RangeValue
             guard let value = RangeValue(
                 from: range.start,
@@ -1336,9 +1339,10 @@ extension Expression {
             }
             return .range(value)
         case let .infix(lhs, .in, rhs):
-            let rhs = try rhs.evaluate(in: context)
             let lhs = try lhs.evaluate(in: context)
-            switch rhs.as(.union([.range, .list(.any), .anyObject])) {
+            let collectionType = ValueType.union([.range, .list(.any), .anyObject])
+            let rhs = try rhs.evaluate(as: collectionType, for: "in", index: 1, in: context)
+            switch rhs {
             case let .range(range) where lhs.isConvertible(to: .number):
                 return .boolean(range.contains(lhs.doubleValue))
             case let .tuple(values) where values.contains(lhs):
