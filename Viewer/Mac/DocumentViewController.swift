@@ -49,28 +49,30 @@ class DocumentViewController: NSViewController {
     }
 
     func appendLog(_ text: String) {
-        if text.isEmpty {
+        let logLimit = 100000
+        let remaining = logLimit - logLength
+        if text.isEmpty || remaining <= 0 {
             return
         }
-        let logLimit = 20000
-        let charCount = text.count
-        logLength += charCount
-        if logLength > logLimit {
-            if logLength - charCount > logLimit {
-                return
-            }
+        var text = text
+        var truncated = false
+        if remaining < text.count {
+            truncated = true
+            text = text.prefix(remaining) + "... "
+        }
+        logLength += text.count
+        consoleTextView.textStorage?.append(NSAttributedString(
+            string: text,
+            attributes: [
+                .foregroundColor: NSColor.textColor,
+                .font: NSFont.systemFont(ofSize: 13),
+            ]
+        ))
+        if truncated {
             consoleTextView.textStorage?.append(NSAttributedString(
                 string: "Console limit exceeded. No further logs will be printed.",
                 attributes: [
                     .foregroundColor: NSColor.red,
-                    .font: NSFont.systemFont(ofSize: 13),
-                ]
-            ))
-        } else {
-            consoleTextView.textStorage?.append(NSAttributedString(
-                string: text,
-                attributes: [
-                    .foregroundColor: NSColor.textColor,
                     .font: NSFont.systemFont(ofSize: 13),
                 ]
             ))
