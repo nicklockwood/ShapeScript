@@ -302,9 +302,7 @@ extension Value {
                 return .number(values.reduce(0) { total, value -> Double in
                     switch value {
                     case let .mesh(geometry):
-                        return total + geometry.volume(with: geometry.worldTransform) {
-                            !isCancelled()
-                        }
+                        return total + geometry.volume { !isCancelled() }
                     default:
                         assertionFailure()
                         return total
@@ -365,21 +363,15 @@ extension Value {
                     !isCancelled()
                 })
             case "polygons" where geometry.hasMesh:
-                _ = geometry.build { !isCancelled() }
-                let polygons = (geometry.mesh?.polygons ?? [])
-                    .transformed(by: geometry.transform)
+                let polygons = geometry.polygons { !isCancelled() }
                 return .tuple(polygons.map { .polygon($0) })
             case "triangles" where geometry.hasMesh:
-                _ = geometry.build { !isCancelled() }
-                let triangles = (geometry.mesh?.triangulate().polygons ?? [])
-                    .transformed(by: geometry.transform)
+                let triangles = geometry.triangles { !isCancelled() }
                 return .tuple(triangles.map { .polygon($0) })
             case "material" where geometry.hasMesh:
                 return .material(geometry.material)
             case "volume" where geometry.hasMesh:
-                return .number(geometry.volume(with: geometry.worldTransform) {
-                    !isCancelled()
-                })
+                return .number(geometry.volume { !isCancelled() })
             default:
                 return nil
             }

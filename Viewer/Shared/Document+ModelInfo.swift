@@ -76,11 +76,11 @@ extension Document {
         let volume: String
         let watertight: String
         if loadingProgress?.didSucceed ?? true {
-            polygons = String(geometry.polygonCount)
-            triangles = String(geometry.triangleCount)
+            polygons = String(geometry.polygons { false }.count)
+            triangles = String(geometry.triangles { false }.count)
             dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
-            volume = geometry.volume(with: geometry.worldTransform).logDescription
-            watertight = geometry.isWatertight.logDescription
+            volume = geometry.volume { false }.logDescription
+            watertight = geometry.isWatertight { false }.logDescription
         } else {
             polygons = "calculating…"
             triangles = "calculating…"

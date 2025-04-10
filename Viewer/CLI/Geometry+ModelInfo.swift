@@ -10,10 +10,10 @@ import ShapeScript
 
 extension Geometry {
     var modelInfo: String {
-        let polygons = String(polygonCount)
-        let triangles = String(triangleCount)
+        let polygons = String(polygons { false }.count)
+        let triangles = String(triangles { false }.count)
         let dimensions = exactBounds(with: worldTransform).size.logDescription
-        let watertight = String(isWatertight)
+        let watertight = isWatertight { false }.logDescription
 
         return [
             "Objects: \(objectCount)",

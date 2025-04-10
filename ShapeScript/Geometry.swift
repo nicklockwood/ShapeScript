@@ -9,6 +9,9 @@
 import Euclid
 import Foundation
 
+public typealias Polygon = Euclid.Polygon
+public typealias CancellationHandler = () -> Bool
+
 public final class Geometry: Hashable {
     public let type: GeometryType
     public let name: String?
@@ -698,20 +701,6 @@ public extension Geometry {
         }
     }
 
-    var polygonCount: Int {
-        if let mesh = mesh, !mesh.polygons.isEmpty {
-            return mesh.polygons.count
-        }
-        return children.reduce(0) { $0 + $1.polygonCount }
-    }
-
-    var triangleCount: Int {
-        if let mesh = mesh, !mesh.polygons.isEmpty {
-            return mesh.polygons.reduce(0) { $0 + $1.vertices.count - 2 }
-        }
-        return children.reduce(0) { $0 + $1.triangleCount }
-    }
-
     var childCount: Int {
         switch type {
         case .cone, .cylinder, .sphere, .cube,
@@ -720,6 +709,38 @@ public extension Geometry {
             return 0 // TODO: should paths/points be treated as children?
         case .union, .xor, .difference, .intersection, .stencil, .group, .hull:
             return children.count
+        }
+    }
+
+    func polygons(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
+        switch type {
+        case .group:
+            return children.reduce(into: []) { $0 += $1.polygons(isCancelled) }
+        default:
+            _ = build { !isCancelled() }
+            return mesh?.polygons ?? []
+        }
+    }
+
+    func triangles(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
+        switch type {
+        case .group:
+            return children.reduce(into: []) { $0 += $1.triangles(isCancelled) }
+        default:
+            _ = build { !isCancelled() }
+            return mesh?.triangulate().polygons ?? []
+        }
+    }
+
+    func isWatertight(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        switch type {
+        case .cone, .cylinder, .sphere, .cube:
+            return true
+        case .group:
+            return children.reduce(true) { $0 && $1.isWatertight(isCancelled) }
+        default:
+            _ = build { !isCancelled() }
+            return mesh?.isWatertight ?? true
         }
     }
 
@@ -766,29 +787,37 @@ public extension Geometry {
         }
     }
 
-    func volume(
-        with transform: Transform,
-        _ callback: @escaping () -> Bool = { true }
-    ) -> Double {
+    func volume(_ isCancelled: @escaping CancellationHandler) -> Double {
+        volume(with: worldTransform, isCancelled)
+    }
+
+    private func volume(with transform: Transform, _ isCancelled: @escaping CancellationHandler) -> Double {
         let scaleFactor = transform.scale.x * transform.scale.y * transform.scale.z
         switch type {
         case .cube:
             return scaleFactor
-        case _ where hasMesh:
-            _ = build(callback)
-            if let mesh = mesh, !mesh.polygons.isEmpty {
-                return mesh.volume * scaleFactor
-            }
-            return children.reduce(0) { $0 + $1.volume(with: $1.transform) } * scaleFactor
+        case .group:
+            return children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
         default:
-            return 0
+            _ = build { !isCancelled() }
+            return (mesh?.volume ?? 0) * scaleFactor
         }
     }
 
+    // MARK: Deprecated
+
+    @available(*, deprecated, message: "Use polygons.count instead")
+    var polygonCount: Int {
+        polygons { false }.count
+    }
+
+    @available(*, deprecated, message: "Use triangles().count instead")
+    var triangleCount: Int {
+        triangles { false }.count
+    }
+
+    @available(*, deprecated, message: "Use isWatertight() instead")
     var isWatertight: Bool {
-        if let mesh = mesh, !mesh.polygons.isEmpty {
-            return mesh.isWatertight
-        }
-        return children.reduce(true) { $0 && $1.isWatertight }
+        isWatertight { false }
     }
 }

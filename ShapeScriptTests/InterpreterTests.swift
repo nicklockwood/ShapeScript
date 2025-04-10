@@ -2296,9 +2296,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [RangeValue(from: 1, to: 5, step: 2)])
     }
-    
+
     // MARK: Partial ranges
-    
+
     func testPartialRange() {
         let program = """
         define range from 5
@@ -2308,7 +2308,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [RangeValue(from: 5, to: nil)])
     }
-    
+
     func testPartialRangeWithStep() {
         let program = """
         define range from 5 step 2
@@ -2318,7 +2318,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [RangeValue(from: 5, to: nil, step: 2)])
     }
-    
+
     func testPartialRangeWithNegativeStep() {
         let program = """
         define range from 2 step -1
@@ -2329,7 +2329,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [3, 2, 1])
     }
-    
+
     func testValuesInNegativePartialRange() {
         let program = """
         define range from 5 step -1

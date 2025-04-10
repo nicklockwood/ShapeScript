@@ -9,8 +9,6 @@
 import Euclid
 import Foundation
 
-typealias Polygon = Euclid.Polygon
-
 enum Value: Hashable {
     case color(Color)
     case texture(Texture?)
