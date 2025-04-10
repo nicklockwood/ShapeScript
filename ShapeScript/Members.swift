@@ -109,6 +109,7 @@ extension ValueType {
         "step": .number,
         "min": .number,
         "max": .number,
+        "volume": .number,
         "size": .size,
         "center": .vector,
         "count": .number,
@@ -172,13 +173,19 @@ extension Value {
             }) {
                 members.append("bounds")
             }
+            if values.allSatisfy({ $0.type == .mesh }) {
+                members += ["polygons", "triangles", "volume"]
+            }
+            if values.allSatisfy({ $0.type == .polygon }) {
+                members += ["polygons", "triangles"]
+            }
             return members
         case .range:
             return ["start", "end", "step"]
         case let .mesh(geometry):
             var members = ["name", "bounds"]
             if geometry.hasMesh {
-                members += ["polygons", "triangles", "material"]
+                members += ["polygons", "triangles", "material", "volume"]
             }
             return members
         case .path:
@@ -291,6 +298,48 @@ extension Value {
                         return nil
                     }
                 }))
+            case "volume":
+                return .number(values.reduce(0) { total, value -> Double in
+                    switch value {
+                    case let .mesh(geometry):
+                        return total + geometry.volume(with: geometry.worldTransform) {
+                            !isCancelled()
+                        }
+                    default:
+                        assertionFailure()
+                        return total
+                    }
+                })
+            case "polygons":
+                return .tuple(values.flatMap {
+                    switch $0 {
+                    case let .mesh(geometry):
+                        _ = geometry.build { !isCancelled() }
+                        let polygons = (geometry.mesh?.polygons ?? [])
+                            .transformed(by: geometry.transform)
+                        return polygons.map { Value.polygon($0) }
+                    case .polygon:
+                        return [self]
+                    default:
+                        assertionFailure()
+                        return []
+                    }
+                })
+            case "triangles":
+                return .tuple(values.flatMap {
+                    switch $0 {
+                    case let .mesh(geometry):
+                        _ = geometry.build { !isCancelled() }
+                        let triangles = (geometry.mesh?.triangulate().polygons ?? [])
+                            .transformed(by: geometry.transform)
+                        return triangles.map { Value.polygon($0) }
+                    case let .polygon(polygon):
+                        return polygon.triangulate().map { Value.polygon($0) }
+                    default:
+                        assertionFailure()
+                        return []
+                    }
+                })
             default:
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
@@ -327,6 +376,10 @@ extension Value {
                 return .tuple(triangles.map { .polygon($0) })
             case "material" where geometry.hasMesh:
                 return .material(geometry.material)
+            case "volume" where geometry.hasMesh:
+                return .number(geometry.volume(with: geometry.worldTransform) {
+                    !isCancelled()
+                })
             default:
                 return nil
             }
