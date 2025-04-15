@@ -2521,14 +2521,38 @@ class InterpreterTests: XCTestCase {
 
     func testValueInRange() {
         let program = """
-        define range 0 to 4
+        define range -1 to 4
         print 1.5 in range
+        print -1 in range
+        print 4.0001 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, true, false])
+    }
+
+    func testValueInReverseRange() {
+        let program = """
+        define range 4 to 0
+        print 1 in range
         print -1 in range
         print -4.0001 in range
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [true, false, false])
+        XCTAssertEqual(delegate.log, [false, false, false])
+    }
+
+    func testValueInNegativeRange() {
+        let program = """
+        define range 0 to -4
+        print 1 in range
+        print -1 in range
+        print -4.0001 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [false, false, false])
     }
 
     func testValueInRangeWithStep() {
@@ -2540,6 +2564,45 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [false, true])
+    }
+
+    func testValueInFloatRangeWithStep() {
+        let program = """
+        define range 0.5 to 4 step 1
+        print 1.5 in range
+        print 1 in range
+        print 3.5 in range
+        print 4 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false, true, false])
+    }
+
+    func testValueInNegativeRangeWithStep() {
+        let program = """
+        define range 0 to -4 step -1
+        print 0 in range
+        print 1 in range
+        print -1 in range
+        print -4 in range
+        print -4.0001 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false, true, true, false])
+    }
+
+    func testValueInRangeWithFractionalStep() {
+        let program = """
+        define range 0 to 4 step 0.5
+        print 1.5 in range
+        print 1 in range
+        print 0.49 in range
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, true, false])
     }
 
     // MARK: If/else

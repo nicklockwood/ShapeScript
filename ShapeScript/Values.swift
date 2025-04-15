@@ -90,7 +90,7 @@ struct RangeValue: Hashable {
     }
 }
 
-extension RangeValue: Sequence {
+extension RangeValue {
     init?(from start: Double, to end: Double, step: Double?) {
         guard step != 0 else {
             return nil
@@ -99,17 +99,25 @@ extension RangeValue: Sequence {
         self.step = step
     }
 
-    var stride: StrideThrough<Double> {
-        let end = self.end + (step ?? 1 > 0 ? 1 : -1) * 0.0000001
-        return Swift.stride(from: start, through: end, by: step ?? 1)
+    private static let epsilon: Double = 0.0000001
+    private var stepIsPositive: Bool { step ?? 1 > 0 }
+    private var adjustedEnd: Double {
+        end + (stepIsPositive ? 1 : -1) * Self.epsilon
     }
 
-    func makeIterator() -> StrideThrough<Double>.Iterator {
-        stride.makeIterator()
+    var stride: StrideThrough<Double> {
+        Swift.stride(from: start, through: adjustedEnd, by: step ?? 1)
     }
 
     func contains(_ value: Double) -> Bool {
-        step.map { _ in stride.contains(value) } ?? (value >= start && value <= end)
+        if stepIsPositive ? value < start : value > start { return false }
+        if let step = step,
+           case let remainder = abs((value - start).remainder(dividingBy: step)),
+           remainder > Self.epsilon, abs(step) - remainder > Self.epsilon
+        {
+            return false
+        }
+        return stepIsPositive ? value <= adjustedEnd : value >= adjustedEnd
     }
 }
 
@@ -261,7 +269,7 @@ extension Value {
     var sequenceValue: AnySequence<Value>? {
         switch self {
         case let .range(range):
-            return AnySequence(range.lazy.map { .number($0) })
+            return AnySequence(range.stride.lazy.map { .number($0) })
         case let .tuple(values):
             if values.count == 1, let value = values.first?.sequenceValue {
                 return value
