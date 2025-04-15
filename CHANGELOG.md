@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.8.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.8) (2025-04-15)
+
+- Added support for partial ranges like `values[from 5]`
+- Fixed some bugs with negative or reversed ranges
+- Added mesh volume to object info panel
+- Added `mesh.volume` member
+- Improved log truncation logic
+- Bumped Euclid to version 0.7.11
+- Bumped SVGPath to version 1.1.6
+
 ## [1.8.7](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.7) (2025-03-29)
 
 - Fixed bug with returning subscripted values
