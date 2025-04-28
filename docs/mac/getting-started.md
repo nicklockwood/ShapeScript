@@ -37,6 +37,8 @@ No third-party editors currently support ShapeScript syntax directly, but if you
 
 ShapeScript will only ask you which editor you want to use the *first* time you edit a file, then it will remember your choice. If you change your mind later, you can select a different editor in Preferences (select the `ShapeScript > Preferences…` menu or press **Cmd-,**).
 
+When using an external editor, it may be useful to have the window displaying the rendered model accessible in the same workspace so you do not have to use split-screen or switch applications every time you make a change to see the result. You can do this using the `View > Float Window` option. Note that this setting must be set independently for each window.
+
 ## File Structure
 
 The first line of the default `.shape` document looks like this:
