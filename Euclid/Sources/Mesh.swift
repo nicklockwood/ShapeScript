@@ -91,11 +91,6 @@ extension Mesh: Codable {
     }
 }
 
-extension Mesh: Bounded {
-    /// The bounds of the mesh.
-    public var bounds: Bounds { storage.bounds }
-}
-
 public extension Mesh {
     /// Material used by the mesh polygons.
     /// See ``Polygon/Material-swift.typealias`` for details.
@@ -148,6 +143,9 @@ public extension Mesh {
         storage.isWatertight
     }
 
+    /// The bounds of the mesh.
+    var bounds: Bounds { storage.bounds }
+
     /// The surface area of a watertight mesh.
     var surfaceArea: Double {
         polygons.reduce(0) { $0 + $1.area }
@@ -195,6 +193,17 @@ public extension Mesh {
     func withMaterial(_ material: Material?) -> Mesh {
         Mesh(
             unchecked: polygons.mapMaterials { _ in material },
+            bounds: boundsIfSet,
+            isConvex: isKnownConvex,
+            isWatertight: watertightIfSet,
+            submeshes: submeshesIfEmpty
+        )
+    }
+
+    /// Returns a copy of the mesh with vertex colors removed.
+    func withoutVertexColors() -> Mesh {
+        Mesh(
+            unchecked: polygons.mapVertices { $0.withColor(nil) },
             bounds: boundsIfSet,
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,

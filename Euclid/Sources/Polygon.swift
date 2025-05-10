@@ -93,28 +93,23 @@ extension Polygon: Codable {
     /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: Encoder) throws {
         let positions = vertices.map { $0.position }
-        if material == nil, plane == Plane(
-            unchecked: positions, convex: isConvex, closed: true
-        ) {
-            if vertices.allSatisfy({
-                $0.texcoord == .zero && $0.normal == plane.normal && $0.color == .white
-            }) {
-                try positions.encode(to: encoder)
-            } else {
-                try vertices.encode(to: encoder)
-            }
+        let positionsOnly = vertices.allSatisfy {
+            $0.texcoord == .zero && $0.normal == plane.normal && $0.color == .white
+        }
+        if material == nil, plane.isEqual(to: Plane(
+            unchecked: positions,
+            convex: isConvex,
+            closed: true
+        )) {
+            var container = encoder.singleValueContainer()
+            try positionsOnly ? container.encode(positions) : container.encode(vertices)
         } else {
             var container = encoder.unkeyedContainer()
-            try container.encode(vertices)
+            try positionsOnly ? container.encode(positions) : container.encode(vertices)
             try container.encode(plane)
             try material.map { try container.encode(CodableMaterial($0)) }
         }
     }
-}
-
-extension Polygon: Bounded {
-    /// The bounding box containing the polygon.
-    public var bounds: Bounds { Bounds(vertices.map { $0.position }) }
 }
 
 public extension Polygon {
@@ -161,12 +156,12 @@ public extension Polygon {
         vertices.contains(where: { $0.texcoord != .zero })
     }
 
-    /// A Boolean value that indicates whether the polygon includes vertex normals.
+    /// A Boolean value that indicates whether the polygon includes vertex normals that differ from the face normal.
     var hasVertexNormals: Bool {
-        vertices.contains(where: { $0.normal != .zero })
+        vertices.contains(where: { !$0.normal.isEqual(to: plane.normal) })
     }
 
-    /// A Boolean value that indicates whether the polygon includes vertex colors.
+    /// A Boolean value that indicates whether the polygon includes vertex colors that differ from the face normal.
     var hasVertexColors: Bool {
         vertices.contains(where: { $0.color != .white })
     }
@@ -351,6 +346,11 @@ public extension Polygon {
             material: material,
             id: id
         )
+    }
+
+    /// Return a copy of the polygon without vertex colors
+    func withoutVertexColors() -> Polygon {
+        mapVertexColors { _ in nil }
     }
 
     /// Return a copy of the polygon with transformed vertex colors
@@ -554,7 +554,7 @@ extension Collection where Element == LineSegment {
         for (i, a) in dropLast().enumerated() {
             var best = Double.infinity
             for b in dropFirst(i) {
-                let d = Swift.max((b.start - a.start).length, (b.end - a.end).length)
+                let d = Swift.max(b.start.distance(from: a.start), b.end.distance(from: a.end))
                 if d > 0, d < best {
                     best = d
                 }
@@ -636,7 +636,7 @@ extension Collection where Element == Polygon {
     }
 
     /// Merge vertices with similar positions.
-    /// - Parameters
+    /// - Parameters:
     ///   - vertices: The vertices to merge. If nil then all vertices are merged.
     ///   - precision: The maximum distance between vertices.
     func mergingVertices(

@@ -797,7 +797,7 @@ public extension Mesh {
     }
 
     /// Computes the convex hull of a set of paths.
-    /// - Parameters
+    /// - Parameters:
     ///   - paths: A set of paths to compute the hull around.
     ///   - material: An optional material to apply to the mesh.
     static func convexHull<T: Sequence>(
@@ -808,7 +808,7 @@ public extension Mesh {
     }
 
     /// Computes the convex hull of a set of path points.
-    /// - Parameters
+    /// - Parameters:
     ///   - points: A set of path points to compute the hull around.
     ///   - material: An optional material to apply to the mesh.
     ///
@@ -821,7 +821,7 @@ public extension Mesh {
     }
 
     /// Computes the convex hull of a set of vertices.
-    /// - Parameters
+    /// - Parameters:
     ///   - vertices: A set of vertices to compute the hull around.
     ///   - material: An optional material to apply to the mesh.
     static func convexHull<T: Sequence>(
@@ -836,7 +836,7 @@ public extension Mesh {
     }
 
     /// Computes the convex hull of a set of points.
-    /// - Parameters
+    /// - Parameters:
     ///   - points: An set of points to compute the hull around.
     ///   - material: An optional material to apply to the mesh.
     static func convexHull<T: Sequence>(
@@ -850,7 +850,7 @@ public extension Mesh {
     }
 
     /// Computes the convex hull of a set of line segments.
-    /// - Parameters
+    /// - Parameters:
     ///   - edges: A set of line segments to compute the hull around.
     ///   - material: An optional material to apply to the mesh.
     static func convexHull<T: Sequence>(
@@ -1325,9 +1325,6 @@ private extension Mesh {
             direction = -direction
         }
         var uvstart = uvstart, uvend = uvend
-        var e0 = p0.edgeVertices, e1 = p1.edgeVertices
-        var t0 = -p0.bounds.center, t1 = -p1.bounds.center
-        var r = rotationBetweenVectors(n0, n1)
         func makePolygon(_ vertices: [Vertex]) -> Polygon {
             Polygon(
                 unchecked: invert ? vertices.reversed() : vertices,
@@ -1404,6 +1401,12 @@ private extension Mesh {
                 polygons.append(makePolygon(vertices))
             }
         }
+        var e0 = p0.edgeVertices, e1 = p1.edgeVertices
+        guard e0.count > 1, e1.count > 1 else {
+            return
+        }
+        var t0 = -p0.bounds.center, t1 = -p1.bounds.center
+        var r = rotationBetweenVectors(n0, n1)
         func nearestIndex(to a: Vector, in e: [Vertex]) -> Int {
             let a = a.translated(by: t1).rotated(by: r)
             let e = e.map { $0.withPosition($0.position.translated(by: t0)) }
@@ -1411,7 +1414,7 @@ private extension Mesh {
             var best = Double.infinity
             for i in stride(from: 0, to: e.count, by: 2) {
                 let b = e[i]
-                let d = (b.position - a).length
+                let d = b.position.distance(from: a)
                 if d < best {
                     closestIndex = i
                     best = d
@@ -1425,7 +1428,7 @@ private extension Mesh {
             }
             return
         }
-        // ensure e1 count > e0
+        // e1 count must be > than e0, so swap everything if not
         if e0.count > e1.count {
             (t0, t1, r, invert) = (t1, t0, -r, !invert)
             (e0, e1, uvstart, uvend) = (e1, e0, uvend, uvstart)

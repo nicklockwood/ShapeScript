@@ -91,11 +91,6 @@ extension Path: Codable {
     }
 }
 
-extension Path: Bounded {
-    /// The bounds of all the path's points.
-    public var bounds: Bounds { Bounds(points.map { $0.position }) }
-}
-
 public extension Path {
     /// An empty path.
     static let empty: Path = .init([])
@@ -111,7 +106,7 @@ public extension Path {
         return points.dropFirst().reduce(0.0) {
             let position = $1.position
             defer { prev = position }
-            return $0 + (position - prev).length
+            return $0 + position.distance(from: prev)
         }
     }
 
@@ -378,7 +373,7 @@ public extension Path {
         case .shrink, .default:
             var prev = points[0].position
             for point in points {
-                let length = (point.position - prev).length
+                let length = point.position.distance(from: prev)
                 totalLength += length
                 prev = point.position
             }
@@ -492,7 +487,7 @@ public extension Path {
 
 public extension Polygon {
     /// Creates a single polygon from a path.
-    /// - Parameters
+    /// - Parameters:
     ///   - shape: The ``Path`` to convert to a polygon.
     ///   - material: An optional ``Material-swift.typealias`` to apply to the polygon.
     ///

@@ -110,11 +110,6 @@ extension LineSegment: Codable {
     }
 }
 
-extension LineSegment: Bounded {
-    /// The bounding box containing the line segment.
-    public var bounds: Bounds { Bounds(start, end) }
-}
-
 public extension LineSegment {
     /// The direction of the line segment as a normalized vector.
     var direction: Vector {
@@ -123,7 +118,7 @@ public extension LineSegment {
 
     /// The length of the line segment.
     var length: Double {
-        (end - start).length
+        end.distance(from: start)
     }
 
     /// Creates an 'undirected' line segment.

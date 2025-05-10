@@ -126,12 +126,13 @@ public extension Vector {
     /// - Parameter components: An array of vector components.
     ///
     /// Omitted values default to `0` and extra components are ignored.
-    init(_ components: [Double]) {
+    init<T: Collection>(_ components: T) where T.Element == Double, T.Index == Int {
+        let i = components.startIndex
         switch components.count {
         case 0: self = .zero
-        case 1: self.init(components[0], 0)
-        case 2: self.init(components[0], components[1])
-        default: self.init(components[0], components[1], components[2])
+        case 1: self.init(components[i], 0)
+        case 2: self.init(components[i], components[i + 1])
+        default: self.init(components[i], components[i + 1], components[i + 2])
         }
     }
 
@@ -140,11 +141,12 @@ public extension Vector {
     ///
     /// Omitted values are set equal to the first value specified.
     /// If no values as specified, the size defaults to ``one``.
-    init(size components: [Double]) {
+    init<T: Collection>(size components: T) where T.Element == Double, T.Index == Int {
+        let i = components.startIndex
         switch components.count {
         case 0: self = .one
-        case 1: self.init(components[0], components[0], components[0])
-        case 2: self.init(components[0], components[1], components[0])
+        case 1: self.init(components[i], components[i], components[i])
+        case 2: self.init(components[i], components[i + 1], components[i])
         default: self.init(components)
         }
     }
@@ -264,6 +266,12 @@ public extension Vector {
         .acos(normalized().dot(other.normalized()))
     }
 
+    /// Returns the rotation between this vector and another.
+    /// - Parameter other: The vector to compare with.
+    func rotation(with other: Vector) -> Rotation {
+        rotationBetweenVectors(normalized(), other.normalized())
+    }
+
     /// Returns the angle between this vector and the specified plane.
     /// - Parameter plane: The plane to compare with.
     func angle(with plane: Plane) -> Angle {
@@ -291,6 +299,13 @@ public extension Vector {
         projected(onto: plane)
     }
 
+    /// Returns the distance between the vector (representing a position in space) from the specified point.
+    /// - Parameter point: The point to compare with.
+    /// - Returns: The absolute perpendicular distance between the two points.
+    func distance(from point: Vector) -> Double {
+        (self - point).length
+    }
+
     /// Returns the distance between the vector (representing a position in space) from the specified line.
     /// - Parameter line: The line to compare with.
     /// - Returns: The absolute perpendicular distance between the point and line.
@@ -309,6 +324,17 @@ public extension Vector {
     @available(*, deprecated, renamed: "projected(onto:)")
     func project(onto line: Line) -> Vector {
         projected(onto: line)
+    }
+}
+
+public extension Array where Element == Vector {
+    /// Creates an array of vectors from an array of coordinates.
+    /// - Parameter components: An array of vector component triplets.
+    init(_ components: [Double]) {
+        assert(components.count.isMultiple(of: 3))
+        self = stride(from: 0, to: components.count, by: 3).map {
+            Vector(components[$0...])
+        }
     }
 }
 
