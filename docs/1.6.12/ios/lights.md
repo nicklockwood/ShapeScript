@@ -167,7 +167,7 @@ debug light {
     position -0.75 0 0
     orientation -0.15 0 0.5
 }
-```swift
+```
 
 ![Debugging a spotlight](../../images/spotlight-debug.png)
 

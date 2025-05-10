@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.8.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.9) (2025-05-10)
+
+- Bumped Euclid to version 0.7.12 (fixes crash when extruding single-point paths) 
+
 ## [1.8.8](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.8) (2025-04-15)
 
 - Added support for partial ranges like `values[from 5]`

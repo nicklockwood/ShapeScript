@@ -1,0 +1,16 @@
+// ShapeScript document
+
+define myPath {
+    path {
+        point -3/2 1/2
+        arc
+        point -3/2 -1/2
+        point -3/2 1/2
+    }
+}
+group {
+    color green
+    myPath
+    translate 3
+    extrude myPath
+}
