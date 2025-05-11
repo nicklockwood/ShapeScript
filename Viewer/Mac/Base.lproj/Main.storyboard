@@ -238,6 +238,11 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="Qpm-Qs-Vdp"/>
+                                        <menuItem title="Float Window" keyEquivalent="F" id="kog-Ka-X5i">
+                                            <connections>
+                                                <action selector="toggleFloatWindow:" target="Ady-hI-5gd" id="HQv-XV-Nm1"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem title="Show Sidebar" keyEquivalent="s" id="kIP-vf-haE">
                                             <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
                                             <connections>

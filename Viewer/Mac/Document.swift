@@ -423,6 +423,17 @@ class Document: NSDocument {
         isOrthographic.toggle()
     }
 
+    @IBAction func toggleFloatWindow(_: NSMenuItem) {
+        if let window = viewController?.view.window {
+            if window.level == .floating {
+                window.level = .normal
+                return
+            }
+
+            window.level = .floating
+        }
+    }
+
     // MARK: Menus
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
@@ -461,6 +472,10 @@ class Document: NSDocument {
         case #selector(showModelInfo(_:)):
             menuItem.title = selectedGeometry == nil ?
                 "Scene Info" : "Selected Shape Info"
+        case #selector(toggleFloatWindow(_:)):
+            if let window = viewController?.view.window {
+                menuItem.state = window.level == .floating ? .on : .off
+            }
         default:
             break
         }
