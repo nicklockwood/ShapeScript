@@ -32,10 +32,8 @@
 import Foundation
 
 public extension Path {
-    /// Creates a linear path from a line segment.
-    /// - Parameters:
-    ///   - line: The ``LineSegment`` defining the path.
-    ///   - color: An optional ``Color`` to apply to the path's points.
+    /// Deprecated.
+    @available(*, deprecated, message: "Path.init(_:) instead")
     static func line(_ line: LineSegment, color: Color? = nil) -> Path {
         .line(line.start, line.end, color: color)
     }
@@ -481,14 +479,14 @@ public extension Path {
         if align == .axis {
             p0p1 = p0p1.projected(onto: pathPlane.rawValue)
         }
-        rotateShape(by: rotationBetweenVectors(p0p1.normalized(), shapeNormal))
+        rotateShape(by: rotationBetweenNormalizedVectors(p0p1.normalized(), shapeNormal))
         if align != .axis, axisAligned {
             p0p1 = p0p1.projected(onto: pathPlane.rawValue)
         }
 
         func rotationBetween(_ a: Path?, _ b: Path, checkSign: Bool = true) -> Rotation {
             guard let a = a else { return .identity }
-            let r = rotationBetweenVectors(a.faceNormal, b.faceNormal)
+            let r = rotationBetweenNormalizedVectors(a.faceNormal, b.faceNormal)
             let b = b.rotated(by: -r)
             let points0 = a.points, points1 = b.points
             let delta = (points0[1].position - points0[0].position)
@@ -530,7 +528,7 @@ public extension Path {
                 p1p2 = p1p2.projected(onto: pathPlane.rawValue)
             }
             let n1 = p1p2.normalized(), n2 = p0p1.normalized()
-            let r = rotationBetweenVectors(n1, n2) / 2
+            let r = rotationBetweenNormalizedVectors(n1, n2) / 2
             rotateShape(by: r)
             twistShape(p1p2)
             upVector = (n1 + n2).cross(r.axis).normalized()
