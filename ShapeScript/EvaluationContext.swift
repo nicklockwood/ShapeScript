@@ -171,16 +171,16 @@ final class EvaluationContext {
 }
 
 extension EvaluationContext {
+    static let altNames = ["colour": "color", "centre": "center"]
+
     func symbol(for name: String) -> Symbol? {
         if let symbol = userSymbols[name] ?? symbols[name] ?? Symbols.global[name] {
             return symbol
         }
-        switch name {
-        case "colour":
-            return symbol(for: "color")
-        default:
-            return nil
+        if let name = Self.altNames[name] {
+            return symbol(for: name)
         }
+        return nil
     }
 
     func define(_ name: String, as symbol: Symbol?) {

@@ -975,8 +975,10 @@ extension Statement {
         case let .command(identifier, parameter):
             var name = identifier.name
             if let type = context.options[name] ?? {
-                if name == "colour", let type = context.options["color"] {
-                    name = "color"
+                if let altName = EvaluationContext.altNames[name],
+                   let type = context.options["color"]
+                {
+                    name = altName
                     return type
                 }
                 if let type = context.options["*"] {
@@ -1479,7 +1481,7 @@ extension Expression {
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let memberValue = value[member.name, context.isCancelled] {
-                assert(value.members.contains(member.name),
+                assert(value.hasMember(member.name),
                        "\(value.errorDescription) does not have member '\(member.name)'")
                 return memberValue
             }

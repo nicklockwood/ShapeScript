@@ -56,6 +56,10 @@ extension ValueType {
     }
 
     func memberType(_ name: String) -> ValueType? {
+        _memberType(name) ?? EvaluationContext.altNames[name].flatMap { _memberType($0) }
+    }
+
+    private func _memberType(_ name: String) -> ValueType? {
         switch self {
         case let .list(type):
             return (name.isOrdinal || name == "last") ? type : type.memberType(name)
@@ -211,6 +215,11 @@ extension Value {
         }
     }
 
+    func hasMember(_ name: String) -> Bool {
+        members.contains(name) || EvaluationContext
+            .altNames[name].map { members.contains($0) } ?? false
+    }
+
     subscript(name: String) -> Value? {
         self[name, { false }]
     }
@@ -219,6 +228,11 @@ extension Value {
         name: String,
         isCancelled: @escaping Mesh.CancellationHandler
     ) -> Value? {
+        _member(name, isCancelled) ?? EvaluationContext
+            .altNames[name].flatMap { _member($0, isCancelled) }
+    }
+
+    private func _member(_ name: String, _ isCancelled: @escaping Mesh.CancellationHandler) -> Value? {
         switch self {
         case let .vector(vector):
             switch name {

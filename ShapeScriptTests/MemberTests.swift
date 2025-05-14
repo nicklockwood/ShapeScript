@@ -473,6 +473,16 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(center, Vector(0.5, 0, 0))
     }
 
+    func testPolygonCentreWithBritishSpelling() throws {
+        let program = """
+        print cube.polygons.first.centre
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let center = try XCTUnwrap(delegate.log as? [Vector]).first
+        XCTAssertEqual(center, Vector(0.5, 0, 0))
+    }
+
     func testPointColorLookup() throws {
         let program = """
         define foo path {
@@ -484,6 +494,23 @@ final class MemberTests: XCTestCase {
         }
         print foo.points.first.color
         print foo.points.second.color
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red, Color.green])
+    }
+
+    func testPointColourWithBritishSpelling() throws {
+        let program = """
+        define foo path {
+            color red
+            point 0 0
+            colour green
+            point 1 0
+            point 1 1
+        }
+        print foo.points.first.colour
+        print foo.points.third.color
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
