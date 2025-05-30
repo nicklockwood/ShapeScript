@@ -313,21 +313,20 @@ extension Value {
                     }
                 }))
             case "volume":
-                return .number(values.reduce(0) { total, value -> Double in
-                    switch value {
-                    case let .mesh(geometry):
-                        return total + geometry.volume { !isCancelled() }
+                return .number(values.reduce(0) {
+                    switch $1 {
+                    case let .mesh(geometry) where geometry.hasMesh:
+                        return $0 + geometry.volume(isCancelled)
                     default:
                         assertionFailure()
-                        return total
+                        return $0
                     }
                 })
             case "polygons":
                 return .tuple(values.flatMap {
                     switch $0 {
-                    case let .mesh(geometry):
-                        _ = geometry.build { !isCancelled() }
-                        let polygons = (geometry.mesh?.polygons ?? [])
+                    case let .mesh(geometry) where geometry.hasMesh:
+                        let polygons = geometry.polygons(isCancelled)
                             .transformed(by: geometry.transform)
                         return polygons.map { Value.polygon($0) }
                     case .polygon:
@@ -340,9 +339,8 @@ extension Value {
             case "triangles":
                 return .tuple(values.flatMap {
                     switch $0 {
-                    case let .mesh(geometry):
-                        _ = geometry.build { !isCancelled() }
-                        let triangles = (geometry.mesh?.triangulate().polygons ?? [])
+                    case let .mesh(geometry) where geometry.hasMesh:
+                        let triangles = geometry.polygons(isCancelled)
                             .transformed(by: geometry.transform)
                         return triangles.map { Value.polygon($0) }
                     case let .polygon(polygon):
@@ -377,15 +375,15 @@ extension Value {
                     !isCancelled()
                 })
             case "polygons" where geometry.hasMesh:
-                let polygons = geometry.polygons { !isCancelled() }
+                let polygons = geometry.polygons(isCancelled)
                 return .tuple(polygons.map { .polygon($0) })
             case "triangles" where geometry.hasMesh:
-                let triangles = geometry.triangles { !isCancelled() }
+                let triangles = geometry.triangles(isCancelled)
                 return .tuple(triangles.map { .polygon($0) })
             case "material" where geometry.hasMesh:
                 return .material(geometry.material)
             case "volume" where geometry.hasMesh:
-                return .number(geometry.volume { !isCancelled() })
+                return .number(geometry.volume(isCancelled))
             default:
                 return nil
             }

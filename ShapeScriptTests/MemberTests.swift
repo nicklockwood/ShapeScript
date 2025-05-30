@@ -390,6 +390,15 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
+    func testMeshVolumeLookup() throws {
+        let program = """
+        print cube.volume
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0])
+    }
+
     func testMeshBoundsLookup() {
         let program = """
         print (fill square).bounds
@@ -409,6 +418,25 @@ final class MemberTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, Mesh.fill(.square()).polygons)
+    }
+
+    func testUnionPolygonsLookup() throws {
+        let program = """
+        print (union cube).polygons
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, Mesh.cube().polygons)
+    }
+
+    func testBlockUnionPolygonsLookup() throws {
+        let program = """
+        define shape { union { cube } }
+        print shape.polygons
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, Mesh.cube().polygons)
     }
 
     func testPathPolygonsLookup() throws {
