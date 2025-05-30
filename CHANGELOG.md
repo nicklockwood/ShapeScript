@@ -3,6 +3,7 @@
 ## [1.8.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.10) (2025-05-30)
 
 - Fixed bug where `mesh.polygons`, `mesh.triangles` and `mesh.volume` members didn't always work
+- Added `centre` (British spelling) as an alias for `center`
 - Bumped Euclid to version 0.7.14
 
 ## [1.8.9](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.9) (2025-05-10)
