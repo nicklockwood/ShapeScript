@@ -70,7 +70,6 @@ extension Dictionary where Key == String, Value == Symbol {
         "white": .constant(.color(.white)),
         "black": .constant(.color(.black)),
         "gray": .constant(.color(.gray)),
-        "grey": .constant(.color(.gray)),
         "red": .constant(.color(.red)),
         "green": .constant(.color(.green)),
         "blue": .constant(.color(.blue)),
