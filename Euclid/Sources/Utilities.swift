@@ -148,9 +148,9 @@ func triangulateVertices(
         }
         triangles.removeAll()
     }
-    let faceNormal = plane?.normal ?? faceNormalForPolygonPoints(vertices.map {
+    let faceNormal = plane?.normal ?? faceNormalForPoints(vertices.map {
         $0.position
-    }, convex: isConvex, closed: true)
+    }, convex: isConvex)
     var start = 0, i = 0
     outer: while start < vertices.count {
         var attempts = 0
@@ -211,6 +211,30 @@ func triangulateVertices(
 
 // MARK: Vector utilities
 
+extension Vector {
+    var leastParallelAxis: Vector {
+        switch (abs(x), abs(y), abs(z)) {
+        case let (x, y, z) where x <= y && x <= z:
+            return .unitX
+        case let (_, y, z) where y <= z:
+            return .unitY
+        default:
+            return .unitZ
+        }
+    }
+
+    var mostParallelAxis: Vector {
+        switch (abs(x), abs(y), abs(z)) {
+        case let (x, y, z) where x > y && x > z:
+            return .unitX
+        case let (x, y, z) where x > z || y > z:
+            return .unitY
+        default:
+            return .unitZ
+        }
+    }
+}
+
 func isFlippedScale(_ scale: Vector) -> Bool {
     var flipped = scale.x < 0
     if scale.y < 0 { flipped = !flipped }
@@ -222,18 +246,15 @@ func rotationBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> Rotation {
     assert(v0.isNormalized && v1.isNormalized)
     let axis = v0.cross(v1)
     if axis.isZero {
-        return v0.isEqual(to: v1) ? .identity : .init(unchecked: 0, 0, -1, 0)
+        if v0.isEqual(to: v1) {
+            return .identity
+        }
+        let leastParallelAxis = v0.leastParallelAxis
+        let orthonormal = v0.cross(leastParallelAxis).normalized()
+        return .init(unchecked: orthonormal, angle: .pi)
     }
-    let angle = acos(v0.dot(v1))
+    let angle = -acos(v0.dot(v1))
     return .init(unchecked: axis.normalized(), angle: .radians(angle))
-}
-
-func vectorsAreCollinear(_ v0: Vector, _ v1: Vector) -> Bool {
-    v0.cross(v1).isZero
-}
-
-func pointsAreCollinear(_ a: Vector, _ b: Vector, _ c: Vector) -> Bool {
-    vectorsAreCollinear(b - a, c - a)
 }
 
 func pointsAreDegenerate(_ points: [Vector]) -> Bool {
@@ -323,11 +344,13 @@ func pointsAreSelfIntersecting(_ points: [Vector]) -> Bool {
 /// Points are assumed to be ordered in a counter-clockwise direction
 /// Points are not verified to be coplanar or non-degenerate
 /// Points are not required to form a convex polygon
-func faceNormalForPolygonPoints(
+func faceNormalForPoints(
     _ points: [Vector],
-    convex: Bool?,
-    closed: Bool?
+    convex: Bool?
 ) -> Vector {
+    if !points.isEmpty, points.first == points.last {
+        return faceNormalForPoints(Array(points.dropFirst()), convex: convex)
+    }
     let count = points.count
     switch count {
     case 0, 1:
@@ -342,14 +365,13 @@ func faceNormalForPolygonPoints(
         }
         return normal / length
     default:
-        let closed = (closed ?? false) && points.first != points.last
         func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
             let count = points.count
-            var b = closed ? points[count - 1] : points[1]
-            var ab = b - (closed ? points[count - 2] : points[0])
+            var b = points[count - 1]
+            var ab = b - points[count - 2]
             var bestLengthSquared = 0.0
             var best: Vector?
-            for c in points[(closed ? 0 : 2)...] {
+            for c in points {
                 let bc = c - b
                 let normal = ab.cross(bc)
                 let lengthSquared = normal.lengthSquared
@@ -600,7 +622,7 @@ func subpathsFor(_ _points: [PathPoint]) -> [Path] {
         paths.append(Path(unchecked: points, plane: nil, subpathIndices: []))
     }
     return paths.isEmpty && !_points.isEmpty ? [
-        Path(unchecked: _points, plane: nil, subpathIndices: [])
+        Path(unchecked: _points, plane: nil, subpathIndices: []),
     ] : paths
 }
 
@@ -638,7 +660,7 @@ func extrapolate(_ p0: PathPoint, _ p1: PathPoint, _ p2: PathPoint) -> PathPoint
     let length = p0p1.length
     p0p1 = p0p1 / length
     let p1p2 = (p2.position - p1.position).normalized()
-    let r = -rotationBetweenNormalizedVectors(p0p1, p1p2)
+    let r = rotationBetweenNormalizedVectors(p0p1, p1p2)
     let p2pe = p1p2.rotated(by: r) * length
     return .curve(p2.position + p2pe)
 }

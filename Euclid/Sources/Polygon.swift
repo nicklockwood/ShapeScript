@@ -98,8 +98,7 @@ extension Polygon: Codable {
         }
         if material == nil, plane.isEqual(to: Plane(
             unchecked: positions,
-            convex: isConvex,
-            closed: true
+            convex: isConvex
         )) {
             var container = encoder.singleValueContainer()
             try positionsOnly ? container.encode(positions) : container.encode(vertices)
@@ -200,7 +199,7 @@ public extension Polygon {
         let z = vertices.first?.position.z ?? 0
         if !vertices.allSatisfy({ abs($0.position.z - z) < epsilon }) {
             let r = rotationBetweenNormalizedVectors(plane.normal, .unitZ)
-            vertices = vertices.map { Vertex($0.position.rotated(by: -r)) }
+            vertices = vertices.map { Vertex($0.position.rotated(by: r)) }
             let z = vertices.first?.position.z ?? 0
             assert(vertices.allSatisfy { abs($0.position.z - z) < epsilon })
         }
@@ -215,10 +214,7 @@ public extension Polygon {
     var signedVolume: Double {
         triangulate().reduce(0) {
             $0 + $1.vertices[0].position
-                .dot(
-                    $1.vertices[1].position
-                        .cross($1.vertices[2].position)
-                ) / 6
+                .dot($1.vertices[1].position.cross($1.vertices[2].position)) / 6
         }
     }
 
@@ -248,7 +244,7 @@ public extension Polygon {
         let isConvex = pointsAreConvex(positions)
         guard positions.count > 2, !pointsAreSelfIntersecting(positions),
               // Note: Plane init includes check for degeneracy
-              let plane = Plane(points: positions, convex: isConvex, closed: true)
+              let plane = Plane(points: positions, convex: isConvex)
         else {
             return nil
         }
@@ -990,9 +986,7 @@ extension Polygon {
         faceNormal: Vector?,
         material: Polygon.Material?
     ) where T.Element == Vector {
-        let faceNormal = faceNormal ?? faceNormalForPolygonPoints(
-            Array(points), convex: true, closed: true
-        )
+        let faceNormal = faceNormal ?? faceNormalForPoints(Array(points), convex: true)
         let vertices = points.map { p -> Vertex in
             let matches = verticesByPosition[p] ?? []
             var best: Vertex?, bestDot = 1.0
@@ -1045,7 +1039,7 @@ extension Polygon {
         let points = vertices.map { $0.position }
         assert(isConvex == nil || pointsAreConvex(points) == isConvex)
         assert(sanitizeNormals || vertices.allSatisfy { $0.normal != .zero })
-        let plane = plane ?? Plane(unchecked: points, convex: isConvex, closed: true)
+        let plane = plane ?? Plane(unchecked: points, convex: isConvex)
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
             vertices: sanitizeNormals ? vertices.map {

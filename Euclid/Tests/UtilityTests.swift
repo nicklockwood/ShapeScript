@@ -10,36 +10,6 @@
 import XCTest
 
 class UtilityTests: XCTestCase {
-    // MARK: collinearity
-
-    func testRightAngleNotCollinear() {
-        let a = Vector(0, 1)
-        let b = Vector(0, 0)
-        let c = Vector(1, 0)
-        XCTAssertFalse(pointsAreCollinear(a, b, c))
-    }
-
-    func testVerticalPointsCollinear() {
-        let a = Vector(0, 1)
-        let b = Vector(0, 0)
-        let c = Vector(0, -1)
-        XCTAssert(pointsAreCollinear(a, b, c))
-    }
-
-    func testHorizontalPointsCollinear() {
-        let a = Vector(1, 0)
-        let b = Vector(0, 0)
-        let c = Vector(-1, 0)
-        XCTAssert(pointsAreCollinear(a, b, c))
-    }
-
-    func testOverlappingPointsCollinear() {
-        let a = Vector(1, 0)
-        let b = Vector(0, 0)
-        let c = Vector(1, 0)
-        XCTAssert(pointsAreCollinear(a, b, c))
-    }
-
     // MARK: convexness
 
     func testConvexnessResultNotAffectedByTranslation() {
@@ -246,50 +216,65 @@ class UtilityTests: XCTestCase {
         XCTAssertEqual(result, -.unitY)
     }
 
-    // MARK: faceNormalForPolygonPoints
+    // MARK: faceNormal
 
     func testFaceNormalForZAxisLine() {
-        let result = faceNormalForPolygonPoints(
-            [.zero, .unitZ], convex: nil, closed: nil
-        )
+        let result = faceNormalForPoints([.zero, .unitZ], convex: nil)
         XCTAssertEqual(result, .unitY)
     }
 
     func testFaceNormalForVerticalLine() {
-        let result = faceNormalForPolygonPoints(
-            [.zero, .unitY], convex: nil, closed: nil
-        )
+        let result = faceNormalForPoints([.zero, .unitY], convex: nil)
         XCTAssertEqual(result, .unitZ)
     }
 
     func testFaceNormalForHorizontalLine() {
-        let result = faceNormalForPolygonPoints(
-            [.zero, .unitX], convex: nil, closed: nil
-        )
+        let result = faceNormalForPoints([.zero, .unitX], convex: nil)
         XCTAssertEqual(result, .unitZ)
     }
 
     // MARK: rotation
 
-    func testRotationBetweenEqualVectors() {
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitX, .unitX), .identity)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitY, .unitY), .identity)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitZ, .unitZ), .identity)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(-.unitZ, -.unitZ), .identity)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(
-            Vector(1, 0.5).normalized(),
-            Vector(1, 0.5).normalized()
-        ), .identity)
+    func testRotation() {
+        let rotations = [
+            Rotation(unchecked: .unitX, angle: .degrees(30)),
+            Rotation(unchecked: -.unitX, angle: .degrees(30)),
+            Rotation(unchecked: .unitY, angle: .degrees(10)),
+            Rotation(unchecked: .unitY, angle: .degrees(17)),
+            Rotation(unchecked: .unitY, angle: .degrees(135)),
+            Rotation(axis: Vector(1, 0.5, 0), angle: .degrees(55))!,
+        ]
+
+        for r in rotations {
+            let rotated = Vector.unitZ.rotated(by: r)
+            let rotation = rotationBetweenNormalizedVectors(.unitZ, rotated)
+            let (axis, angle) = (rotation.axis, rotation.angle)
+            XCTAssert(rotation.isEqual(to: r), "\(rotation) is not equal to \(r)")
+            XCTAssert(angle.isEqual(to: r.angle), "\(angle) is not equal to \(r.angle)")
+            XCTAssert(axis.isEqual(to: r.axis), "\(axis) is not equal to \(r.axis)")
+        }
     }
 
-    func testRotationBetweenOppositeVectors() {
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitX, -.unitX).angle, .pi)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitY, -.unitY).angle, .pi)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(.unitZ, -.unitZ).angle, .pi)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(-.unitZ, .unitZ).angle, .pi)
-        XCTAssertEqual(rotationBetweenNormalizedVectors(
-            Vector(1, 0.5).normalized(),
-            -Vector(1, 0.5).normalized()
-        ).angle, .pi)
+    func testRotationBetweenEqualAndOppositeVectors() {
+        var testVectors = [
+            Vector.unitX,
+            Vector.unitY,
+            Vector.unitZ,
+        ]
+
+        for _ in 0 ..< 10 {
+            testVectors.append(Vector.unitZ.rotated(by: Rotation(
+                pitch: .degrees(.random(in: 0 ..< 360)),
+                yaw: .degrees(.random(in: 0 ..< 360)),
+                roll: .degrees(.random(in: 0 ..< 360))
+            )))
+        }
+
+        for v in testVectors {
+            XCTAssertEqual(rotationBetweenNormalizedVectors(v, v), .identity)
+            let r = rotationBetweenNormalizedVectors(v, -v)
+            let rotated = v.rotated(by: r)
+            XCTAssert(rotated.isEqual(to: -v), "\(rotated) is not equal to \(-v)")
+        }
     }
 }

@@ -51,11 +51,8 @@ extension Rotation: Hashable {
 public extension Rotation {
     /// The axis of rotation.
     var axis: Vector {
-        guard abs(w - 1) > epsilon else {
-            // if angle close to zero, direction is not important
-            return .unitZ
-        }
-        return .init(-storage.axis)
+        // if angle is zero, direction doesn't matter
+        abs(w) == 1 ? .unitZ : .init(-storage.axis)
     }
 
     /// The angle of rotation.
@@ -148,11 +145,8 @@ public extension Rotation {
     /// The axis of rotation.
     var axis: Vector {
         let s = sqrt(1 - w * w)
-        guard s > epsilon else {
-            // if angle close to zero, direction is not important
-            return .unitZ
-        }
-        return Vector(x, y, z) / -s
+        // if angle is zero, direction doesn't matter
+        return s == 0 ? .unitZ : Vector(x, y, z) / -s
     }
 
     /// The angle of rotation.
@@ -383,6 +377,18 @@ public extension Rotation {
             return nil
         }
         self.init(unchecked: axis / length, angle: angle)
+    }
+
+    /// Creates a rotation between two direction vectors.
+    /// - Parameters:
+    ///   - a: The first vector
+    ///   - b: The second vector
+    init(from a: Vector, to b: Vector) {
+        if a.isZero || b.isZero {
+            self = .identity
+        } else {
+            self = rotationBetweenNormalizedVectors(a.normalized(), b.normalized())
+        }
     }
 
     /// Creates a rotation around the X axis.

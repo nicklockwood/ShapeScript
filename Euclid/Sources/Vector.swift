@@ -266,10 +266,10 @@ public extension Vector {
         .acos(normalized().dot(other.normalized()))
     }
 
-    /// Returns the rotation between this vector and another.
-    /// - Parameter other: The vector to compare with.
+    /// Deprecated.
+    @available(*, deprecated, message: "Use Rotation(from:to) instead")
     func rotation(with other: Vector) -> Rotation {
-        rotationBetweenNormalizedVectors(normalized(), other.normalized())
+        -rotationBetweenNormalizedVectors(normalized(), other.normalized())
     }
 
     /// Returns the angle between this vector and the specified plane.

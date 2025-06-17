@@ -10,6 +10,9 @@
 		0101BAF525687A450096B1E7 /* CodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0101BAF425687A450096B1E7 /* CodingTests.swift */; };
 		010A63392A951165000E3306 /* Mesh+OBJ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010A63382A951165000E3306 /* Mesh+OBJ.swift */; };
 		010A633B2A955BE9000E3306 /* MeshExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010A633A2A955BE9000E3306 /* MeshExportTests.swift */; };
+		0110FC0F2DFFEF290015C58B /* RotationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */; };
+		0110FC112E01F6420015C58B /* MeshLoftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC102E01F6390015C58B /* MeshLoftTests.swift */; };
+		0110FC132E01F7EF0015C58B /* MeshLatheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC122E01F7E90015C58B /* MeshLatheTests.swift */; };
 		0112D5C928EE29BB00A1C085 /* Euclid+RealityKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0112D5C828EE29BB00A1C085 /* Euclid+RealityKit.swift */; };
 		0125478027AFD53900C442C3 /* MeshShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0125477F27AFD53900C442C3 /* MeshShapeTests.swift */; };
 		0128EEBB2ABA607A00E60976 /* EuclidMesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0128EEBA2ABA607A00E60976 /* EuclidMesh.swift */; };
@@ -116,6 +119,9 @@
 		0101BAF425687A450096B1E7 /* CodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingTests.swift; sourceTree = "<group>"; };
 		010A63382A951165000E3306 /* Mesh+OBJ.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Mesh+OBJ.swift"; sourceTree = "<group>"; };
 		010A633A2A955BE9000E3306 /* MeshExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshExportTests.swift; sourceTree = "<group>"; };
+		0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationTests.swift; sourceTree = "<group>"; };
+		0110FC102E01F6390015C58B /* MeshLoftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshLoftTests.swift; sourceTree = "<group>"; };
+		0110FC122E01F7E90015C58B /* MeshLatheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshLatheTests.swift; sourceTree = "<group>"; };
 		0112D5C828EE29BB00A1C085 /* Euclid+RealityKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+RealityKit.swift"; sourceTree = "<group>"; };
 		0125477F27AFD53900C442C3 /* MeshShapeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshShapeTests.swift; sourceTree = "<group>"; };
 		0128EEBA2ABA607A00E60976 /* EuclidMesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EuclidMesh.swift; sourceTree = "<group>"; };
@@ -304,6 +310,8 @@
 				016FAB5F21BFE7CE00AF60DC /* MeshCSGTests.swift */,
 				010A633A2A955BE9000E3306 /* MeshExportTests.swift */,
 				016A77F72B2F7C7800B7AB73 /* MeshImportTests.swift */,
+				0110FC102E01F6390015C58B /* MeshLoftTests.swift */,
+				0110FC122E01F7E90015C58B /* MeshLatheTests.swift */,
 				0125477F27AFD53900C442C3 /* MeshShapeTests.swift */,
 				013B5BE426923087000860DC /* MetadataTests.swift */,
 				016FAB5C21BFE7CD00AF60DC /* PathTests.swift */,
@@ -315,6 +323,7 @@
 				016A77F92B32184A00B7AB73 /* RealityKitTests.swift */,
 				01A429F92237A85C00C251A6 /* TextTests.swift */,
 				016FAB5B21BFE7CD00AF60DC /* TransformTests.swift */,
+				0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */,
 				01B9F60F292BD7FE002CC3EB /* StretchableTests.swift */,
 				016FAB5D21BFE7CE00AF60DC /* UtilityTests.swift */,
 				52C844E023854C87009C0A73 /* VectorTests.swift */,
@@ -579,12 +588,14 @@
 				016A77F82B2F7C7800B7AB73 /* MeshImportTests.swift in Sources */,
 				52A3852E238D6E5700BE8407 /* LineTests.swift in Sources */,
 				016FAB6621BFE7CE00AF60DC /* PathShapeTests.swift in Sources */,
+				0110FC0F2DFFEF290015C58B /* RotationTests.swift in Sources */,
 				016FAB6321BFE7CE00AF60DC /* UtilityTests.swift in Sources */,
 				01B9F610292BD7FE002CC3EB /* StretchableTests.swift in Sources */,
 				01CBE2682775E3EE00B7ED45 /* MeshTests.swift in Sources */,
 				016FAB6221BFE7CE00AF60DC /* PathTests.swift in Sources */,
 				014AC60E2505963800F54349 /* SceneKitTests.swift in Sources */,
 				016FAB6121BFE7CE00AF60DC /* TransformTests.swift in Sources */,
+				0110FC112E01F6420015C58B /* MeshLoftTests.swift in Sources */,
 				016FAB6421BFE7CE00AF60DC /* PolygonTests.swift in Sources */,
 				016A77FA2B32184A00B7AB73 /* RealityKitTests.swift in Sources */,
 				01B299572692339200B80A0D /* MetadataTests.swift in Sources */,
@@ -596,6 +607,7 @@
 				01D96AB523D8E36A00D0D267 /* BoundsTests.swift in Sources */,
 				013312DD21CA532A00626F1B /* PlaneTests.swift in Sources */,
 				0141CAEF2857DBF4006ADFDB /* Euclid+Testing.swift in Sources */,
+				0110FC132E01F7EF0015C58B /* MeshLatheTests.swift in Sources */,
 				52C844E223854CDF009C0A73 /* VectorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -710,7 +722,6 @@
 				SUPPORTED_PLATFORMS = "xrsimulator xros watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.2;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -803,7 +814,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.14;
+				MARKETING_VERSION = 0.7.15;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";
@@ -844,7 +855,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.14;
+				MARKETING_VERSION = 0.7.15;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";

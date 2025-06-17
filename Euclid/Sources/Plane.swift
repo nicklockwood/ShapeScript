@@ -113,7 +113,7 @@ public extension Plane {
     /// > Note: The polygon can be convex or concave. The direction of the plane normal is
     /// based on the assumption that the points are wound in an anti-clockwise direction.
     init?(points: [Vector]) {
-        self.init(points: points, convex: nil, closed: nil)
+        self.init(points: points, convex: nil)
     }
 
     /// Returns the flip-side of the plane.
@@ -199,20 +199,20 @@ extension Plane {
         self.init(unchecked: normal, w: normal.dot(pointOnPlane))
     }
 
-    init?(points: [Vector], convex: Bool?, closed: Bool?) {
+    init?(points: [Vector], convex: Bool?) {
         guard !points.isEmpty, !pointsAreDegenerate(points) else {
             return nil
         }
-        self.init(unchecked: points, convex: convex, closed: closed)
+        self.init(unchecked: points, convex: convex)
         // Check all points lie on this plane
         if points.count > 3, points.contains(where: { !containsPoint($0) }) {
             return nil
         }
     }
 
-    init(unchecked points: [Vector], convex: Bool?, closed: Bool?) {
+    init(unchecked points: [Vector], convex: Bool?) {
         assert(!pointsAreDegenerate(points))
-        let normal = faceNormalForPolygonPoints(points, convex: convex, closed: closed)
+        let normal = faceNormalForPoints(points, convex: convex)
         self.init(unchecked: normal, pointOnPlane: points[0])
     }
 
@@ -253,20 +253,11 @@ enum FlatteningPlane: RawRepresentable {
     }
 
     init(normal: Vector) {
-        switch (abs(normal.x), abs(normal.y), abs(normal.z)) {
-        case let (x, y, z) where x > y && x > z:
-            self = .yz
-        case let (x, y, z) where x > z || y > z:
-            self = .xz
-        default:
-            self = .xy
-        }
+        self.init(rawValue: .init(unchecked: normal.mostParallelAxis, w: 0))!
     }
 
     init(points: [Vector]) {
-        self.init(normal: faceNormalForPolygonPoints(
-            points, convex: nil, closed: nil
-        ))
+        self.init(normal: faceNormalForPoints(points, convex: nil))
     }
 
     init?(rawValue: Plane) {

@@ -15,15 +15,15 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/nicklockwood/Euclid.git",
-            .upToNextMinor(from: "0.7.7")
+            .upToNextMinor(from: "0.7.15")
         ),
         .package(
             url: "https://github.com/nicklockwood/LRUCache.git",
-            .upToNextMinor(from: "1.0.6")
+            .upToNextMinor(from: "1.0.7")
         ),
         .package(
             url: "https://github.com/nicklockwood/SVGPath.git",
-            .upToNextMinor(from: "1.1.5")
+            .upToNextMinor(from: "1.1.6")
         ),
     ],
     targets: [

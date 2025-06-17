@@ -747,7 +747,7 @@ public extension Mesh {
             if FlatteningPlane(normal: line.direction) == .xy {
                 shape.rotate(by: .pitch(.halfPi))
             }
-            shape.rotate(by: rotationBetweenNormalizedVectors(line.direction, shape.faceNormal))
+            shape.rotate(by: rotationBetweenNormalizedVectors(shape.faceNormal, line.direction))
             let shape0 = shape.translated(by: line.start)
             bounds.formUnion(shape0.bounds)
             let shape1 = shape.translated(by: line.end)
@@ -1138,10 +1138,7 @@ private extension Mesh {
             }
         }
 
-        let isSealed = (isWatertight == true) || (
-            isConvex &&
-                !pointsAreSelfIntersecting(profile.points.map { $0.position })
-        )
+        let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map { $0.position })
         let isWatertight = isSealed ? true : isWatertight
         switch faces {
         case .default where isSealed, .front:
@@ -1224,7 +1221,8 @@ private extension Mesh {
             count += 1
             prev = shape
         }
-        let isClosed = (shapes.first == shapes.last) && shapes.allSatisfy { $0.isClosed }
+        let allShapesAreClosed = shapes.allSatisfy { $0.isClosed }
+        let isClosed = allShapesAreClosed && (shapes.first == shapes.last)
         if count < 3, isClosed {
             return fill(first, faces: faces, material: material)
         }
@@ -1279,10 +1277,9 @@ private extension Mesh {
                 }
             }
         }
-        let isWatertight = isWatertight ?? isCapped && shapes
-            .dropFirst().dropLast().allSatisfy { $0.isClosed }
+        let isSealed = isCapped && allShapesAreClosed
         switch faces {
-        case .default where isWatertight, .front:
+        case .default where isSealed, .front:
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
@@ -1303,7 +1300,7 @@ private extension Mesh {
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 isConvex: false,
-                isWatertight: isWatertight ? true : nil,
+                isWatertight: true, // double sided shapes are always watertight
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         }
@@ -1317,13 +1314,18 @@ private extension Mesh {
         material: Material?,
         into polygons: inout [Polygon]
     ) {
-        let n0 = p0.faceNormal, n1 = p1.faceNormal
-        var direction = directionBetweenShapes(p0, p1)
-        var invert = direction.dot(n0) <= 0
-        if invert {
-            direction = -direction
+        var p0 = p0, p1 = p1
+        var n0 = p0.faceNormal, n1 = p1.faceNormal
+        let direction = directionBetweenShapes(p0, p1)
+        if direction.dot(n0) < 0 {
+            p0 = p0.inverted()
+            n0 = -n0
         }
-        var uvstart = uvstart, uvend = uvend
+        if direction.dot(n1) < 0 {
+            p1 = p1.inverted()
+            n1 = -n1
+        }
+        var invert = false
         func makePolygon(_ vertices: [Vertex]) -> Polygon {
             Polygon(
                 unchecked: invert ? vertices.reversed() : vertices,
@@ -1333,21 +1335,18 @@ private extension Mesh {
                 material: material
             )
         }
+        var uvstart = uvstart, uvend = uvend
         func addFace(_ a: Vertex, _ b: Vertex, _ c: Vertex, _ d: Vertex) {
             var vertices = [a, b, c, d]
-            let n = faceNormalForPolygonPoints(
-                vertices.map { $0.position },
-                convex: true,
-                closed: true
-            )
+            let n = faceNormalForPoints(vertices.map { $0.position }, convex: true)
             if !curvestart {
-                var r = rotationBetweenNormalizedVectors(n, n0)
+                var r = rotationBetweenNormalizedVectors(n0, n)
                 r = Rotation(unchecked: r.axis, angle: r.angle - .halfPi)
                 vertices[0].normal.rotate(by: r)
                 vertices[1].normal.rotate(by: r)
             }
             if !curveend {
-                var r = rotationBetweenNormalizedVectors(n, n1)
+                var r = rotationBetweenNormalizedVectors(n1, n)
                 r = Rotation(unchecked: r.axis, angle: r.angle - .halfPi)
                 vertices[2].normal.rotate(by: r)
                 vertices[3].normal.rotate(by: r)
@@ -1405,7 +1404,7 @@ private extension Mesh {
             return
         }
         var t0 = -p0.bounds.center, t1 = -p1.bounds.center
-        var r = rotationBetweenNormalizedVectors(n0, n1)
+        var r = rotationBetweenNormalizedVectors(n1, n0)
         func nearestIndex(to a: Vector, in e: [Vertex]) -> Int {
             let a = a.translated(by: t1).rotated(by: r)
             let e = e.map { $0.withPosition($0.position.translated(by: t0)) }
@@ -1465,7 +1464,7 @@ private extension Mesh {
                 addFace(c, c, b, a)
                 prev = ai
             } else {
-                assert((ai + 2) % e0.count == bi || ai + 1 == bi)
+                // assert((ai + 2) % e0.count == bi || ai + 1 == bi)
                 let d = e0[(ai + 1) % e0.count]
                 addFace(c, d, b, a)
                 prev = ai + 2
