@@ -3,8 +3,9 @@
 detail 32
 smoothing 0
 
+// Shape 1
 loft {
-    polygon { sides 11 }
+    polygon { sides 8 }
     translate 0 0 1
     polygon { sides 8 }
     translate 0 0 1
@@ -15,7 +16,6 @@ loft {
         point 1 -1
         point 1 1
         point -1 1
-        point -1 -1
     }
 
     translate 0 0 1
@@ -32,6 +32,7 @@ loft {
 
 translate 3
 
+// Shape 2
 loft {
     square
     rotate 0.5
@@ -48,6 +49,7 @@ loft {
 
 translate 3
 
+// Shape 3
 loft {
     rotate 0 -0.1
     detail 10
@@ -59,14 +61,6 @@ loft {
 }
 
 translate -6 3
-
-loft {
-    circle
-    translate 0 0 1
-    square
-}
-
-translate 3
 
 define star {
     option sides 5
@@ -84,19 +78,54 @@ define star {
     }
 }
 
+// Shape 4
 loft {
-    star { sides 8
-        closed true
-    }
+    square
     translate 0 0 1
-    star { sides 6
-        closed true
-    }
+    star { sides 8 }
 }
 
 translate 3
 
+// Shape 5
+loft {
+    star { sides 6 }
+    translate 0 0 1
+    square
+}
+
+translate 3
+
+// Shape 6
 extrude {
     circle { size 0.1 }
     along text "A"
 }
+
+translate -6 3
+
+// Shape 7
+loft {
+    circle
+    translate 0 0 1
+    square
+}
+
+translate 3
+
+// Shape 8
+loft {
+    circle {}
+    translate 0 0 1
+    star { sides 5 }
+}
+
+translate 3
+
+// Shape 9
+loft {
+    circle { }
+    translate 0 0 1
+    star { sides 20 }
+}
+

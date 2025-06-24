@@ -43,8 +43,13 @@ final class RegressionTests: XCTestCase {
             let delegate = TestDelegate(directory: url.deletingLastPathComponent())
             let context = EvaluationContext(source: program.source, delegate: delegate)
             XCTAssertNoThrow(try program.evaluate(in: context), "\(name) errored")
-            let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-            XCTAssert(geometry.isWatertight { false }, "\(name) was not watertight")
+            for (i, geometry) in context.children.compactMap({
+                $0.value as? Geometry
+            }).enumerated() {
+                XCTAssert(geometry.isWatertight { false }, """
+                \(name) object \(i + 1) was not watertight
+                """)
+            }
         }
     }
 }
