@@ -39,7 +39,13 @@ public struct SourceLocation: Hashable {
 
 final class EvaluationContext {
     private final class ImportCache {
-        var store = [URL: Program]()
+        enum Import {
+            case program(Program)
+            case geometry(Geometry)
+            case value(Value)
+        }
+
+        var store = [URL: Import]()
     }
 
     private weak var delegate: EvaluationDelegate?
@@ -379,13 +385,13 @@ extension EvaluationContext {
 
     func importFile(at path: String) throws -> Value {
         let url = try resolveURL(for: path)
-        if importStack.contains(url) {
-            throw RuntimeErrorType.circularImport(for: url)
-        }
         switch url.pathExtension.lowercased() {
         case "shape":
+            if importStack.contains(url) {
+                throw RuntimeErrorType.circularImport(for: url)
+            }
             let program: Program
-            if let entry = importCache.store[url] {
+            if case let .program(entry) = importCache.store[url] {
                 program = entry
             } else {
                 let source: String
@@ -401,7 +407,7 @@ extension EvaluationContext {
                 do {
                     // TODO: async source loading?
                     program = try parse(source, at: url)
-                    importCache.store[url] = program
+                    importCache.store[url] = .program(program)
                 } catch {
                     throw RuntimeErrorType.importError(
                         ProgramError(error),
@@ -425,8 +431,13 @@ extension EvaluationContext {
                 )
             }
         case "txt":
+            if case let .value(value) = importCache.store[url] {
+                return value
+            }
             do {
-                return try .string(String(contentsOf: url))
+                let value = try Value.string(String(contentsOf: url))
+                importCache.store[url] = .value(value)
+                return value
             } catch {
                 throw RuntimeErrorType.fileParsingError(
                     for: path,
@@ -435,8 +446,13 @@ extension EvaluationContext {
                 )
             }
         case "json":
+            if case let .value(value) = importCache.store[url] {
+                return value
+            }
             do {
-                return try Value(jsonData: Data(contentsOf: url))
+                let value = try Value(jsonData: Data(contentsOf: url))
+                importCache.store[url] = .value(value)
+                return value
             } catch let error as ParserError {
                 let source = try String(contentsOf: url)
                 throw RuntimeErrorType.importError(
@@ -453,14 +469,24 @@ extension EvaluationContext {
             }
         default:
             do {
-                if let geometry = try importGeometry(at: url)?.with(
+                let geometry: Geometry
+                if case let .geometry(entry) = importCache.store[url] {
+                    geometry = entry
+                } else if let entry = try importGeometry(at: url) {
+                    geometry = entry
+                    importCache.store[url] = .geometry(geometry)
+                } else {
+                    throw RuntimeErrorType.fileTypeMismatch(
+                        for: path,
+                        at: url,
+                        expected: nil
+                    )
+                }
+                return .mesh(geometry.with(
                     transform: .identity,
                     material: material,
                     sourceLocation: sourceLocation
-                ) {
-                    return .mesh(geometry)
-                }
-                throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
+                ))
             } catch let error as ProgramError {
                 guard let source = try? String(contentsOf: url) else {
                     throw RuntimeErrorType.fileParsingError(
