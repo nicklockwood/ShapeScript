@@ -214,13 +214,13 @@ extension Document {
             guard let self = self else {
                 return
             }
+            guard input == self.sourceString else {
+                self.didUpdateSource()
+                return
+            }
             switch status {
             case .waiting:
                 if let viewController = self.viewController {
-                    if input != self.sourceString {
-                        self.didUpdateSource()
-                        return
-                    }
                     viewController.showConsole = false
                     viewController.clearLog()
                 }

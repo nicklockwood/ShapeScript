@@ -9,21 +9,36 @@
 import Foundation
 import ShapeScript
 
-private var _processID = 0
-
 typealias LoadingTask = (LoadingProgress) throws -> Void
 
 final class LoadingProgress {
-    private var thread: Thread?
-    private var queue: [LoadingTask] = []
+    // Thread-safe
+    let id: Int
+    var status: Status {
+        lock.lock()
+        defer { lock.unlock() }
+        return _status
+    }
+
+    // Only accessed from internal thread
+    private let lock = NSLock()
+    private var _status: Status = .waiting
+
+    // Only accessed from main thread
+    private static var _processID = 0
     private let observer: (Status) -> Void
-    private(set) var status: Status = .waiting
-    private(set) var id: Int = {
-        _processID += 1
-        return _processID
-    }()
+    private var thread: Thread? {
+        didSet { assert(Thread.isMainThread) }
+    }
+
+    private var queue: [LoadingTask] = [] {
+        didSet { assert(Thread.isMainThread) }
+    }
 
     init(observer: @escaping (Status) -> Void) {
+        assert(Thread.isMainThread)
+        Self._processID += 1
+        self.id = Self._processID
         self.observer = observer
         dispatch { _ in
             self.setStatus(.waiting)
@@ -43,6 +58,8 @@ extension LoadingProgress {
         case failure(ProgramError)
         case cancelled
     }
+
+    // Thread-safe
 
     var isCancelled: Bool {
         if case .cancelled = status {
@@ -82,22 +99,30 @@ extension LoadingProgress {
 
     func setStatus(_ status: Status) {
         if isCancelled || hasFailed { return }
-        self.status = status
+        if Thread.isMainThread {
+            dispatch { $0.setStatus(status) }
+            return
+        }
+        assert(Thread.current.name == thread?.name)
+        lock.lock()
+        _status = status
+        lock.unlock()
         DispatchQueue.main.async {
             self.observer(status)
         }
     }
 
+    // Evaluate code on the loading thread
+    // Must be called from the main thread
     func dispatch(_ block: @escaping LoadingTask) {
-        DispatchQueue.main.async { [weak self] in
-            self?.queue.append(block)
-        }
+        assert(Thread.isMainThread)
+        queue.append(block)
         if thread?.isExecuting == true {
             return
         }
         thread = Thread { [weak self] in
             do {
-                while let task = DispatchQueue.main.sync(execute: { [weak self] () -> LoadingTask? in
+                while let task: LoadingTask = DispatchQueue.main.sync(execute: { [weak self] in
                     guard let self = self, !self.queue.isEmpty else {
                         return nil
                     }
