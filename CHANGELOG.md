@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.8.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.11) (2025-06-27)
+
+- Significantly improved output for `loft` command when lofted shapes have different numbers of points
+- Repeated access to an imported file within a script is now cached for improved performance
+- Bumped Euclid to version 0.7.15
+
 ## [1.8.10](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.10) (2025-05-30)
 
 - Fixed bug where `mesh.polygons`, `mesh.triangles` and `mesh.volume` members didn't always work
