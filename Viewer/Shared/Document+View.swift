@@ -224,6 +224,11 @@ extension Document {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
+                if self.error?.type == .fileAccess {
+                    self.errorMessage = nil
+                    self.error = nil
+                    updateViews()
+                }
             case let .partial(scene), let .success(scene):
                 self.errorMessage = nil
                 self.error = nil

@@ -15,6 +15,7 @@ extension Document: EvaluationDelegate {
     func resolveURL(for path: String) -> URL {
         let url = URL(fileURLWithPath: path, relativeTo: fileURL)
         linkedResources.insert(url)
+//        clearBookmarks() // Handy for debugging bookmarks
         if let resolvedURL = resolveBookMark(for: url) {
             if resolvedURL.path != url.path {
                 // File was moved, so return the original url (which will throw a file-not-found error)
