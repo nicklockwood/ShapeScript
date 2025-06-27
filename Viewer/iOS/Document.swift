@@ -42,18 +42,15 @@ class Document: UIDocument {
     }
 
     var loadingProgress: LoadingProgress? {
-        didSet {
-            updateViews()
-        }
+        didSet { updateViews() }
     }
 
-    var errorMessage: NSAttributedString?
     var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
     private weak var saveTimer: Timer?
 
-    var sourceString: String? {
+    var sourceString: String = "" {
         didSet {
             if viewController != nil {
                 didUpdateSource()
@@ -103,10 +100,7 @@ class Document: UIDocument {
     }
 
     override func contents(forType _: String) throws -> Any {
-        guard let data = sourceString?.data(using: .utf8) else {
-            throw NSError(domain: "", code: 0) // Unknown error
-        }
-        return data
+        Data(sourceString.utf8)
     }
 
     override func close(completionHandler: ((Bool) -> Void)? = nil) {

@@ -57,12 +57,11 @@ class Document: NSDocument {
         didSet { updateViews() }
     }
 
-    var errorMessage: NSAttributedString?
     var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
 
-    var sourceString: String? {
+    var sourceString: String = "" {
         didSet { didUpdateSource() }
     }
 

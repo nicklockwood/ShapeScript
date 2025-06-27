@@ -55,7 +55,7 @@ class SourceViewController: UIViewController {
                 }
                 let sheet = UIActivityViewController(
                     activityItems: [
-                        UISimpleTextPrintFormatter(text: document.sourceString ?? ""),
+                        UISimpleTextPrintFormatter(text: document.sourceString),
                         document.fileURL,
                     ],
                     applicationActivities: nil

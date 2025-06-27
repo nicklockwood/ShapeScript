@@ -165,7 +165,7 @@ extension Document {
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
-        viewController.setError(error, message: errorMessage)
+        viewController.setError(error, message: error?.message(with: sourceString))
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
@@ -209,7 +209,7 @@ extension Document {
         let camera = self.camera
         let showWireframe = self.showWireframe
         let fileURL = fileURL
-        let input = sourceString ?? ""
+        let input = sourceString
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self = self else {
                 return
@@ -218,19 +218,18 @@ extension Document {
                 self.didUpdateSource()
                 return
             }
+            let wasFileAccessError = self.error?.type == .fileAccess
+            self.error = nil // Error is invalid if sourceString has changed
             switch status {
             case .waiting:
                 if let viewController = self.viewController {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
-                if self.error?.type == .fileAccess {
-                    self.errorMessage = nil
-                    self.error = nil
+                if wasFileAccessError {
                     updateViews()
                 }
             case let .partial(scene), let .success(scene):
-                self.errorMessage = nil
                 self.error = nil
                 self.scene = scene
                 if case .success = status, self.rerenderRequired {
@@ -238,7 +237,6 @@ extension Document {
                 }
             case let .failure(error):
                 self.error = error
-                self.errorMessage = error.message(with: input)
                 self.updateViews()
             case .cancelled:
                 break
