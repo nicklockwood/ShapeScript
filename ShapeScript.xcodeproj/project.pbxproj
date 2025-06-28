@@ -40,6 +40,9 @@
 		014F85D9215B890100461FB7 /* Interpreter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85D8215B890100461FB7 /* Interpreter.swift */; };
 		014F85DB215BE1A900461FB7 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014F85DA215BE1A900461FB7 /* Parser.swift */; };
 		0152E5DA214500C50082A5A3 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01BFB39621425C8500E47A7C /* ShapeScript.framework */; };
+		015C75B72E0FF49D00810E19 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 015C75B62E0FF49D00810E19 /* AppIcon.icon */; };
+		015C75B82E0FF49D00810E19 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 015C75B62E0FF49D00810E19 /* AppIcon.icon */; };
+		015C75B92E0FFAFE00810E19 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0183AAD628EC3ACB00AD1984 /* Assets.xcassets */; };
 		016F9ED229DB2315008206CE /* WhatsNewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */; };
 		01746BF226C5D226009DADEF /* GeometryType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01746BF126C5D226009DADEF /* GeometryType.swift */; };
 		0174CD6C2917FC1F0007B6DF /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0174CD6B2917FC1F0007B6DF /* FileMonitor.swift */; };
@@ -68,7 +71,6 @@
 		0183AAB528EC3AA600AD1984 /* Document+Sandbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */; };
 		0183AAC628EC3AB200AD1984 /* Untitled.shape in Resources */ = {isa = PBXBuildFile; fileRef = 0183AAB728EC3AB200AD1984 /* Untitled.shape */; };
 		0183AAC728EC3AB200AD1984 /* SourceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AAB828EC3AB200AD1984 /* SourceViewController.swift */; };
-		0183AAC828EC3AB200AD1984 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0183AAB928EC3AB200AD1984 /* Assets.xcassets */; };
 		0183AAC928EC3AB200AD1984 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0183AABA28EC3AB200AD1984 /* SplitView.swift */; };
 		0183AACA28EC3AB200AD1984 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0183AABB28EC3AB200AD1984 /* LaunchScreen.storyboard */; };
 		0183AACB28EC3AB200AD1984 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0183AABD28EC3AB200AD1984 /* Main.storyboard */; };
@@ -357,6 +359,7 @@
 		014F85D8215B890100461FB7 /* Interpreter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpreter.swift; sourceTree = "<group>"; };
 		014F85DA215BE1A900461FB7 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		0152E5C5214500990082A5A3 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		015C75B62E0FF49D00810E19 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = AppIcon.icon; sourceTree = "<group>"; };
 		016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WhatsNewViewController.swift; sourceTree = "<group>"; };
 		016FAC0321C149C300AF60DC /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Euclid.xcodeproj; sourceTree = "<group>"; };
 		01746BF126C5D226009DADEF /* GeometryType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryType.swift; sourceTree = "<group>"; };
@@ -376,7 +379,6 @@
 		0183AAA128EC3AA500AD1984 /* Document+Sandbox.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Document+Sandbox.swift"; sourceTree = "<group>"; };
 		0183AAB728EC3AB200AD1984 /* Untitled.shape */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Untitled.shape; sourceTree = "<group>"; };
 		0183AAB828EC3AB200AD1984 /* SourceViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SourceViewController.swift; sourceTree = "<group>"; };
-		0183AAB928EC3AB200AD1984 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0183AABA28EC3AB200AD1984 /* SplitView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SplitView.swift; sourceTree = "<group>"; };
 		0183AABC28EC3AB200AD1984 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0183AABE28EC3AB200AD1984 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -544,6 +546,8 @@
 		0183AA9728EC3AA500AD1984 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				015C75B62E0FF49D00810E19 /* AppIcon.icon */,
+				0183AAD628EC3ACB00AD1984 /* Assets.xcassets */,
 				0183AA9828EC3AA500AD1984 /* Document+View.swift */,
 				0183AA9928EC3AA500AD1984 /* Document+EvaluationDelegate.swift */,
 				0183AA9A28EC3AA500AD1984 /* Document+ModelInfo.swift */,
@@ -565,7 +569,6 @@
 			isa = PBXGroup;
 			children = (
 				0183AAB828EC3AB200AD1984 /* SourceViewController.swift */,
-				0183AAB928EC3AB200AD1984 /* Assets.xcassets */,
 				0183AABA28EC3AB200AD1984 /* SplitView.swift */,
 				0183AABB28EC3AB200AD1984 /* LaunchScreen.storyboard */,
 				0183AABD28EC3AB200AD1984 /* Main.storyboard */,
@@ -589,7 +592,6 @@
 			children = (
 				0183AAD428EC3ACB00AD1984 /* Utilities.swift */,
 				0183AAD528EC3ACB00AD1984 /* WindowController.swift */,
-				0183AAD628EC3ACB00AD1984 /* Assets.xcassets */,
 				0183AAD728EC3ACB00AD1984 /* WelcomeViewController.swift */,
 				016F9ECD29DB2315008206CE /* WhatsNewViewController.swift */,
 				0183AAD828EC3ACB00AD1984 /* PreferencesViewController.swift */,
@@ -983,6 +985,7 @@
 				0183AAE728EC3ACB00AD1984 /* Main.storyboard in Resources */,
 				01D7548F29ECAEA400B326F0 /* WhatsNew.rtf in Resources */,
 				0183AAE928EC3ACB00AD1984 /* Welcome.rtf in Resources */,
+				015C75B72E0FF49D00810E19 /* AppIcon.icon in Resources */,
 				0183AAE428EC3ACB00AD1984 /* Assets.xcassets in Resources */,
 				01BD9437219367D2005FFAEC /* Examples in Resources */,
 			);
@@ -995,9 +998,10 @@
 				0183AACA28EC3AB200AD1984 /* LaunchScreen.storyboard in Resources */,
 				0129396E2C528C1B00BD0A24 /* Licenses.rtf in Resources */,
 				011E57B529F57BC600CA0778 /* WhatsNew.rtf in Resources */,
-				0183AAC828EC3AB200AD1984 /* Assets.xcassets in Resources */,
 				0183AAC628EC3AB200AD1984 /* Untitled.shape in Resources */,
+				015C75B82E0FF49D00810E19 /* AppIcon.icon in Resources */,
 				0183AACB28EC3AB200AD1984 /* Main.storyboard in Resources */,
+				015C75B92E0FFAFE00810E19 /* Assets.xcassets in Resources */,
 				01E5A4F328EE3DFC00EE7CD9 /* Examples in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1347,6 +1351,7 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Viewer/Mac/Viewer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -1376,6 +1381,7 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Viewer/Mac/Viewer.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -1405,6 +1411,7 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1440,6 +1447,7 @@
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
