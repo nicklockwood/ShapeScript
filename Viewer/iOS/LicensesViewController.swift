@@ -13,6 +13,10 @@ class LicensesViewController: WhatsNewViewController {
         super.viewDidLoad()
 
         title = "Licenses"
-        textView.attributedText = try! loadRTF("Licenses")
+
+        let attributedText = try! loadRTF("Licenses").mutableCopy() as! NSMutableAttributedString
+        let range = attributedText.string.range(of: "Licenses\n\n")!
+        attributedText.replaceCharacters(in: NSRange(range, in: attributedText.string), with: "")
+        textView.attributedText = attributedText
     }
 }
