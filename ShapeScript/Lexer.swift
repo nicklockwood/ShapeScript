@@ -208,20 +208,25 @@ public extension String {
     func lineRange(at index: Index, includingIndent: Bool = false) -> SourceRange {
         var endIndex = self.endIndex
         var startIndex = self.startIndex
+        assert(index >= startIndex && index <= endIndex)
+        let index = min(max(index, startIndex), endIndex)
         var i = startIndex
-        while i < endIndex {
+        while i < index {
             let nextIndex = self.index(after: i)
             if self[i].isLinebreak {
-                if i >= index {
-                    endIndex = i
-                    break
-                }
                 startIndex = nextIndex
             }
             i = nextIndex
         }
+        while i < endIndex {
+            if self[i].isLinebreak {
+                endIndex = i
+                break
+            }
+            i = self.index(after: i)
+        }
         if !includingIndent {
-            while startIndex < endIndex, self[startIndex].isWhitespace {
+            while startIndex < index, self[startIndex].isWhitespace {
                 startIndex = self.index(after: startIndex)
             }
         }
