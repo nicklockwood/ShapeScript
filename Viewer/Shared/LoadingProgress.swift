@@ -103,7 +103,6 @@ extension LoadingProgress {
             dispatch { $0.setStatus(status) }
             return
         }
-        assert(Thread.current.name == thread?.name)
         lock.lock()
         _status = status
         lock.unlock()
