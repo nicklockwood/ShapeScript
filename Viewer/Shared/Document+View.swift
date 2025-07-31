@@ -214,7 +214,7 @@ extension Document {
             guard let self = self else {
                 return
             }
-            guard input == self.sourceString else {
+            if !status.isCancelledOrFailed, input != self.sourceString {
                 self.didUpdateSource()
                 return
             }
@@ -245,7 +245,7 @@ extension Document {
 
         loadingProgress?.dispatch { [cache] progress in
             func logCancelled() -> Bool {
-                if progress.isCancelled {
+                if progress.isCancelledOrFailed {
                     Swift.print("[\(progress.id)] cancelled")
                     return true
                 }
@@ -269,7 +269,7 @@ extension Document {
                 program,
                 delegate: self,
                 cache: cache,
-                isCancelled: { progress.isCancelled }
+                isCancelled: { progress.isCancelledOrFailed }
             )
             let evaluated = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
@@ -301,7 +301,7 @@ extension Document {
                 wireframe: showWireframe
             )
             _ = scene.build {
-                if progress.isCancelled {
+                if progress.isCancelledOrFailed {
                     return false
                 }
                 let time = CFAbsoluteTimeGetCurrent()

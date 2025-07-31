@@ -27,6 +27,7 @@ final class LoadingProgress {
     // Only accessed from main thread
     private static var _processID = 0
     private let observer: (Status) -> Void
+    private var lastObserverUpdate: TimeInterval = 0
     private var thread: Thread? {
         didSet { assert(Thread.isMainThread) }
     }
@@ -40,8 +41,10 @@ final class LoadingProgress {
         Self._processID += 1
         self.id = Self._processID
         self.observer = observer
-        dispatch { _ in
-            self.setStatus(.waiting)
+        // Defer initial update for one cycle
+        DispatchQueue.main.async {
+            // Note: use of `self` here ensures status hasn't changed
+            observer(self.status)
         }
     }
 
@@ -57,22 +60,21 @@ extension LoadingProgress {
         case success(Scene)
         case failure(ProgramError)
         case cancelled
+
+        var isCancelledOrFailed: Bool {
+            switch self {
+            case .waiting, .partial, .success:
+                return false
+            case .cancelled, .failure:
+                return true
+            }
+        }
     }
 
     // Thread-safe
 
-    var isCancelled: Bool {
-        if case .cancelled = status {
-            return true
-        }
-        return false
-    }
-
-    var hasFailed: Bool {
-        if case .failure = status {
-            return true
-        }
-        return false
+    var isCancelledOrFailed: Bool {
+        status.isCancelledOrFailed
     }
 
     var inProgress: Bool {
@@ -98,16 +100,20 @@ extension LoadingProgress {
     }
 
     func setStatus(_ status: Status) {
-        if isCancelled || hasFailed { return }
-        if Thread.isMainThread {
-            dispatch { $0.setStatus(status) }
+        lock.lock()
+        if _status.isCancelledOrFailed {
+            lock.unlock()
             return
         }
-        lock.lock()
         _status = status
         lock.unlock()
-        DispatchQueue.main.async {
-            self.observer(status)
+        if Thread.isMainThread {
+            observer(status)
+        } else {
+            DispatchQueue.main.async {
+                // Note: use of `self` here ensures status hasn't changed
+                self.observer(self.status)
+            }
         }
     }
 
@@ -115,19 +121,29 @@ extension LoadingProgress {
     // Must be called from the main thread
     func dispatch(_ block: @escaping LoadingTask) {
         assert(Thread.isMainThread)
+        assert(!status.isCancelledOrFailed)
         queue.append(block)
         if thread?.isExecuting == true {
             return
         }
+        resume()
+    }
+
+    private func resume() {
+        assert(Thread.isMainThread)
+        assert(!status.isCancelledOrFailed)
+        let queue = self.queue
+        guard !queue.isEmpty else { return }
+        self.queue.removeAll()
         thread = Thread { [weak self] in
             do {
-                while let task: LoadingTask = DispatchQueue.main.sync(execute: { [weak self] in
-                    guard let self = self, !self.queue.isEmpty else {
-                        return nil
-                    }
-                    return self.queue.removeFirst()
-                }), let self = self {
+                for task in queue {
+                    guard let self = self, !self.status.isCancelledOrFailed else { return }
                     try task(self)
+                }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self, !self.status.isCancelledOrFailed else { return }
+                    self.resume()
                 }
             } catch {
                 self?.setStatus(.failure(ProgramError(error)))
