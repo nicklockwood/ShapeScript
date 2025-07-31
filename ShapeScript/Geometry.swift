@@ -20,6 +20,8 @@ public final class Geometry: Hashable {
     public let smoothing: Angle?
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
+    /// The overestimated Geometry bounds *without* the local transform applied
+    public let bounds: Bounds
     private let _sourceLocation: (() -> SourceLocation?)?
     public private(set) lazy var sourceLocation: SourceLocation? = _sourceLocation?()
     public private(set) weak var parent: Geometry?
@@ -232,6 +234,32 @@ public final class Geometry: Hashable {
         // Must be set after cache key is generated
         self.isOpaque = isOpaque
 
+        // Compute bounds
+        switch type {
+        case .difference, .stencil:
+            self.bounds = children.first.map {
+                $0.bounds.transformed(by: $0.transform)
+            } ?? .empty
+        case .intersection:
+            self.bounds = children.dropFirst().reduce(into: children.first.map {
+                $0.bounds.transformed(by: $0.transform)
+            } ?? .empty) { bounds, child in
+                bounds.formIntersection(child.bounds.transformed(by: child.transform))
+            }
+        case .union, .xor, .group:
+            self.bounds = Bounds(children.map {
+                $0.bounds.transformed(by: $0.transform)
+            })
+        case .lathe, .fill, .extrude, .loft, .hull:
+            self.bounds = type.bounds.union(Bounds(children.map {
+                $0.bounds.transformed(by: $0.transform)
+            }))
+        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
+            self.bounds = type.bounds
+        case .camera, .light:
+            self.bounds = .empty
+        }
+
         // Must be set after all other properties
         children.forEach { $0.parent = self }
     }
@@ -240,34 +268,6 @@ public final class Geometry: Hashable {
 public extension Geometry {
     var isEmpty: Bool {
         type.isEmpty && children.allSatisfy { $0.isEmpty }
-    }
-
-    /// Returns the overestimated Geometry bounds *without* the local transform applied
-    var bounds: Bounds {
-        switch type {
-        case .difference, .stencil:
-            return children.first.map {
-                $0.bounds.transformed(by: $0.transform)
-            } ?? .empty
-        case .intersection:
-            return children.dropFirst().reduce(into: children.first.map {
-                $0.bounds.transformed(by: $0.transform)
-            } ?? .empty) { bounds, child in
-                bounds.formIntersection(child.bounds.transformed(by: child.transform))
-            }
-        case .union, .xor, .group:
-            return Bounds(children.map {
-                $0.bounds.transformed(by: $0.transform)
-            })
-        case .lathe, .fill, .extrude, .loft, .hull:
-            return type.bounds.union(Bounds(children.map {
-                $0.bounds.transformed(by: $0.transform)
-            }))
-        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
-            return type.bounds
-        case .camera, .light:
-            return .empty
-        }
     }
 
     var camera: Camera? {
