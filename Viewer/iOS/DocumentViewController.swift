@@ -32,7 +32,7 @@ class DocumentViewController: UIViewController {
     @IBOutlet private var infoButton: UIBarButtonItem!
     @IBOutlet private var cameraButton: UIBarButtonItem!
     @IBOutlet private var editButton: UIBarButtonItem!
-    @IBOutlet private var navigationBar: UINavigationBar!
+    @IBOutlet private var navigationBar: UINavigationBar?
 
     var document: Document? {
         didSet {
@@ -50,7 +50,7 @@ class DocumentViewController: UIViewController {
         didSet {
             guard let errorMessage = errorMessage else {
                 errorScrollView.isHidden = true
-                navigationBar.tintColor = interfaceColor
+                navigationBar?.tintColor = interfaceColor
                 cameraButton.isEnabled = true
                 infoButton.isEnabled = true
                 exportButton.isEnabled = true
@@ -58,7 +58,7 @@ class DocumentViewController: UIViewController {
             }
             errorTextView.attributedText = errorMessage
             errorScrollView.isHidden = false
-            navigationBar.tintColor = .white
+            navigationBar?.tintColor = .white
             cameraButton.isEnabled = false
             infoButton.isEnabled = false
             exportButton.isEnabled = false
@@ -135,6 +135,12 @@ class DocumentViewController: UIViewController {
         didSet {
             guard isLoading != oldValue else {
                 return
+            }
+            if #available(iOS 16, *) {
+                // Hide the bar item to prevent extended border on iOS 26
+                navigationBar?.topItem?.leftBarButtonItems?.first(where: {
+                    $0.customView === loadingIndicator
+                })?.isHidden = !isLoading
             }
             if isLoading {
                 loadingIndicator.startAnimating()
@@ -223,7 +229,7 @@ class DocumentViewController: UIViewController {
 
     func updateInterfaceColor() {
         interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
-        navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
+        navigationBar?.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
         #if os(iOS)
@@ -290,13 +296,16 @@ class DocumentViewController: UIViewController {
 
         // configure navigation bar
         let loadingItem = UIBarButtonItem(customView: loadingIndicator)
-        navigationBar.topItem?.leftBarButtonItems?.append(loadingItem)
-        navigationBar.setBackgroundImage(.init(), for: .default)
-        navigationBar.shadowImage = .init()
+        if #available(iOS 16, *) {
+            loadingItem.isHidden = !isLoading
+        }
+        navigationBar?.topItem?.leftBarButtonItems?.append(loadingItem)
+        navigationBar?.setBackgroundImage(.init(), for: .default)
+        navigationBar?.shadowImage = .init()
         if let exportMenuProvider = exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {
-            navigationBar.topItem?.rightBarButtonItems?.removeAll(where: {
+            navigationBar?.topItem?.rightBarButtonItems?.removeAll(where: {
                 $0 === exportButton
             })
         }
