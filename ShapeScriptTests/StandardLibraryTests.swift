@@ -783,6 +783,19 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["hello world"])
     }
 
+    // MARK: Paths
+
+    func testPathWithCoincidentPoints() throws {
+        let program = try parse("""
+        path {
+            point 0 0
+            point 0 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
     // MARK: Polygons
 
     func testPrintPolygonPath() throws {
