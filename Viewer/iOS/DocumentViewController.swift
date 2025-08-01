@@ -300,8 +300,7 @@ class DocumentViewController: UIViewController {
             loadingItem.isHidden = !isLoading
         }
         navigationBar?.topItem?.leftBarButtonItems?.append(loadingItem)
-        navigationBar?.setBackgroundImage(.init(), for: .default)
-        navigationBar?.shadowImage = .init()
+        navigationBar?.standardAppearance.configureWithTransparentBackground()
         if let exportMenuProvider = exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {

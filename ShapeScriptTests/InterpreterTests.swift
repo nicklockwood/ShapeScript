@@ -1381,9 +1381,15 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            #if targetEnvironment(simulator) || !os(iOS)
             XCTAssertEqual(error, RuntimeError(.fileNotFound(
                 for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
             ), at: range))
+            #else
+            XCTAssertEqual(error, RuntimeError(.fileAccessRestricted(
+                for: "Nope.jpg", at: testsDirectory
+            ), at: range))
+            #endif
         }
     }
 
@@ -1598,9 +1604,15 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
+            #if targetEnvironment(simulator) || !os(iOS)
             XCTAssertEqual(error, RuntimeError(.fileNotFound(
                 for: "Nope.jpg", at: testsDirectory.appendingPathComponent("Nope.jpg")
             ), at: range))
+            #else
+            XCTAssertEqual(error, RuntimeError(.fileAccessRestricted(
+                for: "Nope.jpg", at: testsDirectory
+            ), at: range))
+            #endif
         }
     }
 
@@ -1613,9 +1625,15 @@ class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .fileNotFound(
+            #if targetEnvironment(simulator) || !os(iOS)
+            XCTAssertEqual(error, RuntimeError(.fileNotFound(
                 for: "Nope1.jpg", at: testsDirectory.appendingPathComponent("Nope1.jpg")
-            ))
+            ), at: range))
+            #else
+            XCTAssertEqual(error, RuntimeError(.fileAccessRestricted(
+                for: "Nope1.jpg", at: testsDirectory
+            ), at: range))
+            #endif
             XCTAssertEqual(error?.range, range)
         }
     }

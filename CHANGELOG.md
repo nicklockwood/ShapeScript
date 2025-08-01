@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.8.12](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.12) (2025-08-01)
+
+- Significantly improved performance when rendering geometry with high detail
+- Bumped Euclid to version 0.7.16 (fixes crash when a path has coincident points)
+- Fixed crash when displaying error line number in some cases
+- Fixed some text input bugs on iOS
+- Fixed some cosmetic issues in dark mode
+
 ## [1.8.11](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.11) (2025-06-27)
 
 - Significantly improved output for `loft` command when lofted shapes have different numbers of points
