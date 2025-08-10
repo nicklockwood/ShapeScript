@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.7
 
 import PackageDescription
 
@@ -10,14 +10,12 @@ let package = Package(
     targets: [
         .target(
             name: "Euclid",
-            path: "Sources",
-            exclude: ["Info.plist"]
+            path: "Sources"
         ),
         .testTarget(
             name: "EuclidTests",
             dependencies: ["Euclid"],
-            path: "Tests",
-            exclude: ["Info.plist"]
+            path: "Tests"
         ),
     ]
 )

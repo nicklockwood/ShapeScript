@@ -114,6 +114,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: polygons,
                 bounds: bounds,
+                bsp: nil,
                 isConvex: true,
                 isWatertight: true,
                 submeshes: []
@@ -122,6 +123,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: polygons.inverted(),
                 bounds: bounds,
+                bsp: nil,
                 isConvex: false,
                 isWatertight: true,
                 submeshes: []
@@ -130,6 +132,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: bounds,
+                bsp: nil,
                 isConvex: false,
                 isWatertight: true,
                 submeshes: []
@@ -191,7 +194,7 @@ public extension Mesh {
             .init(-t, 0, -1),
             .init(-t, 0, 1),
         ]
-        let transform = Transform(rotation: .pitch(.atan(t)), scale: .init(size: radius / sqrt(t * t + 1)))
+        let transform = Transform(scale: radius / sqrt(t * t + 1), rotation: .pitch(.atan(t)))
         let v = coordinates.map { Vertex($0.transformed(by: transform)) }
         func triangle(_ a: Vertex, _ b: Vertex, _ c: Vertex) -> Polygon {
             Polygon(
@@ -238,6 +241,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: triangles,
                 bounds: bounds,
+                bsp: nil,
                 isConvex: true,
                 isWatertight: true,
                 submeshes: []
@@ -246,6 +250,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: triangles.inverted(),
                 bounds: bounds,
+                bsp: nil,
                 isConvex: false,
                 isWatertight: true,
                 submeshes: []
@@ -254,6 +259,7 @@ public extension Mesh {
             mesh = Mesh(
                 unchecked: triangles + triangles.inverted(),
                 bounds: bounds,
+                bsp: nil,
                 isConvex: false,
                 isWatertight: true,
                 submeshes: []
@@ -283,7 +289,7 @@ public extension Mesh {
         wrapMode: WrapMode = .default,
         material: Material? = nil
     ) -> Mesh {
-        let icosahedron = self.icosahedron(
+        let icosahedron = icosahedron(
             radius: 1,
             faces: faces,
             wrapMode: .none,
@@ -299,10 +305,8 @@ public extension Mesh {
         }
         let mesh = Mesh(
             unchecked: triangles,
-            bounds: Bounds(
-                min: Vector(-radius, -radius, -radius),
-                max: Vector(radius, radius, radius)
-            ),
+            bounds: Bounds(min: .init(size: -radius), max: .init(size: radius)),
+            bsp: nil,
             isConvex: true,
             isWatertight: true,
             submeshes: []
@@ -340,6 +344,7 @@ public extension Mesh {
             unchecked: .arc(radius: radius, segments: stacks),
             slices: slices,
             poleDetail: poleDetail,
+            addDetailForFlatPoles: false,
             faces: faces,
             wrapMode: wrapMode,
             material: material,
@@ -507,7 +512,7 @@ public extension Mesh {
             shape.rotate(by: rotation)
             shapes.append(shape)
         }
-        let polygon = Polygon(shape: shape)
+        let polygon = Polygon(shape)
         return loft(
             unchecked: shapes,
             faces: faces,
@@ -520,7 +525,7 @@ public extension Mesh {
 
     /// Efficiently extrudes an array of paths along their respective face normals, avoiding duplicate work.
     /// - Parameters:
-    ///   - shapes: The array of paths to extrude in order to create the mesh.
+    ///   - shapes: The collection of paths to extrude in order to create the mesh.
     ///   - depth: The depth of the extrusion.
     ///   - twist: Angular twist to apply along the extrusion.
     ///   - sections: Number of sections to create along extrusion.
@@ -528,7 +533,7 @@ public extension Mesh {
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
     static func extrude(
-        _ shapes: [Path],
+        _ shapes: some Collection<Path>,
         depth: Double = 1,
         twist: Angle = .zero,
         sections: Int = 0,
@@ -622,12 +627,14 @@ public extension Mesh {
         }
 
         let polygons = shape.closed().facePolygons(material: material)
+        let isConvex = polygons.count == 1 && polygons[0].isConvex
         switch faces {
         case .front:
             return Mesh(
                 unchecked: polygons,
                 bounds: nil,
-                isConvex: false,
+                bsp: nil,
+                isConvex: isConvex, // A single polygon counts as convex
                 isWatertight: false,
                 submeshes: []
             )
@@ -635,7 +642,8 @@ public extension Mesh {
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil,
-                isConvex: false,
+                bsp: nil,
+                isConvex: isConvex, // A single polygon counts as convex
                 isWatertight: false,
                 submeshes: []
             )
@@ -643,7 +651,8 @@ public extension Mesh {
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil,
-                isConvex: polygons.count == 1 && polygons[0].isConvex,
+                bsp: nil,
+                isConvex: isConvex,
                 isWatertight: true,
                 submeshes: []
             )
@@ -685,7 +694,7 @@ public extension Mesh {
         let radius = width / 2
         switch detail {
         case 1, 2:
-            path = .line(Vector(-radius, 0), Vector(radius, 0))
+            path = .line([-radius, 0], [radius, 0])
         case let sides:
             path = .circle(radius: radius, segments: sides)
         }
@@ -707,7 +716,7 @@ public extension Mesh {
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
     static func stroke(
-        _ shapes: [Path],
+        _ shapes: some Collection<Path>,
         width: Double = 0.01,
         detail: Int = 2,
         material: Material? = nil,
@@ -730,19 +739,21 @@ public extension Mesh {
     ///   - width: The line width of the strokes.
     ///   - detail: The number of sides to use for the cross-sectional shape of the stroked mesh.
     ///   - material: The optional material for the mesh.
-    static func stroke<T: Collection>(
-        _ lines: T,
+    ///   - isCancelled: Callback used to cancel the operation.
+    static func stroke(
+        _ lines: some Collection<LineSegment>,
         width: Double = 0.002,
         detail: Int = 3,
-        material: Material? = nil
-    ) -> Mesh where T.Element == LineSegment {
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
         let radius = width / 2
         let detail = max(3, detail)
         let path = Path.circle(radius: radius, segments: detail)
         var bounds = Bounds.empty
         var polygons = [Polygon]()
         polygons.reserveCapacity(detail * lines.count)
-        for line in lines {
+        for line in lines where !isCancelled() {
             var shape = path
             if FlatteningPlane(normal: line.direction) == .xy {
                 shape.rotate(by: .pitch(.halfPi))
@@ -764,203 +775,23 @@ public extension Mesh {
         return Mesh(
             unchecked: polygons,
             bounds: bounds,
+            bsp: nil,
             isConvex: false,
             isWatertight: nil,
             submeshes: nil
         )
     }
-
-    /// Computes the convex hull of one or more meshes.
-    /// - Parameter meshes: An array of meshes to compute the hull around.
-    static func convexHull(of meshes: [Mesh]) -> Mesh {
-        var best: Mesh?
-        var bestIndex: Int?
-        for (i, mesh) in meshes.enumerated() where mesh.isKnownConvex {
-            if best?.polygons.count ?? 0 > mesh.polygons.count {
-                continue
-            }
-            best = mesh
-            bestIndex = i
-        }
-        let polygons = meshes.enumerated().flatMap { i, mesh in
-            i == bestIndex ? [] : mesh.polygons
-        }
-        let bounds = Bounds(meshes)
-        return .convexHull(of: polygons, with: best, bounds: bounds)
-    }
-
-    /// Computes the convex hull of a set of polygons.
-    /// - Parameter polygons: An array of polygons to compute the hull around.
-    static func convexHull(of polygons: [Polygon]) -> Mesh {
-        convexHull(of: polygons, with: nil, bounds: nil)
-    }
-
-    /// Computes the convex hull of a set of paths.
-    /// - Parameters:
-    ///   - paths: A set of paths to compute the hull around.
-    ///   - material: An optional material to apply to the mesh.
-    static func convexHull<T: Sequence>(
-        of paths: T,
-        material: Material? = nil
-    ) -> Mesh where T.Element == Path {
-        convexHull(of: paths.flatMap { $0.edgeVertices }, material: material)
-    }
-
-    /// Computes the convex hull of a set of path points.
-    /// - Parameters:
-    ///   - points: A set of path points to compute the hull around.
-    ///   - material: An optional material to apply to the mesh.
-    ///
-    /// > Note: The curvature of the point is currently ignored when calculating hull surface normals.
-    static func convexHull<T: Sequence>(
-        of points: T,
-        material: Material? = nil
-    ) -> Mesh where T.Element == PathPoint {
-        convexHull(of: points.map(Vertex.init), material: material)
-    }
-
-    /// Computes the convex hull of a set of vertices.
-    /// - Parameters:
-    ///   - vertices: A set of vertices to compute the hull around.
-    ///   - material: An optional material to apply to the mesh.
-    static func convexHull<T: Sequence>(
-        of vertices: T,
-        material: Material? = nil
-    ) -> Mesh where T.Element == Vertex {
-        var verticesByPosition = [Vector: [(faceNormal: Vector, Vertex)]]()
-        for v in vertices {
-            verticesByPosition[v.position, default: []].append((v.normal, v))
-        }
-        return convexHull(of: verticesByPosition, material: material)
-    }
-
-    /// Computes the convex hull of a set of points.
-    /// - Parameters:
-    ///   - points: An set of points to compute the hull around.
-    ///   - material: An optional material to apply to the mesh.
-    static func convexHull<T: Sequence>(
-        of points: T,
-        material: Material? = nil
-    ) -> Mesh where T.Element == Vector {
-        convexHull(
-            of: Dictionary(points.map { ($0, []) }, uniquingKeysWith: { $1 }),
-            material: material
-        )
-    }
-
-    /// Computes the convex hull of a set of line segments.
-    /// - Parameters:
-    ///   - edges: A set of line segments to compute the hull around.
-    ///   - material: An optional material to apply to the mesh.
-    static func convexHull<T: Sequence>(
-        of edges: T,
-        material: Material? = nil
-    ) -> Mesh where T.Element == LineSegment {
-        convexHull(of: edges.flatMap { [$0.start, $0.end] }, material: material)
-    }
 }
 
 private extension Mesh {
-    static func convexHull(
-        of polygonsToAdd: [Polygon],
-        with startingMesh: Mesh?,
-        bounds: Bounds?
-    ) -> Mesh {
-        assert(startingMesh?.isKnownConvex != false)
-        var polygons = startingMesh?.polygons ?? []
-        var verticesByPosition = [Vector: [(faceNormal: Vector, Vertex)]]()
-        for p in polygonsToAdd + polygons {
-            for v in p.vertices {
-                verticesByPosition[v.position, default: []].append((p.plane.normal, v))
-            }
-        }
-        var polygonsToAdd = polygonsToAdd
-        if polygons.isEmpty, !polygonsToAdd.isEmpty {
-            let p: Polygon
-            if let index = polygonsToAdd.lastIndex(where: { $0.isConvex }) {
-                p = polygonsToAdd.remove(at: index)
-            } else {
-                polygonsToAdd += polygonsToAdd.removeLast().tessellate()
-                p = polygonsToAdd.removeLast()
-                assert(p.isConvex)
-            }
-            polygons += [p, p.inverted()]
-        }
-        // Add remaining polygons
-        for p in polygonsToAdd {
-            for vertex in p.vertices {
-                polygons.addPoint(
-                    vertex.position,
-                    material: p.material,
-                    verticesByPosition: verticesByPosition
-                )
-            }
-        }
-        return Mesh(
-            unchecked: polygons,
-            bounds: bounds,
-            isConvex: true,
-            isWatertight: nil,
-            submeshes: []
-        )
-    }
-
-    static func convexHull(
-        of verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]],
-        material: Material?
-    ) -> Mesh {
-        var points = verticesByPosition.keys.sorted()
-        var polygons = [Polygon]()
-        // Form a starting triangle pair from 3 non-collinear points
-        var i = 3
-        while i <= points.endIndex {
-            let range = i - 3 ..< i
-            if let triangle = Polygon(
-                points: points[range],
-                verticesByPosition: verticesByPosition,
-                faceNormal: nil,
-                material: material
-            ), let inverse = Polygon(
-                // Note: not the same as triangle.inverse()
-                points: points[range].reversed(),
-                verticesByPosition: verticesByPosition,
-                faceNormal: nil,
-                material: material
-            ) {
-                polygons += [triangle, inverse]
-                points.removeSubrange(range)
-                break
-            }
-            i += 1
-        }
-        if polygons.isEmpty {
-            return .empty
-        }
-        // Add remaining points
-        for point in points {
-            polygons.addPoint(
-                point,
-                material: material,
-                verticesByPosition: verticesByPosition
-            )
-        }
-        return Mesh(
-            unchecked: polygons,
-            bounds: nil,
-            isConvex: true,
-            isWatertight: nil,
-            submeshes: []
-        )
-    }
-
     static func lathe(
         unchecked profile: Path,
-        slices: Int = 16,
-        poleDetail: Int = 0,
-        addDetailForFlatPoles: Bool = false,
-        faces: Faces = .default,
-        wrapMode: WrapMode = .default,
-        material: Material? = nil,
+        slices: Int,
+        poleDetail: Int,
+        addDetailForFlatPoles: Bool,
+        faces: Faces,
+        wrapMode: WrapMode,
+        material: Material?,
         isConvex: Bool,
         isWatertight: Bool?
     ) -> Mesh {
@@ -1039,22 +870,22 @@ private extension Mesh {
                         // top triangle
                         let v0 = Vertex(
                             unchecked: v0.position,
-                            Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                            Vector(v0.texcoord.x + (t0 + t1) / 2, v0.texcoord.y, 0),
+                            [cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x],
+                            [v0.texcoord.x + (t0 + t1) / 2, v0.texcoord.y, 0],
                             v0.color
                         )
                         let v2 = Vertex(
                             unchecked:
-                            Vector(cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x),
-                            Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                            Vector(v1.texcoord.x + t0, v1.texcoord.y, 0),
+                            [cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x],
+                            [cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x],
+                            [v1.texcoord.x + t0, v1.texcoord.y, 0],
                             v1.color
                         )
                         let v3 = Vertex(
                             unchecked:
-                            Vector(cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x),
-                            Vector(cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x),
-                            Vector(v1.texcoord.x + t1, v1.texcoord.y, 0),
+                            [cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x],
+                            [cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x],
+                            [v1.texcoord.x + t1, v1.texcoord.y, 0],
                             v1.color
                         )
                         polygons.append(Polygon(
@@ -1069,22 +900,20 @@ private extension Mesh {
                     // bottom triangle
                     let v1 = Vertex(
                         unchecked: v1.position,
-                        Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                        Vector(v1.texcoord.x + (t0 + t1) / 2, v1.texcoord.y, 0),
+                        [cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x],
+                        [v1.texcoord.x + (t0 + t1) / 2, v1.texcoord.y, 0],
                         v1.color
                     )
                     let v2 = Vertex(
-                        unchecked:
-                        Vector(cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x),
-                        Vector(cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0),
+                        unchecked: [cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x],
+                        [cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x],
+                        [v0.texcoord.x + t1, v0.texcoord.y, 0],
                         v0.color
                     )
                     let v3 = Vertex(
-                        unchecked:
-                        Vector(cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x),
-                        Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0),
+                        unchecked: [cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x],
+                        [cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x],
+                        [v0.texcoord.x + t0, v0.texcoord.y, 0],
                         v0.color
                     )
                     polygons.append(Polygon(
@@ -1097,31 +926,27 @@ private extension Mesh {
                 } else {
                     // quad face
                     let v2 = Vertex(
-                        unchecked:
-                        Vector(cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x),
-                        Vector(cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t1, v0.texcoord.y, 0),
+                        unchecked: [cos1 * v0.position.x, v0.position.y, sin1 * -v0.position.x],
+                        [cos1 * v0.normal.x, v0.normal.y, sin1 * -v0.normal.x],
+                        [v0.texcoord.x + t1, v0.texcoord.y, 0],
                         v0.color
                     )
                     let v3 = Vertex(
-                        unchecked:
-                        Vector(cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x),
-                        Vector(cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x),
-                        Vector(v0.texcoord.x + t0, v0.texcoord.y, 0),
+                        unchecked: [cos0 * v0.position.x, v0.position.y, sin0 * -v0.position.x],
+                        [cos0 * v0.normal.x, v0.normal.y, sin0 * -v0.normal.x],
+                        [v0.texcoord.x + t0, v0.texcoord.y, 0],
                         v0.color
                     )
                     let v4 = Vertex(
-                        unchecked:
-                        Vector(cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x),
-                        Vector(cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x),
-                        Vector(v1.texcoord.x + t0, v1.texcoord.y, 0),
+                        unchecked: [cos0 * v1.position.x, v1.position.y, sin0 * -v1.position.x],
+                        [cos0 * v1.normal.x, v1.normal.y, sin0 * -v1.normal.x],
+                        [v1.texcoord.x + t0, v1.texcoord.y, 0],
                         v1.color
                     )
                     let v5 = Vertex(
-                        unchecked:
-                        Vector(cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x),
-                        Vector(cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x),
-                        Vector(v1.texcoord.x + t1, v1.texcoord.y, 0),
+                        unchecked: [cos1 * v1.position.x, v1.position.y, sin1 * -v1.position.x],
+                        [cos1 * v1.normal.x, v1.normal.y, sin1 * -v1.normal.x],
+                        [v1.texcoord.x + t1, v1.texcoord.y, 0],
                         v1.color
                     )
                     let vertices = [v2, v3, v4, v5]
@@ -1138,13 +963,14 @@ private extension Mesh {
             }
         }
 
-        let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map { $0.position })
+        let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map(\.position))
         let isWatertight = isSealed ? true : isWatertight
         switch faces {
         case .default where isSealed, .front:
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: isConvex,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1153,6 +979,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1161,6 +988,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1177,6 +1005,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1221,7 +1050,7 @@ private extension Mesh {
             count += 1
             prev = shape
         }
-        let allShapesAreClosed = shapes.allSatisfy { $0.isClosed }
+        let allShapesAreClosed = shapes.allSatisfy(\.isClosed)
         let isClosed = allShapesAreClosed && (shapes.first == shapes.last)
         if count < 3, isClosed {
             return fill(first, faces: faces, material: material)
@@ -1283,6 +1112,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: isConvex,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1291,6 +1121,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1299,6 +1130,7 @@ private extension Mesh {
             return Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
+                bsp: nil,
                 isConvex: false,
                 isWatertight: true, // double sided shapes are always watertight
                 submeshes: nil // TODO: Can we calculate this efficiently?
@@ -1326,7 +1158,10 @@ private extension Mesh {
             n1 = -n1
         }
         var invert = false
-        func makePolygon(_ vertices: [Vertex]) -> Polygon {
+        func makePolygon(_ vertices: [Vertex]) -> Polygon? {
+            Polygon(invert ? vertices.reversed() : vertices, material: material)
+        }
+        func makePolygon(_ vertices: Vertex...) -> Polygon {
             Polygon(
                 unchecked: invert ? vertices.reversed() : vertices,
                 plane: nil,
@@ -1338,7 +1173,7 @@ private extension Mesh {
         var uvstart = uvstart, uvend = uvend
         func addFace(_ a: Vertex, _ b: Vertex, _ c: Vertex, _ d: Vertex) {
             var vertices = [a, b, c, d]
-            let n = faceNormalForPoints(vertices.map { $0.position }, convex: true)
+            let n = faceNormalForPoints(vertices.map(\.position))
             if !curvestart {
                 var r = rotationBetweenNormalizedVectors(n0, n)
                 r = Rotation(unchecked: r.axis, angle: r.angle - .halfPi)
@@ -1351,10 +1186,10 @@ private extension Mesh {
                 vertices[2].normal.rotate(by: r)
                 vertices[3].normal.rotate(by: r)
             }
-            vertices[0].texcoord = Vector(vertices[0].texcoord.y, uvstart)
-            vertices[1].texcoord = Vector(vertices[1].texcoord.y, uvstart)
-            vertices[2].texcoord = Vector(vertices[2].texcoord.y, uvend)
-            vertices[3].texcoord = Vector(vertices[3].texcoord.y, uvend)
+            vertices[0].texcoord = [vertices[0].texcoord.y, uvstart]
+            vertices[1].texcoord = [vertices[1].texcoord.y, uvstart]
+            vertices[2].texcoord = [vertices[2].texcoord.y, uvend]
+            vertices[3].texcoord = [vertices[3].texcoord.y, uvend]
             if vertices[0].position == vertices[1].position {
                 vertices.remove(at: 0)
             } else if vertices[2].position == vertices[3].position {
@@ -1386,17 +1221,17 @@ private extension Mesh {
             }
             if vertices.count == 4 {
                 let c = vertices[0], d = vertices[1], b = vertices[2], a = vertices[3]
-                let bcd = makePolygon([b, c, d])
+                let bcd = makePolygon(b, c, d)
                 switch a.position.compare(with: bcd.plane) {
                 case .coplanar, .spanning:
-                    polygons.append(makePolygon([c, d, b, a]))
+                    makePolygon([c, d, b, a]).map { polygons.append($0) }
                 case .back:
-                    polygons += [makePolygon([c, b, a]), bcd]
+                    polygons += [makePolygon(c, b, a), bcd]
                 case .front:
-                    polygons += [makePolygon([c, d, a]), makePolygon([b, a, d])]
+                    polygons += [makePolygon(c, d, a), makePolygon(b, a, d)]
                 }
-            } else {
-                polygons.append(makePolygon(vertices))
+            } else if let polygon = makePolygon(vertices) {
+                polygons.append(polygon)
             }
         }
         var e0 = p0.edgeVertices, e1 = p1.edgeVertices
@@ -1412,7 +1247,7 @@ private extension Mesh {
             var best = Double.infinity
             for i in stride(from: 0, to: e.count, by: 2) {
                 let b = e[i]
-                let d = b.position.distance(from: a)
+                let d = b.distance(from: a)
                 if d < best {
                     closestIndex = i
                     best = d
@@ -1446,7 +1281,7 @@ private extension Mesh {
         for i in stride(from: 0, to: e1.count, by: 2) {
             let a = e1[i], b = e1[i + 1]
             let ai = nearestIndex(to: a.position, in: e0)
-            if let prev = prev {
+            if let prev {
                 var ai = ai
                 if ai == 0, prev == e0.count - 2 {
                     ai += e0.count
@@ -1473,16 +1308,14 @@ private extension Mesh {
     }
 
     static func build(
-        _ shapes: [Path],
+        _ shapes: some Collection<Path>,
         using fn: (Path) -> Mesh,
         isCancelled: CancellationHandler = { false }
     ) -> [Mesh] {
         var uniquePaths = [Path]()
         let indexesAndOffsets = shapes.map { path -> (Int, Vector) in
             let (p, offset) = path.withNormalizedPosition()
-            if let index = uniquePaths.firstIndex(where: {
-                p.isEqual(to: $0, withPrecision: epsilon)
-            }) {
+            if let index = uniquePaths.firstIndex(where: { p.isApproximatelyEqual(to: $0) }) {
                 return (index, offset)
             }
             uniquePaths.append(p)

@@ -240,6 +240,13 @@
 			remoteGlobalIDString = 01BFB39521425C8500E47A7C;
 			remoteInfo = "ShapeScript Lib";
 		};
+		01CF02402E696CDD00E3E2A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 016FAC0321C149C300AF60DC /* Euclid.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 01F995E72E6455BD0017AAC8;
+			remoteInfo = PerformanceTests;
+		};
 		01E711862E4AC3A200FAC888 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 01FDE3B626BD736700A46F66 /* LRUCache.xcodeproj */;
@@ -516,6 +523,7 @@
 				016FAC2321C149C300AF60DC /* Euclid.framework */,
 				016FAC2721C149C300AF60DC /* EuclidTests.xctest */,
 				016FAC2921C149C300AF60DC /* EuclidExample.app */,
+				01CF02412E696CDD00E3E2A1 /* PerformanceTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -931,6 +939,13 @@
 			fileType = wrapper.application;
 			path = EuclidExample.app;
 			remoteRef = 016FAC2821C149C300AF60DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		01CF02412E696CDD00E3E2A1 /* PerformanceTests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = PerformanceTests.xctest;
+			remoteRef = 01CF02402E696CDD00E3E2A1 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		01E711872E4AC3A200FAC888 /* LRUCachePerformanceTests.xctest */ = {

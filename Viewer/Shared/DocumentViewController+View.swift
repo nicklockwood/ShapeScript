@@ -159,7 +159,7 @@ extension DocumentViewController {
         if let geometry = camera.geometry {
             orientation = geometry.worldTransform.rotation
             if camera.hasPosition {
-                position = geometry.worldTransform.offset
+                position = geometry.worldTransform.translation
             }
             if camera.hasScale {
                 let v = geometry.worldTransform.scale

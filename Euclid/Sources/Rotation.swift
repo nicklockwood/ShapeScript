@@ -38,14 +38,8 @@ import simd
 /// An orientation or rotation in 3D space.
 ///
 /// A rotation can be converted to and from an axis vector and angle, or a set of 3 Euler angles (pitch, yaw and roll).
-public struct Rotation: Sendable {
+public struct Rotation: Sendable, Hashable {
     var storage: simd_quatd
-}
-
-extension Rotation: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(storage.vector)
-    }
 }
 
 public extension Rotation {
@@ -58,15 +52,6 @@ public extension Rotation {
     /// The angle of rotation.
     var angle: Angle {
         .radians(storage.angle)
-    }
-
-    /// Performs a spherical linear interpolation between two rotations.
-    /// - Parameters:
-    ///   - other: The rotation to interpolate towards.
-    ///   - t: The normalized extent of interpolation, from 0 to 1.
-    /// - Returns: The interpolated rotation.
-    func slerp(_ other: Rotation, _ t: Double) -> Rotation {
-        .init(storage: simd_slerp(storage, other.storage, t))
     }
 
     /// Rotates the specified vector relative to the origin.
@@ -129,10 +114,10 @@ extension Rotation {
 /// problem known as gymbal lock.
 public struct Rotation: Hashable, Sendable {
     /// The quaternion component values.
-    public var x, y, z, w: Double
+    var x, y, z, w: Double
 
     /// Creates a quaternion from raw component values.
-    public init(_ x: Double, _ y: Double, _ z: Double, _ w: Double) {
+    init(_ x: Double, _ y: Double, _ z: Double, _ w: Double) {
         self.x = x
         self.y = y
         self.z = z
@@ -152,23 +137,6 @@ public extension Rotation {
     /// The angle of rotation.
     var angle: Angle {
         .radians(2 * acos(w))
-    }
-
-    /// Performs a spherical linear interpolation between two rotations.
-    /// - Parameters:
-    ///   - other: The rotation to interpolate towards.
-    ///   - t: The normalized extent of interpolation, from 0 to 1.
-    /// - Returns: The interpolated rotation.
-    func slerp(_ other: Rotation, _ t: Double) -> Rotation {
-        let dot = max(-1, min(1, self.dot(other)))
-        if abs(abs(dot) - 1) < epsilon {
-            return (self + (other - self) * t).normalized()
-        }
-
-        let theta = acos(dot) * t
-        let t1 = self * cos(theta)
-        let t2 = (other - (self * dot)).normalized() * sin(theta)
-        return t1 + t2
     }
 
     /// Rotates the specified vector relative to the origin.
@@ -203,29 +171,6 @@ public extension Rotation {
     }
 }
 
-private extension Rotation {
-    func dot(_ r: Rotation) -> Double {
-        x * r.x + y * r.y + z * r.z + w * r.w
-    }
-
-    func normalized() -> Rotation {
-        let lengthSquared = dot(self)
-        if lengthSquared == 0 || lengthSquared == 1 {
-            return self
-        }
-        let length = sqrt(lengthSquared)
-        return .init(unchecked: x / length, y / length, z / length, w / length)
-    }
-
-    static func + (lhs: Rotation, rhs: Rotation) -> Rotation {
-        .init(unchecked: lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w)
-    }
-
-    static func - (lhs: Rotation, rhs: Rotation) -> Rotation {
-        .init(unchecked: lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w)
-    }
-}
-
 extension Rotation {
     init(unchecked x: Double, _ y: Double, _ z: Double, _ w: Double) {
         self.x = x
@@ -242,9 +187,28 @@ extension Rotation {
         let a = axis * sin(r)
         self.init(unchecked: a.x, a.y, a.z, cos(r))
     }
+
+    func dot(_ r: Rotation) -> Double {
+        x * r.x + y * r.y + z * r.z + w * r.w
+    }
+
+    func normalized() -> Rotation {
+        let lengthSquared = dot(self)
+        if lengthSquared == 0 || lengthSquared == 1 {
+            return self
+        }
+        let length = sqrt(lengthSquared)
+        return .init(unchecked: x / length, y / length, z / length, w / length)
+    }
 }
 
 #endif
+
+extension Rotation: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        self == .identity ? "Rotation.identity" : "Rotation(axis: \(axis.components), angle: \(angle))"
+    }
+}
 
 extension Rotation: Codable {
     private enum CodingKeys: CodingKey {
@@ -324,7 +288,7 @@ extension Rotation: Codable {
                     self.init(x, y, z, w)
                     return
                 }
-                axis = Vector(x, y, z)
+                axis = [x, y, z]
             }
             self.init(unchecked: axis?.normalized() ?? .unitZ, angle: angle ?? .zero)
             return
@@ -372,11 +336,10 @@ public extension Rotation {
     ///   - axis: A vector defining the axis of rotation.
     ///   - angle: The angle of rotation around the axis.
     init?(axis: Vector, angle: Angle) {
-        let length = axis.length
-        guard length.isFinite, length > epsilon else {
+        guard let direction = axis.direction else {
             return nil
         }
-        self.init(unchecked: axis / length, angle: angle)
+        self.init(unchecked: direction, angle: angle)
     }
 
     /// Creates a rotation between two direction vectors.
@@ -384,10 +347,10 @@ public extension Rotation {
     ///   - a: The first vector
     ///   - b: The second vector
     init(from a: Vector, to b: Vector) {
-        if a.isZero || b.isZero {
-            self = .identity
+        if let a = a.direction, let b = b.direction {
+            self = rotationBetweenNormalizedVectors(a, b)
         } else {
-            self = rotationBetweenNormalizedVectors(a.normalized(), b.normalized())
+            self = .identity
         }
     }
 
@@ -493,6 +456,15 @@ public extension Rotation {
     static func /= (lhs: inout Rotation, rhs: Double) {
         lhs = lhs / rhs
     }
+
+    /// Performs a spherical linear interpolation between two rotations.
+    /// - Parameters:
+    ///   - other: The rotation to interpolate towards.
+    ///   - t: The normalized extent of interpolation, from 0 to 1.
+    /// - Returns: The interpolated rotation.
+    func slerp(_ other: Rotation, _ t: Double) -> Rotation {
+        interpolated(with: other, by: t)
+    }
 }
 
 extension Rotation: UnkeyedCodable {
@@ -505,28 +477,5 @@ extension Rotation: UnkeyedCodable {
         let axis = try Vector(from: &container).normalized()
         let angle = try container.decode(Angle.self)
         self.init(unchecked: axis, angle: angle)
-    }
-}
-
-extension Rotation {
-    /// Approximate equality
-    func isEqual(to other: Rotation, withPrecision p: Double = epsilon) -> Bool {
-        w.isEqual(to: other.w, withPrecision: p) &&
-            x.isEqual(to: other.x, withPrecision: p) &&
-            y.isEqual(to: other.y, withPrecision: p) &&
-            z.isEqual(to: other.z, withPrecision: p)
-    }
-}
-
-@available(*, deprecated)
-extension Rotation {
-    var quaternion: Quaternion {
-        .init(x, y, z, w)
-    }
-
-    /// Creates a rotation from a quaternion.
-    /// - Parameter quaternion: A quaternion defining a rotation.
-    public init(_ quaternion: Quaternion) {
-        self.init(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
     }
 }

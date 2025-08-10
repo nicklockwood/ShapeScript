@@ -7,6 +7,10 @@
 //
 
 public extension Polygon {
+    /// Callback used to cancel a long-running operation.
+    /// - Returns: `true` if operation should be cancelled, or `false` otherwise.
+    typealias CancellationHandler = () -> Bool
+
     /// Split the polygon along a plane.
     /// - Parameter plane: The ``Plane`` to split the polygon along.
     /// - Returns: A pair of arrays representing the polygon fragments in front of and behind the plane respectively.
@@ -26,8 +30,27 @@ public extension Polygon {
     /// Clip polygon to the specified plane
     /// - Parameter plane: The ``Plane``  to clip the polygon to.
     /// - Returns: An array of the polygon fragments that lie in front of the plane.
-    func clip(to plane: Plane) -> [Polygon] {
+    func clipped(to plane: Plane) -> [Polygon] {
         split(along: plane).front
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "clipped(to:)")
+    func clip(to plane: Plane) -> [Polygon] {
+        clipped(to: plane)
+    }
+
+    /// Clip polygon to the specified mesh
+    /// - Parameters:
+    ///   - mesh: The ``Mesh``  to clip the polygon to.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: An array of polygon fragments that lie outside the Mesh.
+    func clipped(to mesh: Mesh, isCancelled: CancellationHandler? = nil) -> [Polygon] {
+        guard bounds.intersects(mesh.bounds) else {
+            return [self]
+        }
+        let isCancelled = isCancelled ?? { false }
+        return BSP(mesh, isCancelled).clip([self], .greaterThan, isCancelled)
     }
 
     /// Computes a set of edges where the polygon intersects a plane.
@@ -45,9 +68,9 @@ public extension Polygon {
     func reflected(along plane: Plane) -> Polygon {
         Polygon(
             unchecked: vertices.inverted().map { $0.reflected(along: plane) },
-            plane: nil,
-            isConvex: nil,
-            sanitizeNormals: true,
+            plane: nil, // TODO: can we compute this cheaply?
+            isConvex: isConvex,
+            sanitizeNormals: false,
             material: material,
             id: id
         )
@@ -68,26 +91,6 @@ extension Polygon {
             toTest = _outside
         }
         outside += toTest
-    }
-
-    func clip(
-        _ polygon: Polygon,
-        _ inside: inout [Polygon],
-        _ outside: inout [Polygon],
-        _ id: inout Int
-    ) {
-        assert(isConvex)
-        var polygon = polygon
-        var coplanar = [Polygon]()
-        for plane in edgePlanes {
-            var back = [Polygon]()
-            polygon.split(along: plane, &coplanar, &outside, &back, &id)
-            guard let p = back.first else {
-                return
-            }
-            polygon = p
-        }
-        inside.append(polygon)
     }
 
     /// Put the polygon in the correct list, splitting it when necessary
@@ -207,7 +210,7 @@ extension Polygon {
             if t0 == .coplanar || t0.union(t1) == .spanning {
                 let t = (plane.w - plane.normal.dot(p0)) / plane.normal.dot(p1 - p0)
                 let p = p0.lerp(p1, t)
-                if let start = start {
+                if let start {
                     LineSegment(undirected: start, p).map { _ = segments.insert($0) }
                     return
                 }
@@ -218,38 +221,27 @@ extension Polygon {
         }
         assertionFailure()
     }
+}
 
-    mutating func insertEdgePoint(_ p: Vector) -> Bool {
-        guard var last = vertices.last else {
-            assertionFailure()
-            return false
-        }
-        if vertices.contains(where: { $0.position.isEqual(to: p) }) {
-            return false
-        }
-        for (i, v) in vertices.enumerated() {
-            let s = LineSegment(unchecked: last.position, v.position)
-            guard s.containsPoint(p) else {
-                last = v
-                continue
+private extension Polygon {
+    func clip(
+        _ coplanarPolygon: Polygon,
+        _ inside: inout [Polygon],
+        _ outside: inout [Polygon],
+        _ id: inout Int
+    ) {
+        assert(isConvex)
+        assert(coplanarPolygon.compare(with: plane) == .coplanar)
+        var polygon = coplanarPolygon
+        var coplanar = [Polygon]()
+        for plane in edgePlanes {
+            var back = [Polygon]()
+            polygon.split(along: plane, &coplanar, &outside, &back, &id)
+            guard let p = back.first else {
+                return
             }
-            let t = p.distance(from: s.start) / s.length
-            let vertex = last.lerp(v, t)
-            guard !vertex.isEqual(to: last), !vertex.isEqual(to: v) else {
-                return false
-            }
-            var vertices = self.vertices
-            vertices.insert(vertex, at: i)
-            self = Polygon(
-                unchecked: vertices,
-                plane: plane,
-                isConvex: isConvex,
-                sanitizeNormals: false,
-                material: material,
-                id: id
-            )
-            return true
+            polygon = p
         }
-        return false
+        inside.append(polygon)
     }
 }

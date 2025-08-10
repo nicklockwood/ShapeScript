@@ -12,6 +12,7 @@ public extension Mesh {
         Mesh(
             unchecked: polygons.mapTexcoords { _ in .zero },
             bounds: boundsIfSet,
+            bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -24,6 +25,7 @@ public extension Mesh {
         Mesh(
             unchecked: polygons.mapTexcoords { $0.transformed(by: transform) },
             bounds: boundsIfSet,
+            bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -50,7 +52,10 @@ public extension Mesh {
                     let n = h.normalized()
                     let a = Angle.atan2(y: n.y, x: n.x)
                     let a2 = (a - cha).radians
-                    if !n.angle(with: chn).radians.isEqual(to: abs(a2), withPrecision: .pi) {
+                    if !angleBetweenNormalizedVectors(n, chn).radians.isApproximatelyEqual(
+                        to: abs(a2),
+                        absoluteTolerance: .pi
+                    ) {
                         ha = a2 > 0 ? a - .twoPi : a + .twoPi
                     } else {
                         ha = a
@@ -62,7 +67,10 @@ public extension Mesh {
                     let n = v.normalized()
                     let a = Angle.atan2(y: n.y, x: n.x)
                     let a2 = (a - cva).radians
-                    if !n.angle(with: cvn).radians.isEqual(to: abs(a2), withPrecision: .pi) {
+                    if !angleBetweenNormalizedVectors(n, cvn).radians.isApproximatelyEqual(
+                        to: abs(a2),
+                        absoluteTolerance: .pi
+                    ) {
                         va = a2 > 0 ? a - .twoPi : a + .twoPi
                     } else {
                         va = a
@@ -70,7 +78,7 @@ public extension Mesh {
                 }
                 let x = ha.radians / -Angle.twoPi.radians + 0.5
                 let y = va.radians / -.pi + 0.5
-                return $0.withTexcoord(Vector(x, y))
+                return $0.withTexcoord([x, y])
             }
         }
     }
@@ -92,7 +100,10 @@ public extension Mesh {
                     let n = d.normalized()
                     let a = Angle.atan2(y: n.y, x: n.x)
                     let a2 = (a - ca).radians
-                    if !n.angle(with: cn).radians.isEqual(to: abs(a2), withPrecision: .pi) {
+                    if !angleBetweenNormalizedVectors(n, cn).radians.isApproximatelyEqual(
+                        to: abs(a2),
+                        absoluteTolerance: .pi
+                    ) {
                         ha = a2 > 0 ? a - .twoPi : a + .twoPi
                     } else {
                         ha = a
@@ -100,7 +111,7 @@ public extension Mesh {
                 }
                 let x = ha.radians / -Angle.twoPi.radians + 0.5
                 let y = (p.y - bounds.min.y) / -bounds.size.y
-                return $0.withTexcoord(Vector(x, y))
+                return $0.withTexcoord([x, y])
             }
         }
     }
@@ -113,13 +124,13 @@ public extension Mesh {
                 switch f {
                 case .xy:
                     let sign = n.z < 0 ? -1.0 : 1.0
-                    return (Vector(v.x, v.z), Vector(v.z, sign * v.y))
+                    return ([v.x, v.z], [v.z, sign * v.y])
                 case .xz:
                     let sign = n.y < 0 ? -1.0 : 1.0
-                    return (Vector(sign * v.x, v.y), Vector(v.z, v.y))
+                    return ([sign * v.x, v.y], [v.z, v.y])
                 case .yz:
                     let sign = n.x > 0 ? -1.0 : 1.0
-                    return (Vector(v.x, v.z), Vector(sign * v.y, v.x))
+                    return ([v.x, v.z], [sign * v.y, v.x])
                 }
             }
 
@@ -138,7 +149,10 @@ public extension Mesh {
                     let n = h.normalized()
                     let a = Angle.atan2(y: n.y, x: n.x)
                     let a2 = (a - cha).radians
-                    if !n.angle(with: chn).radians.isEqual(to: abs(a2), withPrecision: .pi) {
+                    if !angleBetweenNormalizedVectors(n, chn).radians.isApproximatelyEqual(
+                        to: abs(a2),
+                        absoluteTolerance: .pi
+                    ) {
                         ha = a2 > 0 ? a - .twoPi : a + .twoPi
                     } else {
                         ha = a
@@ -150,7 +164,10 @@ public extension Mesh {
                     let n = v.normalized()
                     let a = Angle.atan2(y: n.y, x: n.x)
                     let a2 = (a - cva).radians
-                    if !n.angle(with: cvn).radians.isEqual(to: abs(a2), withPrecision: .pi) {
+                    if !angleBetweenNormalizedVectors(n, cvn).radians.isApproximatelyEqual(
+                        to: abs(a2),
+                        absoluteTolerance: .pi
+                    ) {
                         va = a2 > 0 ? a - .twoPi : a + .twoPi
                     } else {
                         va = a
@@ -159,7 +176,7 @@ public extension Mesh {
                 let scale = -Double.pi / 2
                 let x = ha.radians / scale + 0.5
                 let y = va.radians / scale + 0.5
-                return $0.withTexcoord(Vector(x, y))
+                return $0.withTexcoord([x, y])
             }
         }
     }
@@ -178,6 +195,7 @@ private extension Mesh {
                 )
             },
             bounds: boundsIfSet,
+            bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty

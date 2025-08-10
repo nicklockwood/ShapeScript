@@ -35,9 +35,9 @@ extension [String: Symbol] {
 
     static let transform: Symbols = [
         "position": .property(.vector, { parameter, context in
-            context.transform.offset = parameter.vectorValue
+            context.transform.translation = parameter.vectorValue
         }, { context in
-            .vector(context.transform.offset)
+            .vector(context.transform.translation)
         }),
         "orientation": .property(.rotation, { parameter, context in
             context.transform.rotation = parameter.rotationValue
@@ -276,7 +276,7 @@ extension [String: Symbol] {
             "shadow": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
-            position.map { context.transform.offset = $0 }
+            position.map { context.transform.translation = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
             orientation.map { context.transform.rotation = $0 }
             return .mesh(Geometry(
@@ -643,7 +643,7 @@ extension [String: Symbol] {
             "height": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
-            position.map { context.transform.offset = $0 }
+            position.map { context.transform.translation = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
             orientation.map { context.transform.rotation = $0 }
             let scale = context.value(for: "size")?.value as? Vector

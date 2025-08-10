@@ -37,15 +37,42 @@ public extension Mesh {
         case "stl", "stla":
             let data = try Data(contentsOf: url)
             guard let mesh = Mesh(stlData: data, materialLookup: materialLookup) else {
-                fallthrough
+                throw IOError("Invalid STL file")
             }
             self = mesh
+        case "off":
+            let string = try String(contentsOf: url)
+            guard let mesh = Mesh(offString: string) else {
+                throw IOError("Invalid OFF file")
+            }
+            self = mesh
+        case "obj":
+            #if canImport(SceneKit)
+            // SceneKit supports materials, etc.
+            fallthrough
+            #else
+            let string = try String(contentsOf: url)
+            guard let mesh = Mesh(objString: string) else {
+                throw IOError("Invalid OBJ file")
+            }
+            self = mesh
+            #endif
         default:
             if !FileManager.default.isReadableFile(atPath: url.path) {
                 _ = try Data(contentsOf: url) // Will throw error if unreachable
             }
             #if canImport(SceneKit)
-            try self.init(url: url, ignoringTransforms: false, materialLookup: materialLookup)
+            var options: [SCNSceneSource.LoadingOption: Any] = [
+                .checkConsistency: true,
+                .flattenScene: true,
+                .createNormalsIfAbsent: true,
+                .convertToYUp: true,
+            ]
+            if #available(iOS 13, tvOS 13, macOS 10.12, *) {
+                options[.preserveOriginalTopology] = true
+            }
+            let importedScene = try SCNScene(url: url, options: options)
+            self.init(importedScene.rootNode, materialLookup: materialLookup)
             #else
             throw IOError("Unsupported mesh file format '\(url.pathExtension)'")
             #endif
@@ -66,8 +93,11 @@ public extension Mesh {
         case "stla":
             let string = stlString(name: "")
             try string.write(to: url, atomically: true, encoding: .utf8)
+        case "off":
+            let string = offString()
+            try string.write(to: url, atomically: true, encoding: .utf8)
         case "obj":
-            #if canImport(SceneKit)
+            #if canImport(SceneKit) && !os(watchOS)
             // SceneKit supports materials, etc.
             fallthrough
             #else

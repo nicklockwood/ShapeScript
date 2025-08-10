@@ -285,7 +285,7 @@ extension Geometry: Loggable {
             name.flatMap { $0.isEmpty ? nil : "name \($0.nestedLogDescription)" },
             childCount == 0 ? nil : "children \(childCount)",
             scaleDescription,
-            transform.offset == .zero ? nil : "position \(transform.offset.logDescription)",
+            transform.translation == .zero ? nil : "position \(transform.translation.logDescription)",
             transform.rotation == .identity ? nil : "orientation \(transform.rotation.logDescription)",
         ].compactMap { $0 }
 
