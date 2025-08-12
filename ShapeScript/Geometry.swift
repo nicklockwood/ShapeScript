@@ -267,7 +267,7 @@ public final class Geometry: Hashable {
 
 public extension Geometry {
     var isEmpty: Bool {
-        type.isEmpty && children.allSatisfy { $0.isEmpty }
+        type.isEmpty && children.allSatisfy(\.isEmpty)
     }
 
     var camera: Camera? {
@@ -289,7 +289,7 @@ public extension Geometry {
     }
 
     var childDebug: Bool {
-        debug || children.contains(where: { $0.childDebug })
+        debug || children.contains(where: \.childDebug)
     }
 
     func transformed(by transform: Transform) -> Geometry {
@@ -377,14 +377,14 @@ public extension Geometry {
 
 extension Geometry {
     func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
-        if let name = name {
+        if let name {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
     }
 }
 
-private extension Collection where Element == Geometry {
+private extension Collection<Geometry> {
     func flattened(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
         compactMap { callback() ? $0.flattened(with: material, callback) : nil }
     }
@@ -425,7 +425,7 @@ private extension Geometry {
 
     func meshes(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
         var meshes = [Mesh]()
-        if var mesh = mesh, mesh != .empty {
+        if var mesh, mesh != .empty {
             mesh = mesh.transformed(by: transform)
             if material != self.material {
                 mesh = mesh.replacing(nil, with: self.material)
@@ -528,7 +528,7 @@ private extension Geometry {
             mesh = Mesh.loft(paths).makeWatertight()
         case let .hull(vertices):
             let meshes = childMeshes(callback)
-            let vertices = vertices + meshes.flatMap { $0.polygons.flatMap { $0.vertices } }
+            let vertices = vertices + meshes.flatMap { $0.polygons.flatMap(\.vertices) }
             mesh = Mesh.convexHull(of: vertices, material: material).makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
@@ -551,7 +551,7 @@ private extension Geometry {
             self.mesh = mesh
         }
         if callback() {
-            if let smoothing = smoothing {
+            if let smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
             cache?[mesh: self] = mesh
@@ -568,12 +568,12 @@ private extension Geometry {
         removingLights: Bool,
         removingGroupTransform: Bool
     ) -> Geometry {
-        var type = self.type
+        var type = type
         if removingLights, case .light = type {
             preconditionFailure()
         }
         var m = self.material
-        if let material = material, case let .mesh(mesh) = type {
+        if let material, case let .mesh(mesh) = type {
             if m.opacity?.opacity ?? 1 == 1 {
                 m.opacity = material.opacity
             } else if material.opacity?.color != nil {
@@ -628,7 +628,7 @@ private extension Geometry {
     }
 }
 
-private extension Collection where Element == Path {
+private extension Collection<Path> {
     func fixupColors(material: Material) -> ([Path], Material) {
         guard material.texture == nil else {
             return (Array(self), material)

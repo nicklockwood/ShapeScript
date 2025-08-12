@@ -15,37 +15,37 @@ class LexerTests: XCTestCase {
     func testLeadingSpace() {
         let input = " abc"
         let tokens: [TokenType] = [.identifier("abc"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTrailingSpace() {
         let input = "abc "
         let tokens: [TokenType] = [.identifier("abc"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTrailingSpaceBeforeLinebreak() {
         let input = "abc \n"
         let tokens: [TokenType] = [.identifier("abc"), .linebreak, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTrailingSpaceAfterLinebreak() {
         let input = "abc\n "
         let tokens: [TokenType] = [.identifier("abc"), .linebreak, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testMultipleTrailingLinebreaks() {
         let input = "abc \n \n "
         let tokens: [TokenType] = [.identifier("abc"), .linebreak, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testCRLFTreatedAsSingleCharacter() {
         let input = "abc\r\n"
         let tokens: [TokenType] = [.identifier("abc"), .linebreak, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     // MARK: comments
@@ -53,43 +53,43 @@ class LexerTests: XCTestCase {
     func testSingleLineComment() {
         let input = "// abc"
         let tokens: [TokenType] = [.eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testConsecutiveSingleLineComments() {
         let input = "// abc\n// xyz"
         let tokens: [TokenType] = [.linebreak, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testSingleLineCommentAfterDecimal() {
         let input = "5.// abc"
         let tokens: [TokenType] = [.number(5), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testSingleLineCommentAfterInfixOperator() {
         let input = "5 + // abc"
         let tokens: [TokenType] = [.number(5), .infix(.plus), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testBlockComment() {
         let input = "/* abc\nxyz */"
         let tokens: [TokenType] = [.eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testBlockCommentFollowedBySpace() {
         let input = "/* abc */ "
         let tokens: [TokenType] = [.eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testNestedBlockComments() {
         let input = "foo /* abc /* xyz */ */ bar"
         let tokens: [TokenType] = [.identifier("foo"), .identifier("bar"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     // MARK: identifiers
@@ -97,13 +97,13 @@ class LexerTests: XCTestCase {
     func testLetters() {
         let input = "abc dfe"
         let tokens: [TokenType] = [.identifier("abc"), .identifier("dfe"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testLettersNumbersAndUnderscore() {
         let input = "a123_4b"
         let tokens: [TokenType] = [.identifier("a123_4b"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInvalidIdentifier() {
@@ -126,7 +126,7 @@ class LexerTests: XCTestCase {
             .prefix(.minus), .lparen, .identifier("a"), .rparen,
             .lparen, .identifier("b"), .rparen, .eof,
         ]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInsertPhantomParensForDisambiguation2() {
@@ -136,7 +136,7 @@ class LexerTests: XCTestCase {
             .lparen, .identifier("b"), .rparen,
             .lparen, .identifier("c"), .rparen, .eof,
         ]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     // MARK: numbers
@@ -144,67 +144,67 @@ class LexerTests: XCTestCase {
     func testZero() {
         let input = "0"
         let tokens: [TokenType] = [.number(0), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testDigit() {
         let input = "5"
         let tokens: [TokenType] = [.number(5), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testMultidigit() {
         let input = "50"
         let tokens: [TokenType] = [.number(50), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testLeadingZero() {
         let input = "05"
         let tokens: [TokenType] = [.number(5), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testDecimal() {
         let input = "0.5"
         let tokens: [TokenType] = [.number(0.5), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testLeadingDecimalPoint() {
         let input = ".56"
         let tokens: [TokenType] = [.number(0.56), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTrailingDecimalPoint() {
         let input = "56."
         let tokens: [TokenType] = [.number(56), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testNegativeInteger() {
         let input = "-56"
         let tokens: [TokenType] = [.prefix(.minus), .number(56), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testNegativeDecimal() {
         let input = "-5.6"
         let tokens: [TokenType] = [.prefix(.minus), .number(5.6), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testNegativeLeadingDecimalPoint() {
         let input = "-.56"
         let tokens: [TokenType] = [.prefix(.minus), .number(0.56), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testLeadingDecimalPointInParens() {
         let input = "(.56)"
         let tokens: [TokenType] = [.lparen, .number(0.56), .rparen, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTooManyDecimalPoints() {
@@ -221,7 +221,7 @@ class LexerTests: XCTestCase {
         "foo"
         """
         let tokens: [TokenType] = [.string("foo"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringWithSpace() {
@@ -229,7 +229,7 @@ class LexerTests: XCTestCase {
         "foo bar"
         """
         let tokens: [TokenType] = [.string("foo bar"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringWithEscapedQuotes() {
@@ -237,7 +237,7 @@ class LexerTests: XCTestCase {
         "\\"foo\\""
         """
         let tokens: [TokenType] = [.string("\"foo\""), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringWithEscapedNewline() {
@@ -245,7 +245,7 @@ class LexerTests: XCTestCase {
         "foo\\nbar"
         """
         let tokens: [TokenType] = [.string("foo\nbar"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringEndingWithEscapedNewline() {
@@ -253,7 +253,7 @@ class LexerTests: XCTestCase {
         "foo\\n"
         """
         let tokens: [TokenType] = [.string("foo\n"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringWithMultipleEscapedNewlines() {
@@ -261,7 +261,7 @@ class LexerTests: XCTestCase {
         "foo\\n\\n\\nbar"
         """
         let tokens: [TokenType] = [.string("foo\n\n\nbar"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testStringWithInvalidEscapeSequence() {
@@ -371,13 +371,13 @@ class LexerTests: XCTestCase {
     func test3DigitColor() {
         let input = "#abc"
         let tokens: [TokenType] = [.hexColor("abc"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func test4DigitColor() {
         let input = "#123F"
         let tokens: [TokenType] = [.hexColor("123F"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func test5DigitColor() {
@@ -390,7 +390,7 @@ class LexerTests: XCTestCase {
     func test6DigitColor() {
         let input = "#1A2B3C"
         let tokens: [TokenType] = [.hexColor("1A2B3C"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func test7DigitColor() {
@@ -403,7 +403,7 @@ class LexerTests: XCTestCase {
     func test8DigitColor() {
         let input = "#1A2B3C4D"
         let tokens: [TokenType] = [.hexColor("1A2B3C4D"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func test9DigitColor() {
@@ -425,37 +425,37 @@ class LexerTests: XCTestCase {
     func testPrefixExpression() {
         let input = "-1"
         let tokens: [TokenType] = [.prefix(.minus), .number(1), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInfixExpressionWithoutSpaces() {
         let input = "1+2"
         let tokens: [TokenType] = [.number(1), .infix(.plus), .number(2), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInfixExpressionWithSpaces() {
         let input = "1 + 2"
         let tokens: [TokenType] = [.number(1), .infix(.plus), .number(2), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInfixThenPrefixExpressionWithoutSpaces() {
         let input = "1+-2"
         let tokens: [TokenType] = [.number(1), .infix(.plus), .prefix(.minus), .number(2), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testInfixThenPrefixExpressionWithSpaces() {
         let input = "1 + -2"
         let tokens: [TokenType] = [.number(1), .infix(.plus), .prefix(.minus), .number(2), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testTupleWithPrefixOperator() {
         let input = "1 -2"
         let tokens: [TokenType] = [.number(1), .prefix(.minus), .number(2), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testMisspelledEqualOperator() {
@@ -516,7 +516,7 @@ class LexerTests: XCTestCase {
     func testMemberLookupOnIdentifier() {
         let input = "a.x"
         let tokens: [TokenType] = [.identifier("a"), .dot, .identifier("x"), .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testMemberLookupOnExpression() {
@@ -531,7 +531,7 @@ class LexerTests: XCTestCase {
             .identifier("x"),
             .eof,
         ]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testMemberLookupWithLeadingSpace() {
@@ -556,7 +556,7 @@ class LexerTests: XCTestCase {
             .identifier("a"),
             .eof,
         ]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     // MARK: subscripting
@@ -564,13 +564,13 @@ class LexerTests: XCTestCase {
     func testSubscriptOnIdentifier() {
         let input = "a[\"x\"]"
         let tokens: [TokenType] = [.identifier("a"), .subscript, .string("x"), .rbracket, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     func testSubscriptOnIdentifier2() {
         let input = "a[1]"
         let tokens: [TokenType] = [.identifier("a"), .subscript, .number(1), .rbracket, .eof]
-        XCTAssertEqual(try tokenize(input).map { $0.type }, tokens)
+        XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
     // MARK: lineRange

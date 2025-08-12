@@ -18,7 +18,7 @@ class FileMonitor {
     private var reload: (URL) throws -> Void
 
     init?(_ url: URL?, reload: @escaping (URL) throws -> Void) {
-        guard let url = url, url.isFileURL,
+        guard let url, url.isFileURL,
               FileManager.default.fileExists(atPath: url.path)
         else {
             return nil
@@ -30,7 +30,7 @@ class FileMonitor {
         func getModifiedDate(_ url: URL) -> TimeInterval? {
             let date = (try? FileManager.default
                 .attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
-            return date.map { $0.timeIntervalSinceReferenceDate }
+            return date.map(\.timeIntervalSinceReferenceDate)
         }
 
         func fileIsModified(_ url: URL) -> Bool {
@@ -44,7 +44,7 @@ class FileMonitor {
             withTimeInterval: 0.5,
             repeats: true
         ) { [weak self] _ in
-            guard let self = self else {
+            guard let self else {
                 return
             }
             guard getModifiedDate(self.url) != nil else {

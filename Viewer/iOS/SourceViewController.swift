@@ -23,7 +23,7 @@ class SourceViewController: UIViewController {
 
     func didSetDocument() {
         title = document?.fileURL.lastPathComponent
-        if let textView = textView {
+        if let textView {
             textView.text = document?.sourceString ?? ""
             textView.isEditable = document?.isEditable ?? false
             document?.undoManager = textView.undoManager
@@ -50,7 +50,7 @@ class SourceViewController: UIViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             systemItem: .action,
             primaryAction: UIAction { [weak self] _ in
-                guard let self = self, let document = self.document else {
+                guard let self, let document = self.document else {
                     return
                 }
                 let sheet = UIActivityViewController(

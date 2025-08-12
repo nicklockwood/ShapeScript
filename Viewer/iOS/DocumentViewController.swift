@@ -48,7 +48,7 @@ class DocumentViewController: UIViewController {
 
     var errorMessage: NSAttributedString? {
         didSet {
-            guard let errorMessage = errorMessage else {
+            guard let errorMessage else {
                 errorScrollView.isHidden = true
                 navigationBar?.tintColor = interfaceColor
                 cameraButton.isEnabled = true
@@ -301,7 +301,7 @@ class DocumentViewController: UIViewController {
         }
         navigationBar?.topItem?.leftBarButtonItems?.append(loadingItem)
         navigationBar?.standardAppearance.configureWithTransparentBackground()
-        if let exportMenuProvider = exportMenuProvider {
+        if let exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {
             navigationBar?.topItem?.rightBarButtonItems?.removeAll(where: {
@@ -336,7 +336,7 @@ class DocumentViewController: UIViewController {
             withTimeInterval: 1,
             repeats: false
         ) { [weak self] _ in
-            guard let self = self else { return }
+            guard let self else { return }
             if self.cameraHasMoved != self._cameraHadMoved {
                 self._cameraHadMoved = self.cameraHasMoved
                 self.rebuildMenu()
@@ -348,7 +348,7 @@ class DocumentViewController: UIViewController {
     private func rebuildMenu() {
         // Update camera menu
         let cameras: [Camera]
-        if let document = document {
+        if let document {
             cameras = document.cameras
         } else {
             cameras = CameraType.allCases.map {

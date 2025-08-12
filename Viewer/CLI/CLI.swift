@@ -35,7 +35,7 @@ class CLI {
     let exportOptions: ExportOptions
 
     init(in directory: String, with arguments: [String]) throws {
-        let argNames = ExportOptions.arguments.map { $0.name }
+        let argNames = ExportOptions.arguments.map(\.name)
         let args = try preprocessArguments(arguments, argNames)
         self.inputURL = try args["1"].map {
             let url = expandPath($0, in: directory)
@@ -56,12 +56,12 @@ class CLI {
 
     func run() throws {
         let args = ExportOptions.arguments
-        let indent = args.map { $0.name.count }.max() ?? 0
+        let indent = args.map(\.name.count).max() ?? 0
         let help = args.map { name, help -> String in
             let indent = String(repeating: " ", count: indent - name.count)
             return "  --\(name)\(indent)  \(help)"
         }
-        guard let inputURL = inputURL else {
+        guard let inputURL else {
             print("""
             ShapeScript, version \(version)
             Copyright (c) 2023 Nick Lockwood
@@ -97,7 +97,7 @@ class CLI {
                 children: scene.children,
                 sourceLocation: nil
             )
-            guard let outputURL = outputURL else {
+            guard let outputURL else {
                 // Show model info
                 print(geometry.modelInfo)
                 return

@@ -1,10 +1,10 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.7
 import PackageDescription
 
 let package = Package(
     name: "ShapeScript",
     platforms: [
-        .macOS(.v10_14),
+        .macOS(.v10_15),
         .iOS(.v11),
         .tvOS(.v11),
     ],
@@ -30,9 +30,10 @@ let package = Package(
         .target(
             name: "ShapeScript",
             dependencies: ["Euclid", "LRUCache", "SVGPath"],
-            path: "ShapeScript"
+            path: "ShapeScript",
+            exclude: ["Info.plist"]
         ),
-        .target(
+        .executableTarget(
             name: "CLI",
             dependencies: ["ShapeScript"],
             path: "Viewer/CLI"

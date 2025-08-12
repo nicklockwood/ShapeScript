@@ -13,7 +13,7 @@ protocol ExportMenuProvider {
     func updateExportMenu()
 }
 
-@NSApplicationMain
+@main
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow? {
         NSApp.mainWindow

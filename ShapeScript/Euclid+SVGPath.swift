@@ -59,7 +59,7 @@ public extension Path {
         func endPath() {
             if points.count > 1 {
                 if points.count > 2, points.first == points.last,
-                   let firstCommand = firstCommand
+                   let firstCommand
                 {
                     updateLastPoint(nextCommand: firstCommand)
                 }

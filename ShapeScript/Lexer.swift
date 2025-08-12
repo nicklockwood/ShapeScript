@@ -165,7 +165,7 @@ public extension LexerError {
     var suggestion: String? {
         switch type {
         case let .unexpectedToken(string):
-            let options = InfixOperator.allCases.map { $0.rawValue }
+            let options = InfixOperator.allCases.map(\.rawValue)
             return Self.alternatives[string.lowercased()] ??
                 string.bestMatches(in: options).first
         case let .invalidEscapeSequence(string):
@@ -188,7 +188,7 @@ public extension LexerError {
         case .invalidColor:
             return "Hex colors must be 3, 4, 6 or 8 digits in length."
         case .unexpectedToken:
-            if let suggestion = suggestion {
+            if let suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
             return nil
@@ -196,7 +196,7 @@ public extension LexerError {
             return "Try adding a closing \" (double quote) at the end of the line."
         case .invalidEscapeSequence:
             let hint = "Supported sequences are \\\", \\n and \\\\."
-            if let suggestion = suggestion {
+            if let suggestion {
                 return "\(hint) Did you mean \(suggestion)?"
             }
             return hint
@@ -206,8 +206,8 @@ public extension LexerError {
 
 public extension String {
     func lineRange(at index: Index, includingIndent: Bool = false) -> SourceRange {
-        var endIndex = self.endIndex
-        var startIndex = self.startIndex
+        var endIndex = endIndex
+        var startIndex = startIndex
         assert(index >= startIndex && index <= endIndex)
         let index = min(max(index, startIndex), endIndex)
         var i = startIndex
@@ -453,7 +453,7 @@ private extension Substring {
     }
 
     mutating func readNumber() throws -> TokenType? {
-        let startIndex = self.startIndex
+        let startIndex = startIndex
         var start = self, number = ""
         while let c = first, "\(digits).".contains(c) {
             if c == "." { start = self }
@@ -554,7 +554,7 @@ private extension Substring {
     }
 
     mutating func readToken(spaceBefore: Bool) throws -> Token? {
-        let startIndex = self.startIndex
+        let startIndex = startIndex
         guard let tokenType = try
             readLineBreak() ??
             readOperator(spaceBefore: spaceBefore) ??

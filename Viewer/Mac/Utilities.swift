@@ -23,7 +23,7 @@ func loadRTF(_ file: String) -> NSAttributedString {
 func showSheet(_ alert: NSAlert, in window: NSWindow?,
                _ handler: ((NSApplication.ModalResponse) -> Void)? = nil)
 {
-    if let window = window {
+    if let window {
         alert.beginSheetModal(for: window, completionHandler: handler)
     } else {
         let response = alert.runModal()
@@ -34,7 +34,7 @@ func showSheet(_ alert: NSAlert, in window: NSWindow?,
 func showSheet(_ dialog: NSSavePanel, in window: NSWindow?,
                _ handler: @escaping (NSApplication.ModalResponse) -> Void)
 {
-    if let window = window {
+    if let window {
         dialog.beginSheetModal(for: window, completionHandler: handler)
     } else {
         let response = dialog.runModal()
@@ -64,7 +64,7 @@ func showNewDocumentPanel() {
             }
             try data.write(to: url, options: .atomic)
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
-                if let error = error {
+                if let error {
                     NSDocumentController.shared.presentError(error)
                 }
             }

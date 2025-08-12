@@ -44,7 +44,7 @@ extension ProgramError {
                 ]
             ))
         }
-        if let hint = hint {
+        if let hint {
             errorMessage.append(NSAttributedString(string: "\(hint)\n\n", attributes: [
                 .foregroundColor: OSColor.white.withAlphaComponent(0.7),
                 .font: OSFont.systemFont(ofSize: 15, weight: .regular),

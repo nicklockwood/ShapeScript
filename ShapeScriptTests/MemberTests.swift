@@ -300,7 +300,7 @@ final class MemberTests: XCTestCase {
     }
 
     func testTupleVeryHighOrdinalLookups() {
-        let numbers = (1 ... 99).map { $0.description }.joined(separator: " ")
+        let numbers = (1 ... 99).map(\.description).joined(separator: " ")
         let program = """
         define foo \(numbers)
         print foo.tenth

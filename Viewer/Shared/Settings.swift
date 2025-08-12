@@ -46,8 +46,8 @@ final class Settings {
         return rawValue.flatMap(T.init(rawValue:))
     }
 
-    func set<T>(_ value: T?, for key: String, in document: Document,
-                andGlobally applyGlobally: Bool = false)
+    func set(_ value: (some Any)?, for key: String, in document: Document,
+             andGlobally applyGlobally: Bool = false)
     {
         if let url = document._fileURL {
             documentSettings[url, default: [:]][key] = value
@@ -62,8 +62,8 @@ final class Settings {
         }
     }
 
-    func set<T: RawRepresentable>(_ value: T?, for key: String, in document: Document,
-                                  andGlobally applyGlobally: Bool = false)
+    func set(_ value: (some RawRepresentable)?, for key: String, in document: Document,
+             andGlobally applyGlobally: Bool = false)
     {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
     }
@@ -115,7 +115,7 @@ private extension URL {
 
     func setXattr(_ data: Data?, for name: String) throws {
         try withUnsafeFileSystemRepresentation { path in
-            guard let data = data else {
+            guard let data else {
                 _ = removexattr(path, name, 0)
                 return
             }
@@ -146,7 +146,7 @@ private extension Data {
         }
     }
 
-    init?<T>(_ value: T?) {
+    init?(_ value: (some Any)?) {
         switch value {
         case let data? as Data?:
             self = data

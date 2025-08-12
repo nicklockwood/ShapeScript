@@ -132,7 +132,7 @@ class GeometryTests: XCTestCase {
         """), delegate: nil)
         XCTAssertEqual(a.bounds, b.bounds)
         XCTAssertEqual(a.children.count, b.children.count)
-        XCTAssertEqual(a.children.map { $0.mesh }, b.children.map { $0.mesh })
+        XCTAssertEqual(a.children.map(\.mesh), b.children.map(\.mesh))
         XCTAssertEqual(a.children.map {
             $0.mesh?.polygons.count ?? 0
         }, b.children.map {

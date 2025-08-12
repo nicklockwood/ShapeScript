@@ -351,13 +351,13 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
             message: message,
             preferredStyle: .alert
         )
-        if let onOK = onOK {
+        if let onOK {
             alert.addAction(UIAlertAction(
                 title: "OK",
                 style: .default
             ) { _ in onOK() })
         }
-        if let onCancel = onCancel {
+        if let onCancel {
             alert.addAction(UIAlertAction(
                 title: "Cancel",
                 style: .cancel
@@ -390,7 +390,7 @@ private extension UITextField {
         container.addSubview(label)
         addSubview(container)
         addAction(UIAction { [weak self] _ in
-            guard let self = self else {
+            guard let self else {
                 return
             }
             let text = self.text ?? ""

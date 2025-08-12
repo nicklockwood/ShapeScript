@@ -109,13 +109,13 @@ extension RangeValue {
 
     func contains(_ value: Double) -> Bool {
         if stepIsPositive ? value < start : value > start { return false }
-        if let step = step,
+        if let step,
            case let remainder = abs((value - start).remainder(dividingBy: step)),
            remainder > Self.epsilon, abs(step) - remainder > Self.epsilon
         {
             return false
         }
-        guard let adjustedEnd = adjustedEnd else { return true }
+        guard let adjustedEnd else { return true }
         return stepIsPositive ? value <= adjustedEnd : value >= adjustedEnd
     }
 }
@@ -188,7 +188,7 @@ extension Value {
         case let .polygon(polygon): return polygon
         case let .point(point): return point
         case let .tuple(values) where values.count == 1: return values[0].value
-        case let .tuple(values): return values.map { $0.value }
+        case let .tuple(values): return values.map(\.value)
         case let .range(range): return range
         case let .bounds(bounds): return bounds
         case let .object(values): return values.mapValues { $0.value }
@@ -203,7 +203,7 @@ extension Value {
     var doublesValue: [Double] {
         switch self {
         case let .tuple(values):
-            return values.map { $0.doubleValue }
+            return values.map(\.doubleValue)
         case let .number(value):
             return [value]
         default:
@@ -256,7 +256,7 @@ extension Value {
 
     var tupleValue: [AnyHashable] {
         if case let .tuple(values) = self {
-            return values.map { $0.value }
+            return values.map(\.value)
         }
         return [value]
     }

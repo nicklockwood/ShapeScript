@@ -20,7 +20,7 @@ extension Document {
     }
 
     var errorURL: URL? {
-        let fileURL: URL? = self.fileURL
+        let fileURL: URL? = fileURL
         return fileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
@@ -96,15 +96,15 @@ extension Document {
     }
 
     func rerender() {
-        guard let loadingProgress = loadingProgress,
+        guard let loadingProgress,
               loadingProgress.didSucceed
         else {
             rerenderRequired = true
             return
         }
-        let camera = self.camera
+        let camera = camera
         let backgroundColor = Color(Self.backgroundColor)
-        let showWireframe = self.showWireframe
+        let showWireframe = showWireframe
         rerenderRequired = false
         loadingProgress.dispatch { progress in
             if case let .success(scene) = progress.status,
@@ -161,7 +161,7 @@ extension Document {
     }
 
     func updateViews() {
-        guard let viewController = viewController else { return }
+        guard let viewController else { return }
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
@@ -206,12 +206,12 @@ extension Document {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
-        let camera = self.camera
-        let showWireframe = self.showWireframe
+        let camera = camera
+        let showWireframe = showWireframe
         let fileURL = fileURL
         let input = sourceString
         loadingProgress = LoadingProgress { [weak self] status in
-            guard let self = self else {
+            guard let self else {
                 return
             }
             if !status.isCancelledOrFailed, input != self.sourceString {
@@ -323,7 +323,7 @@ extension Document {
             scene.scnBuild(with: options)
 
             // Show error
-            if let error = error {
+            if let error {
                 progress.setStatus(.partial(scene))
                 throw error
             }

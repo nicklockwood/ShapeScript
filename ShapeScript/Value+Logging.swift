@@ -113,11 +113,11 @@ extension Rotation: Loggable {
 
 extension Color: Loggable {
     public var logDescription: String {
-        var components = self.components
+        var components = components
         if a == 1 {
             components.removeLast()
         }
-        return components.map { $0.logDescription }.joined(separator: " ")
+        return components.map(\.logDescription).joined(separator: " ")
     }
 
     public var nestedLogDescription: String {
@@ -372,7 +372,7 @@ extension Dictionary: Loggable where Key == String {
 extension RangeValue: Loggable {
     public var logDescription: String {
         let stepText = step.map { " step \($0.logDescription)" } ?? ""
-        guard let end = end else {
+        guard let end else {
             return "from \(start.logDescription)\(stepText)"
         }
         return "\(start.logDescription) to \(end.logDescription)\(stepText)"

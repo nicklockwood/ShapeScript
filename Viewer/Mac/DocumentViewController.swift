@@ -31,7 +31,7 @@ class DocumentViewController: NSViewController {
 
     var errorMessage: NSAttributedString? {
         didSet {
-            guard let errorMessage = errorMessage else {
+            guard let errorMessage else {
                 errorScrollView.isHidden = true
                 return
             }

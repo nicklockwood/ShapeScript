@@ -125,7 +125,7 @@ class Document: NSDocument {
     }
 
     private func openFileInEditor(_ fileURL: URL?) {
-        guard let fileURL = fileURL else {
+        guard let fileURL else {
             return
         }
         guard settings.userDidChooseEditor, let editor = settings.selectedEditor else {
@@ -191,7 +191,7 @@ class Document: NSDocument {
     }
 
     @IBAction func revealInFinder(_: AnyObject) {
-        if let fileURL = fileURL {
+        if let fileURL {
             NSWorkspace.shared.activateFileViewerSelecting([fileURL])
         }
     }
@@ -204,7 +204,7 @@ class Document: NSDocument {
         actionSheet.informativeText = modelInfo
         actionSheet.addButton(withTitle: "OK")
         actionSheet.addButton(withTitle: "Open in Editor")
-        let fileURL = selectedGeometry?.sourceLocation?.file ?? self.fileURL
+        let fileURL = selectedGeometry?.sourceLocation?.file ?? fileURL
         showSheet(actionSheet, in: windowForSheet) { [weak self] response in
             switch response {
             case .alertSecondButtonReturn:
@@ -293,7 +293,7 @@ class Document: NSDocument {
 
     private func geometryName(for geometry: Geometry) -> String {
         var countsByType = [String: Int]()
-        let selectableGeometries = self.selectableGeometries
+        let selectableGeometries = selectableGeometries
         for shape in selectableGeometries {
             let name = geometryName(for: shape, in: &countsByType)
             if shape === geometry {
@@ -314,7 +314,7 @@ class Document: NSDocument {
     }
 
     func selectShape(at index: Int, andSpeakName speakName: Bool = false) {
-        let selectableGeometries = self.selectableGeometries
+        let selectableGeometries = selectableGeometries
         guard selectableGeometries.indices.contains(index) else {
             return
         }
@@ -326,8 +326,8 @@ class Document: NSDocument {
     }
 
     func selectNextShape() {
-        let selectableGeometries = self.selectableGeometries
-        if let selectedGeometry = selectedGeometry,
+        let selectableGeometries = selectableGeometries
+        if let selectedGeometry,
            let index = selectableGeometries.firstIndex(where: {
                $0 === selectedGeometry
            })
@@ -340,8 +340,8 @@ class Document: NSDocument {
     }
 
     func selectPreviousShape() {
-        let selectableGeometries = self.selectableGeometries
-        if let selectedGeometry = selectedGeometry,
+        let selectableGeometries = selectableGeometries
+        if let selectedGeometry,
            let index = selectableGeometries.firstIndex(where: {
                $0 === selectedGeometry
            })

@@ -198,7 +198,7 @@ class TextView: UIScrollView {
             if contentSize != textView.frame.size {
                 contentSize = textView.frame.size
             }
-            let textView = self.textView
+            let textView = textView
             DispatchQueue.main.async {
                 let maxY = max(0, textView.contentSize.height - textView.frame.height
                     + textView.contentInset.bottom)
@@ -318,7 +318,7 @@ private extension String {
     }
 
     func indentForLine(at index: Int) -> String {
-        let endIndex = min(.init(utf16Offset: index, in: self), self.endIndex)
+        let endIndex = min(.init(utf16Offset: index, in: self), endIndex)
         var index = startOfLine(at: endIndex)
         var indent = ""
         while index < endIndex, case let char = self[index],
@@ -381,7 +381,7 @@ private final class _UITextView: UITextView {
         // workaround for wrong value when caret is offscreen
         let offset = min(
             textStorage.mutableString.length,
-            self.offset(from: beginningOfDocument, to: position)
+            offset(from: beginningOfDocument, to: position)
         )
         let newlineRange = textStorage.mutableString.rangeOfCharacter(
             from: .newlines,
@@ -447,7 +447,7 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
         if currentAction == nil {
             // Check for period insertion
             if disableDoubleSpacePeriodShortcut,
-               let lastSpaceIndex = lastSpaceIndex,
+               let lastSpaceIndex,
                textView.textStorage.mutableString
                .character(at: lastSpaceIndex) == ".".utf16.first
             {
@@ -612,11 +612,9 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
             actionName = "Delete"
         } else if newRange.length > 0 {
             actionName = "Replace"
-        } else if newRange != range || text.contains(where: {
-            $0.isNewline
-        }) || textView.textStorage.mutableString.substring(with: newRange).contains(where: {
-            $0.isNewline
-        }) {
+        } else if newRange != range || text.contains(where: \.isNewline) || textView.textStorage.mutableString
+            .substring(with: newRange).contains(where: \.isNewline)
+        {
             // Need special handling if either:
             // * replaced a selection
             // * had to adjust range
@@ -655,7 +653,7 @@ extension TextView: UITextViewDelegate, UIScrollViewDelegate {
             // TODO: fix bugs when undoing paste when returning false
             return false
         }
-        guard let actionName = actionName else {
+        guard let actionName else {
             assert(range == newRange)
             lastInsertedTextAndRange = (text, range)
             return true
@@ -698,7 +696,7 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
         }
         let actionName = NSLocalizedString("Drag", comment: "")
         textView.undoManager?.setActionName(actionName)
-        if let text = text {
+        if let text {
             textView.text = text
         }
         textView.undoManager?.endUndoGrouping()
@@ -1010,7 +1008,7 @@ private class LineNumberView: UIView {
             .foregroundColor: UIColor.secondaryLabel,
         ]
 
-        var numberViews = self.numberViews
+        var numberViews = numberViews
         for (i, rect) in indexRects {
             let rect = rect.offsetBy(dx: 0, dy: -scrollOffset)
             if rect.maxY < 0 || rect.minY > bounds.height {

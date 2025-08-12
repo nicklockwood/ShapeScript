@@ -116,7 +116,7 @@ class ImportExportTests: XCTestCase {
                 XCTFail()
                 return
             }
-            if let range = range {
+            if let range {
                 XCTAssertEqual(message, "Unescaped control character")
                 XCTAssertEqual(range.lowerBound, json.range(of: "🙃,")?.upperBound)
             } else {

@@ -132,17 +132,17 @@ extension LoadingProgress {
     private func resume() {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)
-        let queue = self.queue
+        let queue = queue
         guard !queue.isEmpty else { return }
         self.queue.removeAll()
         thread = Thread { [weak self] in
             do {
                 for task in queue {
-                    guard let self = self, !self.status.isCancelledOrFailed else { return }
+                    guard let self, !self.status.isCancelledOrFailed else { return }
                     try task(self)
                 }
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self, !self.status.isCancelledOrFailed else { return }
+                    guard let self, !self.status.isCancelledOrFailed else { return }
                     self.resume()
                 }
             } catch {

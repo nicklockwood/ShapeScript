@@ -225,9 +225,9 @@ extension ValueType {
     }
 }
 
-extension Array where Element == ValueType {
+extension [ValueType] {
     var errorDescription: String {
-        let types = map { $0.errorDescription }
+        let types = map(\.errorDescription)
         switch types.count {
         case 1:
             return types[0]
@@ -305,7 +305,7 @@ extension Value {
         case let .range(range):
             return range.end == nil ? .partialRange : .range
         case let .tuple(values):
-            return .tuple(values.map { $0.type })
+            return .tuple(values.map(\.type))
         case let .object(values):
             return .object(values.mapValues { $0.type })
         }
@@ -829,7 +829,7 @@ extension Statement {
     ) {
         switch type {
         case let .command(identifier, expression):
-            guard let expression = expression,
+            guard let expression,
                   let symbol = context.symbol(for: identifier.name)
             else {
                 return
@@ -916,7 +916,7 @@ extension Statement {
         case let .forloop(identifier, in: expression, block):
             var type: ValueType = .void
             try context.pushScope { context in
-                if let identifier = identifier {
+                if let identifier {
                     let elementType: ValueType
                     switch try expression.staticType(in: context) {
                     case let .tuple(types):
@@ -939,7 +939,7 @@ extension Statement {
             try context.pushScope { context in
                 type = try body.staticType(in: context)
             }
-            if let elseBody = elseBody {
+            if let elseBody {
                 try context.pushScope { context in
                     try type.formUnion(elseBody.staticType(in: context))
                 }
@@ -954,7 +954,7 @@ extension Statement {
                     try type.formUnion(caseStatement.body.staticType(in: context))
                 }
             }
-            if let elseBody = elseBody {
+            if let elseBody {
                 try context.pushScope { context in
                     try type.formUnion(elseBody.staticType(in: context))
                 }
@@ -964,7 +964,7 @@ extension Statement {
     }
 }
 
-extension Array where Element == Statement {
+extension [Statement] {
     func gatherDefinitions(in context: EvaluationContext) {
         for statement in self {
             switch statement.type {

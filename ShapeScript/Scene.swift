@@ -23,8 +23,8 @@ public final class Scene {
     ) {
         self.background = background
         self.children = children
-        self.cameras = children.flatMap { $0._cameras }
-        self.lights = children.flatMap { $0._lights }
+        self.cameras = children.flatMap(\._cameras)
+        self.lights = children.flatMap(\._lights)
         self.cache = cache
         children.forEach { $0.cache = cache }
     }
@@ -59,14 +59,14 @@ public extension Scene {
 private extension Geometry {
     var _cameras: [Geometry] {
         guard case .camera = type else {
-            return children.flatMap { $0._cameras }
+            return children.flatMap(\._cameras)
         }
         return [self]
     }
 
     var _lights: [Geometry] {
         guard case .light = type else {
-            return children.flatMap { $0._lights }
+            return children.flatMap(\._lights)
         }
         return [self]
     }

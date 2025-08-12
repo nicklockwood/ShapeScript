@@ -8,7 +8,7 @@
 
 import Euclid
 
-public extension Collection where Element == Path {
+public extension Collection<Path> {
     /// Collective bounds for all paths
     var bounds: Bounds {
         reduce(into: .empty) { $0.formUnion($1.bounds) }
@@ -176,7 +176,7 @@ extension Path {
 
     /// Increase path detail in proportion to twist angle
     func withDetail(_ detail: Int, twist: Angle) -> Path {
-        let subpaths = self.subpaths
+        let subpaths = subpaths
         guard subpaths.count == 1 else {
             return Path(subpaths: subpaths.map {
                 $0.withDetail(detail, twist: twist)

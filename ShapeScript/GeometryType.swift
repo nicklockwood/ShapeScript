@@ -146,9 +146,9 @@ public extension GeometryType {
                     .union(bounds.translated(by: profileBounds.max.y * .unitY))
             })
         case let .loft(paths), let .fill(paths):
-            return .init(paths.map { $0.bounds })
+            return .init(paths.map(\.bounds))
         case let .hull(vertices):
-            return .init(vertices.map { $0.position })
+            return .init(vertices.map(\.position))
         case let .path(path):
             return path.bounds
         case let .mesh(mesh):
@@ -218,7 +218,7 @@ extension GeometryType {
                         along: along,
                         twist: options.twist,
                         align: options.align
-                    ).flatMap { $0.pointPositions }
+                    ).flatMap(\.pointPositions)
                 }
             }
         case let .lathe(paths, segments):
@@ -236,10 +236,10 @@ extension GeometryType {
                 }
             }
         case let .loft(paths), let .fill(paths):
-            return paths.flatMap { $0.pointPositions }
+            return paths.flatMap(\.pointPositions)
         case let .hull(vertices):
             // Note that this does not include child mesh vertices
-            return vertices.map { $0.position }
+            return vertices.map(\.position)
         case let .path(path):
             return path.pointPositions
         case let .mesh(mesh):
@@ -250,13 +250,13 @@ extension GeometryType {
 
 private extension Path {
     var pointPositions: [Vector] {
-        points.map { $0.position }
+        points.map(\.position)
     }
 }
 
 private extension Mesh {
     var vertexPositions: [Vector] {
         // TODO: find more efficient way to calculate this
-        Array(Set(polygons.flatMap { $0.vertices.map { $0.position } }))
+        Array(Set(polygons.flatMap { $0.vertices.map(\.position) }))
     }
 }

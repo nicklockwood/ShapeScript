@@ -101,7 +101,7 @@ public extension ProgramError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
             case let .importError(error, url, _):
-                guard let url = url, url.pathExtension == "shape" else {
+                guard let url, url.pathExtension == "shape" else {
                     return baseURL
                 }
                 return error.shapeFileURL(relativeTo: url)
@@ -207,7 +207,7 @@ public extension ProgramError {
     }
 }
 
-private func numberOfEmoji<S: StringProtocol>(in string: S) -> Int {
+private func numberOfEmoji(in string: some StringProtocol) -> Int {
     string.reduce(0) { count, c in
         let scalars = c.unicodeScalars
         if scalars.count > 1 || (scalars.first?.value ?? 0) > 0x238C {
@@ -217,6 +217,6 @@ private func numberOfEmoji<S: StringProtocol>(in string: S) -> Int {
     }
 }
 
-private func emojiSpacing<S: StringProtocol>(for string: S) -> Int {
+private func emojiSpacing(for string: some StringProtocol) -> Int {
     Int(Double(numberOfEmoji(in: string)) * 1.25)
 }

@@ -2018,7 +2018,7 @@ class InterpreterTests: XCTestCase {
         let program = "xor cube sphere"
         let scene = try evaluate(parse(program), delegate: nil)
         XCTAssertEqual(scene.children.first?.type, .xor)
-        XCTAssertEqual(scene.children.first?.children.map { $0.type }, [
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [
             .cube, .sphere(segments: 16),
         ])
     }

@@ -60,16 +60,16 @@ extension Document {
     }
 
     var textureCount: Int {
-        linkedResources.filter { $0.isImageFile }.count
+        linkedResources.filter(\.isImageFile).count
     }
 
     var fontCount: Int {
-        linkedResources.filter { $0.isFontFile }.count
+        linkedResources.filter(\.isFontFile).count
     }
 
     var modelInfo: String {
         // Geometry info
-        let geometry = selectedGeometry ?? self.geometry
+        let geometry = selectedGeometry ?? geometry
         let polygons: String
         let triangles: String
         let dimensions: String
@@ -89,7 +89,7 @@ extension Document {
             watertight = "calculating…"
         }
 
-        if let selectedGeometry = selectedGeometry {
+        if let selectedGeometry {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
                 locationString = "\nDefined on line \(location.line)"

@@ -28,7 +28,7 @@ extension String {
                 }
                 return $0.distance < $1.distance
             }
-            .map { $0.0 }
+            .map(\.0)
     }
 
     /// The Damerau-Levenshtein edit-distance between two strings

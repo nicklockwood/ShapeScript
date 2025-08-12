@@ -54,7 +54,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // Reveal / import the document at the URL
         documentBrowserViewController.revealDocument(at: inputURL, importIfNeeded: true) { revealedDocumentURL, error in
-            if let error = error {
+            if let error {
                 documentBrowserViewController.presentError(
                     "Could not open file '\(inputURL.path)'. \(error.localizedDescription)",
                     onOK: {}

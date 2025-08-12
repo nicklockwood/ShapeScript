@@ -33,7 +33,7 @@ extension GeometryCache {
     subscript(mesh geometry: Geometry) -> Mesh? {
         get { cache.value(forKey: geometry.cacheKey)?.mesh }
         set {
-            guard let newValue = newValue else {
+            guard let newValue else {
                 cache.removeValue(forKey: geometry.cacheKey)
                 return
             }

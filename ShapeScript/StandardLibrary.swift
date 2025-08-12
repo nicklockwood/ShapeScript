@@ -28,7 +28,7 @@ public let stdlibSymbols: Set<String> = {
     return keys
 }()
 
-extension Dictionary where Key == String, Value == Symbol {
+extension [String: Symbol] {
     static func + (lhs: Symbols, rhs: Symbols) -> Symbols {
         lhs.merging(rhs) { $1 }
     }
@@ -94,7 +94,7 @@ extension Dictionary where Key == String, Value == Symbol {
                 let opacity = opacity * context.opacity
                 context.material.opacity = .color(.init(opacity, opacity))
             case let .texture(texture):
-                guard let texture = texture else { fallthrough }
+                guard let texture else { fallthrough }
                 let opacity = texture.intensity * context.opacity
                 context.material.opacity = .texture(texture.withIntensity(opacity))
             default:
@@ -231,10 +231,10 @@ extension Dictionary where Key == String, Value == Symbol {
                 case let .point(point):
                     return [Vertex(point)]
                 case let .path(path):
-                    return path.subpaths.flatMap { $0.edgeVertices }
+                    return path.subpaths.flatMap(\.edgeVertices)
                 case let .mesh(geometry):
                     if let path = geometry.path {
-                        return path.subpaths.flatMap { $0.edgeVertices }
+                        return path.subpaths.flatMap(\.edgeVertices)
                     }
                     return [] // handled at mesh generation time
                 default:
@@ -414,7 +414,7 @@ extension Dictionary where Key == String, Value == Symbol {
             return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
         },
         "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
-            let text = context.children.map { $0.stringValue }.joined(separator: "\n")
+            let text = context.children.map(\.stringValue).joined(separator: "\n")
             let svgPath: SVGPath
             do {
                 svgPath = try SVGPath(string: text)
@@ -572,7 +572,7 @@ extension Dictionary where Key == String, Value == Symbol {
                     "Invalid arguments to join function"
                 )
             }
-            let strings = stringValues.map { $0.stringValue }
+            let strings = stringValues.map(\.stringValue)
             return .string(strings.joined(separator: separator))
         },
         "trim": .function(.string, .string) { value, _ in
@@ -627,7 +627,7 @@ extension Dictionary where Key == String, Value == Symbol {
             let angle = Swift.min(.pi, parameter.angleValue ?? .zero)
             context.smoothing = angle < .zero ? nil : angle
         }, { context in
-            .halfturns(context.smoothing.map { $0.halfturns } ?? -1)
+            .halfturns(context.smoothing.map(\.halfturns) ?? -1)
         }),
     ]
 

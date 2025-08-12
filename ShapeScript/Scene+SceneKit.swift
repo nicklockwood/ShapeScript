@@ -114,7 +114,7 @@ public extension Scene {
         let color = backgroundColor ?? .gray
         let size = bounds.size
         options.lineWidth = max(0.005, 0.002 * max(size.x, size.y, size.z))
-        let background = camera?.background ?? self.background
+        let background = camera?.background ?? background
         options.lineColor = background.brightness(over: color) > 0.5 ? .black : .white
         options.wireframe = wireframe
         #if arch(x86_64)
@@ -171,7 +171,7 @@ public extension Geometry {
         if let scnGeometry = scnData[key] {
             self.scnGeometry = scnGeometry
             return
-        } else if let light = light {
+        } else if let light {
             if debug, let material = options.debugMaterial, !options.wireframe {
                 let mesh: Mesh
                 switch (light.hasPosition, light.hasOrientation) {
@@ -195,7 +195,7 @@ public extension Geometry {
                 scnData[key] = geometry
                 scnGeometry = geometry
             }
-        } else if let path = path {
+        } else if let path {
             if options.wireframe {
                 let wireframe = SCNGeometry(.stroke(
                     path.withColor(nil),
@@ -224,7 +224,7 @@ public extension Geometry {
                         detail: 5
                     ))
                     let lineColor = path.hasColors ?
-                        Color.white : self.material.color ?? options.lineColor
+                        Color.white : material.color ?? options.lineColor
                     let material = SCNMaterial()
                     material.lightingModel = .constant
                     material.diffuse.contents = OSColor(lineColor)
@@ -233,7 +233,7 @@ public extension Geometry {
                 scnData[key] = geometry
                 scnGeometry = geometry
             }
-        } else if let mesh = mesh {
+        } else if let mesh {
             if options.wireframe {
                 let wireframe = options.wireframeLineWidth > 0 ? SCNGeometry(.stroke(
                     mesh.uniqueEdges,
@@ -261,7 +261,7 @@ public extension Geometry {
     }
 }
 
-private extension Array where Element == Geometry {
+private extension [Geometry] {
     func scnBuild(with options: Scene.OutputOptions, debug: Bool) {
         for child in self {
             if debug, !child.debug {

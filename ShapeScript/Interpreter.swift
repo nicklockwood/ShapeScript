@@ -25,7 +25,7 @@ public func evaluate(
         cache: cache,
         isCancelled: isCancelled
     )
-    if let error = error {
+    if let error {
         throw error
     }
     return scene
@@ -203,7 +203,7 @@ public extension RuntimeError {
             } else if Keyword(rawValue: name) != nil || name == "option" {
                 hint = "The '\(name)' command is not available in this context."
             }
-            if let suggestion = suggestion {
+            if let suggestion {
                 hint += (hint.isEmpty ? "" : " ") + "Did you mean '\(suggestion)'?"
             }
             return hint
@@ -220,7 +220,7 @@ public extension RuntimeError {
         case let .invalidIndex(_, range: range):
             return range.upperBound == 0 ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
         case .unknownFont:
-            if let suggestion = suggestion {
+            if let suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
             return ""
@@ -253,7 +253,7 @@ public extension RuntimeError {
         case let .assertionFailure(message):
             return formatMessage(message)
         case let .fileNotFound(for: name, at: url):
-            guard let url = url else {
+            guard let url else {
                 return nil
             }
             if name == url.path {
@@ -270,7 +270,7 @@ public extension RuntimeError {
         case let .fileParsingError(for: _, at: _, message: message):
             return formatMessage(message)
         case let .fileTypeMismatch(for: _, at: url, expected: type):
-            guard let type = type else {
+            guard let type else {
                 return "The type of file at '\(url.path)' is not supported."
             }
             return "The file at '\(url.path)' is not \(aOrAn(type)) file."
@@ -331,7 +331,7 @@ private func aOrAn(_ string: String, capitalized: Bool = false) -> String {
     return "\(capitalized ? prefix.capitalized : prefix) \(string)"
 }
 
-private extension Array where Element == String {
+private extension [String] {
     var typesDescription: String {
         var types = Set(self).sorted()
         if let index = types.firstIndex(of: "block") {
@@ -459,7 +459,7 @@ extension RuntimeErrorType {
             }
             #endif
             underlyingError = underlyingError ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
-            if let underlyingError = underlyingError {
+            if let underlyingError {
                 error = underlyingError
             } else {
                 break
@@ -633,7 +633,7 @@ private func evaluateBlockParameters(
         do {
             try childContext.addValue(child)
         } catch {
-            var types = type.childTypes.subtypes.map { $0.errorDescription }
+            var types = type.childTypes.subtypes.map(\.errorDescription)
             if j == 0 {
                 types.append("block")
             }
@@ -657,7 +657,7 @@ private func evaluateParameter(_ parameter: Expression?,
                                in context: EvaluationContext) throws -> Value
 {
     let (name, range) = (identifier.name, identifier.range)
-    guard let parameter = parameter else {
+    guard let parameter else {
         if type.isOptional {
             return .void
         }
@@ -923,7 +923,7 @@ extension Definition {
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
         if let value = try value.as(childTypes, in: self) {
-            let childTransform: Transform = isFunctionScope ? .identity : self.childTransform
+            let childTransform: Transform = isFunctionScope ? .identity : childTransform
             switch value {
             case let .mesh(m):
                 children.append(.mesh(m.transformed(by: childTransform)))
@@ -1024,7 +1024,7 @@ extension Statement {
                                                      in: context)
                 try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
-                if let parameter = parameter {
+                if let parameter {
                     let parameters: [Expression]
                     if case let .tuple(expressions) = parameter.type {
                         parameters = expressions
@@ -1041,7 +1041,7 @@ extension Statement {
                 } else if !type.childTypes.isOptional {
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
+                        types: type.childTypes.subtypes.map(\.errorDescription) + ["block"]
                     ), at: range.upperBound ..< range.upperBound)
                 } else {
                     let childContext = context.push(type)
@@ -1050,7 +1050,7 @@ extension Statement {
                 }
             case let .constant(value), let .option(value):
                 var value = value
-                if let parameter = parameter {
+                if let parameter {
                     value = try .tuple([value, parameter.evaluate(in: context)])
                 }
                 try RuntimeError.wrap(context.addValue(value), at: range)
@@ -1111,7 +1111,7 @@ extension Statement {
                 )
                 if value.boolValue {
                     try body.evaluate(in: context)
-                } else if let elseBody = elseBody {
+                } else if let elseBody {
                     try elseBody.evaluate(in: context)
                 }
             }
@@ -1198,7 +1198,7 @@ extension Expression {
                     // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        types: type.childTypes.subtypes.map { $0.errorDescription } + ["block"]
+                        types: type.childTypes.subtypes.map(\.errorDescription) + ["block"]
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(context.push(type)), at: range)
@@ -1291,7 +1291,7 @@ extension Expression {
                   let type = context.options[name],
                   expressions.count > 1
             else {
-                return try .tuple(evaluateParameters(expressions, in: context).map { $0.value })
+                return try .tuple(evaluateParameters(expressions, in: context).map(\.value))
             }
             let params = Array(expressions.dropFirst())
             let param = Expression(
@@ -1447,7 +1447,7 @@ extension Expression {
                     in: context
                 )
                 if case let .texture(texture) = lhs {
-                    guard let texture = texture else {
+                    guard let texture else {
                         return .texture(nil)
                     }
                     let rhs = try doubleValue(rhs)
@@ -1556,14 +1556,14 @@ extension Expression {
                         }
                     })
                 }
-                value = .tuple(values.map { $0.value })
+                value = .tuple(values.map(\.value))
             } else {
                 value = try evaluate(in: context)
                 values = []
             }
         } catch var error as RuntimeError {
             if case .unknownSymbol(let name, var options) = error.type {
-                options += InfixOperator.allCases.map { $0.rawValue }
+                options += InfixOperator.allCases.map(\.rawValue)
                 error = RuntimeError(.unknownSymbol(name, options: options), at: error.range)
             }
             throw error

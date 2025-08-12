@@ -218,7 +218,7 @@ extension EvaluationContext {
             case .constant, .option:
                 return false
             }
-        }.keys) + Keyword.allCases.map { $0.rawValue }
+        }.keys) + Keyword.allCases.map(\.rawValue)
     }
 
     /// Return the value of the specified symbol in the current context

@@ -132,13 +132,13 @@ public extension ParserError {
             guard case let .identifier(string) = token.type else {
                 return nil
             }
-            guard let expected = expected else {
-                let options = Keyword.allCases.map { $0.rawValue }
+            guard let expected else {
+                let options = Keyword.allCases.map(\.rawValue)
                 return string.bestMatches(in: options).first
             }
             switch expected {
             case "if body", "operator":
-                let options = InfixOperator.allCases.map { $0.rawValue }
+                let options = InfixOperator.allCases.map(\.rawValue)
                 return Self.alternatives[string.lowercased()] ??
                     string.bestMatches(in: options).first
             case "case statement":
@@ -154,7 +154,7 @@ public extension ParserError {
     var hint: String? {
         switch type {
         case let .unexpectedToken(_, expected: expected):
-            if let suggestion = suggestion {
+            if let suggestion {
                 return "Did you mean '\(suggestion)'?"
             }
             return expected.map { "Expected \($0)." }
@@ -227,7 +227,7 @@ private extension ArraySlice where Element == Token {
     }
 
     func require<T>(_ result: T?, as expected: String) throws -> T {
-        guard let result = result else {
+        guard let result else {
             throw ParserError(.unexpectedToken(nextToken, expected: expected))
         }
         return result
@@ -465,7 +465,7 @@ private extension ArraySlice where Element == Token {
                 type: .identifier(name),
                 range: range
             )]
-            if let expression = expression {
+            if let expression {
                 if case let .tuple(params) = expression.type {
                     expressions += params
                 } else {
@@ -617,7 +617,7 @@ private extension ArraySlice where Element == Token {
             // TODO: should we allow chained comparison operators?
             let not = nextToken.type == .identifier("not") ? readToken() : nil
             var rhs = try require(readSum(), as: "operand")
-            if let not = not {
+            if let not {
                 rhs = Expression(type: .tuple([
                     Expression(type: .identifier("not"), range: not.range),
                     rhs,
