@@ -2,8 +2,6 @@
 //  LRUCache.swift
 //  LRUCache
 //
-//  Version 1.0.2
-//
 //  Created by Nick Lockwood on 05/08/2021.
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
@@ -40,7 +38,7 @@ import UIKit
 public let LRUCacheMemoryWarningNotification: NSNotification.Name =
     UIApplication.didReceiveMemoryWarningNotification
 
-#else
+#elseif !os(WASI)
 
 /// Notification that cache should be cleared
 public let LRUCacheMemoryWarningNotification: NSNotification.Name =
@@ -48,36 +46,28 @@ public let LRUCacheMemoryWarningNotification: NSNotification.Name =
 
 #endif
 
-public final class LRUCache<Key: Hashable, Value> {
-    private var values: [Key: Container] = [:]
+public final class LRUCache<Key: Hashable & Sendable, Value>: @unchecked Sendable {
+    private var _values: [Key: Container] = [:]
+    private var _countLimit: Int
+    private var _totalCost: Int = 0
+    private var _totalCostLimit: Int
     private unowned(unsafe) var head: Container?
     private unowned(unsafe) var tail: Container?
     private let lock: NSLock = .init()
     private var token: AnyObject?
+
+    #if !os(WASI)
+
     private let notificationCenter: NotificationCenter
 
-    /// The current total cost of values in the cache
-    public private(set) var totalCost: Int = 0
-
-    /// The maximum total cost permitted
-    public var totalCostLimit: Int {
-        didSet { clean() }
-    }
-
-    /// The maximum number of values permitted
-    public var countLimit: Int {
-        didSet { clean() }
-    }
-
-    /// Initialize the cache with the specified `totalCostLimit` and
-    /// `countLimit`
+    /// Initialize the cache with the specified `totalCostLimit` and `countLimit`
     public init(
         totalCostLimit: Int = .max,
         countLimit: Int = .max,
         notificationCenter: NotificationCenter = .default
     ) {
-        self.totalCostLimit = totalCostLimit
-        self.countLimit = countLimit
+        self._totalCostLimit = totalCostLimit
+        self._countLimit = countLimit
         self.notificationCenter = notificationCenter
 
         self.token = notificationCenter.addObserver(
@@ -85,114 +75,180 @@ public final class LRUCache<Key: Hashable, Value> {
             object: nil,
             queue: nil
         ) { [weak self] _ in
-            self?.removeAllValues()
+            self?.removeAll()
         }
     }
 
     deinit {
-        if let token = token {
-            notificationCenter.removeObserver(token)
-        }
+        token.map(notificationCenter.removeObserver)
     }
+
+    #else
+
+    /// Initialize the cache with the specified `totalCostLimit` and `countLimit`
+    public init(totalCostLimit: Int = .max, countLimit: Int = .max) {
+        self._totalCostLimit = totalCostLimit
+        self._countLimit = countLimit
+    }
+
+    #endif
 }
 
 public extension LRUCache {
+    /// The current total cost of values in the cache
+    var totalCost: Int {
+        atomic { _totalCost }
+    }
+
+    /// The maximum total cost permitted
+    var totalCostLimit: Int {
+        get { atomic { _totalCostLimit } }
+        set {
+            atomic {
+                _totalCostLimit = newValue
+                clean()
+            }
+        }
+    }
+
     /// The number of values currently stored in the cache
     var count: Int {
-        values.count
+        atomic { _values.count }
+    }
+
+    /// The maximum number of values permitted
+    var countLimit: Int {
+        get { atomic { _countLimit } }
+        set {
+            atomic {
+                _countLimit = newValue
+                clean()
+            }
+        }
     }
 
     /// Is the cache empty?
     var isEmpty: Bool {
-        values.isEmpty
+        atomic { _values.isEmpty }
     }
 
-    /// Returns all keys in the cache from oldest to newest
-    var allKeys: [Key] {
-        lock.lock()
-        defer { lock.unlock() }
-        var keys = [Key]()
-        var next = head
-        while let container = next {
-            keys.append(container.key)
-            next = container.next
+    /// All keys in the cache, in no particular order
+    var keys: some Collection<Key> {
+        atomic { _values.keys }
+    }
+
+    /// All values in the cache, in no particular order
+    var values: some Collection<Value> {
+        atomic { _values.values.map(\.value) }
+    }
+
+    /// All keys in the cache, ordered from least recently used to most recently used
+    /// Note: this is orders of magnitude slower to compute than `keys`
+    var orderedKeys: [Key] {
+        atomic {
+            var keys = [Key]()
+            keys.reserveCapacity(_values.count)
+            var next = head
+            while let container = next {
+                keys.append(container.key)
+                next = container.next
+            }
+            return keys
         }
-        return keys
     }
 
-    /// Returns all values in the cache from oldest to newest
-    var allValues: [Value] {
-        lock.lock()
-        defer { lock.unlock() }
-        var values = [Value]()
-        var next = head
-        while let container = next {
-            values.append(container.value)
-            next = container.next
+    /// All values in the cache, ordered from least recently used to most recently used
+    /// Note: this is orders of magnitude slower to compute than `values`
+    var orderedValues: [Value] {
+        atomic {
+            var values = [Value]()
+            values.reserveCapacity(_values.count)
+            var next = head
+            while let container = next {
+                values.append(container.value)
+                next = container.next
+            }
+            return values
         }
-        return values
     }
 
-    /// Insert a value into the cache with optional `cost`
+    /// All keys in the cache, ordered from least recently used to most recently used
+    @available(*, deprecated, renamed: "orderedKeys")
+    var allKeys: [Key] { orderedKeys }
+
+    /// All values in the cache, ordered from least recently used to most recently used
+    @available(*, deprecated, renamed: "orderedValues")
+    var allValues: [Value] { orderedValues }
+
+    /// Insert a value into the cache with optional `cost` and mark it as most recently used
     func setValue(_ value: Value?, forKey key: Key, cost: Int = 0) {
-        guard let value = value else {
+        guard let value else {
             removeValue(forKey: key)
             return
         }
-        lock.lock()
-        if let container = values[key] {
-            container.value = value
-            totalCost -= container.cost
-            container.cost = cost
-            remove(container)
-            append(container)
-        } else {
-            let container = Container(
-                value: value,
-                cost: cost,
-                key: key
-            )
-            values[key] = container
-            append(container)
+        atomic {
+            if let container = _values[key] {
+                container.value = value
+                _totalCost += cost - container.cost
+                container.cost = cost
+                remove(container)
+                append(container)
+            } else {
+                let container = Container(
+                    value: value,
+                    cost: cost,
+                    key: key
+                )
+                _totalCost += cost
+                _values[key] = container
+                append(container)
+            }
+            clean()
         }
-        totalCost += cost
-        lock.unlock()
-        clean()
+    }
+
+    /// Check if a value exists in the cache without affecting how recently it was used
+    func hasValue(forKey key: Key) -> Bool {
+        atomic { _values[key] != nil }
+    }
+
+    /// Fetch a value from the cache and mark it as most recently used
+    func value(forKey key: Key) -> Value? {
+        atomic {
+            if let container = _values[key] {
+                remove(container)
+                append(container)
+                return container.value
+            }
+            return nil
+        }
     }
 
     /// Remove a value  from the cache and return it
     @discardableResult func removeValue(forKey key: Key) -> Value? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let container = values.removeValue(forKey: key) else {
-            return nil
-        }
-        remove(container)
-        totalCost -= container.cost
-        return container.value
-    }
-
-    /// Fetch a value from the cache
-    func value(forKey key: Key) -> Value? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let container = values[key] {
+        atomic {
+            guard let container = _values.removeValue(forKey: key) else {
+                return nil
+            }
             remove(container)
-            append(container)
+            _totalCost -= container.cost
             return container.value
         }
-        return nil
     }
 
     /// Remove all values from the cache
-    func removeAllValues() {
-        lock.lock()
-        values.removeAll()
-        head = nil
-        tail = nil
-        totalCost = 0
-        lock.unlock()
+    func removeAll() {
+        atomic {
+            _values.removeAll()
+            head = nil
+            tail = nil
+            _totalCost = 0
+        }
     }
+
+    /// Remove all values from the cache
+    @available(*, deprecated, renamed: "removeAll")
+    func removeAllValues() { removeAll() }
 }
 
 private extension LRUCache {
@@ -210,7 +266,14 @@ private extension LRUCache {
         }
     }
 
-    // Remove container from list (must be called inside lock)
+    /// Atomic access
+    func atomic<T>(_ action: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return action()
+    }
+
+    /// Remove container from list (must be called inside lock)
     func remove(_ container: Container) {
         if head === container {
             head = container.next
@@ -223,7 +286,7 @@ private extension LRUCache {
         container.next = nil
     }
 
-    // Append container to list (must be called inside lock)
+    /// Append container to list (must be called inside lock)
     func append(_ container: Container) {
         assert(container.next == nil)
         if head == nil {
@@ -234,16 +297,14 @@ private extension LRUCache {
         tail = container
     }
 
-    // Remove expired values (must be called outside lock)
+    /// Remove expired values (must be called inside lock)
     func clean() {
-        lock.lock()
-        defer { lock.unlock() }
-        while totalCost > totalCostLimit || count > countLimit,
+        while _totalCost > _totalCostLimit || _values.count > _countLimit,
               let container = head
         {
             remove(container)
-            values.removeValue(forKey: container.key)
-            totalCost -= container.cost
+            _values.removeValue(forKey: container.key)
+            _totalCost -= container.cost
         }
     }
 }

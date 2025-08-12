@@ -6,6 +6,7 @@
 //  Copyright © 2019 Nick Lockwood. All rights reserved.
 //
 
+#if !os(WASI)
 @testable import LRUCache
 import XCTest
 
@@ -82,7 +83,7 @@ class MetadataTests: XCTestCase {
             ))
             let dateString = String(title[dateRange])
             let date = try XCTUnwrap(dateParser.date(from: dateString))
-            if let lastDate = lastDate, date > lastDate {
+            if let lastDate, date > lastDate {
                 XCTFail(
                     "\(title) has newer date than subsequent version (\(date) vs \(lastDate))"
                 )
@@ -92,3 +93,4 @@ class MetadataTests: XCTestCase {
         }
     }
 }
+#endif

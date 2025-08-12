@@ -72,7 +72,7 @@ class LRUCacheTests: XCTestCase {
         let cache = LRUCache<Int, Int>(totalCostLimit: 2)
         cache.setValue(0, forKey: 0, cost: 1)
         cache.setValue(1, forKey: 1, cost: 1)
-        cache.removeAllValues()
+        cache.removeAll()
         XCTAssert(cache.isEmpty)
         XCTAssertEqual(cache.totalCost, 0)
         cache.setValue(0, forKey: 0, cost: 1)
@@ -80,15 +80,26 @@ class LRUCacheTests: XCTestCase {
         XCTAssertEqual(cache.totalCost, 1)
     }
 
-    func testAllValues() {
+    func testOrderedKeys() {
         let cache = LRUCache<Int, Int>(totalCostLimit: 2)
         cache.setValue(0, forKey: 0)
         cache.setValue(1, forKey: 1)
-        XCTAssertEqual(cache.allValues, [0, 1])
+        XCTAssertEqual(cache.orderedKeys, [0, 1])
         cache.setValue(0, forKey: 0)
-        XCTAssertEqual(cache.allValues, [1, 0])
-        cache.removeAllValues()
-        XCTAssert(cache.allValues.isEmpty)
+        XCTAssertEqual(cache.orderedKeys, [1, 0])
+        cache.removeAll()
+        XCTAssert(cache.orderedKeys.isEmpty)
+    }
+
+    func testOrderedValues() {
+        let cache = LRUCache<Int, Int>(totalCostLimit: 2)
+        cache.setValue(0, forKey: 0)
+        cache.setValue(1, forKey: 1)
+        XCTAssertEqual(cache.orderedValues, [0, 1])
+        cache.setValue(0, forKey: 0)
+        XCTAssertEqual(cache.orderedValues, [1, 0])
+        cache.removeAll()
+        XCTAssert(cache.orderedValues.isEmpty)
     }
 
     func testReplaceValue() {
@@ -102,6 +113,30 @@ class LRUCacheTests: XCTestCase {
         cache.setValue(2, forKey: 0, cost: 7)
         XCTAssertEqual(cache.value(forKey: 0), 2)
         XCTAssertEqual(cache.totalCost, 7)
+    }
+
+    #if !os(WASI)
+
+    func testConcurrentAccess() {
+        let cache = LRUCache<String, Int>()
+        let queue = DispatchQueue(label: "stress.test", attributes: .concurrent)
+        let group = DispatchGroup()
+
+        let keys = (0 ..< 1000).map { "key\($0)" }
+        for _ in 0 ..< 10000 {
+            group.enter()
+            queue.async {
+                let key = keys.randomElement()!
+                if Bool.random() {
+                    cache.setValue(.random(in: 0 ... 1000), forKey: key)
+                } else {
+                    _ = cache.value(forKey: key)
+                }
+                group.leave()
+            }
+        }
+
+        group.wait()
     }
 
     func testMemoryWarning() {
@@ -118,14 +153,20 @@ class LRUCacheTests: XCTestCase {
     }
 
     func testNotificationObserverIsRemoved() {
-        final class TestNotificationCenter: NotificationCenter {
+        final class TestNotificationCenter: NotificationCenter, @unchecked Sendable {
             private(set) var observersCount = 0
+
+            #if os(Linux)
+            typealias NotificationBlock = (Notification) -> Void
+            #else
+            typealias NotificationBlock = @Sendable (Notification) -> Void
+            #endif
 
             override func addObserver(
                 forName name: NSNotification.Name?,
                 object obj: Any?,
                 queue: OperationQueue?,
-                using block: @escaping (Notification) -> Void
+                using block: @escaping NotificationBlock
             ) -> NSObjectProtocol {
                 defer { observersCount += 1 }
                 return super.addObserver(
@@ -151,6 +192,8 @@ class LRUCacheTests: XCTestCase {
         XCTAssertNil(weakCache)
         XCTAssertEqual(0, notificationCenter.observersCount)
     }
+
+    #endif
 
     func testNoStackOverflowForlargeCache() {
         let cache = LRUCache<Int, Int>()

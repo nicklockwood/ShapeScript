@@ -19,7 +19,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/nicklockwood/LRUCache.git",
-            .upToNextMinor(from: "1.0.7")
+            .upToNextMinor(from: "1.1.2")
         ),
         .package(
             url: "https://github.com/nicklockwood/SVGPath.git",
