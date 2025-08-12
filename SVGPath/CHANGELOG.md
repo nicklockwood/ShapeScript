@@ -1,3 +1,8 @@
+## [1.2.0](https://github.com/nicklockwood/SVGPath/releases/tag/1.2.0) (2025-08-01)
+
+- Added Sendable conformance for all `SVGPath` types
+- Bumped required Swift version to 5.7
+
 ## [1.1.6](https://github.com/nicklockwood/SVGPath/releases/tag/1.1.6) (2025-04-06)
 
 - Fixed stack overflow for large paths in debug builds

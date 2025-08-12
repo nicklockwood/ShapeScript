@@ -23,8 +23,7 @@ private let projectURL = projectDirectory
 private let projectVersion: String = {
     let string = try! String(contentsOf: projectURL)
     let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
-    let end = string.range(of: ";", range: start ..< string.endIndex)!
-        .lowerBound
+    let end = string.range(of: ";", range: start ..< string.endIndex)!.lowerBound
     return String(string[start ..< end])
 }()
 
@@ -62,10 +61,9 @@ class MetadataTests: XCTestCase {
             "CHANGELOG.md does not mention latest release"
         )
         XCTAssertTrue(
-            changelog
-                .contains(
-                    "(https://github.com/nicklockwood/SVGPath/releases/tag/\(projectVersion))"
-                ),
+            changelog.contains(
+                "(https://github.com/nicklockwood/SVGPath/releases/tag/\(projectVersion))"
+            ),
             "CHANGELOG.md does not include correct link for latest release"
         )
     }
@@ -83,10 +81,8 @@ class MetadataTests: XCTestCase {
             ))
             let dateString = String(title[dateRange])
             let date = try XCTUnwrap(dateParser.date(from: dateString))
-            if let lastDate = lastDate, date > lastDate {
-                XCTFail(
-                    "\(title) has newer date than subsequent version (\(date) vs \(lastDate))"
-                )
+            if let lastDate, date > lastDate {
+                XCTFail("\(title) has newer date than subsequent version (\(date) vs \(lastDate))")
                 return
             }
             lastDate = date

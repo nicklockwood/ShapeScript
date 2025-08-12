@@ -31,7 +31,7 @@
 
 import Foundation
 
-public struct SVGPath: Hashable {
+public struct SVGPath: Hashable, Sendable {
     public var commands: [SVGCommand]
 
     public init(commands: [SVGCommand]) {
@@ -47,11 +47,9 @@ public struct SVGPath: Hashable {
 
         func assertArgs(_ count: Int) throws -> [Double] {
             if numbers.count < count {
-                throw SVGError
-                    .missingArgument(for: String(token), expected: count)
+                throw SVGError.missingArgument(for: String(token), expected: count)
             } else if !numbers.count.isMultiple(of: count) {
-                throw SVGError
-                    .unexpectedArgument(for: String(token), expected: count)
+                throw SVGError.unexpectedArgument(for: String(token), expected: count)
             }
             defer { numbers.removeFirst(count) }
             return Array(numbers.prefix(count))
@@ -180,9 +178,7 @@ public struct SVGPath: Hashable {
                 case " ": return
                 default: throw SVGError.unexpectedToken(String(token))
                 }
-                commands.append(
-                    isRelative ? command.relative(to: commands) : command
-                )
+                commands.append(isRelative ? command.relative(to: commands) : command)
             } while !numbers.isEmpty
         }
 
@@ -230,7 +226,7 @@ public extension SVGPath {
         return points
     }
 
-    struct WriteOptions {
+    struct WriteOptions: Sendable {
         public static let `default` = Self()
 
         public var prettyPrinted: Bool
@@ -300,7 +296,7 @@ private extension Character {
     }
 }
 
-private extension Array where Element == SVGCommand {
+private extension [SVGCommand] {
     var lastPoint: SVGPoint {
         for command in reversed() {
             if let point = command.point {
@@ -335,7 +331,7 @@ public enum SVGError: Error, Hashable {
     }
 }
 
-public enum SVGCommand: Hashable {
+public enum SVGCommand: Hashable, Sendable {
     case moveTo(SVGPoint)
     case lineTo(SVGPoint)
     case cubic(SVGPoint, SVGPoint, SVGPoint)
@@ -401,7 +397,7 @@ public extension SVGCommand {
         func endSubpath() {
             if start == points.count - 1 {
                 points.removeLast()
-            } else if let start = start {
+            } else if let start {
                 points.append(points[start])
             }
         }
@@ -469,7 +465,7 @@ public extension SVGCommand {
     }
 }
 
-public struct SVGPoint: Hashable {
+public struct SVGPoint: Hashable, Sendable {
     public var x, y: Double
 
     public init(x: Double, y: Double) {
@@ -498,7 +494,7 @@ public extension SVGPoint {
     }
 }
 
-public struct SVGArc: Hashable {
+public struct SVGArc: Hashable, Sendable {
     public var radius: SVGPoint
     public var rotation: Double
     public var largeArc: Bool

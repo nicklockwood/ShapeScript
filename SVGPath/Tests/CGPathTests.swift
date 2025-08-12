@@ -108,8 +108,7 @@ class CGPathTests: XCTestCase {
     }
 
     func testCross() throws {
-        let svgPath =
-            try SVGPath(string: "M2 1 h1 v1 h1 v1 h-1 v1 h-1 v-1 h-1 v-1 h1 z")
+        let svgPath = try SVGPath(string: "M2 1 h1 v1 h1 v1 h-1 v1 h-1 v-1 h-1 v-1 h1 z")
         let cgPath = CGMutablePath()
         cgPath.move(to: CGPoint(x: 2, y: -1))
         cgPath.addLine(to: CGPoint(x: 3, y: -1))
