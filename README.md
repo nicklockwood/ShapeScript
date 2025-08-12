@@ -51,7 +51,7 @@ To install using Swift Package Manager, add this to the `dependencies:` section 
 
 The repository also includes ShapeScript Viewer apps for iOS and macOS, a cut-down version of the full ShapeScript apps available on the [Mac](https://apps.apple.com/app/id1441135869) and [iOS](https://apps.apple.com/app/id1606439346) app stores. It is not currently possible to install or run these apps using CocoaPods, Carthage or Swift Package Manager but you can run them by opening the included Xcode project and selecting the `Viewer (Mac)` or `Viewer (iOS)` schemes. For Linux, see [usage instructions](#usage-linux) below.
 
-**Note:** ShapeScript Viewer requires Xcode 11+ to build, and runs on macOS 10.13+ or iOS 14+.
+**Note:** ShapeScript Viewer requires Xcode 14+ to build, and runs on macOS 10.15+ and iOS 14+.
 
 # Usage (Mac)
 
