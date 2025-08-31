@@ -528,7 +528,7 @@ private extension Geometry {
         case let .hull(vertices):
             let meshes = childMeshes(callback)
             let vertices = vertices + meshes.flatMap { $0.polygons.flatMap(\.vertices) }
-            mesh = Mesh.convexHull(of: vertices, material: material).makeWatertight()
+            mesh = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled).makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
