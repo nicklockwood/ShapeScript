@@ -218,5 +218,5 @@ private func numberOfEmoji(in string: some StringProtocol) -> Int {
 }
 
 private func emojiSpacing(for string: some StringProtocol) -> Int {
-    Int(Double(numberOfEmoji(in: string)) * 1.25)
+    Int(round(Double(numberOfEmoji(in: string)) * 1.222222222222))
 }
