@@ -526,9 +526,9 @@ private extension Geometry {
         case let .loft(paths):
             mesh = Mesh.loft(paths).makeWatertight()
         case let .hull(vertices):
-            let meshes = childMeshes(callback)
-            let vertices = vertices + meshes.flatMap { $0.polygons.flatMap(\.vertices) }
-            mesh = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled).makeWatertight()
+            let m = Mesh.convexHull(of: vertices, material: Material.default, isCancelled: isCancelled)
+            let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
+            mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
@@ -628,6 +628,7 @@ private extension Geometry {
 }
 
 private extension Collection<Path> {
+    /// Convert uniform point colors to a material instead
     func fixupColors(material: Material) -> ([Path], Material) {
         guard material.texture == nil else {
             return (Array(self), material)
@@ -651,6 +652,7 @@ private extension Collection<Path> {
 }
 
 extension Polygon {
+    /// Convert uniform vertex colors to a material instead
     func fixupColors(material: ShapeScript.Material) -> Polygon {
         guard material.texture == nil else {
             return withMaterial(material)
@@ -668,6 +670,29 @@ extension Polygon {
         var material = material
         material.albedo = (current ?? material.color).map { .color($0) }
         return mapVertexColors { _ in nil }.withMaterial(material)
+    }
+
+    /// Convert material colors to a vertex colors
+    func materialToVertexColors(material: ShapeScript.Material?) -> Polygon {
+        guard var material = self.material as? ShapeScript.Material ?? material,
+              let color = material.color
+        else {
+            return self
+        }
+        material.albedo = .color(.white)
+        return mapVertexColors { _ in color }.withMaterial(material)
+    }
+}
+
+extension Mesh {
+    /// Convert uniform vertex colors to a material instead
+    func fixupColors(material: ShapeScript.Material) -> Mesh {
+        .init(polygons.map { $0.fixupColors(material: material) })
+    }
+
+    /// Convert material colors to a vertex colors
+    func materialToVertexColors(material: ShapeScript.Material?) -> Mesh {
+        .init(polygons.map { $0.materialToVertexColors(material: material) })
     }
 }
 
