@@ -20,9 +20,11 @@ func loadRTF(_ file: String) -> NSAttributedString {
     return NSAttributedString(rtf: data, documentAttributes: nil)!
 }
 
-func showSheet(_ alert: NSAlert, in window: NSWindow?,
-               _ handler: ((NSApplication.ModalResponse) -> Void)? = nil)
-{
+func showSheet(
+    _ alert: NSAlert,
+    in window: NSWindow?,
+    _ handler: ((NSApplication.ModalResponse) -> Void)? = nil
+) {
     if let window {
         alert.beginSheetModal(for: window, completionHandler: handler)
     } else {
@@ -31,9 +33,11 @@ func showSheet(_ alert: NSAlert, in window: NSWindow?,
     }
 }
 
-func showSheet(_ dialog: NSSavePanel, in window: NSWindow?,
-               _ handler: @escaping (NSApplication.ModalResponse) -> Void)
-{
+func showSheet(
+    _ dialog: NSSavePanel,
+    in window: NSWindow?,
+    _ handler: @escaping (NSApplication.ModalResponse) -> Void
+) {
     if let window {
         dialog.beginSheetModal(for: window, completionHandler: handler)
     } else {

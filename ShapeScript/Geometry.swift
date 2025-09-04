@@ -55,8 +55,7 @@ public final class Geometry: Hashable {
         switch type {
         case .group:
             return true
-        case .cone, .cylinder, .sphere, .cube,
-             .lathe, .loft, .path, .mesh, .camera, .light,
+        case .cone, .cylinder, .sphere, .cube, .lathe, .loft, .path, .mesh, .camera, .light,
              .intersection, .difference, .stencil:
             return false
         case .union, .xor, .extrude, .fill, .hull:
@@ -64,7 +63,7 @@ public final class Geometry: Hashable {
         }
     }
 
-    // Render with debug mode
+    /// Render with debug mode
     var debug: Bool {
         didSet {
             if debug, type == .group {
@@ -444,7 +443,7 @@ private extension Geometry {
         return meshes
     }
 
-    // Build all geometries that don't have dependencies
+    /// Build all geometries that don't have dependencies
     func buildLeaves(_ callback: @escaping () -> Bool) -> Bool {
         if type.isLeafGeometry, !buildMesh(callback) {
             return false
@@ -455,7 +454,7 @@ private extension Geometry {
         return true
     }
 
-    // With leaves built, do a rough preview
+    /// With leaves built, do a rough preview
     func buildPreview(_ callback: @escaping () -> Bool) -> Bool {
         for child in children where !child.buildPreview(callback) {
             return false
@@ -481,7 +480,7 @@ private extension Geometry {
         return callback()
     }
 
-    // Build final pass
+    /// Build final pass
     func buildFinal(_ callback: @escaping () -> Bool) -> Bool {
         for child in children where !child.buildFinal(callback) {
             return false
@@ -492,7 +491,7 @@ private extension Geometry {
         return callback()
     }
 
-    // Build mesh (without children)
+    /// Build mesh (without children)
     func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
         if let mesh = cache?[mesh: self] {
             self.mesh = mesh

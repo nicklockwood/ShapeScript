@@ -188,17 +188,16 @@ extension Path {
         let total = length
         let maxStep = Angle.twoPi / max(1, Double(detail / 2))
         var split = false
-        let path = Path([prev] + points.dropFirst()
-            .flatMap { point -> [PathPoint] in
-                defer { prev = point }
-                let length = (point.position - prev.position).length
-                let step = twist * (length / total)
-                if step >= maxStep {
-                    split = true
-                    return [prev.lerp(point, 0.5).curved(), point]
-                }
-                return [point]
-            })
+        let path = Path([prev] + points.dropFirst().flatMap { point -> [PathPoint] in
+            defer { prev = point }
+            let length = (point.position - prev.position).length
+            let step = twist * (length / total)
+            if step >= maxStep {
+                split = true
+                return [prev.lerp(point, 0.5).curved(), point]
+            }
+            return [point]
+        })
         return split ? path.withDetail(detail, twist: twist) : path
     }
 }

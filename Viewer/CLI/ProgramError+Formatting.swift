@@ -22,17 +22,3 @@ extension ProgramError {
         return errorMessage
     }
 }
-
-private func numberOfEmoji(in string: some StringProtocol) -> Int {
-    string.reduce(0) { count, c in
-        let scalars = c.unicodeScalars
-        if scalars.count > 1 || (scalars.first?.value ?? 0) > 0x238C {
-            return count + 1
-        }
-        return count
-    }
-}
-
-private func emojiSpacing(for string: some StringProtocol) -> Int {
-    Int(Double(numberOfEmoji(in: string)) * 1.25)
-}

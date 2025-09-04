@@ -27,7 +27,6 @@ final class LoadingProgress {
     // Only accessed from main thread
     private static var _processID = 0
     private let observer: (Status) -> Void
-    private var lastObserverUpdate: TimeInterval = 0
     private var thread: Thread? {
         didSet { assert(Thread.isMainThread) }
     }
@@ -117,8 +116,8 @@ extension LoadingProgress {
         }
     }
 
-    // Evaluate code on the loading thread
-    // Must be called from the main thread
+    /// Evaluate code on the loading thread
+    /// Must be called from the main thread
     func dispatch(_ block: @escaping LoadingTask) {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)

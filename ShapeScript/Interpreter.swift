@@ -651,11 +651,12 @@ private func evaluateBlockParameters(
 }
 
 // TODO: find a better way to encapsulate this
-private func evaluateParameter(_ parameter: Expression?,
-                               as type: ValueType,
-                               for identifier: Identifier,
-                               in context: EvaluationContext) throws -> Value
-{
+private func evaluateParameter(
+    _ parameter: Expression?,
+    as type: ValueType,
+    for identifier: Identifier,
+    in context: EvaluationContext
+) throws -> Value {
     let (name, range) = (identifier.name, identifier.range)
     guard let parameter else {
         if type.isOptional {
@@ -1532,9 +1533,12 @@ extension Expression {
         }
     }
 
-    func evaluate(as type: ValueType, for name: String, index: Int = -1,
-                  in context: EvaluationContext) throws -> Value
-    {
+    func evaluate(
+        as type: ValueType,
+        for name: String,
+        index: Int = -1,
+        in context: EvaluationContext
+    ) throws -> Value {
         let value: Value, values: [(index: Int, value: Value)]
         do {
             if case let .tuple(expressions) = self.type {
