@@ -786,23 +786,25 @@ public extension Geometry {
         case let .extrude(paths, _) where paths.count >= 1,
              let .lathe(paths, _) where paths.count >= 1:
             fallthrough
-        case .cone, .cylinder, .sphere, .cube, .mesh:
+        case .cone, .cylinder, .sphere, .cube, .mesh, .path:
             if transform.rotation == .identity {
-                return type.bounds.transformed(by: transform)
+                return bounds.transformed(by: transform)
             }
             return Bounds(type.representativePoints.transformed(by: transform))
         case .hull:
-            var bounds = Bounds(type.representativePoints.transformed(by: transform))
-            for child in children {
-                bounds.formUnion(child.exactBounds(with: child.transform * transform, callback))
+            let bounds: Bounds
+            if transform.rotation == .identity {
+                bounds = type.bounds.transformed(by: transform)
+            } else {
+                bounds = Bounds(type.representativePoints.transformed(by: transform))
             }
-            return bounds
+            return children.reduce(bounds) {
+                $0.union($1.exactBounds(with: $1.transform * transform, callback))
+            }
         case .minkowski:
             return children.reduce(.empty) {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, callback))
             }
-        case let .path(path):
-            return path.transformed(by: transform).bounds
         case let .fill(paths), let .loft(paths):
             return Bounds(paths.transformed(by: transform))
         case .group, .union, .lathe, .extrude:
