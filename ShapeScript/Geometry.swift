@@ -58,7 +58,7 @@ public final class Geometry: Hashable {
         case .cone, .cylinder, .sphere, .cube, .lathe, .loft, .path, .mesh, .camera, .light,
              .intersection, .difference, .stencil:
             return false
-        case .union, .xor, .extrude, .fill, .hull:
+        case .union, .xor, .extrude, .fill, .hull, .minkowski:
             return mesh == nil
         }
     }
@@ -185,13 +185,11 @@ public final class Geometry: Hashable {
             default:
                 assert(children.isEmpty)
             }
-        case .hull:
-            break // TODO: what needs to be done here?
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
-        case .union, .xor, .difference, .intersection, .stencil:
+        case .union, .xor, .difference, .intersection, .stencil, .hull, .minkowski:
             material = children.first?.material ?? .default
         case .group:
             if debug {
@@ -233,7 +231,7 @@ public final class Geometry: Hashable {
         // Must be set after cache key is generated
         self.isOpaque = isOpaque
 
-        // Compute bounds
+        // Compute the overestimated, non-transformed bounds
         switch type {
         case .difference, .stencil:
             self.bounds = children.first.map {
@@ -253,7 +251,13 @@ public final class Geometry: Hashable {
             self.bounds = type.bounds.union(Bounds(children.map {
                 $0.bounds.transformed(by: $0.transform)
             }))
-        case .cone, .cube, .cylinder, .sphere, .path, .mesh:
+        case .minkowski:
+            var bounds = Bounds(min: .zero, max: .zero)
+            for child in children {
+                bounds.formMinkowskiSum(with: child.bounds.transformed(by: child.transform))
+            }
+            self.bounds = bounds
+        case .cone, .cylinder, .sphere, .cube, .mesh, .path:
             self.bounds = type.bounds
         case .camera, .light:
             self.bounds = .empty
@@ -466,15 +470,13 @@ private extension Geometry {
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
-        case .hull:
-            mesh = nil
         case .group, .path, .mesh,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(callback)
-        case .union, .xor, .intersection, .camera, .light:
+        case .union, .xor, .intersection, .hull, .minkowski, .camera, .light:
             mesh = nil
         }
         return callback()
@@ -529,6 +531,11 @@ private extension Geometry {
             let m = Mesh.convexHull(of: vertices, material: Material.default, isCancelled: isCancelled)
             let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
+        case .minkowski:
+            let meshes = childMeshes(callback).map { $0.materialToVertexColors(material: material) }
+            mesh = Mesh.minkowskiSum(of: meshes, isCancelled: isCancelled)
+                .fixupColors(material: material)
+                .makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
@@ -704,7 +711,7 @@ public extension Geometry {
         case .camera, .light, .path:
             return false
         case .cone, .cylinder, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill, .hull,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .group, .mesh:
             return true
@@ -718,7 +725,7 @@ public extension Geometry {
         case .camera, .light:
             return 0
         case .cone, .cylinder, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill, .hull,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
             return 1
@@ -731,7 +738,7 @@ public extension Geometry {
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             return 0 // TODO: should paths/points be treated as children?
-        case .union, .xor, .difference, .intersection, .stencil, .group, .hull:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .hull, .minkowski:
             return children.count
         }
     }
@@ -790,6 +797,10 @@ public extension Geometry {
                 bounds.formUnion(child.exactBounds(with: child.transform * transform, callback))
             }
             return bounds
+        case .minkowski:
+            return children.reduce(.empty) {
+                $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, callback))
+            }
         case let .path(path):
             return path.transformed(by: transform).bounds
         case let .fill(paths), let .loft(paths):

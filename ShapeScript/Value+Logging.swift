@@ -252,6 +252,7 @@ extension GeometryType: Loggable {
         case .loft: return "loft"
         case .fill: return "fill"
         case .hull: return "hull"
+        case .minkowski: return "minkowski"
         case .union: return "union"
         case .difference: return "difference"
         case .intersection: return "intersection"

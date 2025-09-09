@@ -471,7 +471,7 @@ private extension Geometry {
     var isSelectable: Bool {
         switch type {
         case .cone, .cylinder, .sphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill, .hull,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path:
             return true
@@ -488,7 +488,7 @@ private extension Geometry {
              .extrude, .lathe, .loft, .fill,
              .path, .camera, .light:
             return false
-        case .hull, .union, .difference, .intersection, .xor, .stencil:
+        case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
             return childDebug
         }
     }

@@ -66,6 +66,7 @@ public enum GeometryType: Hashable {
     case loft([Path])
     case fill([Path])
     case hull([Vertex])
+    case minkowski
     // csg
     case union
     case difference
@@ -83,7 +84,7 @@ public enum GeometryType: Hashable {
 public extension GeometryType {
     var isEmpty: Bool {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
             return true
         case .cone, .cylinder, .sphere, .cube:
             return false
@@ -101,10 +102,10 @@ public extension GeometryType {
         }
     }
 
-    /// Returns exact bounds, not including the effect of child shapes
+    /// Returns exact bounds, not including the effect of transform or child shapes
     var bounds: Bounds {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
             return .empty
         case .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
@@ -163,7 +164,7 @@ extension GeometryType {
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .fill,
              .group, .camera, .light:
             return true
-        case .hull, .union, .xor, .difference, .intersection, .stencil:
+        case .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
             return false
         }
     }
@@ -171,7 +172,7 @@ extension GeometryType {
     /// Returns representative points needed to generate exact bounds
     var representativePoints: [Vector] {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
+        case .minkowski, .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
             return []
         case .cube:
             return [

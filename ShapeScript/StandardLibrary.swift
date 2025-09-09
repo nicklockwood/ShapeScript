@@ -245,6 +245,9 @@ extension [String: Symbol] {
             }
             return .mesh(Geometry(type: .hull(vertices), in: context))
         },
+        "minkowski": .block(.group) { context in
+            .mesh(Geometry(type: .minkowski, in: context))
+        },
         // mesh
         "mesh": .block(.init(.mesh, [:], .polygon, .mesh)) { context in
             let polygons = context.children.compactMap { $0.value as? Polygon }

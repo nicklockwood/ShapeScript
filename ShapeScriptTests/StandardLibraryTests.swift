@@ -954,6 +954,25 @@ class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(geometry.mesh?.bounds, Mesh.cube().bounds)
     }
 
+    // MARK: Minkowski sum
+
+    func testMinkowskiSumOfCubes() throws {
+        let program = try parse("""
+        minkowski {
+            cube
+            cube { size 0.5 }
+        }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let expected = Mesh.cube(size: 1.5)
+        XCTAssertEqual(geometry.bounds, expected.bounds)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh?.bounds, expected.bounds)
+    }
+
     // MARK: Functions
 
     func testDot() {
