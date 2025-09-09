@@ -157,8 +157,8 @@ extension Value {
             case .cylinder: return "cylinder"
             case .sphere: return "sphere"
             case .cube: return "cube"
-            case .group, .extrude, .lathe, .loft, .fill, .hull, .union,
-                 .difference, .intersection, .xor, .stencil, .mesh:
+            case .group, .extrude, .lathe, .loft, .fill, .hull, .minkowski, .union, .difference,
+                 .intersection, .xor, .stencil, .mesh:
                 return "mesh"
             case .camera: return "camera"
             case .light: return "light"
