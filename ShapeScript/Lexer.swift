@@ -208,7 +208,6 @@ public extension String {
     func lineRange(at index: Index, includingIndent: Bool = false) -> SourceRange {
         var endIndex = endIndex
         var startIndex = startIndex
-        assert(index >= startIndex && index <= endIndex)
         let index = min(max(index, startIndex), endIndex)
         var i = startIndex
         while i < index {
@@ -236,7 +235,6 @@ public extension String {
     func lineAndColumn(at index: Index) -> (line: Int, column: Int) {
         var line = 1, column = 1
         var i = startIndex
-        assert(index <= endIndex)
         while i < min(index, endIndex) {
             if self[i].isLinebreak == true {
                 line += 1

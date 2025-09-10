@@ -165,7 +165,7 @@ extension Document {
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
-        viewController.setError(error, message: error?.message(with: sourceString))
+        viewController.setError(error, message: errorMessage)
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera

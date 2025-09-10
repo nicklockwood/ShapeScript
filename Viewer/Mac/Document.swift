@@ -57,12 +57,16 @@ class Document: NSDocument {
         didSet { updateViews() }
     }
 
-    var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
 
     var sourceString: String = "" {
         didSet { didUpdateSource() }
+    }
+
+    var errorMessage: NSAttributedString?
+    var error: ProgramError? {
+        didSet { errorMessage = error?.message(with: sourceString) }
     }
 
     override var fileURL: URL? {
