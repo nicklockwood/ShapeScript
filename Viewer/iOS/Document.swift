@@ -45,7 +45,6 @@ class Document: UIDocument {
         didSet { updateViews() }
     }
 
-    var error: ProgramError?
     var rerenderRequired: Bool = false
     private var observer: Any?
     private weak var saveTimer: Timer?
@@ -56,6 +55,11 @@ class Document: UIDocument {
                 didUpdateSource()
             }
         }
+    }
+
+    var errorMessage: NSAttributedString?
+    var error: ProgramError? {
+        didSet { errorMessage = error?.message(with: sourceString) }
     }
 
     func scheduleAutosave() {
