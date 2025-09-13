@@ -532,10 +532,36 @@ private extension Geometry {
             let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
         case .minkowski:
-            let meshes = childMeshes(callback).map { $0.materialToVertexColors(material: material) }
-            mesh = Mesh.minkowskiSum(of: meshes, isCancelled: isCancelled)
-                .fixupColors(material: material)
-                .makeWatertight()
+            var children = ArraySlice(children)
+            guard let first = children.popFirst() else {
+                mesh = .empty
+                break
+            }
+            var sum: Mesh
+            if let shape = first.path {
+                guard let next = children.popFirst() else {
+                    sum = .empty
+                    break
+                }
+                if let path = next.path {
+                    let mesh = Mesh.fill(shape).materialToVertexColors(material: material)
+                    sum = mesh.minkowskiSum(with: path, isCancelled: isCancelled)
+                } else {
+                    let mesh = next.flattened(callback).materialToVertexColors(material: material)
+                    sum = mesh.minkowskiSum(with: shape, isCancelled: isCancelled)
+                }
+            } else {
+                sum = first.flattened(callback).materialToVertexColors(material: material)
+            }
+            while let next = children.popFirst() {
+                if let path = next.path {
+                    sum = sum.minkowskiSum(with: path, isCancelled: isCancelled)
+                } else {
+                    let mesh = next.flattened(callback).materialToVertexColors(material: material)
+                    sum = sum.minkowskiSum(with: mesh, isCancelled: isCancelled)
+                }
+            }
+            mesh = sum.fixupColors(material: material).makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
