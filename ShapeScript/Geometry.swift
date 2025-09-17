@@ -31,6 +31,7 @@ public final class Geometry: Hashable {
         hasher.combine(name)
         hasher.combine(transform)
         hasher.combine(material)
+        hasher.combine(smoothing)
         hasher.combine(children)
     }
 
@@ -42,6 +43,7 @@ public final class Geometry: Hashable {
               lhs.name == rhs.name,
               lhs.transform == rhs.transform,
               lhs.material == rhs.material,
+              lhs.smoothing == rhs.smoothing,
               lhs.children == rhs.children
         // Exclude isOpaque, sourceLocation and parent
         else {
