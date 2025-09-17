@@ -509,6 +509,8 @@ private extension RuntimeError {
         "head": ["first"],
         "tail": ["last", "allButFirst"],
         "rest": ["allButFirst"],
+        "srand": ["seed"],
+        "srnd": ["seed"],
         "rands": ["rnd", "seed"],
         "rand": ["rnd"],
         "random": ["rnd"],
@@ -521,6 +523,7 @@ private extension RuntimeError {
         "smoothness": ["roughness"],
         "emission": ["glow"],
         "emissiveness": ["glow"],
+        "alpha": ["opacity"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {
