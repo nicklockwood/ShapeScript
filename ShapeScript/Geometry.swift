@@ -546,20 +546,20 @@ private extension Geometry {
                     break
                 }
                 if let path = next.path {
-                    let mesh = Mesh.fill(shape).materialToVertexColors(material: material)
+                    let mesh = Mesh.fill(shape).materialToVertexColors(material: first.material)
                     sum = mesh.minkowskiSum(with: path, isCancelled: isCancelled)
                 } else {
-                    let mesh = next.flattened(callback).materialToVertexColors(material: material)
+                    let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
                     sum = mesh.minkowskiSum(with: shape, isCancelled: isCancelled)
                 }
             } else {
-                sum = first.flattened(callback).materialToVertexColors(material: material)
+                sum = first.flattened(callback).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
                 if let path = next.path {
                     sum = sum.minkowskiSum(with: path, isCancelled: isCancelled)
                 } else {
-                    let mesh = next.flattened(callback).materialToVertexColors(material: material)
+                    let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
                     sum = sum.minkowskiSum(with: mesh, isCancelled: isCancelled)
                 }
             }
@@ -715,7 +715,7 @@ extension Polygon {
             return self
         }
         material.albedo = .color(.white)
-        return mapVertexColors { _ in color }.withMaterial(material)
+        return mapVertexColors { $0 * color }.withMaterial(material)
     }
 }
 
