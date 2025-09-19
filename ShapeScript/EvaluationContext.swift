@@ -490,6 +490,7 @@ extension EvaluationContext {
                 return .mesh(geometry.with(
                     transform: .identity,
                     material: material,
+                    smoothing: smoothing,
                     sourceLocation: sourceLocation
                 ))
             } catch let error as ProgramError {
