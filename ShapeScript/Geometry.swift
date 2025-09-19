@@ -318,12 +318,14 @@ public extension Geometry {
     func with(
         transform: Transform,
         material: Material?,
+        smoothing: Angle?,
         sourceLocation: @escaping () -> SourceLocation?
     ) -> Geometry {
         _with(
             name: nil,
             transform: transform,
             material: material,
+            smoothing: smoothing,
             sourceLocation: sourceLocation,
             removingLights: false,
             removingGroupTransform: false
@@ -336,6 +338,7 @@ public extension Geometry {
             name: nil,
             transform: nil,
             material: nil,
+            smoothing: nil,
             sourceLocation: nil,
             removingLights: true,
             removingGroupTransform: false
@@ -348,6 +351,7 @@ public extension Geometry {
             name: nil,
             transform: nil,
             material: nil,
+            smoothing: nil,
             sourceLocation: nil,
             removingLights: false,
             removingGroupTransform: true
@@ -598,6 +602,7 @@ private extension Geometry {
         name: String?,
         transform: Transform?,
         material: Material?,
+        smoothing: Angle?,
         sourceLocation: (() -> SourceLocation?)?,
         removingLights: Bool,
         removingGroupTransform: Bool
@@ -640,7 +645,7 @@ private extension Geometry {
             name: name ?? self.name,
             transform: transform,
             material: m,
-            smoothing: smoothing,
+            smoothing: smoothing ?? self.smoothing,
             children: children.compactMap {
                 if case .light = $0.type, removingLights {
                     return nil
@@ -649,6 +654,7 @@ private extension Geometry {
                     name: nil,
                     transform: childTransform,
                     material: material,
+                    smoothing: nil,
                     sourceLocation: sourceLocation,
                     removingLights: removingLights,
                     removingGroupTransform: removingGroupTransform
