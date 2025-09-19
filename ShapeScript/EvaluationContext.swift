@@ -343,21 +343,26 @@ extension EvaluationContext {
             return geometry
         }
         switch url.pathExtension.lowercased() {
-        case "stl", "stla":
-            let data = try Data(contentsOf: url)
-            if let mesh = Mesh(stlData: data, materialLookup: {
-                Material(color: $0)
-            }) {
-                return Geometry(
-                    type: .mesh(mesh),
-                    name: nil,
-                    transform: .identity,
-                    material: .default,
-                    smoothing: nil,
-                    children: [],
-                    sourceLocation: nil
-                )
+        case "stl", "stla", "obj", "off":
+            let mesh = try Mesh(url: url) {
+                switch $0 {
+                case let color as Color:
+                    return Material(color: color)
+                case let scnMaterial as SCNMaterial:
+                    return Material(scnMaterial)
+                default:
+                    return nil
+                }
             }
+            return Geometry(
+                type: .mesh(mesh),
+                name: nil,
+                transform: .identity,
+                material: .default,
+                smoothing: nil,
+                children: [],
+                sourceLocation: nil
+            )
         default:
             break
         }
