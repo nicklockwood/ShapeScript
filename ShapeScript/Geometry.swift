@@ -57,11 +57,12 @@ public final class Geometry: Hashable {
         switch type {
         case .group:
             return true
-        case .cone, .cylinder, .sphere, .cube, .lathe, .loft, .path, .mesh, .camera, .light,
-             .intersection, .difference, .stencil:
+        case .lathe, .intersection, .difference, .stencil, .minkowski:
             return false
-        case .union, .xor, .extrude, .fill, .hull, .minkowski:
+        case .loft, .union, .xor, .extrude, .fill, .hull:
             return mesh == nil
+        case .cone, .cylinder, .sphere, .cube, .path, .mesh, .camera, .light:
+            return false // These don't have children
         }
     }
 
