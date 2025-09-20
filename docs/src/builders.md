@@ -273,5 +273,79 @@ smoothing 0.25
 
 ![Hull shape](../images/smoothed-hull.png)
 
+## Minkowski
+
+The `minkowski` command performs [Minkowski Addition](https://en.wikipedia.org/wiki/Minkowski_addition) on two or more shapes.
+
+For example, the Minkowski sum of a circle and square is a rounded rectangle:
+
+```swift
+minkowski {
+    circle
+    square
+}
+```
+
+![Minkowski sum](../images/minkowski-roundrect.png)
+
+A smaller circle produces a rounded frame, since the sum of the radii no longer match the width of the square:
+
+```swift
+minkowski {
+    circle { size 0.25 }
+    square
+}
+```
+
+![Minkowski sum](../images/minkowski-roundrect-frame.png)
+
+Like the `hull` command, `minkowski` works with meshes as well as paths. We can replace the circle with a sphere to bring the rounded rect into the third dimension:
+
+```swift
+minkowski {
+    sphere { size 0.25 }
+    square
+}
+```
+
+![Minkowski sum](../images/minkowski-sphere-rect.png)
+
+And if we also replace the square with a cube, we now get a rounded cube:
+
+```swift
+minkowski {
+    sphere { size 0.25 }
+    cube
+}
+```
+
+![Minkowski sum](../images/rounded-cube.png)
+
+**Note:** Minkowski addition is [commutative](https://en.wikipedia.org/wiki/Commutative_property), meaning that the order of inputs should not affect the result. However, the ShapeScript `minkowski` command can sometimes produce different results when the input includes paths or non-convex meshes due to various optimizations.
+
+The order of child shapes can also affect how [materials](materials.md), [colors](materials.md#color) and [vertex normals](materials.md#normals) are applied. If we reverse the order of the sphere and cube in the previous example, the actual shape is the same but the vertex normals from the cube are more dominant in the output, making it appear like there are seams:
+
+```swift
+minkowski {
+    cube
+    sphere { size 0.25 }
+}
+```
+
+![Minkowski sum](../images/rounded-cube-seams.png)
+
+You can correct this using the [smoothing](options.md#smoothing) command:
+
+```swift
+minkowski {
+    cube
+    sphere { size 0.25 }
+    smoothing 0.25
+}
+```
+
+![Minkowski sum](../images/rounded-cube.png)
+
+
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)

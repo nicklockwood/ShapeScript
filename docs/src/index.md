@@ -72,6 +72,7 @@ ShapeScript Help
         - [Extrude](builders.md#extrude)
         - [Loft](builders.md#loft)
         - [Hull](builders.md#hull)
+        - [Minkowski](builders.md#minkowski)
     - [Constructive Solid Geometry](csg.md)
         - [Difference](csg.md#difference)
         - [Intersection](csg.md#intersection)
