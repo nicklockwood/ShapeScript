@@ -543,7 +543,28 @@ private extension Geometry {
             let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
         case .minkowski:
-            var children = ArraySlice(children)
+            var children = ArraySlice(children.enumerated().sorted {
+                switch ($0.1.type, $1.1.type) {
+                case let (.path(a), .path(b)):
+                    // Put closed paths before open paths
+                    if a.isClosed != b.isClosed {
+                        return a.isClosed
+                    }
+                    // TODO: put convex paths before concave paths
+                    // Put smaller paths before larger paths
+                    return a.bounds.size < b.bounds.size
+                case (.path, _):
+                    // Put meshes before paths
+                    return false
+                case (_, .path):
+                    return true
+                case (_, _):
+                    // TODO: put convex meshes before concave meshes
+                    // TODO: put smaller meshes before larger meshes
+                    // Preserve original order
+                    return $0.0 < $1.0
+                }
+            }.map { $1 })
             guard let first = children.popFirst() else {
                 mesh = .empty
                 break
