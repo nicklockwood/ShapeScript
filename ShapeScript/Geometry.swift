@@ -370,10 +370,14 @@ public extension Geometry {
         buildLeaves(callback) && buildPreview(callback) && buildFinal(callback)
     }
 
+    /// Returns the union mesh of the receiver and all its children
+    /// - Note: Includes both material and transform
     func flattened(_ callback: @escaping () -> Bool = { true }) -> Mesh {
         flattened(with: material, callback)
     }
 
+    /// Returns the combined mesh of the receiver all its children
+    /// - Note: Includes both material and transform
     func merged(_ callback: @escaping () -> Bool = { true }) -> Mesh {
         var result = mesh ?? .empty
         if type.isLeafGeometry {
@@ -545,12 +549,12 @@ private extension Geometry {
                 break
             }
             var sum: Mesh
-            if let shape = first.path {
+            if let shape = first.path?.transformed(by: first.transform) {
                 guard let next = children.popFirst() else {
                     sum = .empty
                     break
                 }
-                if let path = next.path {
+                if let path = next.path?.transformed(by: next.transform) {
                     let mesh = Mesh.fill(shape).materialToVertexColors(material: first.material)
                     sum = mesh.minkowskiSum(with: path, isCancelled: isCancelled)
                 } else {
@@ -561,7 +565,7 @@ private extension Geometry {
                 sum = first.flattened(callback).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
-                if let path = next.path {
+                if let path = next.path?.transformed(by: next.transform) {
                     sum = sum.minkowskiSum(with: path, isCancelled: isCancelled)
                 } else {
                     let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
