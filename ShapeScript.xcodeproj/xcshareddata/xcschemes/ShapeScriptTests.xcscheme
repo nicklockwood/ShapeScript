@@ -8,7 +8,7 @@
       buildArchitectures = "Automatic">
    </BuildAction>
    <TestAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
@@ -19,10 +19,10 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "01F995E62E6455BD0017AAC8"
-               BuildableName = "PerformanceTests.xctest"
-               BlueprintName = "PerformanceTests"
-               ReferencedContainer = "container:Euclid.xcodeproj">
+               BlueprintIdentifier = "0158D96F2E8072C400C53A29"
+               BuildableName = "ShapeScriptTests.xctest"
+               BlueprintName = "ShapeScriptTests"
+               ReferencedContainer = "container:ShapeScript.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>

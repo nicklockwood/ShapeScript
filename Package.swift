@@ -31,7 +31,7 @@ let package = Package(
             name: "ShapeScript",
             dependencies: ["Euclid", "LRUCache", "SVGPath"],
             path: "ShapeScript",
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist", "ShapeScript.xctestplan"]
         ),
         .executableTarget(
             name: "CLI",

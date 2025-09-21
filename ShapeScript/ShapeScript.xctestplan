@@ -1,0 +1,45 @@
+{
+  "configurations" : [
+    {
+      "id" : "54F68D7A-59DE-4AD6-89FA-DFACA85FBA6A",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ShapeScript.xcodeproj",
+        "identifier" : "0158D96F2E8072C400C53A29",
+        "name" : "ShapeScriptTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Euclid\/Euclid.xcodeproj",
+        "identifier" : "016FAB3121BFE78100AF60DC",
+        "name" : "EuclidTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:SVGPath\/SVGPath.xcodeproj",
+        "identifier" : "016FAB3121BFE78100AF60DC",
+        "name" : "SVGPathTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:LRUCache\/LRUCache.xcodeproj",
+        "identifier" : "016FAB3121BFE78100AF60DC",
+        "name" : "LRUCacheTests"
+      }
+    }
+  ],
+  "version" : 1
+}

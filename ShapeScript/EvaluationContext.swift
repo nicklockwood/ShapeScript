@@ -348,8 +348,10 @@ extension EvaluationContext {
                 switch $0 {
                 case let color as Color:
                     return Material(color: color)
+                #if canImport(SceneKit)
                 case let scnMaterial as SCNMaterial:
                     return Material(scnMaterial)
+                #endif
                 default:
                     return nil
                 }
