@@ -178,6 +178,26 @@ class DocumentViewController: NSViewController {
         scnView.gestureRecognizers = gestureRecognizers
     }
 
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        checkDocumentVersion()
+    }
+
+    @discardableResult
+    func presentError(_ error: any Error, completionHandler: (() -> Void)? = nil) -> Bool {
+        if let window = view.window {
+            let alert = NSAlert(error: error)
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: "OK")
+            alert.beginSheetModal(for: window) { _ in
+                completionHandler?()
+            }
+            presentError(error, modalFor: window, delegate: nil, didPresent: nil, contextInfo: nil)
+            return true
+        }
+        return super.presentError(error)
+    }
+
     override func viewWillLayout() {
         super.viewWillLayout()
         NSAppearance.current = NSApp.effectiveAppearance

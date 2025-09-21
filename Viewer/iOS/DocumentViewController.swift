@@ -330,6 +330,26 @@ class DocumentViewController: UIViewController {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        checkDocumentVersion()
+    }
+
+    func presentError(_ error: Error, completionHandler: (() -> Void)? = nil) {
+        let alert = UIAlertController(
+            title: "Warning",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(
+            title: "OK",
+            style: .default
+        ) { _ in
+            completionHandler?()
+        })
+        present(alert, animated: true)
+    }
+
     private var _cameraHadMoved = false
     private func scheduleCameraMovedTimer() {
         Timer.scheduledTimer(

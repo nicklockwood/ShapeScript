@@ -11,17 +11,23 @@ import SceneKit
 import ShapeScript
 
 extension Document {
+    var optionalFileURL: URL? {
+        fileURL // Optionality varies between platforms
+    }
+
+    var fileName: String {
+        optionalFileURL?.lastPathComponent ?? "File"
+    }
+
     var isEditable: Bool {
-        let fileURL: URL? = fileURL
-        return fileURL.map {
+        optionalFileURL.map {
             FileManager.default.isWritableFile(atPath: $0.path) &&
                 !$0.path.hasPrefix(Bundle.main.bundlePath)
         } ?? false
     }
 
     var errorURL: URL? {
-        let fileURL: URL? = fileURL
-        return fileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
+        optionalFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
     var selectedGeometry: Geometry? {
@@ -193,6 +199,11 @@ extension Document {
             )
         }
         if input != sourceString {
+            if !sourceString.isEmpty {
+                // Treat as edit
+                formatVersion = SemanticVersion(ShapeScript.version)
+                clientVersion = SemanticVersion(appVersion)
+            }
             sourceString = input
             viewController?.updateModals()
         } else if viewController != nil {
@@ -332,5 +343,17 @@ extension Document {
             let end = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
         }
+    }
+}
+
+extension Document {
+    var formatVersion: SemanticVersion? {
+        get { settings.value(for: #function, in: self) }
+        set { settings.set(newValue, for: #function, in: self) }
+    }
+
+    var clientVersion: SemanticVersion? {
+        get { settings.value(for: #function, in: self) }
+        set { settings.set(newValue, for: #function, in: self) }
     }
 }

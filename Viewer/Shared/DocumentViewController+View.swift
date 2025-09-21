@@ -11,6 +11,29 @@ import SceneKit
 import ShapeScript
 
 extension DocumentViewController {
+    func checkDocumentVersion() {
+        guard let document,
+              let formatVersion = document.formatVersion,
+              formatVersion > SemanticVersion(ShapeScript.version)
+        else {
+            return
+        }
+        if let clientVersion = document.clientVersion,
+           clientVersion == SemanticVersion(appVersion)
+        {
+            return
+        }
+        let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
+        presentError(NSError(domain: "", code: 0, userInfo: [
+            NSLocalizedDescriptionKey: """
+            \(document.fileName) was last edited with a newer version of \
+            ShapeScript\(clientVersion) and may not be fully compatible with this version.
+            """,
+        ])) {
+            document.clientVersion = SemanticVersion(appVersion)
+        }
+    }
+
     func setError(_ error: ProgramError?, message: NSAttributedString?) {
         switch error?.type ?? .evaluation {
         case .evaluation:
