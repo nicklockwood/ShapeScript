@@ -11,21 +11,22 @@ To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-
 
 ![Loading](../images/loading.png)
 
-## Export Formats
+## Model and Scene Formats
 
 ShapeScript can export your scene in a variety of formats, selectable from the export window:
 
-Extension             | File Type                                        | Supports All Features
-:-------------------- | :------------------------------------------------|:------------------------------
-abc                   | Alembic                                          | No 
-dae                   | Collada DAE                                      | Yes
-obj                   | Wavefront Object                                 | No
-scn / scnz            | SceneKit Scene Document                          | Yes
-usd / usdz            | Universal Scene Description                      | No
-ply                   | Polygon File Format                              | No
-stl / stla            | Stereolithography                                | No
-3mf                   | 3D Manufacturing Format                          | No
-svg                   | Scalable Vector Graphics                         | No
+Extension             | File Type                                
+:-------------------- | :-------------------------------
+3mf                   | 3D Manufacturing Format 
+abc                   | Alembic                                          
+csg                   | OpenSCAD CSG                   
+dae                   | COLLADA Digital Asset Exchange                     
+obj                   | Wavefront Object                
+off                   | Object File Format    
+ply                   | Polygon File Format                       
+scn / scnz            | SceneKit Scene     
+stl / stla            | Stereolithography                       
+usd / usdz            | Universal Scene Description     
 
 <br/>
 
@@ -50,6 +51,10 @@ When exporting for 3D printing, you will usually want to avoid having internal g
 ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export window to export your model in this orientation.
 
 ## Plotters and CNC Machines
+
+Extension             | File Type                                
+:-------------------- | :-------------------------------                    
+svg                   | Scalable Vector Graphics   
 
 By selecting the SVG option, you can export your model as a 2D cross-section. Unlike the other model export formats, the SVG export option does not preserve any depth or material information, but simply takes a slice across the XY plane and captures a vector outline suitable for printing or carving by a [plotter](https://en.wikipedia.org/wiki/Plotter) or [CNC machine](https://en.wikipedia.org/wiki/Numerical_control).
 

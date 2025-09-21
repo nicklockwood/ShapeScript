@@ -160,7 +160,7 @@ ShapeScript Help
         - [Text and Data](import.md#text-and-data)
         - [Dynamic Imports](import.md#dynamic-imports)
 - [Export](export.md)
-    - [Export Formats](export.md#export-formats)
+    - [Model and Scene Formats](export.md#model-and-scene-formats)
     - [Games and AR](export.md#games-and-ar)
     - [3D Printing](export.md#3d-printing)
     - [Plotters and CNC Machines](export.md#plotters-and-cnc-machines)
