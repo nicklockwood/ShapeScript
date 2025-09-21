@@ -10,24 +10,20 @@ import ShapeScript
 import UIKit
 
 class SourceViewController: UIViewController {
+    private var undoRegistered = false
+    private var undoButton: UIBarButtonItem!
+    private var redoButton: UIBarButtonItem!
+    private var shareButton: UIBarButtonItem!
+
     @IBOutlet private var textView: TokenView!
 
     var document: Document? {
-        willSet { document?.undoManager = nil }
+        willSet { unregisterUndoManager() }
         didSet { didSetDocument() }
     }
 
     override var undoManager: UndoManager? {
         document?.undoManager
-    }
-
-    func didSetDocument() {
-        title = document?.fileURL.lastPathComponent
-        if let textView {
-            textView.text = document?.sourceString ?? ""
-            textView.isEditable = document?.isEditable ?? false
-            document?.undoManager = textView.undoManager
-        }
     }
 
     override func viewDidLoad() {
@@ -38,7 +34,6 @@ class SourceViewController: UIViewController {
         textView.wrapLines = false
         textView.disableDoubleSpacePeriodShortcut = true
         textView.delegate = self
-        didSetDocument()
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             systemItem: .close,
@@ -47,7 +42,19 @@ class SourceViewController: UIViewController {
             }
         )
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        undoButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.uturn.left"),
+            primaryAction: UIAction { [weak self] _ in
+                self?.document?.undoManager?.undo()
+            }
+        )
+        redoButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.uturn.right"),
+            primaryAction: UIAction { [weak self] _ in
+                self?.document?.undoManager?.redo()
+            }
+        )
+        shareButton = UIBarButtonItem(
             systemItem: .action,
             primaryAction: UIAction { [weak self] _ in
                 guard let self, let document = self.document else {
@@ -65,6 +72,61 @@ class SourceViewController: UIViewController {
                 self.present(sheet, animated: true)
             }
         )
+
+        didSetDocument()
+        updateUndoButtons()
+    }
+}
+
+private extension SourceViewController {
+    func didSetDocument() {
+        title = document?.fileURL.lastPathComponent
+        guard let textView else { return }
+
+        textView.text = document?.sourceString ?? ""
+        textView.isEditable = document?.isEditable ?? false
+        registerUndoManager()
+
+        if document?.isEditable ?? false {
+            navigationItem.rightBarButtonItems = [
+                shareButton,
+                redoButton,
+                undoButton,
+                .flexibleSpace(),
+            ]
+        } else {
+            navigationItem.rightBarButtonItems = [
+                shareButton,
+                .flexibleSpace(),
+            ]
+        }
+    }
+
+    func unregisterUndoManager() {
+        undoRegistered = false
+        document?.undoManager = nil
+        NotificationCenter.default.removeObserver(
+            self,
+            name: .NSUndoManagerCheckpoint,
+            object: nil
+        )
+    }
+
+    func registerUndoManager() {
+        guard !undoRegistered, let document, textView != nil else { return }
+        undoRegistered = true
+        document.undoManager = textView.undoManager
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateUndoButtons),
+            name: .NSUndoManagerCheckpoint,
+            object: document.undoManager
+        )
+    }
+
+    @objc func updateUndoButtons() {
+        undoButton.isEnabled = document?.undoManager.canUndo == true
+        redoButton.isEnabled = document?.undoManager.canRedo == true
     }
 }
 
