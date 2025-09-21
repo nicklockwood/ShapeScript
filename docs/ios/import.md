@@ -25,7 +25,34 @@ In this way, the loaded shape is bound to a symbol of your choice, and can be us
 
 ## Models
 
-The `import` command is not limited to loading `.shape` files. It can load models in many of the [export formats](export.md) supported by ShapeScript. Imported models can be used just like imported script files:
+The `import` command is not limited to loading `.shape` files, it can also load 3D models in a variety of standard formats:
+
+Extension             | File Type                                        
+:-------------------- | :------------------------------------------------
+abc                   | Alembic                                          
+dae                   | COLLADA Digital Asset Exchange                     
+obj                   | Wavefront Object                
+off                   | Object File Format    
+ply                   | Polygon File Format                       
+scn / scnz            | SceneKit Scene     
+stl / stla            | Stereolithography                       
+usd / usdz            | Universal Scene Description                     
+
+<br/>
+
+Imported models can be used just like imported script files. Importing a model inserts it directly into your scene:
+
+```swift
+import "Rocket.obj"
+```
+
+Or you can [define a symbol](symbols.md) for the model, to be used later:
+
+```swift
+define rocket import "Rocket.obj"
+```
+
+Depending on the format, imported models may include their own materials. Uncolored / untextured models can be styled in the normal way by using [material](materials.md) commands:
 
 ```swift
 define rocket {
@@ -34,11 +61,9 @@ define rocket {
 }
 ```
 
-Depending on the format, imported models may include their own [materials](materials.md). Uncolored / untextured models will inherit the current ShapeScript material properties.
-
 ## Text and Data
 
-In addition to scripts and standard model formats, text files can be imported as a [string](literals.md#strings) value.
+In addition to scripts and 3D models, plain text files can be imported as a [string](literals.md#strings) value.
 
 ```swift
 define text import "Text.txt"
@@ -52,11 +77,13 @@ for line in text.lines {
 }
 ```
 
-As well as plain text, ShapeScript also supports importing JSON files as [structured data](literals.md#structured-data):
+ShapeScript also supports importing JSON files as [structured data](literals.md#structured-data):
 
 ```swift
 define data import "Data.json"
 ```
+
+**Note:** ShapeScript currently only supports `txt` or `json` file extensions for data files. To import structured text in other formats you will need to change the file extension.
 
 ## Dynamic Imports
 
