@@ -541,7 +541,7 @@ private extension Geometry {
         case let .hull(vertices):
             let m = Mesh.convexHull(of: vertices, material: Material.default, isCancelled: isCancelled)
             let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
-            mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
+            mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material).detessellate()
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
                 switch ($0.1.type, $1.1.type) {
@@ -593,7 +593,7 @@ private extension Geometry {
                     sum = sum.minkowskiSum(with: mesh, isCancelled: isCancelled)
                 }
             }
-            mesh = sum.fixupColors(material: material).makeWatertight()
+            mesh = sum.fixupColors(material: material).makeWatertight().detessellate()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
