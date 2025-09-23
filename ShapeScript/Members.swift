@@ -167,20 +167,15 @@ extension Value {
             if !members.contains("alpha"), let color = self.as(.color) {
                 members += color.members
             }
-            if values.allSatisfy({
-                switch $0 {
-                case .mesh, .path:
-                    return true
-                default:
-                    return false
-                }
+            let flattened = values.flattened
+            if flattened.isEmpty || flattened.contains(where: {
+                $0.value is Bounded || $0.value is Geometry
             }) {
                 members.append("bounds")
             }
-            if values.allSatisfy({ $0.type == .mesh }) {
+            if flattened.isEmpty || flattened.contains(where: { $0.type == .mesh }) {
                 members += ["polygons", "triangles", "volume"]
-            }
-            if values.allSatisfy({ $0.type == .polygon }) {
+            } else if flattened.contains(where: { $0.type == .polygon }) {
                 members += ["polygons", "triangles"]
             }
             return members
@@ -293,37 +288,35 @@ extension Value {
             case "x", "y", "z":
                 return self.as(.vector)?[name, isCancelled]
             case "width", "height", "depth":
-                return self.as(.size)?[name, isCancelled]
+                return (self.as(.size) ?? self.as(.bounds))?[name, isCancelled]
             case "roll", "yaw", "pitch":
                 return self.as(.rotation)?[name, isCancelled]
             case "red", "green", "blue", "alpha":
                 return self.as(.color)?[name, isCancelled]
             case "bounds":
-                return .bounds(Bounds(values.compactMap { value -> Bounds? in
-                    switch value {
-                    case let .mesh(geometry):
+                return .bounds(Bounds(values.flattened.compactMap {
+                    switch $0.value {
+                    case let bounded as Bounded:
+                        return bounded.bounds
+                    case let geometry as Geometry:
                         return geometry.exactBounds(with: geometry.transform) {
                             !isCancelled()
                         }
-                    case let .path(path):
-                        return path.bounds
                     default:
-                        assertionFailure()
                         return nil
                     }
                 }))
             case "volume":
-                return .number(values.reduce(0) {
+                return .number(values.flattened.reduce(0) {
                     switch $1 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         return $0 + geometry.volume(isCancelled)
                     default:
-                        assertionFailure()
                         return $0
                     }
                 })
             case "polygons":
-                return .tuple(values.flatMap {
+                return .tuple(values.flattened.flatMap {
                     switch $0 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         let polygons = geometry.polygons(isCancelled)
@@ -332,12 +325,11 @@ extension Value {
                     case .polygon:
                         return [self]
                     default:
-                        assertionFailure()
                         return []
                     }
                 })
             case "triangles":
-                return .tuple(values.flatMap {
+                return .tuple(values.flattened.flatMap {
                     switch $0 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         let triangles = geometry.polygons(isCancelled)
@@ -346,7 +338,6 @@ extension Value {
                     case let .polygon(polygon):
                         return polygon.triangulate().map { Value.polygon($0) }
                     default:
-                        assertionFailure()
                         return []
                     }
                 })
@@ -512,6 +503,22 @@ extension Value {
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil
+        }
+    }
+}
+
+private extension [Value] {
+    var flattened: [Value] {
+        flatMap {
+            switch $0 {
+            case let .tuple(values):
+                return values.flattened
+            case .color, .texture, .material, .boolean, .number,
+                 .radians, .halfturns, .vector, .size, .rotation,
+                 .string, .text, .path, .mesh, .polygon, .point,
+                 .range, .bounds, .object:
+                return [$0]
+            }
         }
     }
 }
