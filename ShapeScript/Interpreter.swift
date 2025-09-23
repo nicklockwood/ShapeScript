@@ -692,9 +692,7 @@ extension Definition {
         case let .function(names, block):
             let declarationContext = context
             let returnType: ValueType
-            var params = Dictionary(uniqueKeysWithValues: names.map {
-                ($0.name, ValueType.any)
-            })
+            var params = Dictionary(names.map { ($0.name, ValueType.any) }) { $1 }
             do {
                 let context = context.push(.init(.all, [:], .any, .any))
                 block.inferTypes(for: &params, in: context)

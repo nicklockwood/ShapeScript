@@ -1189,6 +1189,14 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
+    func testFunctionWithDuplicateArgumentName() throws {
+        let input = "define foo(a a) { a + a }"
+        XCTAssertThrowsError(try parse(input)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Duplicate function parameter 'a'")
+        }
+    }
+
     // MARK: Comments
 
     func testBlockCommentDoesntMessUpLineCalculation() {

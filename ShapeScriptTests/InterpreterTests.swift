@@ -1928,6 +1928,17 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3])
     }
 
+    func testFunctionWithDuplicateArgumentName() throws {
+        let program = """
+        define foo(a a) { a + a }
+        print foo(1 2)
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? ParserError)
+            XCTAssertEqual(error?.message, "Duplicate function parameter 'a'")
+        }
+    }
+
     // MARK: Block invocation
 
     func testInvokePrimitive() {

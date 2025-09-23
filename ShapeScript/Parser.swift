@@ -96,6 +96,7 @@ public struct Identifier: Equatable {
 
 public enum ParserErrorType: Equatable {
     case unexpectedToken(Token, expected: String?)
+    case duplicateParameter(String, at: SourceRange)
     case custom(String, hint: String?, at: SourceRange?)
 }
 
@@ -112,6 +113,8 @@ public extension ParserError {
         switch type {
         case let .unexpectedToken(token, _):
             return token.range
+        case let .duplicateParameter(_, at: range):
+            return range
         case let .custom(_, _, at: range):
             return range
         }
@@ -121,6 +124,8 @@ public extension ParserError {
         switch type {
         case let .unexpectedToken(token, _):
             return "Unexpected \(token.type.errorDescription)"
+        case let .duplicateParameter(name, _):
+            return "Duplicate function parameter '\(name)'"
         case let .custom(message, _, _):
             return message
         }
@@ -146,7 +151,7 @@ public extension ParserError {
             default:
                 return nil
             }
-        case .custom:
+        case .duplicateParameter, .custom:
             return nil
         }
     }
@@ -158,6 +163,8 @@ public extension ParserError {
                 return "Did you mean '\(suggestion)'?"
             }
             return expected.map { "Expected \($0)." }
+        case .duplicateParameter:
+            return "Function parameter names must be unique."
         case let .custom(_, hint: hint, _):
             return hint
         }
@@ -276,6 +283,9 @@ private extension ArraySlice where Element == Token {
             for expression in expressions {
                 guard case let .identifier(name) = expression.type else {
                     fallthrough
+                }
+                if names.contains(where: { $0.name == name }) {
+                    throw ParserError(.duplicateParameter(name, at: expression.range))
                 }
                 names.append(Identifier(name: name, range: expression.range))
             }
