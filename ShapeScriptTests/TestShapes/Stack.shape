@@ -1,0 +1,23 @@
+// ShapeScript document
+
+detail 32
+
+// Function to stack shapes automatically
+// - Parameter shapes: one or more shapes to be stacked
+// - Returns: the stacked meshes, inside a group object
+define stack(shapes) {
+    define axis 0 1 0 // y-axis
+    group {
+        for mesh in shapes {
+            mesh
+            translate axis * mesh.bounds.size
+        }
+    }
+}
+
+// Display stacked objects
+stack(
+    cube { color red }
+    sphere { color green }
+    cone { color blue }
+)

@@ -1,0 +1,46 @@
+// ShapeScript document
+
+detail 32
+
+// Function to split a mesh into slices along a given axis
+// - Parameters:
+//   - shape: The mesh to split (can be a group, etc)
+//   - axis: The axis along which to slice the shape
+//   - slices: The number of equal slices to split the mesh into
+// - Returns: A tuple/list of mesh slices
+define split(shape axis slices) {
+    define axis normalize axis
+    define step shape.bounds.size / slices
+    define splitter cube {
+        size shape.bounds.size
+    }
+    for i in 1 to slices {
+        difference {
+            shape
+            splitter {
+                position axis * i * step
+            }
+            splitter {
+                position axis * (i * step - step - shape.bounds.size)
+            }
+        }
+    }
+}
+
+// Create an example shape
+define shape {
+    color red
+    sphere
+}
+
+// Split the shape along y axis
+define axis 0 1 0
+define result split(shape axis 5)
+
+// Display the result
+for slice in result {
+    slice
+    translate 0.2
+}
+
+
