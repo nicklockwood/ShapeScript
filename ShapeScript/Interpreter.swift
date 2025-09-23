@@ -1491,12 +1491,10 @@ extension Expression {
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let memberValue = value[member.name, context.isCancelled] {
-                assert(
-                    value.hasMember(member.name),
-                    "\(value.errorDescription) does not have member '\(member.name)'"
-                )
+                assert([.void, .number(0)].contains(memberValue) || value.hasMember(member.name))
                 return memberValue
             }
+            // TODO: if hasMember() == true, should we return void instead of an error?
             throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)
         case let .subscript(lhs, rhs):
             let value = try lhs.evaluate(in: context)

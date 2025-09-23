@@ -87,7 +87,47 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1.0])
     }
 
-    func testTupleRotationRollLookup() {
+    func testTupleBoundsLookup() throws {
+        let program = "print (text \"hello\").bounds"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let bounds = try XCTUnwrap(delegate.log.first as? Bounds)
+        #if canImport(CoreText)
+        XCTAssertGreaterThan(bounds.size, .zero)
+        #endif
+    }
+
+    func testTupleVolumeLookup() throws {
+        let program = "print (extrude text \"hello\").volume"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let volume = try XCTUnwrap(delegate.log.first as? Double)
+        #if canImport(CoreText)
+        XCTAssertEqual(volume, 0.499542593956141)
+        #endif
+    }
+
+    func testTuplePolygonsLookup() throws {
+        let program = "print (fill text \"hello\").polygons"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let polygons = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
+        #if canImport(CoreText)
+        XCTAssertEqual(polygons.count, 77)
+        #endif
+    }
+
+    func testTupleTrianglesLookup() throws {
+        let program = "print (fill text \"hello\").triangles"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let triangles = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
+        #if canImport(CoreText)
+        XCTAssertEqual(triangles.count, 77)
+        #endif
+    }
+
+    func testTupleRotationRollLookup() throws {
         let program = "print (1 0.5).roll"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
