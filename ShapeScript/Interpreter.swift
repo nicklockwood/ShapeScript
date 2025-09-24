@@ -96,7 +96,7 @@ public extension RuntimeError {
             }
             return "Unexpected symbol '\(name)'"
         case let .unknownMember(name, type, _):
-            return "Member '\(name)' not found for \(type)"
+            return "Member '\(name)' not found in \(type)"
         case let .invalidIndex(index, _):
             return "Index \(index.logDescription) out of bounds"
         case let .unknownFont(name, _):

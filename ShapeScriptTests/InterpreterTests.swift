@@ -972,7 +972,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
-                for: "color", expected: "color", got: "tuple"
+                for: "color", expected: "color", got: "list of numbers"
             ), at: range))
         }
     }
@@ -2426,7 +2426,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or tuple",
+                expected: "range or list",
                 got: "number"
             ), at: range))
         }
@@ -2440,7 +2440,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or tuple",
+                expected: "range or list",
                 got: "string"
             ), at: range))
         }
@@ -2550,10 +2550,10 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The loop bounds should be a range or tuple, not a color.")
+            XCTAssertEqual(error?.hint, "The loop bounds should be a range or list, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or tuple",
+                expected: "range or list",
                 got: "color"
             ), at: range))
         }
@@ -3653,19 +3653,17 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3.0, -6.0])
     }
 
-    func testNonNumericStringTupleScalarMultiply() {
+    func testNonNumericStringTupleScalarMultiply() throws {
         let program = "print (\"foo\" \"bar\") * 3"
+        let range = try XCTUnwrap(program.range(of: "(\"foo\" \"bar\")"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .typeMismatch(
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "*",
                 index: 0,
                 expected: "number, texture, or vector",
-                got: "tuple"
-            )? = error?.type else {
-                XCTFail()
-                return
-            }
+                got: "list of strings"
+            ), at: range))
         }
     }
 
