@@ -171,39 +171,6 @@ extension ValueType {
         }
     }
 
-    var errorDescription: String {
-        switch self {
-        case .color: return "color"
-        case .texture: return "texture"
-        case .material: return "material"
-        case .font: return "font"
-        case .boolean: return "boolean"
-        case .number: return "number"
-        case .radians: return "angle in radians"
-        case .halfturns: return "angle in half-turns"
-        case .vector, .list(.number): return "vector"
-        case .size: return "size"
-        case .rotation: return "rotation"
-        case .string: return "string"
-        case .text: return "text"
-        case .path: return "path"
-        case .mesh: return "mesh"
-        case .polygon: return "polygon"
-        case .point: return "point"
-        case .range: return "range"
-        case .partialRange: return "partial range"
-        case .bounds: return "bounds"
-        case .any: return "any"
-        case let .tuple(types) where types.count == 1:
-            return types[0].errorDescription
-        case .tuple([]): return "empty tuple"
-        case .tuple, .list: return "tuple"
-        case let .union(types):
-            return types.sorted().errorDescription
-        case .object: return "object"
-        }
-    }
-
     func isSubtype(of type: ValueType) -> Bool {
         switch (self, type) {
         case (_, .any):
@@ -223,11 +190,58 @@ extension ValueType {
             return self == type
         }
     }
+
+    var errorDescription: String {
+        description(pluralized: false)
+    }
+
+    fileprivate func description(pluralized: Bool) -> String {
+        switch self {
+        case .color: return "color\(pluralized ? "s" : "")"
+        case .texture: return "texture\(pluralized ? "s" : "")"
+        case .material: return "material\(pluralized ? "s" : "")"
+        case .font: return "font\(pluralized ? "s" : "")"
+        case .boolean: return "boolean\(pluralized ? "s" : "")"
+        case .number: return "number\(pluralized ? "s" : "")"
+        case .radians: return "angle\(pluralized ? "s" : "") in radians"
+        case .halfturns: return "angle\(pluralized ? "s" : "") in half-turns"
+        case .vector: return "vector\(pluralized ? "s" : "")"
+        case .size: return "size\(pluralized ? "s" : "")"
+        case .rotation: return "rotation\(pluralized ? "s" : "")"
+        case .string: return "string\(pluralized ? "s" : "")"
+        case .text, .list(.text): return "text"
+        case .path: return "path\(pluralized ? "s" : "")"
+        case .mesh: return "mesh\(pluralized ? "es" : "")"
+        case .polygon: return "polygon\(pluralized ? "s" : "")"
+        case .point: return "point\(pluralized ? "s" : "")"
+        case .range: return "range\(pluralized ? "s" : "")"
+        case .partialRange: return "partial range\(pluralized ? "s" : "")"
+        case .bounds: return "bounds"
+        case .any: return "any"
+        case let .tuple(types) where types.count == 1:
+            return types[0].description(pluralized: pluralized)
+        case .tuple([]): return "empty tuple\(pluralized ? "s" : "")"
+        case let .tuple(types) where Set(types) == [.number] && (2 ... 3).contains(types.count):
+            return "vector"
+        case let .tuple(types) where Set(types).count == 1:
+            return "list\(pluralized ? "s" : "") of \(types[0].description(pluralized: true))"
+        case .tuple:
+            // TODO: list the types?
+            return "tuple\(pluralized ? "s" : "")"
+        case .list(.any): return "list"
+        case .list(.number): return "vector"
+        case let .list(type):
+            return "list\(pluralized ? "s" : "") of \(type.description(pluralized: true))"
+        case let .union(types):
+            return types.sorted().description(pluralized: pluralized)
+        case .object: return "object\(pluralized ? "s" : "")"
+        }
+    }
 }
 
-extension [ValueType] {
-    var errorDescription: String {
-        let types = map(\.errorDescription)
+private extension [ValueType] {
+    func description(pluralized: Bool) -> String {
+        let types = Set(self).sorted().map { $0.description(pluralized: pluralized) }
         switch types.count {
         case 1:
             return types[0]

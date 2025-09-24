@@ -31,10 +31,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 2 3 4).x"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownMember("x", of: "tuple", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'x' not found in list of numbers")
         }
     }
 
@@ -201,12 +198,8 @@ final class MemberTests: XCTestCase {
         let program = "print (1 2 3 4 5).red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'red' not found for tuple")
+            XCTAssertEqual(error?.message, "Member 'red' not found in list of numbers")
             XCTAssertNotEqual(error?.suggestion, "red")
-            guard case .unknownMember("red", of: "tuple", _) = error?.type else {
-                XCTFail()
-                return
-            }
         }
     }
 
@@ -214,12 +207,8 @@ final class MemberTests: XCTestCase {
         let program = "print ().blue"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'blue' not found for empty tuple")
+            XCTAssertEqual(error?.message, "Member 'blue' not found in empty tuple")
             XCTAssertNotEqual(error?.suggestion, "blue")
-            guard case .unknownMember("blue", of: "empty tuple", _) = error?.type else {
-                XCTFail()
-                return
-            }
         }
     }
 
@@ -241,11 +230,7 @@ final class MemberTests: XCTestCase {
         let program = "print (\"foo\" \"bar\").red"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'red' not found for tuple")
-            guard case .unknownMember("red", of: "tuple", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'red' not found in list of strings")
         }
     }
 
@@ -253,11 +238,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 2).foo"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'foo' not found for tuple")
-            guard case .unknownMember("foo", of: "tuple", _) = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'foo' not found in vector")
         }
     }
 
@@ -265,11 +246,7 @@ final class MemberTests: XCTestCase {
         let program = "color 1 0.5\nprint color.width"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'width' not found for color")
-            guard case .unknownMember("width", of: "color", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'width' not found in color")
         }
     }
 
@@ -281,11 +258,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'x' not found for rotation")
-            guard case .unknownMember("x", of: "rotation", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'x' not found in rotation")
         }
     }
 
@@ -312,7 +285,7 @@ final class MemberTests: XCTestCase {
         let program = "define col 1 0.5\nprint col.scond"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'scond' not found for tuple")
+            XCTAssertEqual(error?.message, "Member 'scond' not found in vector")
             XCTAssertEqual(error?.hint, "Did you mean 'second'?")
         }
     }
@@ -321,12 +294,8 @@ final class MemberTests: XCTestCase {
         let program = "define col 1 0.5\nprint col.third"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'third' not found for tuple")
+            XCTAssertEqual(error?.message, "Member 'third' not found in vector")
             XCTAssertEqual(error?.hint, "Valid range is 'first' to 'second'.")
-            guard case .unknownMember("third", of: "tuple", _)? = error?.type else {
-                XCTFail()
-                return
-            }
         }
     }
 
@@ -334,7 +303,7 @@ final class MemberTests: XCTestCase {
         let program = "define col 1 0.5\nprint col.thidr"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'thidr' not found for tuple")
+            XCTAssertEqual(error?.message, "Member 'thidr' not found in vector")
             XCTAssertEqual(error?.hint, "Did you mean 'third'?")
         }
     }
@@ -485,11 +454,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'polygons' not found for path")
-            guard case .unknownMember("polygons", of: "path", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'polygons' not found in path")
         }
     }
 
@@ -499,11 +464,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'polygons' not found for camera")
-            guard case .unknownMember("polygons", of: "camera", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'polygons' not found in camera")
         }
     }
 
@@ -513,11 +474,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Member 'x' not found for mesh")
-            guard case .unknownMember("x", of: "mesh", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'x' not found in mesh")
         }
     }
 
@@ -727,10 +684,7 @@ final class MemberTests: XCTestCase {
         let program = "print (1 0)[\"w\"]"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownMember("w", of: "tuple", _)? = error?.type else {
-                XCTFail()
-                return
-            }
+            XCTAssertEqual(error?.message, "Member 'w' not found in vector")
         }
     }
 
