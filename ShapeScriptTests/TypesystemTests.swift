@@ -33,21 +33,43 @@ private func symbol(for name: String? = nil, in definition: String) throws -> Sy
         return context.symbol(for: name)
     }
     guard case let .define(identifier, _) = program.statements.last?.type else {
-        XCTFail()
         return nil
     }
     return context.symbol(for: identifier.name)
 }
 
-private func functionType(for name: String? = nil, in definition: String) throws -> FunctionType {
+private func functionType(
+    for name: String? = nil,
+    in definition: String,
+    file: StaticString = #file,
+    line: UInt = #line
+) throws -> FunctionType {
     guard case let .function(functionType, _) = try symbol(for: name, in: definition) else {
-        XCTFail()
+        XCTFail("Function definition not found", file: file, line: line)
         return (.any, .any)
     }
     return functionType
 }
 
-private func evaluate(_ source: String, as type: ValueType) throws -> Value {
+private func blockType(
+    for name: String? = nil,
+    in definition: String,
+    file: StaticString = #file,
+    line: UInt = #line
+) throws -> BlockType {
+    guard case let .block(blockType, _) = try symbol(for: name, in: definition) else {
+        XCTFail("Block definition not found", file: file, line: line)
+        return .init([:], [:], .any, .any)
+    }
+    return blockType
+}
+
+private func evaluate(
+    _ source: String,
+    as type: ValueType = .any,
+    file: StaticString = #file,
+    line: UInt = #line
+) throws -> Value {
     var lines = source.split(separator: "\n")
     lines[lines.count - 1] = "define foo_ \(lines[lines.count - 1])"
     let source = lines.joined(separator: "\n")
@@ -55,7 +77,7 @@ private func evaluate(_ source: String, as type: ValueType) throws -> Value {
     guard case let .define(_, definition) = program.statements.last?.type,
           case let .expression(expression) = definition.type
     else {
-        XCTFail()
+        XCTFail("Expression not found", file: file, line: line)
         return .void
     }
     let delegate = TestDelegate()
@@ -621,6 +643,100 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(type.parameterType, .void)
         // TODO: this should actually be a number
         XCTAssertEqual(type.returnType, .any)
+    }
+
+    // MARK: Block type inference
+
+    func testEmptyBlock() throws {
+        let type = try blockType(in: """
+        define foo {}
+        """)
+        XCTAssertEqual(type.childTypes, .void)
+        XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testBlockPrintingChildren() throws {
+        let type = try blockType(in: """
+        define foo {
+            print children
+        }
+        """)
+        XCTAssertEqual(type.childTypes, .any)
+        XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testBlockWithChildMeshes() throws {
+        let type = try blockType(in: """
+        define foo {
+            union children
+        }
+        """)
+        XCTAssertEqual(type.childTypes, .mesh)
+        XCTAssertEqual(type.returnType, .mesh)
+    }
+
+    func testBlockWithMixedChildTypes() throws {
+        let input = """
+        define foo {
+            define foo children + 1
+            union children
+        }
+        """
+        let type = try blockType(in: input)
+        XCTAssertEqual(type.childTypes, .union([.mesh, .number, .list(.number)]))
+        XCTAssertEqual(type.returnType, .mesh)
+
+        // No arguments
+        XCTAssertThrowsError(try evaluate("\(input)\nfoo")) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Missing argument")
+            XCTAssertEqual(error?.hint, """
+            The 'foo' symbol expects an argument of type mesh, number, vector, or block.
+            """)
+        }
+
+        // Empty block argument
+        XCTAssertEqual(try evaluate("\(input)\nfoo {}").type, .mesh)
+
+        // Empty tuple argument
+        XCTAssertEqual(try evaluate("\(input)\nfoo ()").type, .mesh)
+
+        // Mesh argument
+        XCTAssertThrowsError(try evaluate("\(input)\nfoo cube")) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, """
+            The left operand for '+' should be a number or vector, not a mesh.
+            """)
+        }
+
+        // Numeric argument
+        XCTAssertThrowsError(try evaluate("\(input)\nfoo 1")) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, """
+            The argument for 'union' should be a mesh or block, not a number.
+            """)
+        }
+    }
+
+    func testBlockWithIncompatibleChild() throws {
+        let input = """
+        define foo {
+            define objects children cube
+            union objects
+        }
+        """
+        let type = try blockType(in: input)
+        XCTAssertEqual(type.childTypes, .any)
+        XCTAssertEqual(type.returnType, .mesh)
+        XCTAssertThrowsError(try evaluate("\(input)\nfoo 1")) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, """
+            The argument for 'union' should be a mesh or block, not a tuple.
+            """)
+        }
     }
 
     // MARK: Type unions

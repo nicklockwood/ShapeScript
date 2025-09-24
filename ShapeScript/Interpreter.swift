@@ -756,11 +756,16 @@ extension Definition {
                 }
             }
         case let .block(block):
-            var options: Options? = [:]
+            var options: Options! = [:]
+            var childTypes: ValueType = .void
             let returnType: ValueType
             do {
                 let context = context.push(.init(.definition, [:], .void, .any))
-                returnType = try block.staticType(in: context, options: &options)
+                returnType = try block.staticType(
+                    in: context,
+                    options: &options,
+                    childTypes: &childTypes
+                )
             } catch var error as RuntimeError {
                 if case let .unknownSymbol(name, options: options) = error.type {
                     // TODO: find a less hacky way to limit the scope of option keyword
@@ -774,7 +779,7 @@ extension Definition {
             let source = context.source
             let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
-            return .block(.init(.user, options ?? [:], .void, returnType)) { _context in
+            return .block(.init(.user, options, childTypes, returnType)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
@@ -790,7 +795,7 @@ extension Definition {
                             break
                         }
                     }
-                    context.children += _context.children
+                    context.define("children", as: .constant(.tuple(_context.children)))
                     context.name = _context.name
                     context.material = _context.material
                     context.font = _context.font

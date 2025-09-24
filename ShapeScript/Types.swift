@@ -585,6 +585,18 @@ extension Definition {
 
 extension Expression {
     func inferTypes(
+        for childTypes: inout ValueType,
+        in context: EvaluationContext,
+        with type: ValueType?
+    ) {
+        var params: [String: ValueType] = [:]
+        inferTypes(for: &params, in: context, with: type ?? .any)
+        if let type = params["children"] {
+            childTypes.formUnion(type)
+        }
+    }
+
+    func inferTypes(
         for params: inout Parameters,
         in context: EvaluationContext,
         with type: ValueType
@@ -592,7 +604,7 @@ extension Expression {
         switch self.type {
         case let .identifier(name):
             if context.symbol(for: name) == nil {
-                params[name]?.narrow(with: type)
+                params[name, default: type].narrow(with: type)
             }
         case let .block(_, block):
             block.inferTypes(for: &params, in: context)
@@ -812,22 +824,32 @@ extension Block {
     }
 
     func staticType(in context: EvaluationContext) throws -> ValueType {
-        var options: Options?
-        return try staticType(in: context, options: &options)
+        var options: Options?, childTypes: ValueType = .void
+        return try staticType(in: context, options: &options, childTypes: &childTypes)
     }
 
-    func staticType(in context: EvaluationContext, options: inout Options?) throws -> ValueType {
+    func staticType(
+        in context: EvaluationContext,
+        options: inout Options?,
+        childTypes: inout ValueType
+    ) throws -> ValueType {
         var types = [ValueType]()
-        statements.gatherDefinitions(in: context)
-        for statement in statements {
-            if options != nil, case let .option(identifier, expression) = statement.type {
-                let type = try expression.staticType(in: context)
-                context.define(identifier.name, as: .placeholder(type))
-                options?[identifier.name] = type
-            } else {
-                let type = try statement.staticType(in: context)
-                if type != .void {
-                    types.append(type)
+        try context.pushScope { context in
+            statements.gatherDefinitions(in: context)
+            for statement in statements {
+                statement.inferTypes(for: &childTypes, in: context)
+            }
+            context.define("children", as: .placeholder(childTypes))
+            for statement in statements {
+                if options != nil, case let .option(identifier, expression) = statement.type {
+                    let type = try expression.staticType(in: context)
+                    context.define(identifier.name, as: .placeholder(type))
+                    options?[identifier.name] = type
+                } else {
+                    let type = try statement.staticType(in: context)
+                    if type != .void {
+                        types.append(type)
+                    }
                 }
             }
         }
@@ -854,12 +876,32 @@ extension CaseStatement {
 }
 
 extension Statement {
+    func inferTypes(for childTypes: inout ValueType, in context: EvaluationContext) {
+        var params: [String: ValueType] = [:]
+        inferTypes(for: &params, in: context)
+        if var type = params["children"] {
+            if case let .list(elementType) = type {
+                type = elementType
+            } else if case let .tuple(types) = type {
+                type = .union(Set(types))
+            }
+            if childTypes == .void {
+                // TODO: can narrow handle this case internally?
+                childTypes = type
+            } else {
+                childTypes.narrow(with: type)
+            }
+        }
+    }
+
     func inferTypes(for params: inout Parameters, in context: EvaluationContext) {
         switch type {
         case let .command(identifier, expression):
             guard let expression, let symbol = context.symbol(for: identifier.name) else {
-                // Probably an error, but gather types anyway in case it helps
                 expression?.inferTypes(for: &params, in: context, with: .any)
+                if identifier.name == "children" {
+                    params["children", default: .any].narrow(with: .any)
+                }
                 return
             }
             switch symbol {
@@ -876,9 +918,8 @@ extension Statement {
             Expression(type: type, range: range).inferTypes(for: &params, in: context, with: .any)
         case let .define(identifier, definition):
             definition.inferTypes(for: &params, in: context)
-            if let symbol = try? definition.staticSymbol(in: context) {
-                context.define(identifier.name, as: symbol)
-            }
+            let symbol = (try? definition.staticSymbol(in: context)) ?? .placeholder(.any)
+            context.define(identifier.name, as: symbol)
         case let .forloop(_, in: expression, body):
             expression.inferTypes(for: &params, in: context, with: .sequence)
             body.inferTypes(for: &params, in: context)
@@ -911,8 +952,14 @@ extension Statement {
             switch symbol {
             case .property:
                 return .void
-            case .function, .block, .constant, .option, .placeholder:
-                return symbol.type
+            case let .function(functionType, _):
+                return functionType.returnType
+            case let .block(blockType, _):
+                return blockType.returnType
+            case let .constant(value), let .option(value):
+                return value.type
+            case let .placeholder(type):
+                return type
             }
         case let .expression(type):
             return try Expression(type: type, range: range).staticType(in: context)
