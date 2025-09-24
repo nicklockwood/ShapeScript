@@ -239,6 +239,14 @@ extension [ValueType] {
     }
 }
 
+// MARK: Function types
+
+typealias Getter = (EvaluationContext) throws -> Value
+typealias Setter = (Value, EvaluationContext) throws -> Void
+typealias Function = (Value, EvaluationContext) throws -> Value
+typealias FunctionType = (parameterType: ValueType, returnType: ValueType)
+typealias Parameters = [String: ValueType]
+
 // MARK: Block Types
 
 typealias Options = [String: ValueType]
@@ -538,11 +546,14 @@ extension Value {
 }
 
 extension Definition {
-    func inferTypes(
-        for _: inout [String: ValueType],
-        in _: EvaluationContext,
-        with _: ValueType
-    ) {}
+    func inferTypes(for params: inout Parameters, in context: EvaluationContext) {
+        switch type {
+        case let .expression(expression):
+            expression.inferTypes(for: &params, in: context, with: .any)
+        case let .function(_, block), let .block(block):
+            block.inferTypes(for: &params, in: context)
+        }
+    }
 
     func staticSymbol(in context: EvaluationContext) throws -> Symbol {
         switch type {
@@ -560,7 +571,7 @@ extension Definition {
 
 extension Expression {
     func inferTypes(
-        for params: inout [String: ValueType],
+        for params: inout Parameters,
         in context: EvaluationContext,
         with type: ValueType
     ) {
@@ -587,14 +598,24 @@ extension Expression {
                     for expression in expressions {
                         expression.inferTypes(for: &params, in: context, with: type)
                     }
+                case .vector, .size, .color:
+                    for expression in expressions {
+                        expression.inferTypes(for: &params, in: context, with: .number)
+                    }
                 default:
-                    // TODO: other cases
-                    return
+                    // TODO: figure out types for other cases
+                    for expression in expressions {
+                        expression.inferTypes(for: &params, in: context, with: .any)
+                    }
                 }
             }
-        case let .subscript(_, rhs):
-            // TODO: lhs
+        case let .subscript(lhs, rhs):
+            // TODO: can we use rhs type to infer something about the lhs?
+            lhs.inferTypes(for: &params, in: context, with: .any)
             rhs.inferTypes(for: &params, in: context, with: .union([.number, .string]))
+        case let .member(expression, _):
+            // TODO: can we use member name to infer something about the type?
+            expression.inferTypes(for: &params, in: context, with: .any)
         case let .import(expression):
             expression.inferTypes(for: &params, in: context, with: .string)
         case let .infix(lhs, .step, rhs):
@@ -622,9 +643,12 @@ extension Expression {
         case let .infix(lhs, .and, rhs), let .infix(lhs, .or, rhs):
             lhs.inferTypes(for: &params, in: context, with: .boolean)
             rhs.inferTypes(for: &params, in: context, with: .boolean)
-        case .infix(_, .equal, _), .infix(_, .unequal, _),
-             .number, .string, .color, .member:
-            return
+        case let .infix(lhs, .equal, rhs), let .infix(lhs, .unequal, rhs):
+            // TODO: if lhs/rhs type is known, can we infer the rhs/lhs matches?
+            lhs.inferTypes(for: &params, in: context, with: .any)
+            rhs.inferTypes(for: &params, in: context, with: .any)
+        case .number, .string, .color:
+            break
         }
     }
 
@@ -766,10 +790,7 @@ extension Expression {
 }
 
 extension Block {
-    func inferTypes(
-        for params: inout [String: ValueType],
-        in context: EvaluationContext
-    ) {
+    func inferTypes(for params: inout Parameters, in context: EvaluationContext) {
         context.pushScope { context in
             statements.gatherDefinitions(in: context)
             statements.forEach { $0.inferTypes(for: &params, in: context) }
@@ -781,10 +802,7 @@ extension Block {
         return try staticType(in: context, options: &options)
     }
 
-    func staticType(
-        in context: EvaluationContext,
-        options: inout Options?
-    ) throws -> ValueType {
+    func staticType(in context: EvaluationContext, options: inout Options?) throws -> ValueType {
         var types = [ValueType]()
         statements.gatherDefinitions(in: context)
         for statement in statements {
@@ -810,7 +828,7 @@ extension Block {
 
 extension CaseStatement {
     func inferTypes(
-        for params: inout [String: ValueType],
+        for params: inout Parameters,
         in context: EvaluationContext,
         with type: ValueType
     ) {
@@ -822,38 +840,28 @@ extension CaseStatement {
 }
 
 extension Statement {
-    func inferTypes(
-        for params: inout [String: ValueType],
-        in context: EvaluationContext
-    ) {
+    func inferTypes(for params: inout Parameters, in context: EvaluationContext) {
         switch type {
         case let .command(identifier, expression):
-            guard let expression,
-                  let symbol = context.symbol(for: identifier.name)
-            else {
+            guard let expression, let symbol = context.symbol(for: identifier.name) else {
+                // Probably an error, but gather types anyway in case it helps
+                expression?.inferTypes(for: &params, in: context, with: .any)
                 return
             }
             switch symbol {
             case let .function(type, _):
-                expression.inferTypes(
-                    for: &params,
-                    in: context,
-                    with: type.parameterType
-                )
+                expression.inferTypes(for: &params, in: context, with: type.parameterType)
             case let .property(type, _, _):
                 expression.inferTypes(for: &params, in: context, with: type)
             case let .block(type, _):
-                expression.inferTypes(
-                    for: &params,
-                    in: context,
-                    with: type.childTypes
-                )
+                expression.inferTypes(for: &params, in: context, with: .list(type.childTypes))
             case .constant, .option, .placeholder:
                 return
             }
         case let .expression(type):
             Expression(type: type, range: range).inferTypes(for: &params, in: context, with: .any)
         case let .define(identifier, definition):
+            definition.inferTypes(for: &params, in: context)
             if let symbol = try? definition.staticSymbol(in: context) {
                 context.define(identifier.name, as: symbol)
             }
@@ -871,8 +879,8 @@ extension Statement {
                 caseStatement.inferTypes(for: &params, in: context, with: type)
             }
             elseBody?.inferTypes(for: &params, in: context)
-        case .option:
-            return
+        case let .option(_, expression):
+            expression.inferTypes(for: &params, in: context, with: .any)
         }
     }
 

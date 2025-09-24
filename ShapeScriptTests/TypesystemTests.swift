@@ -25,24 +25,22 @@ private func expressionType(_ source: String) throws -> ValueType {
     return try program.statements.last?.staticType(in: context) ?? .void
 }
 
-private func functionType(_ definition: String) throws -> FunctionType {
+private func symbol(for name: String? = nil, in definition: String) throws -> Symbol? {
     let program = try parse(definition)
     let context = EvaluationContext(source: "", delegate: nil)
     try program.evaluate(in: context)
-    guard case let .define(identifier, _) = program.statements.last?.type,
-          case let .function(functionType, _) = context.symbol(for: identifier.name)
-    else {
-        XCTFail()
-        return (.any, .any)
+    if let name {
+        return context.symbol(for: name)
     }
-    return functionType
+    guard case let .define(identifier, _) = program.statements.last?.type else {
+        XCTFail()
+        return nil
+    }
+    return context.symbol(for: identifier.name)
 }
 
-private func functionType(for name: String, in definition: String) throws -> FunctionType {
-    let program = try parse(definition)
-    let context = EvaluationContext(source: "", delegate: nil)
-    try program.evaluate(in: context)
-    guard case let .function(functionType, _) = context.symbol(for: name) else {
+private func functionType(for name: String? = nil, in definition: String) throws -> FunctionType {
+    guard case let .function(functionType, _) = try symbol(for: name, in: definition) else {
         XCTFail()
         return (.any, .any)
     }
@@ -379,19 +377,19 @@ final class TypesystemTests: XCTestCase {
     // MARK: Function parameter inference
 
     func testInferSimpleFunctionParameter() throws {
-        let type = try functionType("define foo(bar) { bar + 1 }")
+        let type = try functionType(in: "define foo(bar) { bar + 1 }")
         XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
         XCTAssertEqual(type.returnType, .number)
     }
 
     func testInferSimpleFunctionParameters() throws {
-        let type = try functionType("define foo(bar baz) { bar + baz }")
+        let type = try functionType(in: "define foo(bar baz) { bar + baz }")
         XCTAssertEqual(type.parameterType, .tuple([.numberOrVector, .numberOrVector]))
         XCTAssertEqual(type.returnType, .number)
     }
 
     func testInferFunctionParameterInBlock() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) {
             cube {
                 color bar
@@ -403,7 +401,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testInferFunctionParameterUsedInImport() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) {
             import bar
         }
@@ -413,7 +411,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testComplexNestedFunctionParameters() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) { bar + 1 }
         define bar(baz quux) {
             foo(baz) + 1
@@ -425,7 +423,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameter() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) {
             if bar {
                 "hello"
@@ -437,7 +435,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameter2() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) {
             if bar < 3 {
                 "hello"
@@ -449,7 +447,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameters() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar baz) {
             if bar = baz {
                 bar + 1
@@ -463,7 +461,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameters2() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar baz) {
             if bar > 1 {
                 print bar + 1
@@ -477,7 +475,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameters3() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar baz) {
             if baz > 1 {
                 print bar
@@ -491,7 +489,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testConditionalFunctionParameters4() throws {
-        let type = try functionType("""
+        let type = try functionType(in: """
         define foo(bar) {
             if true {
                 print bar + 1
@@ -505,6 +503,64 @@ final class TypesystemTests: XCTestCase {
             .union([.number, .list(.number), .texture]),
         ]))
         XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testFunctionParameterInferenceInsideTuple() throws {
+        let type = try functionType(in: """
+        define foo(bar baz) {
+            (bar and baz 2)
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.boolean, .boolean]))
+    }
+
+    func testFunctionParameterInferenceInsideMember() throws {
+        let type = try functionType(in: """
+        define foo(bar) {
+            (bar + 3 2).count
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
+    }
+
+    func testFunctionParameterInferenceInsideSubscript() throws {
+        let type = try functionType(in: """
+        define foo(bar baz) {
+            (-bar 2)[baz]
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector, .union([.number, .string])]))
+    }
+
+    func testFunctionParameterInferenceInsideNestedDefine() throws {
+        let type = try functionType(in: """
+        define foo(bar) {
+            define baz bar + 1
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
+    }
+
+    func testFunctionParameterInferenceInsideNestedFunctionDefine() throws {
+        let type = try functionType(in: """
+        define foo(bar) {
+            define baz() {
+                bar + 1
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
+    }
+
+    func testFunctionParameterInferenceInsideNestedBlockDefine() throws {
+        let type = try functionType(in: """
+        define foo(bar) {
+            define baz() {
+                bar + 1
+            }
+        }
+        """)
+        XCTAssertEqual(type.parameterType, .tuple([.numberOrVector]))
     }
 
     func testErrorThrowingArgumentHasCorrectRange() throws {

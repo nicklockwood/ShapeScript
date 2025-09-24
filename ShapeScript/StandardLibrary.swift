@@ -28,7 +28,7 @@ public let stdlibSymbols: Set<String> = {
     return keys
 }()
 
-extension [String: Symbol] {
+extension Symbols {
     static func + (lhs: Symbols, rhs: Symbols) -> Symbols {
         lhs.merging(rhs) { $1 }
     }
