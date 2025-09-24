@@ -8,12 +8,10 @@
 
 import Euclid
 
-typealias Getter = (EvaluationContext) throws -> Value
-typealias Setter = (Value, EvaluationContext) throws -> Void
-typealias FunctionType = (parameterType: ValueType, returnType: ValueType)
+typealias Symbols = [String: Symbol]
 
 enum Symbol {
-    case function(FunctionType, (Value, EvaluationContext) throws -> Value)
+    case function(FunctionType, Function)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)
     case constant(Value)
@@ -25,15 +23,12 @@ extension Symbol {
     static func function(
         _ parameterType: ValueType,
         _ returnType: ValueType,
-        _ fn: @escaping (Value, EvaluationContext) throws -> Value
+        _ fn: @escaping Function
     ) -> Symbol {
         .function((parameterType, returnType), fn)
     }
 
-    static func command(
-        _ parameterType: ValueType,
-        _ fn: @escaping Setter
-    ) -> Symbol {
+    static func command(_ parameterType: ValueType, _ fn: @escaping Setter) -> Symbol {
         .function(parameterType, .void) {
             try fn($0, $1)
             return .void
@@ -55,5 +50,3 @@ extension Symbol {
         }
     }
 }
-
-typealias Symbols = [String: Symbol]
