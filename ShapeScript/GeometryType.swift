@@ -123,7 +123,7 @@ public extension GeometryType {
                 bounds.formUnion(pathBounds.translated(by: -offset))
             }
         case let .extrude(paths, options):
-            return paths.flatMap { path in
+            return Bounds(paths.flatMap { path in
                 options.along.flatMap { along in
                     path.extrusionContours(
                         along: along,
@@ -131,7 +131,7 @@ public extension GeometryType {
                         align: options.align
                     )
                 }
-            }.bounds
+            })
         case let .lathe(paths, segments):
             return .init(paths.map { path -> Bounds in
                 let profileBounds = path.latheProfile.bounds
