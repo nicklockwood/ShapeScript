@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class LicensesViewController: NSViewController {
+final class LicensesViewController: NSViewController {
     @IBOutlet private var textView: NSTextView!
 
     override func viewDidLoad() {

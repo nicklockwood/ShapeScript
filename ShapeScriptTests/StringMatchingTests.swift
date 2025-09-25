@@ -9,7 +9,7 @@
 @testable import ShapeScript
 import XCTest
 
-class StringMatchingTests: XCTestCase {
+final class StringMatchingTests: XCTestCase {
     // MARK: Edit distance
 
     func testEditDistance() {

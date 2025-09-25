@@ -155,7 +155,7 @@ private extension URL {
 
 private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]*)\\)", options: [])
 
-class MetadataTests: XCTestCase {
+final class MetadataTests: XCTestCase {
     // MARK: Releases
 
     func testProjectVersionMatchesChangelog() throws {
@@ -604,12 +604,16 @@ class MetadataTests: XCTestCase {
         let exampleHeadings = findHeadings(in: examplesHelp)
         let exampleFileNames = exampleURLs.map { $0.deletingPathExtension().lastPathComponent }
         for name in exampleFileNames {
-            XCTAssert(exampleHeadings.contains(name),
-                      "Example '\(name)' not listed in examples.md")
+            XCTAssert(
+                exampleHeadings.contains(name),
+                "Example '\(name)' not listed in examples.md"
+            )
         }
         for name in exampleHeadings {
-            XCTAssert(exampleFileNames.contains(name),
-                      "Example '\(name)' listed in examples.md does not exist")
+            XCTAssert(
+                exampleFileNames.contains(name),
+                "Example '\(name)' listed in examples.md does not exist"
+            )
         }
     }
 

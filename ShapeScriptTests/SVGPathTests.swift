@@ -11,7 +11,7 @@ import ShapeScript
 import SVGPath
 import XCTest
 
-class SVGPathTests: XCTestCase {
+final class SVGPathTests: XCTestCase {
     func testNoCrashWithEmptyPath() {
         XCTAssertEqual(SVGPath(Path.empty), SVGPath(commands: []))
     }

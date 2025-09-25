@@ -14,7 +14,7 @@ protocol ExportMenuProvider {
 }
 
 @main
-class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow? {
         NSApp.mainWindow
     }

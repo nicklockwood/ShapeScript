@@ -12,6 +12,7 @@ import UIKit
     @objc optional func textView(_ textView: TextView, replacementForText text: String) -> String
 }
 
+// swiftformat:disable:next preferFinalClasses
 class TextView: UIScrollView {
     private let layoutManager: LayoutManager = .init()
     private let gutterView = LineNumberView()
@@ -656,7 +657,7 @@ extension TextView: NSLayoutManagerDelegate {
     }
 }
 
-private class LayoutManager: NSLayoutManager {
+private final class LayoutManager: NSLayoutManager {
     private var lastParaLocation: Int = 0
     private var lastParaNumber: Int = 0
 
@@ -1195,7 +1196,7 @@ private extension UITextView {
 
 // MARK: LineNumberView
 
-private class LineNumberView: UIView {
+private final class LineNumberView: UIView {
     private var numberViews: [UILabel] = []
 
     var gutterWidth: CGFloat = 0

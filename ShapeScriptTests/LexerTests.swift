@@ -9,7 +9,7 @@
 @testable import ShapeScript
 import XCTest
 
-class LexerTests: XCTestCase {
+final class LexerTests: XCTestCase {
     // MARK: whitespace
 
     func testLeadingSpace() {
@@ -264,22 +264,22 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
-    func testStringWithInvalidEscapeSequence() {
+    func testStringWithInvalidEscapeSequence() throws {
         let input = """
         "foo\\'bar"
         """
-        let range = input.range(of: "\\'")!
+        let range = try XCTUnwrap(input.range(of: "\\'"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error, LexerError(.invalidEscapeSequence("\\'"), at: range))
         }
     }
 
-    func testStringWithUnsupportedEscapeSequence() {
+    func testStringWithUnsupportedEscapeSequence() throws {
         let input = """
         "foo\\rbar"
         """
-        let range = input.range(of: "\\r")!
+        let range = try XCTUnwrap(input.range(of: "\\r"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error?.suggestion, "\\n")
@@ -287,11 +287,11 @@ class LexerTests: XCTestCase {
         }
     }
 
-    func testStringWithBasicStyleQuoteEscapeSequence() {
+    func testStringWithBasicStyleQuoteEscapeSequence() throws {
         let input = """
         "foo""bar"
         """
-        let range = input.range(of: "\"\"")!
+        let range = try XCTUnwrap(input.range(of: "\"\""))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error?.suggestion, "\\\"")
@@ -299,46 +299,46 @@ class LexerTests: XCTestCase {
         }
     }
 
-    func testUnterminatedStringLiteral() {
+    func testUnterminatedStringLiteral() throws {
         let input = """
         "foo
         """
-        let range = input.range(of: "\"foo")!
+        let range = try XCTUnwrap(input.range(of: "\"foo"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
         }
     }
 
-    func testUnterminatedStringLiteralFollowedByLinebreak() {
+    func testUnterminatedStringLiteralFollowedByLinebreak() throws {
         let input = """
         "foo
 
         """
-        let range = input.range(of: "\"foo")!
+        let range = try XCTUnwrap(input.range(of: "\"foo"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
         }
     }
 
-    func testUnterminatedStringLiteralEndingInEscape() {
+    func testUnterminatedStringLiteralEndingInEscape() throws {
         let input = """
         "foo\\
         """
-        let range = input.range(of: "\"foo\\")!
+        let range = try XCTUnwrap(input.range(of: "\"foo\\"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
         }
     }
 
-    func testUnterminatedStringLiteralFollowedByEscapedLinebreak() {
+    func testUnterminatedStringLiteralFollowedByEscapedLinebreak() throws {
         let input = """
         "foo\\
 
         """
-        let range = input.range(of: "\"foo\\")!
+        let range = try XCTUnwrap(input.range(of: "\"foo\\"))
         XCTAssertThrowsError(try tokenize(input)) { error in
             let error = try? XCTUnwrap(error as? LexerError)
             XCTAssertEqual(error, LexerError(.unterminatedString, at: range))
@@ -587,18 +587,18 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(range, input.startIndex ..< input.endIndex)
     }
 
-    func testLineRangeOfIndexAtStartOfLine() {
+    func testLineRangeOfIndexAtStartOfLine() throws {
         let input = "foo\nbar"
-        let index = input.firstIndex(of: "b")!
+        let index = try XCTUnwrap(input.firstIndex(of: "b"))
         let range = input.lineRange(at: index)
         XCTAssertEqual(range, index ..< input.endIndex)
     }
 
-    func testLineRangeOfIndexAtEndOfLine() {
+    func testLineRangeOfIndexAtEndOfLine() throws {
         let input = "foo\nbar\nbaz"
-        let index = input.lastIndex(of: "\n")!
+        let index = try XCTUnwrap(input.lastIndex(of: "\n"))
         let range = input.lineRange(at: index)
-        XCTAssertEqual(range, input.firstIndex(of: "b")! ..< index)
+        XCTAssertEqual(range, try XCTUnwrap(input.firstIndex(of: "b")) ..< index)
     }
 
     // MARK: lineAndColumn
@@ -610,17 +610,17 @@ class LexerTests: XCTestCase {
         XCTAssertEqual(lc.column, 1)
     }
 
-    func testLineAndColumnAtEndOfLine() {
+    func testLineAndColumnAtEndOfLine() throws {
         let input = "foo\nbar\nbaz"
-        let index = input.lastIndex(of: "\n")!
+        let index = try XCTUnwrap(input.lastIndex(of: "\n"))
         let lc = input.lineAndColumn(at: index)
         XCTAssertEqual(lc.line, 2)
         XCTAssertEqual(lc.column, 4)
     }
 
-    func testLineAndColumnAtCRLFEndOfLine() {
+    func testLineAndColumnAtCRLFEndOfLine() throws {
         let input = "foo\r\nbar\r\nbaz"
-        let index = input.lastIndex(of: "\r\n")!
+        let index = try XCTUnwrap(input.lastIndex(of: "\r\n"))
         let lc = input.lineAndColumn(at: index)
         XCTAssertEqual(lc.line, 2)
         XCTAssertEqual(lc.column, 4)

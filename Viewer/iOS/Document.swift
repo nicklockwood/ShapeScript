@@ -11,7 +11,7 @@ import ShapeScript
 import UIKit
 import UniformTypeIdentifiers
 
-class Document: UIDocument {
+final class Document: UIDocument {
     static let backgroundColor: UIColor = UIColor { traits in
         .init(Color(traits.userInterfaceStyle == .dark ? 0.15 : 0.625))
     }

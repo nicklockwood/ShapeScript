@@ -10,7 +10,7 @@
 @testable import ShapeScript
 import XCTest
 
-class InterpreterTests: XCTestCase {
+final class InterpreterTests: XCTestCase {
     // MARK: Random numbers
 
     func testRandomSeedTruncation() {
@@ -185,7 +185,7 @@ class InterpreterTests: XCTestCase {
         }
         print foo { name "Foo" }
         """
-        let range = program.range(of: "foo", range: program.range(of: "print foo")!)!
+        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "print foo"))))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.assertionFailure(
@@ -202,7 +202,7 @@ class InterpreterTests: XCTestCase {
         }
         print foo { name "Foo" }
         """
-        let range = program.range(of: "foo", range: program.range(of: "print foo")!)!
+        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "print foo"))))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.assertionFailure(
@@ -369,8 +369,10 @@ class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected symbol 'option'")
-            XCTAssertEqual(error?.hint, "The 'option' command is not available in"
-                + " this context. Did you mean 'define'?")
+            XCTAssertEqual(
+                error?.hint,
+                "The 'option' command is not available in this context. Did you mean 'define'?"
+            )
             guard case .unknownSymbol("option", _)? = error?.type else {
                 XCTFail()
                 return
@@ -866,7 +868,7 @@ class InterpreterTests: XCTestCase {
             position foo
         }
         """
-        let range = program.range(of: "foo", range: program.range(of: "position foo")!)!
+        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "position foo"))))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
@@ -884,7 +886,7 @@ class InterpreterTests: XCTestCase {
             position pos 7
         }
         """
-        let range = program.range(of: "7")!
+        let range = try XCTUnwrap(program.range(of: "7"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -951,7 +953,7 @@ class InterpreterTests: XCTestCase {
         color 1 0 0 0.5 0.9
         print color
         """
-        let range = program.range(of: "0.9")!
+        let range = try XCTUnwrap(program.range(of: "0.9"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -966,7 +968,7 @@ class InterpreterTests: XCTestCase {
         color foo
         print color
         """
-        let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
+        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "color foo"))))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
@@ -1044,7 +1046,7 @@ class InterpreterTests: XCTestCase {
         color (1 0 0) 0.5 0.2
         print color
         """
-        let range = program.range(of: "0.2")!
+        let range = try XCTUnwrap(program.range(of: "0.2"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -1059,7 +1061,7 @@ class InterpreterTests: XCTestCase {
         color foo
         print color
         """
-        let range = program.range(of: "foo", range: program.range(of: "color foo")!)!
+        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "color foo"))))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -1190,7 +1192,7 @@ class InterpreterTests: XCTestCase {
         }
         foo { c red }
         """)
-        let range = program.source.range(of: "red")!
+        let range = try XCTUnwrap(program.source.range(of: "red"))
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1209,7 +1211,7 @@ class InterpreterTests: XCTestCase {
         }
         foo { c red 0.5 }
         """)
-        let range = program.source.range(of: "red 0.5")!
+        let range = try XCTUnwrap(program.source.range(of: "red 0.5"))
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1377,7 +1379,7 @@ class InterpreterTests: XCTestCase {
         texture "Nope.jpg"
         print texture
         """
-        let range = program.range(of: "\"Nope.jpg\"")!
+        let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1523,7 +1525,7 @@ class InterpreterTests: XCTestCase {
         background 1 0 0 0.5 0.9
         print background
         """
-        let range = program.range(of: "0.9")!
+        let range = try XCTUnwrap(program.range(of: "0.9"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -1600,7 +1602,7 @@ class InterpreterTests: XCTestCase {
         background "Nope.jpg"
         print background
         """
-        let range = program.range(of: "\"Nope.jpg\"")!
+        let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1621,7 +1623,7 @@ class InterpreterTests: XCTestCase {
         background "Nope" 1 ".jpg"
         print background
         """
-        let range = program.range(of: "\"Nope\" 1 \".jpg\"")!
+        let range = try XCTUnwrap(program.range(of: "\"Nope\" 1 \".jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1803,7 +1805,7 @@ class InterpreterTests: XCTestCase {
     func testSetInvalidFont() throws {
         #if canImport(CoreGraphics)
         let program = try parse("font \"foo\"")
-        let range = program.source.range(of: "\"foo\"")!
+        let range = try XCTUnwrap(program.source.range(of: "\"foo\""))
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1821,7 +1823,7 @@ class InterpreterTests: XCTestCase {
     func testSetEmptyFontString() throws {
         #if canImport(CoreGraphics)
         let program = try parse("font \"\"")
-        let range = program.source.range(of: "\"\"")!
+        let range = try XCTUnwrap(program.source.range(of: "\"\""))
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1839,7 +1841,7 @@ class InterpreterTests: XCTestCase {
     func testSetBlankFont() throws {
         #if canImport(CoreGraphics)
         let program = try parse("font \" \"")
-        let range = program.source.range(of: "\" \"")!
+        let range = try XCTUnwrap(program.source.range(of: "\" \""))
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
@@ -1999,9 +2001,9 @@ class InterpreterTests: XCTestCase {
         #endif
     }
 
-    func testInvokeExtrudeWithSingleArgumentOfWrongType() {
+    func testInvokeExtrudeWithSingleArgumentOfWrongType() throws {
         let program = "extrude sphere"
-        let range = program.range(of: "sphere")!
+        let range = try XCTUnwrap(program.range(of: "sphere"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2037,9 +2039,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual((delegate.log.first as? Geometry)?.type, .xor)
     }
 
-    func testInvokeTextInExpressionWithoutParens() {
+    func testInvokeTextInExpressionWithoutParens() throws {
         let program = "print 1 + text \"foo\""
-        let range = program.range(of: "text")!
+        let range = try XCTUnwrap(program.range(of: "text"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Missing argument")
@@ -2050,9 +2052,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeTextInExpressionWithParensButWrongArgumentType() {
+    func testInvokeTextInExpressionWithParensButWrongArgumentType() throws {
         let program = "print 1 + (text cube)"
-        let range = program.range(of: "cube")!
+        let range = try XCTUnwrap(program.range(of: "cube"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2070,7 +2072,7 @@ class InterpreterTests: XCTestCase {
             cube
         }
         """
-        let range = program.range(of: "cube")!
+        let range = try XCTUnwrap(program.range(of: "cube"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unused value")
@@ -2126,14 +2128,14 @@ class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
-    func testExtrudeAlongNumber() {
+    func testExtrudeAlongNumber() throws {
         let program = """
         extrude {
             square { size 0.01 }
             along 2
         }
         """
-        let range = program.range(of: "2")!
+        let range = try XCTUnwrap(program.range(of: "2"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2146,14 +2148,14 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testExtrudeAlongPathAndNumber() {
+    func testExtrudeAlongPathAndNumber() throws {
         let program = """
         extrude {
             square { size 0.01 }
             along square 2
         }
         """
-        let range = program.range(of: "2")!
+        let range = try XCTUnwrap(program.range(of: "2"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2237,9 +2239,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [RangeValue(from: 3, to: 15, step: 2)])
     }
 
-    func testRangeWithNonNumericStartValue() {
+    func testRangeWithNonNumericStartValue() throws {
         let program = "define range \"foo\" to 10"
-        let range = program.range(of: "\"foo\"")!
+        let range = try XCTUnwrap(program.range(of: "\"foo\""))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2252,9 +2254,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testRangeWithNonNumericEndValue() {
+    func testRangeWithNonNumericEndValue() throws {
         let program = "define range 1 to \"bar\""
-        let range = program.range(of: "\"bar\"")!
+        let range = try XCTUnwrap(program.range(of: "\"bar\""))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2267,9 +2269,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testRangeWithNonNumericStepValue() {
+    func testRangeWithNonNumericStepValue() throws {
         let program = "define range 1 to 5 step \"foo\""
-        let range = program.range(of: "\"foo\"")!
+        let range = try XCTUnwrap(program.range(of: "\"foo\""))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2283,9 +2285,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testRangeWithZeroStepValue() {
+    func testRangeWithZeroStepValue() throws {
         let program = "define range 1 to 5 step 0"
-        let range = program.range(of: "0")!
+        let range = try XCTUnwrap(program.range(of: "0"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Assertion failure")
@@ -2405,9 +2407,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0, 0.5, 1])
     }
 
-    func testForLoopWithNonRangeExpression() {
+    func testForLoopWithNonRangeExpression() throws {
         let program = "for 1 { print i }"
-        let range = program.range(of: "1")!
+        let range = try XCTUnwrap(program.range(of: "1"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2419,9 +2421,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testForLoopWithNonRangeExpression2() {
+    func testForLoopWithNonRangeExpression2() throws {
         let program = "for i in \"foo\" { print i }"
-        let range = program.range(of: "\"foo\"")!
+        let range = try XCTUnwrap(program.range(of: "\"foo\""))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2531,9 +2533,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["a", "a", "a"])
     }
 
-    func testForLoopWithColorProperty() {
+    func testForLoopWithColorProperty() throws {
         let program = "for i in color { print i }"
-        let range = program.range(of: "color")!
+        let range = try XCTUnwrap(program.range(of: "color"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2695,9 +2697,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [false])
     }
 
-    func testIfColor() {
+    func testIfColor() throws {
         let program = "if red { print i }"
-        let range = program.range(of: "red")!
+        let range = try XCTUnwrap(program.range(of: "red"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -2907,9 +2909,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeMonadicFunctionWithTwoArgs() {
+    func testInvokeMonadicFunctionWithTwoArgs() throws {
         let program = "print cos 1 2"
-        let range = program.range(of: "2")!
+        let range = try XCTUnwrap(program.range(of: "2"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -2947,9 +2949,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeDyadicFunctionWithThreeArgs() {
+    func testInvokeDyadicFunctionWithThreeArgs() throws {
         let program = "print pow 1 2 3"
-        let range = program.range(of: "3")!
+        let range = try XCTUnwrap(program.range(of: "3"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -2965,9 +2967,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [4, 5])
     }
 
-    func testInvokeFunctionInExpressionWithoutParens() {
+    func testInvokeFunctionInExpressionWithoutParens() throws {
         let program = "print 1 + sqrt 9"
-        let range = program.range(of: "sqrt")!
+        let range = try XCTUnwrap(program.range(of: "sqrt"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -2977,9 +2979,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeFunctionInExpressionWithParensButWrongArgumentType() {
+    func testInvokeFunctionInExpressionWithParensButWrongArgumentType() throws {
         let program = "print 1 + (sqrt \"a\")"
-        let range = program.range(of: "\"a\"")!
+        let range = try XCTUnwrap(program.range(of: "\"a\""))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
@@ -2990,9 +2992,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeFunctionInExpressionWithParensButMissingArgument() {
+    func testInvokeFunctionInExpressionWithParensButMissingArgument() throws {
         let program = "print 1 + (pow 1)"
-        let range = program.range(of: ")")!
+        let range = try XCTUnwrap(program.range(of: ")"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -3002,9 +3004,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeFunctionInExpressionWithParensButMissingArgument2() {
+    func testInvokeFunctionInExpressionWithParensButMissingArgument2() throws {
         let program = "print 1 + pow(1)"
-        let range = program.range(of: ")")!
+        let range = try XCTUnwrap(program.range(of: ")"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -3014,9 +3016,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeFunctionInExpressionWithParensButExtraArgument() {
+    func testInvokeFunctionInExpressionWithParensButExtraArgument() throws {
         let program = "print 1 + (pow 1 2 3)"
-        let range = program.range(of: "3")!
+        let range = try XCTUnwrap(program.range(of: "3"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -3025,9 +3027,9 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testInvokeFunctionInExpressionWithParensButExtraArgument2() {
+    func testInvokeFunctionInExpressionWithParensButExtraArgument2() throws {
         let program = "print 1 + pow(1 2 3)"
-        let range = program.range(of: "3")!
+        let range = try XCTUnwrap(program.range(of: "3"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -3057,9 +3059,9 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
-    func testMinWithNoArgs() {
+    func testMinWithNoArgs() throws {
         let program = "print min"
-        let range = program.range(of: "min")!
+        let range = try XCTUnwrap(program.range(of: "min"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
@@ -4255,7 +4257,7 @@ class InterpreterTests: XCTestCase {
 
     func testDebugColorCommand() throws {
         let program = "debug color #f00"
-        let range = program.range(of: "color")!
+        let range = try XCTUnwrap(program.range(of: "color"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -4273,7 +4275,7 @@ class InterpreterTests: XCTestCase {
         define r #f00
         color debug r
         """
-        let range = program.range(of: "r", range: program.range(of: "debug r"))!
+        let range = try XCTUnwrap(program.range(of: "r", range: program.range(of: "debug r")))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -4290,7 +4292,7 @@ class InterpreterTests: XCTestCase {
         let program = """
         debug fill square 1
         """
-        let range = program.range(of: "1")!
+        let range = try XCTUnwrap(program.range(of: "1"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
@@ -4352,7 +4354,7 @@ class InterpreterTests: XCTestCase {
         }
         print foo
         """
-        let range = program.range(of: "{}")!
+        let range = try XCTUnwrap(program.range(of: "{}"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
@@ -4395,7 +4397,7 @@ class InterpreterTests: XCTestCase {
         define foo rnd {}
         print foo
         """
-        let range = program.range(of: "{}")!
+        let range = try XCTUnwrap(program.range(of: "{}"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
@@ -4427,12 +4429,12 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
-    func testCallCustomFunctionWithEmptyBlock() {
+    func testCallCustomFunctionWithEmptyBlock() throws {
         let program = """
         define foo() { 2 + 3 }
         print foo {}
         """
-        let range = program.range(of: "{}")!
+        let range = try XCTUnwrap(program.range(of: "{}"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Unexpected argument")
@@ -4444,12 +4446,12 @@ class InterpreterTests: XCTestCase {
         }
     }
 
-    func testCallNonVoidCustomFunctionWithEmptyBlock() {
+    func testCallNonVoidCustomFunctionWithEmptyBlock() throws {
         let program = """
         define foo(bar) { bar + 3 }
         print foo {}
         """
-        let range = program.range(of: "{}")!
+        let range = try XCTUnwrap(program.range(of: "{}"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")

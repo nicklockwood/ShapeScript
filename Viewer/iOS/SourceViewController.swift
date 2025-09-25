@@ -9,7 +9,7 @@
 import ShapeScript
 import UIKit
 
-class SourceViewController: UIViewController {
+final class SourceViewController: UIViewController {
     private var undoRegistered = false
     private var undoButton: UIBarButtonItem!
     private var redoButton: UIBarButtonItem!

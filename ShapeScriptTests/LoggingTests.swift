@@ -10,7 +10,7 @@
 @testable import ShapeScript
 import XCTest
 
-class LoggingTests: XCTestCase {
+final class LoggingTests: XCTestCase {
     // MARK: Non-loggable values
 
     func testLogNonLoggableValue() {
@@ -300,28 +300,28 @@ class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "cube")
     }
 
-    func testMeshGeometry() {
+    func testMeshGeometry() throws {
         let context = EvaluationContext(source: "", delegate: nil)
-        let input = Geometry(type: .mesh(.init([
-            Polygon([
+        let input = try Geometry(type: .mesh(.init([
+            XCTUnwrap(Polygon([
                 Vector(0, 0),
                 Vector(1, 0),
                 Vector(1, 1),
-            ])!,
+            ])),
         ])), in: context)
         XCTAssertEqual(input.logDescription, "mesh { polygons 1 }")
         XCTAssertEqual(input.nestedLogDescription, "mesh")
     }
 
-    func testMeshGeometry2() {
+    func testMeshGeometry2() throws {
         let context = EvaluationContext(source: "", delegate: nil)
         context.name = "Mesh"
-        let input = Geometry(type: .mesh(.init([
-            Polygon([
+        let input = try Geometry(type: .mesh(.init([
+            XCTUnwrap(Polygon([
                 Vector(0, 0),
                 Vector(1, 0),
                 Vector(1, 1),
-            ])!,
+            ])),
         ])), in: context)
         XCTAssertEqual(input.logDescription, """
         mesh {

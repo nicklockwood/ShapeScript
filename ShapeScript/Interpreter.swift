@@ -440,8 +440,10 @@ extension RuntimeErrorType {
         while case let .tuple(values) = value, values.count == 1 {
             value = values[0]
         }
-        assert(!value.members.contains(name),
-               "\(value.errorDescription) should have member '\(name)'")
+        assert(
+            !value.members.contains(name),
+            "\(value.errorDescription) should have member '\(name)'"
+        )
         return unknownMember(name, of: value.errorDescription, options: value.members)
     }
 
@@ -992,10 +994,12 @@ extension Statement {
                 return nil
             }() {
                 return try context.define(name, as: .option(
-                    evaluateParameter(parameter,
-                                      as: type,
-                                      for: identifier,
-                                      in: context)
+                    evaluateParameter(
+                        parameter,
+                        as: type,
+                        for: identifier,
+                        in: context
+                    )
                 ))
             }
             guard let symbol = context.symbol(for: name) else {
@@ -1006,10 +1010,12 @@ extension Statement {
             }
             switch symbol {
             case let .function((parameterType, _), fn):
-                let argument = try evaluateParameter(parameter,
-                                                     as: parameterType,
-                                                     for: identifier,
-                                                     in: context)
+                let argument = try evaluateParameter(
+                    parameter,
+                    as: parameterType,
+                    for: identifier,
+                    in: context
+                )
                 try RuntimeError.wrap(context.addValue(fn(argument, context)), at: range)
             case let .property(type, setter, getter):
                 if parameter == nil {
@@ -1022,10 +1028,12 @@ extension Statement {
                         }
                     }
                 }
-                let argument = try evaluateParameter(parameter,
-                                                     as: type,
-                                                     for: identifier,
-                                                     in: context)
+                let argument = try evaluateParameter(
+                    parameter,
+                    as: type,
+                    for: identifier,
+                    in: context
+                )
                 try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
                 if let parameter {
@@ -1485,8 +1493,10 @@ extension Expression {
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)
             if let memberValue = value[member.name, context.isCancelled] {
-                assert(value.hasMember(member.name),
-                       "\(value.errorDescription) does not have member '\(member.name)'")
+                assert(
+                    value.hasMember(member.name),
+                    "\(value.errorDescription) does not have member '\(member.name)'"
+                )
                 return memberValue
             }
             throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)

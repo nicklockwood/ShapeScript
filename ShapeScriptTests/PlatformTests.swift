@@ -11,7 +11,7 @@ import XCTest
 
 #if canImport(UIKit) || canImport(AppKit)
 
-class PlatformTests: XCTestCase {
+final class PlatformTests: XCTestCase {
     // MARK: Texture conversion
 
     func testTextureToImage() throws {

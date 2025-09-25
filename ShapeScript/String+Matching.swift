@@ -47,9 +47,11 @@ extension String {
                 if lhs[i - 1] == rhs[j - 1] {
                     dist[i].append(dist[i - 1][j - 1])
                 } else {
-                    dist[i].append(Swift.min(dist[i - 1][j] + 1,
-                                             dist[i][j - 1] + 1,
-                                             dist[i - 1][j - 1] + 1))
+                    dist[i].append(Swift.min(
+                        dist[i - 1][j] + 1,
+                        dist[i][j - 1] + 1,
+                        dist[i - 1][j - 1] + 1
+                    ))
                 }
                 if i > 1, j > 1, lhs[i - 1] == rhs[j - 2], lhs[i - 2] == rhs[j - 1] {
                     dist[i][j] = Swift.min(dist[i][j], dist[i - 2][j - 2] + 1)

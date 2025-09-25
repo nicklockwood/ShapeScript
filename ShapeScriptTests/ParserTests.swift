@@ -9,15 +9,15 @@
 @testable import ShapeScript
 import XCTest
 
-class ParserTests: XCTestCase {
+final class ParserTests: XCTestCase {
     // MARK: Operators
 
-    func testLeftAssociativity() {
+    func testLeftAssociativity() throws {
         let input = "print 1 - 2 + 3"
-        let printRange = input.range(of: "print")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let range3 = input.range(of: "3")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let range3 = try XCTUnwrap(input.range(of: "3"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -43,12 +43,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testOperatorPrecedence() {
+    func testOperatorPrecedence() throws {
         let input = "color 1 * 2 + 3"
-        let colorRange = input.range(of: "color")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let range3 = input.range(of: "3")!
+        let colorRange = try XCTUnwrap(input.range(of: "color"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let range3 = try XCTUnwrap(input.range(of: "3"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -74,12 +74,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testOperatorPrecedence2() {
+    func testOperatorPrecedence2() throws {
         let input = "color 1 / 2 * 3"
-        let colorRange = input.range(of: "color")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let range3 = input.range(of: "3")!
+        let colorRange = try XCTUnwrap(input.range(of: "color"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let range3 = try XCTUnwrap(input.range(of: "3"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -105,11 +105,11 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testNotOperatorPrecedence() {
+    func testNotOperatorPrecedence() throws {
         let input = "not a = b"
-        let notRange = input.range(of: "not")!
-        let aRange = input.range(of: "a")!
-        let bRange = input.range(of: "b")!
+        let notRange = try XCTUnwrap(input.range(of: "not"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.tuple([
@@ -128,12 +128,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testNotOperatorPrecedence2() {
+    func testNotOperatorPrecedence2() throws {
         let input = "not a = not b"
-        let notRange = input.range(of: "not")!
-        let aRange = input.range(of: "a")!
-        let notRange2 = input.range(of: "not", range: input.range(of: "not b")!)!
-        let bRange = input.range(of: "b")!
+        let notRange = try XCTUnwrap(input.range(of: "not"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let notRange2 = try XCTUnwrap(input.range(of: "not", range: XCTUnwrap(input.range(of: "not b"))))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.tuple([
@@ -155,10 +155,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testPrintNot() {
+    func testPrintNot() throws {
         let input = "print not"
-        let printRange = input.range(of: "print")!
-        let notRange = input.range(of: "not")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let notRange = try XCTUnwrap(input.range(of: "not"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -184,12 +184,12 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testInfixExpressionSplitOverTwoLines() {
+    func testInfixExpressionSplitOverTwoLines() throws {
         let input = """
         define foo 1 +
             bar
         """
-        let range = input.range(of: "\n")!
+        let range = try XCTUnwrap(input.range(of: "\n"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected end of line")
@@ -201,9 +201,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testComparisonOperatorChaining() {
+    func testComparisonOperatorChaining() throws {
         let input = "print 1 < 2 < 3"
-        let range = input.range(of: "<", range: input.range(of: "< 3")!)!
+        let range = try XCTUnwrap(input.range(of: "<", range: XCTUnwrap(input.range(of: "< 3"))))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected operator '<'")
@@ -214,9 +214,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testEqualityOperatorChaining() {
+    func testEqualityOperatorChaining() throws {
         let input = "print 1 = 2 = 3"
-        let range = input.range(of: "=", range: input.range(of: "= 3")!)!
+        let range = try XCTUnwrap(input.range(of: "=", range: XCTUnwrap(input.range(of: "= 3"))))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected operator '='")
@@ -227,13 +227,13 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testCommandVsOperatorPrecedence() {
+    func testCommandVsOperatorPrecedence() throws {
         let input = "print (a + b) * c"
-        let printRange = input.range(of: "print")!
-        let tupleRange = input.range(of: "(a + b)")!
-        let aRange = input.range(of: "a")!
-        let bRange = input.range(of: "b")!
-        let cRange = input.range(of: "c")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let tupleRange = try XCTUnwrap(input.range(of: "(a + b)"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
+        let cRange = try XCTUnwrap(input.range(of: "c"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -255,13 +255,13 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testCommandVsOperatorPrecedence2() {
+    func testCommandVsOperatorPrecedence2() throws {
         let input = "print (a + b) c"
-        let printRange = input.range(of: "print")!
-        let tupleRange = input.range(of: "(a + b)")!
-        let aRange = input.range(of: "a")!
-        let bRange = input.range(of: "b")!
-        let cRange = input.range(of: "c")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let tupleRange = try XCTUnwrap(input.range(of: "(a + b)"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
+        let cRange = try XCTUnwrap(input.range(of: "c"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -282,13 +282,13 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testCommandVsOperatorPrecedence3() {
+    func testCommandVsOperatorPrecedence3() throws {
         let input = "point (a + b) c"
-        let pointRange = input.range(of: "point")!
-        let tupleRange = input.range(of: "(a + b)")!
-        let aRange = input.range(of: "a")!
-        let bRange = input.range(of: "b")!
-        let cRange = input.range(of: "c")!
+        let pointRange = try XCTUnwrap(input.range(of: "point"))
+        let tupleRange = try XCTUnwrap(input.range(of: "(a + b)"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
+        let cRange = try XCTUnwrap(input.range(of: "c"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .command(
@@ -309,13 +309,13 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testFunctionVsOperatorPrecedence() {
+    func testFunctionVsOperatorPrecedence() throws {
         let input = "floor(a + b) * c"
-        let floorRange = input.range(of: "floor")!
-        let tupleRange = input.range(of: "(a + b)")!
-        let aRange = input.range(of: "a")!
-        let bRange = input.range(of: "b")!
-        let cRange = input.range(of: "c")!
+        let floorRange = try XCTUnwrap(input.range(of: "floor"))
+        let tupleRange = try XCTUnwrap(input.range(of: "(a + b)"))
+        let aRange = try XCTUnwrap(input.range(of: "a"))
+        let bRange = try XCTUnwrap(input.range(of: "b"))
+        let cRange = try XCTUnwrap(input.range(of: "c"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .expression(.infix(
@@ -337,12 +337,12 @@ class ParserTests: XCTestCase {
 
     /// NOTE: this should be treated as a command, but because of parsing
     /// limitations gets interpreted as a tuple and must be disambiguated later
-    func testLengthOptionTreatedAsTupleExpression() {
+    func testLengthOptionTreatedAsTupleExpression() throws {
         let input = "foo { length 40 }"
-        let fooRange = input.range(of: "foo")!
-        let lengthRange = input.range(of: "length")!
-        let numberRange = input.range(of: "40")!
-        let bodyRange = input.range(of: "{ length 40 }")!
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let lengthRange = try XCTUnwrap(input.range(of: "length"))
+        let numberRange = try XCTUnwrap(input.range(of: "40"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ length 40 }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.block(
                 Identifier(name: "foo", range: fooRange),
@@ -377,10 +377,10 @@ class ParserTests: XCTestCase {
         XCTAssertNoThrow(try parse(input))
     }
 
-    func testEmptyCommandArguments() {
+    func testEmptyCommandArguments() throws {
         let input = "foo()"
-        let fooRange = input.range(of: "foo")!
-        let parensRange = input.range(of: "()")!
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let parensRange = try XCTUnwrap(input.range(of: "()"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
                 Identifier(name: "foo", range: fooRange),
@@ -389,11 +389,11 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testEmptyFunctionArguments() {
+    func testEmptyFunctionArguments() throws {
         let input = "print bar()"
-        let printRange = input.range(of: "print")!
-        let barRange = input.range(of: "bar")!
-        let parensRange = input.range(of: "()")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let parensRange = try XCTUnwrap(input.range(of: "()"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
                 Identifier(name: "print", range: printRange),
@@ -418,9 +418,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testUnterminatedParenthesisFollowedByForOnSameLine() {
+    func testUnterminatedParenthesisFollowedByForOnSameLine() throws {
         let input = "define foo ( for 1 to 10 {}"
-        let range = input.range(of: "for")!
+        let range = try XCTUnwrap(input.range(of: "for"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
@@ -432,12 +432,12 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testUnterminatedParenthesisFollowedByForOnNextLine() {
+    func testUnterminatedParenthesisFollowedByForOnNextLine() throws {
         let input = """
         define foo (1 2 3
         for i in foo {}
         """
-        let range = input.range(of: "for")!
+        let range = try XCTUnwrap(input.range(of: "for"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
@@ -449,14 +449,14 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testUnterminatedMultilineParenthesisFollowedByForOnNextLine() {
+    func testUnterminatedMultilineParenthesisFollowedByForOnNextLine() throws {
         let input = """
         define foo (
             1 2 3
             4 5 6
         for i in foo {}
         """
-        let range = input.range(of: "for")!
+        let range = try XCTUnwrap(input.range(of: "for"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
@@ -491,12 +491,12 @@ class ParserTests: XCTestCase {
 
     // MARK: Ranges
 
-    func testRange() {
+    func testRange() throws {
         let input = "define foo 1 to 2"
-        let defineRange = input.range(of: "define")!
-        let fooRange = input.range(of: "foo")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
@@ -515,13 +515,13 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testRangeWithStep() {
+    func testRangeWithStep() throws {
         let input = "define foo 1 to 5 step 2"
-        let defineRange = input.range(of: "define")!
-        let fooRange = input.range(of: "foo")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "5")!
-        let range3 = input.range(of: "2")!
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "5"))
+        let range3 = try XCTUnwrap(input.range(of: "2"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
@@ -560,9 +560,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testRangeWithMultipleStepValues() {
+    func testRangeWithMultipleStepValues() throws {
         let input = "define range 1 to 5 step 1 step 2"
-        let range = input.range(of: "step", range: input.range(of: "step 2")!)!
+        let range = try XCTUnwrap(input.range(of: "step", range: XCTUnwrap(input.range(of: "step 2"))))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected token 'step'")
@@ -575,10 +575,10 @@ class ParserTests: XCTestCase {
 
     // MARK: Expression statement
 
-    func testLiteralExpressionStatement() {
+    func testLiteralExpressionStatement() throws {
         let input = "1 + 2"
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
@@ -589,10 +589,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIdentifierExpressionStatement() {
+    func testIdentifierExpressionStatement() throws {
         let input = "foo + 2"
-        let range1 = input.range(of: "foo")!
-        let range2 = input.range(of: "2")!
+        let range1 = try XCTUnwrap(input.range(of: "foo"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
@@ -603,10 +603,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testRangeExpressionStatement() {
+    func testRangeExpressionStatement() throws {
         let input = "foo to 2"
-        let range1 = input.range(of: "foo")!
-        let range2 = input.range(of: "2")!
+        let range1 = try XCTUnwrap(input.range(of: "foo"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
@@ -617,10 +617,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testStepExpressionStatement() {
+    func testStepExpressionStatement() throws {
         let input = "foo step 2"
-        let range1 = input.range(of: "foo")!
-        let range2 = input.range(of: "2")!
+        let range1 = try XCTUnwrap(input.range(of: "foo"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
@@ -631,10 +631,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testNonStepExpressionStatement() {
+    func testNonStepExpressionStatement() throws {
         let input = "foo step"
-        let range1 = input.range(of: "foo")!
-        let range2 = input.range(of: "step")!
+        let range1 = try XCTUnwrap(input.range(of: "foo"))
+        let range2 = try XCTUnwrap(input.range(of: "step"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .command(
@@ -644,10 +644,10 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testAndExpressionStatement() {
+    func testAndExpressionStatement() throws {
         let input = "foo and true"
-        let range1 = input.range(of: "foo")!
-        let range2 = input.range(of: "true")!
+        let range1 = try XCTUnwrap(input.range(of: "foo"))
+        let range2 = try XCTUnwrap(input.range(of: "true"))
         let range = range1.lowerBound ..< range2.upperBound
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.infix(
@@ -660,13 +660,13 @@ class ParserTests: XCTestCase {
 
     // MARK: For loops
 
-    func testForLoopWithIndex() {
+    func testForLoopWithIndex() throws {
         let input = "for i in 1 to 2 {}"
-        let forRange = input.range(of: "for")!
-        let iRange = input.range(of: "i")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let blockRange = input.range(of: "{}")!
+        let forRange = try XCTUnwrap(input.range(of: "for"))
+        let iRange = try XCTUnwrap(input.range(of: "i"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
@@ -686,12 +686,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testForLoopWithoutIndex() {
+    func testForLoopWithoutIndex() throws {
         let input = "for 1 to 2 {}"
-        let forRange = input.range(of: "for")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let blockRange = input.range(of: "{}")!
+        let forRange = try XCTUnwrap(input.range(of: "for"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
@@ -711,12 +711,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testForLoopWithParensAroundConditione() {
+    func testForLoopWithParensAroundConditione() throws {
         let input = "for (i in foo) {}"
-        let forRange = input.range(of: "for")!
-        let iRange = input.range(of: "i")!
-        let fooRange = input.range(of: "foo")!
-        let blockRange = input.range(of: "{}")!
+        let forRange = try XCTUnwrap(input.range(of: "for"))
+        let iRange = try XCTUnwrap(input.range(of: "i"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
@@ -729,14 +729,14 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testForLoopWithParenthesizedTuple() {
+    func testForLoopWithParenthesizedTuple() throws {
         let input = "for (1 2 3) {}"
-        let forRange = input.range(of: "for")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let range3 = input.range(of: "3")!
-        let tupleRange = input.range(of: "(1 2 3)")!
-        let blockRange = input.range(of: "{}")!
+        let forRange = try XCTUnwrap(input.range(of: "for"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let range3 = try XCTUnwrap(input.range(of: "3"))
+        let tupleRange = try XCTUnwrap(input.range(of: "(1 2 3)"))
+        let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .forloop(
@@ -753,9 +753,9 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testForLoopWithoutCondition() {
+    func testForLoopWithoutCondition() throws {
         let input = "for i in {}"
-        let braceRange = input.range(of: "{")!
+        let braceRange = try XCTUnwrap(input.range(of: "{"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
@@ -767,9 +767,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testForLoopWithInvalidIndex() {
+    func testForLoopWithInvalidIndex() throws {
         let input = "for 5 in foo {}"
-        let indexRange = input.range(of: "5")!
+        let indexRange = try XCTUnwrap(input.range(of: "5"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected numeric literal")
@@ -781,9 +781,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testForLoopWithoutIndexOrCondition() {
+    func testForLoopWithoutIndexOrCondition() throws {
         let input = "for {}"
-        let braceRange = input.range(of: "{")!
+        let braceRange = try XCTUnwrap(input.range(of: "{"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
@@ -795,9 +795,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testForLoopWithTupleWithoutParens() {
+    func testForLoopWithTupleWithoutParens() throws {
         let input = "for i in 3 1 4 1 5 { print i }"
-        let range = input.range(of: "1")!
+        let range = try XCTUnwrap(input.range(of: "1"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected numeric literal")
@@ -823,9 +823,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testForLoopWithBlockExpression() {
+    func testForLoopWithBlockExpression() throws {
         let input = "for i in cube { size 2 } { print i }"
-        let range = input.range(of: "{", range: input.range(of: "{ print")!)!
+        let range = try XCTUnwrap(input.range(of: "{", range: XCTUnwrap(input.range(of: "{ print"))))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
@@ -839,11 +839,11 @@ class ParserTests: XCTestCase {
 
     // MARK: If/else
 
-    func testIfStatement() {
+    func testIfStatement() throws {
         let input = "if foo {}"
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let bodyRange = input.range(of: "{}")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -856,17 +856,17 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIfFollowedByAnotherIf() {
+    func testIfFollowedByAnotherIf() throws {
         let input = """
         if foo {}
         if bar { }
         """
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let bodyRange = input.range(of: "{}")!
-        let if2Range = input.range(of: "if", range: input.range(of: "if bar")!)!
-        let barRange = input.range(of: "bar")!
-        let body2Range = input.range(of: "{ }")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
+        let if2Range = try XCTUnwrap(input.range(of: "if", range: XCTUnwrap(input.range(of: "if bar"))))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let body2Range = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -887,12 +887,12 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIfElseStatement() {
+    func testIfElseStatement() throws {
         let input = "if foo {} else { }"
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let bodyRange = input.range(of: "{}")!
-        let elseBodyRange = input.range(of: "{ }")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
+        let elseBodyRange = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -905,15 +905,15 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIfElseIfStatement() {
+    func testIfElseIfStatement() throws {
         let input = "if foo {} else if bar { }"
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let bodyRange = input.range(of: "{}")!
-        let elseBodyRange = input.range(of: "if bar { }")!
-        let if2Range = input.range(of: "if", range: elseBodyRange)!
-        let barRange = input.range(of: "bar")!
-        let body2Range = input.range(of: "{ }")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
+        let elseBodyRange = try XCTUnwrap(input.range(of: "if bar { }"))
+        let if2Range = try XCTUnwrap(input.range(of: "if", range: elseBodyRange))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let body2Range = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -935,15 +935,15 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIfWithElseOnNewLine() {
+    func testIfWithElseOnNewLine() throws {
         let input = """
         if foo {}
         else { }
         """
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let bodyRange = input.range(of: "{}")!
-        let elseBodyRange = input.range(of: "{ }")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
+        let elseBodyRange = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -956,9 +956,9 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testIfStatementWithoutCondition() {
+    func testIfStatementWithoutCondition() throws {
         let input = "if {}"
-        let braceRange = input.range(of: "{")!
+        let braceRange = try XCTUnwrap(input.range(of: "{"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
@@ -970,9 +970,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testIfStatementWithoutElse() {
+    func testIfStatementWithoutElse() throws {
         let input = "if foo {} {}"
-        let braceRange = input.range(of: "{", range: input.range(of: "} {")!)!
+        let braceRange = try XCTUnwrap(input.range(of: "{", range: XCTUnwrap(input.range(of: "} {"))))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected opening brace")
@@ -992,9 +992,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testIfStatementWithMisspelledOrOperator() {
+    func testIfStatementWithMisspelledOrOperator() throws {
         let input = "if foo nor bar {}"
-        let norRange = input.range(of: "nor")!
+        let norRange = try XCTUnwrap(input.range(of: "nor"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected token 'nor'")
@@ -1006,9 +1006,9 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testIfStatementWithMisspelledAndOperator() {
+    func testIfStatementWithMisspelledAndOperator() throws {
         let input = "if foo AND bar {}"
-        let norRange = input.range(of: "AND")!
+        let norRange = try XCTUnwrap(input.range(of: "AND"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.message, "Unexpected token 'AND'")
@@ -1020,12 +1020,12 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testIfIn() {
+    func testIfIn() throws {
         let input = "if foo in bar {}"
-        let ifRange = input.range(of: "if")!
-        let fooRange = input.range(of: "foo")!
-        let barRange = input.range(of: "bar")!
-        let bodyRange = input.range(of: "{}")!
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .ifelse(
@@ -1044,14 +1044,14 @@ class ParserTests: XCTestCase {
 
     // MARK: Switch/case
 
-    func testEmptySwitch() {
+    func testEmptySwitch() throws {
         let input = """
         switch foo {
         }
         """
-        let switchRange = input.range(of: "switch")!
-        let fooRange = input.range(of: "foo")!
-        let endBraceRange = input.range(of: "}")!
+        let switchRange = try XCTUnwrap(input.range(of: "switch"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let endBraceRange = try XCTUnwrap(input.range(of: "}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .switchcase(
@@ -1064,7 +1064,7 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    func testCaseAfterElse() {
+    func testCaseAfterElse() throws {
         let input = """
         switch 1 {
         else
@@ -1073,7 +1073,7 @@ class ParserTests: XCTestCase {
             print "bar"
         }
         """
-        let caseRange = input.range(of: "case")!
+        let caseRange = try XCTUnwrap(input.range(of: "case"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             XCTAssertEqual(error?.type, .unexpectedToken(
@@ -1085,14 +1085,14 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testSwitchCaseWithoutPattern() {
+    func testSwitchCaseWithoutPattern() throws {
         let input = """
         switch 1 {
         case
             print "foo"
         }
         """
-        let caseRange = input.range(of: "case")!
+        let caseRange = try XCTUnwrap(input.range(of: "case"))
         let eolRange = caseRange.upperBound ..< input.index(after: caseRange.upperBound)
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
@@ -1103,13 +1103,13 @@ class ParserTests: XCTestCase {
         }
     }
 
-    func testSwitchStatementOutsideCaseError() {
+    func testSwitchStatementOutsideCaseError() throws {
         let input = """
         switch 1 {
             print "foo"
         }
         """
-        let printRange = input.range(of: "print")!
+        let printRange = try XCTUnwrap(input.range(of: "print"))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             guard case .unexpectedToken(
@@ -1137,13 +1137,13 @@ class ParserTests: XCTestCase {
 
     // MARK: Blocks
 
-    func testTupleInBlock() {
+    func testTupleInBlock() throws {
         let input = "text { 1 2 }"
-        let textRange = input.range(of: "text")!
-        let tupleRange = input.range(of: "1 2")!
-        let range1 = input.range(of: "1")!
-        let range2 = input.range(of: "2")!
-        let bodyRange = input.range(of: "{ 1 2 }")!
+        let textRange = try XCTUnwrap(input.range(of: "text"))
+        let tupleRange = try XCTUnwrap(input.range(of: "1 2"))
+        let range1 = try XCTUnwrap(input.range(of: "1"))
+        let range2 = try XCTUnwrap(input.range(of: "2"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ 1 2 }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(type: .expression(.block(
                 Identifier(name: "text", range: textRange),
@@ -1159,16 +1159,16 @@ class ParserTests: XCTestCase {
 
     // MARK: Functions
 
-    func testFunctionDeclaration() {
+    func testFunctionDeclaration() throws {
         let input = "define foo(a b) { a + b }"
-        let defineRange = input.range(of: "define")!
-        let fooRange = input.range(of: "foo")!
-        let aRange1 = input.range(of: "a")!
-        let bRange1 = input.range(of: "b")!
-        let bodyRange = input.range(of: "{ a + b }")!
-        let sumRange = input.range(of: "a + b")!
-        let aRange2 = input.range(of: "a", range: bodyRange)!
-        let bRange2 = input.range(of: "b", range: bodyRange)!
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let aRange1 = try XCTUnwrap(input.range(of: "a"))
+        let bRange1 = try XCTUnwrap(input.range(of: "b"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ a + b }"))
+        let sumRange = try XCTUnwrap(input.range(of: "a + b"))
+        let aRange2 = try XCTUnwrap(input.range(of: "a", range: bodyRange))
+        let bRange2 = try XCTUnwrap(input.range(of: "b", range: bodyRange))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
                 type: .define(
@@ -1182,8 +1182,7 @@ class ParserTests: XCTestCase {
                             .plus,
                             Expression(type: .identifier("b"), range: bRange2)
                         )), range: sumRange),
-                    ],
-                    range: bodyRange)))
+                    ], range: bodyRange)))
                 ),
                 range: defineRange.lowerBound ..< bodyRange.upperBound
             ),

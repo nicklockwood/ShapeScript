@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class WelcomeViewController: NSViewController {
+final class WelcomeViewController: NSViewController {
     @IBOutlet private var welcomeView: NSTextView!
     @IBOutlet private var shouldShowAtStartupCheckbox: NSButton!
 

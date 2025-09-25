@@ -433,8 +433,11 @@ private extension ArraySlice where Element == Token {
                     range: range.upperBound ..< nextToken.range.lowerBound
                 )
             range = range.lowerBound ..< nextToken.range.upperBound
-            try requireToken(.rparen, as: expression.type == .tuple([]) ?
-                "expression" : TokenType.rparen.errorDescription)
+            try requireToken(
+                .rparen,
+                as: expression.type == .tuple([]) ?
+                    "expression" : TokenType.rparen.errorDescription
+            )
             switch expression.type {
             case .tuple:
                 type = expression.type

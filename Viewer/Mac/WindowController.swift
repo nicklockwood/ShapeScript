@@ -8,7 +8,7 @@
 
 import AppKit
 
-class WindowController: NSWindowController {
+final class WindowController: NSWindowController {
     override func newWindowForTab(_ sender: Any?) {
         NSDocumentController.shared.openDocument(sender)
     }

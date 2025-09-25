@@ -10,7 +10,7 @@
 --ifdef no-indent
 --self init-only
 --shortoptionals except-properties
-# --wraparguments before-first
+--wraparguments before-first
 --wrapparameters before-first
 --wrapcollections before-first
 --wrapconditions after-first
@@ -20,9 +20,17 @@
 
 --lintonly unusedArguments
 --lintonly unusedPrivateDeclarations
+--enable emptyExtensions
 --enable isEmpty
 # --enable docComments
---enable throwingTests
+--enable noForceTryInTests
+--enable noForceUnwrapInTests
+# --enable noGuardInTests
+--enable preferFinalClasses
+--enable redundantAsync
+--enable redundantThrows
 --enable redundantProperty
 --enable redundantEquatable
 --enable redundantMemberwiseInit
+--enable redundantProperty
+

@@ -8,7 +8,7 @@
 
 import UIKit
 
-class LicensesViewController: WhatsNewViewController {
+final class LicensesViewController: WhatsNewViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 

@@ -11,7 +11,7 @@ import UIKit
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
 
-class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate,
+final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate,
     UITextFieldDelegate
 {
     private var openingDocument = false

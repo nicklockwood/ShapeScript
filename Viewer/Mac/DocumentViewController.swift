@@ -10,7 +10,7 @@ import Euclid
 import SceneKit
 import ShapeScript
 
-class DocumentViewController: NSViewController {
+final class DocumentViewController: NSViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?
     private(set) var scnView: SCNView!
