@@ -8,13 +8,6 @@
 
 import Euclid
 
-public extension Collection<Path> {
-    /// Collective bounds for all paths
-    var bounds: Bounds {
-        reduce(into: .empty) { $0.formUnion($1.bounds) }
-    }
-}
-
 public extension Color {
     init?(hexString: String) {
         var string = hexString

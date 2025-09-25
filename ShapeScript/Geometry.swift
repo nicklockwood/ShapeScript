@@ -793,7 +793,7 @@ public extension Geometry {
         case let .path(path):
             return path.transformed(by: transform).bounds
         case let .fill(paths), let .loft(paths):
-            return paths.transformed(by: transform).bounds
+            return Bounds(paths.transformed(by: transform))
         case .group, .union, .lathe, .extrude:
             return Bounds(children.map {
                 $0.exactBounds(with: $0.transform * transform, callback)
