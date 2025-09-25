@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class WhatsNewViewController: NSViewController {
+final class WhatsNewViewController: NSViewController {
     @IBOutlet private var whatsNewView: NSTextView!
 
     override func viewDidLoad() {

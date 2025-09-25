@@ -14,7 +14,7 @@ import XCTest
 import SceneKit
 #endif
 
-class ImportExportTests: XCTestCase {
+final class ImportExportTests: XCTestCase {
     // MARK: Geometry
 
     func testCog() throws {
@@ -86,7 +86,7 @@ class ImportExportTests: XCTestCase {
         ]
         """
         let json = try JSONSerialization
-            .jsonObject(with: source.data(using: .utf8)!)
+            .jsonObject(with: XCTUnwrap(source.data(using: .utf8)))
         let value = Value(json: json)
         XCTAssertEqual(value, [
             "hello",
@@ -110,7 +110,7 @@ class ImportExportTests: XCTestCase {
             "foo"
         ]
         """
-        XCTAssertThrowsError(try Value(jsonData: json.data(using: .utf8)!)) { error in
+        XCTAssertThrowsError(try Value(jsonData: XCTUnwrap(json.data(using: .utf8)))) { error in
             let error = try? XCTUnwrap(error as? ParserError)
             guard case let .custom(message, _, range)? = error?.type else {
                 XCTFail()

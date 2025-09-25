@@ -17,6 +17,7 @@ func loadRTF(_ file: String) throws -> NSAttributedString {
     return string
 }
 
+// swiftformat:disable:next preferFinalClasses
 class WhatsNewViewController: UIViewController {
     @IBOutlet private(set) var textView: UITextView!
 

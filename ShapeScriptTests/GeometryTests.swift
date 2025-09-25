@@ -10,7 +10,7 @@ import Euclid
 @testable import ShapeScript
 import XCTest
 
-class GeometryTests: XCTestCase {
+final class GeometryTests: XCTestCase {
     // MARK: Bounds
 
     func testGroupOfShapeCameraBoundsNotEmpty() {

@@ -10,7 +10,7 @@ import Cocoa
 import SceneKit
 import ShapeScript
 
-class Document: NSDocument {
+final class Document: NSDocument {
     static var backgroundColor: NSColor {
         if Thread.isMainThread {
             NSAppearance.current = NSApp.effectiveAppearance

@@ -66,7 +66,7 @@ private func evaluate(_ source: String, as type: ValueType) throws -> Value {
     return try expression.evaluate(as: type, for: "", in: context)
 }
 
-class TypesystemTests: XCTestCase {
+final class TypesystemTests: XCTestCase {
     // MARK: Static type
 
     func testNumericLiteralType() throws {
@@ -812,114 +812,114 @@ class TypesystemTests: XCTestCase {
                        [["foo", "bar"], "baz"])
     }
 
-    func testCastObjectToAnyList() throws {
+    func testCastObjectToAnyList() {
         let type = ValueType.list(.any)
         let value = Value.object(["foo": "bar", "baz": "quux"])
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [value])
     }
 
-    func testCastObjectToStringTupleList() throws {
+    func testCastObjectToStringTupleList() {
         let type = ValueType.list(.tuple([.string, .string]))
         let value = Value.object(["foo": "bar", "baz": "quux"])
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [["baz", "quux"], ["foo", "bar"]])
     }
 
-    func testCastObjectToStringNumberTupleList() throws {
+    func testCastObjectToStringNumberTupleList() {
         let type = ValueType.list(.tuple([.string, .number]))
         let value = Value.object(["foo": 1, "baz": 2])
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [["baz", 2], ["foo", 1]])
     }
 
-    func testCastObjectToTuple() throws {
+    func testCastObjectToTuple() {
         let type = ValueType.tuple([.tuple([.string, .boolean]), .tuple([.string, .number])])
         let value = Value.object(["foo": 1, "baz": true])
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [["baz", true], ["foo", 1]])
     }
 
-    func testCastValueToTupleWithOptional() throws {
+    func testCastValueToTupleWithOptional() {
         let type = ValueType.tuple([.boolean, .optional(.string)])
         let value = Value.boolean(true)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [true])
     }
 
-    func testCastRadiansToNumber() throws {
+    func testCastRadiansToNumber() {
         let type = ValueType.number
         let value = Value.radians(.pi)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), .number(.pi))
     }
 
-    func testCastHalfturnsToNumber() throws {
+    func testCastHalfturnsToNumber() {
         let type = ValueType.number
         let value = Value.halfturns(1)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), .number(1))
     }
 
-    func testCastNumberToRadians() throws {
+    func testCastNumberToRadians() {
         let type = ValueType.radians
         let value = Value.number(.pi)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), .radians(.pi))
     }
 
-    func testCastNumberToHalfturns() throws {
+    func testCastNumberToHalfturns() {
         let type = ValueType.halfturns
         let value = Value.number(1)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), .halfturns(1))
     }
 
-    func testCastRadiansToHalfturns() throws {
+    func testCastRadiansToHalfturns() {
         let type = ValueType.halfturns
         let value = Value.radians(.pi)
         XCTAssertFalse(value.isConvertible(to: type))
     }
 
-    func testCastSingleElementTupleToList() throws {
+    func testCastSingleElementTupleToList() {
         let type = ValueType.list(.number)
         let value = Value.tuple([5])
         XCTAssertEqual(value.as(type), [5])
     }
 
-    func testCastSingleElementTupleToNumber() throws {
+    func testCastSingleElementTupleToNumber() {
         let type = ValueType.number
         let value = Value.tuple([5])
         XCTAssertEqual(value.as(type), 5.0)
     }
 
-    func testCastSingleElementTupleToRange() throws {
+    func testCastSingleElementTupleToRange() {
         let type = ValueType.range
         let range = RangeValue(from: 5, to: 6)
         let value = Value.tuple([.range(range)])
         XCTAssertEqual(value.as(type), .range(range))
     }
 
-    func testCastSingleElementTupleToRangeOrString() throws {
+    func testCastSingleElementTupleToRangeOrString() {
         let type = ValueType.union([.range, .string])
         let range = RangeValue(from: 5, to: 6)
         let value = Value.tuple([.range(range)])
         XCTAssertEqual(value.as(type), .range(range))
     }
 
-    func testCastSingleElementTupleToString() throws {
+    func testCastSingleElementTupleToString() {
         let type = ValueType.string
         let value = Value.tuple([5])
         XCTAssertEqual(value.as(type), "5")
     }
 
-    func testCastSingleElementTupleToAny() throws {
+    func testCastSingleElementTupleToAny() {
         let type = ValueType.any
         let value = Value.tuple(["foo"])
         XCTAssertEqual(value.as(type), "foo")
     }
 
-    func testCastObjectToMaterial() throws {
+    func testCastObjectToMaterial() {
         let type = ValueType.material
         let value = Value.object(["color": .color(.red), "metallicity": .number(0.5)])
         XCTAssertEqual(value.as(type), .material(.init(
@@ -932,19 +932,19 @@ class TypesystemTests: XCTestCase {
         )))
     }
 
-    func testCastInvalidObjectToMaterial() throws {
+    func testCastInvalidObjectToMaterial() {
         let type = ValueType.material
         let value = Value.object(["color": .color(.red), "metalicity": .number(0.5)])
         XCTAssertFalse(value.isConvertible(to: type))
     }
 
-    func testCastObjectToCompatibleObjectType() throws {
+    func testCastObjectToCompatibleObjectType() {
         let type = ValueType.object(["foo": .color, "bar": .string])
         let value = Value.object(["foo": .number(1), "bar": .boolean(true)])
         XCTAssertEqual(value.as(type), .object(["foo": .color(.white), "bar": .string("true")]))
     }
 
-    func testCastObjectToAnyObjectType() throws {
+    func testCastObjectToAnyObjectType() {
         let type = ValueType.anyObject
         let value = Value.object(["foo": .color(.red), "bar": .string("baz")])
         XCTAssertEqual(value.as(type), value)

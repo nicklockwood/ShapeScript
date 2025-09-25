@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class PreferencesViewController: NSViewController {
+final class PreferencesViewController: NSViewController {
     @IBOutlet var editorPopUp: NSPopUpButton!
 
     override func viewDidLoad() {

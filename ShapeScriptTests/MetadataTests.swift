@@ -155,7 +155,7 @@ private extension URL {
 
 private let urlRegex = try! NSRegularExpression(pattern: "\\]\\(([^\\)]*)\\)", options: [])
 
-class MetadataTests: XCTestCase {
+final class MetadataTests: XCTestCase {
     // MARK: Releases
 
     func testProjectVersionMatchesChangelog() throws {

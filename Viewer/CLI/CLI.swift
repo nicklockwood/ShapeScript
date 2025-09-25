@@ -29,7 +29,7 @@ struct CLIError: Error, CustomNSError {
     }
 }
 
-class CLI {
+final class CLI {
     let inputURL: URL?
     let outputURL: URL?
     let exportOptions: ExportOptions

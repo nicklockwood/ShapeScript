@@ -8,7 +8,7 @@
 
 import Foundation
 
-class FileMonitor {
+final class FileMonitor {
     let url: URL
     var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()

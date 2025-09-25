@@ -11,7 +11,7 @@ import ShapeScript
 
 let testsDirectory = URL(fileURLWithPath: #file).deletingLastPathComponent()
 
-class TestDelegate: EvaluationDelegate {
+final class TestDelegate: EvaluationDelegate {
     let directory: URL
     init(directory: URL = testsDirectory) {
         self.directory = directory

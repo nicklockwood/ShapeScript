@@ -15,7 +15,7 @@ protocol ExportMenuProvider {
     func updateExportMenu()
 }
 
-class DocumentViewController: UIViewController {
+final class DocumentViewController: UIViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?
     private(set) var interfaceColor: UIColor = .black

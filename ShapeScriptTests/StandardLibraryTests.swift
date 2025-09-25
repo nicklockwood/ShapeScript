@@ -10,7 +10,7 @@
 @testable import ShapeScript
 import XCTest
 
-class StandardLibraryTests: XCTestCase {
+final class StandardLibraryTests: XCTestCase {
     // MARK: Color
 
     func testColorInRoot() throws {
