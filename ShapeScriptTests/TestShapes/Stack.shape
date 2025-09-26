@@ -3,21 +3,21 @@
 detail 32
 
 // Function to stack shapes automatically
-// - Parameter shapes: one or more shapes to be stacked
-// - Returns: the stacked meshes, inside a group object
-define stack(shapes) {
-    define axis 0 1 0 // y-axis
-    group {
-        for mesh in shapes {
-            mesh
-            translate axis * mesh.bounds.size
-        }
+// - Parameters
+//   - axis: the axis along which to stack the shapes
+//   - children: one or more shapes to be stacked
+// - Returns: the stacked meshes
+define stack {
+    option axis 0 1 0 // y-axis
+    for mesh in children {
+        mesh
+        translate axis * mesh.bounds.size
     }
 }
 
 // Display stacked objects
-stack(
+stack {
     cube { color red }
     sphere { color green }
     cone { color blue }
-)
+}
