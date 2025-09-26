@@ -10,7 +10,12 @@ import Euclid
 import Foundation
 
 public typealias Polygon = Euclid.Polygon
+
+/// Cancellation handler - return true to cancel
 public typealias CancellationHandler = () -> Bool
+
+/// Legacy callback type - return false to cancel
+public typealias LegacyCallback = () -> Bool
 
 public final class Geometry: Hashable {
     public let type: GeometryType
@@ -76,6 +81,8 @@ public final class Geometry: Hashable {
     }
 
     let cacheKey: GeometryCache.Key
+
+    /// The cache used for storing computed meshes
     var cache: GeometryCache? {
         didSet {
             children.forEach { $0.cache = cache }
@@ -84,6 +91,9 @@ public final class Geometry: Hashable {
 
     private let lock: NSLock = .init()
     private var _mesh: Mesh?
+
+    /// Returns the pre-built mesh
+    /// If the mesh has not yet been built, this will return nil
     private(set) var mesh: Mesh? {
         get {
             lock.lock()
@@ -98,8 +108,9 @@ public final class Geometry: Hashable {
         }
     }
 
-    // External data, e.g. SCNGeometry
     private var _associatedData: Any?
+
+    /// External data, e.g. SCNGeometry
     var associatedData: Any? {
         get {
             lock.lock()
@@ -142,6 +153,8 @@ public final class Geometry: Hashable {
             case (1, _), (_, 0):
                 assert(children.isEmpty)
             default:
+                // For extrusions with multiple paths, convert each path to a
+                // separate child geometry so they can be individually selected
                 assert(children.isEmpty)
                 type = .extrude([], .default)
                 children = paths.map { path in
@@ -165,6 +178,8 @@ public final class Geometry: Hashable {
             case 1:
                 assert(children.isEmpty)
             default:
+                // For lathes with multiple paths, convert each path to a
+                // separate child geometry so they can be individually selected
                 assert(children.isEmpty)
                 type = .lathe([], segments: 0)
                 children = paths.map {
@@ -180,6 +195,7 @@ public final class Geometry: Hashable {
                 }
             }
         case var .fill(paths):
+            // TODO: why didn't we apply the same logic as above for fill?
             (paths, material) = paths.fixupColors(material: material)
             type = .fill(paths)
             switch paths.count {
@@ -272,10 +288,12 @@ public final class Geometry: Hashable {
 }
 
 public extension Geometry {
+    /// Geometry and its children produce no output
     var isEmpty: Bool {
         type.isEmpty && children.allSatisfy(\.isEmpty)
     }
 
+    /// The camera (if geometry is a camera)
     var camera: Camera? {
         guard case let .camera(camera) = type else {
             return nil
@@ -283,6 +301,7 @@ public extension Geometry {
         return camera
     }
 
+    /// The light (if geometry is a light)
     var light: Light? {
         guard case let .light(light) = type else {
             return nil
@@ -290,14 +309,25 @@ public extension Geometry {
         return light
     }
 
+    /// The path (if geometry is a path)
+    var path: Path? {
+        guard case let .path(path) = type else {
+            return nil
+        }
+        return path
+    }
+
+    /// The absolute geometry transform relative to the world/scene
     var worldTransform: Transform {
         (parent?.worldTransform ?? .identity) * transform
     }
 
+    /// Returns `true` if the geometry's' children should be rendered in debug mode
     var childDebug: Bool {
         debug || children.contains(where: \.childDebug)
     }
 
+    /// Return a copy of the geometry with the specified transform applied
     func transformed(by transform: Transform) -> Geometry {
         Geometry(
             type: type,
@@ -316,6 +346,8 @@ public extension Geometry {
         true
     }
 
+    /// Return a copy of the geometry with the specified properties updated
+    /// - Note: transform is replaced annd not combined like with `transformed(by:)`,
     func with(
         transform: Transform,
         material: Material?,
@@ -359,26 +391,23 @@ public extension Geometry {
         )
     }
 
-    var path: Path? {
-        guard case let .path(path) = type else {
-            return nil
-        }
-        return path
-    }
-
-    func build(_ callback: @escaping () -> Bool) -> Bool {
+    /// Builds the meshes for the receiver and all its children
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
+    /// - Returns: false if cancelled or true when completed
+    func build(_ callback: @escaping LegacyCallback) -> Bool {
         buildLeaves(callback) && buildPreview(callback) && buildFinal(callback)
     }
 
     /// Returns the union mesh of the receiver and all its children
     /// - Note: Includes both material and transform
-    func flattened(_ callback: @escaping () -> Bool = { true }) -> Mesh {
+    func flattened(_ callback: @escaping LegacyCallback = { true }) -> Mesh {
         flattened(with: material, callback)
     }
 
-    /// Returns the combined mesh of the receiver all its children
-    /// - Note: Includes both material and transform
-    func merged(_ callback: @escaping () -> Bool = { true }) -> Mesh {
+    /// Returns the combined mesh of the receiver and all its children
+    /// The cache is neither checked nor updated. Only already-built meshes are returned
+    /// - Note: Result is does *not* include the material or transform for the receiver
+    func merged(_ callback: @escaping LegacyCallback = { true }) -> Mesh {
         var result = mesh ?? .empty
         if type.isLeafGeometry {
             result = result.merge(mergedChildren(callback))
@@ -390,6 +419,7 @@ public extension Geometry {
 }
 
 extension Geometry {
+    /// Gathers all the named descendents of the receiver (including itself, potentially) into a dictionary
     func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
         if let name {
             dictionary[name] = self
@@ -399,15 +429,24 @@ extension Geometry {
 }
 
 private extension Collection<Geometry> {
-    func flattened(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
+    /// Computes the union of the geometries in the collection and all their descendents
+    /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
+    /// - Note: Results include both material (if specified) and transform
+    func flattened(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
         compactMap { callback() ? $0.flattened(with: material, callback) : nil }
     }
 
-    func meshes(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
+    /// Returns the meshes of the geometries in the collection and all their descendents
+    /// The cache is neither checked nor updated. Only already-built meshes are returned
+    /// - Note: Results include both material (if specified) and transform
+    func meshes(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
         flatMap { callback() ? $0.meshes(with: material, callback) : [] }
     }
 
-    func merged(_ callback: @escaping () -> Bool) -> Mesh {
+    /// Returns a merged mesh for all of the geometries in the collection and all their descendents
+    /// The cache is neither checked nor updated. Only already-built meshes are returned
+    /// - Note: Does not include the material or transform of the top-level geometries in the collection
+    func merged(_ callback: @escaping LegacyCallback) -> Mesh {
         var result = Mesh.empty
         for child in self where callback() {
             result = result.merge(child.merged(callback))
@@ -417,27 +456,45 @@ private extension Collection<Geometry> {
 }
 
 private extension Geometry {
-    func flattenedChildren(_ callback: @escaping () -> Bool) -> [Mesh] {
+    /// Computes the union of the meshes of the descendents of the receiver
+    /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
+    /// - Note: Includes both material (if specified) and transform
+    func flattenedChildren(_ callback: @escaping LegacyCallback) -> [Mesh] {
         children.flattened(with: material, callback)
     }
 
-    func mergedChildren(_ callback: @escaping () -> Bool) -> Mesh {
+    /// Returns a merged mesh for all of the descendents of the receiver
+    /// The cache is neither checked nor updated. Only already-built meshes are returned
+    /// - Note: Does not include the material or transform of the top-level geometries in the collection
+    func mergedChildren(_ callback: @escaping LegacyCallback) -> Mesh {
         children.merged(callback)
     }
 
-    func flattenedFirstChild(_ callback: @escaping () -> Bool) -> Mesh {
+    /// Computes the union of the meshes of the first child of the receiver
+    /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
+    /// - Note: Includes both material (if specified) and transform
+    func flattenedFirstChild(_ callback: @escaping LegacyCallback) -> Mesh {
         children.first.map { $0.flattened(with: self.material, callback) } ?? .empty
     }
 
+    /// Returns the meshes of the receiver and all its descendents
+    /// The cache is neither checked nor updated. Only already-built meshes are returned
+    /// - Note: Includes both the material and transform
     func childMeshes(_ callback: @escaping () -> Bool) -> [Mesh] {
         children.meshes(with: material, callback)
     }
 
-    func flattened(with material: Material?, _ callback: @escaping () -> Bool) -> Mesh {
+    /// Computes the union of the meshes of the receiver and all its descendents
+    /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
+    /// - Note: Includes material (if specified) and the receiver's transform
+    func flattened(with material: Material?, _ callback: @escaping LegacyCallback) -> Mesh {
         .union(meshes(with: material, callback), isCancelled: { !callback() })
     }
 
-    func meshes(with material: Material?, _ callback: @escaping () -> Bool) -> [Mesh] {
+    /// Returns the meshes of the receiver and all its children
+    /// The cache is neither checked nor updated. Only already-built meshes are returned.
+    /// - Note: Includes both material (if specified) and transform
+    func meshes(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
         var meshes = [Mesh]()
         if var mesh, mesh != .empty {
             mesh = mesh.transformed(by: transform)
@@ -459,7 +516,8 @@ private extension Geometry {
     }
 
     /// Build all geometries that don't have dependencies
-    func buildLeaves(_ callback: @escaping () -> Bool) -> Bool {
+    /// - Returns: false if cancelled or true when completed
+    func buildLeaves(_ callback: @escaping LegacyCallback) -> Bool {
         if type.isLeafGeometry, !buildMesh(callback) {
             return false
         }
@@ -470,7 +528,8 @@ private extension Geometry {
     }
 
     /// With leaves built, do a rough preview
-    func buildPreview(_ callback: @escaping () -> Bool) -> Bool {
+    /// - Returns: false if cancelled or true when completed
+    func buildPreview(_ callback: @escaping LegacyCallback) -> Bool {
         for child in children where !child.buildPreview(callback) {
             return false
         }
@@ -493,8 +552,9 @@ private extension Geometry {
         return callback()
     }
 
-    /// Build final pass
-    func buildFinal(_ callback: @escaping () -> Bool) -> Bool {
+    /// Builds and caches the final mesh for the receiver and all its descendents
+    /// - Returns: false if cancelled or true when completed
+    func buildFinal(_ callback: @escaping LegacyCallback) -> Bool {
         for child in children where !child.buildFinal(callback) {
             return false
         }
@@ -504,8 +564,10 @@ private extension Geometry {
         return callback()
     }
 
-    /// Build mesh (without children)
-    func buildMesh(_ callback: @escaping () -> Bool) -> Bool {
+    /// Builds and caches the mesh for the receiver. Already-cached mesh will be re-used if available
+    /// - Note: Child meshes should have already been built before calling (unchecked)
+    /// - Returns: false if cancelled or true when completed
+    func buildMesh(_ callback: @escaping LegacyCallback) -> Bool {
         if let mesh = cache?[mesh: self] {
             self.mesh = mesh
             return callback()
@@ -766,6 +828,8 @@ extension Mesh {
 // MARK: Stats
 
 public extension Geometry {
+    /// Returns if the geometry is a mesh type
+    /// - Note: this will return `true` even if mesh is empty has not been built yet
     var hasMesh: Bool {
         switch type {
         case .camera, .light, .path:
@@ -774,10 +838,12 @@ public extension Geometry {
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .group, .mesh:
-            return true
+            return true // TODO: should group return false if it has no child meshes?
         }
     }
 
+    /// Returns the total number of distinct objects (paths or meshes) in the shape
+    /// - Note: for groups this returns the child count, but children are ignored for other types
     var objectCount: Int {
         switch type {
         case .group:
@@ -792,6 +858,8 @@ public extension Geometry {
         }
     }
 
+    /// Returns the child count for the shape, not including grandchildren
+    /// - Note: only child meshes or groups are counted
     var childCount: Int {
         switch type {
         case .cone, .cylinder, .sphere, .cube,
@@ -803,6 +871,8 @@ public extension Geometry {
         }
     }
 
+    /// Builds the mesh (if needed) and returns the polygon count
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     func polygons(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
         switch type {
         case .group:
@@ -813,6 +883,8 @@ public extension Geometry {
         }
     }
 
+    /// Builds the mesh (if needed) and returns the triangle count
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     func triangles(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
         switch type {
         case .group:
@@ -823,6 +895,8 @@ public extension Geometry {
         }
     }
 
+    /// Returns if the geometry is watertight
+    /// Builds and caches the mesh (if required). Already-cached meshes will be re-used if available
     func isWatertight(_ isCancelled: @escaping CancellationHandler) -> Bool {
         switch type {
         case .cone, .cylinder, .sphere, .cube:
@@ -836,9 +910,10 @@ public extension Geometry {
     }
 
     /// Returns the exact bounds with specified transform
+    /// Builds and caches the mesh if required. Already-cached meshes will be re-used if available
     func exactBounds(
         with transform: Transform,
-        _ callback: @escaping () -> Bool = { true }
+        _ callback: @escaping LegacyCallback = { true }
     ) -> Bounds {
         switch type {
         case .camera, .light:
@@ -884,10 +959,14 @@ public extension Geometry {
         }
     }
 
+    /// Returns the exact mesh volume, in world units
+    /// Builds and caches the mesh if required. Already-cached meshes will be re-used if available
     func volume(_ isCancelled: @escaping CancellationHandler) -> Double {
         volume(with: worldTransform, isCancelled)
     }
 
+    /// Returns the exact mesh volume with the specified transform
+    /// Builds and caches the mesh if required. Already-cached meshes will be re-used if available
     private func volume(with transform: Transform, _ isCancelled: @escaping CancellationHandler) -> Double {
         let scaleFactor = transform.scale.x * transform.scale.y * transform.scale.z
         switch type {

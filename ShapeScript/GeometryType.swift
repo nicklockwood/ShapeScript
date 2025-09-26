@@ -82,6 +82,8 @@ public enum GeometryType: Hashable {
 }
 
 public extension GeometryType {
+    /// Returns `true` if the type is inerently empty, or `false` if it has intrinstic content
+    /// - Note: children are not taken into account, so this always returns true for container types like group or union
     var isEmpty: Bool {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
@@ -102,7 +104,8 @@ public extension GeometryType {
         }
     }
 
-    /// Returns exact bounds, not including the effect of transform or child shapes
+    /// Returns the exact bounds, not including the effects of transform or child shapes
+    /// - Note: may be expensive to calculate for shapes containing complex paths
     var bounds: Bounds {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
@@ -157,6 +160,7 @@ public extension GeometryType {
 }
 
 extension GeometryType {
+    /// Returns `true` for objects whose children do not contribute to their mesh
     var isLeafGeometry: Bool {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _):
@@ -170,6 +174,7 @@ extension GeometryType {
     }
 
     /// Returns representative points needed to generate exact bounds
+    /// - Note: may contain duplicate points
     var representativePoints: [Vector] {
         switch self {
         case .minkowski, .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
