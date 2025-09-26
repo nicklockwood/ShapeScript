@@ -173,6 +173,18 @@ extension GeometryType {
         }
     }
 
+    /// Returns true if changing material color affects generated mesh
+    var cacheKeyDependsOnColor: Bool {
+        switch self {
+        case .group, .cone, .cylinder, .sphere, .cube, .extrude, .lathe, .loft, .fill,
+             .union, .difference, .intersection, .xor, .stencil, .path, .mesh, .camera, .light:
+            return false
+        case .hull, .minkowski:
+            // TODO: optimize cases where it doesn't
+            return true
+        }
+    }
+
     /// Returns representative points needed to generate exact bounds
     /// - Note: may contain duplicate points
     var representativePoints: [Vector] {

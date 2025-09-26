@@ -240,7 +240,7 @@ public final class Geometry: Hashable {
 
         self.cacheKey = GeometryCache.Key(
             type: type,
-            material: nil,
+            material: type.cacheKeyDependsOnColor ? Material(color: material.color) : nil,
             smoothing: smoothing,
             transform: .identity,
             flipped: transform.isFlipped,
