@@ -179,35 +179,31 @@ final class InterpreterTests: XCTestCase {
     }
 
     func testSetNumberBlockName() throws {
-        let program = """
+        let program = try parse("""
         define foo {
             42
         }
         print foo { name "Foo" }
-        """
-        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "print foo"))))
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(.assertionFailure(
-                "Blocks that return a number value cannot be assigned a name"
-            ), at: range))
+            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+            XCTAssertEqual(error?.hint, "The 'name' property is not available in this context.")
         }
     }
 
     func testSetTupleBlockName() throws {
-        let program = """
+        let program = try parse("""
         define foo {
             "bar"
             42
         }
         print foo { name "Foo" }
-        """
-        let range = try XCTUnwrap(program.range(of: "foo", range: XCTUnwrap(program.range(of: "print foo"))))
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error, RuntimeError(.assertionFailure(
-                "Blocks that return a string value cannot be assigned a name"
-            ), at: range))
+            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+            XCTAssertEqual(error?.hint, "The 'name' property is not available in this context.")
         }
     }
 
@@ -2196,12 +2192,168 @@ final class InterpreterTests: XCTestCase {
 
     func testBlockReturningPathInsidePath() throws {
         let program = try parse("""
-        define foo path {
-            point 0 0
-            point 1 0
-            point 1 1
+        define foo {
+            path {
+                point 0 0
+                point 1 0
+                point 1 1
+            }
         }
         path { foo }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockThatReturnsMeshIsTransformable() throws {
+        let program = try parse("""
+        define foo {
+            cube
+        }
+        foo {
+            orientation 0.5
+            position 1
+        }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockThatReturnsPathIsTransformable() throws {
+        let program = try parse("""
+        define foo {
+            text "hello"
+        }
+        foo {
+            orientation 0.5
+            position 1
+        }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockThatReturnsStringIsNotTransformable() throws {
+        let program = try parse("""
+        define foo {
+            "hello"
+        }
+        print foo {
+            orientation 0.5
+            position 1
+        }
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'orientation'")
+            XCTAssertEqual(error?.hint, "The 'orientation' property is not available in this context.")
+        }
+    }
+
+    func testBlockWithoutChildrenDoesNotSupportChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            cube
+        }
+        foo {
+            rotate 0.5
+            translate 1
+        }
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'rotate'")
+            XCTAssertEqual(error?.hint, """
+            The 'rotate' command is not available in this context. Did you mean 'orientation'?
+            """)
+        }
+    }
+
+    func testBlockWithNumericChildrenDoesNotSupportChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            children + 3
+        }
+        foo {
+            rotate 0.5
+            translate 1
+        }
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'rotate'")
+            XCTAssertEqual(error?.hint, "The 'rotate' command is not available in this context.")
+        }
+    }
+
+    func testBlockWithChildShapesSupportsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            union children
+        }
+        foo {
+            rotate 0.5
+            translate 1
+            cube
+        }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockWithChildPointsSupportsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            path {
+                children
+            }
+        }
+        foo {
+            color red
+            point 0 0
+            translate 1
+            curve 0 0
+            translate 0 1
+            point 0 0
+        }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockWithUnknownChildTypesSupportsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            children
+        }
+        foo {
+            rotate 0.5
+            translate 1
+        }
+        """)
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testNestedBlockPosition() throws {
+        let program = try parse("""
+        define foo {
+            cylinder {
+                size (10 + 0.1 * 2)  20
+                position 0  (20 / 2)
+            }
+            cylinder {
+                size (10 * 1.5 + 0.1 * 2)  (20 / 2)
+                position 0  (20 - 20 / 4)
+            }
+        }
+
+        define bar {
+            foo {
+                position 17
+            }
+            foo {
+                position 0
+            }
+        }
+
+        bar {
+            position 0  0  (108 / 2)
+        }
         """)
         XCTAssertNoThrow(try evaluate(program, delegate: nil))
     }

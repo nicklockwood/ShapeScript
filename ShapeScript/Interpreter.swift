@@ -779,7 +779,18 @@ extension Definition {
             let source = context.source
             let sourceIndex = context.sourceIndex
             let baseURL = context.baseURL
-            return .block(.init(.user, options, childTypes, returnType)) { _context in
+            var symbols = Symbols.font // TODO: should this be supported?
+            if returnType.contains(where: { $0.isSubtype(of: .union([.mesh, .path, .polygon])) }) {
+                symbols.merge(.shape) { $1 }
+            }
+            if ValueType.mesh.isSubtype(of: childTypes) ||
+                ValueType.path.isSubtype(of: childTypes) ||
+                ValueType.polygon.isSubtype(of: childTypes) ||
+                ValueType.point.isSubtype(of: childTypes)
+            {
+                symbols.merge(.definition) { $1 }
+            }
+            return .block(.init(symbols, options, childTypes, returnType)) { _context in
                 do {
                     let context = context.pushDefinition()
                     context.stackDepth = _context.stackDepth + 1
@@ -851,13 +862,7 @@ extension Definition {
                         case let .polygon(polygon):
                             return .polygon(polygon.transformed(by: context.transform))
                         default:
-                            if context.name.isEmpty {
-                                return value
-                            }
-                            throw RuntimeErrorType.assertionFailure(
-                                "Blocks that return \(aOrAn(value.errorDescription)) " +
-                                    "value cannot be assigned a name"
-                            )
+                            return value
                         }
                     } else if context.name.isEmpty,
                               // Manage backwards compatibility for blocks that return
