@@ -297,7 +297,45 @@ define almostEqual(a b) {
 }
 ```
 
-Unlike [block options](blocks.md#options), function inputs do not have default values. Calling a function without passing a value for every input will result in an error.
+**Note:** Unlike [block options](blocks.md#options), function parameters do not have default values. Calling a function without passing a value for every parameter will result in an error.
+
+ShapeScript uses [type inference](https://en.wikipedia.org/wiki/Type_inference) to raise an error if the caller passes values of a different type than the function expects.
+
+Function parameters can be any type, including paths and meshes. Here is a function that splits a shape into horizontal slices:
+
+```swift
+// function to split a mesh into slices
+define split(shape slices) {
+    define axis 0 1 0 // y-axis
+    define offset shape.bounds.center
+    define shapeSize shape.bounds.size
+    define step shapeSize / slices
+    for i in 1 to slices {
+        difference {
+            shape
+            cube {
+                size shapeSize
+                position offset + axis * i * step
+            }
+            cube {
+                size shapeSize
+                position offset + axis * ((i - 1) * step - shapeSize)
+            }
+        }
+    }
+}
+
+// split a sphere into 5 slices
+define result split(sphere 5)
+
+// display the result
+for slice in result {
+    slice
+    translate 0.2
+}
+```
+
+![Sliced shape](../images/sliced-shape.png)
 
 ---
 [Index](index.md) | Next: [Commands](commands.md)

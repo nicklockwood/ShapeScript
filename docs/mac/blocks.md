@@ -29,7 +29,7 @@ star
 
 ![Star](../images/star.png)
 
-**Note:** there is a subtle distinction between the code above and the code below:
+**Note:** There is a subtle distinction between the code above and the code below:
 
 ```swift
 define star path {
@@ -79,6 +79,42 @@ star {
 ```
 
 ![Star](../images/six-pointed-star.png)
+
+## Children
+
+ShapeScript's [builder](builders.md) and [csg](csg.md) block commands accept child shapes which they use as inputs to construct a mesh:
+
+```swift
+difference {
+   cube { size 1 }
+   sphere { size 1.1 }
+}
+```
+
+You can do the same with your own custom blocks by using the `children` property. This property is available inside a block definition, and returns a [tuple](literals.md#vectors-and-tuples) of whatever child objects were passed in by the caller.
+
+Here is a simple block that takes whatever child objects are passed in and stacks them vertically along the Y-axis:
+
+```swift
+// define reusable stack command
+define stack {
+    for mesh in children {
+        mesh
+        translate 0 mesh.bounds.size.height
+    }
+}
+
+// stack some shapes
+stack {
+    cube { color red }
+    sphere { color green }
+    cone { color blue }
+}
+```
+
+![Stacked shapes](../images/stacked-shapes.png)
+
+**Note:** The children passed to a block can be any type, not just paths or meshes. ShapeScript uses [type inference](https://en.wikipedia.org/wiki/Type_inference) to raise an error if the caller passes children of a different type than the block expects.
 
 ---
 [Index](index.md) | Next: [Scope](scope.md)

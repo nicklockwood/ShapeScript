@@ -147,6 +147,7 @@ ShapeScript Help
         - [Conditional Defines](control-flow.md#conditional-defines)
     - [Blocks](blocks.md)
         - [Options](blocks.md#options)
+        - [Children](blocks.md#children)
     - [Scope](scope.md)
         - [Block Scope](scope.md#block-scope)
         - [Function Scope](scope.md#function-scope)
