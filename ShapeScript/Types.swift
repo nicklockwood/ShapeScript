@@ -171,6 +171,28 @@ extension ValueType {
         }
     }
 
+    func contains(where matches: (ValueType) -> Bool) -> Bool {
+        if matches(self) { return true }
+        switch self {
+        case let .union(types):
+            return types.contains(where: {
+                $0.contains(where: matches)
+            })
+        case let .tuple(types):
+            return types.contains(where: {
+                $0.contains(where: matches)
+            })
+        case let .list(type):
+            return type.contains(where: matches)
+        case .any, .color, .texture, .material, .boolean, .font, .number,
+             .radians, .halfturns, .vector, .size, .rotation, .string,
+             .text, .path, .mesh, .polygon, .point, .range, .partialRange,
+             .bounds, .object:
+            // TODO: should we check object members?
+            return false
+        }
+    }
+
     func isSubtype(of type: ValueType) -> Bool {
         switch (self, type) {
         case (_, .any):
@@ -905,7 +927,8 @@ extension Statement {
             guard let expression, let symbol = context.symbol(for: identifier.name) else {
                 expression?.inferTypes(for: &params, in: context, with: .any)
                 if identifier.name == "children" {
-                    params["children", default: .any].narrow(with: context.childTypes)
+                    let childTypes = context.childTypes == .void ? .any : context.childTypes
+                    params["children", default: .any].narrow(with: childTypes)
                 }
                 return
             }
