@@ -150,9 +150,23 @@ public final class Geometry: Hashable {
             switch (paths.count, options.along.count) {
             case (0, 0):
                 break
-            case (1, 1), (_, 0):
+            case (1, 1), (1, 0):
                 assert(children.isEmpty)
                 type = .extrude(paths, options)
+            case (_, 0):
+                assert(children.isEmpty)
+                type = .extrude([], .default)
+                children = paths.map { path in
+                    Geometry(
+                        type: .extrude([path], options),
+                        name: nil,
+                        transform: .identity,
+                        material: material,
+                        smoothing: smoothing,
+                        children: [],
+                        sourceLocation: sourceLocation
+                    )
+                }
             default:
                 // For extrusions with multiple paths, convert each path to a
                 // separate child geometry so they can be renderered individually
@@ -611,8 +625,8 @@ private extension Geometry {
             mesh = .sphere(slices: segments, stacks: segments / 2)
         case .cube:
             mesh = .cube()
-        case let .extrude(paths, .default) where paths.count >= 1:
-            mesh = Mesh.extrude(paths, isCancelled: isCancelled).makeWatertight()
+        case let .extrude(paths, .default) where paths.count == 1:
+            mesh = Mesh.extrude(paths[0]).makeWatertight()
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
             mesh = Mesh.extrude(
                 paths[0],

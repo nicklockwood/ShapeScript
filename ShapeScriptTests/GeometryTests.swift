@@ -211,6 +211,36 @@ final class GeometryTests: XCTestCase {
         })
     }
 
+    // MARK: Sub-object caching
+
+    func testFilledCharacterCaching() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        fill text "Hello World"    
+        """), delegate: nil, cache: cache)
+        _ = scene.build { true }
+        #if canImport(CoreText)
+        // TODO: Ideally cache should have only 8 entries as the 'o' and 'l' are repeated
+        XCTAssertEqual(cache.count, 11)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 1)
+        #endif
+    }
+
+    func testExtrudedCharacterCaching() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        extrude text "Hello World"    
+        """), delegate: nil, cache: cache)
+        _ = scene.build { true }
+        #if canImport(CoreText)
+        // TODO: Ideally cache should have only 8 entries as the 'o' and 'l' are repeated
+        XCTAssertEqual(cache.count, 11)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 1)
+        #endif
+    }
+
     // MARK: Material caching
 
     func testHullColorCaching() throws {

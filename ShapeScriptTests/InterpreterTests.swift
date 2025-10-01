@@ -1994,17 +1994,19 @@ final class InterpreterTests: XCTestCase {
     func testInvokeExtrudeWithMultipleArguments() throws {
         let program = "extrude square circle"
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(
-            scene.children.first?.type,
-            .extrude([.square(), .circle()], .default)
-        )
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [
+            .extrude([.square()], .default),
+            .extrude([.circle()], .default),
+        ])
     }
 
     func testInvokeExtrudeWithSingleArgumentInsideExpression() throws {
         let program = "extrude text \"foo\""
         let scene = try evaluate(parse(program), delegate: nil)
         #if canImport(CoreText)
-        XCTAssertEqual(scene.children.first?.type, .extrude(Path.text("foo"), .default))
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.count, 3)
         #endif
     }
 
