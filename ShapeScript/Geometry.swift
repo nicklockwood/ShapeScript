@@ -159,11 +159,12 @@ public final class Geometry: Hashable {
             case (_, 0):
                 type = .extrude([], .default)
                 children = paths.map { path in
-                    let (path, material) = path.vertexColorsToMaterial(material: material)
+                    let (temp, material) = path.vertexColorsToMaterial(material: material)
+                    let (path, offset) = temp.withNormalizedPosition()
                     return Geometry(
                         type: .extrude([path], options),
                         name: nil,
-                        transform: .identity,
+                        transform: .translation(offset),
                         material: material,
                         smoothing: smoothing,
                         children: [],
@@ -177,13 +178,14 @@ public final class Geometry: Hashable {
                 type = .extrude([], .default)
                 children = paths.flatMap { path in
                     options.along.map { along in
+                        let (along, offset) = along.withNormalizedPosition()
                         let (pair, material) = [path, along].vertexColorsToMaterial(material: material)
                         var options = options
                         options.along = [pair[1]]
                         return Geometry(
                             type: .extrude([pair[0]], options),
                             name: nil,
-                            transform: .identity,
+                            transform: .translation(offset),
                             material: material,
                             smoothing: smoothing,
                             children: [],
@@ -205,6 +207,7 @@ public final class Geometry: Hashable {
                 // separate child geometry so they can be renderered individually
                 type = .lathe([], segments: 0)
                 children = paths.map { path in
+                    // TODO: normalize path y-position for better caching
                     let (path, material) = path.vertexColorsToMaterial(material: material)
                     return Geometry(
                         type: .lathe([path], segments: segments),
@@ -230,11 +233,12 @@ public final class Geometry: Hashable {
                 // separate child geometry so they can be renderered individually
                 type = .fill([])
                 children = paths.map { path in
-                    let (path, material) = path.vertexColorsToMaterial(material: material)
+                    let (temp, material) = path.vertexColorsToMaterial(material: material)
+                    let (path, offset) = temp.withNormalizedPosition()
                     return Geometry(
                         type: .fill([path]),
                         name: nil,
-                        transform: .identity,
+                        transform: .translation(offset),
                         material: material,
                         smoothing: smoothing,
                         children: [],
@@ -244,6 +248,7 @@ public final class Geometry: Hashable {
                 material = children.first?.material ?? .default
             }
         case var .loft(paths):
+            // TODO: normalize all paths by their collective offset for better caching
             (paths, material) = paths.vertexColorsToMaterial(material: material)
             type = .loft(paths)
         case var .path(path):

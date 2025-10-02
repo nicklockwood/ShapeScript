@@ -220,8 +220,8 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil, cache: cache)
         _ = scene.build { true }
         #if canImport(CoreText)
-        // TODO: Ideally cache should have only 8 entries as the 'o' and 'l' are repeated
-        XCTAssertEqual(cache.count, 11)
+        // Cache should have only 8 entries as the 'o' and 'l' are repeated
+        XCTAssertEqual(cache.count, 8)
         let meshes = scene.children.compactMap(\.mesh)
         XCTAssertEqual(meshes.count, 1)
         #endif
@@ -234,8 +234,8 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil, cache: cache)
         _ = scene.build { true }
         #if canImport(CoreText)
-        // TODO: Ideally cache should have only 8 entries as the 'o' and 'l' are repeated
-        XCTAssertEqual(cache.count, 11)
+        // Cache should have only 8 entries as the 'o' and 'l' are repeated
+        XCTAssertEqual(cache.count, 8)
         let meshes = scene.children.compactMap(\.mesh)
         XCTAssertEqual(meshes.count, 1)
         #endif

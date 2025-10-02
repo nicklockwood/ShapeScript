@@ -183,29 +183,23 @@ extension Symbols {
             } ?? .default
             if let along = context.value(for: "along")?.tupleValue as? [Path] {
                 // shapes follow a common path
-                // TODO: modify this to reuse meshes where possible
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
-                    along: along.map {
-                        $0.withDetail(context.detail, twist: twist)
-                    },
+                    along: along.map { $0.withDetail(context.detail, twist: twist) },
                     twist: twist,
                     align: align
                 )), in: context))
             }
             if twist == .zero {
                 // Fast path - can reuse meshes (good for text)
-                // TODO: modify to return separate meshes rather than union
                 return .mesh(Geometry(
                     type: .extrude(context.paths, .default),
                     in: context
                 ))
             }
             // Slow path, each calculated separately, no reuse
-            // TODO: modify this to reuse meshes where possible
             return .tuple(context.paths.map {
                 let vector = $0.faceNormal / 2
-                let along = Path.line(-vector, vector)
-                    .withDetail(context.detail, twist: twist)
+                let along = Path.line(-vector, vector).withDetail(context.detail, twist: twist)
                 return .mesh(Geometry(type: .extrude([$0], .init(
                     along: [along],
                     twist: twist,
