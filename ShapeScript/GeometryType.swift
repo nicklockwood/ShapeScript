@@ -83,8 +83,7 @@ public enum GeometryType: Hashable {
 public extension GeometryType {
     var isEmpty: Bool {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil, .group,
-             .camera, .light:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
             return true
         case .cone, .cylinder, .sphere, .cube:
             return false
@@ -93,8 +92,8 @@ public extension GeometryType {
              let .loft(shapes),
              let .fill(shapes):
             return shapes.isEmpty || shapes.allSatisfy { $0.points.count < 2 }
-        case let .hull(points):
-            return points.count < 2
+        case let .hull(vertices):
+            return vertices.count < 2
         case let .path(path):
             return path.points.count < 2
         case let .mesh(mesh):
@@ -105,8 +104,7 @@ public extension GeometryType {
     /// Returns exact bounds, not including the effect of child shapes
     var bounds: Bounds {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil,
-             .group, .camera, .light:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
             return .empty
         case .cube:
             return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
@@ -173,8 +171,7 @@ extension GeometryType {
     /// Returns representative points needed to generate exact bounds
     var representativePoints: [Vector] {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil,
-             .group, .camera, .light:
+        case .union, .xor, .difference, .intersection, .stencil, .group, .camera, .light:
             return []
         case .cube:
             return [

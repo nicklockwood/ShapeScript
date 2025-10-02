@@ -151,8 +151,10 @@ class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocument
 
     func documentBrowser(
         _: UIDocumentBrowserViewController,
-        didRequestDocumentCreationWithHandler importHandler: @escaping (URL?,
-                                                                        UIDocumentBrowserViewController.ImportMode)
+        didRequestDocumentCreationWithHandler importHandler: @escaping (
+            URL?,
+            UIDocumentBrowserViewController.ImportMode
+        )
             -> Void
     ) {
         presentNewFileAlert("Untitled") { url in

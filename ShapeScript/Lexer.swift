@@ -61,7 +61,7 @@ public func tokenize(_ input: String) throws -> [Token] {
     return tokens
 }
 
-// Note: only includes keywords that start a command, not joining words
+/// Note: only includes keywords that start a command, not joining words
 public enum Keyword: String, CaseIterable {
     case define
     case `for`

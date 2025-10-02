@@ -116,7 +116,7 @@ private extension Geometry {
         self.init(type: .fill(paths), transform: Transform(
             scale: Vector(size: [scale]),
             rotation: rotation,
-            translation: offset - paths.bounds.size.rotated(by: rotation) * (scale / 2),
+            translation: offset - paths.bounds.size.rotated(by: rotation) * (scale / 2)
         ), material: material)
     }
 }

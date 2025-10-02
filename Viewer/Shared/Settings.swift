@@ -46,9 +46,12 @@ final class Settings {
         return rawValue.flatMap(T.init(rawValue:))
     }
 
-    func set(_ value: (some Any)?, for key: String, in document: Document,
-             andGlobally applyGlobally: Bool = false)
-    {
+    func set(
+        _ value: (some Any)?,
+        for key: String,
+        in document: Document,
+        andGlobally applyGlobally: Bool = false
+    ) {
         if let url = document._fileURL {
             documentSettings[url, default: [:]][key] = value
             try? url.setXattr(Data(value), for: key.xattrName)
@@ -62,9 +65,12 @@ final class Settings {
         }
     }
 
-    func set(_ value: (some RawRepresentable)?, for key: String, in document: Document,
-             andGlobally applyGlobally: Bool = false)
-    {
+    func set(
+        _ value: (some RawRepresentable)?,
+        for key: String,
+        in document: Document,
+        andGlobally applyGlobally: Bool = false
+    ) {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
     }
 

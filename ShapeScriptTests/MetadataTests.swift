@@ -353,7 +353,7 @@ class MetadataTests: XCTestCase {
             ("Export", "export.md"),
         ] + footerLinks
 
-        let urlRegex = try! NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]*)\\)", options: [])
+        let urlRegex = try NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]*)\\)", options: [])
 
         for (i, (_, path)) in indexLinks.dropLast().enumerated() {
             let fileURL = helpSourceDirectory.appendingPathComponent(path)

@@ -12,9 +12,10 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var firstLaunchOfNewVersion: Bool = false
 
-    func application(_: UIApplication,
-                     didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool
-    {
+    func application(
+        _: UIApplication,
+        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         firstLaunchOfNewVersion = (Settings.shared.appVersion != appVersion)
         if firstLaunchOfNewVersion {
             Settings.shared.previousAppVersion = Settings.shared.appVersion

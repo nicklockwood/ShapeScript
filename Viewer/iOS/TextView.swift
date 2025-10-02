@@ -702,9 +702,10 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
         textView.undoManager?.endUndoGrouping()
     }
 
-    func textDroppableView(_: UIView & UITextDroppable,
-                           willPerformDrop drop: UITextDropRequest)
-    {
+    func textDroppableView(
+        _: UIView & UITextDroppable,
+        willPerformDrop drop: UITextDropRequest
+    ) {
         if drop.isSameView {
             currentAction = .drag
             setText(nil)
@@ -713,17 +714,20 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
         }
     }
 
-    func textDroppableView(_: UIView & UITextDroppable,
-                           dropSessionDidEnd _: UIDropSession)
-    {
+    func textDroppableView(
+        _: UIView & UITextDroppable,
+        dropSessionDidEnd _: UIDropSession
+    ) {
         textViewDidChange(textView)
     }
 }
 
 extension TextView: NSLayoutManagerDelegate {
-    func layoutManager(_: NSLayoutManager, didCompleteLayoutFor _: NSTextContainer?,
-                       atEnd _: Bool)
-    {
+    func layoutManager(
+        _: NSLayoutManager,
+        didCompleteLayoutFor _: NSTextContainer?,
+        atEnd _: Bool
+    ) {
         layoutManager.invalidateIndexRects()
     }
 

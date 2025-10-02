@@ -335,8 +335,8 @@ class ParserTests: XCTestCase {
         ]))
     }
 
-    // NOTE: this should be treated as a command, but because of parsing
-    // limitations gets interpreted as a tuple and must be disambiguated later
+    /// NOTE: this should be treated as a command, but because of parsing
+    /// limitations gets interpreted as a tuple and must be disambiguated later
     func testLengthOptionTreatedAsTupleExpression() {
         let input = "foo { length 40 }"
         let fooRange = input.range(of: "foo")!
