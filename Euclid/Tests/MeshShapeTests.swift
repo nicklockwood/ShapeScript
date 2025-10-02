@@ -9,7 +9,7 @@
 @testable import Euclid
 import XCTest
 
-class MeshShapeTests: XCTestCase {
+final class MeshShapeTests: XCTestCase {
     // MARK: Fill
 
     func testFillClockwiseQuad() {
@@ -141,19 +141,19 @@ class MeshShapeTests: XCTestCase {
     // MARK: Stroke
 
     func testStrokeLine() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
+        let path = Path.line([-1, 0], [1, 0])
         let mesh = Mesh.stroke(path, detail: 2)
         XCTAssertEqual(mesh.polygons.count, 2)
     }
 
     func testStrokeLineSingleSided() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
+        let path = Path.line([-1, 0], [1, 0])
         let mesh = Mesh.stroke(path, detail: 1)
         XCTAssertEqual(mesh.polygons.count, 1)
     }
 
     func testStrokeLineWithTriangle() {
-        let path = Path.line(Vector(-1, 0), Vector(1, 0))
+        let path = Path.line([-1, 0], [1, 0])
         let mesh = Mesh.stroke(path, detail: 3)
         XCTAssertEqual(mesh.polygons.count, 5)
     }
@@ -176,115 +176,29 @@ class MeshShapeTests: XCTestCase {
         XCTAssertEqual(mesh.polygons.count, 15)
     }
 
-    // MARK: Convex Hull
+    // MARK: Nearest point
 
-    func testConvexHullOfCubes() {
-        let mesh1 = Mesh.cube().translated(by: Vector(-1, 0.5, 0.7))
-        let mesh2 = Mesh.cube().translated(by: Vector(1, 0))
-        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, mesh1.bounds.union(mesh2.bounds))
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
-    }
-
-    func testConvexHullOfSpheres() {
-        let mesh1 = Mesh.sphere().translated(by: Vector(-1, 0.2, -0.1))
-        let mesh2 = Mesh.sphere().translated(by: Vector(1, 0))
-        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, mesh1.bounds.union(mesh2.bounds))
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
-    }
-
-    func testConvexHullOfCubeIsItself() {
+    func testNearestPointOnConvexShape() {
         let cube = Mesh.cube()
-        let mesh = Mesh.convexHull(of: [cube])
-        XCTAssertEqual(cube, mesh)
-        let mesh2 = Mesh.convexHull(of: cube.polygons)
-        XCTAssertEqual(
-            Set(cube.polygons.flatMap { $0.vertices }),
-            Set(mesh2.polygons.flatMap { $0.vertices })
+        XCTAssertEqual(cube.nearestPoint(to: .zero), .zero)
+        XCTAssertEqual(cube.nearestPoint(to: -.unitX), [-0.5, 0, 0])
+        XCTAssertEqual(cube.nearestPoint(to: .unitZ), [0, 0, 0.5])
+        XCTAssertEqual(cube.nearestPoint(to: [1, 1, 0]), [0.5, 0.5, 0])
+        XCTAssertEqual(cube.nearestPoint(to: .one), [0.5, 0.5, 0.5])
+    }
+
+    func testNearestPointOnConcaveShape() {
+        let detail = 16
+        let radius = 0.5
+        let torus = Mesh.lathe(
+            .circle(radius: radius).translated(by: -.unitX * radius * 2),
+            slices: detail
         )
-        XCTAssertEqual(cube.polygons.count, mesh2.detessellate().polygons.count)
-    }
-
-    func testConvexHullOfNothing() {
-        let mesh = Mesh.convexHull(of: [] as [Mesh])
-        XCTAssertEqual(mesh, .empty)
-    }
-
-    func testConvexHullOfSingleTriangle() {
-        let triangle = Polygon(unchecked: [
-            Vector(0, 0),
-            Vector(1, 0),
-            Vector(1, 1),
-        ])
-        let mesh = Mesh.convexHull(of: [triangle])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, triangle.bounds)
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
-    }
-
-    func testConvexHullOfConcavePolygon() {
-        let shape = Polygon(unchecked: [
-            Vector(0, 0),
-            Vector(1, 0),
-            Vector(1, 1),
-            Vector(0.5, 1),
-            Vector(0.5, 0.5),
-        ])
-        let mesh = Mesh.convexHull(of: [shape])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, shape.bounds)
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
-    }
-
-    func testConvexHullOfConcavePolygonMesh() {
-        let shape = Mesh([Polygon(unchecked: [
-            Vector(0, 0),
-            Vector(1, 0),
-            Vector(1, 1),
-            Vector(0.5, 1),
-            Vector(0.5, 0.5),
-        ])])
-        let mesh = Mesh.convexHull(of: [shape])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, shape.bounds)
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
-    }
-
-    func testConvexHullOfCoplanarTriangles() {
-        let triangle1 = Polygon(unchecked: [
-            Vector(0, 0),
-            Vector(1, 0),
-            Vector(1, 1),
-        ])
-        let triangle2 = Polygon(unchecked: [
-            Vector(2, 0),
-            Vector(3, 0),
-            Vector(3, 1),
-        ])
-        let mesh = Mesh.convexHull(of: [triangle1, triangle2])
-        XCTAssert(mesh.isKnownConvex)
-        XCTAssert(mesh.isActuallyConvex)
-        XCTAssert(mesh.isWatertight)
-        XCTAssert(mesh.polygons.areWatertight)
-        XCTAssertEqual(mesh.bounds, triangle1.bounds.union(triangle2.bounds))
-        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+        let shortest = cos(.pi / Double(detail)) * radius
+        XCTAssertEqual(torus.nearestPoint(to: .zero).length, shortest)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius), .unitX * radius)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 2), .unitX * radius * 2)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 3), .unitX * radius * 3)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 4), .unitX * radius * 3)
     }
 }

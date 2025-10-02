@@ -41,11 +41,20 @@ public struct Line: Hashable, Sendable {
     ///   - origin: An arbitrary point on the line selected as the origin.
     ///   - direction: The direction of the line, emanating from the origin.
     public init?(origin: Vector, direction: Vector) {
-        let length = direction.length
-        guard length.isFinite, length > epsilon else {
+        guard let direction = direction.direction else {
             return nil
         }
-        self.init(unchecked: origin, direction: direction / length)
+        self.init(unchecked: origin, direction: direction)
+    }
+}
+
+extension Line: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        "Line(origin: \(origin.components), direction: \(direction.components))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
     }
 }
 
@@ -100,34 +109,31 @@ public extension Line {
         self.init(unchecked: segment.start, direction: segment.direction)
     }
 
-    /// Returns a Boolean value that indicates whether the specified point lies on the line.
-    /// - Parameter point: The point to test.
-    /// - Returns: `true` if the point lies on the line and `false` otherwise.
+    /// Deprecated.
+    @available(*, deprecated, renamed: "intersects(_:)")
     func containsPoint(_ point: Vector) -> Bool {
-        abs(point.distance(from: self)) < epsilon
+        intersects(point)
     }
 
-    /// Returns the perpendicular distance of the line from a specified point.
-    /// - Parameter point: The point to compare.
-    /// - Returns: The absolute perpendicular distance between the point and line.
-    func distance(from point: Vector) -> Double {
-        vectorFromPointToLine(point, origin, direction).length
-    }
-
-    /// Returns the perpendicular distance from another line to this one.
-    /// - Parameter line: The line to compare.
-    /// - Returns: The perpendicular distance from the other line.
-    func distance(from line: Line) -> Double {
-        guard let (p0, p1) = shortestLineBetween(
+    /// Returns the point where the specified line intersects this one.
+    /// - Parameter line: The line to compare with.
+    /// - Returns: The point of intersection, or `nil` if the lines don't intersect.
+    func intersection(with line: Line) -> Vector? {
+        lineIntersection(
             origin,
             origin + direction,
+            false,
             line.origin,
             line.origin + line.direction,
-            inSegment: false
-        ) else {
-            return 0
-        }
-        return p1.distance(from: p0)
+            false
+        )
+    }
+
+    /// Returns the point where the specified segment intersects this line.
+    /// - Parameter lineSegment: The line segment to compare with.
+    /// - Returns: The point of intersection, or `nil` if the lines don't intersect.
+    func intersection(with lineSegment: LineSegment) -> Vector? {
+        lineSegment.intersection(with: self)
     }
 
     /// Returns the point where the specified plane intersects the line.
@@ -139,23 +145,37 @@ public extension Line {
         }
     }
 
-    /// Returns the point where the specified line intersects this one.
-    /// - Parameter line: The line to compare with.
-    /// - Returns: The point of intersection, or `nil` if the lines don't intersect.
-    func intersection(with line: Line) -> Vector? {
-        lineIntersection(
-            origin,
-            origin + direction,
-            line.origin,
-            line.origin + line.direction
-        )
+    /// Returns the point where the specified polygon intersects the line.
+    /// - Parameter polygon: The polygon to compare with.
+    /// - Returns: The point of intersection, or `nil` if the line and polygon don't intersect.
+    func intersection(with polygon: Polygon) -> Vector? {
+        intersection(with: polygon.plane).flatMap {
+            polygon.intersects($0) ? $0 : nil
+        }
     }
 
-    /// Returns a Boolean value that indicates whether the lines intersect.
-    /// - Parameter line: The line to compare with.
-    /// - Returns: `true` if the lines intersect and `false` otherwise.
-    func intersects(_ line: Line) -> Bool {
-        intersection(with: line) != nil
+    /// Returns the points where the specified bounds intersects the line.
+    /// - Parameter bounds: The bounds to compare with.
+    /// - Returns: A set of zero or more points of intersection with the bounds.
+    func intersection(with bounds: Bounds) -> Set<Vector> {
+        // TODO: optimize this by taking into account that planes are axis-aligned
+        Set(bounds.edgePlanes.compactMap {
+            intersection(with: $0).flatMap(bounds.intersection(with:))
+        })
+    }
+
+    /// Returns the shortest distance between the line and the specified object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: The absolute distance from the nearest point on the object.
+    func distance(from object: some LineComparable) -> Double {
+        object.distance(from: self)
+    }
+
+    /// Returns a true if the line intersects the specified object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: `true` if the line and object intersect, and `false` otherwise.
+    func intersects(_ object: some LineComparable) -> Bool {
+        object.intersects(self)
     }
 }
 
@@ -168,5 +188,13 @@ extension Line {
                 origin.z / direction.z
         )
         self.direction = direction
+    }
+
+    func signedPerpendicularDistance(from plane: Plane) -> Double? {
+        isParallel(to: plane) ? origin.signedDistance(from: plane) : nil
+    }
+
+    func isParallel(to plane: Plane) -> Bool {
+        direction.dot(plane.normal) < planeEpsilon
     }
 }

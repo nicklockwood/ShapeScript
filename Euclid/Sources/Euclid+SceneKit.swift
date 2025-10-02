@@ -102,16 +102,6 @@ public extension SCNQuaternion {
     init(_ rotation: Rotation) {
         self.init(rotation.x, rotation.y, rotation.z, rotation.w)
     }
-
-    /// Creates a new SceneKit quaternion from a Euclid `Quaternion`
-    /// - Parameter quaternion: The quaternion to convert.
-    ///
-    /// > Note: ``SCNQuaternion`` is actually just a typealias for ``SCNVector4`` so be
-    /// careful to avoid type ambiguity when using this value.
-    @available(*, deprecated)
-    init(_ quaternion: Quaternion) {
-        self.init(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
-    }
 }
 
 public extension SCNMatrix4 {
@@ -130,9 +120,9 @@ public extension SCNNode {
     /// The transform applies to the orientation, scale, and position of the node.
     /// - Parameter transform: The transform to apply.
     func setTransform(_ transform: Transform) {
-        orientation = SCNQuaternion(transform.rotation)
         scale = SCNVector3(transform.scale)
-        position = SCNVector3(transform.offset)
+        orientation = SCNQuaternion(transform.rotation)
+        position = SCNVector3(transform.translation)
     }
 }
 
@@ -246,7 +236,6 @@ public extension SCNGeometry {
     /// - Parameters:
     ///   - mesh: The mesh to convert into a SceneKit geometry.
     ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
-    @available(OSX 10.12, iOS 10.0, tvOS 10.0, *)
     convenience init(polygons mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
         var elementData = [(Int, Data)]()
         var vertices = [SCNVector3]()
@@ -312,7 +301,7 @@ public extension SCNGeometry {
 
     /// Creates a wireframe geometry from a collection of line segments.
     /// - Parameter edges: The collection of ``LineSegment`` to convert.
-    convenience init<T: Collection>(_ edges: T) where T.Element == LineSegment {
+    convenience init(_ edges: some Collection<LineSegment>) {
         var indices = [UInt32]()
         var vertices = [SCNVector3]()
         var indicesByVertex = [Vector: UInt32]()
@@ -409,11 +398,6 @@ public extension SCNGeometry {
             ]
         )
     }
-
-    @available(*, deprecated, renamed: "init(_:)")
-    convenience init(bounds: Bounds) {
-        self.init(bounds)
-    }
 }
 
 // MARK: import
@@ -462,11 +446,7 @@ private extension Data {
     }
 
     func vector(at index: Int) -> Vector {
-        Vector(
-            float(at: index),
-            float(at: index + 4),
-            float(at: index + 8)
-        )
+        [float(at: index), float(at: index + 4), float(at: index + 8)]
     }
 
     func color(at index: Int) -> Color {
@@ -495,15 +475,6 @@ public extension Rotation {
     }
 }
 
-@available(*, deprecated)
-public extension Quaternion {
-    /// Creates a Euclid `Quaternion` from a SceneKit quaternion.
-    /// - Parameter q: The `SCNQuaternion` to convert.
-    init(_ q: SCNQuaternion) {
-        self.init(Double(q.x), Double(q.y), Double(q.z), Double(q.w))
-    }
-}
-
 public extension Transform {
     /// Creates a transform from a SceneKit transform matrix.
     /// - Parameter scnMatrix: The `SCNMatrix4` from which to determine the transform.
@@ -517,9 +488,9 @@ public extension Transform {
     /// - Parameter scnNode: The `SCNNode` from which to determine the transform.
     static func transform(from scnNode: SCNNode) -> Transform {
         Transform(
-            offset: Vector(scnNode.position),
+            scale: Vector(scnNode.scale),
             rotation: Rotation(scnNode.orientation),
-            scale: Vector(scnNode.scale)
+            translation: Vector(scnNode.position)
         )
     }
 }
@@ -542,15 +513,8 @@ public extension Mesh {
     /// - Returns: A ``Material`` instance, or `nil` for the default material.
     typealias SCNMaterialProvider = (_ m: SCNMaterial) -> Material?
 
-    @available(*, deprecated, renamed: "SCNMaterialProvider")
-    typealias MaterialProvider = (_ m: SCNMaterial) -> Material?
-
-    /// Loads a mesh from a file using any format supported by SceneKit,  with optional material mapping.
-    /// - Parameters:
-    ///   - url: The `URL` of the file to be loaded.
-    ///   - ignoringTransforms: Should node transforms from the input file be ignored.
-    ///   - materialLookup: An optional closure to map the SceneKit materials to Euclid materials.
-    ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
+    /// Deprecated
+    @available(*, deprecated, message: "Use Mesh.init(url:materialLookup:) instead.")
     init(url: URL, ignoringTransforms: Bool, materialLookup: SCNMaterialProvider? = nil) throws {
         var options: [SCNSceneSource.LoadingOption: Any] = [
             .checkConsistency: false,
@@ -578,7 +542,7 @@ public extension Mesh {
     ///   - ignoringTransforms: Should transforms from the input node and its children be ignored.
     ///   - materialLookup: An optional closure to map the SceneKit materials to Euclid materials.
     ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
-    init(_ scnNode: SCNNode, ignoringTransforms: Bool, materialLookup: SCNMaterialProvider? = nil) {
+    init(_ scnNode: SCNNode, ignoringTransforms: Bool = false, materialLookup: SCNMaterialProvider? = nil) {
         var meshes = [Mesh]()
         if let mesh = scnNode.geometry.flatMap({
             Mesh($0, materialLookup: materialLookup)
@@ -637,10 +601,10 @@ public extension Mesh {
                 }
             case .texcoord:
                 for i in 0 ..< count {
-                    vertices[i].texcoord = Vector(
+                    vertices[i].texcoord = [
                         data.float(at: offset),
-                        data.float(at: offset + 4)
-                    )
+                        data.float(at: offset + 4),
+                    ]
                     offset += stride
                 }
             default:
@@ -695,20 +659,7 @@ public extension Mesh {
                         vertices.append(vertex(at: index))
                         index += 1
                     }
-                    if let polygon = Polygon(vertices, material: material) {
-                        polygons.append(polygon)
-                    } else {
-                        for triangle in triangulateVertices(
-                            vertices,
-                            plane: nil,
-                            isConvex: nil,
-                            sanitizeNormals: true,
-                            material: material,
-                            id: 0
-                        ) {
-                            polygons.append(triangle)
-                        }
-                    }
+                    polygons += .init(vertices, material: material)
                 }
             default:
                 // TODO: throw detailed error message instead
@@ -754,6 +705,7 @@ public extension Mesh {
         self.init(
             unchecked: polygons,
             bounds: Bounds(scnGeometry.boundingBox),
+            bsp: nil,
             isConvex: isKnownConvex,
             isWatertight: holeEdges.isEmpty,
             submeshes: noSubmeshes ? [] : nil
@@ -767,11 +719,6 @@ public extension Mesh {
     ///     Pass `nil` to use the default Euclid material.
     init?(_ scnGeometry: SCNGeometry, material: Material?) {
         self.init(scnGeometry) { _ in material }
-    }
-
-    @available(*, deprecated, renamed: "init(_:materialLookup:)")
-    init?(scnGeometry: SCNGeometry, materialLookup: SCNMaterialProvider? = nil) {
-        self.init(scnGeometry, materialLookup: materialLookup)
     }
 }
 

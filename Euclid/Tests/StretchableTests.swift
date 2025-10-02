@@ -19,26 +19,28 @@ private extension Stretchable {
     }
 }
 
-class StretchableTests: XCTestCase {
-    // MARK: Rotation
+final class StretchableTests: XCTestCase {
+    // MARK: Points
 
     func testStretchPoint() {
         let p = Vector(1, 1)
         let q = p.stretched(by: 1.5, along: .unitY)
-        XCTAssertEqual(q, Vector(1, 1.5))
+        XCTAssertEqual(q, [1, 1.5])
         let r = p.stretched(by: 1.5, along: -.unitY)
-        XCTAssertEqual(r, Vector(1, 1.5))
+        XCTAssertEqual(r, [1, 1.5])
         let s = p.stretched(by: 1.5, along: .unitX)
-        XCTAssertEqual(s, Vector(1.5, 1))
+        XCTAssertEqual(s, [1.5, 1])
         let t = p.stretched(by: 1.5, along: -.unitX)
-        XCTAssertEqual(t, Vector(1.5, 1))
+        XCTAssertEqual(t, [1.5, 1])
     }
+
+    // MARK: Paths
 
     func testStretchPath() {
         let p = Path.circle()
         let q = p.stretched(by: 1.5, along: .unitY)
-        XCTAssert(q.isEqual(to: p.scaled(by: Vector(1, 1.5, 1))))
+        XCTAssertEqual(q, p.scaled(by: [1, 1.5, 1]))
         let r = p.stretched(by: 1.5, along: .unitX)
-        XCTAssert(r.isEqual(to: p.scaled(by: Vector(1.5, 1, 1))))
+        XCTAssertEqual(r, p.scaled(by: [1.5, 1, 1]))
     }
 }

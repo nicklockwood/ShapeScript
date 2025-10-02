@@ -9,7 +9,7 @@
 @testable import Euclid
 import XCTest
 
-class RotationTests: XCTestCase {
+final class RotationTests: XCTestCase {
     func testAxisAngle() {
         let rotations: [(axis: Vector, angle: Angle)] = [
             (.unitX, .degrees(30)),
@@ -22,8 +22,8 @@ class RotationTests: XCTestCase {
 
         for (axis, angle) in rotations {
             let r = Rotation(unchecked: axis, angle: angle)
-            XCTAssert(r.angle.isEqual(to: angle), "\(r.angle) is not equal to \(angle)")
-            XCTAssert(r.axis.isEqual(to: axis), "\(r.axis) is not equal to \(axis)")
+            XCTAssertEqual(r.angle, angle)
+            XCTAssertEqual(r.axis, axis)
         }
     }
 
@@ -36,38 +36,38 @@ class RotationTests: XCTestCase {
     func testAxisAngleWith180RotationPreservesAxis() {
         let r = Rotation(unchecked: .unitX, angle: .degrees(180))
         XCTAssertEqual(r.axis, .unitX)
-        XCTAssert(r.angle.isEqual(to: .pi), "\(r.angle.degrees) is not equal to 180")
+        XCTAssertEqual(r.angle, .pi)
     }
 
     func testAxisAngleWith270RotationPreservesAxis() {
         let r = Rotation(unchecked: .unitX, angle: .degrees(270))
         XCTAssertEqual(r.axis, .unitX)
-        XCTAssert(r.angle.isEqual(to: .pi * 1.5), "\(r.angle.degrees) is not equal to 270")
+        XCTAssertEqual(r.angle, .pi * 1.5)
     }
 
     func testRotationFromTo() {
         let r = Rotation(from: .unitY, to: .unitX)
-        XCTAssert(r.angle.isEqual(to: .halfPi), "\(r.angle) is not equal to \(Angle.halfPi)")
-        XCTAssert(r.axis.isEqual(to: .unitZ), "\(r.axis) is not equal to \(Vector.unitZ)")
+        XCTAssertEqual(r.angle, .halfPi)
+        XCTAssertEqual(r.axis, .unitZ)
         XCTAssertEqual(Vector.unitY.rotated(by: r), .unitX)
     }
 
     func testRotationFromZeroToX() {
         let r = Rotation(from: .zero, to: .unitX)
-        XCTAssert(r.angle.isEqual(to: .zero), "\(r.angle) is not equal to \(Angle.zero)")
-        XCTAssert(r.axis.isEqual(to: .unitZ), "\(r.axis) is not equal to \(Vector.unitZ)")
+        XCTAssertEqual(r.angle, .zero)
+        XCTAssertEqual(r.axis, .unitZ)
     }
 
     func testRotationFromYToZero() {
         let r = Rotation(from: .unitY, to: .zero)
-        XCTAssert(r.angle.isEqual(to: .zero), "\(r.angle) is not equal to \(Angle.zero)")
-        XCTAssert(r.axis.isEqual(to: .unitZ), "\(r.axis) is not equal to \(Vector.unitZ)")
+        XCTAssertEqual(r.angle, .zero)
+        XCTAssertEqual(r.axis, .unitZ)
     }
 
     func testRotationFromZeroToZero() {
         let r = Rotation(from: .zero, to: .zero)
-        XCTAssert(r.angle.isEqual(to: .zero), "\(r.angle) is not equal to \(Angle.zero)")
-        XCTAssert(r.axis.isEqual(to: .unitZ), "\(r.axis) is not equal to \(Vector.unitZ)")
+        XCTAssertEqual(r.angle, .zero)
+        XCTAssertEqual(r.axis, .unitZ)
     }
 
     // MARK: Vector rotation
@@ -76,27 +76,27 @@ class RotationTests: XCTestCase {
         let r = Rotation(unchecked: .unitZ, angle: .halfPi)
         let v = Vector(0, 0.5, 0)
         let u = v.rotated(by: r)
-        XCTAssertEqual(u, Vector(0.5, 0, 0))
+        XCTAssertEqual(u, [0.5, 0, 0])
     }
 
     func testAxisAngleRotation2() {
         let r = Rotation(unchecked: .unitZ, angle: .halfPi)
         let v = Vector(0.5, 0, 0)
         let u = v.rotated(by: r)
-        XCTAssertEqual(u, Vector(0, -0.5, 0))
+        XCTAssertEqual(u, [0, -0.5, 0])
     }
 
     func testAxisAngleRotation3() {
         let r = Rotation(unchecked: .unitZ, angle: .halfPi)
         let v = Vector(0, 0, 0.5)
         let u = v.rotated(by: r)
-        XCTAssertEqual(u, Vector(0, 0, 0.5))
+        XCTAssertEqual(u, [0, 0, 0.5])
     }
 
     func testPitchRotation() {
         let r = Rotation(pitch: .halfPi)
         XCTAssertEqual(r, .pitch(.halfPi))
-        XCTAssertEqual(r.pitch.radians, .pi / 2, accuracy: epsilon)
+        XCTAssertEqual(r.pitch, .pi / 2)
         XCTAssertEqual(r.roll, .zero)
         XCTAssertEqual(r.yaw, .zero)
         let v = Vector(0, 0.5, 0), u = Vector(0, 0, -0.5)
@@ -106,22 +106,20 @@ class RotationTests: XCTestCase {
     func testYawRotation() {
         let r = Rotation(yaw: .halfPi)
         XCTAssertEqual(r, .yaw(.halfPi))
-        XCTAssert(r.isEqual(to: Rotation(yaw: .halfPi)))
+        XCTAssertEqual(r, Rotation(yaw: .halfPi))
         XCTAssertEqual(r.yaw, .halfPi)
         XCTAssertEqual(r.pitch, .zero)
         XCTAssertEqual(r.roll, .zero)
-        let v = Vector(0.5, 0, 0), u = Vector(0, 0, 0.5)
-        XCTAssertEqual(v.rotated(by: r), u)
+        XCTAssertEqual(Vector(0.5, 0, 0).rotated(by: r), [0, 0, 0.5])
     }
 
     func testRollRotation() {
         let r = Rotation(roll: .halfPi)
         XCTAssertEqual(r, .roll(.halfPi))
-        XCTAssertEqual(r.roll.radians, .pi / 2, accuracy: epsilon)
+        XCTAssertEqual(r.roll, .pi / 2)
         XCTAssertEqual(r.pitch, .zero)
         XCTAssertEqual(r.yaw, .zero)
-        let v = Vector(0, 0.5, 0), u = Vector(0.5, 0, 0)
-        XCTAssertEqual(v.rotated(by: r), u)
+        XCTAssertEqual(Vector(0, 0.5, 0).rotated(by: r), [0.5, 0, 0])
     }
 
     func testRotationFromRollYawPitch() {
@@ -129,21 +127,9 @@ class RotationTests: XCTestCase {
         let yaw = Angle.radians(0.2)
         let pitch = Angle.radians(1.12)
         let r = Rotation(roll: roll, yaw: yaw, pitch: pitch)
-        XCTAssertEqual(roll.radians, r.roll.radians, accuracy: epsilon)
-        XCTAssertEqual(yaw.radians, r.yaw.radians, accuracy: epsilon)
-        XCTAssertEqual(pitch.radians, r.pitch.radians, accuracy: epsilon)
-    }
-
-    @available(*, deprecated)
-    func testRotationToQuaternion() {
-        let roll = Angle.radians(2.31)
-        let yaw = Angle.radians(0.2)
-        let pitch = Angle.radians(1.12)
-        let r = Rotation(roll: roll, yaw: yaw, pitch: pitch)
-        let q = Quaternion(r)
-        XCTAssertEqual(q.roll.radians, r.roll.radians, accuracy: 0.01)
-        XCTAssertEqual(q.yaw.radians, r.yaw.radians, accuracy: 0.01)
-        XCTAssertEqual(q.pitch.radians, r.pitch.radians, accuracy: 0.01)
+        XCTAssertEqual(roll, r.roll)
+        XCTAssertEqual(yaw, r.yaw)
+        XCTAssertEqual(pitch, r.pitch)
     }
 
     func testReverseRotation() {

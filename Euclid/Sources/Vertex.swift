@@ -63,7 +63,21 @@ public struct Vertex: Hashable, Sendable {
         _ texcoord: Vector? = nil,
         _ color: Color? = nil
     ) {
-        self.init(unchecked: position, normal?.normalized(), texcoord, color)
+        self.init(unchecked: position, normal?.direction, texcoord, color)
+    }
+}
+
+extension Vertex: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        let p = "\(position.x), \(position.y)\(position.z == 0 ? "" : ", \(position.z)")"
+        let n = normal == .zero ? "" : ", normal: \(normal.components)"
+        let t = texcoord == .zero ? "" : ", texcoord: \(texcoord.components)"
+        let c = color == .white ? "" : ", color: \(color.components)"
+        return "Vertex(\(p)\(n)\(t)\(c))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
     }
 }
 
@@ -116,6 +130,40 @@ public extension Vertex {
     /// - Parameter position: The position of the vertex in 3D space.
     init(_ position: Vector) {
         self.init(unchecked: position, nil, nil, nil)
+    }
+
+    /// Creates a new vertex from a position, normal, texcoord and color.
+    /// - Parameters:
+    ///   - position: The position of the vertex in 3D space.
+    ///   - normal: The surface normal for the vertex (defaults to zero).
+    ///   - texcoord: The optional texture coordinates for the vertex (defaults to zero).
+    ///   - color: The optional vertex color (defaults to white).
+    init(
+        _ position: Vector,
+        normal: Vector? = nil,
+        texcoord: Vector? = nil,
+        color: Color? = nil
+    ) {
+        self.init(position, normal, texcoord, color)
+    }
+
+    /// Creates a vertex at the specified X, Y and Z coordinates.
+    /// - Parameters:
+    ///   - x: The X coordinate of the vertex.
+    ///   - y: The Y coordinate of the vertex
+    ///   - z: The Z coordinate of the vertex (optional - defaults to zero).
+    ///   - normal: The surface normal for the vertex (defaults to zero).
+    ///   - texcoord: The optional texture coordinates for the vertex (defaults to zero).
+    ///   - color: The optional vertex color (defaults to white).
+    init(
+        _ x: Double,
+        _ y: Double,
+        _ z: Double = 0,
+        normal: Vector? = nil,
+        texcoord: Vector? = nil,
+        color: Color? = nil
+    ) {
+        self.init(.init(x, y, z), normal, texcoord, color)
     }
 
     /// Returns a new vertex with the normal inverted.
@@ -222,56 +270,33 @@ extension Vertex {
     /// PPP NNN TTT RGBA
     init?(_ values: [Double]) {
         switch values.count {
-        case 2:
-            self.init(Vector(values[0], values[1]))
-        case 3:
-            self.init(Vector(values[0], values[1], values[2]))
+        case 2, 3:
+            self.init(.init(values))
         case 6:
             self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5])
+                .init(values[0 ... 2]),
+                .init(values[3 ... 5])
             )
-        case 8:
+        case 8, 9:
             self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7])
+                .init(values[0 ... 2]),
+                .init(values[3 ... 5]),
+                .init(values[6...])
             )
-        case 9:
+        case 12, 13:
             self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8])
-            )
-        case 12:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8]),
-                Color(values[9], values[10], values[11])
-            )
-        case 13:
-            self.init(
-                Vector(values[0], values[1], values[2]),
-                Vector(values[3], values[4], values[5]),
-                Vector(values[6], values[7], values[8]),
-                Color(values[9], values[10], values[11], values[12])
+                .init(values[0 ... 2]),
+                .init(values[3 ... 5]),
+                .init(values[6 ... 8]),
+                .init(values[9...])
             )
         default:
             return nil
         }
     }
-
-    /// Approximate equality
-    func isEqual(to other: Vertex, withPrecision p: Double = epsilon) -> Bool {
-        position.isEqual(to: other.position, withPrecision: p) &&
-            normal.isEqual(to: other.normal, withPrecision: p) &&
-            texcoord.isEqual(to: other.texcoord, withPrecision: p) &&
-            color.isEqual(to: other.color, withPrecision: p)
-    }
 }
 
-public extension Array where Element == Vertex {
+public extension [Vertex] {
     /// Creates an array of vertices from an array of coordinates.
     /// - Parameter components: An array of vertex position component triplets.
     init(_ components: [Double]) {
@@ -282,7 +307,11 @@ public extension Array where Element == Vertex {
     }
 }
 
-extension Collection where Element == Vertex {
+extension Collection<Vertex> {
+    func mapNormals(_ transform: (Vector) -> Vector) -> [Vertex] {
+        map { $0.withNormal(transform($0.normal)) }
+    }
+
     func mapTexcoords(_ transform: (Vector) -> Vector) -> [Vertex] {
         map { $0.withTexcoord(transform($0.texcoord)) }
     }
@@ -293,57 +322,5 @@ extension Collection where Element == Vertex {
 
     func inverted() -> [Vertex] {
         reversed().map { $0.inverted() }
-    }
-}
-
-struct VertexSet {
-    private var storage = [Vector: [Vertex]]()
-
-    /// The maximum distance between vertices.
-    let precision: Double
-
-    /// Creates a vertex set with specified precision.
-    /// - Parameter precision: The maximum distance between vertices.
-    init(precision: Double) {
-        self.precision = precision
-    }
-
-    /// If vertex is unique, inserts it and returns the same value
-    /// otherwise, returns nearest match
-    /// - Parameter point: The point to insert.
-    mutating func insert(_ vertex: Vertex) -> Vertex {
-        let point = vertex.position
-        let hash = Vector(
-            round(point.x / precision) * precision,
-            round(point.y / precision) * precision,
-            round(point.z / precision) * precision
-        )
-        // if exact match found, return it
-        if let vertex = storage[hash]?.first(where: {
-            $0.isEqual(to: vertex, withPrecision: precision)
-        }) {
-            return vertex
-        }
-        // if position match found, merge it
-        var vertex = vertex
-        if let match = storage[hash]?.first(where: {
-            $0.position.isEqual(to: point, withPrecision: precision)
-        }) {
-            vertex.position = match.position
-            if vertex.normal.isEqual(to: match.normal, withPrecision: precision) {
-                vertex.normal = match.normal
-            }
-            if vertex.texcoord.isEqual(to: match.texcoord, withPrecision: precision) {
-                vertex.texcoord = match.texcoord
-            }
-            if vertex.color.isEqual(to: match.color, withPrecision: precision) {
-                vertex.color = match.color
-            }
-        }
-        // insert into hash
-        for hashValue in point.hashValues(withPrecision: precision) {
-            storage[hashValue, default: []].append(vertex)
-        }
-        return vertex
     }
 }

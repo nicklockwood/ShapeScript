@@ -7,101 +7,127 @@
 //
 
 public extension LineSegment {
-    /// Split the line segment along a plane.
-    /// - Parameter plane: The ``Plane`` to split the line segment along.
-    /// - Returns: A pair of segments representing the parts of the line segment in front and behind the plane.
-    func split(along plane: Plane) -> (front: LineSegment?, back: LineSegment?) {
-        switch (start.distance(from: plane), end.distance(from: plane)) {
-        case (0..., 0...):
-            return (self, nil)
-        case (..<0, ..<0):
-            return (nil, self)
-        case let (distance, _):
-            let point = start + direction * abs(distance)
-            let segments = (
-                LineSegment(start: start, end: point),
-                LineSegment(start: point, end: end)
-            )
-            return distance > 0 ? segments : (segments.1, segments.0)
-        }
-    }
-
-    /// Clip polygon to the specified plane
-    /// - Parameter plane: The ``Plane``  to clip the segment to.
-    /// - Returns: The clipped line segment, or `nil` if the segment lies entirely behind the plane.
-    func clip(to plane: Plane) -> LineSegment? {
-        split(along: plane).front
-    }
-
-    /// Returns the point where the specified plane intersects the line segment.
-    /// - Parameter plane: The plane to compare with.
-    /// - Returns: The point of intersection, or `nil` if the line segment and plane don't intersect.
-    func intersection(with plane: Plane) -> Vector? {
-        linePlaneIntersection(start, direction, plane).flatMap {
-            $0 >= 0 && $0 <= length ? start + direction * $0 : nil
-        }
-    }
-
-    /// Returns the intersection point between the specified line segment and this one.
-    /// - Parameter segment: The line segment to compare with.
-    /// - Returns: The point of intersection, or `nil` if the line segments don't intersect.
-    func intersection(with segment: LineSegment) -> Vector? {
-        lineSegmentsIntersection(start, end, segment.start, segment.end)
-    }
-
-    /// Returns a Boolean value that indicates whether two line segments intersect.
-    /// - Parameter segment: The line segment to compare with.
-    /// - Returns: `true` if the line segments intersect and `false` otherwise.
-    func intersects(_ segment: LineSegment) -> Bool {
-        intersection(with: segment) != nil
-    }
-}
-
-public extension Collection where Element == LineSegment {
     /// Callback used to cancel a long-running operation.
     /// - Returns: `true` if operation should be cancelled, or `false` otherwise.
     typealias CancellationHandler = () -> Bool
 
-    /// Returns the line segments that lie outside of the specified mesh.
+    /// Split the line segment along a plane.
+    /// - Parameter plane: The ``Plane`` to split the line segment along.
+    /// - Returns: A pair of segments representing the parts of the line segment in front and behind the plane.
+    ///
+    /// > Note: if the segment is coincident with the plane it will be treated as being behind the plane.
+    func split(along plane: Plane) -> (front: LineSegment?, back: LineSegment?) {
+        split(with: (start.signedDistance(from: plane), end.signedDistance(from: plane)))
+    }
+
+    /// Clip line segment to the specified plane.
+    /// - Parameter plane: The ``Plane``  to clip the segment to.
+    /// - Returns: The clipped line segment, or `nil` if the segment lies entirely behind the plane.
+    ///
+    /// > Note: if the segment is coincident with the plane it will be treated as being behind the plane.
+    func clipped(to plane: Plane) -> LineSegment? {
+        split(along: plane).front
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "clipped(to:)")
+    func clip(to plane: Plane) -> LineSegment? {
+        clipped(to: plane)
+    }
+
+    /// Returns the parts of the line segment that lie outside of the specified mesh.
     /// - Parameters:
-    ///   - mesh: The mesh volume to subtract from the segments.
+    ///   - mesh: The mesh volume against which to clip the segments.
     ///   - isCancelled: Callback used to cancel the operation.
-    /// - Returns: The set of line segments remaining after the subtraction.
+    /// - Returns: The parts of the line segment that lie outside the mesh.
+    ///
+    /// > Note: When clipping multiple edges, it is more efficient to call `Collection<LineSegment>.clipped(to:)`.
+    func clipped(
+        to mesh: Mesh,
+        isCancelled: CancellationHandler = { false }
+    ) -> [LineSegment] {
+        guard intersects(mesh.bounds) else { return [self] }
+        return BSP(mesh, isCancelled).clip([self], .greaterThan, isCancelled)
+    }
+}
+
+public extension Collection<LineSegment> {
+    /// Callback used to cancel a long-running operation.
+    /// - Returns: `true` if operation should be cancelled, or `false` otherwise.
+    typealias CancellationHandler = () -> Bool
+
+    /// Split the line segments along a plane.
+    /// - Parameter plane: The ``Plane`` to split the line segments along.
+    /// - Returns: A pair of arrays representing the line segments in front of and behind the plane respectively.
+    func split(along plane: Plane) -> (front: [LineSegment], back: [LineSegment]) {
+        var front = [LineSegment](), back: [LineSegment]! = []
+        forEach { $0.split(along: plane, &front, &back) }
+        return (front, back)
+    }
+
+    /// Clip the line segments to the specified plane.
+    /// - Parameter plane: The ``Plane`` to split the line segments along.
+    /// - Returns: An array of line segments that lie in front of the plane.
+    func clipped(to plane: Plane) -> [LineSegment] {
+        var front = [LineSegment](), back: [LineSegment]?
+        forEach { $0.split(along: plane, &front, &back) }
+        return front
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, message: "Use clipped(to:isCancelled:) instead.")
     func subtracting(
         _ mesh: Mesh,
         isCancelled: CancellationHandler = { false }
     ) -> Set<LineSegment> {
-        var aout: [LineSegment]? = []
+        var aout: [LineSegment] = []
         return Set(BSP(mesh, isCancelled).clip(
             boundsTest(mesh.bounds, self, &aout),
             .greaterThan,
             isCancelled
-        )).union(aout!)
+        )).union(aout)
+    }
+
+    /// Returns the line segments that lie outside of the specified mesh, preserving their original order.
+    /// - Parameters:
+    ///   - mesh: The mesh volume against which to clip the segments.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: The line segments that lie outside the mesh (in their original order).
+    func clipped(
+        to mesh: Mesh,
+        isCancelled: CancellationHandler = { false }
+    ) -> [LineSegment] {
+        var aout: [LineSegment] = []
+        return BSP(mesh, isCancelled).clip(
+            boundsTest(mesh.bounds, self, &aout),
+            .greaterThan,
+            isCancelled
+        ) + aout
     }
 }
 
-private func boundsTest<T: Collection>(
+private func boundsTest(
     _ bounds: Bounds,
-    _ edges: T,
-    _ out: inout [LineSegment]?
-) -> [LineSegment] where T.Element == LineSegment {
+    _ edges: some Collection<LineSegment>,
+    _ out: inout [LineSegment]
+) -> [LineSegment] {
     edges.filter {
         if $0.bounds.intersects(bounds) {
             return true
         }
-        out?.append($0)
+        out.append($0)
         return false
     }
 }
 
 extension LineSegment {
     func clip(
-        to polygons: [Polygon],
+        to coplanarPolygons: [Polygon],
         _ inside: inout [LineSegment],
         _ outside: inout [LineSegment]
     ) {
         var toTest = [self]
-        for polygon in polygons.tessellate() where !toTest.isEmpty {
+        for polygon in coplanarPolygons.tessellate() where !toTest.isEmpty {
             var _outside = [LineSegment]()
             toTest.forEach { polygon.clip($0, &inside, &_outside) }
             toTest = _outside
@@ -110,47 +136,70 @@ extension LineSegment {
     }
 
     /// Put the line segment in the correct list, splitting it when necessary
-    /// TODO: the logic differs slightly from the public method due to coplanar precision rules - is this a problem?
+    /// > Note: the logic differs from the public method due to coplanar precision rules
     func split(
         along plane: Plane,
         _ coplanar: inout [LineSegment],
         _ front: inout [LineSegment],
         _ back: inout [LineSegment]
     ) {
-        switch (start.distance(from: plane), end.distance(from: plane)) {
-        case (-epsilon ..< epsilon, -epsilon ..< epsilon):
+        let distances = (start.signedDistance(from: plane), end.signedDistance(from: plane))
+        if PlaneComparison(signedDistance: distances.0) == .coplanar,
+           PlaneComparison(signedDistance: distances.1) == .coplanar
+        {
             coplanar.append(self)
-        case (epsilon..., epsilon...):
-            front.append(self)
-        case (..<(-epsilon), ..<(-epsilon)):
-            back.append(self)
-        case let (distance, _):
-            let point = start + direction * abs(distance)
-            var segments = (
+        } else {
+            let segments = split(with: distances)
+            segments.front.map { front.append($0) }
+            segments.back.map { back.append($0) }
+        }
+    }
+
+    /// Put the line segment in the correct list, splitting it when necessary
+    /// > Note: coplanar segments are treated as being behind the plane.
+    func split(
+        along plane: Plane,
+        _ front: inout [LineSegment],
+        _ back: inout [LineSegment]?
+    ) {
+        let distances = (start.signedDistance(from: plane), end.signedDistance(from: plane))
+        let segments = split(with: distances)
+        segments.front.map { front.append($0) }
+        segments.back.map { back?.append($0) }
+    }
+
+    /// Shared split implementation
+    func split(with distances: (Double, Double)) -> (front: LineSegment?, back: LineSegment?) {
+        switch distances {
+        case (...0, ...0):
+            return (nil, self)
+        case (0..., 0...):
+            return (self, nil)
+        case let (a, b):
+            let point = start + (end - start) * (abs(a) / (abs(a) + abs(b)))
+            let segments = (
                 LineSegment(start: start, end: point),
                 LineSegment(start: point, end: end)
             )
-            if distance < 0 {
-                segments = (segments.1, segments.0)
-            }
-            segments.0.map { front.append($0) }
-            segments.1.map { back.append($0) }
+            return a > 0 ? segments : (segments.1, segments.0)
         }
     }
 }
 
-extension Polygon {
+private extension Polygon {
     func clip(
-        _ lineSegment: LineSegment,
+        _ coplanarSegment: LineSegment,
         _ inside: inout [LineSegment],
         _ outside: inout [LineSegment]
     ) {
         assert(isConvex)
-        var lineSegment = lineSegment
+        assert(coplanarSegment.compare(with: plane) == .coplanar)
+        var lineSegment = coplanarSegment
         var coplanar = [LineSegment]()
         for plane in edgePlanes {
             var back = [LineSegment]()
             lineSegment.split(along: plane, &coplanar, &outside, &back)
+            back.append(contentsOf: coplanar)
             guard let s = back.first else {
                 return
             }

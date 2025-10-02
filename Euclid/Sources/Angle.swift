@@ -45,6 +45,12 @@ public struct Angle: Hashable, Comparable, Sendable, AdditiveArithmetic {
     }
 }
 
+extension Angle: CustomStringConvertible {
+    public var description: String {
+        "Angle(radians: \(radians))"
+    }
+}
+
 extension Angle: Codable {
     private enum CodingKeys: CodingKey {
         case radians, degrees
@@ -114,7 +120,7 @@ public extension Angle {
 
     /// The angle is zero (or close to zero).
     var isZero: Bool {
-        isEqual(to: .zero)
+        isApproximatelyEqual(to: .zero)
     }
 
     /// Creates an Angle from a degrees value.
@@ -204,12 +210,5 @@ public extension Angle {
     /// Returns whether the leftmost angle has the lower value.
     static func < (lhs: Angle, rhs: Angle) -> Bool {
         lhs.radians < rhs.radians
-    }
-}
-
-extension Angle {
-    /// Approximate equality
-    func isEqual(to other: Angle, withPrecision p: Double = epsilon) -> Bool {
-        radians.isEqual(to: other.radians, withPrecision: p)
     }
 }

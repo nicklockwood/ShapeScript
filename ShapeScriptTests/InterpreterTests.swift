@@ -791,7 +791,7 @@ class InterpreterTests: XCTestCase {
         cube { position 1 0 0 }
         """
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.transform.offset.x, 2)
+        XCTAssertEqual(scene.children.first?.transform.translation.x, 2)
     }
 
     func testPositionValidInPrimitive() {
@@ -3885,7 +3885,7 @@ class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.childTransform.offset, Vector(1, 0, 0))
+        XCTAssertEqual(context.childTransform.translation, .init(1, 0, 0))
     }
 
     func testValidUseOfPointInCustomFunction() {
@@ -3968,7 +3968,7 @@ class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         let mesh = context.children.first?.value as? Geometry
-        XCTAssertEqual(mesh?.transform.offset, Vector(1, 0, 0))
+        XCTAssertEqual(mesh?.transform.translation, .init(1, 0, 0))
     }
 
     // MARK: Text command
@@ -4204,7 +4204,7 @@ class InterpreterTests: XCTestCase {
         XCTAssertEqual(light.color, .yellow)
         XCTAssert(light.hasPosition)
         XCTAssertFalse(light.hasOrientation)
-        XCTAssertEqual(geometry.transform, .init(offset: .init(1, 0, 0)))
+        XCTAssertEqual(geometry.transform, .init(translation: .init(1, 0, 0)))
     }
 
     func testSpotlight() throws {
@@ -4223,8 +4223,8 @@ class InterpreterTests: XCTestCase {
         XCTAssert(light.hasPosition)
         XCTAssert(light.hasOrientation)
         XCTAssertEqual(geometry.transform, .init(
-            offset: .init(1, 0, 0),
-            rotation: .roll(.halfPi)
+            rotation: .roll(.halfPi),
+            translation: .init(1, 0, 0)
         ))
     }
 

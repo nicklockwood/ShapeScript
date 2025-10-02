@@ -114,9 +114,9 @@ private extension Geometry {
     ) {
         let paths = Path.text(label)
         self.init(type: .fill(paths), transform: Transform(
-            offset: offset - paths.bounds.size.rotated(by: rotation) * (scale / 2),
+            scale: Vector(size: [scale]),
             rotation: rotation,
-            scale: Vector(size: [scale])
+            translation: offset - paths.bounds.size.rotated(by: rotation) * (scale / 2),
         ), material: material)
     }
 }

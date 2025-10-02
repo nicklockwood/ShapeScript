@@ -1,5 +1,118 @@
 # Change Log
 
+## [0.8.11](https://github.com/nicklockwood/Euclid/releases/tag/0.8.11) (2025-10-12)
+
+- Fix regression in `Mesh.loft()` method when one or more input paths has a single point
+- Made more long-running Mesh shape operations cancellable
+
+## [0.8.10](https://github.com/nicklockwood/Euclid/releases/tag/0.8.10) (2025-10-05)
+
+- Fixed `Mesh.minkowskiSum(with: Path)` output when path has subpaths
+- Fixed vertex color blending logic for `Mesh.minkowskiSum()` and `Mesh.extrusion()` methods
+- Fixed bug with `Mesh.tessellate()` producing more than the optimal number of polygons 
+- Added `Path.withDetail(_:twist:)` and `Path.withNormalizedPosition()` methods
+- Added `Path.hasColors` and `Path.hasTexcoords` properties
+- Improved `Path.init` ergonomics
+
+## [0.8.9](https://github.com/nicklockwood/Euclid/releases/tag/0.8.9) (2025-09-22)
+
+- Fixed some bugs in `Polygon`/`Line` intersection logic
+- Fixed some bugs in `Bounds`/`Line` intersection logic 
+- Checking if a vector lies inside a range now works as expected
+- Added some missing `LineComparable` conformances
+- Improved `Line.distance(from:)` performance
+
+## [0.8.8](https://github.com/nicklockwood/Euclid/releases/tag/0.8.8) (2025-09-16)
+
+- Added `Path.clipped(to mesh:)` method
+- Added `Mesh.mapVertexColors()` method
+- Added `Mesh.init(objString:)` function for importing Wavefront OBJ mesh data
+- Added `Mesh.init(objString:)` function for importing Wavefront OBJ mesh data
+- Added OFF (Object File Format) import and export methods
+- Added memberwise multiplication operators for `Color`
+- Renamed `Polygon.init(shape:material:)` to `Polygon.init(_:material:)`
+- Renamed `Mesh.minkowskiSum(along:)` methods to `Mesh.minkowskiSum(with:)`
+- Deprecated `Mesh.init(url:ignoringTransforms:materialLookup:)`
+- The `Path.orderedEdges` property no longer returns an extra segment
+- Fixed crash in `Path.orderedEdges` and `Path.orderedEdges`
+- Fixed vertex color blending behavior for `Mesh.minkowskiSum()` methods
+- Fixed `Mesh.minkowskiSum()` with empty or single-point paths
+- Fixed `Mesh.minkowskiSum()` with non-convex polygons
+- Fixed `Mesh.convexHull()` bug with coplanar points
+- Improved mesh convexity logic
+
+## [0.8.7](https://github.com/nicklockwood/Euclid/releases/tag/0.8.7) (2025-09-07)
+
+- Fixed bug where `convexHull()` created spurious internal polygons
+- Fixed precision issue with face-normal calculations
+- Meshes generated with `minkowskiSum()` now have deterministic polygon order
+- Added `Bounds.init(_ some Collection<any Bounded>)`
+- Added `Bounds.minkowskiSum()` methods
+- Renamed `Mesh.volume` to `signedVolume`
+
+## [0.8.6](https://github.com/nicklockwood/Euclid/releases/tag/0.8.6) (2025-08-31)
+
+- Added `Mesh.minkowskiSum()` methods
+- Significantly improved `Mesh.convexHull()` performance
+- `Mesh.convexHull()` methods are now cancellable
+- Added additional validation when deserializing meshes and polygons
+- Added `Mesh.clipped(to mesh:)` and `Polygon.clipped(to mesh:)` methods
+- Added `Path.clipped(to plane:)` and `Path.split(along plane:)` methods
+- Added methods for splitting and clipping `LineSegment` and collections of `LineSegment`
+- BSP (used for CSG operations) is now cached within a `Mesh` after first use
+- Various minor performance improvements
+- Added STL export options
+
+## [0.8.5](https://github.com/nicklockwood/Euclid/releases/tag/0.8.5) (2025-08-29)
+
+- Fixed `Line.nearestPoint(to:)` method returning inverted value
+- The `Line.distance(from:)` method no longer returns zero for parallel lines
+- Fixed crashes when doing point comparisons on empty `Bounds` values
+- Edges split during line segment clipping are now rejoined automatically 
+- Added some missing `Line` and `LineSegment` helpers
+- `Line` now conforms to the `Transformable` protocol
+
+## [0.8.4](https://github.com/nicklockwood/Euclid/releases/tag/0.8.4) (2025-08-27)
+
+- Fixed incorrect `LineSegment.split()` function implementation
+- Fixed inconsistent behavior with line segment clipping at polygon edges
+
+## [0.8.3](https://github.com/nicklockwood/Euclid/releases/tag/0.8.3) (2025-08-26)
+
+- Improved vertex merging algorithm (used to fix holes in imported meshes)
+- Deprecated unsafe `Polygon.mapVertices()` method
+- Fixed `flatteningNormals()` method
+
+## [0.8.2](https://github.com/nicklockwood/Euclid/releases/tag/0.8.2) (2025-08-19)
+
+- Euclid `Vector` and `Color` types now conform to `ExpressibleByArrayLiteral`
+- Added more helpful `debugDescription` implementations for Euclid types
+- Added convenience initializers for `Vertex` to match `PathPoint`
+- Creating a Euclid `Mesh` from a RealityKit model now works more reliably
+- Fixed `triangulate()` failing on slightly non-planar polygons
+- Creating an open `Path` with collinear points no longer fails
+- Improved `Mesh.volume` and `Polygon.area` calculations
+- Improved `Plane` and face normal calculations
+
+## [0.8.1](https://github.com/nicklockwood/Euclid/releases/tag/0.8.1) (2025-08-13)
+
+- Added volumetric 3D example for visionOS
+- Added support for RealityKit in tvOS 26.0
+- Fixed tvOS builds in Xcode 26
+
+## [0.8.0](https://github.com/nicklockwood/Euclid/releases/tag/0.8.0) (2025-08-10)
+
+- Added `Interpolatable` protocol
+- Added `PointComparable`, `LineComparable` and `PlaneComparable` protocols
+- Added `Mesh.flatteningNormals()` method
+- Renamed `clip()` methods to `clipped()`
+- Renamed `Vector.distance()` to `signedDistance()`
+- Renamed/reordered `Transform` properties for consistency
+- Removed `Quaternion` type (`Rotation` is now a quaternion)
+- Removed deprecated methods
+- Updated minimum iOS/tvOS version to 12.0
+- Updated to Swift 5.7
+
 ## [0.7.16](https://github.com/nicklockwood/Euclid/releases/tag/0.7.16) (2025-07-31)
 
 - Fixed crash in `Path.curve()` when all points in the path are coincident

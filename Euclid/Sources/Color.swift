@@ -56,6 +56,34 @@ public struct Color: Hashable, Sendable {
     }
 }
 
+extension Color: ExpressibleByArrayLiteral {
+    /// Creates a color from an array of component values.
+    ///
+    /// The number of values specified determines how each value is interpreted. The following patterns are
+    /// supported (R = red, G = green, B = blue, A = alpha, L = luminance):
+    ///
+    /// L
+    /// LA
+    /// RGB
+    /// RGBA
+    public init(arrayLiteral elements: Double...) {
+        assert((1 ... 4).contains(elements.count), """
+        Color components array must contain between 1 and 4 values
+        """)
+        self.init(elements)!
+    }
+}
+
+extension Color: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        "Color(\(r), \(g), \(b)\(a == 1 ? "" : ", \(a)"))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
+    }
+}
+
 extension Color: Codable {
     private enum CodingKeys: String, CodingKey {
         case r, g, b, a
@@ -109,6 +137,7 @@ public extension Color {
     }
 
     /// Creates a color from an array of component values.
+    /// - Parameter components: An array of vector components.
     ///
     /// The number of values specified determines how each value is interpreted. The following patterns are
     /// supported (R = red, G = green, B = blue, A = alpha, L = luminance):
@@ -117,7 +146,7 @@ public extension Color {
     /// LA
     /// RGB
     /// RGBA
-    init?(_ components: [Double]) {
+    init?<T: Collection>(_ components: T) where T.Element == Double, T.Index == Int {
         guard (1 ... 4).contains(components.count) else {
             return nil
         }
@@ -131,7 +160,7 @@ public extension Color {
 
     /// Creates a copy of the color updated with the specified alpha.
     func withAlpha(_ a: Double) -> Color {
-        Color(r, g, b, a)
+        .init(r, g, b, a)
     }
 
     /// Linearly interpolate between two colors.
@@ -140,11 +169,21 @@ public extension Color {
     ///   - t: The normalized extent of interpolation, from 0 to 1.
     /// - Returns: The interpolated color.
     func lerp(_ other: Color, _ t: Double) -> Color {
-        self + (other - self) * max(0, min(1, t))
+        interpolated(with: other, by: t)
+    }
+
+    /// Returns a color with its components multiplied by the specified color.
+    static func * (lhs: Color, rhs: Color) -> Color {
+        .init(lhs.r * rhs.r, lhs.g * rhs.g, lhs.b * rhs.b, lhs.a * rhs.a)
+    }
+
+    /// Multiplies the components of the color by the specified color.
+    static func *= (lhs: inout Color, rhs: Color) {
+        lhs = lhs * rhs
     }
 }
 
-public extension Collection where Element == Color, Index == Int {
+public extension Collection<Color> where Index == Int {
     /// Linearly interpolate between multiple colors.
     /// - Parameter t: The normalized extent of interpolation between all the colors, from 0 to 1.
     /// - Returns: The interpolated color.
@@ -183,35 +222,16 @@ extension Color: UnkeyedCodable {
 }
 
 extension Color {
-    init(unchecked components: [Double]) {
+    init<T: Collection>(unchecked components: T) where T.Element == Double, T.Index == Int {
+        let i = components.startIndex
         switch components.count {
-        case 1: self.init(components[0])
-        case 2: self.init(components[0], components[1])
-        case 3: self.init(components[0], components[1], components[2])
-        case 4: self.init(components[0], components[1], components[2], components[3])
+        case 1: self.init(components[i])
+        case 2: self.init(components[i], components[i + 1])
+        case 3: self.init(components[i], components[i + 1], components[i + 2])
+        case 4: self.init(components[i], components[i + 1], components[i + 2], components[i + 3])
         default:
             assertionFailure()
             self = .clear
         }
-    }
-
-    static func - (lhs: Color, rhs: Color) -> Color {
-        Color(lhs.r - rhs.r, lhs.g - rhs.g, lhs.b - rhs.b, lhs.a - rhs.a)
-    }
-
-    static func + (lhs: Color, rhs: Color) -> Color {
-        Color(lhs.r + rhs.r, lhs.g + rhs.g, lhs.b + rhs.b, lhs.a + rhs.a)
-    }
-
-    static func * (lhs: Color, rhs: Double) -> Color {
-        Color(lhs.r * rhs, lhs.g * rhs, lhs.b * rhs, lhs.a * rhs)
-    }
-
-    /// Approximate equality
-    func isEqual(to other: Color, withPrecision p: Double = epsilon) -> Bool {
-        r.isEqual(to: other.r, withPrecision: p) &&
-            g.isEqual(to: other.g, withPrecision: p) &&
-            b.isEqual(to: other.b, withPrecision: p) &&
-            a.isEqual(to: other.a, withPrecision: p)
     }
 }

@@ -10,7 +10,20 @@ import Euclid
 import SceneKit
 import UIKit
 
-class SceneKitViewController: UIViewController {
+final class SceneKitViewController: UIViewController {
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        title = "SceneKit"
+    }
+
+    required init?(coder _: NSCoder) {
+        nil
+    }
+
+    override func loadView() {
+        view = SCNView()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -36,13 +49,14 @@ class SceneKitViewController: UIViewController {
         scnView.autoenablesDefaultLighting = true
         scnView.allowsCameraControl = true
         scnView.backgroundColor = .white
+        scnView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     }
+
+    #if !os(tvOS)
 
     override var shouldAutorotate: Bool {
         true
     }
 
-    override var prefersStatusBarHidden: Bool {
-        true
-    }
+    #endif
 }

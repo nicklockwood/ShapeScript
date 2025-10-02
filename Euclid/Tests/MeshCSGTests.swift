@@ -9,8 +9,8 @@
 @testable import Euclid
 import XCTest
 
-class MeshCSGTests: XCTestCase {
-    // MARK: Subtraction
+final class MeshCSGTests: XCTestCase {
+    // MARK: Subtraction / Difference
 
     func testSubtractCoincidingBoxes() {
         let a = Mesh.cube()
@@ -38,11 +38,11 @@ class MeshCSGTests: XCTestCase {
 
     func testSubtractOverlappingBoxes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.cube().translated(by: [0.5, 0, 0])
         let c = a.subtracting(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, -0.5),
-            max: Vector(0, 0.5, 0.5)
+            min: [-0.5, -0.5, -0.5],
+            max: [0, 0.5, 0.5]
         ))
         XCTAssertEqual(c, .difference([a, b]))
     }
@@ -61,7 +61,7 @@ class MeshCSGTests: XCTestCase {
         let b = Mesh.sphere(slices: 16)
         let c = a.subtracting(b)
         #if !arch(wasm32)
-        XCTAssertEqual(c.polygons.count, 189)
+        XCTAssertEqual(c.polygons.count, 188)
         #endif
         XCTAssertEqual(c, .difference([a, b]))
     }
@@ -95,11 +95,11 @@ class MeshCSGTests: XCTestCase {
 
     func testXorOverlappingCubes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.cube().translated(by: [0.5, 0, 0])
         let c = a.symmetricDifference(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, -0.5),
-            max: Vector(1.0, 0.5, 0.5)
+            min: .init(size: -0.5),
+            max: [1, 0.5, 0.5]
         ))
         XCTAssertEqual(c, .symmetricDifference([a, b]))
     }
@@ -118,7 +118,7 @@ class MeshCSGTests: XCTestCase {
         let b = Mesh.sphere(slices: 16)
         let c = a.symmetricDifference(b)
         #if !arch(wasm32)
-        XCTAssertEqual(c.polygons.count, 323)
+        XCTAssertEqual(c.polygons.count, 322)
         #endif
         XCTAssertEqual(c, .symmetricDifference([a, b]))
     }
@@ -152,11 +152,11 @@ class MeshCSGTests: XCTestCase {
 
     func testUnionOfOverlappingBoxes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.cube().translated(by: [0.5, 0, 0])
         let c = a.union(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, -0.5),
-            max: Vector(1, 0.5, 0.5)
+            min: .init(size: -0.5),
+            max: [1, 0.5, 0.5]
         ))
         XCTAssertEqual(c, .union([a, b]))
     }
@@ -175,7 +175,7 @@ class MeshCSGTests: XCTestCase {
         let b = Mesh.sphere(slices: 16)
         let c = a.union(b)
         #if !arch(wasm32)
-        XCTAssertEqual(c.polygons.count, 237)
+        XCTAssertEqual(c.polygons.count, 236)
         #endif
         XCTAssertEqual(c, .union([a, b]))
     }
@@ -206,26 +206,26 @@ class MeshCSGTests: XCTestCase {
         // TODO: ideally this should probably be empty, but it's not clear
         // how to achieve that while also getting desired planar behavior
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(0.5, -0.5, -0.5),
-            max: Vector(0.5, 0.5, 0.5)
+            min: [0.5, -0.5, -0.5],
+            max: [0.5, 0.5, 0.5]
         ))
         XCTAssertEqual(c, .intersection([a, b]))
     }
 
     func testIntersectionOfOverlappingBoxes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.cube().translated(by: [0.5, 0, 0])
         let c = a.intersection(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(0, -0.5, -0.5),
-            max: Vector(0.5, 0.5, 0.5)
+            min: [0, -0.5, -0.5],
+            max: [0.5, 0.5, 0.5]
         ))
         XCTAssertEqual(c, .intersection([a, b]))
     }
 
     func testIntersectionOfNonOverlappingBoxes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(2, 0, 0))
+        let b = Mesh.cube().translated(by: [2, 0, 0])
         let c = a.intersection(b)
         XCTAssertEqual(c, .empty)
         XCTAssertEqual(c, .intersection([a, b]))
@@ -255,6 +255,352 @@ class MeshCSGTests: XCTestCase {
         XCTAssertEqual(Mesh.empty, .intersection([]))
     }
 
+    // MARK: Convex Hull
+
+    func testConvexHullOfCubes() {
+        let mesh1 = Mesh.cube().translated(by: [-1, 0.5, 0.7])
+        let mesh2 = Mesh.cube().translated(by: [1, 0])
+        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.union(mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfSpheres() {
+        let mesh1 = Mesh.sphere().translated(by: [-1, 0.2, -0.1])
+        let mesh2 = Mesh.sphere().translated(by: [1, 0])
+        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.union(mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfCubeIsItself() {
+        let cube = Mesh.cube()
+        let mesh = Mesh.convexHull(of: [cube])
+        XCTAssertEqual(cube, mesh)
+        let mesh2 = Mesh.convexHull(of: cube.polygons)
+        XCTAssertEqual(
+            Set(cube.polygons.flatMap(\.vertices)),
+            Set(mesh2.polygons.flatMap(\.vertices))
+        )
+        XCTAssertEqual(cube.polygons.count, mesh2.detessellate().polygons.count)
+    }
+
+    func testConvexHullOfNothing() {
+        let mesh = Mesh.convexHull(of: [] as [Mesh])
+        XCTAssertEqual(mesh, .empty)
+    }
+
+    func testConvexHullOfSingleTriangle() {
+        let triangle = Polygon(unchecked: [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+        ])
+        let mesh = Mesh.convexHull(of: [triangle])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, triangle.bounds)
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfConcavePolygon() {
+        let shape = Polygon(unchecked: [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0.5, 1],
+            [0.5, 0.5],
+        ])
+        let mesh = Mesh.convexHull(of: [shape])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, shape.bounds)
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfConcavePolygonMesh() {
+        let shape = Mesh([Polygon(unchecked: [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0.5, 1],
+            [0.5, 0.5],
+        ])])
+        let mesh = Mesh.convexHull(of: [shape])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, shape.bounds)
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfCoplanarTriangles() {
+        let triangle1 = Polygon(unchecked: [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+        ])
+        let triangle2 = Polygon(unchecked: [
+            [2, 0],
+            [3, 0],
+            [3, 1],
+        ])
+        let mesh = Mesh.convexHull(of: [triangle1, triangle2])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.signedVolume, 0)
+        XCTAssertEqual(mesh.bounds, triangle1.bounds.union(triangle2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfOverlappingSquares() throws {
+        let square1 = try XCTUnwrap(Polygon(.square()))
+        for _ in 0 ..< 10 {
+            let square2 = try XCTUnwrap(Polygon(.square())?.translated(by: [0.5, 0.5]).rotated(by: .random(in: .xy)))
+            let mesh = Mesh.convexHull(of: [square1, square2])
+            XCTAssert(mesh.isKnownConvex)
+            XCTAssert(mesh.isActuallyConvex)
+            XCTAssert(mesh.isWatertight)
+            XCTAssert(mesh.polygons.areWatertight)
+            XCTAssertEqual(mesh.signedVolume, 0)
+            XCTAssertEqual(mesh.bounds, square1.bounds.union(square2.bounds))
+            XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+        }
+    }
+
+    func testPlanarHullConvexityEdgeCase() throws {
+        let square1 = try XCTUnwrap(Polygon(.square()))
+        let r = Rotation(unchecked: .unitZ, angle: .radians(1.9113781280442135))
+        let square2 = try XCTUnwrap(Polygon(.square())?.translated(by: [0.5, 0.5]).rotated(by: r))
+        let mesh = Mesh.convexHull(of: [square1, square2])
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.signedVolume, 0)
+        XCTAssertEqual(mesh.bounds, square1.bounds.union(square2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testConvexHullOfEightSpheres() {
+        let corners = Set(Mesh.cube().polygons.flatMap(\.vertices).map(\.position)).sorted()
+        XCTAssertEqual(corners.count, 8)
+        let spheres = corners.map { Mesh.sphere().translated(by: $0) }
+        let mesh = Mesh.convexHull(of: spheres)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, Bounds(spheres))
+    }
+
+    func testConvexHullVertexColorBlending() {
+        let mesh1 = Mesh.cube().mapVertexColors { _ in .red }
+        let mesh2 = Mesh.cube().translated(by: [1, 0]).mapVertexColors { _ in .blue }
+        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        XCTAssert(vertices.allSatisfy { $0.color == .red || $0.color == .blue })
+        XCTAssert(vertices.contains(where: { $0.color == .blue }))
+        XCTAssert(vertices.contains(where: { $0.color == .red }))
+    }
+
+    func testConvexHullPathPointColorBlending() {
+        let path1 = Path.square(color: .red)
+        let path2 = Path.circle(color: .blue).translated(by: [1, 0])
+        let mesh = Mesh.convexHull(of: [path1, path2])
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        XCTAssert(vertices.allSatisfy { $0.color == .red || $0.color == .blue })
+        XCTAssert(vertices.contains(where: { $0.color == .blue }))
+        XCTAssert(vertices.contains(where: { $0.color == .red }))
+    }
+
+    func testConvexHullPathPointColorBlending2() {
+        let path = Path([
+            .curve(0, 1, 0.75),
+            .curve(-1, 0),
+            .curve(0, -1, 0.25),
+            .curve(1, 0),
+            .curve(1, 1),
+            .curve(0, 1, 0.75),
+        ], color: .green)
+        let mesh = Mesh.convexHull(of: [path])
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        XCTAssert(vertices.allSatisfy { $0.color == .green })
+    }
+
+    // MARK: Minkowski Sum
+
+    func testMinkowskiSumOfCubes() {
+        let mesh1 = Mesh.cube()
+        let mesh2 = Mesh.cube()
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh, .minkowskiSum(of: [mesh1, mesh2]))
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.minkowskiSum(with: mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testMinkowskiSumOfSphereAndCube() {
+        let mesh1 = Mesh.sphere()
+        let mesh2 = Mesh.cube()
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh, .minkowskiSum(of: [mesh1, mesh2]))
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.minkowskiSum(with: mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testMinkowskiSumOfCubeAndSphere() {
+        let mesh1 = Mesh.cube()
+        let mesh2 = Mesh.sphere()
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh, .minkowskiSum(of: [mesh1, mesh2]))
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.minkowskiSum(with: mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testMinkowskiSumOfTranslatedShapes() {
+        let mesh1 = Mesh.cube().translated(by: .random())
+        let mesh2 = Mesh.sphere().translated(by: .random())
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh, .minkowskiSum(of: [mesh1, mesh2]))
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.minkowskiSum(with: mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testMinkowskiSumOfTransformedShaped() {
+        let mesh1 = Mesh.cube().transformed(by: .random())
+        let mesh2 = Mesh.sphere().transformed(by: .random())
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh, .minkowskiSum(of: [mesh1, mesh2]))
+        XCTAssertEqual(mesh.bounds, mesh1.bounds.minkowskiSum(with: mesh2.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
+    func testMinkowskiSumWithEmptyMeshes() {
+        let mesh = Mesh.cube().translated(by: .random())
+        XCTAssertEqual(Mesh.empty.minkowskiSum(with: mesh), mesh)
+        XCTAssertEqual(mesh.minkowskiSum(with: Mesh.empty), mesh)
+    }
+
+    func testMinkowskiSumOfConvexAndConcaveMeshes() {
+        #if canImport(CoreText)
+        let a = Mesh.cube(size: 0.1)
+        let b = Mesh.text("G")
+        let ab = a.minkowskiSum(with: b)
+        let ba = b.minkowskiSum(with: a)
+        XCTAssertFalse(ab.isConvex())
+        XCTAssertFalse(ba.isConvex())
+        XCTAssertEqual(ab, ba)
+        #endif
+    }
+
+    func testMinkowskiSumWithPolygon() throws {
+        let square = try XCTUnwrap(Polygon(.square(color: .red)))
+        let mesh = Mesh.cube().minkowskiSum(with: square)
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-1, -1, -0.5], max: [1, 1, 0.5]))
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        XCTAssert(vertices.allSatisfy { $0.color == .red })
+    }
+
+    func testMinkowskiSumWithPath() {
+        let mesh = Mesh.cube().minkowskiSum(with: .square())
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-1, -1, -0.5], max: [1, 1, 0.5]))
+    }
+
+    func testMinkowskiSumWithLinePath() {
+        let mesh = Mesh.cube().minkowskiSum(with: .line([0, 0], [1, 0]))
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-0.5, -0.5, -0.5], max: [1.5, 0.5, 0.5]))
+    }
+
+    func testMinkowskiSumWithPointPath() {
+        let mesh = Mesh.cube().minkowskiSum(with: Path([.point(1, 0, color: .red)]))
+        XCTAssertEqual(mesh.bounds, Bounds(min: [0.5, -0.5, -0.5], max: [1.5, 0.5, 0.5]))
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        XCTAssert(vertices.allSatisfy { $0.color == .red })
+    }
+
+    func testMinkowskiSumWithEmptyPath() {
+        let mesh = Mesh.cube().minkowskiSum(with: Path.empty)
+        XCTAssertEqual(mesh, .empty)
+    }
+
+    func testMinkowskiSumWithLineSegment() {
+        let mesh = Mesh.cube().minkowskiSum(with: LineSegment(unchecked: [0, 0], [1, 0]))
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-0.5, -0.5, -0.5], max: [1.5, 0.5, 0.5]))
+    }
+
+    func testMinkowskiSumConvexMeshColorBlending() {
+        let mesh1 = Mesh.cube().mapVertexColors { _ in .red }
+        let mesh2 = Mesh.cube().mapVertexColors { _ in .blue }
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        let blended = Color.red * .blue
+        XCTAssert(vertices.allSatisfy { $0.color == blended })
+    }
+
+    func testMinkowskiSumConcaveMeshColorBlending() {
+        #if canImport(CoreText)
+        let mesh1 = Mesh.cube(size: 0.1).mapVertexColors { _ in .red }
+        let mesh2 = Mesh.text("G").mapVertexColors { _ in .blue }
+        let mesh = mesh1.minkowskiSum(with: mesh2)
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        let blended = Color.red * .blue
+        XCTAssert(vertices.allSatisfy { $0.color == blended })
+        #endif
+    }
+
+    func testMinkowskiSumPolygonColorBlending() throws {
+        let square = try XCTUnwrap(Polygon(.square(color: .red)))
+        let mesh = Mesh.cube().mapVertexColors { _ in .blue }.minkowskiSum(with: square)
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-1, -1, -0.5], max: [1, 1, 0.5]))
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        let blended = Color.red * .blue
+        XCTAssert(vertices.allSatisfy { $0.color == blended })
+    }
+
+    func testMinkowskiSumPathColorBlending() {
+        let path = Path.square(color: .red)
+        let mesh = Mesh.cube().mapVertexColors { _ in .blue }.minkowskiSum(with: path)
+        XCTAssertEqual(mesh.bounds, Bounds(min: [-1, -1, -0.5], max: [1, 1, 0.5]))
+        let vertices = mesh.polygons.flatMap(\.vertices)
+        let blended = Color.red * .blue
+        XCTAssert(vertices.allSatisfy { $0.color == blended })
+    }
+
     // MARK: Planar subtraction
 
     func testSubtractCoincidingSquares() {
@@ -275,16 +621,16 @@ class MeshCSGTests: XCTestCase {
 
     func testSubtractOverlappingSquares() {
         let a = Mesh.fill(.square())
-        let b = Mesh.fill(.square()).translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.fill(.square()).translated(by: [0.5, 0, 0])
         let c = a.subtracting(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, 0),
-            max: Vector(0, 0.5, 0)
+            min: [-0.5, -0.5, 0],
+            max: [0, 0.5, 0]
         ))
         XCTAssertEqual(c, .difference([a, b]))
     }
 
-    // MARK: Planar XOR
+    // MARK: Planar Symmetric Difference (XOR)
 
     func testXorCoincidingSquares() {
         let a = Mesh.fill(.square())
@@ -304,11 +650,11 @@ class MeshCSGTests: XCTestCase {
 
     func testXorOverlappingSquares() {
         let a = Mesh.fill(.square())
-        let b = Mesh.fill(.square()).translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.fill(.square()).translated(by: [0.5, 0, 0])
         let c = a.symmetricDifference(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, 0),
-            max: Vector(1.0, 0.5, 0)
+            min: [-0.5, -0.5, 0],
+            max: [1.0, 0.5, 0]
         ))
         XCTAssertEqual(c, .symmetricDifference([a, b]))
     }
@@ -333,11 +679,11 @@ class MeshCSGTests: XCTestCase {
 
     func testUnionOfOverlappingSquares() {
         let a = Mesh.fill(.square())
-        let b = Mesh.fill(.square()).translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.fill(.square()).translated(by: [0.5, 0, 0])
         let c = a.union(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(-0.5, -0.5, 0),
-            max: Vector(1, 0.5, 0)
+            min: [-0.5, -0.5, 0],
+            max: [1, 0.5, 0]
         ))
         XCTAssertEqual(c, .union([a, b]))
     }
@@ -362,11 +708,11 @@ class MeshCSGTests: XCTestCase {
 
     func testIntersectionOfOverlappingSquares() {
         let a = Mesh.fill(.square())
-        let b = Mesh.fill(.square()).translated(by: Vector(0.5, 0, 0))
+        let b = Mesh.fill(.square()).translated(by: [0.5, 0, 0])
         let c = a.intersection(b)
         XCTAssertEqual(c.bounds, Bounds(
-            min: Vector(0, -0.5, 0),
-            max: Vector(0.5, 0.5, 0)
+            min: [0, -0.5, 0],
+            max: [0.5, 0.5, 0]
         ))
         XCTAssertEqual(c, .intersection([a, b]))
     }
@@ -376,38 +722,38 @@ class MeshCSGTests: XCTestCase {
     func testSquareClippedToPlane() {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
-        XCTAssertEqual(b.bounds, .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+        let b = a.clipped(to: plane)
+        XCTAssertEqual(b.bounds, .init([0, -0.5], [0.5, 0.5]))
     }
 
     func testPentagonClippedToPlane() {
         let a = Mesh.fill(.circle(segments: 5))
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
+        let b = a.clipped(to: plane)
         XCTAssertEqual(b.bounds, .init(
-            Vector(0, -0.404508497187),
-            Vector(0.475528258148, 0.5)
+            [0, -0.404508497187],
+            [0.475528258148, 0.5]
         ))
     }
 
     func testDiamondClippedToPlane() {
         let a = Mesh.fill(.circle(segments: 4))
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
-        XCTAssertEqual(b.bounds, .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+        let b = a.clipped(to: plane)
+        XCTAssertEqual(b.bounds, .init([0, -0.5], [0.5, 0.5]))
     }
 
     func testSquareClippedToItsOwnPlane() {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: .unitZ, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
+        let b = a.clipped(to: plane)
         XCTAssertEqual(b.polygons, [a.polygons[0]])
     }
 
     func testSquareClippedToItsOwnPlaneWithFill() {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: .unitZ, pointOnPlane: .zero)
-        let b = a.clip(to: plane, fill: Color.white)
+        let b = a.clipped(to: plane, fill: Color.white)
         XCTAssertEqual(b.polygons.first, a.polygons[0])
         guard b.polygons.count == 2 else {
             XCTFail()
@@ -419,14 +765,14 @@ class MeshCSGTests: XCTestCase {
     func testSquareClippedToReversePlane() {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: -.unitZ, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
+        let b = a.clipped(to: plane)
         XCTAssertEqual(b.polygons, [a.polygons[1]])
     }
 
     func testSquareClippedToReversePlaneWithFill() {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: -.unitZ, pointOnPlane: .zero)
-        let b = a.clip(to: plane, fill: Color.white)
+        let b = a.clipped(to: plane, fill: Color.white)
         XCTAssertEqual(b.polygons.first?.bounds, a.polygons[0].bounds)
         guard b.polygons.count == 2 else {
             XCTFail()
@@ -441,8 +787,8 @@ class MeshCSGTests: XCTestCase {
         let a = Mesh.fill(.square())
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
         let b = a.split(along: plane)
-        XCTAssertEqual(b.0?.bounds, .init(Vector(0, -0.5), Vector(0.5, 0.5)))
-        XCTAssertEqual(b.1?.bounds, .init(Vector(-0.5, -0.5), Vector(0, 0.5)))
+        XCTAssertEqual(b.0?.bounds, .init([0, -0.5], [0.5, 0.5]))
+        XCTAssertEqual(b.1?.bounds, .init([-0.5, -0.5], [0, 0.5]))
         XCTAssertEqual(b.front, b.0)
         XCTAssertEqual(b.back, b.1)
     }
@@ -467,20 +813,33 @@ class MeshCSGTests: XCTestCase {
 
     func testUnionSubmeshes() {
         let a = Mesh.cube()
-        let b = Mesh.cube().translated(by: Vector(2, 0, 0))
+        let b = Mesh.cube().translated(by: [2, 0, 0])
         let c = a.union(b)
-        let d = Mesh.cube().translated(by: Vector(4, 0, 0))
+        let d = Mesh.cube().translated(by: [4, 0, 0])
         XCTAssertEqual(c.union(d).submeshes.count, 3)
     }
 
     func testUnionOfPrecalculatedSubmeshes() {
         let a = Mesh.cube()
         _ = a.submeshes
-        let b = Mesh.cube().translated(by: Vector(2, 0, 0))
+        let b = Mesh.cube().translated(by: [2, 0, 0])
         _ = b.submeshes
         let c = a.union(b)
         XCTAssertEqual(c.submeshes.count, 2)
-        let d = Mesh.cube().translated(by: Vector(4, 0, 0))
+        let d = Mesh.cube().translated(by: [4, 0, 0])
         XCTAssertEqual(c.union(d).submeshes.count, 3)
+    }
+
+    // MARK: Convexity
+
+    func testConvexityFalsePositive() {
+        let square = Mesh.fill(.square(), faces: .front)
+        let square2 = Mesh.fill(.square(), faces: .front).translated(by: -.unitZ)
+        let mesh = square.merge(square2)
+        XCTAssertNil(mesh.watertightIfSet)
+        XCTAssertFalse(mesh.isWatertight)
+        XCTAssertFalse(mesh.polygons.areWatertight)
+        let bsp = BSP(mesh) { false }
+        XCTAssertFalse(bsp.isConvex)
     }
 }

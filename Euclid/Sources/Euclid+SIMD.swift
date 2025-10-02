@@ -33,46 +33,32 @@
 
 import simd
 
-public extension simd_double3 {
+public extension SIMD3 where Scalar: BinaryFloatingPoint {
     /// Creates a simd vector 3 from a Euclid `Vector`.
     /// - Parameter vector: A Euclid vector.
     init(_ vector: Vector) {
-        self.init(vector.x, vector.y, vector.z)
+        self.init(Scalar(vector.x), Scalar(vector.y), Scalar(vector.z))
     }
 }
 
-public extension simd_float3 {
-    /// Creates a simd float vector 3 from a Euclid `Vector`.
+public extension SIMD2 where Scalar: BinaryFloatingPoint {
+    /// Creates a simd vector 3 from a Euclid `Vector`.
     /// - Parameter vector: A Euclid vector.
     init(_ vector: Vector) {
-        self.init(Float(vector.x), Float(vector.y), Float(vector.z))
-    }
-}
-
-public extension simd_float2 {
-    /// Creates a simd float vector 2 from a Euclid `Vector`.
-    /// - Parameter vector: A Euclid vector.
-    init(_ vector: Vector) {
-        self.init(Float(vector.x), Float(vector.y))
+        self.init(Scalar(vector.x), Scalar(vector.y))
     }
 }
 
 public extension Vector {
     /// Creates a `Vector` from a simd vector 3.
     /// - Parameter vector: A simd vector.
-    init(_ vector: simd_double3) {
-        self.init(vector.x, vector.y, vector.z)
-    }
-
-    /// Creates a `Vector` from a simd vector 3.
-    /// - Parameter vector: A simd vector.
-    init(_ vector: simd_float3) {
+    init(_ vector: SIMD3<some BinaryFloatingPoint>) {
         self.init(Double(vector.x), Double(vector.y), Double(vector.z))
     }
 
     /// Creates a `Vector` from a simd vector 2.
     /// - Parameter vector: A simd vector.
-    init(_ vector: simd_float2) {
+    init(_ vector: SIMD2<some BinaryFloatingPoint>) {
         self.init(Double(vector.x), Double(vector.y))
     }
 }
@@ -83,13 +69,6 @@ public extension simd_quatd {
     init(_ rotation: Rotation) {
         self = rotation.storage
     }
-
-    /// Creates a simd quaternion from a Euclid `Quaternion`.
-    /// - Parameter quaternion: A Euclid quaternion.
-    @available(*, deprecated)
-    init(_ quaternion: Quaternion) {
-        self = quaternion.storage
-    }
 }
 
 public extension simd_quatf {
@@ -97,13 +76,6 @@ public extension simd_quatf {
     /// - Parameter rotation: A Euclid rotation.
     init(_ rotation: Rotation) {
         self.init(vector: simd_float4(rotation.storage.vector))
-    }
-
-    /// Creates a simd float quaternion from a Euclid `Quaternion`.
-    /// - Parameter quaternion: A Euclid quaternion.
-    @available(*, deprecated)
-    init(_ quaternion: Quaternion) {
-        self.init(vector: simd_float4(quaternion.storage.vector))
     }
 }
 
@@ -115,21 +87,6 @@ public extension Rotation {
     }
 
     /// Creates a `Rotation` from a simd quaternion.
-    /// - Parameter quaternion: A simd quaternion.
-    init(_ quaternion: simd_quatf) {
-        self.init(simd_quatd(vector: simd_double4(quaternion.vector)))
-    }
-}
-
-@available(*, deprecated)
-public extension Quaternion {
-    /// Creates a `Quaternion` from a simd quaternion.
-    /// - Parameter quaternion: A simd quaternion.
-    init(_ quaternion: simd_quatd) {
-        self.init(storage: quaternion)
-    }
-
-    /// Creates a `Quaternion` from a simd quaternion.
     /// - Parameter quaternion: A simd quaternion.
     init(_ quaternion: simd_quatf) {
         self.init(simd_quatd(vector: simd_double4(quaternion.vector)))

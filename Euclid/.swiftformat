@@ -4,7 +4,7 @@
 
 # format options
 
---swiftversion 5.1
+--swiftversion 5.7
 --hexgrouping ignore
 --decimalgrouping ignore
 --ifdef no-indent
@@ -18,4 +18,16 @@
 # rules
 
 --lintonly unusedArguments
---enable isEmpty, docComments
+--lintonly unusedPrivateDeclarations
+--enable docComments
+--enable isEmpty
+--enable emptyExtensions
+--enable noForceTryInTests
+--enable noForceUnwrapInTests
+# --enable noGuardInTests
+--enable preferFinalClasses
+--enable redundantAsync
+--enable redundantEquatable
+--enable redundantMemberwiseInit
+--enable redundantProperty
+--enable redundantThrows

@@ -32,7 +32,6 @@
 import Foundation
 
 /// A distance or position in 3D space.
-///
 /// > Note: Euclid doesn't have a 2D vector type. When working with primarily 2D shapes, such as
 /// ``Path``s, you can omit the ``z`` component when constructing vector and it will default to zero.
 public struct Vector: Hashable, Sendable, AdditiveArithmetic {
@@ -55,21 +54,22 @@ public struct Vector: Hashable, Sendable, AdditiveArithmetic {
     }
 }
 
-extension Vector: Comparable {
-    /// Returns whether the leftmost vector has the lower value.
-    /// This provides a stable order when sorting collections of vectors.
-    public static func < (lhs: Vector, rhs: Vector) -> Bool {
-        if lhs.x < rhs.x {
-            return true
-        } else if lhs.x > rhs.x {
-            return false
-        }
-        if lhs.y < rhs.y {
-            return true
-        } else if lhs.y > rhs.y {
-            return false
-        }
-        return lhs.z < rhs.z
+extension Vector: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Double...) {
+        assert((2 ... 3).contains(elements.count), """
+        Vector components array must contain between 2 and 3 values
+        """)
+        self.init(elements)
+    }
+}
+
+extension Vector: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        "Vector(\(x), \(y), \(z))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
     }
 }
 
@@ -100,14 +100,78 @@ extension Vector: Codable {
     }
 }
 
+extension Vector: Comparable {
+    /// Returns whether the leftmost vector has the lower value.
+    /// This provides a stable order when sorting collections of vectors.
+    public static func < (lhs: Vector, rhs: Vector) -> Bool {
+        if lhs.x < rhs.x {
+            return true
+        } else if lhs.x > rhs.x {
+            return false
+        }
+        if lhs.y < rhs.y {
+            return true
+        } else if lhs.y > rhs.y {
+            return false
+        }
+        return lhs.z < rhs.z
+    }
+}
+
 /// Returns a new vector that represents the minimum of the components of the two vectors.
 public func min(_ lhs: Vector, _ rhs: Vector) -> Vector {
-    Vector(min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z))
+    [min(lhs.x, rhs.x), min(lhs.y, rhs.y), min(lhs.z, rhs.z)]
 }
 
 /// Returns a new vector representing the maximum of the components of the two vectors.
 public func max(_ lhs: Vector, _ rhs: Vector) -> Vector {
-    Vector(max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z))
+    [max(lhs.x, rhs.x), max(lhs.y, rhs.y), max(lhs.z, rhs.z)]
+}
+
+public extension Range where Bound == Vector {
+    func contains(_ vector: Vector) -> Bool {
+        vector.x >= lowerBound.x &&
+            vector.y >= lowerBound.y &&
+            vector.z >= lowerBound.z &&
+            vector.x < upperBound.x &&
+            vector.y < upperBound.y &&
+            vector.z < upperBound.z
+    }
+}
+
+public extension ClosedRange where Bound == Vector {
+    func contains(_ vector: Vector) -> Bool {
+        vector.x >= lowerBound.x &&
+            vector.y >= lowerBound.y &&
+            vector.z >= lowerBound.z &&
+            vector.x <= upperBound.x &&
+            vector.y <= upperBound.y &&
+            vector.z <= upperBound.z
+    }
+}
+
+public extension PartialRangeFrom where Bound == Vector {
+    func contains(_ vector: Vector) -> Bool {
+        vector.x >= lowerBound.x &&
+            vector.y >= lowerBound.y &&
+            vector.z >= lowerBound.z
+    }
+}
+
+public extension PartialRangeThrough where Bound == Vector {
+    func contains(_ vector: Vector) -> Bool {
+        vector.x <= upperBound.x &&
+            vector.y <= upperBound.y &&
+            vector.z <= upperBound.z
+    }
+}
+
+public extension PartialRangeUpTo where Bound == Vector {
+    func contains(_ vector: Vector) -> Bool {
+        vector.x < upperBound.x &&
+            vector.y < upperBound.y &&
+            vector.z < upperBound.z
+    }
 }
 
 public extension Vector {
@@ -140,7 +204,7 @@ public extension Vector {
     /// - Parameter components: An array of vector components.
     ///
     /// Omitted values are set equal to the first value specified.
-    /// If no values as specified, the size defaults to ``one``.
+    /// If no values are specified, the size defaults to ``one``.
     init<T: Collection>(size components: T) where T.Element == Double, T.Index == Int {
         let i = components.startIndex
         switch components.count {
@@ -164,27 +228,27 @@ public extension Vector {
 
     /// Returns a vector with all components inverted.
     static prefix func - (rhs: Vector) -> Vector {
-        Vector(-rhs.x, -rhs.y, -rhs.z)
+        [-rhs.x, -rhs.y, -rhs.z]
     }
 
     /// Returns the componentwise sum of two vectors.
     static func + (lhs: Vector, rhs: Vector) -> Vector {
-        Vector(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
+        [lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z]
     }
 
     /// Returns the componentwise difference between two vectors.
     static func - (lhs: Vector, rhs: Vector) -> Vector {
-        Vector(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
+        [lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z]
     }
 
     /// Returns a vector with its components multiplied by the specified value.
     static func * (lhs: Vector, rhs: Double) -> Vector {
-        Vector(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
+        [lhs.x * rhs, lhs.y * rhs, lhs.z * rhs]
     }
 
     /// Returns a vector with its components multiplied by the specified value.
     static func * (lhs: Double, rhs: Vector) -> Vector {
-        Vector(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z)
+        [lhs * rhs.x, lhs * rhs.y, lhs * rhs.z]
     }
 
     /// Multiplies the components of the vector by the specified value.
@@ -196,7 +260,7 @@ public extension Vector {
 
     /// Returns a vector with its components divided by the specified value.
     static func / (lhs: Vector, rhs: Double) -> Vector {
-        Vector(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs)
+        [lhs.x / rhs, lhs.y / rhs, lhs.z / rhs]
     }
 
     /// Divides the components of the vector by the value you provide.
@@ -227,29 +291,28 @@ public extension Vector {
     /// - Parameter other: The vector with which to compute the cross product.
     /// - Returns: Returns a vector that is orthogonal to the two vectors used to compute the cross product.
     func cross(_ other: Vector) -> Vector {
-        Vector(y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x)
+        [y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x]
     }
 
     /// A Boolean value that indicates whether the vector has a length of `1`.
     var isNormalized: Bool {
-        abs(lengthSquared - 1) < planeEpsilon
+        abs(lengthSquared - 1) < sqrt(epsilon)
     }
 
     /// Returns a normalized vector.
     /// - Returns: The normalized vector (with a length of `1`) or the ``zero`` vector if the length is `0`.
     func normalized() -> Vector {
-        let length = self.length
-        return length == 0 ? .zero : self / length
+        direction ?? .zero
     }
 
     /// All vector components are zero (or  close to zero) in length.
     var isZero: Bool {
-        isEqual(to: .zero)
+        isApproximatelyEqual(to: .zero)
     }
 
     /// All vector components are one (or  close to one) in length.
     var isOne: Bool {
-        isEqual(to: .one)
+        isApproximatelyEqual(to: .one)
     }
 
     /// Linearly interpolate between this vector and another.
@@ -257,77 +320,57 @@ public extension Vector {
     ///   - other: The vector to interpolate towards.
     ///   - t: The normalized extent of interpolation, from 0 to 1.
     func lerp(_ other: Vector, _ t: Double) -> Vector {
-        self + (other - self) * t
+        interpolated(with: other, by: t)
     }
 
     /// Returns the angle between this vector and another.
     /// - Parameter other: The vector to compare with.
     func angle(with other: Vector) -> Angle {
-        .acos(normalized().dot(other.normalized()))
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, message: "Use Rotation(from:to) instead")
-    func rotation(with other: Vector) -> Rotation {
-        -rotationBetweenNormalizedVectors(normalized(), other.normalized())
+        angleBetweenNormalizedVectors(normalized(), other.normalized())
     }
 
     /// Returns the angle between this vector and the specified plane.
     /// - Parameter plane: The plane to compare with.
     func angle(with plane: Plane) -> Angle {
-        .asin(normalized().dot(plane.normal))
+        angleBetweenNormalizedVectorAndPlane(normalized(), plane)
     }
 
-    /// Returns the distance between the vector (representing a position in space) from the specified plane.
-    /// - Parameter plane: The plane to compare with.
-    /// - Returns: The distance between the point and the plane. The value is positive if the point lies
-    ///   in front of the plane, and negative if behind.
+    /// Deprecated.
+    @available(*, deprecated, renamed: "signedDistance(from:)")
     func distance(from plane: Plane) -> Double {
-        plane.normal.dot(self) - plane.w
+        signedDistance(from: plane)
     }
 
     /// Returns the nearest point on the specified plane to the vector (representing a position in space).
     /// - Parameter plane: The plane to project onto.
     /// - Returns: The nearest point in 3D space that lies on the plane.
     func projected(onto plane: Plane) -> Vector {
-        self - plane.normal * distance(from: plane)
+        plane.nearestPoint(to: self)
     }
 
-    /// Deprecated.
-    @available(*, deprecated, renamed: "projected(onto:)")
-    func project(onto plane: Plane) -> Vector {
-        projected(onto: plane)
+    /// Returns the distance between the vector (representing a position in space) and the specified object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: The absolute perpendicular distance between the point and object.
+    func distance(from object: some PointComparable) -> Double {
+        object.distance(from: self)
     }
 
-    /// Returns the distance between the vector (representing a position in space) from the specified point.
-    /// - Parameter point: The point to compare with.
-    /// - Returns: The absolute perpendicular distance between the two points.
-    func distance(from point: Vector) -> Double {
-        (self - point).length
-    }
-
-    /// Returns the distance between the vector (representing a position in space) from the specified line.
-    /// - Parameter line: The line to compare with.
-    /// - Returns: The absolute perpendicular distance between the point and line.
-    func distance(from line: Line) -> Double {
-        line.distance(from: self)
+    /// Returns true if the vector (representing a position in space) intersects the specified object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns:`true` if the bounds intersect, and `false` otherwise.
+    func intersects(_ object: some PointComparable) -> Bool {
+        object.intersects(self)
     }
 
     /// Returns the nearest point on the specified line to the vector (representing a position in space).
     /// - Parameter line: The line to project onto.
     /// - Returns: The nearest point in 3D space that lies on the line.
     func projected(onto line: Line) -> Vector {
-        line.direction * (self - line.origin).dot(line.direction) - line.origin
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "projected(onto:)")
-    func project(onto line: Line) -> Vector {
-        projected(onto: line)
+        line.nearestPoint(to: self)
     }
 }
 
-public extension Array where Element == Vector {
+public extension [Vector] {
     /// Creates an array of vectors from an array of coordinates.
     /// - Parameter components: An array of vector component triplets.
     init(_ components: [Double]) {
@@ -358,42 +401,30 @@ extension Vector: UnkeyedCodable {
 
 extension Vector {
     func _quantized() -> Vector {
-        Vector(quantize(x), quantize(y), quantize(z))
+        [quantize(x), quantize(y), quantize(z)]
     }
 
-    func hashValues(withPrecision precision: Double) -> Set<Vector> {
-        let xf = floor(x / precision) * precision
-        let xc = ceil(x / precision) * precision
-        let yf = floor(y / precision) * precision
-        let yc = ceil(y / precision) * precision
-        let zf = floor(z / precision) * precision
-        let zc = ceil(z / precision) * precision
-        return [
-            Vector(xf, yf, zf),
-            Vector(xf, yf, zc),
-            Vector(xf, yc, zf),
-            Vector(xf, yc, zc),
-            Vector(xc, yf, zf),
-            Vector(xc, yf, zc),
-            Vector(xc, yc, zf),
-            Vector(xc, yc, zc),
-        ]
+    var direction: Vector? {
+        lengthAndDirection.direction
+    }
+
+    /// The length and direction of the vector
+    var lengthAndDirection: (length: Double, direction: Vector?) {
+        let length = length
+        // TODO: is finite check actually needed?
+        return (length, length > 0 && length.isFinite ? self / length : nil)
     }
 
     /// Are all components equal
     var isUniform: Bool {
-        x.isEqual(to: y) && y.isEqual(to: z)
+        x.isApproximatelyEqual(to: y) && y.isApproximatelyEqual(to: z)
     }
 
-    /// Approximate equality
-    func isEqual(to other: Vector, withPrecision p: Double = epsilon) -> Bool {
-        x.isEqual(to: other.x, withPrecision: p) &&
-            y.isEqual(to: other.y, withPrecision: p) &&
-            z.isEqual(to: other.z, withPrecision: p)
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 
-    func compare(with plane: Plane) -> PlaneComparison {
-        let t = distance(from: plane)
-        return (t < -epsilon) ? .back : (t > epsilon) ? .front : .coplanar
+    mutating func clamp(to range: ClosedRange<Self>) {
+        self = clamped(to: range)
     }
 }

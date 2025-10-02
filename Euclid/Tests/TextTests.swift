@@ -13,12 +13,12 @@ import CoreText
 import Foundation
 import XCTest
 
-class TextTests: XCTestCase {
+final class TextTests: XCTestCase {
     func testTextPaths() {
         let text = NSAttributedString(string: "Hello")
         let paths = Path.text(text)
         XCTAssertEqual(paths.count, 5)
-        XCTAssertEqual(paths.map { $0.subpaths.count }, [
+        XCTAssertEqual(paths.map(\.subpaths.count), [
             1, 2, 1, 1, 2,
         ])
     }

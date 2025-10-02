@@ -178,28 +178,28 @@ extension GeometryType {
             return []
         case .cube:
             return [
-                Vector(-0.5, -0.5, -0.5),
-                Vector(0.5, -0.5, -0.5),
-                Vector(0.5, 0.5, -0.5),
-                Vector(-0.5, 0.5, -0.5),
-                Vector(-0.5, -0.5, 0.5),
-                Vector(0.5, -0.5, 0.5),
-                Vector(0.5, 0.5, 0.5),
-                Vector(-0.5, 0.5, 0.5),
+                [-0.5, -0.5, -0.5],
+                [0.5, -0.5, -0.5],
+                [0.5, 0.5, -0.5],
+                [-0.5, 0.5, -0.5],
+                [-0.5, -0.5, 0.5],
+                [0.5, -0.5, 0.5],
+                [0.5, 0.5, 0.5],
+                [-0.5, 0.5, 0.5],
             ]
         case let .cone(segments):
             let points = Path.circle(segments: segments)
                 .rotated(by: .roll(-.halfPi))
                 .rotated(by: .pitch(.halfPi))
                 .pointPositions
-            return points.translated(by: Vector(0, -0.5, 0)) + [Vector(0, 0.5, 0)]
+            return points.translated(by: [0, -0.5, 0]) + [Vector(0, 0.5, 0)]
         case let .cylinder(segments):
             let points = Path.circle(segments: segments)
                 .rotated(by: .roll(-.halfPi))
                 .rotated(by: .pitch(.halfPi))
                 .pointPositions
-            return points.translated(by: Vector(0, -0.5, 0))
-                + points.translated(by: Vector(0, 0.5, 0))
+            return points.translated(by: [0, -0.5, 0])
+                + points.translated(by: [0, 0.5, 0])
         case let .sphere(segments):
             let stacks = max(2, segments / 2)
             return GeometryType

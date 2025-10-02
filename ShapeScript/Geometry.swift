@@ -800,7 +800,7 @@ public extension Geometry {
             return children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
         default:
             _ = build { !isCancelled() }
-            return (mesh?.volume ?? 0) * scaleFactor
+            return (mesh?.signedVolume ?? 0) * scaleFactor
         }
     }
 

@@ -41,11 +41,20 @@ public struct Plane: Hashable, Sendable {
     ///   - normal: The surface normal of the plane.
     ///   - w: The perpendicular distance from the world origin to the plane.
     init?(normal: Vector, w: Double) {
-        let length = normal.length
-        guard length.isFinite, length > epsilon else {
+        guard let direction = normal.direction else {
             return nil
         }
-        self.init(unchecked: normal / length, w: w)
+        self.init(unchecked: direction, w: w)
+    }
+}
+
+extension Plane: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        "Plane(normal: \(normal.components), w: \(w))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
     }
 }
 
@@ -95,16 +104,20 @@ public extension Plane {
     /// A plane located at the origin, aligned with the X and Y axes.
     static let xy = Plane(unchecked: .unitZ, w: 0)
 
+    /// The closest point on the plane to the world origin.
+    var origin: Vector {
+        normal * w
+    }
+
     /// Creates a plane from a point and surface normal.
     /// - Parameters:
     ///   - normal: The surface normal of the plane.
     ///   - pointOnPlane: An arbitrary point on the plane.
     init?(normal: Vector, pointOnPlane: Vector) {
-        let length = normal.length
-        guard length.isFinite, length > epsilon else {
+        guard let direction = normal.direction else {
             return nil
         }
-        self.init(unchecked: normal / length, pointOnPlane: pointOnPlane)
+        self.init(unchecked: direction, pointOnPlane: pointOnPlane)
     }
 
     /// Creates a plane from a set of points.
@@ -113,7 +126,14 @@ public extension Plane {
     /// > Note: The polygon can be convex or concave. The direction of the plane normal is
     /// based on the assumption that the points are wound in an anti-clockwise direction.
     init?(points: [Vector]) {
-        self.init(points: points, convex: nil)
+        guard !points.isEmpty else {
+            return nil
+        }
+        self.init(unchecked: points)
+        // Check all points lie on this plane
+        if points.count > 3, points.contains(where: { !intersects($0) }) {
+            return nil
+        }
     }
 
     /// Returns the flip-side of the plane.
@@ -121,28 +141,40 @@ public extension Plane {
         Plane(unchecked: -normal, w: -w)
     }
 
-    /// Returns a Boolean value that indicates whether a point lies on the plane.
-    /// - Parameter point: The point to test.
-    /// - Returns: `true` if the point lies on the plane and `false` otherwise.
+    /// Deprecated.
+    @available(*, deprecated, renamed: "intersects(_:)")
     func containsPoint(_ point: Vector) -> Bool {
-        abs(point.distance(from: self)) < planeEpsilon
+        intersects(point)
     }
 
-    /// Returns the distance between a point and the plane.
-    /// - Parameter point: The point to compare with.
-    /// - Returns: The distance between the point and the plane. The value is positive if the point lies
-    ///   in front of the plane, and negative if behind.
-    func distance(from point: Vector) -> Double {
-        normal.dot(point) - w
+    /// Returns the signed distance between the plane and a `PlaneComparable` object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: The distance between the object and the plane. The value will be positive if the object lies
+    ///   in front of the plane, negative if it lies behind it, or zero if it lies exactly on the plane, or crosses it.
+    func signedDistance(from object: some PlaneComparable) -> Double {
+        object.signedDistance(from: self)
+    }
+
+    /// Returns the absolute distance between the plane and a `PlaneComparable` object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: The absolute distance between the object and the plane. The value will be
+    ///   positive if the object lies in front or behind the plane, or zero if they intersect.
+    func distance(from object: some PlaneComparable) -> Double {
+        object.distance(from: self)
+    }
+
+    /// Determines if the plane intersects a `PlaneComparable` object.
+    /// - Parameter object: The object to compare with.
+    /// - Returns: `true` if the plane intersects the object, and `false` otherwise.
+    func intersects(_ object: some PlaneComparable) -> Bool {
+        object.intersects(self)
     }
 
     /// Computes the line of intersection between two planes.
     /// - Parameter plane: The plane to compare with.
     /// - Returns: The line of intersection between the planes, or `nil` if the planes are parallel.
     func intersection(with plane: Plane) -> Line? {
-        let direction = normal.cross(plane.normal)
-        guard direction.length > epsilon else {
-            // Planes are parallel
+        if isParallel(to: plane) || isAntiparallel(to: plane) {
             return nil
         }
 
@@ -162,6 +194,7 @@ public extension Plane {
         }
 
         let origin: Vector
+        let direction = normal.cross(plane.normal)
         if abs(direction.z) >= abs(direction.x), abs(direction.z) >= abs(direction.y) {
             origin = findCommonPoint(0, 1)
         } else if abs(direction.y) >= abs(direction.z), abs(direction.y) >= abs(direction.x) {
@@ -199,43 +232,28 @@ extension Plane {
         self.init(unchecked: normal, w: normal.dot(pointOnPlane))
     }
 
-    init?(points: [Vector], convex: Bool?) {
-        guard !points.isEmpty, !pointsAreDegenerate(points) else {
-            return nil
+    /// Points are assumed to be ordered in a counter-clockwise direction
+    /// Points are assumed to be coplanar
+    init(unchecked points: [Vector]) {
+        let normal = faceNormalForPoints(points)
+        self.init(unchecked: normal, pointOnPlane: points.centroid)
+    }
+
+    func signedPerpendicularDistance(from plane: Plane) -> Double? {
+        if isParallel(to: plane) {
+            return w - plane.w
+        } else if isAntiparallel(to: plane) {
+            return -w - plane.w
         }
-        self.init(unchecked: points, convex: convex)
-        // Check all points lie on this plane
-        if points.count > 3, points.contains(where: { !containsPoint($0) }) {
-            return nil
-        }
+        return nil
     }
 
-    init(unchecked points: [Vector], convex: Bool?) {
-        assert(!pointsAreDegenerate(points))
-        let normal = faceNormalForPoints(points, convex: convex)
-        self.init(unchecked: normal, pointOnPlane: points[0])
+    func isParallel(to plane: Plane, absoluteTolerance: Double = planeEpsilon) -> Bool {
+        normal.isApproximatelyEqual(to: plane.normal, absoluteTolerance: absoluteTolerance)
     }
 
-    /// Approximate equality
-    func isEqual(to other: Plane, withPrecision p: Double = planeEpsilon) -> Bool {
-        w.isEqual(to: other.w, withPrecision: p) &&
-            normal.isEqual(to: other.normal, withPrecision: p)
-    }
-}
-
-/// The relationship between a group of points and a plane.
-enum PlaneComparison: Int {
-    /// The values all reside on the same plane.
-    case coplanar = 0
-    /// The values reside in front of the plane.
-    case front = 1
-    /// The values reside behind the plane.
-    case back = 2
-    /// The values span both the front and back of the plane.
-    case spanning = 3
-
-    func union(_ other: PlaneComparison) -> PlaneComparison {
-        PlaneComparison(rawValue: rawValue | other.rawValue)!
+    func isAntiparallel(to plane: Plane, absoluteTolerance: Double = planeEpsilon) -> Bool {
+        normal.isApproximatelyEqual(to: -plane.normal, absoluteTolerance: absoluteTolerance)
     }
 }
 
@@ -257,7 +275,7 @@ enum FlatteningPlane: RawRepresentable {
     }
 
     init(points: [Vector]) {
-        self.init(normal: faceNormalForPoints(points, convex: nil))
+        self.init(normal: faceNormalForPoints(points))
     }
 
     init?(rawValue: Plane) {
@@ -271,9 +289,9 @@ enum FlatteningPlane: RawRepresentable {
 
     func flattenPoint(_ point: Vector) -> Vector {
         switch self {
-        case .yz: return Vector(point.y, point.z)
-        case .xz: return Vector(point.x, point.z)
-        case .xy: return Vector(point.x, point.y)
+        case .yz: return [point.y, point.z]
+        case .xz: return [point.x, point.z]
+        case .xy: return [point.x, point.y]
         }
     }
 }

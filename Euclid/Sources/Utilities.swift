@@ -31,15 +31,11 @@
 
 import Foundation
 
-#if swift(<5.7)
-public protocol Sendable {}
-#endif
-
 /// Tolerance used for calculating approximate equality
 let epsilon: Double = 1e-8
 
 /// Plane equality threshold
-let planeEpsilon: Double = 1e-6
+let planeEpsilon: Double = 2e-8
 
 /// Smallest valid scale factor
 let scaleLimit: Double = 1e-8
@@ -50,34 +46,52 @@ func quantize(_ value: Double) -> Double {
     return (value / precision).rounded() * precision
 }
 
+extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
+
+    mutating func clamp(to range: ClosedRange<Self>) {
+        self = clamped(to: range)
+    }
+}
+
 extension Double {
-    func isEqual(to other: Double, withPrecision p: Double) -> Bool {
-        self == other || abs(self - other) < p
+    func clampedToScaleLimit() -> Double {
+        self < 0 ? min(self, -scaleLimit) : max(self, scaleLimit)
     }
 }
 
 // MARK: Vertex utilities
 
-func verticesAreDegenerate(_ vertices: [Vertex]) -> Bool {
+extension Collection<Vertex> {
+    /// Magnitude is area, direction is normal
+    var vectorArea: Vector {
+        map(\.position).vectorArea
+    }
+
+    var signedVolume: Double {
+        map(\.position).signedVolume
+    }
+
+    var centroid: Vector {
+        map(\.position).centroid
+    }
+}
+
+func verticesAreDegenerate(_ vertices: some Collection<Vertex>) -> Bool {
     guard vertices.count > 2 else {
         return true
     }
-    let positions = vertices.map { $0.position }
+    let positions = vertices.map(\.position)
     return pointsAreDegenerate(positions) || pointsAreSelfIntersecting(positions)
 }
 
-func verticesAreConvex(_ vertices: [Vertex]) -> Bool {
+func verticesAreConvex(_ vertices: some Collection<Vertex>) -> Bool {
     guard vertices.count > 3 else {
         return vertices.count > 2
     }
-    return pointsAreConvex(vertices.map { $0.position })
-}
-
-func verticesAreCoplanar(_ vertices: [Vertex]) -> Bool {
-    if vertices.count < 4 {
-        return true
-    }
-    return pointsAreCoplanar(vertices.map { $0.position })
+    return pointsAreConvex(vertices.map(\.position))
 }
 
 func triangulateVertices(
@@ -96,7 +110,7 @@ func triangulateVertices(
         return [Polygon(
             unchecked: vertices,
             plane: plane,
-            isConvex: isConvex,
+            isConvex: true,
             sanitizeNormals: sanitizeNormals,
             material: material,
             id: id
@@ -127,7 +141,7 @@ func triangulateVertices(
             let b = vertices[(i + 1) % vertices.count]
             let c = vertices[(i + 2) % vertices.count]
             let d = vertices[(i + 3) % vertices.count]
-            if LineSegment(start: c.position, end: a.position)?.containsPoint(d.position) == false,
+            if LineSegment(start: c.position, end: a.position)?.intersects(d.position) == false,
                addTriangle([a, b, c])
             {
                 vertices.remove(at: (i + 1) % vertices.count)
@@ -148,9 +162,7 @@ func triangulateVertices(
         }
         triangles.removeAll()
     }
-    let faceNormal = plane?.normal ?? faceNormalForPoints(vertices.map {
-        $0.position
-    }, convex: isConvex)
+    let faceNormal = plane?.normal ?? faceNormalForPoints(vertices.map(\.position))
     var start = 0, i = 0
     outer: while start < vertices.count {
         var attempts = 0
@@ -161,11 +173,8 @@ func triangulateVertices(
             let p0 = vertices[j], p1 = vertices[i], p2 = vertices[k]
             let triangle = Polygon([p0, p1, p2], material: material)
             if triangle == nil || vertices.enumerated().contains(where: { index, v in
-                ![i, j, k].contains(index) && triangle!.containsPoint(v.position)
-            }) || plane.map({ !triangle!.plane.isEqual(to: $0) })
-                ?? (triangle!.plane.normal.dot(faceNormal) <= 0)
-                || !addTriangle([p0, p1, p2])
-            {
+                ![i, j, k].contains(index) && triangle!.intersects(v.position)
+            }) || (triangle!.plane.normal.dot(faceNormal) <= 0) || !addTriangle([p0, p1, p2]) {
                 i += 1
                 if i == vertices.count {
                     i = 0
@@ -211,6 +220,45 @@ func triangulateVertices(
 
 // MARK: Vector utilities
 
+extension [Vector] {
+    /// Magnitude is area, direction is normal
+    var vectorArea: Vector {
+        guard count > 2, let a = first else {
+            return .zero
+        }
+        var ab = self[1] - a
+        return dropFirst(2).reduce(.zero) { area, c in
+            let ac = c - a
+            defer { ab = ac }
+            return area + ab.cross(ac)
+        } / 2
+    }
+
+    var signedVolume: Double {
+        guard count > 2, let a = first else {
+            return 0
+        }
+        var b = self[1]
+        return dropFirst(2).reduce(0) { volume, c in
+            defer { b = c }
+            return volume + a.dot(b.cross(c))
+        } / 6
+    }
+
+    var centroid: Vector {
+        var last = last ?? .zero
+        var count = count
+        return reduce(.zero) { total, point in
+            if point == last {
+                count -= 1
+                return total
+            }
+            last = point
+            return total + point
+        } / Double(Swift.max(1, count))
+    }
+}
+
 extension Vector {
     var leastParallelAxis: Vector {
         switch (abs(x), abs(y), abs(z)) {
@@ -233,6 +281,10 @@ extension Vector {
             return .unitZ
         }
     }
+
+    func clampedToScaleLimit() -> Self {
+        Self(x.clampedToScaleLimit(), y.clampedToScaleLimit(), z.clampedToScaleLimit())
+    }
 }
 
 func isFlippedScale(_ scale: Vector) -> Bool {
@@ -242,19 +294,29 @@ func isFlippedScale(_ scale: Vector) -> Bool {
     return flipped
 }
 
+func angleBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> Angle {
+    assert(v0.isNormalized && v1.isNormalized)
+    return .acos(v0.dot(v1))
+}
+
+func angleBetweenNormalizedVectorAndPlane(_ v: Vector, _ p: Plane) -> Angle {
+    assert(v.isNormalized)
+    return .asin(v.dot(p.normal))
+}
+
 func rotationBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> Rotation {
     assert(v0.isNormalized && v1.isNormalized)
     let axis = v0.cross(v1)
-    if axis.isZero {
-        if v0.isEqual(to: v1) {
-            return .identity
-        }
-        let leastParallelAxis = v0.leastParallelAxis
-        let orthonormal = v0.cross(leastParallelAxis).normalized()
+    if axis != .zero {
+        let cross = axis.length
+        let angle = Angle.atan2(y: cross, x: v0.dot(v1))
+        return .init(unchecked: axis / cross, angle: -angle)
+    } else if v0.isApproximatelyEqual(to: v1) {
+        return .identity
+    } else {
+        let orthonormal = v0.cross(v0.leastParallelAxis).normalized()
         return .init(unchecked: orthonormal, angle: .pi)
     }
-    let angle = -acos(v0.dot(v1))
-    return .init(unchecked: axis.normalized(), angle: .radians(angle))
 }
 
 func pointsAreDegenerate(_ points: [Vector]) -> Bool {
@@ -296,7 +358,7 @@ func pointsAreConvex(_ points: [Vector]) -> Bool {
         // check result is large enough to be reliable
         if length > planeEpsilon {
             n = n / length
-            if let normal = normal {
+            if let normal {
                 if n.dot(normal) < 0 {
                     return false
                 }
@@ -323,11 +385,11 @@ func pointsAreSelfIntersecting(_ points: [Vector]) -> Bool {
         }
         for j in i + 2 ..< points.count - 1 {
             let p2 = points[j], p3 = points[j + 1]
-            let precision = 1e-6
-            guard !p1.isEqual(to: p2, withPrecision: precision),
-                  !p1.isEqual(to: p3, withPrecision: precision),
-                  !p0.isEqual(to: p2, withPrecision: precision),
-                  !p0.isEqual(to: p3, withPrecision: precision),
+            let tolerance = 1e-6
+            guard !p1.isApproximatelyEqual(to: p2, absoluteTolerance: tolerance),
+                  !p1.isApproximatelyEqual(to: p3, absoluteTolerance: tolerance),
+                  !p0.isApproximatelyEqual(to: p2, absoluteTolerance: tolerance),
+                  !p0.isApproximatelyEqual(to: p3, absoluteTolerance: tolerance),
                   let l2 = LineSegment(start: p2, end: p3)
             else {
                 continue
@@ -342,86 +404,49 @@ func pointsAreSelfIntersecting(_ points: [Vector]) -> Bool {
 
 /// Computes the face normal for a collection of points
 /// Points are assumed to be ordered in a counter-clockwise direction
-/// Points are not verified to be coplanar or non-degenerate
+/// Points are not required to be coplanar or non-degenerate
 /// Points are not required to form a convex polygon
-func faceNormalForPoints(
-    _ points: [Vector],
-    convex: Bool?
-) -> Vector {
-    if !points.isEmpty, points.first == points.last {
-        return faceNormalForPoints(Array(points.dropFirst()), convex: convex)
-    }
-    let count = points.count
-    switch count {
-    case 0, 1:
-        return .unitZ
-    case 2:
-        let ab = points[1] - points[0]
-        let normal = ab.cross(.unitZ).cross(ab)
-        let length = normal.length
-        guard length > 0 else {
-            // Points lie along z axis
-            return .unitY
-        }
-        return normal / length
-    default:
-        func faceNormalForConvexPoints(_ points: [Vector]) -> Vector {
-            let count = points.count
-            var b = points[count - 1]
-            var ab = b - points[count - 2]
-            var bestLengthSquared = 0.0
-            var best: Vector?
-            for c in points {
-                let bc = c - b
-                let normal = ab.cross(bc)
-                let lengthSquared = normal.lengthSquared
-                if lengthSquared > bestLengthSquared {
-                    bestLengthSquared = lengthSquared
-                    best = normal / lengthSquared.squareRoot()
-                }
-                b = c
-                ab = bc
-            }
-            return best ?? .unitZ
-        }
-        let normal = faceNormalForConvexPoints(points)
-        let convex = convex ?? pointsAreConvex(points)
-        if !convex {
-            let flatteningPlane = FlatteningPlane(normal: normal)
-            let flattenedPoints = points.map { flatteningPlane.flattenPoint($0) }
-            let flattenedNormal = faceNormalForConvexPoints(flattenedPoints)
-            let isClockwise = flattenedPointsAreClockwise(flattenedPoints)
-            if (flattenedNormal.z > 0) == isClockwise {
-                return -normal
-            }
-        }
+func faceNormalForPoints(_ points: [Vector]) -> Vector {
+    // Try vectorArea first (Newell's method)
+    let vectorArea = points.vectorArea
+    if let normal = vectorArea.direction {
         return normal
     }
-}
 
-func pointsAreCoplanar(_ points: [Vector]) -> Bool {
-    if points.count < 4 {
-        return true
+    // If vectorArea is zero or near-zero, normal will not be reliable
+    // Instead we'll use a modified version of Newell's method
+    if points.count > 2, let a = points.first {
+        var ab = points[1] - a
+        let vectorArea: Vector = points.dropFirst(2).reduce(.zero) { area, c in
+            let ac = c - a
+            defer { ab = ac }
+            let cross = ab.cross(ac)
+            if area.dot(cross) < 0 {
+                return area - cross
+            } else {
+                return area + cross
+            }
+        }
+        if let normal = vectorArea.direction {
+            return normal
+        }
     }
-    let b = points[1]
-    let ab = b - points[0]
-    let bc = points[2] - b
-    let normal = ab.cross(bc)
-    let length = normal.length
-    if length < epsilon {
-        return false
+
+    // Points must be linear, so find what line they line on
+    // and then return the orthogonal vector to that one
+    let ab = points.count > 1 ? points[1] - points[0] : .zero
+    if let normal = ab.cross(.unitZ).cross(ab).direction {
+        return normal
     }
-    let plane = Plane(unchecked: normal / length, pointOnPlane: b)
-    for p in points[3...] where !plane.containsPoint(p) {
-        return false
-    }
-    return true
+
+    // Points lie along z axis
+    return .unitY
 }
 
 /// https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order#1165943
 func flattenedPointsAreClockwise(_ points: [Vector]) -> Bool {
     assert(!points.contains(where: { $0.z != 0 }))
-    let points = (points.first == points.last) ? points.dropLast() : [Vector].SubSequence(points)
+    let points = (points.first == points.last) ? points.dropLast() : ArraySlice(points)
     guard points.count > 2, var a = points.last else {
         return false
     }
@@ -461,91 +486,79 @@ func cubicBezier(_ p0: Double, _ p1: Double, _ p2: Double, _ p3: Double, _ t: Do
 func shortestLineBetween(
     _ p1: Vector,
     _ p2: Vector,
+    _ aIsSegment: Bool,
     _ p3: Vector,
     _ p4: Vector,
-    inSegment: Bool
+    _ bIsSegment: Bool
 ) -> (Vector, Vector)? {
-    let p21 = p2 - p1
-    assert(p21.length > 0)
-    let p43 = p4 - p3
-    assert(p43.length > 0)
-    let p13 = p1 - p3
+    let v12 = p2 - p1
+    assert(v12.length > 0)
+    let v34 = p4 - p3
+    assert(v34.length > 0)
+    let v31 = p1 - p3
 
-    let d1343 = p13.dot(p43)
-    let d4321 = p43.dot(p21)
-    let d1321 = p13.dot(p21)
-    let d4343 = p43.dot(p43)
-    let d2121 = p21.dot(p21)
+    let d3134 = v31.dot(v34)
+    let d3412 = v34.dot(v12)
+    let d3434 = v34.dot(v34) // length squared
+    let d1212 = v12.dot(v12) // length squared
+    let denominator = d1212 * d3434 - d3412 * d3412
 
-    let denominator = d2121 * d4343 - d4321 * d4321
-    guard abs(denominator) > epsilon else {
-        // Lines are coincident
-        return nil
+    // Closest point along v12
+    var mua = 0.0
+    if denominator != 0 {
+        let numerator = d3134 * d3412 - v31.dot(v12) * d3434
+        mua = numerator / denominator
     }
 
-    let numerator = d1343 * d4321 - d1321 * d4343
-    let mua = numerator / denominator
-    let mub = (d1343 + d4321 * mua) / d4343
+    // Closest point along v34
+    var mub = (d3134 + d3412 * mua) / d3434
 
-    if inSegment, mua < 0 || mua > 1 || mub < 0 || mub > 1 {
-        return nil
-    }
+    if aIsSegment { mua.clamp(to: 0 ... 1) }
+    if bIsSegment { mub.clamp(to: 0 ... 1) }
 
-    return (p1 + mua * p21, p3 + mub * p43)
-}
-
-/// See "Vector formulation" at https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-func vectorFromPointToLine(
-    _ point: Vector,
-    _ lineOrigin: Vector,
-    _ lineDirection: Vector
-) -> Vector {
-    assert(lineDirection.isNormalized)
-    let d = point - lineOrigin
-    return lineDirection * d.dot(lineDirection) - d
+    return (p1 + mua * v12, p3 + mub * v34)
 }
 
 func lineIntersection(
     _ p0: Vector,
     _ p1: Vector,
+    _ aIsSegment: Bool,
     _ p2: Vector,
-    _ p3: Vector
+    _ p3: Vector,
+    _ bIsSegment: Bool
 ) -> Vector? {
-    guard let (p0, p1) = shortestLineBetween(p0, p1, p2, p3, inSegment: false) else {
-        return nil
+    shortestLineBetween(
+        p0, p1, aIsSegment,
+        p2, p3, bIsSegment
+    ).flatMap {
+        $0.isApproximatelyEqual(to: $1) ? $0 : nil
     }
-    return p0.isEqual(to: p1) ? p0 : nil
-}
-
-func lineSegmentsIntersection(
-    _ p0: Vector,
-    _ p1: Vector,
-    _ p2: Vector,
-    _ p3: Vector
-) -> Vector? {
-    guard let (p0, p1) = shortestLineBetween(p0, p1, p2, p3, inSegment: true) else {
-        return nil
-    }
-    return p0.isEqual(to: p1) ? p0 : nil
 }
 
 /// Returns distance of plane intersection along a line (or nil if parallel)
 func linePlaneIntersection(_ origin: Vector, _ direction: Vector, _ plane: Plane) -> Double? {
+    // TODO: optimize for axis-aligned plane
     // https://en.wikipedia.org/wiki/Line–plane_intersection#Algebraic_form
     let lineDotPlaneNormal = direction.dot(plane.normal)
     guard lineDotPlaneNormal != 0 else {
         // Line and plane are parallel
         return nil
     }
-    let planePoint = plane.normal * plane.w
-    return (planePoint - origin).dot(plane.normal) / lineDotPlaneNormal
+    let planeOrigin = plane.normal * plane.w
+    return (planeOrigin - origin).dot(plane.normal) / lineDotPlaneNormal
 }
 
 // MARK: Path utilities
 
+extension Collection<PathPoint> {
+    var centroid: Vector {
+        map(\.position).centroid
+    }
+}
+
 /// Sanitize a set of path points by removing duplicates and invalid points
 /// Should be safe to use on sets of points representing a compound path (with subpaths)
-func sanitizePoints(_ points: [PathPoint]) -> [PathPoint] {
+func sanitizePoints(_ points: some Collection<PathPoint>) -> [PathPoint] {
     var result = [PathPoint]()
     // Remove duplicate points
     // TODO: In future, compound paths may support duplicate points
@@ -656,11 +669,9 @@ func pointsAreClosed(unchecked points: [PathPoint]) -> Bool {
 }
 
 func extrapolate(_ p0: PathPoint, _ p1: PathPoint, _ p2: PathPoint) -> PathPoint {
-    var p0p1 = p1.position - p0.position
-    let length = p0p1.length
-    p0p1 = p0p1 / length
+    let (length, p0p1) = (p1.position - p0.position).lengthAndDirection
     let p1p2 = (p2.position - p1.position).normalized()
-    let r = rotationBetweenNormalizedVectors(p0p1, p1p2)
+    let r = rotationBetweenNormalizedVectors(p0p1 ?? .zero, p1p2)
     let p2pe = p1p2.rotated(by: r) * length
     return .curve(p2.position + p2pe)
 }
@@ -683,7 +694,7 @@ protocol UnkeyedCodable {
 
 // MARK: Data
 
-class Buffer {
+final class Buffer {
     private(set) var buffer: UnsafeMutablePointer<UInt8>
     let capacity: Int
     var count: Int = 0 {

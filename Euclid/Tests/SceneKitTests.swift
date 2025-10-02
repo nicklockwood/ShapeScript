@@ -12,7 +12,7 @@
 import SceneKit
 import XCTest
 
-class SceneKitTests: XCTestCase {
+final class SceneKitTests: XCTestCase {
     // MARK: Import
 
     func testGeometryImportedWithCorrectDetail() {
@@ -22,31 +22,40 @@ class SceneKitTests: XCTestCase {
         XCTAssertEqual(mesh?.polygons.count ?? 0, 12)
     }
 
-    func testImportedSTLFileHasFixedNormals() throws {
-        if #available(macOS 13, *) { // workaround for macOS 12 bug
-            let cubeFile = URL(fileURLWithPath: #file)
-                .deletingLastPathComponent().appendingPathComponent("Cube.stl")
-            let cube = try Mesh(url: cubeFile, ignoringTransforms: false)
-            XCTAssert(cube.polygons.allSatisfy { polygon in
-                polygon.vertices.allSatisfy { $0.normal == polygon.plane.normal }
-            })
-        }
-    }
-
     func testExportImportTriangles() throws {
-        let cube = Mesh.cube()
-        let geometry = try XCTUnwrap(SCNGeometry(
-            triangles: cube, materialLookup: nil
-        ))
-        XCTAssertNotNil(Mesh(geometry, materialLookup: nil))
+        let cube = Mesh.cube().triangulate()
+        let geometry = try XCTUnwrap(SCNGeometry(triangles: cube))
+        let result = try XCTUnwrap(Mesh(geometry))
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertTrue(result.isActuallyConvex)
+        XCTAssertEqual(result.polygons.count, 12)
     }
 
     func testExportImportPolygons() throws {
         let cube = Mesh.cube()
-        let geometry = try XCTUnwrap(SCNGeometry(
-            polygons: cube, materialLookup: nil
-        ))
-        XCTAssertNotNil(Mesh(geometry, materialLookup: nil))
+        let geometry = try XCTUnwrap(SCNGeometry(polygons: cube))
+        let result = try XCTUnwrap(Mesh(geometry))
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertTrue(result.isActuallyConvex)
+        XCTAssertEqual(result.polygons.count, 6)
+    }
+
+    func testExportImportTransformedPolygons() throws {
+        var transforms = [Transform]()
+        for _ in 0 ..< 10 {
+            transforms.append(.random())
+        }
+
+        for transform in transforms {
+            let cube = Mesh.cube(size: .random(in: 0.00001 ... 100000)).transformed(by: transform)
+            let geometry = SCNGeometry(polygons: cube)
+            let result = try XCTUnwrap(Mesh(geometry))
+            XCTAssertTrue(result.isWatertight)
+            let quads = result.polygons.filter { $0.vertices.count == 4 }.count
+            let triangles = result.polygons.filter { $0.vertices.count == 3 }.count
+            XCTAssertEqual(quads + triangles, result.polygons.count)
+            XCTAssertEqual(quads * 2 + triangles, 12)
+        }
     }
 
     func testSCNBoxIsWatertight() throws {
@@ -99,9 +108,9 @@ class SceneKitTests: XCTestCase {
     func testSCNBoxSubtractedFromSCNBoxCanBeMadeWatertight() throws {
         let box1 = SCNBox(width: 0.2, height: 0.2, length: 0.2, chamferRadius: 0)
         let box2 = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0)
-        let mesh = Mesh(box1)!.translated(by: Vector(0, 0, -0.4))
-            .subtracting(Mesh(box2)!.translated(by: Vector(0, 0.12, -0.3)))
-            .makeWatertight()
+        let mesh = try XCTUnwrap(Mesh(box1)?.translated(by: [0, 0, -0.4])
+            .subtracting(XCTUnwrap(Mesh(box2)?.translated(by: [0, 0.12, -0.3])))
+            .makeWatertight())
         XCTAssert(mesh.isWatertight)
         XCTAssert(mesh.polygons.areWatertight)
     }
@@ -166,7 +175,7 @@ class SceneKitTests: XCTestCase {
     }
 
     func testOffsetTransformToFromMatrix() {
-        let transform = Transform(offset: .init(1, 2, 3))
+        let transform = Transform(translation: .init(1, 2, 3))
         let matrix = SCNMatrix4(transform)
         let expected = SCNMatrix4MakeTranslation(1, 2, 3)
         XCTAssert(SCNMatrix4EqualToMatrix4(matrix, expected))
@@ -177,8 +186,8 @@ class SceneKitTests: XCTestCase {
         let transform = Transform(rotation: .init(.yaw(-.pi)))
         let matrix = SCNMatrix4(transform)
         XCTAssertEqual(transform.scale, .one)
-        XCTAssertEqual(transform.offset, .zero)
-        XCTAssert(transform.rotation.isEqual(to: Transform(matrix).rotation))
+        XCTAssertEqual(transform.translation, .zero)
+        XCTAssertEqual(transform.rotation, Transform(matrix).rotation)
     }
 }
 

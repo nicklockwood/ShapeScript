@@ -42,6 +42,22 @@ public struct Polygon: Hashable, Sendable {
     var id: Int
 }
 
+extension Polygon: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        let m = material.map { ", material: \($0)" } ?? ""
+        let v = vertices.map { "\n\t\($0)," }.joined()
+        return "Polygon([\(v)\n]\(m))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [
+            "plane": plane,
+            "isConvex": isConvex,
+            "material": material as Any,
+        ], displayStyle: .struct)
+    }
+}
+
 extension Polygon: Codable {
     private enum CodingKeys: CodingKey {
         case vertices, plane, material
@@ -62,12 +78,25 @@ extension Polygon: Codable {
                 )
             }
             plane = try container.decodeIfPresent(Plane.self, forKey: .plane)
+            if let plane, !vertices.allSatisfy(plane.intersects) {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .plane,
+                    in: container,
+                    debugDescription: "Plane is invalid"
+                )
+            }
             material = try container.decodeIfPresent(CodableMaterial.self, forKey: .material)?.value
         } else {
             var container = try decoder.unkeyedContainer()
             if let values = try? container.decode([Vertex].self) {
                 vertices = values
-                plane = try container.decode(Plane.self)
+                plane = try container.decodeIfPresent(Plane.self)
+                if let plane, !vertices.allSatisfy(plane.intersects) {
+                    throw DecodingError.dataCorruptedError(
+                        in: container,
+                        debugDescription: "Plane is invalid"
+                    )
+                }
                 material = try container.decodeIfPresent(CodableMaterial.self)?.value
             } else {
                 let container = try decoder.singleValueContainer()
@@ -92,14 +121,11 @@ extension Polygon: Codable {
     /// Encodes this polygon into the given encoder.
     /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: Encoder) throws {
-        let positions = vertices.map { $0.position }
+        let positions = vertices.map(\.position)
         let positionsOnly = vertices.allSatisfy {
             $0.texcoord == .zero && $0.normal == plane.normal && $0.color == .white
         }
-        if material == nil, plane.isEqual(to: Plane(
-            unchecked: positions,
-            convex: isConvex
-        )) {
+        if material == nil, plane.isApproximatelyEqual(to: Plane(unchecked: positions)) {
             var container = encoder.singleValueContainer()
             try positionsOnly ? container.encode(positions) : container.encode(vertices)
         } else {
@@ -157,7 +183,7 @@ public extension Polygon {
 
     /// A Boolean value that indicates whether the polygon includes vertex normals that differ from the face normal.
     var hasVertexNormals: Bool {
-        vertices.contains(where: { !$0.normal.isEqual(to: plane.normal) })
+        vertices.contains(where: { !$0.normal.isApproximatelyEqual(to: plane.normal) })
     }
 
     /// A Boolean value that indicates whether the polygon includes vertex colors that differ from the face normal.
@@ -195,27 +221,12 @@ public extension Polygon {
 
     /// Returns the area of the polygon.
     var area: Double {
-        var vertices = self.vertices
-        let z = vertices.first?.position.z ?? 0
-        if !vertices.allSatisfy({ abs($0.position.z - z) < epsilon }) {
-            let r = rotationBetweenNormalizedVectors(plane.normal, .unitZ)
-            vertices = vertices.map { Vertex($0.position.rotated(by: r)) }
-            let z = vertices.first?.position.z ?? 0
-            assert(vertices.allSatisfy { abs($0.position.z - z) < epsilon })
-        }
-        var prev = vertices.last!.position
-        return abs(vertices.reduce(0) { area, v in
-            defer { prev = v.position }
-            return area + (prev.x - v.position.x) * (prev.y + v.position.y)
-        } / 2)
+        vertices.vectorArea.length
     }
 
     /// Returns the signed volume of the polygon.
     var signedVolume: Double {
-        triangulate().reduce(0) {
-            $0 + $1.vertices[0].position
-                .dot($1.vertices[1].position.cross($1.vertices[2].position)) / 6
-        }
+        vertices.signedVolume
     }
 
     /// Creates a copy of the polygon with the specified material.
@@ -226,12 +237,6 @@ public extension Polygon {
         return polygon
     }
 
-    /// Deprecated.
-    @available(*, deprecated, renamed: "withMaterial(_:)")
-    func with(material: Material?) -> Polygon {
-        withMaterial(material)
-    }
-
     /// Creates a polygon from an array of vertices.
     /// - Parameters:
     ///   - vertices: An array of ``Vertex`` that make up the polygon.
@@ -240,18 +245,15 @@ public extension Polygon {
     /// > Note: A polygon can be convex or concave, but vertices must be coplanar and non-degenerate.
     /// Vertices are assumed to be in anti-clockwise order for the purpose of deriving the face normal.
     init?(_ vertices: [Vertex], material: Material? = nil) {
-        let positions = vertices.map { $0.position }
-        let isConvex = pointsAreConvex(positions)
-        guard positions.count > 2, !pointsAreSelfIntersecting(positions),
-              // Note: Plane init includes check for degeneracy
-              let plane = Plane(points: positions, convex: isConvex)
+        guard vertices.count > 2, !verticesAreDegenerate(vertices),
+              let plane = Plane(points: vertices.map(\.position))
         else {
             return nil
         }
         self.init(
             unchecked: vertices,
             plane: plane,
-            isConvex: isConvex,
+            isConvex: nil,
             sanitizeNormals: true,
             material: material
         )
@@ -264,37 +266,17 @@ public extension Polygon {
     ///
     /// > Note: Vertex normals will be set to match the overall face normal of the polygon.
     /// Texture coordinates will be set to zero. Vertex colors will be defaulted to white.
-    init?<T: Sequence>(
-        _ vertices: T,
+    init?(
+        _ vertices: some Collection<Vector>,
         material: Material? = nil
-    ) where T.Element == Vector {
+    ) {
         self.init(vertices.map(Vertex.init), material: material)
     }
 
-    /// Returns a Boolean value that indicates whether a point lies inside the polygon, on the same plane.
-    /// - Parameter point: The point to test.
-    /// - Returns: `true` if the point lies inside the polygon and `false` otherwise.
+    /// Deprecated.
+    @available(*, deprecated, renamed: "intersects(_:)")
     func containsPoint(_ point: Vector) -> Bool {
-        guard plane.containsPoint(point) else {
-            return false
-        }
-        // https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon#218081
-        let flatteningPlane = FlatteningPlane(normal: plane.normal)
-        let points = vertices.map { flatteningPlane.flattenPoint($0.position) }
-        let p = flatteningPlane.flattenPoint(point)
-        let count = points.count
-        var c = false
-        var j = count - 1
-        for i in 0 ..< count {
-            if (points[i].y > p.y) != (points[j].y > p.y),
-               p.x < (points[j].x - points[i].x) * (p.y - points[i].y) /
-               (points[j].y - points[i].y) + points[i].x
-            {
-                c = !c
-            }
-            j = i
-        }
-        return c
+        intersects(point)
     }
 
     /// Merges this polygon with another, removing redundant vertices where possible.
@@ -308,13 +290,14 @@ public extension Polygon {
             return nil
         }
         // are they coplanar?
-        guard plane.isEqual(to: other.plane) else {
+        guard plane.isApproximatelyEqual(to: other.plane) else {
             return nil
         }
         return merge(unchecked: other, ensureConvex: ensureConvex)
     }
 
-    /// Return a copy of the polygon with transformed vertex positions
+    /// Deprecated.
+    @available(*, deprecated, message: "Use array-returning version instead")
     func mapVertices(_ transform: (Vertex) -> Vertex) -> Polygon {
         Polygon(
             unchecked: vertices.map(transform),
@@ -324,6 +307,17 @@ public extension Polygon {
             material: material,
             id: id
         )
+    }
+
+    /// Return a copy of the polygon with transformed vertices.
+    /// - Parameter transform: A closure to be applied to each vertex in the polygon.
+    ///
+    /// > Note: Since altering the vertices can cause the polygon to become degenerate or non-planar
+    /// this method returns an array of zero or more polygons constructed from the mapped vertices.
+    func mapVertices(_ transform: (Vertex) -> Vertex) -> [Polygon] {
+        let vertices = vertices.map(transform)
+        // TODO: is it worth checking if positions have changed as a fast path?
+        return .init(vertices, material: material, id: id)
     }
 
     /// Return a copy of the polygon without texture coordinates
@@ -354,6 +348,18 @@ public extension Polygon {
     func mapVertexColors(_ transform: (Color) -> Color?) -> Polygon {
         Polygon(
             unchecked: vertices.mapColors(transform),
+            plane: plane,
+            isConvex: isConvex,
+            sanitizeNormals: false,
+            material: material,
+            id: id
+        )
+    }
+
+    /// Flatten vertex normals (set them to match the face normal)
+    func flatteningNormals() -> Polygon {
+        Polygon(
+            unchecked: vertices.mapNormals { _ in plane.normal },
             plane: plane,
             isConvex: isConvex,
             sanitizeNormals: false,
@@ -413,20 +419,22 @@ public extension Polygon {
             return polygons
         }
         var i = polygons.count - 1
-        while i > 1 {
+        while i > 0 {
             let a = polygons[i]
             let count = a.vertices.count
-            if count < maxSides,
-               let j = polygons.firstIndex(where: {
-                   $0.vertices.count + count - 2 <= maxSides
-               }),
-               j < i,
-               let merged = a.merge(unchecked: polygons[j], ensureConvex: true)
-            {
-                precondition(merged.vertices.count <= maxSides)
-                precondition(merged.isConvex)
-                polygons[j] = merged
-                polygons.remove(at: i)
+            if count < maxSides {
+                for j in (0 ..< i).reversed() {
+                    let b = polygons[j]
+                    if b.vertices.count + count - 2 <= maxSides,
+                       let merged = a.merge(unchecked: polygons[j], ensureConvex: true)
+                    {
+                        precondition(merged.vertices.count <= maxSides)
+                        precondition(merged.isConvex)
+                        polygons[j] = merged
+                        polygons.remove(at: i)
+                        break
+                    }
+                }
             }
             i -= 1
         }
@@ -532,7 +540,7 @@ public extension Polygon {
     }
 }
 
-extension Collection where Element == LineSegment {
+extension Collection<LineSegment> {
     /// Set of all unique start/end points in edge collection.
     var endPoints: Set<Vector> {
         var endPoints = Set<Vector>()
@@ -563,20 +571,38 @@ extension Collection where Element == LineSegment {
     }
 }
 
-extension Collection where Element == Polygon {
+extension [Polygon] {
+    /// Create one or more polygons from a closed loop of vertices
+    init(_ vertices: [Vertex], material: Polygon.Material?, id: Int = 0) {
+        if let polygon = Polygon(vertices, material: material)?.withID(id) {
+            self = [polygon]
+            return
+        }
+        self = triangulateVertices(
+            vertices,
+            plane: nil,
+            isConvex: nil,
+            sanitizeNormals: true,
+            material: material,
+            id: id
+        ).detessellate(ensureConvex: false)
+    }
+}
+
+extension Collection<Polygon> {
     /// Does any polygon include texture coordinates?
     var hasTexcoords: Bool {
-        contains(where: { $0.hasTexcoords })
+        contains(where: \.hasTexcoords)
     }
 
     /// Does any polygon have vertex normals that differ from the face normal?
     var hasVertexNormals: Bool {
-        contains(where: { $0.hasVertexNormals })
+        contains(where: \.hasVertexNormals)
     }
 
     /// Does any polygon have vertex colors?
     var hasVertexColors: Bool {
-        contains(where: { $0.hasVertexColors })
+        contains(where: \.hasVertexColors)
     }
 
     /// Return a set of all unique edges across all the polygons
@@ -607,6 +633,40 @@ extension Collection where Element == Polygon {
         return edges
     }
 
+    /// Like holeEdges, but also returns the edges of double-sided polygons
+    var boundingEdges: [LineSegment] {
+        var edges = [LineSegment]()
+        for polygon in self {
+            for edge in polygon.orderedEdges {
+                if let index = edges.firstIndex(where: {
+                    $0.start == edge.end && $0.end == edge.start
+                }) {
+                    edges.remove(at: index)
+                } else {
+                    edges.append(edge)
+                }
+            }
+        }
+        return edges
+    }
+
+    /// Assuming that polygons are coplanar, determines if they form a convex boudary
+    var coplanarPolygonsAreConvex: Bool {
+        assert(isEmpty || allSatisfy { $0.plane.isApproximatelyEqual(to: first!.plane) })
+        let boundary = Path(boundingEdges)
+        return Polygon(boundary)?.isConvex ?? false
+    }
+
+    /// Returns the combined surface area of all the polygons.
+    var surfaceArea: Double {
+        reduce(0) { $0 + $1.area }
+    }
+
+    /// Returns the sum of the signed volumes of all the polygons.
+    var signedVolume: Double {
+        reduce(0) { $0 + $1.signedVolume }
+    }
+
     /// Insert missing vertices needed to prevent hairline cracks.
     func insertingEdgeVertices(with holeEdges: Set<LineSegment>) -> [Polygon] {
         var points = Set<Vector>()
@@ -618,7 +678,7 @@ extension Collection where Element == Polygon {
         let sortedPoints = points.sorted()
         for i in polygons.indices {
             let bounds = polygons[i].bounds.inset(by: -epsilon)
-            for point in sortedPoints where bounds.containsPoint(point) {
+            for point in sortedPoints where bounds.intersects(point) {
                 _ = polygons[i].insertEdgePoint(point)
             }
         }
@@ -633,8 +693,8 @@ extension Collection where Element == Polygon {
 
     /// Merge vertices with similar positions.
     /// - Parameters:
-    ///   - vertices: The vertices to merge. If nil then all vertices are merged.
-    ///   - precision: The maximum distance between vertices.
+    ///   - vertices: The vertices to consider for merging. If `nil`, all vertices will be considered.
+    ///   - precision: The distance threshold for merging vertices
     func mergingVertices(
         _ vertices: Set<Vector>?,
         withPrecision precision: Double
@@ -644,7 +704,7 @@ extension Collection where Element == Polygon {
             var merged = [Vertex]()
             var modified = false
             for v in $0.vertices {
-                if let vertices = vertices, !vertices.contains(v.position) {
+                if let vertices, !vertices.contains(v.position) {
                     merged.append(v)
                     continue
                 }
@@ -670,19 +730,15 @@ extension Collection where Element == Polygon {
         }
     }
 
+    /// Flatten vertex normals (set them to match the face normal)
+    func flatteningNormals() -> [Polygon] {
+        map { $0.flatteningNormals() }
+    }
+
     /// Smooth vertex normals.
     func smoothingNormals(forAnglesGreaterThan threshold: Angle) -> [Polygon] {
         guard threshold > .zero else {
-            return map { p0 in
-                let n0 = p0.plane.normal
-                return Polygon(
-                    unchecked: p0.vertices.map { $0.withNormal(n0) },
-                    plane: p0.plane,
-                    isConvex: p0.isConvex,
-                    sanitizeNormals: false,
-                    material: p0.material
-                )
-            }
+            return flatteningNormals()
         }
         var polygonsByVertex = [Vector: [Polygon]]()
         forEach { polygon in
@@ -715,12 +771,22 @@ extension Collection where Element == Polygon {
 
     /// Return polygons with transformed vertices
     func mapVertices(_ transform: (Vertex) -> Vertex) -> [Polygon] {
-        map { $0.mapVertices(transform) }
+        flatMap { $0.mapVertices(transform) }
     }
 
     /// Return polygons with transformed texture coordinates
     func mapTexcoords(_ transform: (Vector) -> Vector) -> [Polygon] {
         map { $0.mapTexcoords(transform) }
+    }
+
+    /// Returns a copy of the mesh with vertex colors removed.
+    func withoutVertexColors() -> [Polygon] {
+        mapVertexColors { _ in nil }
+    }
+
+    /// Return polygons with transformed vertex colors
+    func mapVertexColors(_ transform: (Color) -> Color?) -> [Polygon] {
+        map { $0.mapVertexColors(transform) }
     }
 
     /// Inset along face normals
@@ -730,17 +796,17 @@ extension Collection where Element == Polygon {
                 p0.vertices.map { v0 in
                     var planes: [Plane] = [p0.plane]
                     for p1 in self where p1.vertices.contains(where: {
-                        $0.position.isEqual(to: v0.position)
+                        $0.position.isApproximatelyEqual(to: v0.position)
                     }) {
                         let plane = p1.plane
-                        if !planes.contains(where: { $0.isEqual(to: plane) }) {
+                        if !planes.contains(where: { $0.isApproximatelyEqual(to: plane) }) {
                             planes.append(plane)
                         }
                     }
                     let position: Vector
                     switch planes.count {
                     case 2:
-                        let normal = planes.map { $0.normal }.reduce(.zero) { $0 + $1 }.normalized()
+                        let normal = planes.map(\.normal).reduce(.zero) { $0 + $1 }.normalized()
                         let distance = -(distance / p0.plane.normal.dot(normal))
                         position = v0.position.translated(by: normal * distance)
                     case 3...:
@@ -789,7 +855,7 @@ extension Collection where Element == Polygon {
             let a = polygons[i]
             while j < polygons.count {
                 let b = polygons[j]
-                guard a.plane.isEqual(to: b.plane) else {
+                guard a.plane.isApproximatelyEqual(to: b.plane) else {
                     firstPolygonInPlane = j
                     i = firstPolygonInPlane - 1
                     break
@@ -815,24 +881,23 @@ extension Collection where Element == Polygon {
     /// Group polygons by plane
     func groupedByPlane() -> [(plane: Plane, polygons: [Polygon])] {
         let polygons = sorted(by: { $0.plane.w < $1.plane.w })
-        guard var prev = polygons.first else {
+        guard var plane = polygons.first?.plane else {
             return []
         }
-        var sorted = [(Plane, [Polygon])]()
-        var groups = [(Plane, [Polygon])]()
+        var sorted = [(plane: Plane, polygons: [Polygon])]()
+        var groups = [(plane: Plane, polygons: [Polygon])]()
         for p in polygons {
-            if p.plane.w.isEqual(to: prev.plane.w, withPrecision: planeEpsilon) {
-                if let i = groups.lastIndex(where: { $0.0.isEqual(to: p.plane) }) {
-                    groups[i].0 = p.plane
-                    groups[i].1.append(p)
+            if p.plane.w.isApproximatelyEqual(to: plane.w, absoluteTolerance: planeEpsilon) {
+                if let i = groups.lastIndex(where: { $0.plane.isApproximatelyEqual(to: p.plane) }) {
+                    groups[i].polygons.append(p)
                 } else {
                     groups.append((p.plane, [p]))
                 }
             } else {
                 sorted += groups
                 groups = [(p.plane, [p])]
+                plane = p.plane
             }
-            prev = p
         }
         sorted += groups
         return sorted
@@ -840,7 +905,7 @@ extension Collection where Element == Polygon {
 
     /// Sort polygons by plane
     func sortedByPlane() -> [Polygon] {
-        groupedByPlane().flatMap { $0.polygons }
+        groupedByPlane().flatMap(\.polygons)
     }
 
     /// Group by material
@@ -855,7 +920,7 @@ extension Collection where Element == Polygon {
         var submeshes = [[Polygon]]()
         var points = [Set<Vector>]()
         for poly in self {
-            let positions = Set(poly.vertices.map { $0.position })
+            let positions = Set(poly.vertices.map(\.position))
             var lastMatch: Int?
             for i in points.indices.reversed() {
                 if !points[i].isDisjoint(with: positions) {
@@ -885,13 +950,13 @@ extension MutableCollection where Element == Polygon, Index == Int {
         guard !isEmpty else {
             return true
         }
-        let count = self.count
+        let count = count
         for i in 0 ..< count - 1 {
             let p = self[i]
             let plane = p.plane
             var wasSame = true
             for j in (i + 1) ..< count {
-                if self[j].plane.isEqual(to: plane) {
+                if self[j].plane.isApproximatelyEqual(to: plane) {
                     if !wasSame {
                         return false
                     }
@@ -904,107 +969,7 @@ extension MutableCollection where Element == Polygon, Index == Int {
     }
 }
 
-extension Array where Element == Polygon {
-    mutating func addPoint(
-        _ point: Vector,
-        material: Polygon.Material?,
-        verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]]
-    ) {
-        var facing = [Polygon](), coplanar = [Vector: [Polygon]]()
-        loop: for (i, polygon) in enumerated().reversed() {
-            switch point.compare(with: polygon.plane) {
-            case .front:
-                facing.append(polygon)
-                remove(at: i)
-            case .coplanar:
-                if polygon.vertices.contains(where: { $0.position == point }) {
-                    return
-                }
-                if polygon.containsPoint(point) {
-                    coplanar[polygon.plane.normal] = [polygon]
-                    break loop
-                }
-                coplanar[polygon.plane.normal, default: []].append(polygon)
-            case .back, .spanning:
-                continue
-            }
-        }
-        // Find bounding edges
-        func boundingEdges(in polygons: [Polygon]) -> [LineSegment] {
-            var edges = [LineSegment]()
-            for polygon in polygons {
-                for edge in polygon.orderedEdges {
-                    if let index = edges.firstIndex(where: {
-                        $0.start == edge.end && $0.end == edge.start
-                    }) {
-                        edges.remove(at: index)
-                    } else {
-                        edges.append(edge)
-                    }
-                }
-            }
-            return edges
-        }
-        // Create triangles from point to edges
-        func addTriangles(with edges: [LineSegment], faceNormal: Vector?) {
-            for edge in edges {
-                guard let triangle = Polygon(
-                    points: [point, edge.start, edge.end],
-                    verticesByPosition: verticesByPosition,
-                    faceNormal: faceNormal,
-                    material: material
-                ) else {
-                    assertionFailure()
-                    continue
-                }
-                append(triangle)
-            }
-        }
-        // Extend polygons to include point
-        guard facing.isEmpty else {
-            addTriangles(with: boundingEdges(in: facing), faceNormal: nil)
-            return
-        }
-        for (faceNormal, polygons) in coplanar {
-            guard let polygon = polygons.first else { continue }
-            addTriangles(with: boundingEdges(in: polygons).compactMap {
-                let edgePlane = polygon.edgePlane(for: $0)
-                if point.compare(with: edgePlane) == .front {
-                    return $0.inverted()
-                }
-                return nil
-            }, faceNormal: faceNormal)
-        }
-    }
-}
-
 extension Polygon {
-    /// Create polygon from points with nearest matches in a vertex collection
-    init?<T: Collection>(
-        points: T,
-        verticesByPosition: [Vector: [(faceNormal: Vector, Vertex)]],
-        faceNormal: Vector?,
-        material: Polygon.Material?
-    ) where T.Element == Vector {
-        let faceNormal = faceNormal ?? faceNormalForPoints(Array(points), convex: true)
-        let vertices = points.map { p -> Vertex in
-            let matches = verticesByPosition[p] ?? []
-            var best: Vertex?, bestDot = 1.0
-            for (n, v) in matches {
-                let dot = abs(1 - n.dot(faceNormal))
-                if dot <= bestDot {
-                    bestDot = dot
-                    best = v
-                }
-            }
-            if bestDot == 1 {
-                best?.normal = .zero
-            }
-            return best ?? Vertex(p)
-        }
-        self.init(vertices, material: material)
-    }
-
     /// Create polygon from vertices and face normal without performing validation
     /// Vertices may be convex or concave, but are assumed to describe a non-degenerate polygon
     init(
@@ -1016,7 +981,7 @@ extension Polygon {
     ) {
         self.init(
             unchecked: vertices,
-            plane: Plane(unchecked: normal, pointOnPlane: vertices[0].position),
+            plane: Plane(unchecked: normal, pointOnPlane: vertices.centroid),
             isConvex: isConvex,
             sanitizeNormals: sanitizeNormals,
             material: material,
@@ -1036,10 +1001,11 @@ extension Polygon {
         id: Int = 0
     ) {
         assert(!verticesAreDegenerate(vertices))
-        let points = vertices.map { $0.position }
+        let points = vertices.map(\.position)
         assert(isConvex == nil || pointsAreConvex(points) == isConvex)
         assert(sanitizeNormals || vertices.allSatisfy { $0.normal != .zero })
-        let plane = plane ?? Plane(unchecked: points, convex: isConvex)
+        let plane = plane ?? Plane(unchecked: points)
+        assert(vertices.allSatisfy(plane.intersects))
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
             vertices: sanitizeNormals ? vertices.map {
@@ -1055,7 +1021,7 @@ extension Polygon {
     /// Join touching polygons (without checking they are coplanar or share the same material)
     func merge(unchecked other: Polygon, ensureConvex: Bool) -> Polygon? {
         assert(material == other.material)
-        assert(plane.isEqual(to: other.plane))
+        assert(plane.isApproximatelyEqual(to: other.plane))
 
         // get vertices
         let va = vertices
@@ -1064,7 +1030,7 @@ extension Polygon {
         // find shared vertices
         var joins0, joins1: (Int, Int)?
         for i in va.indices {
-            if let j = vb.firstIndex(where: { $0.isEqual(to: va[i]) }) {
+            if let j = vb.firstIndex(where: { $0.isApproximatelyEqual(to: va[i]) }) {
                 if joins0 == nil {
                     joins0 = (i, j)
                 } else if joins1 == nil {
@@ -1123,6 +1089,12 @@ extension Polygon {
             return nil
         }
 
+        // check result is actually planar
+        let isPlanar = result.allSatisfy(plane.intersects)
+        if !isPlanar {
+            return nil
+        }
+
         // replace poly with merged result
         return Polygon(
             unchecked: result,
@@ -1144,38 +1116,64 @@ extension Polygon {
         orderedEdges.map(edgePlane(for:))
     }
 
-    func compare(with plane: Plane) -> PlaneComparison {
-        if self.plane.isEqual(to: plane) {
-            return .coplanar
-        }
-        var comparison = PlaneComparison.coplanar
-        for vertex in vertices {
-            comparison = comparison.union(vertex.position.compare(with: plane))
-            if comparison == .spanning {
-                break
-            }
-        }
-        return comparison
-    }
-
     /// Create copy of polygon with specified id
     func withID(_ id: Int) -> Polygon {
         var polygon = self
         polygon.id = id
         return polygon
     }
+
+    /// Checks if a point lies inside the polygon
+    /// The point must be checked to lie on the polygon plane beforehand
+    func intersectsCoplanarPoint(_ point: Vector) -> Bool {
+        assert(point.intersects(plane))
+        // https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon#218081
+        let flatteningPlane = FlatteningPlane(normal: plane.normal)
+        let point = flatteningPlane.flattenPoint(point)
+        var p0 = flatteningPlane.flattenPoint(vertices.last!.position)
+        var inside = false
+        for v in vertices {
+            let p1 = flatteningPlane.flattenPoint(v.position)
+            if (p1.y > point.y) != (p0.y > point.y),
+               point.x < (p0.x - p1.x) * (point.y - p1.y) / (p0.y - p1.y) + p1.x
+            {
+                inside = !inside
+            }
+            p0 = p1
+        }
+        return inside
+    }
+
+    func nearestCoplanarPoint(to point: Vector) -> Vector {
+        assert(point.intersects(plane))
+        if intersectsCoplanarPoint(point) {
+            return point
+        }
+        // TODO: can we use a shortcut to exit early?
+        // e.g. if nearer to edge than vertex, must be closest point
+        return orderedEdges.nearestPoint(to: point)
+    }
+
+    func distanceFromCoplanarPoint(_ point: Vector) -> Double {
+        assert(point.intersects(plane))
+        if intersectsCoplanarPoint(point) {
+            return 0
+        }
+        // TODO: can we use a shortcut to exit early?
+        // e.g. if nearer to edge than vertex, must be closest point
+        return orderedEdges.distance(from: point)
+    }
 }
 
 private extension Polygon {
-    final class Storage: Hashable {
+    final class Storage: Hashable, @unchecked Sendable {
         let vertices: [Vertex]
         let plane: Plane
         let isConvex: Bool
         var material: Material?
 
         static func == (lhs: Storage, rhs: Storage) -> Bool {
-            lhs === rhs ||
-                (lhs.vertices == rhs.vertices && lhs.material == rhs.material)
+            lhs === rhs || (lhs.vertices == rhs.vertices && lhs.material == rhs.material)
         }
 
         func hash(into hasher: inout Hasher) {
@@ -1194,11 +1192,44 @@ private extension Polygon {
             self.material = material
         }
     }
-}
 
-#if !swift(<5.7)
-extension Polygon.Storage: @unchecked Sendable {}
-#endif
+    /// Attempt to a add a new edge vertex at the specified location.
+    /// - Returns: `true` if a point was added or `false` if it wasn't (either because point was not on the edge, or
+    /// matched existing vertex)
+    mutating func insertEdgePoint(_ p: Vector) -> Bool {
+        guard var last = vertices.last else {
+            assertionFailure()
+            return false
+        }
+        if vertices.contains(where: { $0.position.isApproximatelyEqual(to: p) }) {
+            return false
+        }
+        for (i, v) in vertices.enumerated() {
+            let s = LineSegment(unchecked: last.position, v.position)
+            guard s.intersects(p) else {
+                last = v
+                continue
+            }
+            let t = p.distance(from: s.start) / s.length
+            let vertex = last.lerp(v, t)
+            guard !vertex.isApproximatelyEqual(to: last), !vertex.isApproximatelyEqual(to: v) else {
+                return false
+            }
+            var vertices = vertices
+            vertices.insert(vertex, at: i)
+            self = Polygon(
+                unchecked: vertices,
+                plane: plane,
+                isConvex: isConvex,
+                sanitizeNormals: false,
+                material: material,
+                id: id
+            )
+            return true
+        }
+        return false
+    }
+}
 
 struct CodableMaterial: Codable {
     let value: Polygon.Material?
@@ -1251,7 +1282,7 @@ struct CodableMaterial: Codable {
     }
 
     func encode(to encoder: Encoder) throws {
-        guard let value = value else { return }
+        guard let value else { return }
         switch value {
         case let string as String:
             try string.encode(to: encoder)

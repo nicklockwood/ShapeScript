@@ -30,7 +30,6 @@
 //
 
 /// An axially-aligned bounding box in 3D space.
-///
 /// Used for efficient intersection elimination between more complex shapes.
 public struct Bounds: Hashable, Sendable {
     /// The minimum coordinate of the bounds.
@@ -47,6 +46,16 @@ public struct Bounds: Hashable, Sendable {
     public init(min: Vector, max: Vector) {
         self.min = min
         self.max = max
+    }
+}
+
+extension Bounds: CustomDebugStringConvertible, CustomReflectable {
+    public var debugDescription: String {
+        self == .empty ? "Bounds.empty" : "Bounds(min: \(min.components), max: \(max.components))"
+    }
+
+    public var customMirror: Mirror {
+        Mirror(self, children: [:], displayStyle: .struct)
     }
 }
 
@@ -82,8 +91,8 @@ extension Bounds: Codable {
 public extension Bounds {
     /// An empty bounds.
     static let empty: Bounds = .init(
-        min: Vector(.infinity, .infinity, .infinity),
-        max: Vector(-.infinity, -.infinity, -.infinity)
+        min: .init(size: .infinity),
+        max: .init(size: -.infinity)
     )
 
     /// Creates a bounds from two points.
@@ -97,15 +106,27 @@ public extension Bounds {
         self.max = Euclid.max(p0, p1)
     }
 
-    /// Creates a bounds from a collection of ``Bounded`` objects.
+    /// Creates a bounds from a ``Bounded`` object.
+    /// - Parameter bounded: A bounded object.
+    init(_ bounded: some Bounded) {
+        self = bounded.bounds
+    }
+
+    /// Creates a bounds from a homogenous collection of ``Bounded`` objects.
     /// - Parameter bounded: A collection of bounded objects.
-    init<T: Collection>(_ bounded: T) where T.Element: Bounded {
+    init(_ bounded: some Collection<some Bounded>) {
+        self = bounded.reduce(.empty) { $0.union($1.bounds) }
+    }
+
+    /// Creates a bounds from a heterogeneous collection of ``Bounded`` objects.
+    /// - Parameter bounded: A collection of bounded objects.
+    init(_ bounded: some Collection<any Bounded>) {
         self = bounded.reduce(.empty) { $0.union($1.bounds) }
     }
 
     /// Creates a bounds from a collection of points.
     /// - Parameter points: A collection of points that the bounds contains.
-    init<T: Collection>(_ points: T) where T.Element == Vector {
+    init(_ points: some Collection<Vector>) {
         self = points.reduce(.empty) {
             Bounds(min: Euclid.min($0.min, $1), max: Euclid.max($0.max, $1))
         }
@@ -113,30 +134,10 @@ public extension Bounds {
 
     /// Creates a bounds from a collection of bounds.
     /// - Parameter bounds: A collection of existing bounds that the bounds contains.
-    init<T: Collection>(_ bounds: T) where T.Element == Bounds {
+    init(_ bounds: some Collection<Bounds>) {
         self = bounds.reduce(.empty) {
             Bounds(min: Euclid.min($0.min, $1.min), max: Euclid.max($0.max, $1.max))
         }
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "init(_:)")
-    init(points: [Vector] = []) {
-        self = points.reduce(.empty) {
-            Bounds(min: Euclid.min($0.min, $1), max: Euclid.max($0.max, $1))
-        }
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "init(_:)")
-    init(polygons: [Polygon]) {
-        self.init(polygons)
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "init(_:)")
-    init(bounds: [Bounds]) {
-        self.init(bounds)
     }
 
     /// A Boolean value that indicates whether the bounds is empty (has zero volume).
@@ -158,13 +159,33 @@ public extension Bounds {
     var corners: [Vector] {
         [
             min,
-            Vector(min.x, max.y, min.z),
-            Vector(max.x, max.y, min.z),
-            Vector(max.x, min.y, min.z),
-            Vector(min.x, min.y, max.z),
-            Vector(min.x, max.y, max.z),
+            [min.x, max.y, min.z],
+            [max.x, max.y, min.z],
+            [max.x, min.y, min.z],
+            [min.x, min.y, max.z],
+            [min.x, max.y, max.z],
             max,
-            Vector(max.x, min.y, max.z),
+            [max.x, min.y, max.z],
+        ]
+    }
+
+    /// An unordered set of bounds edges.
+    /// The direction of each edge is normalized relative to the origin to simplify edge-equality comparisons.
+    var undirectedEdges: Set<LineSegment> {
+        let corners = corners
+        return [
+            LineSegment(undirected: corners[0], corners[1])!,
+            LineSegment(undirected: corners[0], corners[3])!,
+            LineSegment(undirected: corners[0], corners[4])!,
+            LineSegment(undirected: corners[1], corners[2])!,
+            LineSegment(undirected: corners[1], corners[5])!,
+            LineSegment(undirected: corners[2], corners[3])!,
+            LineSegment(undirected: corners[6], corners[2])!,
+            LineSegment(undirected: corners[6], corners[5])!,
+            LineSegment(undirected: corners[6], corners[7])!,
+            LineSegment(undirected: corners[7], corners[3])!,
+            LineSegment(undirected: corners[7], corners[4])!,
+            LineSegment(undirected: corners[5], corners[4])!,
         ]
     }
 
@@ -213,20 +234,29 @@ public extension Bounds {
         )
     }
 
-    /// Returns a Boolean value that indicates if the bounds intersects the specified plane.
-    /// - Parameter plane: The plane to compare.
-    /// - Returns: `true` if the plane intersects the bounds, and `false` otherwise.
-    func intersects(_ plane: Plane) -> Bool {
-        compare(with: plane) == .spanning
+    /// Creates a new bounds representing the Minkowski sum of the specified bounds and this one.
+    /// - Parameter other: The bounds with which to form the Minkowski sum.
+    /// - Returns: The combined bounds.
+    func minkowskiSum(with other: Bounds) -> Bounds {
+        if isEmpty {
+            return other
+        } else if other.isEmpty {
+            return self
+        } else {
+            return .init(min: min + other.min, max: max + other.max)
+        }
     }
 
-    /// Returns a Boolean value that indicates if the specified point is within the bounds.
-    /// - Parameter point: The point to compare.
-    /// - Returns: `true` if the point lies inside the bounds, and `false` otherwise.
+    /// Expands the bounds to the Minkowski sum of the specified bounds and this one.
+    /// - Parameter other: The bounds with which to form the Minkowski sum.
+    mutating func formMinkowskiSum(with other: Bounds) {
+        self = minkowskiSum(with: other)
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "intersects(_:)")
     func containsPoint(_ point: Vector) -> Bool {
-        point.x >= min.x && point.x <= max.x &&
-            point.y >= min.y && point.y <= max.y &&
-            point.z >= min.z && point.z <= max.z
+        intersects(point)
     }
 
     /// Returns a new bounds inset by the specified distance.
@@ -250,22 +280,16 @@ extension Bounds {
         max.x < min.x || max.y < min.y || max.z < min.z
     }
 
-    /// Approximate equality
-    func isEqual(to other: Bounds, withPrecision p: Double = epsilon) -> Bool {
-        min.isEqual(to: other.min, withPrecision: p) &&
-            max.isEqual(to: other.max, withPrecision: p)
-    }
-
-    /// Compares a region defined by the bounds with a plane to determine the
-    /// relationship of the points that make up the bounds to the plane.
-    func compare(with plane: Plane) -> PlaneComparison {
-        var comparison = PlaneComparison.coplanar
-        for point in corners {
-            comparison = comparison.union(point.compare(with: plane))
-            if comparison == .spanning {
-                break
-            }
-        }
-        return comparison
+    /// Planes representing the edges of the bounds.
+    /// If the bounds is empty this will return an empty array.
+    var edgePlanes: [Plane] {
+        isEmpty ? [] : [
+            Plane(unchecked: -.unitX, pointOnPlane: min),
+            Plane(unchecked: -.unitY, pointOnPlane: min),
+            Plane(unchecked: -.unitZ, pointOnPlane: min),
+            Plane(unchecked: .unitX, pointOnPlane: max),
+            Plane(unchecked: .unitY, pointOnPlane: max),
+            Plane(unchecked: .unitZ, pointOnPlane: max),
+        ]
     }
 }

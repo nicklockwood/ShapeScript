@@ -142,11 +142,6 @@ private extension NSAttributedString {
 #endif
 
 extension Path {
-    /// Does path contain vertex colors
-    var hasColors: Bool {
-        points.contains(where: { $0.color != nil })
-    }
-
     /// Create an array of text paths
     static func text(
         _ text: [TextValue],
@@ -172,33 +167,5 @@ extension Path {
         // TODO: throw error when CoreText not available
         return []
         #endif
-    }
-
-    /// Increase path detail in proportion to twist angle
-    func withDetail(_ detail: Int, twist: Angle) -> Path {
-        let subpaths = subpaths
-        guard subpaths.count == 1 else {
-            return Path(subpaths: subpaths.map {
-                $0.withDetail(detail, twist: twist)
-            })
-        }
-        guard var prev = points.first else {
-            return self
-        }
-        let total = length
-        let maxStep = Angle.twoPi / max(1, Double(detail / 2))
-        var split = false
-        let path = Path([prev] + points.dropFirst()
-            .flatMap { point -> [PathPoint] in
-                defer { prev = point }
-                let length = (point.position - prev.position).length
-                let step = twist * (length / total)
-                if step >= maxStep {
-                    split = true
-                    return [prev.lerp(point, 0.5).curved(), point]
-                }
-                return [point]
-            })
-        return split ? path.withDetail(detail, twist: twist) : path
     }
 }

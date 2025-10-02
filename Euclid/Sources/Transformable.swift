@@ -1,35 +1,10 @@
 //
-//  Transforms.swift
+//  Transformable.swift
 //  Euclid
 //
-//  Created by Nick Lockwood on 03/07/2018.
-//  Copyright © 2018 Nick Lockwood. All rights reserved.
+//  Created by Nick Lockwood on 16/05/2025.
+//  Copyright © 2025 Nick Lockwood. All rights reserved.
 //
-//  Distributed under the permissive MIT license
-//  Get the latest version from here:
-//
-//  https://github.com/nicklockwood/Euclid
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in all
-//  copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//  SOFTWARE.
-//
-
-import Foundation
 
 /// Protocol for transformable types.
 public protocol Transformable {
@@ -58,7 +33,7 @@ public extension Transformable {
     func transformed(by transform: Transform) -> Self {
         scaled(by: transform.scale)
             .rotated(by: transform.rotation)
-            .translated(by: transform.offset)
+            .translated(by: transform.translation)
     }
 
     /// Rotate the value in place.
@@ -91,22 +66,6 @@ public extension Transformable {
         self = transformed(by: transform)
     }
 
-    /// Returns a rotated copy of the value.
-    /// - Parameter quaternion: A rotation to apply to the value.
-    @_disfavoredOverload
-    @available(*, deprecated)
-    func rotated(by quaternion: Quaternion) -> Self {
-        rotated(by: Rotation(quaternion))
-    }
-
-    /// Rotate the value in place.
-    /// - Parameter quaternion: A rotation to apply to the value.
-    @_disfavoredOverload
-    @available(*, deprecated)
-    mutating func rotate(by quaternion: Quaternion) {
-        self = rotated(by: quaternion)
-    }
-
     /// Returns a transformed copy of the value.
     static func * (lhs: Self, rhs: Transform) -> Self {
         lhs.transformed(by: rhs)
@@ -118,134 +77,44 @@ public extension Transformable {
     }
 }
 
-/// A combined rotation, position, and scale that can be applied to a 3D object.
-///
-/// Working with intermediate transform objects instead of directly updating the vertex positions of a mesh
-/// is more efficient and avoids a buildup of rounding errors.
-public struct Transform: Hashable {
-    /// The translation or position component of the transform.
-    public var offset: Vector
-    /// The rotation or orientation component of the transform.
-    public var rotation: Rotation
-    /// The size or scale component of the transform.
-    public var scale: Vector {
-        didSet { scale = scale.clamped() }
-    }
-
-    /// Creates a new transform.
-    /// - Parameters:
-    ///   - offset: The translation or position component of the transform. Defaults to zero (no offset).
-    ///   - rotation: The translation or position component of the transform. Defaults to identity (no rotation).
-    ///   - scale: The scaling component of the transform. Defaults to one (no scale adjustment).
-    public init(offset: Vector? = nil, rotation: Rotation? = nil, scale: Vector? = nil) {
-        self.offset = offset ?? .zero
-        self.rotation = rotation ?? .identity
-        self.scale = scale?.clamped() ?? .one
-    }
-}
-
-extension Transform: Codable {
-    private enum CodingKeys: CodingKey {
-        case offset, rotation, scale
-    }
-
-    /// Creates a new transform by decoding from the given decoder.
-    /// - Parameter decoder: The decoder to read data from.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let offset = try container.decodeIfPresent(Vector.self, forKey: .offset)
-        let rotation = try container.decodeIfPresent(Rotation.self, forKey: .rotation)
-        let scale = try container.decodeIfPresent(Vector.self, forKey: .scale)
-        self.init(offset: offset, rotation: rotation, scale: scale)
-    }
-
-    /// Encodes this transform into the given encoder.
-    /// - Parameter encoder: The encoder to write data to.
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try offset.isZero ? () : container.encode(offset, forKey: .offset)
-        try rotation.isIdentity ? () : container.encode(rotation, forKey: .rotation)
-        try scale.isOne ? () : container.encode(scale, forKey: .scale)
-    }
-}
-
 extension Transform: Transformable {
     public func rotated(by rotation: Rotation) -> Transform {
         Transform(
-            offset: offset,
+            scale: scale,
             rotation: self.rotation * rotation,
-            scale: scale
+            translation: translation
         )
     }
 
     public func translated(by distance: Vector) -> Transform {
         Transform(
-            offset: offset + distance.scaled(by: scale).rotated(by: rotation),
+            scale: scale,
             rotation: rotation,
-            scale: scale
+            translation: translation + distance.scaled(by: scale).rotated(by: rotation)
         )
     }
 
     public func scaled(by scale: Vector) -> Transform {
         Transform(
-            offset: offset,
+            scale: self.scale.scaled(by: scale),
             rotation: rotation,
-            scale: self.scale.scaled(by: scale)
+            translation: translation
         )
     }
 
     public func scaled(by factor: Double) -> Transform {
         Transform(
-            offset: offset,
+            scale: scale * factor,
             rotation: rotation,
-            scale: scale * factor
+            translation: translation
         )
     }
 
     public func transformed(by transform: Transform) -> Transform {
         transform
-            .translated(by: offset)
+            .translated(by: translation)
             .scaled(by: scale)
             .rotated(by: rotation)
-    }
-}
-
-public extension Transform {
-    /// The identity transform (i.e. no transform).
-    static let identity = Transform()
-
-    /// Creates a offset transform.
-    /// - Parameter offset: An offset distance.
-    static func offset(_ offset: Vector) -> Transform {
-        .init(offset: offset)
-    }
-
-    /// Creates a rotation transform.
-    /// - Parameter rotation: A rotation to apply.
-    static func rotation(_ rotation: Rotation) -> Transform {
-        .init(rotation: rotation)
-    }
-
-    /// Creates a scale transform.
-    /// - Parameter scale: A vector scale factor to apply.
-    static func scale(_ scale: Vector) -> Transform {
-        .init(scale: scale)
-    }
-
-    /// Creates a uniform scale transform.
-    /// - Parameter factor: A uniform scale factor to apply.
-    static func scale(_ factor: Double) -> Transform {
-        .init(scale: Vector(size: factor))
-    }
-
-    /// Transform has no effect.
-    var isIdentity: Bool {
-        rotation.isIdentity && offset.isZero && scale.isOne
-    }
-
-    /// Does the transform apply a mirror operation (negative scale)?
-    var isFlipped: Bool {
-        isFlippedScale(scale)
     }
 }
 
@@ -254,6 +123,7 @@ extension Mesh: Transformable {
         distance.isZero ? self : Mesh(
             unchecked: polygons.translated(by: distance),
             bounds: boundsIfSet?.translated(by: distance),
+            bsp: nil, // TODO: Make BSP transformable
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -264,6 +134,7 @@ extension Mesh: Transformable {
         rotation.isIdentity ? self : Mesh(
             unchecked: polygons.rotated(by: rotation),
             bounds: nil,
+            bsp: nil, // TODO: Make BSP transformable
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -278,6 +149,7 @@ extension Mesh: Transformable {
         return Mesh(
             unchecked: polygons.scaled(by: scale),
             bounds: boundsIfSet?.scaled(by: scale),
+            bsp: nil, // TODO: Make BSP transformable
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -285,9 +157,10 @@ extension Mesh: Transformable {
     }
 
     public func scaled(by factor: Double) -> Mesh {
-        factor.isEqual(to: 1, withPrecision: epsilon) ? self : Mesh(
+        factor.isApproximatelyEqual(to: 1, absoluteTolerance: epsilon) ? self : Mesh(
             unchecked: polygons.scaled(by: factor),
             bounds: boundsIfSet?.scaled(by: factor),
+            bsp: nil, // TODO: Make BSP transformable
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -302,6 +175,7 @@ extension Mesh: Transformable {
             bounds: boundsIfSet.flatMap {
                 transform.rotation.isIdentity ? $0.transformed(by: transform) : nil
             },
+            bsp: nil, // TODO: Make BSP transformable
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
             submeshes: submeshesIfEmpty
@@ -336,24 +210,24 @@ extension Polygon: Transformable {
             return scaled(by: scale.x)
         }
 
-        let scale = scale.clamped()
-        let vertices = self.vertices.scaled(by: scale)
+        let scale = scale.clampedToScaleLimit()
+        let vertices = vertices.scaled(by: scale)
         let vn = Vector(1 / scale.x, 1 / scale.y, 1 / scale.z)
         return Polygon(
             unchecked: isFlippedScale(scale) ? vertices.reversed() : vertices,
             normal: plane.normal.scaled(by: vn).normalized(),
-            isConvex: nil,
+            isConvex: isConvex,
             sanitizeNormals: false,
             material: material
         )
     }
 
     public func scaled(by factor: Double) -> Polygon {
-        if factor.isEqual(to: 1, withPrecision: epsilon) {
+        if factor.isApproximatelyEqual(to: 1, absoluteTolerance: epsilon) {
             return self
         }
-        let factor = factor.clamped()
-        let vertices = self.vertices.scaled(by: factor)
+        let factor = factor.clampedToScaleLimit()
+        let vertices = vertices.scaled(by: factor)
         return Polygon(
             unchecked: factor < 0 ? vertices.reversed() : vertices,
             normal: factor < 0 ? -plane.normal : plane.normal,
@@ -361,6 +235,24 @@ extension Polygon: Transformable {
             sanitizeNormals: false,
             material: material
         )
+    }
+}
+
+extension Line: Transformable {
+    public func translated(by distance: Vector) -> Self {
+        .init(unchecked: origin.translated(by: distance), direction: direction)
+    }
+
+    public func rotated(by rotation: Rotation) -> Self {
+        .init(unchecked: origin, direction: direction.rotated(by: rotation))
+    }
+
+    public func scaled(by scale: Vector) -> Self {
+        .init(unchecked: origin.scaled(by: scale), direction: direction.scaled(by: scale).normalized())
+    }
+
+    public func scaled(by _: Double) -> Self {
+        self
     }
 }
 
@@ -426,7 +318,7 @@ extension Vector: Transformable {
     }
 
     public func scaled(by scale: Vector) -> Vector {
-        Vector(x * scale.x, y * scale.y, z * scale.z)
+        [x * scale.x, y * scale.y, z * scale.z]
     }
 
     public func scaled(by factor: Double) -> Vector {
@@ -499,10 +391,10 @@ extension Path: Transformable {
     }
 
     public func scaled(by scale: Vector) -> Path {
-        let scale = scale.clamped()
-        var plane = self.plane
+        let scale = scale.clampedToScaleLimit()
+        var plane = plane
         if isFlippedScale(scale) {
-            let subpaths = self.subpaths
+            let subpaths = subpaths
             if subpaths.count > 1 {
                 return Path(subpaths: subpaths.scaled(by: scale))
             }
@@ -516,7 +408,7 @@ extension Path: Transformable {
     }
 
     public func scaled(by factor: Double) -> Path {
-        let factor = factor.clamped()
+        let factor = factor.clampedToScaleLimit()
         return Path(
             unchecked: points.scaled(by: factor),
             plane: plane?.scaled(by: factor),
@@ -546,14 +438,14 @@ extension Plane: Transformable {
         if scale.isUniform {
             return scaled(by: scale.x)
         }
-        let scale = scale.clamped()
+        let scale = scale.clampedToScaleLimit()
         let p = (normal * w).scaled(by: scale)
         let vn = Vector(1 / scale.x, 1 / scale.y, 1 / scale.z)
         return Plane(unchecked: normal.scaled(by: vn).normalized(), pointOnPlane: p)
     }
 
     public func scaled(by factor: Double) -> Plane {
-        Plane(unchecked: normal, w: w * factor.clamped())
+        Plane(unchecked: normal, w: w * factor.clampedToScaleLimit())
     }
 }
 
@@ -563,7 +455,7 @@ extension Bounds: Transformable {
     }
 
     /// Returns a rotated copy of the bounds.
-    /// - Parameter rotation: A quaternion to apply to the bounds.
+    /// - Parameter rotation: A rotation to apply to the bounds.
     ///
     /// > Note: Because a bounds must be axially-aligned, rotating by an angle that is not a multiple of
     /// 90 degrees will result in the bounds being increased in size. Rotating it back again will not reduce
@@ -574,12 +466,12 @@ extension Bounds: Transformable {
     }
 
     public func scaled(by scale: Vector) -> Bounds {
-        let scale = scale.clamped()
+        let scale = scale.clampedToScaleLimit()
         return isEmpty ? self : Bounds(min.scaled(by: scale), max.scaled(by: scale))
     }
 
     public func scaled(by factor: Double) -> Bounds {
-        let factor = factor.clamped()
+        let factor = factor.clampedToScaleLimit()
         return isEmpty ? self : Bounds(min * factor, max * factor)
     }
 }
@@ -598,31 +490,19 @@ extension Array: Transformable where Element: Transformable {
     }
 
     public func scaled(by factor: Double) -> [Element] {
-        factor.isEqual(to: 1, withPrecision: epsilon) ? self : map { $0.scaled(by: factor) }
+        factor.isApproximatelyEqual(to: 1, absoluteTolerance: epsilon) ? self : map { $0.scaled(by: factor) }
     }
 
     public func transformed(by transform: Transform) -> [Element] {
         if transform.scale.isOne {
-            if transform.offset == .zero {
+            if transform.translation.isZero {
                 return rotated(by: transform.rotation)
             } else if transform.isIdentity {
-                return translated(by: transform.offset)
+                return translated(by: transform.translation)
             }
-        } else if transform.rotation == .identity, transform.offset.isZero {
+        } else if transform.rotation == .identity, transform.translation.isZero {
             return scaled(by: transform.scale)
         }
         return map { $0.transformed(by: transform) }
-    }
-}
-
-private extension Double {
-    func clamped() -> Double {
-        self < 0 ? min(self, -scaleLimit) : max(self, scaleLimit)
-    }
-}
-
-private extension Vector {
-    func clamped() -> Self {
-        Self(x.clamped(), y.clamped(), z.clamped())
     }
 }

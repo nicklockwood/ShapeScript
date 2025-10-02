@@ -16,6 +16,9 @@ private let projectDirectory = URL(fileURLWithPath: #file)
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")
 
+private let readmeURL = projectDirectory
+    .appendingPathComponent("README.md")
+
 private let podspecURL = projectDirectory
     .appendingPathComponent("Euclid.podspec.json")
 
@@ -24,10 +27,10 @@ private let projectURL = projectDirectory
     .appendingPathComponent("project.pbxproj")
 
 private let projectVersion: String = {
-    let string = try! String(contentsOf: projectURL)
-    let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
-    let end = string.range(of: ";", range: start ..< string.endIndex)!.lowerBound
-    return String(string[start ..< end])
+    let project: String = try! String(contentsOf: projectURL)
+    let start = project.range(of: "MARKETING_VERSION = ")!.upperBound
+    let end = project.range(of: ";", range: start ..< project.endIndex)!.lowerBound
+    return String(project[start ..< end])
 }()
 
 private let changelogTitles: [Substring] = {
@@ -45,8 +48,16 @@ private let changelogTitles: [Substring] = {
     return matches
 }()
 
-class MetadataTests: XCTestCase {
+final class MetadataTests: XCTestCase {
     // MARK: releases
+
+    func testBuildIsOptimized() throws {
+        let project: String = try String(contentsOf: projectURL)
+        XCTAssertFalse(
+            project.contains("-Onone"),
+            "Euclid should always be shipped with optimization enabled"
+        )
+    }
 
     func testProjectVersionMatchesChangelog() throws {
         let changelog = try String(contentsOf: changelogURL, encoding: .utf8)
@@ -63,6 +74,14 @@ class MetadataTests: XCTestCase {
         XCTAssertTrue(
             changelog.contains("(https://github.com/nicklockwood/Euclid/releases/tag/\(projectVersion))"),
             "CHANGELOG.md does not include correct link for latest release"
+        )
+    }
+
+    func testLatestVersionInReadme() throws {
+        let readme = try String(contentsOf: readmeURL, encoding: .utf8)
+        XCTAssertTrue(
+            readme.contains("from: \"\(projectVersion)\""),
+            "README.md version does not match latest release"
         )
     }
 
@@ -88,7 +107,7 @@ class MetadataTests: XCTestCase {
             let dateRange = try XCTUnwrap(title.range(of: " \\([^)]+\\)$", options: .regularExpression))
             let dateString = String(title[dateRange])
             let date = try XCTUnwrap(dateParser.date(from: dateString))
-            if let lastDate = lastDate, date > lastDate {
+            if let lastDate, date > lastDate {
                 XCTFail("\(title) has newer date than subsequent version (\(date) vs \(lastDate))")
                 return
             }

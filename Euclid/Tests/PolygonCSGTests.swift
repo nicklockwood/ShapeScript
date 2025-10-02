@@ -9,31 +9,31 @@
 @testable import Euclid
 import XCTest
 
-class PolygonCSGTests: XCTestCase {
+final class PolygonCSGTests: XCTestCase {
     // MARK: Plane clipping
 
     func testSquareClippedToPlane() {
         let a = Path.square().facePolygons()[0]
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
-        XCTAssertEqual(Bounds(b), .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+        let b = a.clipped(to: plane)
+        XCTAssertEqual(Bounds(b), Bounds([0, -0.5], [0.5, 0.5]))
     }
 
     func testPentagonClippedToPlane() {
         let a = Path.circle(segments: 5).facePolygons()[0]
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
-        XCTAssertEqual(Bounds(b), .init(
-            Vector(0, -0.404508497187),
-            Vector(0.475528258148, 0.5)
+        let b = a.clipped(to: plane)
+        XCTAssertEqual(Bounds(b), Bounds(
+            [0, -0.404508497187],
+            [0.475528258148, 0.5]
         ))
     }
 
     func testDiamondClippedToPlane() {
         let a = Path.circle(segments: 4).facePolygons()[0]
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
-        let b = a.clip(to: plane)
-        XCTAssertEqual(Bounds(b), .init(Vector(0, -0.5), Vector(0.5, 0.5)))
+        let b = a.clipped(to: plane)
+        XCTAssertEqual(Bounds(b), Bounds([0, -0.5], [0.5, 0.5]))
     }
 
     // MARK: Plane splitting
@@ -42,14 +42,8 @@ class PolygonCSGTests: XCTestCase {
         let a = Path.square().facePolygons()[0]
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
         let b = a.split(along: plane)
-        XCTAssertEqual(
-            Bounds(b.0),
-            .init(Vector(0, -0.5), Vector(0.5, 0.5))
-        )
-        XCTAssertEqual(
-            Bounds(b.1),
-            .init(Vector(-0.5, -0.5), Vector(0, 0.5))
-        )
+        XCTAssertEqual(Bounds(b.front), Bounds([0, -0.5], [0.5, 0.5]))
+        XCTAssertEqual(Bounds(b.back), Bounds([-0.5, -0.5], [0, 0.5]))
         XCTAssertEqual(b.front, b.0)
         XCTAssertEqual(b.back, b.1)
     }

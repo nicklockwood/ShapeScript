@@ -36,16 +36,15 @@ public protocol Bounded {
 }
 
 extension LineSegment: Bounded {
-    /// The bounding box containing the line segment.
     public var bounds: Bounds { Bounds(start, end) }
 }
 
 extension Polygon: Bounded {
-    public var bounds: Bounds { Bounds(vertices.map { $0.position }) }
+    public var bounds: Bounds { Bounds(vertices.map(\.position)) }
 }
 
 extension Path: Bounded {
-    public var bounds: Bounds { Bounds(points.map { $0.position }) }
+    public var bounds: Bounds { Bounds(points.map(\.position)) }
 }
 
 extension Mesh: Bounded {}

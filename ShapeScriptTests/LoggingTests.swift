@@ -289,7 +289,7 @@ class LoggingTests: XCTestCase {
 
     func testCubeGeometry2() {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.transform = Transform(offset: Vector(1, 2), scale: -.one)
+        context.transform = Transform(scale: -.one, translation: .init(1, 2))
         let input = Geometry(type: .cube, in: context)
         XCTAssertEqual(input.logDescription, """
         cube {
