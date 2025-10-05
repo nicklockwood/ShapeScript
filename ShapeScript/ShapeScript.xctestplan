@@ -13,6 +13,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:ShapeScript.xcodeproj",
         "identifier" : "0158D96F2E8072C400C53A29",
@@ -20,6 +21,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:Euclid\/Euclid.xcodeproj",
         "identifier" : "016FAB3121BFE78100AF60DC",
@@ -27,6 +29,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:SVGPath\/SVGPath.xcodeproj",
         "identifier" : "016FAB3121BFE78100AF60DC",
@@ -34,6 +37,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:LRUCache\/LRUCache.xcodeproj",
         "identifier" : "016FAB3121BFE78100AF60DC",

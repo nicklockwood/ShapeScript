@@ -304,50 +304,6 @@ final class MetadataTests: XCTestCase {
 
     // MARK: Help
 
-    func testUpdateIndex() throws {
-        func findSections(in string: String) -> [(String, String)] {
-            findHeadings(in: string).compactMap { heading in
-                let fragment = heading.lowercased()
-                    .replacingOccurrences(of: "'", with: "")
-                    .replacingOccurrences(of: " ", with: "-")
-                XCTAssert(!fragment.contains(where: {
-                    !"abcdefghijklmnopqrstuvwxyz0123456789_-/".contains($0)
-                }))
-                return (heading, fragment)
-            }
-        }
-
-        func buildLinks(_ links: [(String, String)], indent: Int) throws -> String {
-            try links.map { heading, path in
-                let file = helpSourceDirectory.appendingPathComponent(path)
-                let text = try String(contentsOf: file)
-                let indent = String(repeating: " ", count: indent * 4)
-                let links = findSections(in: text).map { subheading, fragment in
-                    "\n\(indent)    - [\(subheading)](\(path)#\(fragment))"
-                }.joined()
-                return "\(indent)- [\(heading)](\(path))" + links
-            }.joined(separator: "\n")
-        }
-
-        let index = try """
-        ShapeScript Help
-        ---
-
-        \(buildLinks(headerLinks, indent: 0))
-        - Geometry
-        \(buildLinks(geometryLinks, indent: 1))
-        - Syntax
-        \(buildLinks(syntaxLinks, indent: 1))
-        \(buildLinks([("Export", "export.md")], indent: 0))
-        \(buildLinks(footerLinks, indent: 0))
-
-        """
-
-        let existing = try String(contentsOf: helpIndexURL)
-        XCTAssertEqual(existing, index)
-        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
-    }
-
     func testHelpFooterLinks() throws {
         let indexLinks = headerLinks + geometryLinks + syntaxLinks + [
             ("Export", "export.md"),
@@ -463,7 +419,58 @@ final class MetadataTests: XCTestCase {
         }
     }
 
-    func testExportMacHelp() throws {
+    func testExportHelp() throws {
+        try updateHelpIndex()
+        try exportIOSHelp()
+        try exportMacHelp()
+        try exportVersionedHelp()
+    }
+
+    func updateHelpIndex() throws {
+        func findSections(in string: String) -> [(String, String)] {
+            findHeadings(in: string).compactMap { heading in
+                let fragment = heading.lowercased()
+                    .replacingOccurrences(of: "'", with: "")
+                    .replacingOccurrences(of: " ", with: "-")
+                XCTAssert(!fragment.contains(where: {
+                    !"abcdefghijklmnopqrstuvwxyz0123456789_-/".contains($0)
+                }))
+                return (heading, fragment)
+            }
+        }
+
+        func buildLinks(_ links: [(String, String)], indent: Int) throws -> String {
+            try links.map { heading, path in
+                let file = helpSourceDirectory.appendingPathComponent(path)
+                let text = try String(contentsOf: file)
+                let indent = String(repeating: " ", count: indent * 4)
+                let links = findSections(in: text).map { subheading, fragment in
+                    "\n\(indent)    - [\(subheading)](\(path)#\(fragment))"
+                }.joined()
+                return "\(indent)- [\(heading)](\(path))" + links
+            }.joined(separator: "\n")
+        }
+
+        let index = try """
+        ShapeScript Help
+        ---
+
+        \(buildLinks(headerLinks, indent: 0))
+        - Geometry
+        \(buildLinks(geometryLinks, indent: 1))
+        - Syntax
+        \(buildLinks(syntaxLinks, indent: 1))
+        \(buildLinks([("Export", "export.md")], indent: 0))
+        \(buildLinks(footerLinks, indent: 0))
+
+        """
+
+        let existing = try String(contentsOf: helpIndexURL)
+        XCTAssertEqual(existing, index)
+        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
+    }
+
+    func exportMacHelp() throws {
         let fm = FileManager.default
 
         let outputDirectory = helpDirectory.appendingPathComponent("mac")
@@ -482,7 +489,7 @@ final class MetadataTests: XCTestCase {
         }
     }
 
-    func testExportIOSHelp() throws {
+    func exportIOSHelp() throws {
         let fm = FileManager.default
 
         let outputDirectory = helpDirectory.appendingPathComponent("ios")
@@ -555,7 +562,7 @@ final class MetadataTests: XCTestCase {
         }
     }
 
-    func testExportVersionedHelp() throws {
+    func exportVersionedHelp() throws {
         let fm = FileManager.default
         let outputDirectory = helpDirectory.appendingPathComponent(projectVersion)
         guard fm.fileExists(atPath: outputDirectory.path) else {
