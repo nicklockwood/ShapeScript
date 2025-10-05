@@ -3,8 +3,6 @@ Getting Started
 
 Start by creating a new ShapeScript document. You can do this by selecting `File > New` in the menu bar (or by pressing **Cmd-N** on the keyboard). You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
 
-**Note:** If you cannot see the file prompt, check that it hasn't appeared *behind* this help window. The help window floats in front of all other windows and applications, so you may need to move it out of the way.
-
 You should see a new window appear containing a cube, sphere and cone. These are the default contents for a new file (don't worry, you can replace them with your own shapes).
 
 ![New document window](../images/new-document-mac.png)
