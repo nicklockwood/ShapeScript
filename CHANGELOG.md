@@ -1,5 +1,34 @@
 # Change Log
 
+## [1.9.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.0) (2025-12-06)
+
+- Added `minkowski` command
+- Custom blocks now accept child objects via implicit `children` parameter
+- Added support for OFF (Object File Format) files
+- Added ShapeScript document version compatibility check
+- Added `Keep in Front` option to pin document window in front of other apps on macOS
+- Added `fonts` property for listing available fonts
+- Made `font` command name matching more lenient
+- Added undo/redo buttons to iOS source editor
+- Improved vertex color blending for `hull` and `extrusion` commands
+- Significantly improved performance when extruding complex paths such as text
+- The `sum` function now works with vector inputs
+- The `smoothing` command now works with imported meshes
+- Fixed some bugs with transform commands and properties in custom blocks
+- Fixed crash when a function has duplicate parameter names
+- Accessing mesh and polygon member properties now works for tuples of meshes/polygons
+- Fixed cache invalidation bug when using `smoothing` command
+- Fixed cache invalidation bug with `hull` command
+- Fixed error range assertion after updating document
+- Improved error messaging for mismatched angle types
+- Improved function parameter type inference
+- Improved type error messages
+- Bumped Euclid to version 0.8.11
+- Bumped SVGPath to version 1.2.0
+- Bumped LRUCache to version 1.1.2
+- Increased minimum iOS version to 14 and macOS version to 10.15
+- Increased minimum Swift version to 5.7
+
 ## [1.8.12](https://github.com/nicklockwood/ShapeScript/releases/tag/1.8.12) (2025-08-01)
 
 - Significantly improved performance when rendering geometry with high detail

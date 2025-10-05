@@ -11,25 +11,26 @@ To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-
 
 ![Loading](../images/loading.png)
 
-## Export Formats
+## Model and Scene Formats
 
 ShapeScript can export your scene in a variety of formats, selectable from the export window:
 
-Extension             | File Type                                        | Supports All Features
-:-------------------- | :------------------------------------------------|:------------------------------
-abc                   | Alembic                                          | No 
-dae                   | Collada DAE                                      | Yes
-obj                   | Wavefront Object                                 | No
-scn / scnz            | SceneKit Scene Document                          | Yes
-usd / usdz            | Universal Scene Description                      | No
-ply                   | Polygon File Format                              | No
-stl / stla            | Stereolithography                                | No
-3mf                   | 3D Manufacturing Format                          | No
-svg                   | Scalable Vector Graphics                         | No
+Extension             | File Type                                
+:-------------------- | :-------------------------------
+3mf                   | 3D Manufacturing Format 
+abc                   | Alembic                                          
+csg                   | OpenSCAD CSG                   
+dae                   | COLLADA Digital Asset Exchange                     
+obj                   | Wavefront Object                
+off                   | Object File Format    
+ply                   | Polygon File Format                       
+scn / scnz            | SceneKit Scene     
+stl / stla            | Stereolithography                       
+usd / usdz            | Universal Scene Description     
 
 <br/>
 
-**Note:** Not all formats support all features of ShapeScript scenes, so you may need to experiment. In general, DAE is the most reliable, widely-supported format to use.
+**Note:** Not all formats support all features of ShapeScript scenes, so you may need to experiment.
 
 Some model formats do not support embedding geometry and textures or materials in a single file; In this case, ShapeScript will export a folder containing the model and associated assets as separate files.
 
@@ -39,7 +40,7 @@ Exported models can be used in a variety of ways:
 
 Models exported from ShapeScript are well-suited to use in realtime 3D because the `detail` command gives you fine control over the triangle count. For realtime use you should generally set the detail level as low as you can get away with.
 
-You can import DAE files into a game development tool like Unity, or use USD(Z) files with Apple's SceneKit and RealityKit frameworks in Xcode.
+You can import DAE or OBJ files into a game development tool like Unity, or use USD(Z) files with Apple's SceneKit and RealityKit frameworks in Xcode.
 
 ## 3D Printing
 
@@ -47,9 +48,15 @@ ShapeScript can export models in the 3D Manufacturing Format (3MF) and Stereolit
 
 When exporting for 3D printing, you will usually want to avoid having internal geometry inside the outer surface of your model. A good way to do this is to use the [union](csg.md#union) command to combine overlapping parts of your model into a single shape, eliminating internal faces.
 
+You can also uses the [mesh](meshes.md) command to flatten a shape into a mesh without altering its geometry. This can be useful for ensuring that curves or text are preserved exactly when exporting with the OpenSCAD CSG format. It's also useful if you intend to use the CSG file with applications like FreeCAD that do not support all of the features.
+
 ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the Z-axis points out from the screen. Some popular 3D printing applications such as [Cura](https://ultimaker.com/software/ultimaker-cura) use the "Z-up" convention instead. Check the "Convert to Z-Up" option in the export window to export your model in this orientation.
 
 ## Plotters and CNC Machines
+
+Extension             | File Type                                
+:-------------------- | :-------------------------------                    
+svg                   | Scalable Vector Graphics   
 
 By selecting the SVG option, you can export your model as a 2D cross-section. Unlike the other model export formats, the SVG export option does not preserve any depth or material information, but simply takes a slice across the XY plane and captures a vector outline suitable for printing or carving by a [plotter](https://en.wikipedia.org/wiki/Plotter) or [CNC machine](https://en.wikipedia.org/wiki/Numerical_control).
 

@@ -31,7 +31,7 @@ let package = Package(
             name: "ShapeScript",
             dependencies: ["Euclid", "LRUCache", "SVGPath"],
             path: "ShapeScript",
-            exclude: ["Info.plist", "ShapeScript.xctestplan"]
+            exclude: ["ShapeScript.xctestplan"]
         ),
         .executableTarget(
             name: "CLI",
@@ -41,7 +41,8 @@ let package = Package(
         .testTarget(
             name: "ShapeScriptTests",
             dependencies: ["ShapeScript"],
-            path: "ShapeScriptTests"
+            path: "ShapeScriptTests",
+            exclude: ["TestShapes/", "Stars1.jpg", "EdgeOfTheGalaxyRegular-OVEa6.otf"]
         ),
     ]
 )

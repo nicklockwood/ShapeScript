@@ -14,6 +14,9 @@ private let projectDirectory: URL = testsDirectory.deletingLastPathComponent()
 private let changelogURL = projectDirectory
     .appendingPathComponent("CHANGELOG.md")
 
+private let readmeURL = projectDirectory
+    .appendingPathComponent("README.md")
+
 private let whatsNewMacURL = projectDirectory
     .appendingPathComponent("Viewer/Mac/WhatsNew.rtf")
 
@@ -173,6 +176,14 @@ final class MetadataTests: XCTestCase {
         XCTAssertTrue(
             changelog.contains("(https://github.com/nicklockwood/ShapeScript/releases/tag/\(projectVersion))"),
             "CHANGELOG.md does not include correct link for latest release"
+        )
+    }
+
+    func testLatestVersionInReadme() throws {
+        let readme = try String(contentsOf: readmeURL, encoding: .utf8)
+        XCTAssertTrue(
+            readme.contains("from: \"\(projectVersion)\""),
+            "README.md version does not match latest release"
         )
     }
 

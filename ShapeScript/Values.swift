@@ -185,7 +185,7 @@ extension Value {
         case let .font(font): return font
         case let .text(text): return text
         case let .path(path): return path
-        case let .mesh(mesh): return mesh
+        case let .mesh(geometry): return geometry
         case let .polygon(polygon): return polygon
         case let .point(point): return point
         case let .tuple(values): return values.map(\.value)

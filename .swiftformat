@@ -29,8 +29,6 @@
 --enable preferFinalClasses
 --enable redundantAsync
 --enable redundantThrows
---enable redundantProperty
 --enable redundantEquatable
 --enable redundantMemberwiseInit
 --enable redundantProperty
-

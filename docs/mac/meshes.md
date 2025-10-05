@@ -123,6 +123,23 @@ In many 3D engines, meshes must be constructed exclusively from triangles. The r
 
 ShapeScript places no such restrictions on the polygons that you define in your mesh. Non-planar or non-convex polygons will be automatically split into their constituent triangles as needed for [export](export.md) or display.
 
+## Mesh Hierarchies
+
+You can also use the `mesh` command to convert other shapes or shape hierarchies into a single mesh:
+
+```swift
+mesh {
+    text "Hello"
+    group {
+        sphere
+        translate 0 1
+        cube
+    }   
+}
+```
+
+This can be useful for precisely controlling the [exported](export.md) geometry.
+
 ---
 [Index](index.md) | Next: [Paths](paths.md)
 
