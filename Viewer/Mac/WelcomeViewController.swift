@@ -16,7 +16,7 @@ final class WelcomeViewController: NSViewController {
         super.viewDidLoad()
         welcomeView.textStorage?.setAttributedString(loadRTF("Welcome"))
         shouldShowAtStartupCheckbox.state =
-            WelcomeViewController.shouldShowAtStartup ? .on : .off
+            Settings.shared.showWelcomeScreenAtStartup ? .on : .off
     }
 
     @IBAction func openGettingStartedGuide(_: Any) {
@@ -24,11 +24,6 @@ final class WelcomeViewController: NSViewController {
     }
 
     @IBAction func toggleShowAtStartup(_ sender: NSButton) {
-        WelcomeViewController.shouldShowAtStartup = (sender.state == .on)
-    }
-
-    static var shouldShowAtStartup: Bool {
-        get { Settings.shared.showWelcomeScreenAtStartup }
-        set { Settings.shared.showWelcomeScreenAtStartup = newValue }
+        Settings.shared.showWelcomeScreenAtStartup = (sender.state == .on)
     }
 }

@@ -238,17 +238,6 @@
                                             </connections>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="Qpm-Qs-Vdp"/>
-                                        <menuItem title="Float Window" keyEquivalent="F" id="kog-Ka-X5i">
-                                            <connections>
-                                                <action selector="toggleFloatWindow:" target="Ady-hI-5gd" id="HQv-XV-Nm1"/>
-                                            </connections>
-                                        </menuItem>
-                                        <menuItem title="Show Sidebar" keyEquivalent="s" id="kIP-vf-haE">
-                                            <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
-                                            <connections>
-                                                <action selector="toggleSidebar:" target="Ady-hI-5gd" id="iwa-gc-5KM"/>
-                                            </connections>
-                                        </menuItem>
                                         <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
                                             <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
                                             <connections>
@@ -285,6 +274,11 @@
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="arrangeInFront:" target="Ady-hI-5gd" id="DRN-fu-gQh"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Keep in Front" keyEquivalent="F" id="m1j-Jw-XB7">
+                                            <connections>
+                                                <action selector="toggleKeepInFront:" target="Ady-hI-5gd" id="M4c-m9-qqy"/>
                                             </connections>
                                         </menuItem>
                                     </items>

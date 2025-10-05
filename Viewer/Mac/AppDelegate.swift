@@ -48,7 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Settings.shared.previousAppVersion = Settings.shared.appVersion
             Settings.shared.appVersion = appVersion
         }
-        if WelcomeViewController.shouldShowAtStartup {
+        if Settings.shared.showWelcomeScreenAtStartup {
             welcomeWindowController.showWindow(self)
             dismissOpenSavePanel()
         } else if firstLaunchOfNewVersion {
@@ -63,6 +63,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         exportMenuProvider?.updateExportMenu()
+    }
+
+    func applicationWillBecomeActive(_: Notification) {
+        for window in documentWindows where window.level == .floating {
+            window.level = .normal
+        }
+    }
+
+    func applicationWillResignActive(_: Notification) {
+        guard Settings.shared.keepWindowInFront else {
+            return
+        }
+        for window in documentWindows where window == NSApp.mainWindow && window.isVisible {
+            window.level = .floating
+        }
+    }
+
+    private var documentWindows: [NSWindow] {
+        NSDocumentController.shared.documents.flatMap {
+            $0.windowControllers.compactMap(\.window)
+        }
+    }
+
+    @IBAction func toggleKeepInFront(_: NSMenuItem) {
+        Settings.shared.keepWindowInFront.toggle()
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
@@ -136,6 +161,9 @@ extension AppDelegate: NSMenuItemValidation {
         case #selector(selectCameras(_:)):
             menuItem.title = "Camera"
             return false
+        case #selector(AppDelegate.toggleKeepInFront(_:)):
+            menuItem.state = Settings.shared.keepWindowInFront ? .on : .off
+            return true
         default:
             return true
         }
