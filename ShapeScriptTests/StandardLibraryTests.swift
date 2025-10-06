@@ -1053,6 +1053,41 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.0, 0.0, 1.0])
     }
 
+    func testScalarSum() {
+        let program = "print sum 1 2 3"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [6.0])
+    }
+
+    func testVectorSum() {
+        let program = "print sum (1 2 3) (4 5 6) (7 8 9)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [12.0, 15.0, 18.0])
+    }
+
+    func testMixedWidthVectorSums() {
+        let program = "print sum (1 2) (3 4 5 6) (7 8 9)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [11.0, 14.0, 14.0, 6.0])
+    }
+
+    func testEmptyTupleSum() {
+        let program = "print sum ()"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
+    func testMultiEmptyTupleSum() {
+        let program = "print sum (() () ())"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0])
+    }
+
     func testLength() {
         let program = "print length(3 4)"
         let delegate = TestDelegate()

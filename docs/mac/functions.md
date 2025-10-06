@@ -95,13 +95,6 @@ max 2 4 // returns 4
 max 5 0 -5.1 // returns 5
 ```
 
-The `sum` function returns the sum of two or more values:
-
-```swift
-sum 2 4 // returns 6
-sum 5 0 -5.1 // returns -0.1
-```
-
 ## Linear Algebra
 
 ShapeScript also includes functions for operating on [vectors](literals.md#vectors-and-tuples):
@@ -134,6 +127,14 @@ The `normalize` function computes a [unit vector](https://en.wikipedia.org/wiki/
 ```swift
 define v (3 4)
 print normalize(v) // returns 0.6 0.8
+```
+
+The `sum` function returns the sum of two or more values. It works with both scalar and vector inputs:
+
+```swift
+sum 2 4 // returns 6
+sum 5 0 -5.1 // returns -0.1
+sum (1 2 3) (4 5 6) // returns (5 7 9)
 ```
 
 ## Trigonometry

@@ -496,9 +496,20 @@ extension Symbols {
         "min": .function(.list(.number), .number) { value, _ in
             .number(value.doublesValue.min() ?? 0)
         },
-        "sum": .function(.list(.number), .number) { value, _ in
-            let values = value.tupleValue as! [Double]
-            return .number(values.reduce(0, +))
+        "sum": .function(.list(.list(.number)), .list(.number)) { value, _ in
+            let values = value.tupleValue as! [[Double]]
+            if values.count == 1 {
+                return .number(values[0].reduce(0, +))
+            }
+            // Vector sum
+            var columns = values.reduce(0) { Swift.max($0, $1.count) }
+            var sums = [Double](repeating: 0, count: columns)
+            for vector in values {
+                for i in vector.indices {
+                    sums[i] += vector[i]
+                }
+            }
+            return sums.isEmpty ? 0 : .tuple(sums.map { .number($0) })
         },
         "sqrt": .function(.number, .number) { value, _ in
             .number(sqrt(value.doubleValue))
