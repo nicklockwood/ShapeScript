@@ -312,6 +312,16 @@ extension EvaluationContext {
         return url
     }
 
+    var fontNames: [String] {
+        var options = [String]()
+        #if canImport(CoreGraphics) && canImport(CoreText)
+        options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
+        options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
+        options = options.map { CGFont($0 as CFString)?.fullName as String? ?? $0 } + importCache.fonts
+        #endif
+        return Array(Set(options)).sorted()
+    }
+
     func resolveFont(_ name: String) throws -> String {
         let name = name
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -325,12 +335,9 @@ extension EvaluationContext {
                 return name
             }
             guard let font = CGFont(name as CFString) else {
-                var options = [String]()
-                options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
-                options += CTFontManagerCopyAvailableFontFamilyNames() as? [String] ?? []
                 // TODO: Work around silly race condition where font may have
                 // been imported by another file in the meantime
-                throw RuntimeErrorType.unknownFont(name, options: options)
+                throw RuntimeErrorType.unknownFont(name, options: fontNames)
             }
             return font.fullName as String? ?? name
         }

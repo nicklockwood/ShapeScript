@@ -188,7 +188,7 @@ fill hello
 
 ![Centered text](../images/text-centered.png)
 
-## Font
+## Fonts
 
 To adjust the text font, you can use the `font` command. like `color` and other [material](materials.md) properties, `font` can be placed either inside the `text` block, or anywhere before it in the same scope:
 
@@ -199,15 +199,45 @@ fill text "Hello World"
 
 ![Text with font](../images/text-font.png)
 
-**Note:** Some fonts are inherently much more detailed than others, and may take a considerable time to generate. You may want to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
+**Note:** Some fonts are inherently much more detailed than others, and the text may take extra time to generate. You may want to set the [detail](options.md#detail) option to a lower value for text than you would for other geometry.
 
-The font name you provide must match a font that is already installed on your system. If no matching fonts are found then an error will be raised. If you wish to load a font file directly, without installing it, you can pass the filename or path to the `font` command instead of the font name:
+The font name you provide must match a font that is already installed on your system. If no matching fonts are found then an error will be raised. To get a list of available fonts you can use the `fonts` command.
+
+This script uses the `fonts` command to print the names of all available fonts in the [console](debugging.md#logging):
+
+```swift
+for name in fonts {
+    print font.name
+}
+```
+
+And this script displays the first ten font names as 3D text, with each name rendered in the appropriate typeface:
+
+```swift
+detail 8
+for name in fonts[0 to 9] {
+    font name
+    fill text font.name
+    translate 0 -1
+}
+```
+
+![Fonts](../images/fonts.png)
+
+If you wish to load a font file directly, without installing it on your system, you can pass the filename or path to the `font` command instead of the font name:
 
 ```swift
 font "filename.ttf"
 ```
 
 Only fonts with a ".ttf", ".otf" or ".ttc" file extension are supported. The extension is required, or the `font` parameter will be treated as a system font rather than a file. If a relative path or filename is used, it should be specified relative to the ShapeScript file that references it.
+
+Once loaded in this way, fonts will appear in the fonts list and can be referenced by name in subsequent calls. To get the name of a font that you have loaded from a file, you can print it:
+
+```swift
+font "filename.ttf"
+print font.name // Prints the actual font name, e.g. "Arial"
+```
 
 The filename can be constructed dynamically by using the [string interpolation](text.md#interpolation) feature, which is sometimes useful if, for example, you have multiple font files with a common prefix or suffix:
 

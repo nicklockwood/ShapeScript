@@ -574,6 +574,10 @@ extension Symbols {
                 in: .whitespacesAndNewlines
             ))
         },
+        // Fonts
+        "fonts": .function(.void, .list(.string)) { _, context in
+            .tuple(context.fontNames.map { .string($0) })
+        },
         // Object
         "object": .block(.init([:], ["*": .any], .void, .any)) { context in
             var result = [String: ShapeScript.Value]()

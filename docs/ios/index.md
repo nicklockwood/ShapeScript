@@ -65,7 +65,7 @@ ShapeScript Help
         - [Size and Line Height](text.md#size-and-line-height)
         - [Line Spacing](text.md#line-spacing)
         - [Position and Orientation](text.md#position-and-orientation)
-        - [Font](text.md#font)
+        - [Fonts](text.md#fonts)
     - [Builders](builders.md)
         - [Fill](builders.md#fill)
         - [Lathe](builders.md#lathe)
