@@ -21,6 +21,7 @@ enum Value: Hashable {
     case size(Vector)
     case rotation(Rotation)
     case string(String)
+    case font(String)
     case text(TextValue)
     case path(Path)
     case mesh(Geometry)
@@ -182,6 +183,7 @@ extension Value {
         case let .size(size): return size
         case let .rotation(rotation): return rotation
         case let .string(string): return string
+        case let .font(font): return font
         case let .text(text): return text
         case let .path(path): return path
         case let .mesh(mesh): return mesh
@@ -286,8 +288,8 @@ extension Value {
                 [.string($0), $1]
             })
         case .boolean, .vector, .size, .rotation, .color, .texture, .material,
-             .number, .radians, .halfturns, .string, .text, .path, .mesh, .polygon,
-             .point, .bounds:
+             .number, .radians, .halfturns, .string, .font, .text, .path, .mesh,
+             .polygon, .point, .bounds:
             return nil
         }
     }
@@ -314,7 +316,7 @@ extension Value {
         case let .texture(texture):
             return texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
-             .radians, .halfturns, .string, .text, .path, .material, .mesh,
+             .radians, .halfturns, .string, .font, .text, .path, .material, .mesh,
              .polygon, .point, .bounds, .object:
             return nil
         }
@@ -327,8 +329,8 @@ extension Value {
         case let .texture(texture):
             return texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .color,
-             .radians, .halfturns, .string, .text, .path, .material, .mesh,
-             .polygon, .point, .bounds, .object:
+             .radians, .halfturns, .string, .font, .text, .path, .material,
+             .mesh, .polygon, .point, .bounds, .object:
             return nil
         }
     }

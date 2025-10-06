@@ -691,6 +691,17 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    func testFontNameMember() throws {
+        let program = try parse("""
+        font "Times"
+        print font.name
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, ["Times"])
+    }
+
     func testFontInBlock() throws {
         let program = try parse("""
         define foo {

@@ -602,7 +602,7 @@ extension Symbols {
         "font": .property(.font, { parameter, context in
             context.font = parameter.stringValue
         }, { context in
-            .string(context.font)
+            .font(context.font)
         }),
     ]
 

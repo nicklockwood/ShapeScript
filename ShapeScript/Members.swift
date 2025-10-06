@@ -124,7 +124,8 @@ extension ValueType {
         "words": .list(.string),
         "characters": .list(.string),
         "linespacing": .optional(.number),
-        "font": .optional(.string),
+        "font": .optional(.font),
+        "name": .string,
     ]
 }
 
@@ -201,6 +202,8 @@ extension Value {
                 members += color.members
             }
             return members
+        case .font:
+            return ["name"]
         case .text:
             return ["string", "font", "color", "linespacing"]
         case let .object(values):
@@ -438,12 +441,19 @@ extension Value {
             default:
                 return nil
             }
+        case let .font(font):
+            switch name {
+            case "name":
+                return .string(font)
+            default:
+                return nil
+            }
         case let .text(text):
             switch name {
             case "string":
                 return .string(text.string)
             case "font":
-                return text.font.map { .string($0) } ?? .void
+                return text.font.map { .font($0) } ?? .void
             case "color":
                 return text.color.map { .color($0) } ?? .void
             case "linespacing":
@@ -470,7 +480,7 @@ extension Value {
             guard let values = range.stride.map(Array.init) else { fallthrough }
             return -values.endIndex ..< values.endIndex
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
+             .string, .font, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return 0 ..< 0
         }
     }
@@ -501,7 +511,7 @@ extension Value {
             let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? .number(values[index]) : nil
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds, .object:
+             .string, .font, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil
         }
     }
@@ -515,7 +525,7 @@ private extension [Value] {
                 return values.flattened
             case .color, .texture, .material, .boolean, .number,
                  .radians, .halfturns, .vector, .size, .rotation,
-                 .string, .text, .path, .mesh, .polygon, .point,
+                 .string, .font, .text, .path, .mesh, .polygon, .point,
                  .range, .bounds, .object:
                 return [$0]
             }

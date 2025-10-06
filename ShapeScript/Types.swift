@@ -342,6 +342,7 @@ extension Value {
         case .size: return .size
         case .rotation: return .rotation
         case .string: return .string
+        case .font: return .font
         case .text: return .text
         case .path: return .path
         case .mesh: return .mesh
@@ -451,7 +452,7 @@ extension Value {
         case (.string, .color):
             // TODO: support named colors
             return Color(hexString: stringValue).map { .color($0) }
-        case (.boolean, .string), (.number, .string), (.texture(.file), .string):
+        case (.boolean, .string), (.number, .string), (.font, .string), (.texture(.file), .string):
             return .string(stringValue)
         case let (.tuple(values), .string):
             let stringifyable = values.allSatisfy { $0.isConvertible(to: .string) }

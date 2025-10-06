@@ -945,6 +945,39 @@ final class TypesystemTests: XCTestCase {
         """, as: .string), .string(url.path))
     }
 
+    func testCastFontToString() throws {
+        #if canImport(CoreGraphics)
+        XCTAssert(Value.font("times").isConvertible(to: .string))
+        XCTAssertEqual(try evaluate("""
+        font "EdgeOfTheGalaxyRegular-OVEa6.otf"
+        define foo font
+        foo
+        """, as: .string), .string("Edge of the Galaxy Regular"))
+        #endif
+    }
+
+    func testCastFontToTexture() throws {
+        #if canImport(CoreGraphics)
+        XCTAssertFalse(Value.font("times").isConvertible(to: .texture))
+        XCTAssertThrowsError(try evaluate("font \"times\"\nfont", as: .texture)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(for: "", index: -1, expected: "texture", got: "font"))
+        }
+        #endif
+    }
+
+    func testCastTextureToFont() throws {
+        #if canImport(CoreGraphics)
+        let url = TestDelegate().resolveURL(for: "Stars1.jpg")
+        let texture = Texture.file(name: "Stars1.jpg", url: url, intensity: 1)
+        XCTAssertFalse(Value.texture(texture).isConvertible(to: .font))
+        XCTAssertThrowsError(try evaluate("texture \"Stars1.jpg\"\ntexture", as: .font)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(for: "", index: -1, expected: "font", got: "texture"))
+        }
+        #endif
+    }
+
     func testCastPathToMesh() throws {
         XCTAssert(Value.path(.square()).isConvertible(to: .mesh))
         XCTAssertNotNil(try evaluate("square", as: .mesh))

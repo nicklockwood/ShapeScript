@@ -385,7 +385,7 @@ extension RangeValue: Loggable {
 }
 
 extension Value: Loggable {
-    public var loggableValue: Loggable {
+    private var loggableValue: Loggable {
         // Note: this switch is technically not needed, but serves to
         // ensure logging conformance is not forgotten for new types
         switch self {
@@ -400,6 +400,7 @@ extension Value: Loggable {
         case let .size(size): return size
         case let .rotation(rotation): return rotation
         case let .string(string): return string
+        case let .font(font): return font
         case let .text(text): return text
         case let .path(path): return path
         case let .mesh(mesh): return mesh
