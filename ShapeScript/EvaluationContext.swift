@@ -45,6 +45,15 @@ final class EvaluationContext {
             case value(Value)
         }
 
+        var fonts: [String] {
+            store.values.compactMap {
+                switch $0 {
+                case let .value(.font(name)): name
+                default: nil
+                }
+            }
+        }
+
         var store = [URL: Import]()
     }
 
@@ -312,6 +321,9 @@ extension EvaluationContext {
         guard [".otf", ".ttf", ".ttc"].contains(where: {
             name.lowercased().hasSuffix($0)
         }) else {
+            if importCache.fonts.contains(name) {
+                return name
+            }
             guard let font = CGFont(name as CFString) else {
                 var options = [String]()
                 options += CTFontManagerCopyAvailablePostScriptNames() as? [String] ?? []
@@ -323,6 +335,9 @@ extension EvaluationContext {
             return font.fullName as String? ?? name
         }
         let url = try resolveURL(for: name)
+        if case let .value(.font(fullName)) = importCache.store[url] {
+            return fullName
+        }
         guard let dataProvider = CGDataProvider(url: url as CFURL) else {
             throw RuntimeErrorType.fileNotFound(for: name, at: url)
         }
@@ -331,7 +346,9 @@ extension EvaluationContext {
         else {
             throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
         }
-        return cgFont.fullName as String? ?? ""
+        let fullName = cgFont.fullName as String? ?? ""
+        importCache.store[url] = .value(.font(fullName))
+        return fullName
         #else
         return name
         #endif

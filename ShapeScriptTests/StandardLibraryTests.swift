@@ -719,6 +719,42 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["Arial"])
     }
 
+    func testLoadSameFontFileTwice() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("""
+        font "EdgeOfTheGalaxyRegular-OVEa6.otf"
+        print font
+        font "Arial"
+        print font
+        font "EdgeOfTheGalaxyRegular-OVEa6.otf"
+        print font
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(delegate.log, ["Edge of the Galaxy Regular", "Arial", "Edge of the Galaxy Regular"])
+        #endif
+    }
+
+    func testSetFontWithNameAfterLoadingFromFile() throws {
+        #if canImport(CoreGraphics)
+        let program = try parse("""
+        font "EdgeOfTheGalaxyRegular-OVEa6.otf"
+        print font
+        font "Arial"
+        print font
+        font "Edge of the Galaxy Regular"
+        print font
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(delegate.log, ["Edge of the Galaxy Regular", "Arial", "Edge of the Galaxy Regular"])
+        #endif
+    }
+
     func testFontInBlock() throws {
         let program = try parse("""
         define foo {
