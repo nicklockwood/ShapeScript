@@ -630,6 +630,9 @@ private extension Geometry {
             return callback()
         }
         let isCancelled = { !callback() }
+        if isCancelled() {
+            return false
+        }
         switch type {
         case .group, .path, .camera, .light:
             mesh = .empty
@@ -642,7 +645,7 @@ private extension Geometry {
         case .cube:
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count == 1:
-            mesh = .extrude(paths[0]).makeWatertight()
+            mesh = .extrude(paths, isCancelled: isCancelled).makeWatertight()
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
             mesh = .extrude(
                 paths[0].materialToVertexColors(material: material),
@@ -657,7 +660,7 @@ private extension Geometry {
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled).makeWatertight()
         case let .fill(paths) where paths.count == 1:
-            mesh = .fill(paths[0].closed()).makeWatertight()
+            mesh = .fill(paths, isCancelled: isCancelled).makeWatertight()
         case let .loft(paths):
             mesh = .loft(paths, isCancelled: isCancelled).makeWatertight()
         case let .hull(vertices):
