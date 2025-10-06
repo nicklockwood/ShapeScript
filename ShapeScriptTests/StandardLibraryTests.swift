@@ -691,21 +691,38 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
-    func testFontNameMember() throws {
+    func testFontReturnsFullName() throws {
         let program = try parse("""
         font "Times"
+        print font
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        #if os(iOS)
+        XCTAssertEqual(delegate.log, ["Times New Roman"])
+        #elseif os(macOS)
+        XCTAssertEqual(delegate.log, ["Times Roman"])
+        #else
+        XCTAssertEqual(delegate.log, ["Times"])
+        #endif
+    }
+
+    func testFontNameMember() throws {
+        let program = try parse("""
+        font "Arial"
         print font.name
         """)
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        XCTAssertEqual(delegate.log, ["Arial"])
     }
 
     func testFontInBlock() throws {
         let program = try parse("""
         define foo {
-            font "Times"
+            font "Arial"
             print font
         }
         foo
@@ -713,7 +730,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        XCTAssertEqual(delegate.log, ["Arial"])
     }
 
     func testFontInBlockCallScope() throws {
@@ -722,14 +739,14 @@ final class StandardLibraryTests: XCTestCase {
             print font
         }
         group {
-            font "Times"
+            font "Arial"
             foo
         }
         """)
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        XCTAssertEqual(delegate.log, ["Arial"])
     }
 
     func testFontInBlockCall() throws {
@@ -738,13 +755,13 @@ final class StandardLibraryTests: XCTestCase {
             print font
         }
         foo {
-            font "Times"
+            font "Arial"
         }
         """)
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(delegate.log, ["Times"])
+        XCTAssertEqual(delegate.log, ["Arial"])
     }
 
     // MARK: Strings
