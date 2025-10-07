@@ -606,8 +606,13 @@ extension Expression {
             if context.symbol(for: name) == nil {
                 params[name, default: type].narrow(with: type)
             }
-        case let .block(_, block):
-            block.inferTypes(for: &params, in: context)
+        case let .block(identifier, block):
+            if case let .block(blockType, _) = context.symbol(for: identifier.name) {
+                let context = context.push(blockType)
+                block.inferTypes(for: &params, in: context)
+            } else {
+                block.inferTypes(for: &params, in: context)
+            }
         case let .tuple(expressions):
             switch expressions.count {
             case 0:
@@ -900,7 +905,7 @@ extension Statement {
             guard let expression, let symbol = context.symbol(for: identifier.name) else {
                 expression?.inferTypes(for: &params, in: context, with: .any)
                 if identifier.name == "children" {
-                    params["children", default: .any].narrow(with: .any)
+                    params["children", default: .any].narrow(with: context.childTypes)
                 }
                 return
             }
