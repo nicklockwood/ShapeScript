@@ -506,7 +506,7 @@ final class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.union([.numberOrVector, .list(.any)]), .number]))
+        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .list(.any)]), .number]))
         XCTAssertEqual(type.returnType, .void)
     }
 
@@ -521,9 +521,7 @@ final class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([
-            .union([.number, .list(.number), .texture]),
-        ]))
+        XCTAssertEqual(type.parameterType, .tuple([.union([.numberOrVector, .texture]).simplified()]))
         XCTAssertEqual(type.returnType, .void)
     }
 
@@ -683,7 +681,7 @@ final class TypesystemTests: XCTestCase {
         }
         """
         let type = try blockType(in: input)
-        XCTAssertEqual(type.childTypes, .union([.mesh, .number, .list(.number)]))
+        XCTAssertEqual(type.childTypes, .union([.mesh, .numberOrVector]).simplified())
         XCTAssertEqual(type.returnType, .mesh)
 
         // No arguments
@@ -777,6 +775,31 @@ final class TypesystemTests: XCTestCase {
         var type = ValueType.union([.number, .any])
         type.formUnion(.union([.number, .boolean]))
         XCTAssertEqual(type, .any)
+    }
+
+    func testUnionSubtypeSimplification() {
+        XCTAssertEqual(ValueType.union([.number, .any]).simplified(), .any)
+        XCTAssertEqual(ValueType.union([.any, .boolean]).simplified(), .any)
+        XCTAssertEqual(ValueType.union([.list(.any), .list(.number)]).simplified(), .list(.any))
+    }
+
+    func testNestedUnionSimplification() {
+        XCTAssertEqual(
+            ValueType.union([.boolean, .union([.number, .string])]).simplified(),
+            .union([.boolean, .number, .string])
+        )
+        XCTAssertEqual(
+            ValueType.list(.union([.number, .any])).simplified(),
+            .list(.any)
+        )
+        XCTAssertEqual(
+            ValueType.tuple([.union([.number, .any]), .union([.any, .boolean])]).simplified(),
+            .tuple([.any, .any])
+        )
+        XCTAssertEqual(
+            ValueType.object(["foo": .union([.number, .any]), "bar": .union([.any, .boolean])]).simplified(),
+            .object(["foo": .any, "bar": .any])
+        )
     }
 
     // MARK: Type conversion

@@ -125,7 +125,14 @@ extension ValueType {
     func simplified() -> ValueType {
         switch self {
         case let .union(types):
-            let types = types.sorted()
+            let types = types.flatMap {
+                switch $0.simplified() {
+                case let .union(types):
+                    return types
+                default:
+                    return [$0]
+                }
+            }.sorted()
             guard var result = types.first.map({ [$0] }) else {
                 return self
             }
@@ -137,9 +144,15 @@ extension ValueType {
                 result.append(type)
             }
             return result.count == 1 ? result[0] : .union(Set(result))
+        case let .list(type):
+            return .list(type.simplified())
+        case let .tuple(types):
+            return .tuple(types.map { $0.simplified() })
+        case let .object(fields):
+            return .object(fields.mapValues { $0.simplified() })
         case .any, .color, .texture, .material, .boolean, .font, .number, .radians,
              .halfturns, .vector, .size, .rotation, .string, .text, .path, .mesh,
-             .polygon, .point, .range, .partialRange, .bounds, .tuple, .list, .object:
+             .polygon, .point, .range, .partialRange, .bounds:
             return self
         }
     }
