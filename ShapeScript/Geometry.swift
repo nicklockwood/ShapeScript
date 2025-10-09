@@ -404,7 +404,7 @@ public extension Geometry {
     }
 
     /// Return a copy of the geometry with the specified properties updated
-    /// - Note: transform is replaced annd not combined like with `transformed(by:)`,
+    /// - Note: transform is replaced and not combined like with `transformed(by:)`,
     func with(
         transform: Transform,
         material: Material?,

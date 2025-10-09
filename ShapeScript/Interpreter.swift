@@ -781,9 +781,9 @@ extension Definition {
                             try statement.evaluate(in: context)
                         }
                     }
-                    let children = context.children
-                    if children.count == 1, let value = children.first {
-                        switch value {
+                    let children = context.children.unwrapped(recursive: true)
+                    if children.count == 1 {
+                        switch children[0] {
                         case let .path(path):
                             guard context.name.isEmpty else {
                                 return .mesh(Geometry(
@@ -798,6 +798,8 @@ extension Definition {
                             }
                             return .path(path.transformed(by: context.transform))
                         case let .mesh(geometry):
+                            // TODO: why not just use `geometry.transformed(by: context.transform)`?
+                            // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                             return .mesh(Geometry(
                                 type: geometry.type,
                                 name: context.name,
@@ -810,7 +812,7 @@ extension Definition {
                             ))
                         case let .polygon(polygon):
                             return .polygon(polygon.transformed(by: context.transform))
-                        default:
+                        case let value:
                             return value
                         }
                     } else if context.name.isEmpty,
@@ -825,6 +827,8 @@ extension Definition {
                                 return .path(path.transformed(by: context.transform))
                             case let .mesh(geometry):
                                 return .mesh(geometry.transformed(by: context.transform))
+                            case let .polygon(polygon):
+                                return .polygon(polygon.transformed(by: context.transform))
                             default:
                                 return $0
                             }
@@ -887,31 +891,33 @@ extension EvaluationContext {
     func addValue(_ value: Value) throws {
         if let value = try value.as(childTypes, in: self) {
             let childTransform: Transform = isFunctionScope ? .identity : childTransform
-            switch value {
-            case let .mesh(m):
-                children.append(.mesh(m.transformed(by: childTransform)))
-            case let .vector(v):
-                children.append(.vector(v.transformed(by: childTransform)))
-            case let .point(p):
-                children.append(.point(p.transformed(by: childTransform)))
-            case let .polygon(p):
-                children.append(.polygon(p
-                        .transformed(by: childTransform)
-                        .vertexColorsToMaterial(material: material)))
-            case let .path(path):
-                children.append(.path(path.transformed(by: childTransform)))
-            case _ where childTypes.subtypes.contains(.text):
-                children.append(.text(TextValue(
-                    string: value.stringValue,
-                    font: self.value(for: "font")?.stringValue ?? font,
-                    color: material.color,
-                    linespacing: self.value(for: "linespacing")?.doubleValue
-                )))
-            case .void:
-                break
-            default:
-                children.append(value)
+            func valueForAdding(_ value: Value) -> Value? {
+                switch value {
+                case let .tuple(values):
+                    let values = values.compactMap(valueForAdding)
+                    return values.isEmpty ? nil : .tuple(values)
+                case let .mesh(m):
+                    return .mesh(m.transformed(by: childTransform))
+                case let .vector(v):
+                    return .vector(v.transformed(by: childTransform))
+                case let .point(p):
+                    return .point(p.transformed(by: childTransform))
+                case let .polygon(p):
+                    return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: material))
+                case let .path(path):
+                    return .path(path.transformed(by: childTransform))
+                case _ where childTypes.subtypes.contains(.text):
+                    return .text(TextValue(
+                        string: value.stringValue,
+                        font: self.value(for: "font")?.stringValue ?? font,
+                        color: material.color,
+                        linespacing: self.value(for: "linespacing")?.doubleValue
+                    ))
+                default:
+                    return value
+                }
             }
+            valueForAdding(value).map { children.append($0) }
         } else if case let .tuple(values) = value {
             try values.forEach(addValue)
         } else {

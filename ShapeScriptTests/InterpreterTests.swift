@@ -2231,6 +2231,125 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(program, delegate: nil))
     }
 
+    func testBlockThatReturnsMeshDoesNotAllowTransforms() throws {
+        let program = try parse("""
+        define foo {
+            orientation 0.5
+            cube
+        }
+        foo
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'orientation'")
+            XCTAssertEqual(error?.hint, """
+            The 'orientation' property is not available in this context. Did you mean 'rotate'?
+            """)
+        }
+    }
+
+    func testBlockThatReturnsPathDoesNotAllowTransforms() throws {
+        let program = try parse("""
+        define foo {
+            orientation 0.5
+            circle
+        }
+        foo
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'orientation'")
+            XCTAssertEqual(error?.hint, """
+            The 'orientation' property is not available in this context. Did you mean 'rotate'?
+            """)
+        }
+    }
+
+    func testBlockThatReturnsPathsDoesNotAllowTransforms() throws {
+        let program = try parse("""
+        define foo {
+            orientation 0.5
+            text "hello"
+        }
+        foo
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'orientation'")
+            XCTAssertEqual(error?.hint, """
+            The 'orientation' property is not available in this context. Did you mean 'rotate'?
+            """)
+        }
+    }
+
+    func testBlockThatReturnsStringDoesNotAllowTransforms() throws {
+        let program = try parse("""
+        define foo {
+            orientation 0.5
+            "hello"
+        }
+        print foo
+        """)
+        XCTAssertThrowsError(try evaluate(program, delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unexpected symbol 'orientation'")
+            XCTAssertEqual(error?.hint, """
+            The 'orientation' property is not available in this context. Did you mean 'rotate'?
+            """)
+        }
+    }
+
+    func testBlockThatReturnsMeshAllowsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.5
+            cube
+        }
+        foo
+        """)
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, .roll(.halfturns(0.5)))
+    }
+
+    func testBlockThatReturnsPathAllowsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.25
+            square
+        }
+        foo
+        """)
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, .identity)
+        XCTAssertEqual(geometry?.path, Path.square().rotated(by: .roll(.halfturns(0.25))))
+    }
+
+    func testBlockThatReturnsPathsAllowsChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.5
+            text "hello"
+        }
+        foo
+        """)
+        let paths = try evaluate(program, delegate: nil).children.compactMap(\.path)
+        #if canImport(CoreText)
+        XCTAssertEqual(paths, Path.text("hello").rotated(by: .roll(.halfturns(0.5))))
+        #endif
+    }
+
+    func testBlockThatReturnsStringDoesNotAllowChildTransforms() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.5
+            "hello"
+        }
+        print foo
+        """)
+        // TODO: ideally we'd not allow this since it's meaningless
+        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
     func testBlockThatReturnsMeshIsTransformable() throws {
         let program = try parse("""
         define foo {
@@ -2241,10 +2360,29 @@ final class InterpreterTests: XCTestCase {
             position 1
         }
         """)
-        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+        let cube = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(cube?.transform.rotation, .roll(.halfturns(0.5)))
     }
 
     func testBlockThatReturnsPathIsTransformable() throws {
+        let program = try parse("""
+        define foo {
+            square
+        }
+        foo {
+            orientation 0.25
+            position 1
+        }
+        """)
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, .identity)
+        XCTAssertEqual(
+            geometry?.path,
+            Path.square().rotated(by: .roll(.halfturns(0.25))).translated(by: .unitX)
+        )
+    }
+
+    func testBlockThatReturnsPathsIsTransformable() throws {
         let program = try parse("""
         define foo {
             text "hello"
@@ -2254,7 +2392,10 @@ final class InterpreterTests: XCTestCase {
             position 1
         }
         """)
-        XCTAssertNoThrow(try evaluate(program, delegate: nil))
+        let paths = try evaluate(program, delegate: nil).children.compactMap(\.path)
+        #if canImport(CoreText)
+        XCTAssertEqual(paths, Path.text("hello").rotated(by: .roll(.halfturns(0.5))).translated(by: .unitX))
+        #endif
     }
 
     func testBlockThatReturnsStringIsNotTransformable() throws {
