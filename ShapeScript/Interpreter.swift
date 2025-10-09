@@ -331,23 +331,6 @@ private func aOrAn(_ string: String, capitalized: Bool = false) -> String {
     return "\(capitalized ? prefix.capitalized : prefix) \(string)"
 }
 
-private extension [String] {
-    var typesDescription: String {
-        var types = Set(self).sorted()
-        if let index = types.firstIndex(of: "block") {
-            types.append(types.remove(at: index))
-        }
-        switch types.count {
-        case 1:
-            return types[0]
-        case 2:
-            return "\(types[0]) or \(types[1])"
-        default:
-            return "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
-        }
-    }
-}
-
 extension RuntimeErrorType {
     static func typeMismatch(
         for symbol: String,
@@ -355,16 +338,6 @@ extension RuntimeErrorType {
         got: String
     ) -> RuntimeErrorType {
         .typeMismatch(for: symbol, index: -1, expected: expected, got: got)
-    }
-
-    static func typeMismatch(
-        for symbol: String,
-        index: Int = -1,
-        expected types: [String],
-        got: String
-    ) -> RuntimeErrorType {
-        let expected = types.typesDescription
-        return .typeMismatch(for: symbol, index: index, expected: expected, got: got)
     }
 
     static func typeMismatch(
@@ -398,15 +371,6 @@ extension RuntimeErrorType {
     }
 
     static func missingArgument(
-        for symbol: String,
-        index: Int = 0,
-        types: [String]
-    ) -> RuntimeErrorType {
-        let expected = types.typesDescription
-        return .missingArgument(for: symbol, index: index, type: expected)
-    }
-
-    static func missingArgument(
         for name: String,
         index: Int = 0,
         type: ValueType
@@ -424,14 +388,12 @@ extension RuntimeErrorType {
     }
 
     static func unusedValue(type: ValueType) -> RuntimeErrorType {
-        let typeDescription: String
         switch type {
         case let .list(type):
-            typeDescription = type.errorDescription
+            return unusedValue(type: type)
         default:
-            typeDescription = type.errorDescription
+            return unusedValue(type: type.errorDescription)
         }
-        return unusedValue(type: typeDescription)
     }
 
     static func unknownMember(_ name: String, of value: Value) -> RuntimeErrorType {
@@ -638,15 +600,11 @@ private func evaluateBlockParameters(
         do {
             try childContext.addValue(child)
         } catch {
-            var types = type.childTypes.subtypes.map(\.errorDescription)
-            if j == 0 {
-                types.append("block")
-            }
             throw RuntimeError(
                 .typeMismatch(
                     for: identifier.name,
                     index: j > 0 ? j : -1,
-                    expected: types,
+                    expected: j == 0 ? type.childTypes.errorDescriptionOrBlock : type.childTypes.errorDescription,
                     got: child.type.errorDescription
                 ),
                 at: j < parameters.count ? parameters[j].range : range
@@ -1061,7 +1019,7 @@ extension Statement {
                 } else if !type.childTypes.isOptional {
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        types: type.childTypes.subtypes.map(\.errorDescription) + ["block"]
+                        type: type.childTypes.errorDescriptionOrBlock
                     ), at: range.upperBound ..< range.upperBound)
                 } else {
                     let childContext = context.push(type)
@@ -1218,7 +1176,7 @@ extension Expression {
                     // Blocks that require children can't be called without arguments
                     throw RuntimeError(.missingArgument(
                         for: name,
-                        types: type.childTypes.subtypes.map(\.errorDescription) + ["block"]
+                        type: type.childTypes.errorDescriptionOrBlock
                     ), at: range.upperBound ..< range.upperBound)
                 }
                 return try RuntimeError.wrap(fn(context.push(type)), at: range)
@@ -1322,11 +1280,7 @@ extension Expression {
             context.define(name, as: .option(value))
             return .void
         case let .prefix(op, expression):
-            let value = try expression.evaluate(
-                as: .union([.number, .list(.number)]),
-                for: String(op.rawValue),
-                in: context
-            )
+            let value = try expression.evaluate(as: .numberOrVector, for: op.rawValue, in: context)
             switch op {
             case .minus:
                 switch value {

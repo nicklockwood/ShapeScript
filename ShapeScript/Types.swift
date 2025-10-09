@@ -230,6 +230,18 @@ extension ValueType {
         description(pluralized: false)
     }
 
+    var errorDescriptionOrBlock: String {
+        let description = errorDescription
+        if description.isEmpty || description == "any" {
+            return "block"
+        } else if description.contains(", or ") {
+            return "\(description.replacingOccurrences(of: ", or ", with: ", ")), or block"
+        } else if description.contains(" or ") {
+            return "\(description.replacingOccurrences(of: " or ", with: ", ")), or block"
+        }
+        return "\(description) or block"
+    }
+
     fileprivate func description(pluralized: Bool) -> String {
         switch self {
         case .color: return "color\(pluralized ? "s" : "")"
@@ -268,15 +280,15 @@ extension ValueType {
         case let .list(type):
             return "list\(pluralized ? "s" : "") of \(type.description(pluralized: true))"
         case let .union(types):
-            return types.sorted().description(pluralized: pluralized)
+            return types.description(pluralized: pluralized)
         case .object: return "object\(pluralized ? "s" : "")"
         }
     }
 }
 
-private extension [ValueType] {
+private extension Set<ValueType> {
     func description(pluralized: Bool) -> String {
-        let types = Set(self).sorted().map { $0.description(pluralized: pluralized) }
+        let types = simplifiedForDescription().map { $0.description(pluralized: pluralized) }.sorted()
         switch types.count {
         case 1:
             return types[0]
@@ -285,6 +297,17 @@ private extension [ValueType] {
         default:
             return "\(types.dropLast().joined(separator: ", ")), or \(types.last!)"
         }
+    }
+
+    private func simplifiedForDescription() -> Self {
+        var types = self
+        if contains(.number) {
+            types.remove(.radians)
+        }
+        if contains(.list(.number)) {
+            types.remove(.list(.radians))
+        }
+        return types
     }
 }
 

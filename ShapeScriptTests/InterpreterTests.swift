@@ -2605,7 +2605,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or list",
+                expected: "list or range",
                 got: "number"
             ), at: range))
         }
@@ -2619,7 +2619,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or list",
+                expected: "list or range",
                 got: "string"
             ), at: range))
         }
@@ -2729,10 +2729,10 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The loop bounds should be a range or list, not a color.")
+            XCTAssertEqual(error?.hint, "The loop bounds should be a list or range, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "range or list",
+                expected: "list or range",
                 got: "color"
             ), at: range))
         }
