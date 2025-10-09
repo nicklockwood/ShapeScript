@@ -72,13 +72,13 @@ extension Angle {
 
 extension Rotation {
     var rollYawPitchInHalfTurns: [Double] {
-        [roll.radians / .pi, yaw.radians / .pi, pitch.radians / .pi]
+        [roll.halfturns, yaw.halfturns, pitch.halfturns]
     }
 
-    init?(rollYawPitchInHalfTurns: [Double]) {
+    init(rollYawPitchInHalfTurns: [Double]) {
         var roll = 0.0, yaw = 0.0, pitch = 0.0
         switch rollYawPitchInHalfTurns.count {
-        case 3:
+        case 3...:
             pitch = rollYawPitchInHalfTurns[2]
             fallthrough
         case 2:
@@ -86,25 +86,14 @@ extension Rotation {
             fallthrough
         case 1:
             roll = rollYawPitchInHalfTurns[0]
-        case 0:
-            break
         default:
-            return nil
+            break
         }
         self.init(
-            roll: .radians(roll * .pi),
-            yaw: .radians(yaw * .pi),
-            pitch: .radians(pitch * .pi)
+            roll: .halfturns(roll),
+            yaw: .halfturns(yaw),
+            pitch: .halfturns(pitch)
         )
-    }
-
-    init(unchecked rollYawPitchInHalfTurns: [Double]) {
-        if let rotation = Rotation(rollYawPitchInHalfTurns: rollYawPitchInHalfTurns) {
-            self = rotation
-        } else {
-            assertionFailure()
-            self = .identity
-        }
     }
 }
 

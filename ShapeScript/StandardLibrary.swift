@@ -541,7 +541,7 @@ extension Symbols {
             let values = value.doublesValue
             return .radians(atan2(values[0], values[1]))
         },
-        "pi": .constant(.number(.pi)),
+        "pi": .constant(.radians(.pi)),
         // Linear algebra
         "dot": .function(.tuple([.list(.number), .list(.number)]), .number) { value, _ in
             let values = value.tupleValue as! [[Double]]

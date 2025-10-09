@@ -2526,6 +2526,38 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(program, delegate: nil))
     }
 
+    // MARK: Rotation / orientation
+
+    func testRotateWithHalfTurns() throws {
+        let program = """
+        cube {
+            orientation 1
+            print orientation
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Rotation.roll(.pi)])
+    }
+
+    func testRotateWithRadians() throws {
+        let program = """
+        cube {
+            orientation pi
+            print orientation
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "orientation",
+                index: -1,
+                expected: "rotation",
+                got: "angle in radians"
+            ))
+        }
+    }
+
     // MARK: Ranges
 
     func testRange() {
@@ -3744,6 +3776,30 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0, 1, 2, 1, -1, -2, -2, 0, -0.75])
     }
 
+    func testTrigFunctions() {
+        let program = """
+        print acos(0)
+        print cos(pi)
+        print cos(pi * 2)
+        print sin(pi / 2)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Double.pi / 2, -1.0, 1.0, 1.0])
+    }
+
+    func testTrigWithNumericLiteral() {
+        let program = """
+        print cos(0)
+        // not clear we should allow this?
+        print sin(3.14159)
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.first, 1.0)
+        XCTAssertEqual(try XCTUnwrap(delegate.log.last as? Double), 0, accuracy: 0.0001)
+    }
+
     // MARK: Boolean algebra
 
     func testLogicalAnd() {
@@ -4032,6 +4088,16 @@ final class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [1.0, 4.0])
+    }
+
+    func testMixedVectorTypeMultiplication() {
+        let program = """
+        define axis 0 1 0
+        print axis * cube.bounds.size    
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0, 1.0, 0.0])
     }
 
     // MARK: Recursion

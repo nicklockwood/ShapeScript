@@ -130,11 +130,13 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testNumericTupleExpressionType() throws {
+        // Note: interpreted as list instead of tuple to improve option inference
         XCTAssertEqual(try expressionType("1 5"), .list(.number))
     }
 
     func testNumericTupleExpressionType2() throws {
-        XCTAssertEqual(try expressionType("(pi 5)"), .list(.number))
+        // TODO: seems like we can do something better here?
+        XCTAssertEqual(try expressionType("(pi 5)"), .list(.any))
     }
 
     func testNumericTupleExpressionType3() throws {
@@ -142,6 +144,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testMixedTupleExpressionType() throws {
+        // TODO: should this be a tuple or color list instead?
         XCTAssertEqual(try expressionType("1 red"), .list(.any))
     }
 
@@ -506,7 +509,7 @@ final class TypesystemTests: XCTestCase {
             }
         }
         """)
-        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .list(.any)]), .number]))
+        XCTAssertEqual(type.parameterType, .tuple([.union([.number, .radians, .list(.any)]), .number]))
         XCTAssertEqual(type.returnType, .void)
     }
 
@@ -1041,7 +1044,7 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testCastStringTupleToVector() throws {
-        XCTAssertEqual(try evaluate("\"1.5\" \"2.3\" \"0\"", as: .vector), .vector(.init(1.5, 2.3, 0)))
+        XCTAssertEqual(try evaluate("\"1.5\" \"2.3\" \"0\"", as: .vector), .vector([1.5, 2.3, 0]))
     }
 
     func testCastStringToNumberOrList() throws {
@@ -1095,40 +1098,6 @@ final class TypesystemTests: XCTestCase {
         let value = Value.boolean(true)
         XCTAssert(value.isConvertible(to: type))
         XCTAssertEqual(value.as(type), [true])
-    }
-
-    func testCastRadiansToNumber() {
-        let type = ValueType.number
-        let value = Value.radians(.pi)
-        XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), .number(.pi))
-    }
-
-    func testCastHalfturnsToNumber() {
-        let type = ValueType.number
-        let value = Value.halfturns(1)
-        XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), .number(1))
-    }
-
-    func testCastNumberToRadians() {
-        let type = ValueType.radians
-        let value = Value.number(.pi)
-        XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), .radians(.pi))
-    }
-
-    func testCastNumberToHalfturns() {
-        let type = ValueType.halfturns
-        let value = Value.number(1)
-        XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), .halfturns(1))
-    }
-
-    func testCastRadiansToHalfturns() {
-        let type = ValueType.halfturns
-        let value = Value.radians(.pi)
-        XCTAssertFalse(value.isConvertible(to: type))
     }
 
     func testCastSingleElementTupleToList() {
@@ -1198,5 +1167,152 @@ final class TypesystemTests: XCTestCase {
         let type = ValueType.anyObject
         let value = Value.object(["foo": .color(.red), "bar": .string("baz")])
         XCTAssertEqual(value.as(type), value)
+    }
+
+    // MARK: Angle type conversions
+
+    func testCastRadiansToNumber() {
+        let type = ValueType.number
+        let value = Value.radians(.pi)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .number(.pi))
+    }
+
+    func testCastHalfturnsToNumber() {
+        let type = ValueType.number
+        let value = Value.halfturns(1)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .number(1))
+    }
+
+    func testCastNumberToRadians() {
+        let type = ValueType.radians
+        let value = Value.number(.pi)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .radians(.pi))
+    }
+
+    func testCastNumberToHalfturns() {
+        let type = ValueType.halfturns
+        let value = Value.number(1)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .halfturns(1))
+    }
+
+    func testCastRadiansToHalfturns() {
+        let type = ValueType.halfturns
+        let value = Value.radians(.pi)
+        XCTAssertFalse(value.isConvertible(to: type))
+        XCTAssertThrowsError(try evaluate("pi", as: .halfturns))
+        XCTAssertThrowsError(try evaluate("pi * 2", as: .halfturns))
+        XCTAssertThrowsError(try evaluate("pi / 2", as: .halfturns))
+    }
+
+    func testRadiansMathTypes() {
+        XCTAssertEqual(try evaluate("pi", as: .any), .radians(.pi))
+        XCTAssertEqual(try evaluate("-pi", as: .any), .radians(-.pi))
+        XCTAssertEqual(try evaluate("pi + pi", as: .any), .radians(.pi + .pi))
+        XCTAssertEqual(try evaluate("pi - pi / 2", as: .any), .radians(.pi / 2))
+        XCTAssertEqual(try evaluate("pi * 2", as: .any), .radians(.pi * 2))
+        XCTAssertEqual(try evaluate("-pi / 2", as: .any), .radians(-.pi / 2))
+        XCTAssertEqual(try evaluate("2 * pi / pi", as: .any), .number(2))
+        XCTAssertEqual(try evaluate("-(2 * pi) / pi", as: .any), .number(-2))
+        XCTAssertEqual(try evaluate("2 * pi * 0.5 + 2 // perimeter", as: .any), .number(.pi + 2))
+        XCTAssertEqual(try evaluate("180 / pi", as: .any), .radians(180 / .pi)) // TODO: should this error?
+        XCTAssertEqual(try evaluate("pi * pi", as: .any), .number(.pi * .pi)) // TODO: should this error?
+    }
+
+    func testDegreesToRadiansExpressions() throws {
+        XCTAssertEqual(try evaluate("30 / 180 * pi", as: .radians), .radians(.pi / 6))
+        XCTAssertEqual(try evaluate("30 / 180 * pi", as: .number), .number(.pi / 6))
+        XCTAssertEqual(try evaluate("""
+        define DEG_TO_RAD pi / 180
+        30 * DEG_TO_RAD
+        """, as: .radians), .radians(.pi / 6))
+        XCTAssertEqual(try evaluate("""
+        define DEG_TO_RAD pi / 180
+        30 * DEG_TO_RAD
+        """, as: .number), .number(.pi / 6))
+        XCTAssertEqual(try evaluate("""
+        define RAD_TO_DEG 1 / pi * 180
+        30 / RAD_TO_DEG
+        """, as: .radians), .radians(.pi / 6))
+    }
+
+    func testRadiansToDegreesExpressions() throws {
+        XCTAssertEqual(try evaluate("""
+        define RAD_TO_DEG 180 / pi
+        pi / 2 * RAD_TO_DEG
+        """, as: .number), .number(90))
+        XCTAssertEqual(try evaluate("""
+        define DEG_TO_RAD pi / 180
+        pi * 0.25 / DEG_TO_RAD
+        """, as: .number), .number(45))
+    }
+
+    // MARK: Rotation type conversions
+
+    func testCastNumberToRotation() {
+        let type = ValueType.rotation
+        let value = Value.number(0.5)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.roll(.halfturns(0.5))))
+    }
+
+    func testCastNumberTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0, 0.5, 0])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.yaw(.halfturns(0.5))))
+    }
+
+    func testCastHalfTurnsToRotation() {
+        let type = ValueType.rotation
+        let value = Value.halfturns(0.5)
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.roll(.halfturns(0.5))))
+    }
+
+    func testCastHalfturnsTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0, 0, .halfturns(0.5)])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.pitch(.halfturns(0.5))))
+    }
+
+    func testCastRadiansToRotation() {
+        let type = ValueType.rotation
+        let value = Value.radians(.pi / 2)
+        XCTAssertFalse(value.isConvertible(to: type))
+        XCTAssertThrowsError(try evaluate(parse("rotate pi"), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "rotate",
+                index: -1,
+                expected: "rotation",
+                got: "angle in radians"
+            ))
+        }
+    }
+
+    func testCastRadiansInTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0, .radians(.pi / 2), 0])
+        XCTAssertFalse(value.isConvertible(to: type))
+        XCTAssertThrowsError(try evaluate(parse("rotate pi"), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "rotate",
+                index: -1,
+                expected: "rotation",
+                got: "angle in radians"
+            ))
+        }
+    }
+
+    func testCastVectorToRotation() {
+        let type = ValueType.rotation
+        let value = Value.vector([0, 0, 0.5])
+        XCTAssertFalse(value.isConvertible(to: type))
     }
 }

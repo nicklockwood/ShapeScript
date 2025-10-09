@@ -1282,9 +1282,21 @@ extension Expression {
             case .minus:
                 switch value {
                 case let .tuple(values):
-                    return .tuple(values.map { .number(-$0.doubleValue) })
+                    return .tuple(values.map {
+                        switch $0 {
+                        case let .number(value):
+                            return .number(-value)
+                        case let .radians(value):
+                            return .radians(-value)
+                        default:
+                            assertionFailure()
+                            return value
+                        }
+                    })
                 case let .number(value):
                     return .number(-value)
+                case let .radians(value):
+                    return .radians(-value)
                 default:
                     assertionFailure()
                     return value
@@ -1357,52 +1369,46 @@ extension Expression {
                 in: context
             ).boolValue)
         case let .infix(lhs, op, rhs):
-            func doubleValue(_ exp: Expression, index: Int = 0) throws -> Double {
-                try exp.evaluate(
-                    as: .number,
-                    for: String(op.rawValue),
-                    index: index,
-                    in: context
-                ).doubleValue
+            func evaluate(_ exp: Expression, as type: ValueType, at index: Int = 0) throws -> Value {
+                try exp.evaluate(as: type, for: op.rawValue, index: index, in: context)
             }
-            func tupleValue(_ exp: Expression, index: Int = 0) throws -> Value {
-                try exp.evaluate(
-                    as: .union([.number, .list(.number)]),
-                    for: String(op.rawValue),
-                    index: index,
-                    in: context
-                )
+            func doubleValue(for exp: Expression, at index: Int = 0) throws -> Double {
+                try evaluate(exp, as: .number, at: index).doubleValue
             }
-            func apply(
-                _ lhs: Value,
-                _ rhs: Value,
-                _ fn: (Double, Double) -> Double
-            ) -> Value {
-                switch (lhs, rhs) {
-                case let (.number(lhs), .number(rhs)):
-                    return .number(fn(lhs, rhs))
-                case let (.tuple(lhs), _) where lhs.count == 1:
+            func numberOrVectorValue(for exp: Expression, at index: Int = 0) throws -> Value {
+                try evaluate(exp, as: .numberOrVector, at: index)
+            }
+            func apply(_ lhs: Value, _ rhs: Value, _ fn: (Double, Double) -> Double) -> Value {
+                switch (lhs, rhs, op) {
+                case let (.number(lhs), .radians(rhs), .plus), let (.number(lhs), .radians(rhs), .minus),
+                     let (.radians(lhs), .number(rhs), .plus), let (.radians(lhs), .number(rhs), .minus),
+                     let (.radians(lhs), .radians(rhs), .times), // TODO: should this be an error?
+                     let (.radians(lhs), .radians(rhs), .divide), // TODO: should this be halfTurns?
+                     let (.number(lhs), .number(rhs), _):
+                    return .number(fn(lhs, rhs)) // TODO: should this be an error?
+                case let (.number(lhs), .radians(rhs), .divide):
+                    return .radians(fn(lhs, rhs)) // TODO: should this be a reciprocal radians type?
+                case let (.radians(lhs), .radians(rhs), _), let (.number(lhs), .radians(rhs), _),
+                     let (.radians(lhs), .number(rhs), _):
+                    return .radians(fn(lhs, rhs))
+                case let (.tuple(lhs), _, _) where lhs.count == 1:
                     return apply(lhs[0], rhs, fn)
-                case let (_, .tuple(rhs)) where rhs.count == 1:
+                case let (_, .tuple(rhs), _) where rhs.count == 1:
                     return apply(lhs, rhs[0], fn)
-                case let (.tuple(lhs), .tuple(rhs)):
+                case let (.tuple(lhs), .tuple(rhs), _):
                     return .tuple(zip(lhs, rhs).map { apply($0, $1, fn) })
-                case let (.tuple(lhs), .number):
+                case let (.tuple(lhs), .number, _):
                     return .tuple(lhs.map { apply($0, rhs, fn) })
-                case let (.number, .tuple(rhs)):
+                case let (.number, .tuple(rhs), _):
                     return .tuple(rhs.map { apply(lhs, $0, fn) })
                 default:
                     assertionFailure()
                     return .number(0)
                 }
             }
-            func tupleApply(
-                _ fn: (Double, Double) -> Double,
-                lhs value: Value? = nil,
-                widen: Bool
-            ) throws -> Value {
-                let lhs = try value ?? tupleValue(lhs)
-                let rhs = try tupleValue(rhs, index: 1)
+            func tupleApply(_ fn: (Double, Double) -> Double, widen: Bool) throws -> Value {
+                let lhs = try numberOrVectorValue(for: lhs)
+                let rhs = try numberOrVectorValue(for: rhs, at: 1)
                 switch (apply(lhs, rhs, fn), lhs) {
                 case let (.tuple(values), .tuple(lhs)) where widen:
                     return .tuple(values + lhs[values.count...])
@@ -1411,21 +1417,26 @@ extension Expression {
                 }
             }
             func tupleOrTextureApply(_ fn: (Double, Double) -> Double) throws -> Value {
-                let lhs = try lhs.evaluate(
-                    as: .union([.number, .list(.number), .texture]),
-                    for: String(op.rawValue),
-                    index: 0,
-                    in: context
-                )
-                if case let .texture(texture) = lhs {
+                let lhs = try evaluate(lhs, as: .union([
+                    .number,
+                    .radians,
+                    .list(.number),
+                    .list(.radians),
+                    .texture,
+                ]))
+                switch lhs {
+                case let .texture(texture):
                     guard let texture else {
                         return .texture(nil)
                     }
-                    let rhs = try doubleValue(rhs)
+                    let rhs = try doubleValue(for: rhs)
                     return .texture(texture.withIntensity(fn(texture.intensity, rhs)))
+                default:
+                    let rhs = try numberOrVectorValue(for: rhs, at: 1)
+                    return apply(lhs, rhs, fn)
                 }
-                return try tupleApply(fn, lhs: lhs, widen: false)
             }
+
             switch op {
             case .minus:
                 return try tupleApply(-, widen: true)
@@ -1438,16 +1449,15 @@ extension Expression {
             case .modulo:
                 return try tupleApply(fmod, widen: false)
             case .lt:
-                return try .boolean(doubleValue(lhs) < doubleValue(rhs, index: 1))
+                return try .boolean(doubleValue(for: lhs) < doubleValue(for: rhs, at: 1))
             case .gt:
-                return try .boolean(doubleValue(lhs) > doubleValue(rhs, index: 1))
+                return try .boolean(doubleValue(for: lhs) > doubleValue(for: rhs, at: 1))
             case .lte:
-                return try .boolean(doubleValue(lhs) <= doubleValue(rhs, index: 1))
+                return try .boolean(doubleValue(for: lhs) <= doubleValue(for: rhs, at: 1))
             case .gte:
-                return try .boolean(doubleValue(lhs) >= doubleValue(rhs, index: 1))
+                return try .boolean(doubleValue(for: lhs) >= doubleValue(for: rhs, at: 1))
             case .in, .to, .step, .equal, .unequal, .and, .or:
-                throw RuntimeErrorType
-                    .assertionFailure("\(op.rawValue) should be handled by earlier case")
+                throw RuntimeErrorType.assertionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):
             let value = try expression.evaluate(in: context)

@@ -103,7 +103,7 @@ extension ValueType {
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
     static let numberOrTexture: ValueType = .union([.number, .texture])
-    static let numberOrVector: ValueType = .union([.number, .list(.number)])
+    static let numberOrVector: ValueType = .union([.number, .radians, .list(.number), .list(.radians)])
 
     static func optional(_ type: ValueType) -> ValueType {
         .union([type, .void])
@@ -508,7 +508,9 @@ extension Value {
         case let (.number(value), .size):
             return .size(Vector(size: value))
         case let (.number(value), .rotation):
-            return .rotation(Rotation(unchecked: [value]))
+            return .rotation(.roll(.halfturns(value)))
+        case let (.halfturns(value), .rotation):
+            return .rotation(.roll(.halfturns(value)))
         case let (.tuple(values), .tuple(types)):
             guard values.count == types.count else {
                 return nil
@@ -547,20 +549,20 @@ extension Value {
             return numerify(values, range: 1 ... 3).map { .size(Vector(size: $0)) }
         case let (.tuple(values), .rotation):
             return numerify(values, as: .halfturns, range: 1 ... 3).map {
-                .rotation(Rotation(unchecked: $0))
+                .rotation(Rotation(rollYawPitchInHalfTurns: $0))
             }
-        case let (.color(value), .list(.number)):
+        case let (.color(value), .list(type)) where ValueType.number.isSubtype(of: type):
             return .tuple(value.components.map { .number($0) })
-        case let (.vector(value), .list(.number)):
+        case let (.vector(value), .list(type)) where ValueType.number.isSubtype(of: type):
             return .tuple(value.components.map { .number($0) })
         case let (.vector(value), .size):
             return .size(value)
-        case let (.size(value), .list(.number)):
+        case let (.size(value), .list(type)) where ValueType.number.isSubtype(of: type):
             return .tuple(value.components.map { .number($0) })
         case let (.size(value), .vector):
             return .vector(value)
-        case let (.rotation(value), .list(.number)):
-            return .tuple(value.rollYawPitchInHalfTurns.map { .number($0) })
+        case let (.rotation(value), .list(type)) where ValueType.halfturns.isSubtype(of: type):
+            return .tuple(value.rollYawPitchInHalfTurns.map { .halfturns($0) })
         case let (.object(values), .list(type)):
             let values = try values.sorted(by: { $0.0 < $1.0 }).compactMap {
                 try Value(.string($0), $1).as(type, in: context)
