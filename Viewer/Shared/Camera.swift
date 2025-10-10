@@ -66,33 +66,33 @@ extension Camera: Equatable {
     }
 
     var hasPosition: Bool {
-        settings?.position != nil
+        settings.position != nil
     }
 
     var hasOrientation: Bool {
-        settings?.orientation != nil
+        settings.orientation != nil
     }
 
     var hasScale: Bool {
-        settings?.scale != nil
+        settings.scale != nil
     }
 
     var background: MaterialProperty? {
-        settings?.background
+        settings.background
     }
 
-    var fov: Angle? {
-        settings?.fov
+    var fov: Angle {
+        settings.fov ?? .degrees(60)
     }
 
     var isOrthographic: Bool? {
-        fov.map { $0 <= .zero }
+        settings.fov.map { $0 <= .zero }
     }
 
-    var settings: ShapeScript.Camera? {
+    var settings: ShapeScript.Camera {
         if case let .camera(settings) = geometry?.type {
             return settings
         }
-        return nil
+        return .default
     }
 }

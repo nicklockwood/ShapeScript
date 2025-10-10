@@ -93,7 +93,7 @@ extension Vector: Loggable {
 
 extension Angle: Loggable {
     public var logDescription: String {
-        (radians / .pi).logDescription
+        halfturns.logDescription
     }
 
     public var nestedLogDescription: String {
@@ -276,8 +276,7 @@ extension Geometry: Loggable {
         let scale = transform.scale
         let scaleDescription: String?
         if abs(scale.x - scale.y) < epsilon, abs(scale.y - scale.z) < epsilon {
-            scaleDescription = abs(scale.x - 1) < epsilon ?
-                nil : "size \(scale.x.logDescription)"
+            scaleDescription = abs(scale.x - 1) < epsilon ? nil : "size \(scale.x.logDescription)"
         } else {
             scaleDescription = "size \(scale.logDescription)"
         }
@@ -309,8 +308,25 @@ extension Geometry: Loggable {
             case .texture, nil:
                 break
             }
+        case let .light(light):
+            if light.color != .white {
+                fields.append("color \(light.color.logDescription)")
+            }
+            fields.append("spread \(light.spread.logDescription)")
+            if light.penumbra != 1 {
+                fields.append("penumbra \(light.penumbra.logDescription)")
+            }
+            if light.shadowOpacity != 0 {
+                fields.append("shadow \(light.shadowOpacity.logDescription)")
+            }
         case let .mesh(mesh):
             fields.append("polygons \(mesh.polygons.count)")
+        case let .path(path):
+            if path.subpaths.count > 1 {
+                fields.append("subpaths \(path.subpaths.count)")
+            } else {
+                fields.append("points \(path.points.count)")
+            }
         default:
             break
         }
@@ -344,11 +360,14 @@ extension Optional: Loggable {
 
 extension Array: Loggable {
     public var logDescription: String {
-        map { String(nestedLogDescriptionFor: $0) }.joined(separator: " ")
+        if count == 1 {
+            return String(logDescriptionFor: self[0])
+        }
+        return map { String(nestedLogDescriptionFor: $0) }.joined(separator: " ")
     }
 
     public var nestedLogDescription: String {
-        "(\(logDescription))"
+        "(\(map { String(nestedLogDescriptionFor: $0) }.joined(separator: " ")))"
     }
 }
 

@@ -17,6 +17,8 @@ public struct Camera: Hashable {
     public var fov: Angle?
     public var width: Double?
     public var height: Double?
+
+    public static let `default`: Self = .init(antialiased: true)
 }
 
 public extension Camera {
@@ -32,6 +34,13 @@ public struct Light: Hashable {
     public var spread: Angle
     public var penumbra: Double
     public var shadowOpacity: Double
+
+    public static let `default`: Self = .init(
+        color: .white,
+        spread: .pi / 4,
+        penumbra: 1,
+        shadowOpacity: 0
+    )
 }
 
 public extension Light {

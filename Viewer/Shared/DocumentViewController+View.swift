@@ -74,7 +74,7 @@ extension DocumentViewController {
     func resetView() {
         scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.pointOfView = cameraNode
-        scnView.antialiasingMode = (camera.settings?.antialiased ?? true) ? .multisampling4X : .none
+        scnView.antialiasingMode = camera.settings.antialiased ? .multisampling4X : .none
         refreshView()
     }
 
@@ -197,7 +197,7 @@ extension DocumentViewController {
         if !camera.hasOrientation {
             cameraNode.look(at: SCNVector3(viewCenter))
         }
-        cameraNode.camera?.fieldOfView = CGFloat(camera.fov?.degrees ?? 60)
+        cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
         cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
     }
 }

@@ -277,10 +277,10 @@ extension Symbols {
                 type: .light(Light(
                     position: position,
                     orientation: orientation,
-                    color: context.value(for: "color")?.colorValue ?? .white,
-                    spread: context.value(for: "spread")?.angleValue ?? (.pi / 4),
-                    penumbra: context.value(for: "penumbra")?.doubleValue ?? 1,
-                    shadowOpacity: context.value(for: "shadow")?.doubleValue ?? 0
+                    color: context.value(for: "color")?.colorValue ?? Light.default.color,
+                    spread: context.value(for: "spread")?.angleValue ?? Light.default.spread,
+                    penumbra: context.value(for: "penumbra")?.doubleValue ?? Light.default.penumbra,
+                    shadowOpacity: context.value(for: "shadow")?.doubleValue ?? Light.default.shadowOpacity
                 )),
                 in: context
             ))
@@ -663,7 +663,7 @@ extension Symbols {
                     orientation: orientation,
                     scale: scale,
                     background: context.value(for: "background")?.colorOrTextureValue,
-                    antialiased: context.value(for: "antialiased")?.boolValue ?? true,
+                    antialiased: context.value(for: "antialiased")?.boolValue ?? Camera.default.antialiased,
                     fov: context.value(for: "fov")?.angleValue,
                     width: context.value(for: "width")?.doubleValue,
                     height: context.value(for: "height")?.doubleValue
