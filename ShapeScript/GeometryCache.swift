@@ -15,6 +15,11 @@ import LRUCache
 public final class GeometryCache {
     private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>
 
+    /// The number of entries currently stored in the cache
+    public var count: Int { cache.count }
+
+    /// Initialize the cache with a given storage limit
+    /// - Parameter memoryLimit: The maximum amount of data to cache (in bytes)
     public init(memoryLimit: Int = 1_000_000_000) {
         self.cache = LRUCache(totalCostLimit: memoryLimit)
     }

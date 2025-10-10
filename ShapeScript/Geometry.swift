@@ -140,12 +140,13 @@ public final class Geometry: Hashable {
         debug: Bool = false
     ) {
         var material = material
+        var useMaterialForCache = false
         var children = children
         var type = type
         switch type {
         case var .extrude(paths, options):
-            (paths, material) = paths.fixupColors(material: material)
-            (options.along, material) = options.along.fixupColors(material: material)
+            (paths, material) = paths.vertexColorsToMaterial(material: material)
+            (options.along, material) = options.along.vertexColorsToMaterial(material: material)
             type = .extrude(paths, options)
             switch (paths.count, options.along.count) {
             case (0, 0):
@@ -158,7 +159,9 @@ public final class Geometry: Hashable {
                 assert(children.isEmpty)
                 type = .extrude([], .default)
                 children = paths.map { path in
-                    Geometry(
+                    var path = path
+                    (path, material) = path.vertexColorsToMaterial(material: material)
+                    return Geometry(
                         type: .extrude([path], options),
                         name: nil,
                         transform: .identity,
@@ -170,7 +173,7 @@ public final class Geometry: Hashable {
                 }
             }
         case .lathe(var paths, let segments):
-            (paths, material) = paths.fixupColors(material: material)
+            (paths, material) = paths.vertexColorsToMaterial(material: material)
             type = .lathe(paths, segments: segments)
             switch paths.count {
             case 0:
@@ -196,7 +199,7 @@ public final class Geometry: Hashable {
             }
         case var .fill(paths):
             // TODO: why didn't we apply the same logic as above for fill?
-            (paths, material) = paths.fixupColors(material: material)
+            (paths, material) = paths.vertexColorsToMaterial(material: material)
             type = .fill(paths)
             switch paths.count {
             case 0:
@@ -208,7 +211,9 @@ public final class Geometry: Hashable {
             assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
-        case .union, .xor, .difference, .intersection, .stencil, .hull, .minkowski:
+        case .hull, .minkowski:
+            useMaterialForCache = true
+        case .union, .xor, .difference, .intersection, .stencil:
             material = children.first?.material ?? .default
         case .group:
             if debug {
@@ -225,9 +230,13 @@ public final class Geometry: Hashable {
         self._sourceLocation = sourceLocation
         self.debug = debug
 
+        var hasVariedMaterials = false
         var isOpaque = material.isOpaque
         func flattenedCacheKey(for geometry: Geometry) -> GeometryCache.Key {
             isOpaque = isOpaque && geometry.material.isOpaque
+            if !hasVariedMaterials, geometry.material != material {
+                hasVariedMaterials = true
+            }
             return GeometryCache.Key(
                 type: geometry.type,
                 material: geometry.material == material ? nil : geometry.material,
@@ -238,17 +247,18 @@ public final class Geometry: Hashable {
             )
         }
 
-        self.cacheKey = GeometryCache.Key(
+        let childKeys = type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
+
+        // Must be set after child keys are generated
+        self.isOpaque = isOpaque
+        self.cacheKey = .init(
             type: type,
-            material: nil,
+            material: useMaterialForCache && hasVariedMaterials ? material : nil,
             smoothing: smoothing,
             transform: .identity,
             flipped: transform.isFlipped,
-            children: type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
+            children: childKeys
         )
-
-        // Must be set after cache key is generated
-        self.isOpaque = isOpaque
 
         // Compute the overestimated, non-transformed bounds
         switch type {
@@ -601,9 +611,10 @@ private extension Geometry {
         case let .loft(paths):
             mesh = Mesh.loft(paths).makeWatertight()
         case let .hull(vertices):
-            let m = Mesh.convexHull(of: vertices, material: Material.default, isCancelled: isCancelled)
+            let m = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
             let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
-            mesh = .convexHull(of: meshes, isCancelled: isCancelled).fixupColors(material: material)
+            mesh = .convexHull(of: meshes, isCancelled: isCancelled)
+                .vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
                 switch ($0.1.type, $1.1.type) {
@@ -648,14 +659,16 @@ private extension Geometry {
                 sum = first.flattened(callback).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
-                if let path = next.path?.transformed(by: next.transform) {
+                if var path = next.path?.transformed(by: next.transform) {
+                    path = path.materialToVertexColors(material: next.material)
                     sum = sum.minkowskiSum(with: path, isCancelled: isCancelled)
                 } else {
                     let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
                     sum = sum.minkowskiSum(with: mesh, isCancelled: isCancelled)
                 }
             }
-            mesh = sum.fixupColors(material: material).makeWatertight()
+            mesh = sum.vertexColorsToMaterial(material: material)
+                .replacing(material, with: nil).makeWatertight()
         case let .fill(paths):
             mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
         case .union, .lathe, .extrude:
@@ -756,70 +769,130 @@ private extension Geometry {
     }
 }
 
-private extension Collection<Path> {
+private extension [Path] {
+    /// Returns the uniform color of all vertices, or nil if they have different colors
+    var uniformVertexColor: Color? {
+        let uniformColor = first?.uniformVertexColor ?? .white
+        return allSatisfy { $0.uniformVertexColor == uniformColor } ? uniformColor : nil
+    }
+
     /// Convert uniform point colors to a material instead
-    func fixupColors(material: Material) -> ([Path], Material) {
+    func vertexColorsToMaterial(material: Material) -> ([Path], Material) {
         guard material.texture == nil else {
-            return (Array(self), material)
+            return (self, material)
         }
-        var current: Color?
-        for path in self {
-            for point in path.points {
-                if current == nil {
-                    current = point.color
-                } else if point.color != current {
-                    var material = material
-                    material.albedo = .color(.white)
-                    return (Array(self), material)
-                }
+        if let uniformVertexColor {
+            if uniformVertexColor == .white {
+                return (self, material)
             }
+            var material = material
+            material.albedo = .color(uniformVertexColor)
+            return (map { $0.withColor(nil) }, material)
         }
         var material = material
-        material.albedo = (current ?? material.color).map { .color($0) }
-        return (map { $0.withColor(nil) }, material)
+        material.albedo = .color(.white)
+        return (self, material)
+    }
+}
+
+extension Path {
+    /// Returns the uniform color of all vertices, or nil if they have different colors
+    var uniformVertexColor: Color? {
+        let uniformColor = points.first?.color
+        return points.allSatisfy { $0.color == uniformColor } ? (uniformColor ?? .white) : nil
+    }
+
+    /// Convert uniform point colors to a material instead
+    func vertexColorsToMaterial(material: Material) -> (Path, Material) {
+        guard material.texture == nil else {
+            return (self, material)
+        }
+        if let uniformVertexColor {
+            if uniformVertexColor == .white {
+                return (self, material)
+            }
+            var material = material
+            material.albedo = .color(uniformVertexColor)
+            return (withColor(nil), material)
+        }
+        var material = material
+        material.albedo = .color(.white)
+        return (self, material)
+    }
+
+    /// Convert material color to vertex colors
+    func materialToVertexColors(material: ShapeScript.Material?) -> Path {
+        guard let color = material?.color, color != .white, !hasColors else {
+            return self
+        }
+        return withColor(color)
     }
 }
 
 extension Polygon {
+    /// Returns the uniform color of all vertices, or nil if they have different colors
+    var uniformVertexColor: Color? {
+        let uniformColor = vertices.first?.color ?? .white
+        return vertices.allSatisfy { $0.color == uniformColor } ? uniformColor : nil
+    }
+
     /// Convert uniform vertex colors to a material instead
-    func fixupColors(material: ShapeScript.Material) -> Polygon {
+    func vertexColorsToMaterial(material: ShapeScript.Material) -> Polygon {
+        var material = self.material as? ShapeScript.Material ?? material
         guard material.texture == nil else {
             return withMaterial(material)
         }
-        var current: Color?
-        for point in vertices {
-            if current == nil {
-                current = point.color
-            } else if point.color != current {
-                var material = material
-                material.albedo = .color(.white)
+        if let uniformVertexColor {
+            if uniformVertexColor == .white {
                 return withMaterial(material)
             }
+            var material = material
+            material.albedo = .color(uniformVertexColor)
+            return withoutVertexColors().withMaterial(material)
         }
-        var material = material
-        material.albedo = (current ?? material.color).map { .color($0) }
-        return mapVertexColors { _ in nil }.withMaterial(material)
+        material.albedo = .color(.white)
+        return withMaterial(material)
     }
 
-    /// Convert material colors to a vertex colors
+    /// Convert material color to vertex colors
     func materialToVertexColors(material: ShapeScript.Material?) -> Polygon {
         guard var material = self.material as? ShapeScript.Material ?? material,
-              let color = material.color
+              let color = material.color, color != .white,
+              !hasVertexColors
         else {
             return self
         }
         material.albedo = .color(.white)
-        return mapVertexColors { $0 * color }.withMaterial(material)
+        return mapVertexColors { _ in color }.withMaterial(material)
     }
 }
 
 extension Mesh {
-    /// Convert uniform vertex colors to a material instead
-    func fixupColors(material: ShapeScript.Material) -> Mesh {
-        .init(polygons.map { $0.fixupColors(material: material) })
+    /// Returns the uniform color of all vertices, or nil if they have different colors
+    var uniformVertexColor: Color? {
+        let uniformColor = polygons.first?.uniformVertexColor ?? .white
+        return polygons.allSatisfy { $0.uniformVertexColor == uniformColor } ? uniformColor : nil
     }
 
-    /// Convert material colors to a vertex colors
+    /// Convert uniform vertex colors to a material instead
+    func vertexColorsToMaterial(material: ShapeScript.Material) -> Mesh {
+        guard material.texture == nil else {
+            return withMaterial(material)
+        }
+        if let uniformVertexColor {
+            if uniformVertexColor == .white {
+                return withMaterial(material)
+            }
+            var material = material
+            material.albedo = .color(uniformVertexColor)
+            return withoutVertexColors().withMaterial(material)
+        }
+        var material = material
+        material.albedo = .color(.white)
+        return withMaterial(material)
+    }
+
+    /// Convert material colors to vertex colors
     func materialToVertexColors(material: ShapeScript.Material?) -> Mesh {
         .init(polygons.map { $0.materialToVertexColors(material: material) })
     }

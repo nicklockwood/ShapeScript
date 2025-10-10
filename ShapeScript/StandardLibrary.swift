@@ -225,7 +225,7 @@ extension Symbols {
         "fill": .block(.builder) { context in
             .mesh(Geometry(type: .fill(context.paths), in: context))
         },
-        "hull": .block(.init(.hull, [:], .union([.point, .path, .mesh]), .mesh)) { context in
+        "hull": .block(.hull) { context in
             let vertices = try context.children.flatMap { child -> [Vertex] in
                 switch child {
                 case let .point(point):
@@ -245,7 +245,7 @@ extension Symbols {
             }
             return .mesh(Geometry(type: .hull(vertices), in: context))
         },
-        "minkowski": .block(.group) { context in
+        "minkowski": .block(.minkowski) { context in
             .mesh(Geometry(type: .minkowski, in: context))
         },
         // mesh
