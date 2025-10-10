@@ -666,6 +666,8 @@ private extension Geometry {
             mesh = .convexHull(of: meshes, isCancelled: isCancelled)
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
+                .detessellate()
+                .makeWatertight()
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
                 switch ($0.1.type, $1.1.type) {
@@ -729,6 +731,7 @@ private extension Geometry {
             }
             mesh = sum.vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
+                .detessellate()
                 .makeWatertight()
         case .union, .lathe, .extrude, .fill:
             mesh = .union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
