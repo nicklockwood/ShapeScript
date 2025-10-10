@@ -13,6 +13,7 @@ typealias LoadingTask = (LoadingProgress) throws -> Void
 
 final class LoadingProgress {
     // Thread-safe
+
     let id: Int
     var status: Status {
         lock.lock()
@@ -21,10 +22,12 @@ final class LoadingProgress {
     }
 
     // Only accessed from internal thread
+
     private let lock = NSLock()
     private var _status: Status = .waiting
 
     // Only accessed from main thread
+
     private static var _processID = 0
     private let observer: (Status) -> Void
     private var thread: Thread? {
@@ -42,10 +45,17 @@ final class LoadingProgress {
         self.observer = observer
         // Defer initial update for one cycle
         DispatchQueue.main.async {
-            // Note: use of `self` here ensures status hasn't changed
-            observer(self.status)
+            if self.status.isCancelledOrFailed {
+                return
+            }
+            // Note: status may have changed at this point, but
+            // no other status should have been sent to the observer
+            // (i.e. the changes are still waiting on the queue)
+            observer(.waiting)
         }
     }
+
+    // Nonisolated
 
     deinit {
         print("[\(id)] released")
@@ -116,8 +126,9 @@ extension LoadingProgress {
         }
     }
 
-    /// Evaluate code on the loading thread
-    /// Must be called from the main thread
+    // Main-thread only
+
+    /// Evaluate code on the loading thread (but must be called from the main thread)
     func dispatch(_ block: @escaping LoadingTask) {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)
