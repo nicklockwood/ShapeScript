@@ -1250,7 +1250,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        XCTAssertEqual(geometry.path?.points.first?.color, .red)
+        XCTAssertEqual(geometry.material.color, .red)
     }
 
     func testColorInPath() throws {
@@ -1300,9 +1300,9 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         #if canImport(CoreText)
         let line1 = try XCTUnwrap(context.children.first?.value as? Geometry)
-        XCTAssertEqual(line1.path?.points.first?.color, .red)
+        XCTAssertEqual(line1.material.color, .red)
         let line2 = try XCTUnwrap(context.children.last?.value as? Geometry)
-        XCTAssertEqual(line2.path?.points.first?.color, .blue)
+        XCTAssertEqual(line2.material.color, .blue)
         #endif
     }
 

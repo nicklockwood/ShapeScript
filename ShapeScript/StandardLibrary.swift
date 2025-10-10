@@ -233,10 +233,7 @@ extension Symbols {
                 case let .path(path):
                     return path.subpaths.flatMap(\.edgeVertices)
                 case let .mesh(geometry):
-                    if let path = geometry.path {
-                        return path.subpaths.flatMap(\.edgeVertices)
-                    }
-                    return [] // handled at mesh generation time
+                    return geometry.path?.subpaths.flatMap(\.edgeVertices) ?? []
                 default:
                     throw RuntimeErrorType.assertionFailure(
                         "Unexpected child of type \(child.type) in hull"

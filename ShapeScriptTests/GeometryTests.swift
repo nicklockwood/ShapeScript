@@ -321,14 +321,16 @@ final class GeometryTests: XCTestCase {
         thing { color blue }
         """), delegate: nil, cache: cache)
         _ = scene.build { true }
-        // Cache should have 3 entries: extrusion, hull1 and hull2
-        XCTAssertEqual(cache.count, 3)
+        // Cache should have 4 entries: extrusion1, extrusion2, hull1 and hull2
+        XCTAssertEqual(cache.count, 4)
         let meshes = scene.children.compactMap(\.mesh)
         XCTAssertEqual(meshes.count, 2)
         // Meshes both have non-uniform vertex colors so material color must be baked
         XCTAssertEqual(meshes.first?.materials, [Material(color: .white)])
+        XCTAssertEqual(meshes.last?.materials, [Material(color: .white)])
         XCTAssertEqual(meshes.first?.hasVertexColors, true)
-        XCTAssertEqual(meshes.first, meshes.last)
+        XCTAssertEqual(meshes.last?.hasVertexColors, true)
+        XCTAssertNotEqual(meshes.first, meshes.last)
     }
 
     func testHullColorCaching4() throws {
@@ -403,7 +405,102 @@ final class GeometryTests: XCTestCase {
         XCTAssertNotEqual(meshes.first, meshes.last)
     }
 
+    func testExtrusionColorCaching() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        define thing {
+            extrude {
+                path {
+                    orientation 0 0 -0.4
+                    curve 0 1 0.75
+                    curve -1 0
+                    curve 0 -1 0.25
+                    curve 1 0
+                    curve 1 1
+                    curve 0 1 0.75
+                }
+            }
+        }
+        thing { color red }
+        thing { color green }
+        """), delegate: nil, cache: cache)
+        _ = scene.build { true }
+        // Cache should have only 1 entry: path
+        XCTAssertEqual(cache.count, 1)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 2)
+        // Mesh colors are uniform, so neither has any baked material
+        XCTAssertEqual(meshes.first?.materials, [nil])
+        XCTAssertEqual(meshes.last?.materials, [nil])
+        XCTAssertEqual(meshes.first?.hasVertexColors, false)
+        XCTAssertEqual(meshes.last?.hasVertexColors, false)
+        XCTAssertEqual(meshes.first, meshes.last)
+    }
+
+    func testTwistedExtrusionColorCaching() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        define thing {
+            extrude {
+                square { color blue }
+                twist 1
+            }
+        }
+        thing { color red }
+        thing { color green }
+        """), delegate: nil, cache: cache)
+        _ = scene.build { true }
+        // Cache should have only 1 entry: extrude
+        XCTAssertEqual(cache.count, 1)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 2)
+        // Mesh colors are uniform, so neither has any baked material
+        XCTAssertEqual(meshes.first?.materials, [nil])
+        XCTAssertEqual(meshes.last?.materials, [nil])
+        XCTAssertEqual(meshes.first?.hasVertexColors, false)
+        XCTAssertEqual(meshes.last?.hasVertexColors, false)
+        XCTAssertEqual(meshes.first, meshes.last)
+        // Geometries are not recolored
+        XCTAssertEqual(scene.children.first?.material, Material(color: .blue))
+        XCTAssertEqual(scene.children.last?.material, Material(color: .blue))
+    }
+
     func testMinkowskiColorCaching() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        define thing {
+            minkowski {
+                sphere {
+                    size 0.05
+                }
+                path {
+                    orientation 0 0 -0.4
+                    curve 0 1 0.75
+                    curve -1 0
+                    curve 0 -1 0.25
+                    curve 1 0
+                    curve 1 1
+                    curve 0 1 0.75
+                }
+            }
+        }
+        thing { color red }
+        thing { color green }
+        """), delegate: nil, cache: cache)
+        _ = scene.build { true }
+        // Cache should have only 3 entries: sphere, path, minkowski
+        XCTAssertEqual(cache.count, 3)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 2)
+        // Mesh colors are uniform, so neither has any baked material
+        XCTAssertEqual(meshes.first?.materials, [nil])
+        XCTAssertEqual(meshes.last?.materials, [nil])
+        XCTAssertEqual(meshes.first?.hasVertexColors, false)
+        XCTAssertEqual(meshes.last?.hasVertexColors, false)
+        XCTAssertEqual(meshes.first, meshes.last)
+    }
+
+    func testMinkowskiColorCaching2() throws {
         let cache = GeometryCache()
         let scene = try evaluate(parse("""
         define thing {

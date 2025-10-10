@@ -145,19 +145,22 @@ public final class Geometry: Hashable {
         var type = type
         switch type {
         case var .extrude(paths, options):
-            (paths, material) = paths.vertexColorsToMaterial(material: material)
-            (options.along, material) = options.along.vertexColorsToMaterial(material: material)
             switch (paths.count, options.along.count) {
             case (0, 0):
                 break
-            case (1, 1), (1, 0):
-                assert(children.isEmpty)
+            case (1, 0):
+                (paths, material) = paths.vertexColorsToMaterial(material: material)
                 type = .extrude(paths, options)
+            case (1, 1):
+                var pair = (paths + options.along)
+                (pair, material) = pair.vertexColorsToMaterial(material: material)
+                options.along = [pair[1]]
+                type = .extrude([pair[0]], options)
             case (_, 0):
-                assert(children.isEmpty)
                 type = .extrude([], .default)
                 children = paths.map { path in
-                    Geometry(
+                    let (path, material) = path.vertexColorsToMaterial(material: material)
+                    return Geometry(
                         type: .extrude([path], options),
                         name: nil,
                         transform: .identity,
@@ -167,17 +170,18 @@ public final class Geometry: Hashable {
                         sourceLocation: sourceLocation
                     )
                 }
+                material = children.first?.material ?? .default
             default:
                 // For extrusions with multiple paths, convert each path to a
                 // separate child geometry so they can be renderered individually
-                assert(children.isEmpty)
                 type = .extrude([], .default)
                 children = paths.flatMap { path in
                     options.along.map { along in
+                        let (pair, material) = [path, along].vertexColorsToMaterial(material: material)
                         var options = options
-                        options.along = [along]
+                        options.along = [pair[1]]
                         return Geometry(
-                            type: .extrude([path], options),
+                            type: .extrude([pair[0]], options),
                             name: nil,
                             transform: .identity,
                             material: material,
@@ -187,23 +191,23 @@ public final class Geometry: Hashable {
                         )
                     }
                 }
+                material = children.first?.material ?? .default
             }
         case .lathe(var paths, let segments):
-            (paths, material) = paths.vertexColorsToMaterial(material: material)
             switch paths.count {
             case 0:
                 break
             case 1:
-                assert(children.isEmpty)
+                (paths, material) = paths.vertexColorsToMaterial(material: material)
                 type = .lathe(paths, segments: segments)
             default:
                 // For lathes with multiple paths, convert each path to a
                 // separate child geometry so they can be renderered individually
-                assert(children.isEmpty)
                 type = .lathe([], segments: 0)
-                children = paths.map {
-                    Geometry(
-                        type: .lathe([$0], segments: segments),
+                children = paths.map { path in
+                    let (path, material) = path.vertexColorsToMaterial(material: material)
+                    return Geometry(
+                        type: .lathe([path], segments: segments),
                         name: nil,
                         transform: .identity,
                         material: material,
@@ -212,23 +216,23 @@ public final class Geometry: Hashable {
                         sourceLocation: sourceLocation
                     )
                 }
+                material = children.first?.material ?? .default
             }
         case var .fill(paths):
-            (paths, material) = paths.vertexColorsToMaterial(material: material)
             switch paths.count {
             case 0:
                 break
             case 1:
-                assert(children.isEmpty)
+                (paths, material) = paths.vertexColorsToMaterial(material: material)
                 type = .fill(paths)
             default:
                 // For fills with multiple paths, convert each path to a
                 // separate child geometry so they can be renderered individually
-                assert(children.isEmpty)
                 type = .fill([])
-                children = paths.map {
-                    Geometry(
-                        type: .fill([$0]),
+                children = paths.map { path in
+                    let (path, material) = path.vertexColorsToMaterial(material: material)
+                    return Geometry(
+                        type: .fill([path]),
                         name: nil,
                         transform: .identity,
                         material: material,
@@ -237,7 +241,14 @@ public final class Geometry: Hashable {
                         sourceLocation: sourceLocation
                     )
                 }
+                material = children.first?.material ?? .default
             }
+        case var .loft(paths):
+            (paths, material) = paths.vertexColorsToMaterial(material: material)
+            type = .loft(paths)
+        case var .path(path):
+            (path, material) = path.vertexColorsToMaterial(material: material)
+            type = .path(path)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
         case .hull, .minkowski:
@@ -248,7 +259,7 @@ public final class Geometry: Hashable {
             if debug {
                 children.forEach { $0.debug = true }
             }
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
+        case .cone, .cylinder, .sphere, .cube, .camera, .light:
             break
         }
 
@@ -626,26 +637,30 @@ private extension Geometry {
         case .cube:
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count == 1:
-            mesh = Mesh.extrude(paths[0]).makeWatertight()
+            mesh = .extrude(paths[0]).makeWatertight()
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
-            mesh = Mesh.extrude(
-                paths[0],
-                along: options.along[0],
+            mesh = .extrude(
+                paths[0].materialToVertexColors(material: material),
+                along: options.along[0].materialToVertexColors(material: material).predividedBy(material),
                 twist: options.twist,
                 align: options.align,
                 isCancelled: isCancelled
-            ).makeWatertight()
+            )
+            .vertexColorsToMaterial(material: material)
+            .replacing(material, with: nil)
+            .makeWatertight()
         case let .lathe(paths, segments: segments) where paths.count == 1:
-            mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
+            mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled).makeWatertight()
         case let .fill(paths) where paths.count == 1:
-            mesh = Mesh.fill([paths[0].closed()], isCancelled: isCancelled).makeWatertight()
+            mesh = .fill(paths[0].closed()).makeWatertight()
         case let .loft(paths):
-            mesh = Mesh.loft(paths).makeWatertight()
+            mesh = .loft(paths, isCancelled: isCancelled).makeWatertight()
         case let .hull(vertices):
-            let m = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
-            let meshes = ([m] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
+            let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
+            let meshes = ([base] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled)
-                .vertexColorsToMaterial(material: material).replacing(material, with: nil)
+                .vertexColorsToMaterial(material: material)
+                .replacing(material, with: nil)
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
                 switch ($0.1.type, $1.1.type) {
@@ -676,45 +691,55 @@ private extension Geometry {
             var sum: Mesh
             if let shape = first.path?.transformed(by: first.transform) {
                 guard let next = children.popFirst() else {
-                    sum = .empty
+                    mesh = .empty
                     break
                 }
+                let shape = shape.materialToVertexColors(material: first.material)
                 if let path = next.path?.transformed(by: next.transform) {
-                    let mesh = Mesh.fill(shape).materialToVertexColors(material: first.material)
-                    sum = mesh.minkowskiSum(with: path, isCancelled: isCancelled)
+                    sum = .fill(shape).minkowskiSum(
+                        with: path.materialToVertexColors(material: next.material),
+                        isCancelled: isCancelled
+                    )
                 } else {
-                    let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
-                    sum = mesh.minkowskiSum(with: shape, isCancelled: isCancelled)
+                    sum = next.flattened(callback).materialToVertexColors(material: next.material).minkowskiSum(
+                        with: shape,
+                        isCancelled: isCancelled
+                    )
                 }
             } else {
                 sum = first.flattened(callback).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
-                if var path = next.path?.transformed(by: next.transform) {
-                    path = path.materialToVertexColors(material: next.material)
-                    sum = sum.minkowskiSum(with: path, isCancelled: isCancelled)
+                if let path = next.path?.transformed(by: next.transform) {
+                    sum = sum.minkowskiSum(
+                        with: path.materialToVertexColors(material: next.material).predividedBy(first.material),
+                        isCancelled: isCancelled
+                    )
                 } else {
-                    let mesh = next.flattened(callback).materialToVertexColors(material: next.material)
-                    sum = sum.minkowskiSum(with: mesh, isCancelled: isCancelled)
+                    sum = sum.minkowskiSum(
+                        with: next.flattened(callback).materialToVertexColors(material: next.material),
+                        isCancelled: isCancelled
+                    )
                 }
             }
             mesh = sum.vertexColorsToMaterial(material: material)
-                .replacing(material, with: nil).makeWatertight()
+                .replacing(material, with: nil)
+                .makeWatertight()
         case .union, .lathe, .extrude, .fill:
-            mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
+            mesh = .union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
-            mesh = Mesh.symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
+            mesh = .symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
         case .difference:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = Mesh.difference(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .difference(meshes, isCancelled: isCancelled).makeWatertight()
         case .intersection:
             let meshes = flattenedChildren(callback)
-            mesh = Mesh.intersection(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .intersection(meshes, isCancelled: isCancelled).makeWatertight()
         case .stencil:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = Mesh.stencil(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .stencil(meshes, isCancelled: isCancelled).makeWatertight()
         case let .mesh(mesh):
             self.mesh = mesh
         }
@@ -798,11 +823,34 @@ private extension Geometry {
     }
 }
 
+private extension Color {
+    func predividedBy(_ other: Color) -> Color {
+        .init(
+            other.r > 0 ? r / other.r : r,
+            other.g > 0 ? g / other.g : g,
+            other.b > 0 ? b / other.b : b,
+            other.a > 0 ? a / other.a : a
+        )
+    }
+}
+
+private extension Material {
+    func predividedBy(_ other: Material) -> Material {
+        var result = self
+        result.albedo = .color({
+            let lhs = color ?? .white
+            let rhs = other.color ?? .white
+            return lhs.predividedBy(rhs)
+        }())
+        return result
+    }
+}
+
 private extension [Path] {
     /// Returns the uniform color of all vertices, or nil if they have different colors
     var uniformVertexColor: Color? {
         let uniformColor = first?.uniformVertexColor ?? .white
-        return allSatisfy { $0.uniformVertexColor == uniformColor } ? uniformColor : nil
+        return allSatisfy { [uniformColor, .white].contains($0.uniformVertexColor) } ? uniformColor : nil
     }
 
     /// Convert uniform point colors to a material instead
@@ -827,8 +875,8 @@ private extension [Path] {
 extension Path {
     /// Returns the uniform color of all vertices, or nil if they have different colors
     var uniformVertexColor: Color? {
-        let uniformColor = points.first?.color
-        return points.allSatisfy { $0.color == uniformColor } ? (uniformColor ?? .white) : nil
+        let uniformColor = points.first?.color ?? .white
+        return points.allSatisfy { $0.color ?? .white == uniformColor } ? uniformColor : nil
     }
 
     /// Convert uniform point colors to a material instead
@@ -849,12 +897,16 @@ extension Path {
         return (self, material)
     }
 
-    /// Convert material color to vertex colors
+    /// Convert material color to vertex colors, preserving the existing vertex colors if set
     func materialToVertexColors(material: ShapeScript.Material?) -> Path {
         guard let color = material?.color, color != .white, !hasColors else {
             return self
         }
         return withColor(color)
+    }
+
+    func predividedBy(_ other: Material) -> Path {
+        mapColors { $0?.predividedBy(other.color ?? .white) }
     }
 }
 
@@ -883,7 +935,7 @@ extension Polygon {
         return withMaterial(material)
     }
 
-    /// Convert material color to vertex colors
+    /// Convert material colors to vertex colors, preserving the existing vertex colors if set
     func materialToVertexColors(material: ShapeScript.Material?) -> Polygon {
         guard var material = self.material as? ShapeScript.Material ?? material,
               let color = material.color, color != .white,
@@ -921,7 +973,7 @@ extension Mesh {
         return withMaterial(material)
     }
 
-    /// Convert material colors to vertex colors
+    /// Convert material colors to vertex colors, preserving the existing vertex colors if set
     func materialToVertexColors(material: ShapeScript.Material?) -> Mesh {
         .init(polygons.map { $0.materialToVertexColors(material: material) })
     }
