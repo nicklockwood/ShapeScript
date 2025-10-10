@@ -168,7 +168,7 @@ extension Value {
             if !members.contains("alpha"), let color = self.as(.color) {
                 members += color.members
             }
-            let flattened = values.flattened
+            let flattened = values.flattened(recursive: true)
             if flattened.isEmpty || flattened.contains(where: {
                 $0.value is Bounded || $0.value is Geometry
             }) {
@@ -297,7 +297,7 @@ extension Value {
             case "red", "green", "blue", "alpha":
                 return self.as(.color)?[name, isCancelled]
             case "bounds":
-                return .bounds(Bounds(values.flattened.compactMap {
+                return .bounds(Bounds(values.flattened(recursive: true).compactMap {
                     switch $0.value {
                     case let bounded as Bounded:
                         return bounded.bounds
@@ -310,7 +310,7 @@ extension Value {
                     }
                 }))
             case "volume":
-                return .number(values.flattened.reduce(0) {
+                return .number(values.flattened(recursive: true).reduce(0) {
                     switch $1 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         return $0 + geometry.volume(isCancelled)
@@ -319,7 +319,7 @@ extension Value {
                     }
                 })
             case "polygons":
-                return .tuple(values.flattened.flatMap {
+                return .tuple(values.flattened(recursive: true).flatMap {
                     switch $0 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         let polygons = geometry.polygons(isCancelled)
@@ -332,7 +332,7 @@ extension Value {
                     }
                 })
             case "triangles":
-                return .tuple(values.flattened.flatMap {
+                return .tuple(values.flattened(recursive: true).flatMap {
                     switch $0 {
                     case let .mesh(geometry) where geometry.hasMesh:
                         let triangles = geometry.polygons(isCancelled)
@@ -513,22 +513,6 @@ extension Value {
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil
-        }
-    }
-}
-
-private extension [Value] {
-    var flattened: [Value] {
-        flatMap {
-            switch $0 {
-            case let .tuple(values):
-                return values.flattened
-            case .color, .texture, .material, .boolean, .number,
-                 .radians, .halfturns, .vector, .size, .rotation,
-                 .string, .font, .text, .path, .mesh, .polygon, .point,
-                 .range, .bounds, .object:
-                return [$0]
-            }
         }
     }
 }

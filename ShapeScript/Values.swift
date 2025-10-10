@@ -170,10 +170,9 @@ extension Value {
     }
 
     var value: AnyHashable {
-        switch self {
+        switch unwrapped(recursive: true) {
         case let .color(color): return color
-        case let .texture(texture):
-            return texture.map { $0 as AnyHashable } ?? AnyHashable("")
+        case let .texture(texture): return texture.map { $0 as AnyHashable } ?? AnyHashable("")
         case let .material(material): return material
         case let .boolean(boolean): return boolean
         case let .number(number): return number
@@ -189,7 +188,6 @@ extension Value {
         case let .mesh(mesh): return mesh
         case let .polygon(polygon): return polygon
         case let .point(point): return point
-        case let .tuple(values) where values.count == 1: return values[0].value
         case let .tuple(values): return values.map(\.value)
         case let .range(range): return range
         case let .bounds(bounds): return bounds
@@ -332,6 +330,44 @@ extension Value {
              .radians, .halfturns, .string, .font, .text, .path, .material,
              .mesh, .polygon, .point, .bounds, .object:
             return nil
+        }
+    }
+
+    /// Recursively unwrap a tuple containing only one value
+    func unwrapped(recursive: Bool) -> Value {
+        if case let .tuple(values) = self, values.count == 1 {
+            return recursive ? values[0].unwrapped(recursive: true) : values[0]
+        }
+        return self
+    }
+
+    /// Recursively flatten nested tuples
+    func flattened(recursive: Bool) -> [Value] {
+        [self].flattened(recursive: recursive)
+    }
+}
+
+extension [Value] {
+    /// Recursively unwrap a list containing only one tuple value
+    func unwrapped(recursive: Bool) -> [Value] {
+        if count == 1, case let .tuple(values) = self[0] {
+            return recursive ? values.unwrapped(recursive: true) : values
+        }
+        return self
+    }
+
+    /// Recursively flatten nested tuples
+    func flattened(recursive: Bool) -> [Value] {
+        flatMap {
+            switch $0 {
+            case let .tuple(values):
+                return recursive ? values.flattened(recursive: true) : values
+            case .color, .texture, .material, .boolean, .number,
+                 .radians, .halfturns, .vector, .size, .rotation,
+                 .string, .font, .text, .path, .mesh, .polygon, .point,
+                 .range, .bounds, .object:
+                return [$0]
+            }
         }
     }
 }

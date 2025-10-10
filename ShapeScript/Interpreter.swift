@@ -397,11 +397,7 @@ extension RuntimeErrorType {
     }
 
     static func unknownMember(_ name: String, of value: Value) -> RuntimeErrorType {
-        // TODO: find less hacky way to do this unwrap
-        var value = value
-        while case let .tuple(values) = value, values.count == 1 {
-            value = values[0]
-        }
+        let value = value.unwrapped(recursive: true)
         assert(
             !value.members.contains(name),
             "\(value.errorDescription) should have member '\(name)'"
@@ -687,12 +683,7 @@ extension Definition {
                     if context.stackDepth > 25 {
                         throw RuntimeErrorType.assertionFailure("Too much recursion")
                     }
-                    let values: [Value]
-                    if case let .tuple(_values) = value {
-                        values = _values
-                    } else {
-                        values = [value]
-                    }
+                    let values = [value].flattened(recursive: false)
                     assert(values.count == names.count)
                     for (identifier, value) in zip(names, values) {
                         context.define(identifier.name, as: .constant(value))
