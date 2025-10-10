@@ -126,27 +126,8 @@ public extension GeometryType {
                 bounds.formUnion(pathBounds.translated(by: offset))
                 bounds.formUnion(pathBounds.translated(by: -offset))
             }
-        case let .extrude(paths, options):
-            return Bounds(paths.flatMap { path in
-                options.along.flatMap { along in
-                    path.extrusionContours(
-                        along: along,
-                        twist: options.twist,
-                        align: options.align
-                    )
-                }
-            })
-        case let .lathe(paths, segments):
-            return .init(paths.map { path -> Bounds in
-                let profileBounds = path.latheProfile.bounds
-                let diameter = abs(profileBounds.min.x) * 2
-                let bounds = Path.circle(segments: segments).bounds
-                    .scaled(by: diameter)
-                    .rotated(by: .roll(-.halfPi))
-                    .rotated(by: .pitch(.halfPi))
-                return bounds.translated(by: profileBounds.min.y * .unitY)
-                    .union(bounds.translated(by: profileBounds.max.y * .unitY))
-            })
+        case .extrude, .lathe:
+            return .init(representativePoints)
         case let .loft(paths), let .fill(paths):
             return .init(paths.map(\.bounds))
         case let .hull(vertices):
@@ -163,10 +144,9 @@ extension GeometryType {
     /// Returns `true` for objects whose children do not contribute to their mesh
     var isLeafGeometry: Bool {
         switch self {
-        case let .extrude(paths, _), let .lathe(paths, _):
+        case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             return !paths.isEmpty
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .fill,
-             .group, .camera, .light:
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .group, .camera, .light:
             return true
         case .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
             return false

@@ -105,6 +105,75 @@ final class GeometryTests: XCTestCase {
         context.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.fill([.square()]), in: context)
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
+        XCTAssertEqual(shape.bounds.size, [1, 1, 0])
+        XCTAssertEqual(shape.bounds.center, [0, 0, 0])
+        let exactBounds = shape.exactBounds(with: shape.transform)
+        XCTAssertEqual(exactBounds.size, shape.bounds.size)
+        XCTAssertEqual(exactBounds.center, [1, 2, 3])
+    }
+
+    func testTransformedMultipleFilledPathBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = .translation(offset)
+        let shape = Geometry(type: GeometryType.fill([
+            .square(),
+            .circle(radius: 0.5).translated(by: [1, 0, 0]),
+        ]), in: context)
+        XCTAssertEqual(shape.bounds.size, [2, 1, 0])
+        XCTAssertEqual(shape.bounds.center, [0.5, 0, 0])
+        let exactBounds = shape.exactBounds(with: shape.transform)
+        XCTAssertEqual(exactBounds.size, shape.bounds.size)
+        XCTAssertEqual(exactBounds.center, [1.5, 2, 3])
+    }
+
+    func testTransformedMultipleExtrudedPathBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = .translation(offset)
+        let shape = Geometry(type: GeometryType.extrude([
+            .square(),
+            .circle(radius: 0.5).translated(by: [1, 0, 0]),
+        ], .default), in: context)
+        XCTAssertEqual(shape.bounds.size, [2, 1, 1])
+        XCTAssertEqual(shape.bounds.center, [0.5, 0, 0])
+        let exactBounds = shape.exactBounds(with: shape.transform)
+        XCTAssertEqual(exactBounds.size, shape.bounds.size)
+        XCTAssertEqual(exactBounds.center, [1.5, 2, 3])
+    }
+
+    func testTransformedMultipleExtrudedPathBoundsWithTwist() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = .translation(offset)
+        let shape = Geometry(type: GeometryType.extrude([
+            .square(),
+            .circle(radius: 0.5).translated(by: [1, 0, 0]),
+        ], .init(
+            along: [.line([0, 0, -0.5], [0, 0, 0.5])],
+            twist: .halfPi,
+            align: nil
+        )), in: context)
+        XCTAssertEqual(shape.bounds.size, [2, 2, 1])
+        XCTAssertEqual(shape.bounds.center, [0.5, -0.5, 0])
+        let exactBounds = shape.exactBounds(with: shape.transform)
+        XCTAssertEqual(exactBounds.size, shape.bounds.size)
+        XCTAssertEqual(exactBounds.center, [1.5, 1.5, 3])
+    }
+
+    func testTransformedMultipleLathedPathBounds() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let offset = Vector(1, 2, 3)
+        context.transform = .translation(offset)
+        let shape = Geometry(type: GeometryType.lathe([
+            .square(),
+            .circle(radius: 0.5).translated(by: [0, 1, 0]),
+        ], segments: 4), in: context)
+        XCTAssertEqual(shape.bounds.size, [1, 2, 1])
+        XCTAssertEqual(shape.bounds.center, [0, 0.5, 0])
+        let exactBounds = shape.exactBounds(with: shape.transform)
+        XCTAssertEqual(exactBounds.size, shape.bounds.size)
+        XCTAssertEqual(exactBounds.center, [1, 2.5, 3])
     }
 
     // MARK: Intersection

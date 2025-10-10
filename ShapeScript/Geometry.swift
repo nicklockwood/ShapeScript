@@ -147,42 +147,44 @@ public final class Geometry: Hashable {
         case var .extrude(paths, options):
             (paths, material) = paths.vertexColorsToMaterial(material: material)
             (options.along, material) = options.along.vertexColorsToMaterial(material: material)
-            type = .extrude(paths, options)
             switch (paths.count, options.along.count) {
             case (0, 0):
                 break
-            case (1, _), (_, 0):
+            case (1, 1), (_, 0):
                 assert(children.isEmpty)
+                type = .extrude(paths, options)
             default:
                 // For extrusions with multiple paths, convert each path to a
-                // separate child geometry so they can be individually selected
+                // separate child geometry so they can be renderered individually
                 assert(children.isEmpty)
                 type = .extrude([], .default)
-                children = paths.map { path in
-                    var path = path
-                    (path, material) = path.vertexColorsToMaterial(material: material)
-                    return Geometry(
-                        type: .extrude([path], options),
-                        name: nil,
-                        transform: .identity,
-                        material: material,
-                        smoothing: smoothing,
-                        children: [],
-                        sourceLocation: sourceLocation
-                    )
+                children = paths.flatMap { path in
+                    options.along.map { along in
+                        var options = options
+                        options.along = [along]
+                        return Geometry(
+                            type: .extrude([path], options),
+                            name: nil,
+                            transform: .identity,
+                            material: material,
+                            smoothing: smoothing,
+                            children: [],
+                            sourceLocation: sourceLocation
+                        )
+                    }
                 }
             }
         case .lathe(var paths, let segments):
             (paths, material) = paths.vertexColorsToMaterial(material: material)
-            type = .lathe(paths, segments: segments)
             switch paths.count {
             case 0:
                 break
             case 1:
                 assert(children.isEmpty)
+                type = .lathe(paths, segments: segments)
             default:
                 // For lathes with multiple paths, convert each path to a
-                // separate child geometry so they can be individually selected
+                // separate child geometry so they can be renderered individually
                 assert(children.isEmpty)
                 type = .lathe([], segments: 0)
                 children = paths.map {
@@ -198,17 +200,30 @@ public final class Geometry: Hashable {
                 }
             }
         case var .fill(paths):
-            // TODO: why didn't we apply the same logic as above for fill?
             (paths, material) = paths.vertexColorsToMaterial(material: material)
-            type = .fill(paths)
             switch paths.count {
             case 0:
                 break
-            default:
+            case 1:
                 assert(children.isEmpty)
+                type = .fill(paths)
+            default:
+                // For fills with multiple paths, convert each path to a
+                // separate child geometry so they can be renderered individually
+                assert(children.isEmpty)
+                type = .fill([])
+                children = paths.map {
+                    Geometry(
+                        type: .fill([$0]),
+                        name: nil,
+                        transform: .identity,
+                        material: material,
+                        smoothing: smoothing,
+                        children: [],
+                        sourceLocation: sourceLocation
+                    )
+                }
             }
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
-            assert(children.isEmpty)
         case let .mesh(mesh):
             material = mesh.polygons.first?.material as? Material ?? material
         case .hull, .minkowski:
@@ -219,6 +234,8 @@ public final class Geometry: Hashable {
             if debug {
                 children.forEach { $0.debug = true }
             }
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .camera, .light:
+            break
         }
 
         self.type = type
@@ -596,18 +613,18 @@ private extension Geometry {
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count >= 1:
             mesh = Mesh.extrude(paths, isCancelled: isCancelled).makeWatertight()
-        case let .extrude(paths, options) where paths.count == 1:
-            mesh = Mesh.merge(options.along.map { along in
-                Mesh.extrude(
-                    paths[0],
-                    along: along,
-                    twist: options.twist,
-                    align: options.align,
-                    isCancelled: isCancelled
-                ).makeWatertight()
-            })
+        case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
+            mesh = Mesh.extrude(
+                paths[0],
+                along: options.along[0],
+                twist: options.twist,
+                align: options.align,
+                isCancelled: isCancelled
+            ).makeWatertight()
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = Mesh.lathe(paths[0], slices: segments).makeWatertight()
+        case let .fill(paths) where paths.count == 1:
+            mesh = Mesh.fill([paths[0].closed()], isCancelled: isCancelled).makeWatertight()
         case let .loft(paths):
             mesh = Mesh.loft(paths).makeWatertight()
         case let .hull(vertices):
@@ -669,9 +686,7 @@ private extension Geometry {
             }
             mesh = sum.vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil).makeWatertight()
-        case let .fill(paths):
-            mesh = Mesh.fill(paths.map { $0.closed() }, isCancelled: isCancelled).makeWatertight()
-        case .union, .lathe, .extrude:
+        case .union, .lathe, .extrude, .fill:
             mesh = Mesh.union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
         case .xor:
             mesh = Mesh.symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
@@ -991,14 +1006,22 @@ public extension Geometry {
         switch type {
         case .camera, .light:
             return .empty
-        case let .extrude(paths, _) where paths.count >= 1,
-             let .lathe(paths, _) where paths.count >= 1:
-            fallthrough
-        case .cone, .cylinder, .sphere, .cube, .mesh, .path:
+        case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
+            return Bounds(children.map {
+                $0.exactBounds(with: $0.transform * transform, callback)
+            })
+        case .cone, .cylinder, .sphere, .cube, .path, .extrude, .lathe, .mesh:
+            assert(children.isEmpty)
             if transform.rotation == .identity {
-                return bounds.transformed(by: transform)
+                return type.bounds.transformed(by: transform)
             }
             return Bounds(type.representativePoints.transformed(by: transform))
+        case let .fill(paths), let .loft(paths):
+            assert(children.isEmpty)
+            if transform.rotation == .identity {
+                return type.bounds.transformed(by: transform)
+            }
+            return Bounds(paths.transformed(by: transform))
         case .hull:
             let bounds: Bounds
             if transform.rotation == .identity {
@@ -1013,12 +1036,6 @@ public extension Geometry {
             return children.reduce(.empty) {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, callback))
             }
-        case let .fill(paths), let .loft(paths):
-            return Bounds(paths.transformed(by: transform))
-        case .group, .union, .lathe, .extrude:
-            return Bounds(children.map {
-                $0.exactBounds(with: $0.transform * transform, callback)
-            })
         case .xor, .difference, .intersection:
             _ = build(callback)
             if transform.rotation == .identity {
