@@ -343,6 +343,7 @@ extension BlockType {
     static let group: Self = .init(.group, [:], .mesh, .mesh)
     static let path: Self = .init(.path, [:], .union([.point, .path]), .path)
     static let pathShape: Self = .init(.pathShape, [:], .void, .path)
+    static let mesh: Self = .init(.mesh, [:], .union([.polygon, .mesh]), .mesh)
     static let hull: Self = .init(.hull, [:], .union([.point, .path, .mesh]), .mesh)
     static let minkowski: Self = .init(.group, [:], .mesh, .mesh)
 }

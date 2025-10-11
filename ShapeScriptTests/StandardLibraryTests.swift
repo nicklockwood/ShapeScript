@@ -884,6 +884,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+        XCTAssertEqual(delegate.log.logDescription, "polygon { points 3 }")
     }
 
     func testPrintDefaultPolygon() throws {
@@ -894,6 +895,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(delegate.log, [Path.polygon(sides: 5)])
+        XCTAssertEqual(delegate.log.logDescription, "path { points 6 }")
     }
 
     func testPolygonWithoutArguments() throws {
@@ -988,6 +990,51 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertNotNil(delegate.log.first as? Euclid.Polygon)
+    }
+
+    // MARK: Meshes
+
+    func testMesh() throws {
+        let program = try parse("""
+        mesh polygon {
+            point 0
+            point 1 0
+            translate 1 1
+            point 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh?.polygons.count, 1)
+    }
+
+    func testEmptyMesh() throws {
+        let program = try parse("""
+        mesh {}
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh, .empty)
+    }
+
+    func testSubmeshes() throws {
+        let program = try parse("""
+        mesh {
+            cube
+            translate 1
+            sphere
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh?.polygons.count, 134)
+        XCTAssertEqual(geometry.children.count, 2)
     }
 
     // MARK: Hulls

@@ -323,7 +323,7 @@ public final class Geometry: Hashable {
             self.bounds = Bounds(children.map {
                 $0.bounds.transformed(by: $0.transform)
             })
-        case .lathe, .fill, .extrude, .loft, .hull:
+        case .lathe, .fill, .extrude, .loft, .mesh, .hull:
             self.bounds = type.bounds.union(Bounds(children.map {
                 $0.bounds.transformed(by: $0.transform)
             }))
@@ -333,7 +333,7 @@ public final class Geometry: Hashable {
                 bounds.formMinkowskiSum(with: child.bounds.transformed(by: child.transform))
             }
             self.bounds = bounds
-        case .cone, .cylinder, .sphere, .cube, .mesh, .path:
+        case .cone, .cylinder, .sphere, .cube, .path:
             self.bounds = type.bounds
         case .camera, .light:
             self.bounds = .empty
@@ -578,6 +578,10 @@ private extension Geometry {
         if type.isLeafGeometry, !buildMesh(callback) {
             return false
         }
+        // TODO: improve isLeafGeometry logic to get rid of this special case
+        if case .mesh = type, children.isEmpty {
+            return buildMesh(callback)
+        }
         for child in children where !child.buildLeaves(callback) {
             return false
         }
@@ -597,7 +601,9 @@ private extension Geometry {
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
-        case .group, .path, .mesh,
+        case .mesh:
+            mesh = children.merged(callback) // TODO: not really sure what to do here
+        case .group, .path,
              .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
@@ -752,7 +758,7 @@ private extension Geometry {
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
             mesh = .stencil(meshes, isCancelled: isCancelled).makeWatertight()
         case let .mesh(mesh):
-            self.mesh = mesh
+            self.mesh = .merge([mesh] + childMeshes(callback))
         }
         if callback() {
             if let smoothing {
@@ -1030,7 +1036,7 @@ public extension Geometry {
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
-            return 0 // TODO: should paths/points be treated as children?
+            return 0 // TODO: should paths/points/submeshes be treated as children?
         case .union, .xor, .difference, .intersection, .stencil, .group, .hull, .minkowski:
             return children.count
         }
@@ -1087,7 +1093,7 @@ public extension Geometry {
             return Bounds(children.map {
                 $0.exactBounds(with: $0.transform * transform, callback)
             })
-        case .cone, .cylinder, .sphere, .cube, .path, .extrude, .lathe, .mesh:
+        case .cone, .cylinder, .sphere, .cube, .path, .extrude, .lathe:
             assert(children.isEmpty)
             if transform.rotation == .identity {
                 return type.bounds.transformed(by: transform)
@@ -1099,7 +1105,7 @@ public extension Geometry {
                 return type.bounds.transformed(by: transform)
             }
             return Bounds(paths.transformed(by: transform))
-        case .hull:
+        case .hull, .mesh:
             let bounds: Bounds
             if transform.rotation == .identity {
                 bounds = type.bounds.transformed(by: transform)

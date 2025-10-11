@@ -155,9 +155,9 @@ extension GeometryType {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             return !paths.isEmpty
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .mesh, .group, .camera, .light:
+        case .cone, .cylinder, .sphere, .cube, .loft, .path, .group, .camera, .light:
             return true
-        case .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
+        case .mesh, .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
             return false
         }
     }

@@ -240,7 +240,7 @@ extension Symbols {
             .mesh(Geometry(type: .minkowski, in: context))
         },
         // mesh
-        "mesh": .block(.init(.mesh, [:], .polygon, .mesh)) { context in
+        "mesh": .block(.mesh) { context in
             let polygons = context.children.compactMap { $0.value as? Polygon }
             return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },

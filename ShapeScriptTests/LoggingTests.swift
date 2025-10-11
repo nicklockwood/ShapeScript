@@ -303,31 +303,35 @@ final class LoggingTests: XCTestCase {
     func testMeshGeometry() throws {
         let context = EvaluationContext(source: "", delegate: nil)
         let input = try Geometry(type: .mesh(.init([
-            XCTUnwrap(Polygon([
-                Vector(0, 0),
-                Vector(1, 0),
-                Vector(1, 1),
-            ])),
+            XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)
         XCTAssertEqual(input.logDescription, "mesh { polygons 1 }")
         XCTAssertEqual(input.nestedLogDescription, "mesh")
     }
 
-    func testMeshGeometry2() throws {
+    func testMeshGeometryNamedContext() throws {
         let context = EvaluationContext(source: "", delegate: nil)
         context.name = "Mesh"
         let input = try Geometry(type: .mesh(.init([
-            XCTUnwrap(Polygon([
-                Vector(0, 0),
-                Vector(1, 0),
-                Vector(1, 1),
-            ])),
+            XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)
         XCTAssertEqual(input.logDescription, """
         mesh {
             name "Mesh"
             polygons 1
         }
+        """)
+        XCTAssertEqual(input.nestedLogDescription, "mesh")
+    }
+
+    func testSubmeshes() throws {
+        let context = EvaluationContext(source: "", delegate: nil)
+        context.children.append(.mesh(Geometry(type: .cube, in: context)))
+        let input = try Geometry(type: .mesh(.init([
+            XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
+        ])), in: context)
+        XCTAssertEqual(input.logDescription, """
+        mesh { polygons 7 }
         """)
         XCTAssertEqual(input.nestedLogDescription, "mesh")
     }

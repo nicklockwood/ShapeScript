@@ -319,8 +319,8 @@ extension Geometry: Loggable {
             if light.shadowOpacity != 0 {
                 fields.append("shadow \(light.shadowOpacity.logDescription)")
             }
-        case let .mesh(mesh):
-            fields.append("polygons \(mesh.polygons.count)")
+        case .mesh:
+            fields.append("polygons \(polygons { false }.count)")
         case let .path(path):
             if path.subpaths.count > 1 {
                 fields.append("subpaths \(path.subpaths.count)")
