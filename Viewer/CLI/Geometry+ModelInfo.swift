@@ -19,7 +19,7 @@ extension Geometry {
             "Objects: \(objectCount)",
             triangles == polygons ? nil : "Polygons: \(polygons)",
             hasMesh ? "Triangles: \(triangles)" : nil,
-            bounds.isEmpty ? nil : "Dimensions: \(dimensions)",
+            overestimatedBounds.isEmpty ? nil : "Dimensions: \(dimensions)",
             hasMesh ? "Watertight: \(watertight)" : nil,
         ].compactMap { $0 }.joined(separator: "\n")
     }

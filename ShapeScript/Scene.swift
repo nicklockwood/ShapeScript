@@ -42,13 +42,17 @@ public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
     /// Returns the approximate (overestimated) bounds of the scene geometry.
-    var bounds: Bounds {
-        children.reduce(into: .empty) {
-            $0.formUnion($1.bounds.transformed(by: $1.transform))
-        }
+    var overestimatedBounds: Bounds {
+        Bounds(children.map(\.overestimatedBounds))
     }
 
-    func build(_ callback: @escaping () -> Bool) -> Bool {
+    /// Returns the approximate (overestimated) bounds of the scene geometry.
+    @available(*, deprecated, renamed: "overestimatedBounds")
+    var bounds: Bounds {
+        overestimatedBounds
+    }
+
+    func build(_ callback: @escaping LegacyCallback) -> Bool {
         for geometry in children where !geometry.build(callback) {
             return false
         }

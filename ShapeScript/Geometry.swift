@@ -25,11 +25,21 @@ public final class Geometry: Hashable {
     public let smoothing: Angle?
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
-    /// The overestimated Geometry bounds *without* the local transform applied
-    public let bounds: Bounds
+    private let _overestimatedBounds: Bounds
     private let _sourceLocation: (() -> SourceLocation?)?
     public private(set) lazy var sourceLocation: SourceLocation? = _sourceLocation?()
     public private(set) weak var parent: Geometry?
+
+    /// The overestimated Geometry bounds *with* local transform applied
+    public var overestimatedBounds: Bounds {
+        _overestimatedBounds.transformed(by: transform)
+    }
+
+    /// The overestimated Geometry bounds *without* the local transform applied
+    @available(*, deprecated, message: "Use overestimatedBounds instead")
+    public var bounds: Bounds {
+        _overestimatedBounds
+    }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(type)
@@ -310,33 +320,22 @@ public final class Geometry: Hashable {
         // Compute the overestimated, non-transformed bounds
         switch type {
         case .difference, .stencil:
-            self.bounds = children.first.map {
-                $0.bounds.transformed(by: $0.transform)
-            } ?? .empty
+            self._overestimatedBounds = children.first.map(\.overestimatedBounds) ?? .empty
         case .intersection:
-            self.bounds = children.dropFirst().reduce(into: children.first.map {
-                $0.bounds.transformed(by: $0.transform)
-            } ?? .empty) { bounds, child in
-                bounds.formIntersection(child.bounds.transformed(by: child.transform))
-            }
+            self._overestimatedBounds = (children.first?.overestimatedBounds ?? .empty)
+                .intersection(Bounds(children.dropFirst().map(\.overestimatedBounds)))
         case .union, .xor, .group:
-            self.bounds = Bounds(children.map {
-                $0.bounds.transformed(by: $0.transform)
-            })
+            self._overestimatedBounds = Bounds(children.map(\.overestimatedBounds))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
-            self.bounds = type.bounds.union(Bounds(children.map {
-                $0.bounds.transformed(by: $0.transform)
-            }))
+            self._overestimatedBounds = type.bounds.union(Bounds(children.map(\.overestimatedBounds)))
         case .minkowski:
-            var bounds = Bounds(min: .zero, max: .zero)
-            for child in children {
-                bounds.formMinkowskiSum(with: child.bounds.transformed(by: child.transform))
+            self._overestimatedBounds = children.reduce(.empty) {
+                $0.minkowskiSum(with: $1.overestimatedBounds)
             }
-            self.bounds = bounds
         case .cone, .cylinder, .sphere, .cube, .path:
-            self.bounds = type.bounds
+            self._overestimatedBounds = type.bounds
         case .camera, .light:
-            self.bounds = .empty
+            self._overestimatedBounds = .empty
         }
 
         // Must be set after all other properties

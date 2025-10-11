@@ -4442,7 +4442,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 4)
-        XCTAssertEqual(chars.first?.bounds.min.y, chars.last?.bounds.min.y)
+        XCTAssertEqual(chars.first?.overestimatedBounds.min.y, chars.last?.overestimatedBounds.min.y)
         #endif
     }
 
@@ -4457,7 +4457,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
     }
 
@@ -4475,7 +4475,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
     }
 
@@ -4490,7 +4490,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
     }
 
@@ -4508,7 +4508,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
     }
 
@@ -4525,7 +4525,7 @@ final class InterpreterTests: XCTestCase {
         #if canImport(CoreText)
         let chars = context.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.bounds.size, chars.last?.bounds.size)
+        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
     }
 

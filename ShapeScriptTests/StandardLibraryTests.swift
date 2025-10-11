@@ -1079,7 +1079,7 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
         let expected = Mesh.cube(size: 1.5)
-        XCTAssertEqual(geometry.bounds, expected.bounds)
+        XCTAssertEqual(geometry.overestimatedBounds, expected.bounds)
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh?.bounds, expected.bounds)
     }

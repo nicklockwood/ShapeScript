@@ -54,8 +54,8 @@ final class GeometryTests: XCTestCase {
             children: [cube, camera],
             sourceLocation: nil
         )
-        XCTAssert(camera.bounds.transformed(by: camera.transform).isEmpty)
-        XCTAssertEqual(group.bounds, cube.bounds)
+        XCTAssert(camera.overestimatedBounds.isEmpty)
+        XCTAssertEqual(group.overestimatedBounds, cube.overestimatedBounds)
     }
 
     func testLowDetailPrimitiveBounds() {
@@ -105,11 +105,9 @@ final class GeometryTests: XCTestCase {
         context.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.fill([.square()]), in: context)
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
-        XCTAssertEqual(shape.bounds.size, [1, 1, 0])
-        XCTAssertEqual(shape.bounds.center, [0, 0, 0])
-        let exactBounds = shape.exactBounds(with: shape.transform)
-        XCTAssertEqual(exactBounds.size, shape.bounds.size)
-        XCTAssertEqual(exactBounds.center, [1, 2, 3])
+        XCTAssertEqual(shape.overestimatedBounds.size, [1, 1, 0])
+        XCTAssertEqual(shape.overestimatedBounds.center, [1, 2, 3])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
     func testTransformedMultipleFilledPathBounds() {
@@ -120,11 +118,9 @@ final class GeometryTests: XCTestCase {
             .square(),
             .circle(radius: 0.5).translated(by: [1, 0, 0]),
         ]), in: context)
-        XCTAssertEqual(shape.bounds.size, [2, 1, 0])
-        XCTAssertEqual(shape.bounds.center, [0.5, 0, 0])
-        let exactBounds = shape.exactBounds(with: shape.transform)
-        XCTAssertEqual(exactBounds.size, shape.bounds.size)
-        XCTAssertEqual(exactBounds.center, [1.5, 2, 3])
+        XCTAssertEqual(shape.overestimatedBounds.size, [2, 1, 0])
+        XCTAssertEqual(shape.overestimatedBounds.center, [1.5, 2, 3])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
     func testTransformedMultipleExtrudedPathBounds() {
@@ -135,11 +131,9 @@ final class GeometryTests: XCTestCase {
             .square(),
             .circle(radius: 0.5).translated(by: [1, 0, 0]),
         ], .default), in: context)
-        XCTAssertEqual(shape.bounds.size, [2, 1, 1])
-        XCTAssertEqual(shape.bounds.center, [0.5, 0, 0])
-        let exactBounds = shape.exactBounds(with: shape.transform)
-        XCTAssertEqual(exactBounds.size, shape.bounds.size)
-        XCTAssertEqual(exactBounds.center, [1.5, 2, 3])
+        XCTAssertEqual(shape.overestimatedBounds.size, [2, 1, 1])
+        XCTAssertEqual(shape.overestimatedBounds.center, [1.5, 2, 3])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
     func testTransformedMultipleExtrudedPathBoundsWithTwist() {
@@ -154,11 +148,9 @@ final class GeometryTests: XCTestCase {
             twist: .halfPi,
             align: nil
         )), in: context)
-        XCTAssertEqual(shape.bounds.size, [2, 2, 1])
-        XCTAssertEqual(shape.bounds.center, [0.5, -0.5, 0])
-        let exactBounds = shape.exactBounds(with: shape.transform)
-        XCTAssertEqual(exactBounds.size, shape.bounds.size)
-        XCTAssertEqual(exactBounds.center, [1.5, 1.5, 3])
+        XCTAssertEqual(shape.overestimatedBounds.size, [2, 2, 1])
+        XCTAssertEqual(shape.overestimatedBounds.center, [1.5, 1.5, 3])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
     func testTransformedMultipleLathedPathBounds() {
@@ -169,11 +161,9 @@ final class GeometryTests: XCTestCase {
             .square(),
             .circle(radius: 0.5).translated(by: [0, 1, 0]),
         ], segments: 4), in: context)
-        XCTAssertEqual(shape.bounds.size, [1, 2, 1])
-        XCTAssertEqual(shape.bounds.center, [0, 0.5, 0])
-        let exactBounds = shape.exactBounds(with: shape.transform)
-        XCTAssertEqual(exactBounds.size, shape.bounds.size)
-        XCTAssertEqual(exactBounds.center, [1, 2.5, 3])
+        XCTAssertEqual(shape.overestimatedBounds.size, [1, 2, 1])
+        XCTAssertEqual(shape.overestimatedBounds.center, [1, 2.5, 3])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
     // MARK: Intersection
@@ -201,7 +191,7 @@ final class GeometryTests: XCTestCase {
             }
         }
         """), delegate: nil)
-        XCTAssertEqual(a.bounds, b.bounds)
+        XCTAssertEqual(a.overestimatedBounds, b.overestimatedBounds)
         XCTAssertEqual(a.children.count, b.children.count)
         XCTAssertEqual(a.children.map(\.mesh), b.children.map(\.mesh))
         XCTAssertEqual(a.children.map {

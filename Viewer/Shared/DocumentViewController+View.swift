@@ -62,13 +62,13 @@ extension DocumentViewController {
     }
 
     var axesSize: Double {
-        let bounds = geometry?.bounds ?? .empty
+        let bounds = geometry?.overestimatedBounds ?? .empty
         let m = max(-bounds.min, bounds.max)
         return max(m.x, m.y, m.z) * 1.1
     }
 
     var viewCenter: Vector {
-        showAxes ? .zero : (geometry?.bounds ?? .empty).center
+        showAxes ? .zero : (geometry?.overestimatedBounds ?? .empty).center
     }
 
     func resetView() {
@@ -151,7 +151,7 @@ extension DocumentViewController {
             self.axesNode = axesNode
         }
         // Update camera node
-        let bounds = geometry?.bounds ?? .empty
+        let bounds = geometry?.overestimatedBounds ?? .empty
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double
