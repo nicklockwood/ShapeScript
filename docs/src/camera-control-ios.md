@@ -22,7 +22,7 @@ Roll                         | Pinch, then rotate fingers
 
 ## Copy Settings
 
-It can be difficult to visualize the effect that a given position or orientation will have when defining a [custom camera](cameras.md#custom-cameras). A good solution is to use touch gestures to position the camera, then select `Copy Settings` from the camera menu.
+It can be difficult to visualize the effect that a given position or orientation will have when defining a [custom camera](cameras.md#custom-cameras). A good solution is to use touch gestures to position the camera, then select `Copy Camera Settings` from the camera menu.
 
 This copies a snippet of ShapeScript code which you can then paste into your `.shape` file to create the custom camera.
 

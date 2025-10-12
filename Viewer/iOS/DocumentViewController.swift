@@ -452,7 +452,7 @@ final class DocumentViewController: UIViewController {
                             self?.toggleAxes()
                         },
                         UIAction(
-                            title: "Copy Settings",
+                            title: "Copy Camera Settings",
                             image: nil,
                             identifier: nil,
                             discoverabilityTitle: nil,
