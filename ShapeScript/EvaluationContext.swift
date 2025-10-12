@@ -334,12 +334,18 @@ extension EvaluationContext {
             if importCache.fonts.contains(name) {
                 return name
             }
-            guard let font = CGFont(name as CFString) else {
-                // TODO: Work around silly race condition where font may have
-                // been imported by another file in the meantime
+            let font = CTFontCreateWithName(name as CFString, 1, nil)
+            let fullName = CTFontCopyFullName(font) as String
+            // CTFontCreateWithName always returns a value even for an empty string
+            // so use a basic heuristic to make sure we got the font that we requested
+            let lowercasedFullName = fullName.lowercased()
+            let lowercasedName = name.lowercased()
+            guard lowercasedFullName == lowercasedName ||
+                lowercasedFullName.hasPrefix("\(lowercasedName) ")
+            else {
                 throw RuntimeErrorType.unknownFont(name, options: fontNames)
             }
-            return font.fullName as String? ?? name
+            return fullName
         }
         let url = try resolveURL(for: name)
         if case let .value(.font(fullName)) = importCache.store[url] {
@@ -348,12 +354,11 @@ extension EvaluationContext {
         guard let dataProvider = CGDataProvider(url: url as CFURL) else {
             throw RuntimeErrorType.fileNotFound(for: name, at: url)
         }
-        guard let cgFont = CGFont(dataProvider),
-              CTFontManagerRegisterGraphicsFont(cgFont, nil)
+        guard let cgFont = CGFont(dataProvider), let fullName = cgFont.fullName as? String,
+              CGFont(fullName as CFString) != nil || CTFontManagerRegisterGraphicsFont(cgFont, nil)
         else {
             throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
         }
-        let fullName = cgFont.fullName as String? ?? ""
         importCache.store[url] = .value(.font(fullName))
         return fullName
         #else
