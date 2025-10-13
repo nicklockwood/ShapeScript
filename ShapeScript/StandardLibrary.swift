@@ -446,9 +446,12 @@ extension Symbols {
         "print": .command(.list(.any)) { value, context in
             context.debugLog(value.tupleValue)
         },
-        "assert": .command(.boolean) { value, _ in
-            if !value.boolValue {
-                throw RuntimeErrorType.assertionFailure("")
+        "assert": .command(.tuple([.boolean, .optional(.string)])) { value, _ in
+            let values = value.tupleValue
+            if values[0] as? Bool == false {
+                throw RuntimeErrorType.assertionFailure(
+                    values.count == 2 ? values[1] as? String ?? "" : ""
+                )
             }
         },
         "pause": .function(.optional(.any), .any) { value, context in
