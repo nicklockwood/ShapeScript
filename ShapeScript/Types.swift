@@ -125,25 +125,8 @@ extension ValueType {
     func simplified() -> ValueType {
         switch self {
         case let .union(types):
-            let types = types.flatMap {
-                switch $0.simplified() {
-                case let .union(types):
-                    return types
-                default:
-                    return [$0]
-                }
-            }.sorted()
-            guard var result = types.first.map({ [$0] }) else {
-                return self
-            }
-            for type in types.dropFirst() {
-                result.removeAll(where: { $0.isSubtype(of: type) })
-                if result.contains(where: { type.isSubtype(of: $0) }) {
-                    continue
-                }
-                result.append(type)
-            }
-            return result.count == 1 ? result[0] : .union(Set(result))
+            let types = types.simplified()
+            return types.count > 1 ? .union(types) : types.first ?? .void
         case let .list(type):
             return .list(type.simplified())
         case let .tuple(types):
@@ -299,8 +282,36 @@ private extension Set<ValueType> {
         }
     }
 
+    func simplified() -> Self {
+        let types = flatMap {
+            switch $0.simplified() {
+            case let .union(types):
+                return types
+            default:
+                return [$0]
+            }
+        }.sorted()
+        guard var result = types.first.map({ [$0] }) else {
+            return self
+        }
+        for type in types.dropFirst() {
+            result.removeAll(where: { $0.isSubtype(of: type) })
+            if result.contains(where: { type.isSubtype(of: $0) }) {
+                continue
+            }
+            result.append(type)
+        }
+        return Set(result)
+    }
+
     private func simplifiedForDescription() -> Self {
-        var types = self
+        var types = simplified()
+        if types.count > 1 {
+            types.remove(.void)
+        }
+        if contains(.number) {
+            types.remove(.radians)
+        }
         if contains(.number) {
             types.remove(.radians)
         }

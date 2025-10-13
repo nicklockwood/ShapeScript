@@ -1093,6 +1093,22 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), [["baz", true], ["foo", 1]])
     }
 
+    func testCastValueToOptional() {
+        let type = ValueType.optional(.boolean)
+        XCTAssert(Value.boolean(true).isConvertible(to: type))
+        XCTAssert(Value.void.isConvertible(to: type))
+        XCTAssertFalse(Value.number(5).isConvertible(to: type))
+        XCTAssertThrowsError(try evaluate("5", as: type)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "",
+                index: -1,
+                expected: "boolean", // Note: empty tuple not mentioned
+                got: "number"
+            ))
+        }
+    }
+
     func testCastValueToTupleWithOptional() {
         let type = ValueType.tuple([.boolean, .optional(.string)])
         let value = Value.boolean(true)
