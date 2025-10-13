@@ -1,6 +1,6 @@
 {
   "name": "ShapeScript",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "license": {
     "type": "MIT",
     "file": "LICENSE.md"
@@ -10,7 +10,7 @@
   "authors": "Nick Lockwood",
   "source": {
     "git": "https://github.com/nicklockwood/ShapeScript.git",
-    "tag": "1.9.0"
+    "tag": "1.9.1"
   },
   "source_files": ["ShapeScript", "LRUCache/Sources", "SVGPath/Sources"],
   "requires_arc": true,
@@ -18,8 +18,8 @@
       "Euclid": []
   },
   "platforms": {
-    "ios": "11.0",
-    "osx": "10.13"
+    "ios": "14.0",
+    "osx": "10.15"
   },
   "swift_versions": [
     "5.7", "5.8", "5.9", "5.10"

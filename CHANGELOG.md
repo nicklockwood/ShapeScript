@@ -1,6 +1,14 @@
 # Change Log
 
-## [1.9.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.0) (2025-12-06)
+## [1.9.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.1) (2025-10-13)
+
+- Object Info no longer shows file path for shapes in the current file
+- Object Info no longer shows extraneous info for scripts with no geometry
+- Improved type mismatch error message for optional parameters
+- Fixed spurious error if an optional function parameter is not provided
+- Improved floating window and tab grouping implementations
+
+## [1.9.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.0) (2025-10-12)
 
 - Added `minkowski` command
 - Custom blocks now accept child objects via implicit `children` parameter
