@@ -479,7 +479,7 @@ final class DocumentViewController: UIViewController {
         )
         if let fileURL = selectedGeometry?.sourceLocation?.file ?? document?.fileURL {
             sheet.addAction(UIAlertAction(
-                title: "View Source",
+                title: document?.isEditable ?? false ? "Open in Editor" : "View Source",
                 style: .default
             ) { [weak self] _ in
                 self?.openSourceView(withContentsOf: fileURL)
