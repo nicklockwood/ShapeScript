@@ -1158,9 +1158,10 @@ extension Expression {
                 )
             }
             switch symbol {
-            case let .function((.void, _), fn):
-                return try RuntimeError.wrap(fn(.void, context), at: range)
-            case let .function((parameterType, _), _):
+            case let .function((parameterType, _), fn):
+                if parameterType.isOptional {
+                    return try RuntimeError.wrap(fn(.void, context), at: range)
+                }
                 // Functions with parameters can't be called without arguments
                 throw RuntimeError(.missingArgument(
                     for: name,
