@@ -89,6 +89,7 @@ extension Document {
             watertight = "calculating…"
         }
 
+        let hasTriangles = triangles != "0"
         if let selectedGeometry {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
@@ -100,17 +101,16 @@ extension Document {
             let nameString = selectedGeometry.name.flatMap {
                 $0.isEmpty ? nil : "Name: \($0)"
             }
-            let isMesh = selectedGeometry.hasMesh
             let childCount = selectedGeometry.childCount
             return [
                 nameString,
                 "Type: \(selectedGeometry.nestedLogDescription)",
                 childCount == 0 ? nil : "Children: \(childCount)",
                 triangles == polygons ? nil : "Polygons: \(polygons)",
-                isMesh ? "Triangles: \(triangles)" : nil,
+                hasTriangles ? "Triangles: \(triangles)" : nil,
                 geometry.overestimatedBounds.isEmpty ? nil : "Dimensions: \(dimensions)",
-                isMesh ? "Volume: \(volume)" : nil,
-                isMesh ? "Watertight: \(watertight)" : nil,
+                hasTriangles ? "Volume: \(volume)" : nil,
+                hasTriangles ? "Watertight: \(watertight)" : nil,
 //                "Size: \(selectedGeometry.transform.scale.logDescription)",
 //                "Position: \(selectedGeometry.transform.offset.logDescription)",
 //                "Orientation: \(selectedGeometry.transform.rotation.logDescription)",
@@ -119,14 +119,13 @@ extension Document {
         }
 
         let objectCount = geometry.objectCount
-        let hasMeshes = geometry.hasMesh
         return [
             "Objects: \(objectCount)",
             triangles == polygons ? nil : "Polygons: \(polygons)",
-            hasMeshes ? "Triangles: \(triangles)" : nil,
+            hasTriangles ? "Triangles: \(triangles)" : nil,
             geometry.overestimatedBounds.isEmpty ? nil : "Dimensions: \(dimensions)",
-            hasMeshes ? "Volume: \(volume)" : nil,
-            hasMeshes ? "Watertight: \(watertight)" : nil,
+            hasTriangles ? "Volume: \(volume)" : nil,
+            hasTriangles ? "Watertight: \(watertight)" : nil,
             "",
             importedFileCount == 0 ? nil : "Imports: \(importedFileCount)",
             textureCount == 0 ? nil : "Textures: \(textureCount)",
