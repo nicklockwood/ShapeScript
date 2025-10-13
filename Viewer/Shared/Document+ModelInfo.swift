@@ -93,7 +93,7 @@ extension Document {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
                 locationString = "\nDefined on line \(location.line)"
-                if let url = location.file {
+                if let url = location.file, url != fileURL {
                     locationString += " in '\(url.lastPathComponent)'"
                 }
             }
