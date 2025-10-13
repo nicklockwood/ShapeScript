@@ -63,20 +63,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         exportMenuProvider?.updateExportMenu()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateFloatingWindows),
+            name: NSWindow.didBecomeMainNotification,
+            object: nil
+        )
     }
 
-    func applicationWillBecomeActive(_: Notification) {
-        for window in documentWindows where window.level == .floating {
-            window.level = .normal
-        }
+    func applicationDidBecomeActive(_: Notification) {
+        updateFloatingWindows(nil)
     }
 
-    func applicationWillResignActive(_: Notification) {
-        guard Settings.shared.keepWindowInFront else {
+    @objc private func updateFloatingWindows(_: Notification?) {
+        guard NSApp.mainWindow != nil else {
             return
         }
-        for window in documentWindows where window == NSApp.mainWindow && window.isVisible {
-            window.level = .floating
+        for window in documentWindows {
+            window.tabbingMode = .preferred
+            window.tabbingIdentifier = Bundle.main.bundleIdentifier ?? "ShapeScript"
+            if window == NSApp.mainWindow, Settings.shared.keepWindowInFront {
+                if window.level != .floating {
+                    window.level = .floating
+                }
+            } else if window.level == .floating {
+                window.level = .normal
+            }
         }
     }
 
@@ -88,6 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @IBAction func toggleKeepInFront(_: NSMenuItem) {
         Settings.shared.keepWindowInFront.toggle()
+        updateFloatingWindows(_: nil)
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
