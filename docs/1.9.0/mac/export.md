@@ -19,7 +19,7 @@ Extension             | File Type
 :-------------------- | :-------------------------------
 3mf                   | 3D Manufacturing Format 
 abc                   | Alembic                                          
-csg                   | OpenSCAD CSG                   
+csg / scad            | OpenSCAD CSG                   
 dae                   | COLLADA Digital Asset Exchange                     
 obj                   | Wavefront Object                
 off                   | Object File Format    
