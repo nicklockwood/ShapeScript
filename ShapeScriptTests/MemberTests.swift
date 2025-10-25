@@ -100,7 +100,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let volume = try XCTUnwrap(delegate.log.first as? Double)
         #if canImport(CoreText)
-        XCTAssertEqual(volume, 0.49954259395609135)
+        XCTAssertEqual(volume, 0.4995425939560915)
         #endif
     }
 
@@ -110,7 +110,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let polygons = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
         #if canImport(CoreText)
-        XCTAssertEqual(polygons.count, 77)
+        XCTAssertEqual(polygons.count, 58)
         #endif
     }
 
@@ -120,7 +120,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let triangles = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
         #if canImport(CoreText)
-        XCTAssertEqual(triangles.count, 242)
+        XCTAssertEqual(triangles.count, 238)
         #endif
     }
 

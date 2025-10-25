@@ -655,7 +655,10 @@ private extension Geometry {
         case .cube:
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count == 1:
-            mesh = .extrude(paths, isCancelled: isCancelled).makeWatertight()
+            mesh = .extrude(paths[0], isCancelled: isCancelled)
+            if paths[0].subpaths.count > 1 {
+                mesh = mesh?.makeWatertight().detessellate()
+            }
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
             mesh = .extrude(
                 paths[0].materialToVertexColors(material: material),
@@ -663,16 +666,23 @@ private extension Geometry {
                 twist: options.twist,
                 align: options.align,
                 isCancelled: isCancelled
-            )
-            .vertexColorsToMaterial(material: material)
-            .replacing(material, with: nil)
-            .makeWatertight()
+            ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
+            if !options.along[0].isClosed, paths[0].subpaths.count > 1 {
+                mesh = mesh?.makeWatertight().detessellate()
+            }
         case let .lathe(paths, segments: segments) where paths.count == 1:
-            mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled).makeWatertight()
+            mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled)
         case let .fill(paths) where paths.count == 1:
-            mesh = .fill(paths, isCancelled: isCancelled).makeWatertight()
+            mesh = .fill(paths[0], isCancelled: isCancelled)
+            if paths[0].subpaths.count > 1 {
+                // No point calling makeWatertight() as it doesn't work with double-sided polys
+                mesh = mesh?.detessellate()
+            }
         case let .loft(paths):
-            mesh = .loft(paths, isCancelled: isCancelled).makeWatertight()
+            mesh = .loft(paths, isCancelled: isCancelled)
+            if paths.first != paths.last, paths[0].subpaths.count > 1 || paths.last!.subpaths.count > 1 {
+                mesh = mesh?.makeWatertight().detessellate()
+            }
         case let .hull(vertices):
             let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
             let meshes = ([base] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
@@ -680,7 +690,6 @@ private extension Geometry {
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
                 .detessellate()
-                .makeWatertight()
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
                 switch ($0.1.type, $1.1.type) {
@@ -721,10 +730,8 @@ private extension Geometry {
                         isCancelled: isCancelled
                     )
                 } else {
-                    sum = next.flattened(callback).materialToVertexColors(material: next.material).minkowskiSum(
-                        with: shape,
-                        isCancelled: isCancelled
-                    )
+                    sum = next.flattened(callback).materialToVertexColors(material: next.material)
+                        .minkowskiSum(with: shape, isCancelled: isCancelled)
                 }
             } else {
                 sum = first.flattened(callback).materialToVertexColors(material: first.material)
@@ -742,29 +749,27 @@ private extension Geometry {
                     )
                 }
             }
-            mesh = sum.vertexColorsToMaterial(material: material)
-                .replacing(material, with: nil)
-                .detessellate()
-                .makeWatertight()
+            mesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil).detessellate()
         case .union, .lathe, .extrude, .fill:
-            mesh = .union(childMeshes(callback), isCancelled: isCancelled).makeWatertight()
+            mesh = .union(childMeshes(callback), isCancelled: isCancelled)
         case .xor:
-            mesh = .symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled).makeWatertight()
+            mesh = .symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled)
         case .difference:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = .difference(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .difference(meshes, isCancelled: isCancelled)
         case .intersection:
             let meshes = flattenedChildren(callback)
-            mesh = .intersection(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .intersection(meshes, isCancelled: isCancelled)
         case .stencil:
             let first = flattenedFirstChild(callback)
             let meshes = [first] + children.dropFirst().meshes(with: material, callback)
-            mesh = .stencil(meshes, isCancelled: isCancelled).makeWatertight()
+            mesh = .stencil(meshes, isCancelled: isCancelled)
         case let .mesh(mesh):
             self.mesh = .merge([mesh] + childMeshes(callback))
         }
         if callback() {
+            mesh = mesh?.makeWatertight()
             if let smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
