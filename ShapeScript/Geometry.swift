@@ -322,8 +322,9 @@ public final class Geometry: Hashable {
         case .difference, .stencil:
             self._overestimatedBounds = children.first.map(\.overestimatedBounds) ?? .empty
         case .intersection:
-            self._overestimatedBounds = (children.first?.overestimatedBounds ?? .empty)
-                .intersection(Bounds(children.dropFirst().map(\.overestimatedBounds)))
+            self._overestimatedBounds = children.dropFirst().reduce(children.first?.overestimatedBounds ?? .empty) {
+                $0.intersection($1.overestimatedBounds)
+            }
         case .union, .xor, .group:
             self._overestimatedBounds = Bounds(children.map(\.overestimatedBounds))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
