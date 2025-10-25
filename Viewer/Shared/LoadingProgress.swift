@@ -110,6 +110,7 @@ extension LoadingProgress {
 
     func setStatus(_ status: Status) {
         lock.lock()
+        // Once progress is cancelled or failed it can't be resumed
         if _status.isCancelledOrFailed {
             lock.unlock()
             return
@@ -120,8 +121,7 @@ extension LoadingProgress {
             observer(status)
         } else {
             DispatchQueue.main.async {
-                // Note: use of `self` here ensures status hasn't changed
-                self.observer(self.status)
+                self.observer(status)
             }
         }
     }
