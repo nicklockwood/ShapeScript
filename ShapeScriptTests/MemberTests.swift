@@ -120,7 +120,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let triangles = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
         #if canImport(CoreText)
-        XCTAssertEqual(triangles.count, 77)
+        XCTAssertEqual(triangles.count, 242)
         #endif
     }
 

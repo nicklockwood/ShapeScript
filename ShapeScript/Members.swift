@@ -335,7 +335,7 @@ extension Value {
                 return .tuple(values.flattened(recursive: true).flatMap {
                     switch $0 {
                     case let .mesh(geometry) where geometry.hasMesh:
-                        let triangles = geometry.polygons(isCancelled)
+                        let triangles = geometry.triangles(isCancelled)
                             .transformed(by: geometry.transform)
                         return triangles.map { Value.polygon($0) }
                     case let .polygon(polygon):
