@@ -213,6 +213,7 @@ extension Document {
     }
 
     func didUpdateSource() {
+        linkedResources.removeAll()
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
