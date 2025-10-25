@@ -100,7 +100,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let volume = try XCTUnwrap(delegate.log.first as? Double)
         #if canImport(CoreText)
-        XCTAssertEqual(volume, 0.499542593956141)
+        XCTAssertEqual(volume, 0.49954259395609135)
         #endif
     }
 

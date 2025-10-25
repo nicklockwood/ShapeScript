@@ -9,6 +9,12 @@
 @testable import Euclid
 import XCTest
 
+private extension Collection<Euclid.Polygon> {
+    func detessellate() -> [Euclid.Polygon] {
+        detessellate(ensureConvex: false)
+    }
+}
+
 final class PolygonTests: XCTestCase {
     // MARK: initialization
 
@@ -784,7 +790,7 @@ final class PolygonTests: XCTestCase {
                 [0.9349999999999999, 0.0, 0.16999999999999998],
             ],
         ])
-        let merged = triangles.detessellate(ensureConvex: false)
+        let merged = triangles.detessellate()
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
     }
 
@@ -822,7 +828,7 @@ final class PolygonTests: XCTestCase {
                 [1.086, 0.0, 0.16999999999999998],
             ],
         ])
-        let merged = triangles.detessellate(ensureConvex: false)
+        let merged = triangles.detessellate()
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
     }
 
@@ -999,8 +1005,38 @@ final class PolygonTests: XCTestCase {
         let result = triangles.detessellate()
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result, [
-            Polygon(unchecked: [[0, -1], [-2, 0], [0, 1], [2, 0]]),
+            Polygon(unchecked: [[0, 1], [2, 0], [0, -1], [-2, 0]]),
         ])
+    }
+
+    func testDetessellateComplexCharacterPaths() {
+        #if canImport(CoreText)
+        let font = CTFontCreateWithName("Helvetica" as CFString, 2, nil)
+        let paths = Path.text("eo", font: font, width: nil, detail: 2)
+        let polygons = paths.flatMap {
+            $0.subpaths.flatMap { $0.facePolygons() }
+        }
+        XCTAssertEqual(polygons.detessellate().count, 4)
+        #endif
+    }
+
+    func testMergeRectsDoesntExceedMaxSides() {
+        let normal = Vector.unitZ
+        let a = Polygon(unchecked: [
+            Vertex(-1, 1, normal: normal),
+            Vertex(-1, 0, normal: normal),
+            Vertex(1, 0, normal: normal),
+            Vertex(1, 1, normal: normal),
+        ])
+        let b = Polygon(unchecked: [
+            Vertex(-1, 0, normal: normal),
+            Vertex(-1, -1, normal: normal),
+            Vertex(1, -1, normal: normal),
+            Vertex(1, 0, normal: normal),
+        ])
+        let c = [a, b].coplanarDetessellate(ensureConvex: true, maxSides: 4)
+        XCTAssertEqual(c.count, 1)
+        XCTAssertEqual(c.first?.vertices.count, 4)
     }
 
     // MARK: area

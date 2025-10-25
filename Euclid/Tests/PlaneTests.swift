@@ -41,6 +41,16 @@ final class PlaneTests: XCTestCase {
         XCTAssertEqual(plane1, expected)
     }
 
+    func testPlaneFromVeryTinyTriangle() {
+        let points = [
+            Vector(-0.083844625072, 0.008990769241, 0.27920673849),
+            Vector(-0.036139665891999996, -0.01009717045, 0.268643811437),
+            Vector(-0.012878583519, -0.019404507572, 0.26349329626),
+        ]
+        let plane = Plane(points: points)
+        XCTAssertNil(plane)
+    }
+
     // MARK: FlatteningPlane
 
     func testFlatteningPlaneForUnitZ() {
@@ -241,6 +251,7 @@ final class PlaneTests: XCTestCase {
         XCTAssertTrue(points.allSatisfy(plane.intersects))
     }
 
+    @available(*, deprecated)
     func testDeprecatedPointPlaneDistance() {
         let point = Vector(-10, 0, 0)
         let plane = Plane(unchecked: .unitX, w: 0)

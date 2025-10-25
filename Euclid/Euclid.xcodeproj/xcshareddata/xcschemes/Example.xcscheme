@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "016FAB2821BFE78100AF60DC"
-               BuildableName = "Euclid.framework"
-               BlueprintName = "Euclid"
+               BlueprintIdentifier = "016FABE921C078E400AF60DC"
+               BuildableName = "EuclidExample.app"
+               BlueprintName = "Example"
                ReferencedContainer = "container:Euclid.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -26,22 +26,10 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "016FAB2821BFE78100AF60DC"
-            BuildableName = "Euclid.framework"
-            BlueprintName = "Euclid"
-            ReferencedContainer = "container:Euclid.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference
-            skipped = "NO"
-            parallelizable = "YES"
-            testExecutionOrdering = "random">
+            skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "016FAB3121BFE78100AF60DC"
@@ -53,7 +41,7 @@
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -62,15 +50,16 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "016FAB2821BFE78100AF60DC"
-            BuildableName = "Euclid.framework"
-            BlueprintName = "Euclid"
+            BlueprintIdentifier = "016FABE921C078E400AF60DC"
+            BuildableName = "EuclidExample.app"
+            BlueprintName = "Example"
             ReferencedContainer = "container:Euclid.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -78,15 +67,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "016FAB2821BFE78100AF60DC"
-            BuildableName = "Euclid.framework"
-            BlueprintName = "Euclid"
+            BlueprintIdentifier = "016FABE921C078E400AF60DC"
+            BuildableName = "EuclidExample.app"
+            BlueprintName = "Example"
             ReferencedContainer = "container:Euclid.xcodeproj">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

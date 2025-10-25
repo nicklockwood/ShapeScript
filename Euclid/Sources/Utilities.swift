@@ -432,7 +432,7 @@ func faceNormalForPoints(_ points: [Vector]) -> Vector {
         }
     }
 
-    // Points must be linear, so find what line they line on
+    // Points must be linear, so find what line they lie on
     // and then return the orthogonal vector to that one
     let ab = points.count > 1 ? points[1] - points[0] : .zero
     if let normal = ab.cross(.unitZ).cross(ab).direction {
@@ -572,6 +572,7 @@ func sanitizePoints(_ points: some Collection<PathPoint>) -> [PathPoint] {
         }
     }
     // Remove invalid points
+    var pointsWereRemoved = false
     let isClosed = pointsAreClosed(unchecked: result)
     if result.count > (isClosed ? 3 : 2), let a = result.first?.position {
         var ab = result[1].position - a
@@ -581,12 +582,17 @@ func sanitizePoints(_ points: some Collection<PathPoint>) -> [PathPoint] {
             if ab.cross(bc).isZero, ab.dot(bc) < epsilon {
                 // center point makes path degenerate - remove it
                 result.remove(at: i)
+                pointsWereRemoved = true
                 ab = result[i].position - result[i - 1].position
                 continue
             }
             i += 1
             ab = bc
         }
+    }
+    if pointsWereRemoved {
+        // Removing points may result in neighboring duplicates
+        return sanitizePoints(result)
     }
     // Ensure closed path start and end match
     if isClosed {
@@ -632,14 +638,14 @@ func subpathsFor(_ _points: [PathPoint]) -> [Path] {
         if points.last?.position == points.first?.position {
             points[points.startIndex] = points.last!
         }
-        paths.append(Path(unchecked: points, plane: nil, subpathIndices: []))
+        paths.append(Path(unchecked: .points(sanitizePoints(points)), plane: nil))
     }
     return paths.isEmpty && !_points.isEmpty ? [
-        Path(unchecked: _points, plane: nil, subpathIndices: []),
+        Path(unchecked: .points(sanitizePoints(_points)), plane: nil),
     ] : paths
 }
 
-func subpathIndicesFor(_ points: [PathPoint]) -> [Int] {
+private func subpathIndicesFor(_ points: [PathPoint]) -> [Int] {
     // TODO: ensure closing points are of the same type as the opening point;
     // should this be part of the sanitize function?
     var lastIndex = 0
