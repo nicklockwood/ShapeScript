@@ -33,6 +33,125 @@ private let testShapesURLs: [URL] = try! FileManager.default
     }
 
 final class RegressionTests: XCTestCase {
+    func testFill() throws {
+        let program = "fill text \"hello\""
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 77)
+        #endif
+    }
+
+    func testExtrusion() throws {
+        let program = "extrude text \"hello\""
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 174)
+        #endif
+    }
+
+    func testExtrusionAlongOpenPath() throws {
+        let program = """
+        extrude {
+            text "hello"
+            along path {
+                point 0
+                curve 1
+                point 1 0 1
+            }
+        }
+        """
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 703)
+        #endif
+    }
+
+    func testExtrusionAlongClosedPath() throws {
+        let program = "extrude { text \"hello\" \n along circle }"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 1712)
+        #endif
+    }
+
+    func testLathe() throws {
+        let program = "lathe text \"hello\""
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 1712)
+        #endif
+    }
+
+    func testDifference() throws {
+        let program = "difference cube { size 0.8 } sphere"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 188)
+        #endif
+    }
+
+    func testUnion() throws {
+        let program = "union cube { size 0.8 } sphere"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 236)
+        #endif
+    }
+
+    func testStencil() throws {
+        let program = "stencil cube cylinder { size 0.5 2 0.5 \n color red }"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 38)
+        #endif
+    }
+
+    func testHull() throws {
+        let program = "hull sphere cube { position 1 }"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 69)
+        #endif
+    }
+
+    func testMinkowski() throws {
+        let program = "minkowski sphere { size 0.1 } cube"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 182)
+        #endif
+    }
+
     func testExamples() throws {
         XCTAssertFalse(exampleURLs.isEmpty)
         XCTAssertFalse(testShapesURLs.isEmpty)
