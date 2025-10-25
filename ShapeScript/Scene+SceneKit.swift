@@ -51,7 +51,7 @@ public extension SCNNode {
 
         // debug bounds
 //        self.addChildNode(SCNNode(
-//            geometry: SCNGeometry(geometry.bounds)
+//            geometry: SCNGeometry(geometry.overestimatedBounds)
 //        ))
 
         // debug holes
@@ -296,7 +296,7 @@ public extension Geometry {
                 scnGeometry,
                 materialLookup: Material.init(_:)
             ) else {
-                throw ProgramError.unknownError(nil)
+                throw ProgramError.unknownError("Failed to export file")
             }
             type = .mesh(mesh)
         } else {
