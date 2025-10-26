@@ -1,7 +1,7 @@
 [![Build](https://github.com/nicklockwood/ShapeScript/actions/workflows/build.yml/badge.svg)](https://github.com/nicklockwood/ShapeScript/actions/workflows/build.yml)
 [![Codecov](https://codecov.io/gh/nicklockwood/ShapeScript/graphs/badge.svg)](https://codecov.io/gh/nicklockwood/ShapeScript)
 [![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20Mac%20|%20Linux-lightgray.svg)]()
-[![Swift 5.7](https://img.shields.io/badge/swift-5.1-red.svg?style=flat)](https://developer.apple.com/swift)
+[![Swift 5.7](https://img.shields.io/badge/swift-5.7-red.svg?style=flat)](https://developer.apple.com/swift)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 [![Mastodon](https://img.shields.io/badge/mastodon-@nicklockwood@mastodon.social-636dff.svg)](https://mastodon.social/@nicklockwood)
 
@@ -34,19 +34,19 @@ ShapeScript is packaged as a Swift framework, which itself depends on the [Eucli
 To install the ShapeScript framework using CocoaPods, add the following to your Podfile:
 
 ```ruby
-pod 'ShapeScript', '~> 1.9.1'
+pod 'ShapeScript', '~> 1.9.2'
 ```
 
 To install using Carthage, add this to your Cartfile:
 
 ```ogdl
-github "nicklockwood/ShapeScript" ~> 1.9.1
+github "nicklockwood/ShapeScript" ~> 1.9.2
 ```
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.9.1")),
+.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.9.2")),
 ```
 
 The repository also includes ShapeScript Viewer apps for iOS and macOS, a cut-down version of the full ShapeScript apps available on the [Mac](https://apps.apple.com/app/id1441135869) and [iOS](https://apps.apple.com/app/id1606439346) app stores. It is not currently possible to install or run these apps using CocoaPods, Carthage or Swift Package Manager but you can run them by opening the included Xcode project and selecting the `Viewer (Mac)` or `Viewer (iOS)` schemes. For Linux, see [usage instructions](#usage-linux) below.

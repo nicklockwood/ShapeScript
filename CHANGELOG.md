@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.9.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.2) (2025-10-26)
+
+- Fixed crash when creating a path from empty subpaths
+- Fixed `minkowski` output for off-center input shapes
+- Fixed bounds calculation for `intersection` shapes
+- Fixed partial render state sometimes not being shown on error
+- Fixed bug where `triangles` member property returned polygons instead of triangles
+- Scene info no longer shows imported models and textures after they have been removed
+- Improved detessellation algorithm (now merges more polygons than before)
+- Improved subpaths implementation (more reliably preserves distinct subpaths)
+- Bumped Euclid to version 0.8.12
+
 ## [1.9.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.1) (2025-10-13)
 
 - Object Info no longer shows file path for shapes in the current file

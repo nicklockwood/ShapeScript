@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Public interface
 
-public let version: String = "1.9.1"
+public let version: String = "1.9.2"
 
 public func evaluate(
     _ program: Program,
