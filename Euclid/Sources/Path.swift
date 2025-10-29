@@ -378,8 +378,7 @@ public extension Path {
     /// - Parameter wrapMode: The wrap mode to use for generating texture coordinates.
     /// - Returns: The edge vertices, or an empty array if path has subpaths.
     func edgeVertices(for wrapMode: Mesh.WrapMode) -> [Vertex] {
-        guard subpaths.count <= 1, points.count >= 2 else {
-            // TODO: does this actually match the documented behavior?
+        guard subpaths.count <= 1, points.count > 1 else {
             return points.first.map { [Vertex($0)] } ?? []
         }
 
@@ -388,7 +387,7 @@ public extension Path {
         switch wrapMode {
         case .shrink, .default:
             var prev = points[0].position
-            totalLength = points.reduce(0) { total, point in
+            totalLength = points.dropFirst().reduce(0) { total, point in
                 defer { prev = point.position }
                 return total + point.distance(from: prev)
             }
@@ -464,11 +463,11 @@ public extension Path {
 
     /// Returns the ordered array of path edges.
     var orderedEdges: [LineSegment] {
-        var p0 = points.first?.position
-        return points.dropFirst().compactMap {
-            let p1 = $0.position
-            defer { p0 = p1 }
-            return LineSegment(start: p0!, end: p1)
+        switch storage {
+        case let .subpaths(subpaths):
+            return subpaths.flatMap(\.orderedEdges)
+        case let .points(points):
+            return points.orderedEdges
         }
     }
 

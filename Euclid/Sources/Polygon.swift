@@ -191,11 +191,16 @@ public extension Polygon {
         vertices.contains(where: { $0.color != .white })
     }
 
-    /// The position of the center of the polygon.
-    /// This is calculated as the average of the vertex positions, and may not be equal to the center of the polygon's
-    /// ``bounds``.
-    var center: Vector {
+    /// The position of the centroid of the polygon.
+    /// This is calculated as the average of the vertex positions, and may not be equal to `bounds.center`.
+    var centroid: Vector {
         vertices.reduce(.zero) { $0 + $1.position } / Double(vertices.count)
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "centroid")
+    var center: Vector {
+        centroid
     }
 
     /// Returns the ordered array of polygon edges.
@@ -311,7 +316,7 @@ public extension Polygon {
     func mapVertices(_ transform: (Vertex) -> Vertex) -> [Polygon] {
         let vertices = vertices.map(transform)
         // TODO: is it worth checking if positions have changed as a fast path?
-        return .init(vertices, material: material, id: id)
+        return .init(vertices, plane: nil, ensureConvex: false, maxSides: .max, material: material, id: id)
     }
 
     /// Return a copy of the polygon without texture coordinates
@@ -547,19 +552,30 @@ extension Collection<LineSegment> {
 
 extension [Polygon] {
     /// Create one or more polygons from a closed loop of vertices
-    init(_ vertices: [Vertex], material: Polygon.Material?, id: Int = 0) {
+    init(
+        _ vertices: [Vertex],
+        plane: Plane? = nil,
+        ensureConvex: Bool = false,
+        maxSides: Int = .max,
+        material: Polygon.Material?,
+        id: Int = 0
+    ) {
         if let polygon = Polygon(vertices, material: material)?.withID(id) {
             self = [polygon]
             return
         }
-        self = triangulateVertices(
+        let triangles = triangulateVertices(
             vertices,
-            plane: nil,
+            plane: plane,
             isConvex: nil,
             sanitizeNormals: true,
             material: material,
             id: id
-        ).detessellate(ensureConvex: false)
+        )
+        let groupedByPlane = plane.map { [($0, triangles)] } ?? triangles.groupedByPlane()
+        self = groupedByPlane.flatMap {
+            $0.polygons.coplanarDetessellate(ensureConvex: ensureConvex, maxSides: maxSides)
+        }
     }
 }
 
@@ -607,17 +623,16 @@ extension Collection<Polygon> {
         return edges
     }
 
-    /// Like holeEdges, but also returns the edges of double-sided polygons
-    var boundingEdges: [LineSegment] {
-        var edges = [LineSegment]()
+    /// Like holeEdges, but preserves edge directionality
+    /// > Note: only suitable for use with polygons that are coplanar or don't include reverse faces
+    var boundingEdges: Set<LineSegment> {
+        var edges = Set<LineSegment>()
         for polygon in self {
             for edge in polygon.orderedEdges {
-                if let index = edges.firstIndex(where: {
-                    $0.start == edge.end && $0.end == edge.start
-                }) {
+                if let index = edges.firstIndex(of: edge.inverted()) {
                     edges.remove(at: index)
                 } else {
-                    edges.append(edge)
+                    edges.insert(edge)
                 }
             }
         }
@@ -828,10 +843,10 @@ extension Collection<Polygon> {
     }
 
     /// Merge polygons
-    func detessellate(ensureConvex: Bool) -> [Polygon] {
+    func detessellate(ensureConvex: Bool, maxSides: Int = .max) -> [Polygon] {
         groupedByMaterial().flatMap {
             $0.polygons.groupedByPlane().flatMap {
-                $0.polygons.coplanarDetessellate(ensureConvex: ensureConvex, maxSides: .max)
+                $0.polygons.coplanarDetessellate(ensureConvex: ensureConvex, maxSides: maxSides)
             }
         }
     }
@@ -839,6 +854,10 @@ extension Collection<Polygon> {
     /// Merge coplanar polygons that share one or more edges
     func coplanarDetessellate(ensureConvex: Bool, maxSides: Int) -> [Polygon] {
         assert(areCoplanar)
+        assert(allSatisfy { $0.material == first?.material })
+        assert(allSatisfy { $0.vertices.count <= maxSides })
+        assert(!ensureConvex || allSatisfy(\.isConvex))
+
         var polygons = Array(self)
         var shouldContinue = true
         while shouldContinue {
@@ -883,7 +902,10 @@ extension Collection<Polygon> {
         var groups = [(plane: Plane, polygons: [Polygon])]()
         for p in polygons {
             if p.plane.w.isApproximatelyEqual(to: plane.w, absoluteTolerance: planeEpsilon) {
-                if let i = groups.lastIndex(where: { $0.plane.isApproximatelyEqual(to: p.plane) }) {
+                if let i = groups.lastIndex(where: {
+                    $0.plane.isApproximatelyEqual(to: p.plane)
+                        && p.vertices.allSatisfy($0.plane.intersects)
+                }) {
                     groups[i].polygons.append(p)
                 } else {
                     groups.append((p.plane, [p]))
@@ -993,7 +1015,7 @@ extension Polygon {
     /// Vertices are assumed to be in anticlockwise order for the purpose of deriving the plane
     init(
         unchecked vertices: [Vertex],
-        plane: Plane?,
+        plane _plane: Plane?,
         isConvex: Bool?,
         sanitizeNormals: Bool,
         material: Material?,
@@ -1003,7 +1025,8 @@ extension Polygon {
         let points = vertices.map(\.position)
         assert(isConvex == nil || pointsAreConvex(points) == isConvex)
         assert(sanitizeNormals || vertices.allSatisfy { $0.normal != .zero })
-        let plane = plane ?? Plane(unchecked: points)
+        let plane = _plane ?? Plane(unchecked: points)
+        assert(_plane?.isApproximatelyEqual(to: plane) ?? true)
         assert(vertices.allSatisfy(plane.intersects))
         let isConvex = isConvex ?? pointsAreConvex(points)
         self.storage = Storage(
@@ -1019,8 +1042,10 @@ extension Polygon {
 
     /// Join touching polygons (without checking they are coplanar)
     func merge(unchecked other: Polygon, ensureConvex: Bool) -> Polygon? {
-        guard material == other.material else { return nil }
-        assert(plane.isApproximatelyEqual(to: other.plane))
+        assert(material == other.material)
+        // TODO: figure out why this can fail while plane.intersects passes
+        // assert(plane.isApproximatelyEqual(to: other.plane))
+        assert(other.vertices.allSatisfy(plane.intersects))
 
         // get vertices
         let va = vertices
@@ -1063,25 +1088,15 @@ extension Polygon {
         }
         let join2 = result.count - 1
 
-        // Check if merged points can be removed
-        // TODO: add option to always preserve merged points
-        func testPoint(_ index: Int) {
-            let prev = (index == 0) ? result.count - 1 : index - 1
-            let va = (result[index].position - result[prev].position).normalized()
-            let vb = (result[(index + 1) % result.count].position - result[index].position).normalized()
-            // check if point is redundant
-            if abs(va.dot(vb) - 1) < epsilon {
-                // TODO: should we check that normal and uv ~= slerp of values either side?
-                result.remove(at: index)
-            }
-        }
-        testPoint(join2)
-        testPoint(join1)
-
         // check result is not degenerate
         guard !verticesAreDegenerate(result) else {
             return nil
         }
+
+        // Check if merged points can be removed
+        // TODO: add option to always preserve merged points
+        _ = result.removeIfRedundant(at: max(join1, join2))
+        _ = result.removeIfRedundant(at: min(join1, join2))
 
         // check if convex
         let isConvex = verticesAreConvex(result)
@@ -1163,6 +1178,47 @@ extension Polygon {
         // e.g. if nearer to edge than vertex, must be closest point
         return orderedEdges.distance(from: point)
     }
+
+    /// Attempt to a add a new edge vertex at the specified location.
+    /// - Returns: `true` if a point was added or `false` if it wasn't (either because point was not on the edge, or
+    /// matched existing vertex)
+    mutating func insertEdgePoint(_ p: Vector) -> Bool {
+        guard var last = vertices.last else {
+            assertionFailure()
+            return false
+        }
+        if vertices.contains(where: { $0.position.isApproximatelyEqual(to: p) }) {
+            return false
+        }
+        for (i, v) in vertices.enumerated() {
+            let s = LineSegment(unchecked: last.position, v.position)
+            guard s.intersects(p) else {
+                last = v
+                continue
+            }
+            let t = p.distance(from: s.start) / s.length
+            let vertex = last.lerp(v, t)
+            guard !vertex.isApproximatelyEqual(to: last), !vertex.isApproximatelyEqual(to: v) else {
+                return false
+            }
+            assert(plane.intersects(vertex))
+            var vertices = vertices
+            vertices.insert(vertex, at: i)
+            guard !verticesAreDegenerate(vertices) else {
+                return false
+            }
+            self = Polygon(
+                unchecked: vertices,
+                plane: plane,
+                isConvex: nil, // Inserting a point can alter convexity
+                sanitizeNormals: false,
+                material: material,
+                id: id
+            )
+            return true
+        }
+        return false
+    }
 }
 
 private extension Polygon {
@@ -1191,46 +1247,6 @@ private extension Polygon {
             self.isConvex = isConvex
             self.material = material
         }
-    }
-
-    /// Attempt to a add a new edge vertex at the specified location.
-    /// - Returns: `true` if a point was added or `false` if it wasn't (either because point was not on the edge, or
-    /// matched existing vertex)
-    mutating func insertEdgePoint(_ p: Vector) -> Bool {
-        guard var last = vertices.last else {
-            assertionFailure()
-            return false
-        }
-        if vertices.contains(where: { $0.position.isApproximatelyEqual(to: p) }) {
-            return false
-        }
-        for (i, v) in vertices.enumerated() {
-            let s = LineSegment(unchecked: last.position, v.position)
-            guard s.intersects(p) else {
-                last = v
-                continue
-            }
-            let t = p.distance(from: s.start) / s.length
-            let vertex = last.lerp(v, t)
-            guard !vertex.isApproximatelyEqual(to: last), !vertex.isApproximatelyEqual(to: v) else {
-                return false
-            }
-            var vertices = vertices
-            vertices.insert(vertex, at: i)
-            guard !verticesAreDegenerate(vertices) else {
-                return false
-            }
-            self = Polygon(
-                unchecked: vertices,
-                plane: plane,
-                isConvex: isConvex,
-                sanitizeNormals: false,
-                material: material,
-                id: id
-            )
-            return true
-        }
-        return false
     }
 }
 

@@ -1009,6 +1009,26 @@ final class PolygonTests: XCTestCase {
         ])
     }
 
+    func testWatertightMeshDetesselated() {
+        let detail = 64
+        let a = Mesh.cube(size: 0.8)
+        let b = Mesh.sphere(slices: detail)
+        let c = a.subtracting(b).makeWatertight()
+        let d = c.detessellate()
+        XCTAssert(d.polygons.count < c.polygons.count)
+    }
+
+    func testDetessellateComplexCharacterPath() {
+        #if canImport(CoreText)
+        let font = CTFontCreateWithName("Courier" as CFString, 2, nil)
+        let paths = Path.text("p", font: font, width: nil, detail: 2)
+        let polygons = paths.flatMap {
+            $0.subpaths.flatMap { $0.facePolygons() }
+        }
+        XCTAssertEqual(polygons.detessellate().count, 2)
+        #endif
+    }
+
     func testDetessellateComplexCharacterPaths() {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Helvetica" as CFString, 2, nil)
@@ -1233,5 +1253,172 @@ final class PolygonTests: XCTestCase {
         XCTAssertEqual(polygon.distance(from: line), 0)
         line.translate(by: [0.1, 0])
         XCTAssertEqual(polygon.distance(from: line), 0.1)
+    }
+
+    // MARK: InsertEdgePoint
+
+    func testInsertEdgePointChangesConvexity() {
+        var polygon = Polygon(unchecked: [
+            [-0.496338834765, -0.17904070811, 0.600248465803],
+            [-0.29941098710999997, -0.23664576933, 0.805321458235],
+            [-0.299840180153, -0.235652447769, 0.799803057807],
+            [-0.299574480497, -0.235690029285, 0.7998451571749999],
+            [-0.493235048748, -0.17904070811, 0.59817458229],
+        ])
+        XCTAssertFalse(polygon.isConvex)
+        XCTAssertTrue(polygon.insertEdgePoint([-0.299839394845, -0.235654265282, 0.799813155002]))
+        XCTAssertTrue(polygon.isConvex)
+    }
+
+    // MARK: Overlapping and adjacent polygons
+
+    func testSinglePolygon() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 1.5],
+                [-0.5, 0.5],
+                [0.5, 0.5],
+                [0.5, 1.5],
+            ]),
+        ]
+        // TODO: should we add a `coplanarPolygonsAreWatertight` property?
+        XCTAssertFalse(polygons.areWatertight)
+        XCTAssertTrue(polygons.coplanarPolygonsAreConvex)
+
+        let mesh = Mesh(polygons)
+        XCTAssertFalse(mesh.isWatertight)
+        XCTAssertFalse(mesh.isKnownConvex)
+        XCTAssertTrue(mesh.isActuallyConvex)
+    }
+
+    func testOpposingPolygons() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 0.5],
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [0.5, -0.5],
+                [-0.5, -0.5],
+                [-0.5, 0.5],
+                [0.5, 0.5],
+            ]),
+        ]
+        XCTAssertTrue(polygons.areWatertight)
+
+        let mesh = Mesh(polygons)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertFalse(mesh.isKnownConvex)
+        XCTAssertTrue(mesh.isActuallyConvex)
+    }
+
+    func testCoincidentPolygons() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 0.5],
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+        ]
+        XCTAssertTrue(polygons.areWatertight) // TODO: not sure this is right?
+        XCTAssertTrue(polygons.coplanarPolygonsAreConvex)
+    }
+
+    func testAdjacentPolygons() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 1.5],
+                [-0.5, 0.5],
+                [0.5, 0.5],
+                [0.5, 1.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+        ]
+        XCTAssertFalse(polygons.areWatertight)
+        XCTAssertTrue(polygons.coplanarPolygonsAreConvex)
+
+        let mesh = Mesh(polygons)
+        XCTAssertFalse(mesh.isWatertight)
+        XCTAssertFalse(mesh.isKnownConvex)
+        XCTAssertTrue(mesh.isActuallyConvex)
+    }
+
+    func testCoincidentPolygonsWithAdjacentPolygon() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 0.5],
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+        ]
+        XCTAssertFalse(polygons.areWatertight)
+        XCTAssertTrue(polygons.coplanarPolygonsAreConvex)
+
+        let mesh = Mesh(polygons)
+        XCTAssertFalse(mesh.isWatertight)
+        XCTAssertFalse(mesh.isKnownConvex)
+        XCTAssertTrue(mesh.isActuallyConvex)
+    }
+
+    func testCoincidentPolygonsWithOpposingAdjacentPolygons() {
+        let polygons = [
+            Polygon(unchecked: [
+                [-0.5, 0.5],
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [-0.5, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [-0.5, 0.5],
+            ]),
+            Polygon(unchecked: [
+                [0.5, -0.5],
+                [-0.5, -0.5],
+                [-0.5, 0.5],
+                [0.5, 0.5],
+            ]),
+        ]
+        XCTAssertTrue(polygons.areWatertight) // TODO: not sure this is right?
+
+        let mesh = Mesh(polygons)
+        XCTAssertTrue(mesh.isWatertight) // TODO: not sure this is right?
+        XCTAssertFalse(mesh.isKnownConvex)
+        XCTAssertTrue(mesh.isActuallyConvex)
     }
 }

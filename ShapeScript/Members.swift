@@ -392,7 +392,7 @@ extension Value {
             case "bounds":
                 return .bounds(polygon.bounds)
             case "center":
-                return .vector(polygon.center)
+                return .vector(polygon.centroid)
             case "points":
                 return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
             case "triangles":

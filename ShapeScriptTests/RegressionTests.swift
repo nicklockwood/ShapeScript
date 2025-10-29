@@ -152,6 +152,50 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testDifference2() throws {
+        let program = """
+        detail 190
+
+        define RADIUSBOTTOM    94
+        define RADIUSTOP       104.8
+        define HEIGHT          64
+        define DEPTH           (HEIGHT / 2)
+        define THICKNESS       (RADIUSBOTTOM / 10)
+        define WALLTHICKNESS   1
+        define DIAMETER        (THICKNESS * (pi / 2) - WALLTHICKNESS * 2)
+
+        define LATHE lathe path {
+            point 0 HEIGHT
+            point (RADIUSTOP / 2 + THICKNESS)  HEIGHT
+            point (RADIUSBOTTOM / 2 + THICKNESS)  0
+            point 0  0
+        }
+
+        define CUBE cube {
+            size (RADIUSTOP + THICKNESS * 2 + WALLTHICKNESS) (HEIGHT - DEPTH) (RADIUSTOP + THICKNESS * 2 + WALLTHICKNESS)
+            position 0  ((HEIGHT + DIAMETER) - ((HEIGHT - DEPTH) / 2))
+        }
+
+        define CONE cone {
+            orientation 1
+            size (RADIUSTOP + THICKNESS * 2 + WALLTHICKNESS * 2)  (THICKNESS * 2)
+            position 0  (HEIGHT / 2 + THICKNESS / 2)
+        }
+
+        print LATHE.polygons.count
+        print CUBE.polygons.count
+        print CONE.polygons.count
+                        
+        difference LATHE CUBE CONE
+        """
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 1330) // TODO: why isn't this 1140?
+        XCTAssertEqual(delegate.log, [570.0, 6.0, 950.0])
+    }
+
     func testExamples() throws {
         XCTAssertFalse(exampleURLs.isEmpty)
         XCTAssertFalse(testShapesURLs.isEmpty)

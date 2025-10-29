@@ -79,6 +79,30 @@ extension Collection<Vertex> {
     }
 }
 
+extension [Vertex] {
+    /// Check if vertex is redundant - i.e. that the interpolated values would be the same if it were removed
+    mutating func removeIfRedundant(at index: Int) -> Bool {
+        guard count > 3 else { return false }
+        assert(!verticesAreDegenerate(self))
+        let a = self[(index == 0) ? count - 1 : index - 1]
+        let b = self[index]
+        let c = self[(index + 1) % count]
+        let ab = b.position - a.position, bc = c.position - b.position
+        let abl = ab.length, bcl = bc.length
+        // check if point is redundant
+        guard abs((ab / abl).dot(bc / bcl) - 1) < epsilon else {
+            return false
+        }
+        // check that removing point won't make vertices degenerate
+        let removed = remove(at: index)
+        if verticesAreDegenerate(self) {
+            insert(removed, at: index)
+            return false
+        }
+        return true
+    }
+}
+
 func verticesAreDegenerate(_ vertices: some Collection<Vertex>) -> Bool {
     guard vertices.count > 2 else {
         return true
@@ -304,19 +328,25 @@ func angleBetweenNormalizedVectorAndPlane(_ v: Vector, _ p: Plane) -> Angle {
     return .asin(v.dot(p.normal))
 }
 
-func rotationBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> Rotation {
+func axisAndAngleBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> (axis: Vector, angle: Angle) {
     assert(v0.isNormalized && v1.isNormalized)
     let axis = v0.cross(v1)
     if axis != .zero {
         let cross = axis.length
         let angle = Angle.atan2(y: cross, x: v0.dot(v1))
-        return .init(unchecked: axis / cross, angle: -angle)
+        return (axis / -cross, angle: angle)
     } else if v0.isApproximatelyEqual(to: v1) {
-        return .identity
+        let identity = Rotation.identity
+        return (identity.axis, identity.angle)
     } else {
         let orthonormal = v0.cross(v0.leastParallelAxis).normalized()
-        return .init(unchecked: orthonormal, angle: .pi)
+        return (orthonormal, .pi)
     }
+}
+
+func rotationBetweenNormalizedVectors(_ v0: Vector, _ v1: Vector) -> Rotation {
+    let (axis, angle) = axisAndAngleBetweenNormalizedVectors(v0, v1)
+    return Rotation(unchecked: axis, angle: angle)
 }
 
 func pointsAreDegenerate(_ points: [Vector]) -> Bool {
@@ -341,8 +371,9 @@ func pointsAreDegenerate(_ points: [Vector]) -> Bool {
     return false
 }
 
-/// Note: assumes points are not degenerate
+/// Note: assumes points are not degenerate and do not contain duplicates
 func pointsAreConvex(_ points: [Vector]) -> Bool {
+    assert(!pointsAreClosed(unchecked: points))
     let count = points.count
     guard count > 3, let a = points.last else {
         return count > 2
@@ -374,8 +405,8 @@ func pointsAreConvex(_ points: [Vector]) -> Bool {
 // Test if path is self-intersecting
 // TODO: optimize by using http://www.webcitation.org/6ahkPQIsN
 func pointsAreSelfIntersecting(_ points: [Vector]) -> Bool {
-    guard points.count > 2 else {
-        // A triangle can't be self-intersecting
+    guard points.count > 3 else {
+        // A triangle can't be self-intersecting (is this true?)
         return false
     }
     for i in 0 ..< points.count - 2 {
@@ -457,6 +488,15 @@ func flattenedPointsAreClockwise(_ points: [Vector]) -> Bool {
     }
     // abs(sum / 2) is the area of the polygon
     return sum > 0
+}
+
+func pointsAreClockwise(_ points: [Vector], relativeTo axis: Vector) -> Bool {
+    assert(axis.isNormalized)
+    return faceNormalForPoints(points).dot(axis) < 0
+}
+
+func pointsAreClosed(unchecked points: [Vector]) -> Bool {
+    points.last == points.first
 }
 
 // MARK: Curve utilities
@@ -553,6 +593,15 @@ func linePlaneIntersection(_ origin: Vector, _ direction: Vector, _ plane: Plane
 extension Collection<PathPoint> {
     var centroid: Vector {
         map(\.position).centroid
+    }
+
+    var orderedEdges: [LineSegment] {
+        var p0 = first?.position
+        return dropFirst().compactMap {
+            let p1 = $0.position
+            defer { p0 = p1 }
+            return LineSegment(start: p0!, end: p1)
+        }
     }
 }
 

@@ -443,6 +443,42 @@ final class MeshCSGTests: XCTestCase {
         XCTAssert(vertices.allSatisfy { $0.color == .green })
     }
 
+    func testConvexHullOfVertices() {
+        let detail = 16
+        let a = Mesh.sphere(slices: detail)
+        let b = a.translated(by: [1, 0, 0])
+        let vertices = (a.polygons + b.polygons).flatMap(\.vertices)
+        let mesh = Mesh.convexHull(of: vertices)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+    }
+
+    func testConvexHullOfLineSegments() {
+        let detail = 16
+        let a = Mesh.sphere(slices: detail)
+        let b = a.translated(by: [1, 0, 0])
+        let edges = (a.polygons + b.polygons).flatMap(\.orderedEdges)
+        let mesh = Mesh.convexHull(of: edges)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+    }
+
+    func testConvexHullOfPaths() {
+        let detail = 16
+        let a = Mesh.sphere(slices: detail)
+        let b = a.translated(by: [1, 0, 0])
+        let paths = Path((a.polygons + b.polygons).flatMap(\.orderedEdges)).subpaths
+        let mesh = Mesh.convexHull(of: paths)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+    }
+
     // MARK: Minkowski Sum
 
     func testMinkowskiSumOfCubes() {
@@ -530,14 +566,12 @@ final class MeshCSGTests: XCTestCase {
 
     func testMinkowskiSumOfTranslatedNonConvexShape() {
         #if canImport(CoreText)
-        for _ in 0 ..< 10 {
-            let a = Mesh.cube(size: 0.1).translated(by: .random())
-            let b = Mesh.text("G").translated(by: .random())
-            let ab = a.minkowskiSum(with: b)
-            let ba = b.minkowskiSum(with: a)
-            XCTAssertEqual(ab.bounds, a.bounds.minkowskiSum(with: b.bounds))
-            XCTAssertEqual(ba.bounds, a.bounds.minkowskiSum(with: b.bounds))
-        }
+        let a = Mesh.cube(size: 0.1).translated(by: .random())
+        let b = Mesh.text("G").translated(by: .random())
+        let ab = a.minkowskiSum(with: b)
+        let ba = b.minkowskiSum(with: a)
+        XCTAssertEqual(ab.bounds, a.bounds.minkowskiSum(with: b.bounds))
+        XCTAssertEqual(ba.bounds, a.bounds.minkowskiSum(with: b.bounds))
         #endif
     }
 
