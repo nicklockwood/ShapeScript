@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.9.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.3) (2025-11-13)
+
+- Fixed misalignment when using `twist` option with `extrude` command
+- Fixed vertex normals for extrusions where `along` path has sharp corners
+- Fixed bugs where `loft` with coplanar paths produced inverted faces
+- Fixed occasional missing vertices in `hull` command output
+- Improved `hull` and `minkowski` command performance
+- Bumped Euclid to version 0.8.13
+
 ## [1.9.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.2) (2025-10-26)
 
 - Fixed crash when creating a path from empty subpaths
