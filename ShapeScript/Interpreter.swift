@@ -477,6 +477,9 @@ private extension RuntimeError {
         "noise": ["rnd"],
         "signum": ["sign"],
         "echo": ["print"],
+        "elif": ["else if"],
+        "elsif": ["else if"],
+        "elseif": ["else if"],
         "default": ["else"],
         "metalness": ["metallicity"],
         "metallicness": ["metallicity"],
@@ -1034,7 +1037,16 @@ extension Statement {
             }
         case let .expression(type):
             let expression = Expression(type: type, range: range)
-            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
+            let value = try RuntimeError.wrap(expression.evaluate(in: context), at: range)
+            let wasFunctionScope = context.isFunctionScope
+            switch type {
+            case .ifelse, .forloop, .switchcase:
+                context.isFunctionScope = true
+            default:
+                break
+            }
+            try RuntimeError.wrap(context.addValue(value), at: range)
+            context.isFunctionScope = wasFunctionScope
         case let .define(identifier, definition):
             switch definition.type {
             case let .function(names, _):
@@ -1051,92 +1063,6 @@ extension Statement {
             try context.define(identifier.name, as: definition.evaluate(in: context))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
-        case let .forloop(identifier, in: expression, block):
-            let value = try expression.evaluate(in: context)
-            // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
-            // unnecessary, however because <type> can always be cast to .list(<type>)
-            // it isn't. Need to find a static solution for this (or abandon this check)
-            guard let sequence = value.sequenceValue else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: "loop bounds",
-                        expected: .sequence,
-                        got: value.type
-                    ),
-                    at: expression.range
-                )
-            }
-            for value in sequence {
-                if context.isCancelled() {
-                    throw EvaluationCancelled()
-                }
-                try context.pushScope { context in
-                    if let name = identifier?.name {
-                        context.define(name, as: .constant(value))
-                    }
-                    try block.evaluate(in: context)
-                }
-            }
-        case let .ifelse(condition, body, else: elseBody):
-            try context.pushScope { context in
-                let value = try condition.evaluate(
-                    as: .boolean,
-                    for: "if condition",
-                    in: context
-                )
-                if value.boolValue {
-                    try body.evaluate(in: context)
-                } else if let elseBody {
-                    try elseBody.evaluate(in: context)
-                }
-            }
-        case let .switchcase(condition, cases, else: elseBody):
-            try context.pushScope { context in
-                let value = try condition.evaluate(
-                    as: .any,
-                    for: "switch condition",
-                    in: context
-                )
-                if let lastCaseBody = cases.last?.body {
-                    for statement in lastCaseBody.statements {
-                        if case let .command(identifier, nil) = statement.type,
-                           identifier.name == "default"
-                        {
-                            throw RuntimeError(
-                                .unknownSymbol("default", options: []),
-                                at: identifier.range
-                            )
-                        }
-                    }
-                }
-                for caseStatement in cases {
-                    let pattern = try caseStatement.pattern.evaluate(
-                        as: .any,
-                        for: "case pattern",
-                        in: context
-                    )
-                    let type = value.type
-                    if pattern.as(type) != value {
-                        switch pattern {
-                        case let .range(range) where type == .number:
-                            if !range.contains(value.doubleValue) {
-                                continue
-                            }
-                        case let .tuple(values):
-                            if !values.contains(where: {
-                                $0.as(type) == value
-                            }) {
-                                continue
-                            }
-                        default:
-                            continue
-                        }
-                    }
-                    try caseStatement.body.evaluate(in: context)
-                    return
-                }
-                try elseBody?.evaluate(in: context)
-            }
         }
     }
 }
@@ -1511,6 +1437,101 @@ extension Expression {
             let path = pathValue.stringValue
             context.sourceIndex = expression.range.lowerBound
             return try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
+        case let .ifelse(condition, body, else: elseBody):
+            let oldChildren = context.children
+            defer { context.children = oldChildren }
+            try context.pushScope { context in
+                let value = try condition.evaluate(
+                    as: .boolean,
+                    for: "if condition",
+                    in: context
+                )
+                if value.boolValue {
+                    try body.evaluate(in: context)
+                } else if let elseBody {
+                    try elseBody.evaluate(in: context)
+                }
+            }
+            return .tuple(Array(context.children[oldChildren.count...]))
+        case let .forloop(identifier, in: expression, block):
+            let value = try expression.evaluate(in: context)
+            // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
+            // unnecessary, however because <type> can always be cast to .list(<type>)
+            // it isn't. Need to find a static solution for this (or abandon this check)
+            guard let sequence = value.sequenceValue else {
+                throw RuntimeError(
+                    .typeMismatch(
+                        for: "loop bounds",
+                        expected: .sequence,
+                        got: value.type
+                    ),
+                    at: expression.range
+                )
+            }
+            let oldChildren = context.children
+            defer { context.children = oldChildren }
+            for value in sequence {
+                if context.isCancelled() {
+                    throw EvaluationCancelled()
+                }
+                try context.pushScope { context in
+                    if let name = identifier?.name {
+                        context.define(name, as: .constant(value))
+                    }
+                    try block.evaluate(in: context)
+                }
+            }
+            return .tuple(Array(context.children[oldChildren.count...]))
+        case let .switchcase(condition, cases, else: elseBody):
+            let oldChildren = context.children
+            defer { context.children = oldChildren }
+            try context.pushScope { context in
+                let value = try condition.evaluate(
+                    as: .any,
+                    for: "switch condition",
+                    in: context
+                )
+                if let lastCaseBody = cases.last?.body {
+                    for statement in lastCaseBody.statements {
+                        if case let .command(identifier, nil) = statement.type,
+                           identifier.name == "default"
+                        {
+                            throw RuntimeError(
+                                .unknownSymbol("default", options: []),
+                                at: identifier.range
+                            )
+                        }
+                    }
+                }
+                for caseStatement in cases {
+                    let pattern = try caseStatement.pattern.evaluate(
+                        as: .any,
+                        for: "case pattern",
+                        in: context
+                    )
+                    let type = value.type
+                    if pattern.as(type) != value {
+                        switch pattern {
+                        case let .range(range) where type == .number:
+                            if !range.contains(value.doubleValue) {
+                                continue
+                            }
+                        case let .tuple(values):
+                            if !values.contains(where: {
+                                $0.as(type) == value
+                            }) {
+                                continue
+                            }
+                        default:
+                            continue
+                        }
+                    }
+                    try caseStatement.body.evaluate(in: context)
+                    return
+                }
+                try elseBody?.evaluate(in: context)
+            }
+            return .tuple(Array(context.children[oldChildren.count...]))
         }
     }
 

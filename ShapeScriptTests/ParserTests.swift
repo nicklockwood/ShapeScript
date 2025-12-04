@@ -418,56 +418,6 @@ final class ParserTests: XCTestCase {
         }
     }
 
-    func testUnterminatedParenthesisFollowedByForOnSameLine() throws {
-        let input = "define foo ( for 1 to 10 {}"
-        let range = try XCTUnwrap(input.range(of: "for"))
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
-            XCTAssertEqual(error?.hint, "Expected expression.")
-            XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .keyword(.for), range: range),
-                expected: "expression"
-            )))
-        }
-    }
-
-    func testUnterminatedParenthesisFollowedByForOnNextLine() throws {
-        let input = """
-        define foo (1 2 3
-        for i in foo {}
-        """
-        let range = try XCTUnwrap(input.range(of: "for"))
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
-            XCTAssertEqual(error?.hint, "Expected closing paren.")
-            XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .keyword(.for), range: range),
-                expected: "closing paren"
-            )))
-        }
-    }
-
-    func testUnterminatedMultilineParenthesisFollowedByForOnNextLine() throws {
-        let input = """
-        define foo (
-            1 2 3
-            4 5 6
-        for i in foo {}
-        """
-        let range = try XCTUnwrap(input.range(of: "for"))
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected keyword 'for'")
-            XCTAssertEqual(error?.hint, "Expected closing paren.")
-            XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .keyword(.for), range: range),
-                expected: "closing paren"
-            )))
-        }
-    }
-
     func testUnterminatedMultilineParenthesisFollowedByBlock() {
         let input = """
         define foo (
@@ -669,7 +619,7 @@ final class ParserTests: XCTestCase {
         let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .forloop(
+                type: .expression(.forloop(
                     Identifier(name: "i", range: iRange),
                     in: Expression(
                         type: .infix(
@@ -680,7 +630,7 @@ final class ParserTests: XCTestCase {
                         range: range1.lowerBound ..< range2.upperBound
                     ),
                     Block(statements: [], range: blockRange)
-                ),
+                )),
                 range: forRange.lowerBound ..< blockRange.upperBound
             ),
         ]))
@@ -694,7 +644,7 @@ final class ParserTests: XCTestCase {
         let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .forloop(
+                type: .expression(.forloop(
                     nil,
                     in: Expression(
                         type: .infix(
@@ -705,7 +655,7 @@ final class ParserTests: XCTestCase {
                         range: range1.lowerBound ..< range2.upperBound
                     ),
                     Block(statements: [], range: blockRange)
-                ),
+                )),
                 range: forRange.lowerBound ..< blockRange.upperBound
             ),
         ]))
@@ -719,11 +669,11 @@ final class ParserTests: XCTestCase {
         let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .forloop(
+                type: .expression(.forloop(
                     Identifier(name: "i", range: iRange),
                     in: Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: blockRange)
-                ),
+                )),
                 range: forRange.lowerBound ..< blockRange.upperBound
             ),
         ]))
@@ -739,7 +689,7 @@ final class ParserTests: XCTestCase {
         let blockRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .forloop(
+                type: .expression(.forloop(
                     nil,
                     in: Expression(type: .tuple([
                         Expression(type: .number(1), range: range1),
@@ -747,7 +697,7 @@ final class ParserTests: XCTestCase {
                         Expression(type: .number(3), range: range3),
                     ]), range: tupleRange),
                     Block(statements: [], range: blockRange)
-                ),
+                )),
                 range: forRange.lowerBound ..< blockRange.upperBound
             ),
         ]))
@@ -846,11 +796,11 @@ final class ParserTests: XCTestCase {
         let bodyRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: nil
-                ),
+                )),
                 range: ifRange.lowerBound ..< bodyRange.upperBound
             ),
         ]))
@@ -869,19 +819,19 @@ final class ParserTests: XCTestCase {
         let body2Range = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: nil
-                ),
+                )),
                 range: ifRange.lowerBound ..< bodyRange.upperBound
             ),
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("bar"), range: barRange),
                     Block(statements: [], range: body2Range),
                     else: nil
-                ),
+                )),
                 range: if2Range.lowerBound ..< body2Range.upperBound
             ),
         ]))
@@ -895,11 +845,11 @@ final class ParserTests: XCTestCase {
         let elseBodyRange = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [], range: elseBodyRange)
-                ),
+                )),
                 range: ifRange.lowerBound ..< elseBodyRange.upperBound
             ),
         ]))
@@ -916,20 +866,20 @@ final class ParserTests: XCTestCase {
         let body2Range = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [
                         Statement(
-                            type: .ifelse(
+                            type: .expression(.ifelse(
                                 Expression(type: .identifier("bar"), range: barRange),
                                 Block(statements: [], range: body2Range),
                                 else: nil
-                            ),
+                            )),
                             range: if2Range.lowerBound ..< body2Range.upperBound
                         ),
                     ], range: elseBodyRange)
-                ),
+                )),
                 range: ifRange.lowerBound ..< body2Range.upperBound
             ),
         ]))
@@ -946,11 +896,11 @@ final class ParserTests: XCTestCase {
         let elseBodyRange = try XCTUnwrap(input.range(of: "{ }"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .identifier("foo"), range: fooRange),
                     Block(statements: [], range: bodyRange),
                     else: Block(statements: [], range: elseBodyRange)
-                ),
+                )),
                 range: ifRange.lowerBound ..< elseBodyRange.upperBound
             ),
         ]))
@@ -980,15 +930,6 @@ final class ParserTests: XCTestCase {
                 Token(type: .lbrace, range: braceRange),
                 expected: nil
             )))
-        }
-    }
-
-    func testIfWithMisspelledElse() {
-        let input = "if foo {} els {}"
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected token 'els'")
-            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
         }
     }
 
@@ -1028,7 +969,7 @@ final class ParserTests: XCTestCase {
         let bodyRange = try XCTUnwrap(input.range(of: "{}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .ifelse(
+                type: .expression(.ifelse(
                     Expression(type: .infix(
                         Expression(type: .identifier("foo"), range: fooRange),
                         .in,
@@ -1036,7 +977,7 @@ final class ParserTests: XCTestCase {
                     ), range: fooRange.lowerBound ..< barRange.upperBound),
                     Block(statements: [], range: bodyRange),
                     else: nil
-                ),
+                )),
                 range: ifRange.lowerBound ..< bodyRange.upperBound
             ),
         ]))
@@ -1054,11 +995,11 @@ final class ParserTests: XCTestCase {
         let endBraceRange = try XCTUnwrap(input.range(of: "}"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .switchcase(
+                type: .expression(.switchcase(
                     Expression(type: .identifier("foo"), range: fooRange),
                     [],
                     else: nil
-                ),
+                )),
                 range: switchRange.lowerBound ..< endBraceRange.upperBound
             ),
         ]))

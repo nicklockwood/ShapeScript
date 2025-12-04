@@ -208,14 +208,14 @@ extension EvaluationContext {
 
     /// Symbols that can be used in an expression (i.e. that return a value)
     var expressionSymbols: [String] {
-        Array(allSymbols.filter {
+        allSymbols.filter {
             switch $1 {
             case let .function(type, _) where type.returnType == .void:
                 return false
             case .function, .property, .block, .constant, .option, .placeholder:
                 return true
             }
-        }.keys)
+        }.keys + ["else"]
     }
 
     /// Symbols that can be used as a command (i.e. that accept an argument)

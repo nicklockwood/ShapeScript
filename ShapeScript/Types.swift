@@ -724,6 +724,20 @@ extension Expression {
             expression.inferTypes(for: &params, in: context, with: .any)
         case let .import(expression):
             expression.inferTypes(for: &params, in: context, with: .string)
+        case let .ifelse(expression, body, else: elseBody):
+            expression.inferTypes(for: &params, in: context, with: .boolean)
+            body.inferTypes(for: &params, in: context)
+            elseBody?.inferTypes(for: &params, in: context)
+        case let .forloop(_, in: expression, body):
+            expression.inferTypes(for: &params, in: context, with: .sequence)
+            body.inferTypes(for: &params, in: context)
+        case let .switchcase(condition, cases, else: elseBody):
+            condition.inferTypes(for: &params, in: context, with: .any)
+            let type = (try? condition.staticType(in: context)) ?? .any
+            for caseStatement in cases {
+                caseStatement.inferTypes(for: &params, in: context, with: type)
+            }
+            elseBody?.inferTypes(for: &params, in: context)
         case let .infix(lhs, .step, rhs):
             lhs.inferTypes(for: &params, in: context, with: .range)
             rhs.inferTypes(for: &params, in: context, with: .number)
@@ -891,6 +905,53 @@ extension Expression {
             case "shape", "json", "": return .any
             default: return .mesh
             }
+        case let .ifelse(_, body, else: elseBody):
+            var type: ValueType = .void
+            try context.pushScope { context in
+                type = try body.staticType(in: context)
+            }
+            if let elseBody {
+                try context.pushScope { context in
+                    try type.formUnion(elseBody.staticType(in: context))
+                }
+            } else {
+                type.formUnion(.void)
+            }
+            return type
+        case let .forloop(identifier, in: expression, block):
+            var type: ValueType = .void
+            try context.pushScope { context in
+                if let identifier {
+                    let elementType: ValueType
+                    switch try expression.staticType(in: context) {
+                    case let .tuple(types):
+                        elementType = .union(Set(types))
+                    case let .list(type):
+                        elementType = type
+                    case .range:
+                        elementType = .number
+                    default:
+                        // TODO: can we do better here?
+                        elementType = .any
+                    }
+                    context.define(identifier.name, as: .placeholder(elementType))
+                }
+                type = try block.staticType(in: context)
+            }
+            return .list(type)
+        case let .switchcase(_, cases, else: elseBody):
+            var type: ValueType = .void
+            for caseStatement in cases {
+                try context.pushScope { context in
+                    try type.formUnion(caseStatement.body.staticType(in: context))
+                }
+            }
+            if let elseBody {
+                try context.pushScope { context in
+                    try type.formUnion(elseBody.staticType(in: context))
+                }
+            }
+            return type
         }
     }
 }
@@ -1001,20 +1062,6 @@ extension Statement {
             definition.inferTypes(for: &params, in: context)
             let symbol = (try? definition.staticSymbol(in: context)) ?? .placeholder(.any)
             context.define(identifier.name, as: symbol)
-        case let .forloop(_, in: expression, body):
-            expression.inferTypes(for: &params, in: context, with: .sequence)
-            body.inferTypes(for: &params, in: context)
-        case let .ifelse(condition, body, else: elseBody):
-            condition.inferTypes(for: &params, in: context, with: .boolean)
-            body.inferTypes(for: &params, in: context)
-            elseBody?.inferTypes(for: &params, in: context)
-        case let .switchcase(condition, cases, else: elseBody):
-            condition.inferTypes(for: &params, in: context, with: .any)
-            let type = (try? condition.staticType(in: context)) ?? .any
-            for caseStatement in cases {
-                caseStatement.inferTypes(for: &params, in: context, with: type)
-            }
-            elseBody?.inferTypes(for: &params, in: context)
         case let .option(_, expression):
             expression.inferTypes(for: &params, in: context, with: .any)
         }
@@ -1062,53 +1109,6 @@ extension Statement {
             let symbol = try definition.staticSymbol(in: context)
             context.define(identifier.name, as: symbol)
             return .void
-        case let .forloop(identifier, in: expression, block):
-            var type: ValueType = .void
-            try context.pushScope { context in
-                if let identifier {
-                    let elementType: ValueType
-                    switch try expression.staticType(in: context) {
-                    case let .tuple(types):
-                        elementType = .union(Set(types))
-                    case let .list(type):
-                        elementType = type
-                    case .range:
-                        elementType = .number
-                    default:
-                        // TODO: can we do better here?
-                        elementType = .any
-                    }
-                    context.define(identifier.name, as: .placeholder(elementType))
-                }
-                type = try block.staticType(in: context)
-            }
-            return .list(type)
-        case let .ifelse(_, body, else: elseBody):
-            var type: ValueType = .void
-            try context.pushScope { context in
-                type = try body.staticType(in: context)
-            }
-            if let elseBody {
-                try context.pushScope { context in
-                    try type.formUnion(elseBody.staticType(in: context))
-                }
-            } else {
-                type.formUnion(.void)
-            }
-            return type
-        case let .switchcase(_, cases, else: elseBody):
-            var type: ValueType = .void
-            for caseStatement in cases {
-                try context.pushScope { context in
-                    try type.formUnion(caseStatement.body.staticType(in: context))
-                }
-            }
-            if let elseBody {
-                try context.pushScope { context in
-                    try type.formUnion(elseBody.staticType(in: context))
-                }
-            }
-            return type
         }
     }
 }
@@ -1122,7 +1122,7 @@ extension [Statement] {
                     let type = (try? definition.staticType(in: context)) ?? .any
                     context.define(identifier.name, as: .placeholder(type))
                 }
-            case .command, .option, .forloop, .ifelse, .switchcase, .expression:
+            case .command, .option, .expression:
                 break
             }
         }

@@ -3119,6 +3119,33 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    func testIfWithMisspelledElse() {
+        let program = "if true {} els {}"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown symbol 'els'")
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
+    func testIfWithMisspelledElseIf() {
+        let program = "if true {} els if false {}"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown symbol 'els'")
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
+    func testIfWithMisspelledElseIf2() {
+        let program = "if true {} elsif false {}"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Unknown symbol 'elsif'")
+            XCTAssertEqual(error?.hint, "Did you mean 'else'?")
+        }
+    }
+
     // MARK: Switch/case
 
     func testSwitchCase() {

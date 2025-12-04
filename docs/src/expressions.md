@@ -364,6 +364,7 @@ for point in triangle.points {
 
 To access members via a computed name or index, see the [subscripting](#subscripting) section below. For more information about the members that are available to access on various data types, see [structured data](literals.md#structured-data).
 
+
 ## Subscripting
 
 As discussed in the [members](#members) and [structured data](literals.md#structured-data) sections, you can decompose a tuple or other compound value using the dot operator followed by the name or ordinal index of the element you wish to retrieve.

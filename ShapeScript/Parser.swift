@@ -30,9 +30,6 @@ public enum StatementType: Equatable {
     case command(Identifier, Expression?)
     case define(Identifier, Definition)
     case option(Identifier, Expression)
-    case forloop(Identifier?, in: Expression, Block)
-    case ifelse(Expression, Block, else: Block?)
-    case switchcase(Expression, [CaseStatement], else: Block?)
     case expression(ExpressionType)
 }
 
@@ -71,6 +68,9 @@ public enum ExpressionType: Equatable {
     indirect case member(Expression, Identifier)
     indirect case `subscript`(Expression, Expression)
     indirect case `import`(Expression)
+    indirect case ifelse(Expression, Block, else: Block?)
+    indirect case forloop(Identifier?, in: Expression, Block)
+    indirect case switchcase(Expression, [CaseStatement], else: Block?)
 }
 
 public struct Expression: Equatable {
@@ -318,10 +318,31 @@ private extension ArraySlice where Element == Token {
         return .define(name, Definition(type: .function(names, block)))
     }
 
-    mutating func readForLoop() throws -> StatementType? {
-        guard readToken(.keyword(.for)), let indexToken = first else {
-            return nil
+    mutating func readIfElse() throws -> ExpressionType {
+        let condition = try require(readExpression(), as: "condition")
+        let body = try require(readBlock(), as: "if body")
+        let start = self
+        _ = readToken(.linebreak)
+        guard readToken(.keyword(.else)) else {
+            self = start
+            return .ifelse(condition, body, else: nil)
         }
+        let lowerBound = nextToken.range.lowerBound
+        if let elseBody = try readBlock() {
+            return .ifelse(condition, body, else: elseBody)
+        } else if readToken(.keyword(.if)) {
+            let expressionType = try readIfElse()
+            let end = start[start.index(before: startIndex)]
+            let range = lowerBound ..< end.range.upperBound
+            return .ifelse(condition, body, else: Block(statements: [
+                Statement(type: .expression(expressionType), range: range),
+            ], range: range))
+        }
+        throw ParserError(.unexpectedToken(nextToken, expected: "else body"))
+    }
+
+    mutating func readForLoop() throws -> ExpressionType {
+        let indexToken = first
         let start = self
         var expression = try require(readExpression(), as: "index or range")
         let body = try require(readBlock(), as: "loop body")
@@ -334,7 +355,7 @@ private extension ArraySlice where Element == Token {
         if case let .infix(lhs, .in, rhs) = expression.type {
             guard case let .identifier(name) = lhs.type else {
                 self = start
-                throw ParserError(.unexpectedToken(indexToken, expected: "loop index"))
+                throw ParserError(.unexpectedToken(indexToken!, expected: "loop index"))
             }
             let identifier = Identifier(name: name, range: lhs.range)
             return .forloop(identifier, in: rhs, body)
@@ -342,35 +363,7 @@ private extension ArraySlice where Element == Token {
         return .forloop(nil, in: expression, body)
     }
 
-    mutating func readIfElse() throws -> StatementType? {
-        guard readToken(.keyword(.if)) else {
-            return nil
-        }
-        let condition = try require(readExpression(), as: "condition")
-        let body = try require(readBlock(), as: "if body")
-        let start = self
-        _ = readToken(.linebreak)
-        guard readToken(.keyword(.else)) else {
-            self = start
-            return .ifelse(condition, body, else: nil)
-        }
-        let lowerBound = nextToken.range.lowerBound
-        if let elseBody = try readBlock() {
-            return .ifelse(condition, body, else: elseBody)
-        } else if let statementType = try readIfElse() {
-            let end = start[start.index(before: startIndex)]
-            let range = lowerBound ..< end.range.upperBound
-            return .ifelse(condition, body, else: Block(statements: [
-                Statement(type: statementType, range: range),
-            ], range: range))
-        }
-        throw ParserError(.unexpectedToken(nextToken, expected: "else body"))
-    }
-
-    mutating func readSwitch() throws -> StatementType? {
-        guard readToken(.identifier("switch")) else {
-            return nil
-        }
+    mutating func readSwitch() throws -> ExpressionType {
         let condition = try require(readExpression(), as: "condition")
         try requireToken(.lbrace)
         var cases = [CaseStatement]()
@@ -464,6 +457,8 @@ private extension ArraySlice where Element == Token {
             type = .string(string)
         case let .hexColor(string):
             type = .color(Color(hexString: string) ?? .black)
+        case .identifier("switch"):
+            type = try readSwitch()
         case let .identifier(name):
             guard readToken(.call) else {
                 type = .identifier(name)
@@ -489,6 +484,10 @@ private extension ArraySlice where Element == Token {
             range = range.lowerBound ..< endToken.range.upperBound
         case .keyword(.import):
             type = try .import(require(readExpressions(), as: "file path"))
+        case .keyword(.if):
+            type = try readIfElse()
+        case .keyword(.for):
+            type = try readForLoop()
         case .dot, .linebreak, .keyword, .infix, .lbrace, .lbracket,
              .subscript, .rbrace, .rparen, .rbracket, .eof:
             self = start
@@ -693,13 +692,12 @@ private extension ArraySlice where Element == Token {
     }
 
     mutating func readStatementType() throws -> StatementType? {
-        if let statement = try readDefine() ?? readOption() ??
-            readForLoop() ?? readIfElse() ?? readSwitch()
-        {
+        if let statement = try readDefine() ?? readOption() {
             return statement
         }
         let start = self
-        guard let identifier = readIdentifier() else {
+        guard let identifier = readIdentifier(), identifier.name != "switch" else {
+            self = start
             return try readExpressions().map { .expression($0.type) }
         }
         if case let .function(type, _) = Symbols.all[identifier.name],
