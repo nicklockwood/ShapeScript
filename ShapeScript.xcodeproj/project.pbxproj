@@ -97,6 +97,29 @@
 		01D435A52E807CFB008B915E /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01D435A62E807CFB008B915E /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01D435A72E807CFB008B915E /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		EADF1C4E2EE6EE200055F8D1 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */; platformFilters = (macos, ); };
+		EADF1C5A2EE6EE200055F8D1 /* Preview (Mac).appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EADF1C762EE6F0E00055F8D1 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
+		EADF1C772EE6F0E00055F8D1 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
+		EADF1C782EE6F0E00055F8D1 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
+		EADF1C792EE6F0E00055F8D1 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; };
+		EADF1C7A2EE6F1020055F8D1 /* DocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB0B2E80783500C53A29 /* DocumentViewController.swift */; };
+		EADF1C7B2EE6F1020055F8D1 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB0A2E80783500C53A29 /* Document.swift */; };
+		EADF1C7C2EE6F13D0055F8D1 /* FileMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB232E80783500C53A29 /* FileMonitor.swift */; };
+		EADF1C7D2EE6F13D0055F8D1 /* Document+ModelInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB1F2E80783500C53A29 /* Document+ModelInfo.swift */; };
+		EADF1C7E2EE6F13D0055F8D1 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB1D2E80783500C53A29 /* Camera.swift */; };
+		EADF1C7F2EE6F13D0055F8D1 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB282E80783500C53A29 /* Settings.swift */; };
+		EADF1C802EE6F13D0055F8D1 /* Document+Sandbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB202E80783500C53A29 /* Document+Sandbox.swift */; };
+		EADF1C812EE6F13D0055F8D1 /* ProgramError+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB262E80783500C53A29 /* ProgramError+Formatting.swift */; };
+		EADF1C822EE6F13D0055F8D1 /* Document+EvaluationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB1E2E80783500C53A29 /* Document+EvaluationDelegate.swift */; };
+		EADF1C832EE6F13D0055F8D1 /* LoadingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB252E80783500C53A29 /* LoadingProgress.swift */; };
+		EADF1C842EE6F13D0055F8D1 /* DocumentViewController+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB222E80783500C53A29 /* DocumentViewController+View.swift */; };
+		EADF1C852EE6F13D0055F8D1 /* Document+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB212E80783500C53A29 /* Document+View.swift */; };
+		EADF1C862EE6F13D0055F8D1 /* SemanticVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB272E80783500C53A29 /* SemanticVersion.swift */; };
+		EADF1C872EE6F13D0055F8D1 /* Axes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB1C2E80783500C53A29 /* Axes.swift */; };
+		EADF1C882EE6F2000055F8D1 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB122E80783500C53A29 /* Utilities.swift */; };
+		EADF1C892EE6F20B0055F8D1 /* Settings+Editor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DB112E80783500C53A29 /* Settings+Editor.swift */; };
+		EADF1C8A2EE6F2E70055F8D1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0158DB0F2E80783500C53A29 /* Main.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -170,6 +193,20 @@
 			remoteGlobalIDString = 0158D9672E8072C400C53A29;
 			remoteInfo = "ShapeScript Lib";
 		};
+		EADF1C582EE6EE200055F8D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EADF1C4B2EE6EE1F0055F8D1;
+			remoteInfo = Preview;
+		};
+		EADF1C742EE6F0CB0055F8D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0158D9672E8072C400C53A29;
+			remoteInfo = "ShapeScript Lib";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -208,6 +245,17 @@
 				01D435A72E807CFB008B915E /* ShapeScript.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EADF1C5B2EE6EE200055F8D1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				EADF1C5A2EE6EE200055F8D1 /* Preview (Mac).appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -273,6 +321,8 @@
 		0158DB282E80783500C53A29 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		0158DB292E80783500C53A29 /* Untitled.shape */ = {isa = PBXFileReference; lastKnownFileType = text; path = Untitled.shape; sourceTree = "<group>"; };
 		01D435A22E807CBA008B915E /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
+		EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Preview (Mac).appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -282,6 +332,13 @@
 				ShapeScript.xctestplan,
 			);
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
+		};
+		EADF1C5E2EE6EE200055F8D1 /* Exceptions for "Preview" folder in "Preview (Mac)" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -297,6 +354,14 @@
 		0158D9742E8072C400C53A29 /* ShapeScriptTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ShapeScriptTests;
+			sourceTree = "<group>";
+		};
+		EADF1C4F2EE6EE200055F8D1 /* Preview */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EADF1C5E2EE6EE200055F8D1 /* Exceptions for "Preview" folder in "Preview (Mac)" target */,
+			);
+			path = Preview;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -353,6 +418,18 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EADF1C492EE6EE1F0055F8D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EADF1C762EE6F0E00055F8D1 /* ShapeScript.framework in Frameworks */,
+				EADF1C772EE6F0E00055F8D1 /* Euclid.framework in Frameworks */,
+				EADF1C782EE6F0E00055F8D1 /* LRUCache.framework in Frameworks */,
+				EADF1C792EE6F0E00055F8D1 /* SVGPath.framework in Frameworks */,
+				EADF1C4E2EE6EE200055F8D1 /* Quartz.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -362,6 +439,7 @@
 				0158D9692E8072C400C53A29 /* ShapeScript */,
 				0158D9742E8072C400C53A29 /* ShapeScriptTests */,
 				0158DB302E80783500C53A29 /* Viewer */,
+				EADF1C4F2EE6EE200055F8D1 /* Preview */,
 				0158D8352E806BB500C53A29 /* Frameworks */,
 				0158D6C62E80480900C53A29 /* Products */,
 			);
@@ -375,6 +453,7 @@
 				0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */,
 				012B51122E80923400D69BA4 /* ShapeScript.app */,
 				012B51E12E80984A00D69BA4 /* CLI */,
+				EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -385,6 +464,7 @@
 				0158D84F2E806BEE00C53A29 /* LRUCache.xcodeproj */,
 				0158D8452E806BCF00C53A29 /* SVGPath.xcodeproj */,
 				0158D8362E806BB600C53A29 /* Euclid.xcodeproj */,
+				EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -618,11 +698,13 @@
 				01D4359C2E807C71008B915E /* Copy Frameworks */,
 				01D435A82E807D29008B915E /* Unlock Examples */,
 				0158DA752E8077C700C53A29 /* Resources */,
+				EADF1C5B2EE6EE200055F8D1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				01D435972E807C0F008B915E /* PBXTargetDependency */,
+				EADF1C592EE6EE200055F8D1 /* PBXTargetDependency */,
 			);
 			name = "Viewer (Mac)";
 			packageProductDependencies = (
@@ -631,6 +713,29 @@
 			productReference = 0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EADF1C5F2EE6EE200055F8D1 /* Build configuration list for PBXNativeTarget "Preview (Mac)" */;
+			buildPhases = (
+				EADF1C482EE6EE1F0055F8D1 /* Sources */,
+				EADF1C492EE6EE1F0055F8D1 /* Frameworks */,
+				EADF1C4A2EE6EE1F0055F8D1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EADF1C752EE6F0CB0055F8D1 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EADF1C4F2EE6EE200055F8D1 /* Preview */,
+			);
+			name = "Preview (Mac)";
+			packageProductDependencies = (
+			);
+			productName = Preview;
+			productReference = EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -638,7 +743,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					012B51112E80923400D69BA4 = {
@@ -655,6 +760,9 @@
 					};
 					0158DA762E8077C700C53A29 = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					EADF1C4B2EE6EE1F0055F8D1 = {
+						CreatedOnToolsVersion = 26.1;
 					};
 				};
 			};
@@ -691,6 +799,7 @@
 				0158DA762E8077C700C53A29 /* Viewer (Mac) */,
 				012B51112E80923400D69BA4 /* Viewer (iOS) */,
 				012B51E02E80984A00D69BA4 /* CLI */,
+				EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */,
 			);
 		};
 /* End PBXProject section */
@@ -761,6 +870,14 @@
 				0158DB3B2E80783500C53A29 /* Licenses.rtf in Resources */,
 				0158DB3C2E80783500C53A29 /* Untitled.shape in Resources */,
 				01D435A32E807CDD008B915E /* Examples in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EADF1C4A2EE6EE1F0055F8D1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EADF1C8A2EE6F2E70055F8D1 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -912,6 +1029,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EADF1C482EE6EE1F0055F8D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EADF1C7C2EE6F13D0055F8D1 /* FileMonitor.swift in Sources */,
+				EADF1C7D2EE6F13D0055F8D1 /* Document+ModelInfo.swift in Sources */,
+				EADF1C7E2EE6F13D0055F8D1 /* Camera.swift in Sources */,
+				EADF1C892EE6F20B0055F8D1 /* Settings+Editor.swift in Sources */,
+				EADF1C7F2EE6F13D0055F8D1 /* Settings.swift in Sources */,
+				EADF1C802EE6F13D0055F8D1 /* Document+Sandbox.swift in Sources */,
+				EADF1C812EE6F13D0055F8D1 /* ProgramError+Formatting.swift in Sources */,
+				EADF1C822EE6F13D0055F8D1 /* Document+EvaluationDelegate.swift in Sources */,
+				EADF1C832EE6F13D0055F8D1 /* LoadingProgress.swift in Sources */,
+				EADF1C842EE6F13D0055F8D1 /* DocumentViewController+View.swift in Sources */,
+				EADF1C852EE6F13D0055F8D1 /* Document+View.swift in Sources */,
+				EADF1C882EE6F2000055F8D1 /* Utilities.swift in Sources */,
+				EADF1C862EE6F13D0055F8D1 /* SemanticVersion.swift in Sources */,
+				EADF1C872EE6F13D0055F8D1 /* Axes.swift in Sources */,
+				EADF1C7A2EE6F1020055F8D1 /* DocumentViewController.swift in Sources */,
+				EADF1C7B2EE6F1020055F8D1 /* Document.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -949,6 +1089,16 @@
 			isa = PBXTargetDependency;
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
 			targetProxy = 01D435962E807C0F008B915E /* PBXContainerItemProxy */;
+		};
+		EADF1C592EE6EE200055F8D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */;
+			targetProxy = EADF1C582EE6EE200055F8D1 /* PBXContainerItemProxy */;
+		};
+		EADF1C752EE6F0CB0055F8D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
+			targetProxy = EADF1C742EE6F0CB0055F8D1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1448,6 +1598,76 @@
 			};
 			name = Release;
 		};
+		EADF1C5C2EE6EE200055F8D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Preview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Preview;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.9.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		EADF1C5D2EE6EE200055F8D1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Preview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Preview;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MARKETING_VERSION = 1.9.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1501,6 +1721,15 @@
 			buildConfigurations = (
 				0158DA832E8077C900C53A29 /* Debug */,
 				0158DA842E8077C900C53A29 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EADF1C5F2EE6EE200055F8D1 /* Build configuration list for PBXNativeTarget "Preview (Mac)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EADF1C5C2EE6EE200055F8D1 /* Debug */,
+				EADF1C5D2EE6EE200055F8D1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

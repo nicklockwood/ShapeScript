@@ -7,6 +7,7 @@
 //
 
 import Cocoa
+import Euclid
 import SceneKit
 import ShapeScript
 

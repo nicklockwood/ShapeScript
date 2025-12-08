@@ -7,6 +7,8 @@ You should see a new window appear containing a cube, sphere and cone. These are
 
 ![New document window](../images/new-document-mac.png)
 
+**Note:** On macOS, ShapeScript includes a Quick Look extension, so you can preview `.shape` files directly in Finder using the spacebar.
+
 ## Viewing
 
 Drag your mouse cursor inside the window and you will notice that the three objects appear to rotate.
