@@ -429,6 +429,7 @@ extension Value: Loggable {
         case let .range(range): return range
         case let .bounds(bounds): return bounds
         case let .object(object): return object
+        case let .pretransformed(values): return values
         }
     }
 

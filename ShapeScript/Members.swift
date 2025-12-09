@@ -144,7 +144,7 @@ extension Value {
             return ["intensity"]
         case .material:
             return ["opacity", "color", "texture", "metallicity", "roughness", "glow"]
-        case let .tuple(values):
+        case let .tuple(values), let .pretransformed(values):
             var members = Array(String.ordinals(upTo: values.count))
             if !members.isEmpty {
                 members.append("last")
@@ -276,6 +276,20 @@ extension Value {
             case "glow": return material.glow.flatMap { .colorOrTexture($0) } ?? .color(.black)
             default: return nil
             }
+        case let .pretransformed(values):
+            switch name {
+            case "last":
+                return values.last.map { .pretransformed([$0]) }
+            case "allButFirst":
+                return .pretransformed(Array(values.dropFirst()))
+            case "allButLast":
+                return .pretransformed(Array(values.dropLast()))
+            default:
+                if let index = name.ordinalIndex {
+                    return index < values.count ? .pretransformed([values[index]]) : nil
+                }
+            }
+            fallthrough
         case let .tuple(values):
             switch name {
             case "last":
@@ -474,7 +488,7 @@ extension Value {
             return -3 ..< 3
         case .color:
             return -4 ..< 4
-        case let .tuple(values):
+        case let .tuple(values), let .pretransformed(values):
             return -values.endIndex ..< values.endIndex
         case let .range(range):
             guard let values = range.stride.map(Array.init) else { fallthrough }
@@ -510,6 +524,8 @@ extension Value {
             guard let values = range.stride.map(Array.init) else { return nil }
             let index = index < 0 ? values.count + index : index
             return values.indices.contains(index) ? .number(values[index]) : nil
+        case let .pretransformed(values):
+            return .tuple(values)[index].map { .pretransformed([$0]) }
         case .boolean, .texture, .number, .radians, .halfturns, .material, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point, .bounds, .object:
             return nil

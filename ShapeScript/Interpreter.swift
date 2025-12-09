@@ -892,12 +892,18 @@ extension Definition {
 
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
+        try addValue(value, isFunctionScope ? .identity : childTransform)
+    }
+
+    func addValue(_ value: Value, _ childTransform: Transform) throws {
         if let value = try value.as(childTypes, in: self) {
-            let childTransform: Transform = isFunctionScope ? .identity : childTransform
-            func valueForAdding(_ value: Value) -> Value? {
+            func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
                 switch value {
                 case let .tuple(values):
-                    let values = values.compactMap(valueForAdding)
+                    let values = values.compactMap { valueForAdding($0, childTransform) }
+                    return values.isEmpty ? nil : .tuple(values)
+                case let .pretransformed(values):
+                    let values = values.compactMap { valueForAdding($0, .identity) }
                     return values.isEmpty ? nil : .tuple(values)
                 case let .mesh(m):
                     return .mesh(m.transformed(by: childTransform))
@@ -920,9 +926,11 @@ extension EvaluationContext {
                     return value
                 }
             }
-            valueForAdding(value).map { children.append($0) }
+            valueForAdding(value, childTransform).map { children.append($0) }
         } else if case let .tuple(values) = value {
-            try values.forEach(addValue)
+            try values.forEach { try addValue($0, childTransform) }
+        } else if case let .pretransformed(values) = value {
+            try values.forEach { try addValue($0, .identity) }
         } else {
             throw RuntimeErrorType.unusedValue(type: value.type)
         }
@@ -1037,16 +1045,7 @@ extension Statement {
             }
         case let .expression(type):
             let expression = Expression(type: type, range: range)
-            let value = try RuntimeError.wrap(expression.evaluate(in: context), at: range)
-            let wasFunctionScope = context.isFunctionScope
-            switch type {
-            case .ifelse, .forloop, .switchcase:
-                context.isFunctionScope = true
-            default:
-                break
-            }
-            try RuntimeError.wrap(context.addValue(value), at: range)
-            context.isFunctionScope = wasFunctionScope
+            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
         case let .define(identifier, definition):
             switch definition.type {
             case let .function(names, _):
@@ -1452,7 +1451,7 @@ extension Expression {
                     try elseBody.evaluate(in: context)
                 }
             }
-            return .tuple(Array(context.children[oldChildren.count...]))
+            return ._pretransformed(Array(context.children[oldChildren.count...]))
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
             // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
@@ -1481,7 +1480,7 @@ extension Expression {
                     try block.evaluate(in: context)
                 }
             }
-            return .tuple(Array(context.children[oldChildren.count...]))
+            return ._pretransformed(Array(context.children[oldChildren.count...]))
         case let .switchcase(condition, cases, else: elseBody):
             let oldChildren = context.children
             defer { context.children = oldChildren }
@@ -1531,7 +1530,7 @@ extension Expression {
                 }
                 try elseBody?.evaluate(in: context)
             }
-            return .tuple(Array(context.children[oldChildren.count...]))
+            return ._pretransformed(Array(context.children[oldChildren.count...]))
         }
     }
 
