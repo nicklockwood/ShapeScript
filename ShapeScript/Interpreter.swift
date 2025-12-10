@@ -666,14 +666,12 @@ extension Definition {
                     let oldSymbols = context.userSymbols
                     let oldSource = context.source
                     let oldBaseURL = context.baseURL
-                    let wasFunctionScope = context.isFunctionScope
                     context.children = []
                     context.childTypes = .any
                     context.source = declarationContext.source
                     context.baseURL = declarationContext.baseURL
                     context.userSymbols = declarationContext.userSymbols
                     context.stackDepth += 1
-                    context.isFunctionScope = true
                     defer {
                         context.children = oldChildren
                         context.childTypes = oldChildTypes
@@ -681,7 +679,6 @@ extension Definition {
                         context.baseURL = oldBaseURL
                         context.userSymbols = oldSymbols
                         context.stackDepth -= 1
-                        context.isFunctionScope = wasFunctionScope
                     }
                     if context.stackDepth > 25 {
                         throw RuntimeErrorType.assertionFailure("Too much recursion")
@@ -692,10 +689,7 @@ extension Definition {
                         context.define(identifier.name, as: .constant(value))
                     }
                     try block.evaluate(in: context)
-                    if context.children.count == 1 {
-                        return context.children[0]
-                    }
-                    return .tuple(context.children)
+                    return .pretransformed(context.children)
                 } catch {
                     if declarationContext.baseURL == context.baseURL {
                         throw error
@@ -892,18 +886,11 @@ extension Definition {
 
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
-        try addValue(value, isFunctionScope ? .identity : childTransform)
-    }
-
-    func addValue(_ value: Value, _ childTransform: Transform) throws {
         if let value = try value.as(childTypes, in: self) {
             func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
                 switch value {
                 case let .tuple(values):
                     let values = values.compactMap { valueForAdding($0, childTransform) }
-                    return values.isEmpty ? nil : .tuple(values)
-                case let .pretransformed(values):
-                    let values = values.compactMap { valueForAdding($0, .identity) }
                     return values.isEmpty ? nil : .tuple(values)
                 case let .mesh(m):
                     return .mesh(m.transformed(by: childTransform))
@@ -915,6 +902,8 @@ extension EvaluationContext {
                     return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: material))
                 case let .path(path):
                     return .path(path.transformed(by: childTransform))
+                case let .pretransformed(value):
+                    return valueForAdding(value, .identity)
                 case _ where childTypes.subtypes.contains(.text):
                     return .text(TextValue(
                         string: value.stringValue,
@@ -928,9 +917,9 @@ extension EvaluationContext {
             }
             valueForAdding(value, childTransform).map { children.append($0) }
         } else if case let .tuple(values) = value {
-            try values.forEach { try addValue($0, childTransform) }
-        } else if case let .pretransformed(values) = value {
-            try values.forEach { try addValue($0, .identity) }
+            try values.forEach(addValue)
+        } else if case let .pretransformed(.tuple(values)) = value {
+            try addValue(.tuple(values.map { .pretransformed($0) }))
         } else {
             throw RuntimeErrorType.unusedValue(type: value.type)
         }
@@ -1327,6 +1316,8 @@ extension Expression {
                     return .tuple(lhs.map { apply($0, rhs, fn) })
                 case let (.number, .tuple(rhs), _):
                     return .tuple(rhs.map { apply(lhs, $0, fn) })
+                case let (.pretransformed(lhs), rhs, _), let (lhs, .pretransformed(rhs), _):
+                    return apply(lhs, rhs, fn)
                 default:
                     assertionFailure()
                     return .number(0)
@@ -1451,7 +1442,7 @@ extension Expression {
                     try elseBody.evaluate(in: context)
                 }
             }
-            return ._pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.children[oldChildren.count...]))
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
             // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
@@ -1480,7 +1471,7 @@ extension Expression {
                     try block.evaluate(in: context)
                 }
             }
-            return ._pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.children[oldChildren.count...]))
         case let .switchcase(condition, cases, else: elseBody):
             let oldChildren = context.children
             defer { context.children = oldChildren }
@@ -1530,7 +1521,7 @@ extension Expression {
                 }
                 try elseBody?.evaluate(in: context)
             }
-            return ._pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.children[oldChildren.count...]))
         }
     }
 

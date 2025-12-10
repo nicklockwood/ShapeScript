@@ -399,10 +399,12 @@ extension Value {
         case .bounds: return .bounds
         case let .range(range):
             return range.end == nil ? .partialRange : .range
-        case let .tuple(values), let .pretransformed(values):
+        case let .tuple(values):
             return .tuple(values.map(\.type))
         case let .object(values):
             return .object(values.mapValues { $0.type })
+        case let .pretransformed(value):
+            return value.type
         }
     }
 
@@ -433,8 +435,9 @@ extension Value {
             return numbers
         }
         switch (self, type) {
-        case let (.tuple(values), type) where values.count == 1,
-             let (.pretransformed(values), type) where values.count == 1:
+        case let (.pretransformed(value), type):
+            return try value.as(type, in: context).map { Value.pretransformed($0) }
+        case let (.tuple(values), type) where values.count == 1:
             return try values[0].as(type, in: context)
         case _ where self.type.isSubtype(of: type):
             return self

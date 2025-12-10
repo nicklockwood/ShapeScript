@@ -91,7 +91,6 @@ final class EvaluationContext {
     var opacity: Double = 1
 
     var stackDepth = 1
-    var isFunctionScope = false
 
     var sourceLocation: () -> SourceLocation? {
         { [sourceIndex, source, baseURL] in

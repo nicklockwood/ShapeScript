@@ -31,7 +31,7 @@ enum Value: Hashable {
     case range(RangeValue)
     case bounds(Bounds)
     case object([String: Value])
-    case pretransformed([Value])
+    indirect case pretransformed(Value)
 }
 
 extension Value: ExpressibleByStringLiteral {
@@ -132,11 +132,15 @@ struct TextValue: Hashable {
 extension Value {
     static let void: Value = .tuple([])
 
-    static func _pretransformed(_ array: [Value]) -> Value {
-        if array.isEmpty {
+    static func pretransformed(_ array: [Value]) -> Value {
+        switch array.count {
+        case 0:
             return .void
+        case 1:
+            return .pretransformed(array[0])
+        default:
+            return .tuple(array.map { .pretransformed($0) })
         }
-        return .pretransformed(array)
     }
 
     static func colorOrTexture(_ value: MaterialProperty) -> Value {
@@ -200,7 +204,7 @@ extension Value {
         case let .range(range): return range
         case let .bounds(bounds): return bounds
         case let .object(values): return values.mapValues { $0.value }
-        case let .pretransformed(values): return values.map(\.value)
+        case let .pretransformed(value): return value.value
         }
     }
 
@@ -211,10 +215,12 @@ extension Value {
 
     var doublesValue: [Double] {
         switch self {
-        case let .tuple(values), let .pretransformed(values):
+        case let .tuple(values):
             return values.map(\.doubleValue)
         case let .number(value):
             return [value]
+        case let .pretransformed(value):
+            return value.doublesValue
         default:
             assertionFailure()
             return []
@@ -227,6 +233,8 @@ extension Value {
             return .radians(radians)
         case let .halfturns(halfturns):
             return .halfturns(halfturns)
+        case let .pretransformed(value):
+            return value.angleValue
         default:
             assertionFailure()
             return nil
@@ -244,7 +252,7 @@ extension Value {
 
     var stringValue: String {
         switch self {
-        case let .tuple(values), let .pretransformed(values):
+        case let .tuple(values):
             var spaceNeeded = false
             return values.map {
                 switch $0 {
@@ -257,6 +265,8 @@ extension Value {
                     return spaceNeeded ? " \(string)" : string
                 }
             }.joined()
+        case let .pretransformed(value):
+            return value.stringValue
         default:
             assert(value is Loggable)
             return (value as? Loggable)?.logDescription ?? ""
@@ -265,8 +275,10 @@ extension Value {
 
     var tupleValue: [AnyHashable] {
         switch self {
-        case let .tuple(values), let .pretransformed(values):
+        case let .tuple(values):
             return values.map(\.value)
+        case let .pretransformed(value):
+            return value.tupleValue
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
@@ -283,13 +295,18 @@ extension Value {
         switch self {
         case let .range(range):
             return range.stride.map { AnySequence($0.lazy.map { .number($0) }) }
-        case let .tuple(values), let .pretransformed(values):
+        case let .pretransformed(.tuple(values)):
+            if values.count == 1 {
+                fallthrough
+            }
+            return AnySequence(values.map { .pretransformed($0) })
+        case let .tuple(values):
             if values.count == 1, let first = values.first {
                 if case .range = first {
                     // Special case to handle unbounded ranges
                     return first.sequenceValue
-                } else if let value = first.sequenceValue {
-                    return value
+                } else if let sequenceValue = first.sequenceValue {
+                    return sequenceValue
                 }
             }
             return AnySequence(values)
@@ -301,7 +318,7 @@ extension Value {
             })
         case .boolean, .vector, .size, .rotation, .color, .texture, .material,
              .number, .radians, .halfturns, .string, .font, .text, .path, .mesh,
-             .polygon, .point, .bounds:
+             .polygon, .point, .bounds, .pretransformed:
             return nil
         }
     }
@@ -350,9 +367,10 @@ extension Value {
     /// Recursively unwrap a tuple containing only one value
     func unwrapped(recursive: Bool) -> Value {
         switch self {
-        case let .tuple(values) where values.count == 1,
-             let .pretransformed(values) where values.count == 1:
+        case let .tuple(values) where values.count == 1:
             return recursive ? values[0].unwrapped(recursive: true) : values[0]
+        case let .pretransformed(.tuple(values)) where values.count == 1:
+            return .pretransformed(recursive ? values[0].unwrapped(recursive: true) : values[0])
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
@@ -374,12 +392,14 @@ extension [Value] {
             return self
         }
         switch self[0] {
-        case let .tuple(values), let .pretransformed(values):
+        case let .tuple(values):
             return recursive ? values.flattened(recursive: true) : values
+        case let .pretransformed(.tuple(values)):
+            return (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
-             .range, .bounds, .object:
+             .range, .bounds, .object, .pretransformed:
             return self
         }
     }
@@ -388,12 +408,14 @@ extension [Value] {
     func flattened(recursive: Bool) -> [Value] {
         flatMap {
             switch $0 {
-            case let .tuple(values), let .pretransformed(values):
+            case let .tuple(values):
                 return recursive ? values.flattened(recursive: true) : values
+            case let .pretransformed(.tuple(values)):
+                return (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
             case .color, .texture, .material, .boolean, .number,
                  .radians, .halfturns, .vector, .size, .rotation,
                  .string, .font, .text, .path, .mesh, .polygon, .point,
-                 .range, .bounds, .object:
+                 .range, .bounds, .object, .pretransformed:
                 return [$0]
             }
         }
