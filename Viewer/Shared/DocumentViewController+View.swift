@@ -41,7 +41,7 @@ extension DocumentViewController {
             grantAccessButton.isHidden = true
         case .fileAccess:
             errorTextView.backgroundColor = OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1)
-            grantAccessButton.isHidden = false
+            grantAccessButton.isHidden = isQuickLook
         }
         errorMessage = message
     }
@@ -131,16 +131,15 @@ extension DocumentViewController {
     }
 
     func refreshOrthographic() {
-        let ortho = camera.isOrthographic ?? isOrthographic
+        let ortho = camera.isOrthographic ?? (isOrthographic && !isQuickLook)
         cameraNode.camera?.usesOrthographicProjection = ortho
         scnView.pointOfView?.camera?.usesOrthographicProjection = ortho
         refreshView()
     }
 
-    func updateAxesAndCamera() {
-        // Update axes
+    func updateAxes() {
         axesNode?.removeFromParentNode()
-        if showAxes {
+        if showAxes, !isQuickLook {
             let axesNode = SCNNode(Axes(
                 scale: axesSize,
                 camera: camera,
@@ -150,7 +149,9 @@ extension DocumentViewController {
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
             self.axesNode = axesNode
         }
-        // Update camera node
+    }
+
+    func updateCamera() {
         let bounds = geometry?.overestimatedBounds ?? .empty
         let axisScale = axesSize * 2.2
         let size = bounds.size
@@ -199,6 +200,11 @@ extension DocumentViewController {
         }
         cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
         cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
+    }
+
+    func updateAxesAndCamera() {
+        updateAxes()
+        updateCamera()
     }
 }
 

@@ -42,6 +42,9 @@ final class DocumentViewController: UIViewController {
         }
     }
 
+    /// In preview mode, document view is non-editable. Used for QuickLook
+    var isQuickLook: Bool = false
+
     lazy var cameraNode: SCNNode = makeCameraNode()
 
     weak var axesNode: SCNNode?

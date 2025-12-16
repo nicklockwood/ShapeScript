@@ -111,7 +111,7 @@ extension Document {
         }
         let camera = camera
         let backgroundColor = Color(Self.backgroundColor)
-        let showWireframe = showWireframe
+        let showWireframe = showWireframe && viewController?.isQuickLook != true
         rerenderRequired = false
         loadingProgress.dispatch { progress in
             if case let .success(scene) = progress.status,

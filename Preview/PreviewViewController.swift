@@ -26,6 +26,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             documentViewController = document.viewController
             addChild(documentViewController)
             documentViewController.view.frame = view.bounds
+            documentViewController.isQuickLook = true
             view.addSubview(documentViewController.view)
             documentViewController.view.autoresizingMask = [.width, .height]
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

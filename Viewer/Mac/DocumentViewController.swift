@@ -25,6 +25,8 @@ final class DocumentViewController: NSViewController {
 
     weak var document: Document?
 
+    var isQuickLook: Bool = false
+
     lazy var cameraNode: SCNNode = makeCameraNode()
 
     weak var axesNode: SCNNode?
@@ -105,7 +107,7 @@ final class DocumentViewController: NSViewController {
             guard showConsole != oldValue else {
                 return
             }
-            if showConsole {
+            if showConsole, !isQuickLook {
                 if consoleScrollView.superview == nil {
                     containerView.insertArrangedSubview(consoleScrollView, at: 1)
                     consoleTextView.textContainerInset = CGSize(width: 5, height: 5)
