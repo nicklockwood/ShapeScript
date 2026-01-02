@@ -1001,7 +1001,7 @@ extension Mesh {
 
     /// Convert material colors to vertex colors, preserving the existing vertex colors if set
     func materialToVertexColors(material: ShapeScript.Material?) -> Mesh {
-        .init(polygons.map { $0.materialToVertexColors(material: material) })
+        mapPolygons { $0.materialToVertexColors(material: material) }
     }
 }
 
