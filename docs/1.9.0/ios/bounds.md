@@ -74,8 +74,8 @@ star
 
 // draw rectangle around star
 square {
-    position shape.bounds.center
-    size shape.bounds.size   
+    position star.bounds.center
+    size star.bounds.size   
 }
 ```
 

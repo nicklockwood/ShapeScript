@@ -142,11 +142,11 @@ if showCube {
 To select between multiple mutually-exclusive cases based on some value, you can use an `else if` chain, but it can be a bit cumbersome:
 
 ```swift
-if value == 1 {
+if value = 1 {
     // Do something
-} else if value == 2 {
+} else if value = 2 {
     // Do something else
-} else if value == 3 {
+} else if value = 3 {
     // Do something different
 } else {
     // And so on ...
