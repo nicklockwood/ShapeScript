@@ -291,12 +291,21 @@ public extension Geometry {
                 width: nil,
                 height: nil
             ))
+        } else if let scnLight = scnNode.light {
+            type = .light(Light(
+                position: transform.translation,
+                orientation: transform.rotation,
+                color: Color(scnLight.color).withAlpha(scnLight.intensity / 1000),
+                spread: .degrees(scnLight.spotOuterAngle),
+                penumbra: 1 - max(0, min(1, Double(scnLight.spotInnerAngle / scnLight.spotOuterAngle))),
+                shadowOpacity: Color(scnLight.shadowColor).a
+            ))
         } else if let scnGeometry = scnNode.geometry {
             guard let mesh = Mesh(
                 scnGeometry,
                 materialLookup: Material.init(_:)
             ) else {
-                throw ProgramError.unknownError("Failed to export file")
+                throw ProgramError.unknownError("Model data was malformed or in an unsupported format")
             }
             type = .mesh(mesh)
         } else {
@@ -333,6 +342,19 @@ public extension SCNLight {
         spotInnerAngle = CGFloat(1 - max(0, min(1, light.penumbra))) * spotOuterAngle
         castsShadow = light.shadowOpacity > 0
         shadowColor = OSColor(Color.black.withAlpha(light.shadowOpacity))
+    }
+}
+
+private extension Color {
+    init(_ scnColor: Any) {
+        switch scnColor {
+        case let color as OSColor:
+            self.init(color)
+        case let color as CGColor:
+            self.init(color)
+        default:
+            self = .white
+        }
     }
 }
 
