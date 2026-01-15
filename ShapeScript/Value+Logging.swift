@@ -127,21 +127,17 @@ extension Color: Loggable {
 
 extension Texture: Loggable {
     public var logDescription: String {
-        switch self {
-        case let .file(name: _, url: url, intensity: _):
-            return url.path.logDescription
-        case .data:
+        guard let url else {
             return "texture { #data }"
         }
+        return url.path.logDescription
     }
 
     public var nestedLogDescription: String {
-        switch self {
-        case let .file(name: _, url: url, intensity: _):
-            return url.path.nestedLogDescription
-        case .data:
+        guard let url else {
             return "texture"
         }
+        return url.path.nestedLogDescription
     }
 }
 
@@ -303,9 +299,9 @@ extension Geometry: Loggable {
             switch camera.background {
             case let .color(color)?:
                 fields.append("background \(color.logDescription)")
-            case let .texture(.file(name: name, url: _, intensity: _))?:
-                fields.append("background \(name.nestedLogDescription)")
-            case .texture, nil:
+            case let .texture(texture)?:
+                fields.append("background \(texture.nestedLogDescription)")
+            case nil:
                 break
             }
         case let .light(light):

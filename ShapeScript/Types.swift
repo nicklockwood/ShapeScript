@@ -472,17 +472,19 @@ extension Value {
             fallthrough
         case (.string, .texture):
             return try self.as(.string, in: context).flatMap {
-                let name = $0.stringValue
-                if name.isEmpty {
+                let path = $0.stringValue
+                if path.isEmpty {
                     return .texture(nil)
                 }
+                guard URL(fileURLWithPath: path).isImageFile else {
+                    return nil
+                }
                 do {
-                    let url = try context?.resolveURL(for: name)
-                    return .texture(.file(name: name, url: url ?? URL(fileURLWithPath: name), intensity: 1))
-                } catch {
-                    if URL(fileURLWithPath: name).pathExtension.isEmpty {
-                        return nil
+                    if case let .texture(texture) = try context?.importFile(at: path) {
+                        return .texture(texture)
                     }
+                    return try .texture(.file(name: path, url: nil))
+                } catch {
                     throw error
                 }
             }
@@ -504,7 +506,9 @@ extension Value {
         case (.string, .color):
             // TODO: support named colors
             return Color(hexString: stringValue).map { .color($0) }
-        case (.boolean, .string), (.number, .string), (.font, .string), (.texture(.file), .string):
+        case let (.texture(texture), .string) where texture?.name != nil:
+            fallthrough
+        case (.boolean, .string), (.number, .string), (.font, .string):
             return .string(stringValue)
         case let (.tuple(values), .string):
             let stringifyable = values.allSatisfy { $0.isConvertible(to: .string) }

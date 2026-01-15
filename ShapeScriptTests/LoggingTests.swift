@@ -201,14 +201,18 @@ final class LoggingTests: XCTestCase {
 
     // MARK: Textures
 
-    func testTextureFile() {
-        let input = Texture.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar"), intensity: 1)
-        XCTAssertEqual(input.logDescription, "/foo/bar")
-        XCTAssertEqual(input.nestedLogDescription, "\"/foo/bar\"")
+    func testTextureFile() throws {
+        let input = try Texture.file(
+            name: "Stars1.jpg",
+            url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        )
+        let expectedPath = testsDirectory.appendingPathComponent("Stars1.jpg").path
+        XCTAssertEqual(input.logDescription, expectedPath)
+        XCTAssertEqual(input.nestedLogDescription, "\"\(expectedPath)\"")
     }
 
     func testTextureData() {
-        let input = Texture.data(Data(), intensity: 1)
+        let input = Texture.data(Data())
         XCTAssertEqual(input.logDescription, "texture { #data }")
         XCTAssertEqual(input.nestedLogDescription, "texture")
     }
@@ -248,10 +252,14 @@ final class LoggingTests: XCTestCase {
 
     // MARK: MaterialProperties
 
-    func testTextureFileMaterial() {
-        let input = MaterialProperty.texture(.file(name: "Foo", url: URL(fileURLWithPath: "/foo/bar"), intensity: 1))
-        XCTAssertEqual(input.logDescription, "/foo/bar")
-        XCTAssertEqual(input.nestedLogDescription, "\"/foo/bar\"")
+    func testTextureFileMaterial() throws {
+        let input = try MaterialProperty.texture(.file(
+            name: "Stars1.jpg",
+            url: testsDirectory.appendingPathComponent("Stars1.jpg")
+        ))
+        let expectedPath = testsDirectory.appendingPathComponent("Stars1.jpg").path
+        XCTAssertEqual(input.logDescription, expectedPath)
+        XCTAssertEqual(input.nestedLogDescription, "\"\(expectedPath)\"")
     }
 
     // MARK: Paths

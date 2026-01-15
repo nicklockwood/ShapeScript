@@ -489,7 +489,7 @@ extension EvaluationContext {
             }
         case _ where url.isImageFile:
             do {
-                let value = try Value.texture(.file(name: path, url: url, intensity: 1))
+                let value = try Value.texture(.file(name: path, url: url))
                 importCache.store[url] = .value(value)
                 return value
             } catch {

@@ -962,7 +962,7 @@ final class TypesystemTests: XCTestCase {
 
     func testCastTextureToString() throws {
         let url = TestDelegate().resolveURL(for: "Stars1.jpg")
-        let texture = Texture.file(name: "Stars1.jpg", url: url, intensity: 1)
+        let texture = try Texture.file(name: "Stars1.jpg", url: url)
         XCTAssert(Value.texture(texture).isConvertible(to: .string))
         XCTAssertEqual(try evaluate("""
         texture "Stars1.jpg"
@@ -995,7 +995,7 @@ final class TypesystemTests: XCTestCase {
     func testCastTextureToFont() throws {
         #if canImport(CoreGraphics)
         let url = TestDelegate().resolveURL(for: "Stars1.jpg")
-        let texture = Texture.file(name: "Stars1.jpg", url: url, intensity: 1)
+        let texture = try Texture.file(name: "Stars1.jpg", url: url)
         XCTAssertFalse(Value.texture(texture).isConvertible(to: .font))
         XCTAssertThrowsError(try evaluate("texture \"Stars1.jpg\"\ntexture", as: .font)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)

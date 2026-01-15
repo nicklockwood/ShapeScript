@@ -27,7 +27,14 @@ public extension MaterialProperty {
         case let data as Data:
             self = .texture(.data(data, intensity: scnMaterialProperty.intensity))
         case let url as URL:
-            self = .texture(.file(name: url.lastPathComponent, url: url, intensity: scnMaterialProperty.intensity))
+            guard let texture = try? Texture.file(
+                name: url.lastPathComponent,
+                url: url,
+                intensity: scnMaterialProperty.intensity
+            ) else {
+                return nil
+            }
+            self = .texture(texture)
         default:
             return nil
         }
@@ -42,13 +49,12 @@ public extension MaterialProperty {
             property.magnificationFilter = .nearest
             property.minificationFilter = .linear
             if texture.intensity > 0 {
-                switch texture {
-                case let .file(name: _, url: url, intensity: intensity):
+                if let url = texture.url {
                     property.contents = url
-                    property.intensity = intensity
-                case let .data(data, intensity: intensity):
-                    property.contents = data
-                    property.intensity = intensity
+                    property.intensity = texture.intensity
+                } else {
+                    property.contents = texture.data
+                    property.intensity = texture.intensity
                 }
             } else {
                 property.contents = OSColor.clear
@@ -123,7 +129,7 @@ public extension Material {
 }
 
 extension Texture {
-    init?(_ image: OSImage, intensity: Double) {
+    init?(_ image: OSImage, intensity: Double = 1) {
         #if canImport(UIKit)
         guard let data = image.pngData() else {
             return nil
@@ -143,12 +149,7 @@ extension Texture {
 
 extension OSImage {
     convenience init?(_ texture: Texture) {
-        switch texture {
-        case let .data(data, intensity: _):
-            self.init(data: data)
-        case let .file(name: _, url: url, intensity: _):
-            self.init(contentsOfFile: url.path)
-        }
+        self.init(data: texture.data)
     }
 }
 

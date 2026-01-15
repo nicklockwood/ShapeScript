@@ -11,27 +11,26 @@ import Foundation
 
 public typealias Color = Euclid.Color
 
-public enum Texture: Hashable {
-    case file(name: String, url: URL, intensity: Double)
-    case data(Data, intensity: Double)
+public struct Texture: Hashable {
+    public let name: String?
+    public let url: URL?
+    public let data: Data
+    public var intensity: Double
 }
 
 public extension Texture {
-    var intensity: Double {
-        switch self {
-        case let .file(name: _, url: _, intensity: intensity),
-             let .data(_, intensity: intensity):
-            return intensity
-        }
+    static func file(name: String, url: URL?, intensity: Double = 1) throws -> Self {
+        let url = url ?? URL(fileURLWithPath: name)
+        let data = try Data(contentsOf: url)
+        return .init(name: name, url: url, data: data, intensity: intensity)
+    }
+
+    static func data(_ data: Data, intensity: Double = 1) -> Texture {
+        .init(name: nil, url: nil, data: data, intensity: intensity)
     }
 
     func withIntensity(_ intensity: Double) -> Self {
-        switch self {
-        case let .file(name: name, url: url, intensity: _):
-            return .file(name: name, url: url, intensity: intensity)
-        case let .data(data, intensity: _):
-            return .data(data, intensity: intensity)
-        }
+        .init(name: name, url: url, data: data, intensity: intensity)
     }
 }
 
