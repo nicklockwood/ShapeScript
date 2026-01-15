@@ -327,9 +327,7 @@ extension EvaluationContext {
             .replacingOccurrences(of: "\t", with: " ")
             .replacingOccurrences(of: "  ", with: " ")
         #if canImport(CoreGraphics) && canImport(CoreText)
-        guard [".otf", ".ttf", ".ttc"].contains(where: {
-            name.lowercased().hasSuffix($0)
-        }) else {
+        guard URL(fileURLWithPath: name).isFontFile else {
             if importCache.fonts.contains(name) {
                 return name
             }
@@ -346,19 +344,9 @@ extension EvaluationContext {
             }
             return fullName
         }
-        let url = try resolveURL(for: name)
-        if case let .value(.font(fullName)) = importCache.store[url] {
-            return fullName
+        guard case let .font(fullName) = try importFile(at: name) else {
+            preconditionFailure()
         }
-        guard let dataProvider = CGDataProvider(url: url as CFURL) else {
-            throw RuntimeErrorType.fileNotFound(for: name, at: url)
-        }
-        guard let cgFont = CGFont(dataProvider), let fullName = cgFont.fullName as? String,
-              CGFont(fullName as CFString) != nil || CTFontManagerRegisterGraphicsFont(cgFont, nil)
-        else {
-            throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
-        }
-        importCache.store[url] = .value(.font(fullName))
         return fullName
         #else
         return name
@@ -420,6 +408,9 @@ extension EvaluationContext {
 
     func importFile(at path: String) throws -> Value {
         let url = try resolveURL(for: path)
+        if case let .value(value) = importCache.store[url] {
+            return value
+        }
         switch url.pathExtension.lowercased() {
         case "shape":
             if importStack.contains(url) {
@@ -466,9 +457,6 @@ extension EvaluationContext {
                 )
             }
         case "txt":
-            if case let .value(value) = importCache.store[url] {
-                return value
-            }
             do {
                 let value = try Value.string(String(contentsOf: url))
                 importCache.store[url] = .value(value)
@@ -481,9 +469,6 @@ extension EvaluationContext {
                 )
             }
         case "json":
-            if case let .value(value) = importCache.store[url] {
-                return value
-            }
             do {
                 let value = try Value(jsonData: Data(contentsOf: url))
                 importCache.store[url] = .value(value)
@@ -502,7 +487,39 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        default:
+        case _ where url.isImageFile:
+            do {
+                let value = try Value.texture(.file(name: path, url: url, intensity: 1))
+                importCache.store[url] = .value(value)
+                return value
+            } catch {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path,
+                    at: url,
+                    message: error.localizedDescription
+                )
+            }
+        case _ where url.isFontFile:
+            do {
+                guard let dataProvider = CGDataProvider(url: url as CFURL) else {
+                    throw RuntimeErrorType.fileNotFound(for: name, at: url)
+                }
+                guard let cgFont = CGFont(dataProvider), let fullName = cgFont.fullName as? String,
+                      CGFont(fullName as CFString) != nil || CTFontManagerRegisterGraphicsFont(cgFont, nil)
+                else {
+                    throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
+                }
+                let value = Value.font(fullName)
+                importCache.store[url] = .value(value)
+                return value
+            } catch {
+                throw RuntimeErrorType.fileParsingError(
+                    for: path,
+                    at: url,
+                    message: error.localizedDescription
+                )
+            }
+        default: // Assume that it's a model file
             do {
                 let geometry: Geometry
                 if case let .geometry(entry) = importCache.store[url] {

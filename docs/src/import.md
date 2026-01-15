@@ -85,6 +85,20 @@ define data import "Data.json"
 
 **Note:** ShapeScript currently only supports `txt` or `json` file extensions for data files. To import structured text in other formats you will need to change the file extension.
 
+## Textures and Fonts
+
+You can also import texture and font files. When you import a texture or font, the `import` expression returns a value that you can store, pass around, or reuse later:
+
+```swift
+define woodTexture import "Wood.png"
+define uiFont import "UI.ttf"
+
+texture woodTexture
+font uiFont
+```
+
+This is different from passing a filename directly to the `texture` or `font` commands. Using a file path with those commands both loads the file _and_ immediately applies it to the current scope. Importing the file gives you a value without changing the current texture or font, which is useful when you want to store it in a symbol for later reuse.
+
 ## Dynamic Imports
 
 It can sometimes be useful to generate the name of an imported file dynamically. For example if you have multiple numbered files to import, you might want to generate the names programatically.

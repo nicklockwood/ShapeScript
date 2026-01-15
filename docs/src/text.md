@@ -232,6 +232,8 @@ font "filename.ttf"
 
 Only fonts with a ".ttf", ".otf" or ".ttc" file extension are supported. The extension is required, or the `font` parameter will be treated as a system font rather than a file. If a relative path or filename is used, it should be specified relative to the ShapeScript file that references it.
 
+**Note:** You can also `import` a font file to get a reusable font value without changing the current font, and then pass that value to `font` when needed (see [import](import.md#textures-and-fonts)).
+
 Once loaded in this way, fonts will appear in the fonts list and can be referenced by name in subsequent calls. To get the name of a font that you have loaded from a file, you can print it:
 
 ```swift
