@@ -41,7 +41,7 @@ extension Document: EvaluationDelegate {
                     spaceNeeded = false
                     return string
                 case let value:
-                    let string = String(nestedLogDescriptionFor: value as Any)
+                    let string = String(logDescriptionFor: value as Any)
                     defer { spaceNeeded = true }
                     return spaceNeeded ? " \(string)" : string
                 }
