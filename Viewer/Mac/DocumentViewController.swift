@@ -169,6 +169,7 @@ final class DocumentViewController: NSViewController {
         // configure the view
         scnView.backgroundColor = .clear
         scnView.pointOfView = cameraNode
+        document?.updateViews()
         refreshGeometry()
 
         // add a click gesture recognizer

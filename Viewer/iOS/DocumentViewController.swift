@@ -314,6 +314,7 @@ final class DocumentViewController: UIViewController {
         scnView.pointOfView = cameraNode
         updateInterfaceColor()
         updateEditButton()
+        document?.updateViews()
         refreshGeometry()
 
         // configure camera menu
