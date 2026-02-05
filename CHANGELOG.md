@@ -1,5 +1,18 @@
 # Change Log
 
+## [1.10.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.0) (2026-02-07)
+
+- Added optional message parameter for `assert` command
+- Added support for loading lights from external scene files
+- Textures and fonts can now be imported for later use
+- Fixed bug with off-center convex hull calculations
+- Fixed bug in expression and function scope transforms
+- Added Quick Look extension for previewing ShapeScript files in the Finder
+- You can now use `if`, `switch` and `for` statements inside expressions
+- Fixed bug where editing texture image files wouldn't trigger a reload
+- Improved logging of tuple values
+- Bumped Euclid to version 0.8.14
+
 ## [1.9.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.9.3) (2025-11-13)
 
 - Fixed misalignment when using `twist` option with `extrude` command

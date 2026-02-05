@@ -7,15 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		012B51B52E8093C100D69BA4 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; platformFilters = (ios, maccatalyst, macos, xros, ); };
+		012B51B52E8093C100D69BA4 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
 		012B51B62E8093CD00D69BA4 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
 		012B51B72E8093CD00D69BA4 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
-		012B51B82E8093CD00D69BA4 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; platformFilters = (ios, maccatalyst, macos, tvos, xros, ); };
+		012B51B82E8093CD00D69BA4 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; };
 		012B51B92E80942200D69BA4 /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01D435A22E807CBA008B915E /* Examples */; };
 		012B51BB2E8094B000D69BA4 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		012B51BC2E8094B000D69BA4 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; platformFilters = (ios, maccatalyst, macos, tvos, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		012B51BC2E8094B000D69BA4 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BD2E8094B000D69BA4 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; platformFilters = (ios, maccatalyst, macos, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BF2E80975900D69BA4 /* DocumentBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DAF92E80783500C53A29 /* DocumentBrowserViewController.swift */; };
 		012B51C02E80975900D69BA4 /* DocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DAFA2E80783500C53A29 /* DocumentViewController.swift */; };
 		012B51C12E80975900D69BA4 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0158DAF82E80783500C53A29 /* Document.swift */; };
@@ -1151,7 +1151,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -1189,7 +1189,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -1400,7 +1400,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
@@ -1444,7 +1444,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
@@ -1539,7 +1539,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1586,7 +1586,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1620,7 +1620,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1657,7 +1657,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 1.9.3;
+				MARKETING_VERSION = 1.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

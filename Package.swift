@@ -5,8 +5,8 @@ let package = Package(
     name: "ShapeScript",
     platforms: [
         .macOS(.v10_15),
-        .iOS(.v11),
-        .tvOS(.v11),
+        .iOS(.v14),
+        .tvOS(.v14),
     ],
     products: [
         .library(name: "ShapeScript", targets: ["ShapeScript"]),
@@ -15,7 +15,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/nicklockwood/Euclid.git",
-            .upToNextMinor(from: "0.8.13")
+            .upToNextMinor(from: "0.8.14")
         ),
         .package(
             url: "https://github.com/nicklockwood/LRUCache.git",

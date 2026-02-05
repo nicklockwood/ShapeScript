@@ -203,22 +203,39 @@ if highlighted {
 cube cubeColor
 ```
 
-Unfortunately this won't work, due to the [scope](scope.md) rules. The `cubeColor` symbol is only defined inside the `if` statement blocks themselves, and can't be accessed outside. So how can you set the value of `cubeColor` conditionally?
-
-The solution is to move the `if` statement *inside* the `define` itself, like this:
+Unfortunately this won't work, due to the [scope](scope.md) rules. The `cubeColor` symbol is only defined inside the `if` statement blocks themselves, and can't be accessed outside. The solution is to move the `if` statement *into* the `define` itself:
 
 ```swift
 define highlighted true
 
-define cubeColor {
-    if highlighted {
-        red
-    } else {
-        white  
-    }
+define cubeColor if highlighted {
+    red
+} else {
+    white  
 }
 
 cube { color cubeColor }
+```
+
+## Control-Flow Expressions
+
+`if`, `switch`, and `for` can be used anywhere a value is expected. An `if` or `switch` expression evaluates to the value produced by the selected branch, and a `for` expression evaluates to a tuple of the values produced by each iteration. This allows you to compute values conditionally, or build lists from loops without resorting to temporary symbols:
+
+```swift
+define dozen 12 + if isBaker { 1 } else { 0 }
+
+define length switch type {
+case "small"
+    1
+case "large"
+    3
+else
+    2
+}
+
+define scales for i in 1 to 3 {
+    i / 3
+}
 ```
 
 ---

@@ -69,16 +69,22 @@ Rather than merely printing a value, sometimes you want to be certain that it ha
 assert color = red // no other color will do
 ```
 
-The assert function accepts a single boolean value or expression, and will raise an error if it evaluates to false.
+The assert function accepts a single boolean value or expression, and will raise an error if it evaluates to false. You can also provide an optional message string as a second argument to make the error more descriptive:
 
-So when would this be useful? Suppose that you have defined a block, like the [star example](blocks.md#options) and you want a way to specify that it must have at least 4 points and a nonzero radius. You could do that like this:
+```swift
+assert segments >= 3 "segments must be at least 3"
+```
+
+So when would this be useful?
+
+Suppose that you have defined a block, like the [star example](blocks.md#options) and you want a way to specify that it must have at least 4 points and a nonzero radius. You could do that like this:
 
 ```swift
 define star {
     option radius 1
-    assert radius > 0
+    assert radius > 0 "radius must be positive"
     option points 5
-    assert points >= 4
+    assert points >= 4 "must have at least 4 points"
     path {
         for 1 to points {
             point 0 -0.5
@@ -91,7 +97,7 @@ define star {
 }
 ```
 
-Now, if you (or someone else) tries invoke `star` with invalid options, it will raise a meaningful error instead of just producing broken-looking geometry.
+Now, if you call `star` with invalid options, it will raise a meaningful error instead of just producing broken-looking geometry.
 
 ---
 [Index](index.md) | Next: [Import](import.md)
