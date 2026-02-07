@@ -6,6 +6,8 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
+import Foundation
+
 extension String {
     /// Return the closest matches for the string in the given list of options
     public func bestMatches(in options: [String]) -> [String] {

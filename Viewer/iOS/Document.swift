@@ -6,6 +6,7 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
 import SceneKit
 import ShapeScript
 import UIKit

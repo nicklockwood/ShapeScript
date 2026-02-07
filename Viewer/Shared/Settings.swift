@@ -9,6 +9,10 @@
 import CoreServices
 import Foundation
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 let appVersion: String = Bundle.main.object(
     forInfoDictionaryKey: "CFBundleShortVersionString"
 ) as! String

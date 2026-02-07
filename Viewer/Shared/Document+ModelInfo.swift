@@ -10,6 +10,10 @@ import Euclid
 import Foundation
 import ShapeScript
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 extension Document {
     var importedFileCount: Int {
         linkedResources.filter { !$0.isImageFile && !$0.isFontFile }.count
