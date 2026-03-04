@@ -4744,6 +4744,52 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Tuples
+
+    func testTupleDeclarationNotFlattened() throws {
+        let program = """
+        define vertices {
+            (
+                (0 sqrt(3)/3 0)
+                (-1/2 -sqrt(3)/6 0)
+                (+1/2 -sqrt(3)/6 0)
+            )
+        }
+        print vertices.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testTupleDeclarationNotFlattened2() throws {
+        let program = """
+        define vertices {
+            (0 sqrt(3)/3 0)
+            (-1/2 -sqrt(3)/6 0)
+            (+1/2 -sqrt(3)/6 0)
+        }
+        print vertices.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testTupleDeclarationNotFlattened3() throws {
+        let program = """
+        define vertices {
+            0 sqrt(3)/3 0
+            -1/2 -sqrt(3)/6 0
+            +1/2 -sqrt(3)/6 0
+        }
+        print vertices.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
     // MARK: Empty arguments
 
     func testPrintNothing() {

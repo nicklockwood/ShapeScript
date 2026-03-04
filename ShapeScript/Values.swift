@@ -393,9 +393,9 @@ extension [Value] {
         }
         switch self[0] {
         case let .tuple(values):
-            return recursive ? values.flattened(recursive: true) : values
+            return recursive ? values.unwrapped(recursive: true) : values
         case let .pretransformed(.tuple(values)):
-            return (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
+            return (recursive ? values.unwrapped(recursive: true) : values).map { .pretransformed($0) }
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
