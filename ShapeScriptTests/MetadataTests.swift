@@ -576,42 +576,107 @@ final class MetadataTests: XCTestCase {
     func exportVersionedHelp() throws {
         let fm = FileManager.default
         let outputDirectory = helpDirectory.appendingPathComponent(projectVersion)
+
+        func exportVersionedHelp(to outputDirectory: URL) throws {
+            for subdir in ["mac", "ios"] {
+                let helpDir = helpDirectory.appendingPathComponent(subdir)
+                let versionedDir = outputDirectory.appendingPathComponent(subdir)
+                try fm.createDirectory(at: versionedDir, withIntermediateDirectories: true)
+                let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDir.path))
+                for case let file as String in enumerator where file.hasSuffix(".md") {
+                    let fileURL = helpDir.appendingPathComponent(file)
+                    let text = try String(contentsOf: fileURL)
+                    let nsText = NSMutableString(string: text)
+                    var range = NSRange(location: 0, length: nsText.length)
+                    var urlRanges = [NSRange]()
+                    for match in urlRegex.matches(in: text, options: [], range: range) {
+                        range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
+                        urlRanges.append(match.range(at: 1))
+                    }
+                    for range in urlRanges.reversed() {
+                        guard let url = URL(string: nsText.substring(with: range)),
+                              url.host == nil, url.pathExtension == "png"
+                        else {
+                            continue
+                        }
+                        nsText.replaceCharacters(in: range, with: "../\(url.absoluteString)")
+                    }
+                    let outputURL = versionedDir.appendingPathComponent(file)
+                    try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
+                }
+            }
+        }
+
+        func directoriesEqual(_ lhs: URL, _ rhs: URL) throws -> Bool {
+            var isDir = ObjCBool(false)
+            guard fm.fileExists(atPath: lhs.path, isDirectory: &isDir), isDir.boolValue else {
+                return false
+            }
+            guard fm.fileExists(atPath: rhs.path, isDirectory: &isDir), isDir.boolValue else {
+                return false
+            }
+            let lhsItems = try Set(fm.subpathsOfDirectory(atPath: lhs.path).filter {
+                URL(fileURLWithPath: $0).lastPathComponent != ".DS_Store"
+            })
+            let rhsItems = try Set(fm.subpathsOfDirectory(atPath: rhs.path).filter {
+                URL(fileURLWithPath: $0).lastPathComponent != ".DS_Store"
+            })
+
+            guard lhsItems == rhsItems else {
+                return false
+            }
+
+            for path in lhsItems {
+                let lhsURL = lhs.appendingPathComponent(path)
+                let rhsURL = rhs.appendingPathComponent(path)
+                let lhsType = try XCTUnwrap(fm.attributesOfItem(atPath: lhsURL.path)[.type] as? FileAttributeType)
+                let rhsType = try XCTUnwrap(fm.attributesOfItem(atPath: rhsURL.path)[.type] as? FileAttributeType)
+                guard lhsType == rhsType else {
+                    return false
+                }
+                if lhsType == .typeRegular, !fm.contentsEqual(atPath: lhsURL.path, andPath: rhsURL.path) {
+                    return false
+                }
+                if lhsType == .typeSymbolicLink {
+                    let lhsTarget = try fm.destinationOfSymbolicLink(atPath: lhsURL.path)
+                    let rhsTarget = try fm.destinationOfSymbolicLink(atPath: rhsURL.path)
+                    if lhsTarget != rhsTarget {
+                        return false
+                    }
+                }
+            }
+            return true
+        }
+
         guard fm.fileExists(atPath: outputDirectory.path) else {
             XCTFail("Help directory for \(projectVersion) not found")
             return
         }
+
+        let tempDirectory = fm.temporaryDirectory
+            .appendingPathComponent("ShapeScript-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? fm.removeItem(at: tempDirectory)
+        }
+        try exportVersionedHelp(to: tempDirectory)
+
         let attrs = try fm.attributesOfItem(atPath: outputDirectory.path)
         if attrs[.type] as? FileAttributeType == .typeSymbolicLink {
+            let symlinkDestination = try fm.destinationOfSymbolicLink(atPath: outputDirectory.path)
+            let linkedDirectory = URL(
+                fileURLWithPath: symlinkDestination,
+                relativeTo: outputDirectory.deletingLastPathComponent()
+            ).standardizedFileURL
+            if try directoriesEqual(tempDirectory, linkedDirectory) {
+                return
+            }
+            try fm.removeItem(at: outputDirectory)
+            try fm.moveItem(at: tempDirectory, to: outputDirectory)
             return
         }
+
         try? fm.removeItem(at: outputDirectory)
-        for subdir in ["mac", "ios"] {
-            let helpDir = helpDirectory.appendingPathComponent(subdir)
-            let versionedDir = outputDirectory.appendingPathComponent(subdir)
-            try fm.createDirectory(at: versionedDir, withIntermediateDirectories: true)
-            let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDir.path))
-            for case let file as String in enumerator where file.hasSuffix(".md") {
-                let fileURL = helpDir.appendingPathComponent(file)
-                let text = try String(contentsOf: fileURL)
-                let nsText = NSMutableString(string: text)
-                var range = NSRange(location: 0, length: nsText.length)
-                var urlRanges = [NSRange]()
-                for match in urlRegex.matches(in: text, options: [], range: range) {
-                    range = NSRange(location: match.range.upperBound, length: range.length - match.range.upperBound)
-                    urlRanges.append(match.range(at: 1))
-                }
-                for range in urlRanges.reversed() {
-                    guard let url = URL(string: nsText.substring(with: range)),
-                          url.host == nil, url.pathExtension == "png"
-                    else {
-                        continue
-                    }
-                    nsText.replaceCharacters(in: range, with: "../\(url.absoluteString)")
-                }
-                let outputURL = versionedDir.appendingPathComponent(file)
-                try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
-            }
-        }
+        try fm.moveItem(at: tempDirectory, to: outputDirectory)
     }
 
     // MARK: Examples

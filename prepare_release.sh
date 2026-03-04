@@ -60,7 +60,26 @@ sed -i '' "s/public let version: String = \"[^\"]*\"/public let version: String 
 echo "Updating ShapeScript.xcodeproj..."
 sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $NEW_VERSION/" ShapeScript.xcodeproj/project.pbxproj
 
-# 6. Run tests
+# 6. Ensure docs version folder exists
+echo "Checking docs version folder..."
+DOCS_VERSION_PATH="docs/$NEW_VERSION"
+if [ -e "$DOCS_VERSION_PATH" ] || [ -L "$DOCS_VERSION_PATH" ]; then
+    echo "Docs entry already exists at $DOCS_VERSION_PATH"
+else
+    LATEST_DOCS_VERSION=$(find docs -mindepth 1 -maxdepth 1 -type d \
+        -exec basename {} \; | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
+
+    if [ -z "$LATEST_DOCS_VERSION" ]; then
+        echo "Error: No existing non-symlink docs version folders found in docs/."
+        exit 1
+    fi
+
+    (cd docs && ln -s "$LATEST_DOCS_VERSION" "$NEW_VERSION")
+    echo "Created docs symlink: $DOCS_VERSION_PATH -> $LATEST_DOCS_VERSION"
+fi
+
+# 7. Run tests
 echo "Running tests..."
 if ! swift test --parallel --num-workers 10; then
     echo "Error: Tests failed. Please fix the issues before proceeding."

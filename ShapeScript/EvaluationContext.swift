@@ -501,14 +501,22 @@ extension EvaluationContext {
             }
         case _ where url.isFontFile:
             do {
+                #if canImport(CoreGraphics) && canImport(CoreText)
                 guard let dataProvider = CGDataProvider(url: url as CFURL) else {
-                    throw RuntimeErrorType.fileNotFound(for: name, at: url)
+                    throw RuntimeErrorType.fileNotFound(for: path, at: url)
                 }
                 guard let cgFont = CGFont(dataProvider), let fullName = cgFont.fullName as? String,
                       CGFont(fullName as CFString) != nil || CTFontManagerRegisterGraphicsFont(cgFont, nil)
                 else {
-                    throw RuntimeErrorType.fileParsingError(for: name, at: url, message: "")
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path,
+                        at: url,
+                        message: ""
+                    )
                 }
+                #else
+                let fullName = url.lastPathComponent
+                #endif
                 let value = Value.font(fullName)
                 importCache.store[url] = .value(value)
                 return value

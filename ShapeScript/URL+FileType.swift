@@ -5,6 +5,8 @@
 //  Created by Nick Lockwood on 15/01/2026.
 //
 
+import Foundation
+
 #if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
 #endif

@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.10.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.1) (2026-03-03)
+
+- Fixed regression introduced in 1.10.0 where tuple values could be unexpectedly flattened
+
 ## [1.10.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.0) (2026-02-07)
 
 - Added optional message parameter for `assert` command
