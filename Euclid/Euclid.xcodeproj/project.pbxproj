@@ -7,128 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0101BAF525687A450096B1E7 /* CodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0101BAF425687A450096B1E7 /* CodingTests.swift */; };
-		010A63392A951165000E3306 /* Mesh+OBJ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010A63382A951165000E3306 /* Mesh+OBJ.swift */; };
-		010A633B2A955BE9000E3306 /* MeshExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010A633A2A955BE9000E3306 /* MeshExportTests.swift */; };
-		0110FC0F2DFFEF290015C58B /* RotationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */; };
-		0110FC112E01F6420015C58B /* MeshLoftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC102E01F6390015C58B /* MeshLoftTests.swift */; };
-		0110FC132E01F7EF0015C58B /* MeshLatheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0110FC122E01F7E90015C58B /* MeshLatheTests.swift */; };
-		0112D5C928EE29BB00A1C085 /* Euclid+RealityKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0112D5C828EE29BB00A1C085 /* Euclid+RealityKit.swift */; };
-		0125478027AFD53900C442C3 /* MeshShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0125477F27AFD53900C442C3 /* MeshShapeTests.swift */; };
-		0128EEBB2ABA607A00E60976 /* EuclidMesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0128EEBA2ABA607A00E60976 /* EuclidMesh.swift */; };
-		013312DD21CA532A00626F1B /* PlaneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013312DC21CA532A00626F1B /* PlaneTests.swift */; };
-		013499932902FB5900CED6BE /* Euclid+SIMD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013499922902FB5900CED6BE /* Euclid+SIMD.swift */; };
-		0134999729043ACC00CED6BE /* RealityKitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0134999629043ACC00CED6BE /* RealityKitViewController.swift */; };
-		013ED08F23C0E60900FEEE5C /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013ED08E23C0E60900FEEE5C /* Rotation.swift */; };
-		01416F1B2E79250200D452FB /* Mesh+OFF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01416F1A2E79250200D452FB /* Mesh+OFF.swift */; };
-		0141CAEF2857DBF4006ADFDB /* Euclid+Testing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0141CAEE2857DBF4006ADFDB /* Euclid+Testing.swift */; };
-		0148ECA4278378D100B3F836 /* Path+Shapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0148ECA3278378D100B3F836 /* Path+Shapes.swift */; };
-		0148ECA62783796A00B3F836 /* PathPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0148ECA52783796A00B3F836 /* PathPoint.swift */; };
-		014AC60E2505963800F54349 /* SceneKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014AC60D2505963800F54349 /* SceneKitTests.swift */; };
-		0157FEC42B63B1BE009033D1 /* Mesh+IO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0157FEC32B63B1BE009033D1 /* Mesh+IO.swift */; };
-		0162A09623795E260078AE84 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; platformFilters = (ios, maccatalyst, tvos, xros, ); };
-		0162A09923795EB30078AE84 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; };
-		016A77F82B2F7C7800B7AB73 /* MeshImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016A77F72B2F7C7800B7AB73 /* MeshImportTests.swift */; };
-		016A77FA2B32184A00B7AB73 /* RealityKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016A77F92B32184A00B7AB73 /* RealityKitTests.swift */; };
-		016FAB4F21BFE7C200AF60DC /* Vector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4321BFE7C100AF60DC /* Vector.swift */; };
-		016FAB5021BFE7C200AF60DC /* Mesh+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4421BFE7C100AF60DC /* Mesh+CSG.swift */; };
-		016FAB5121BFE7C200AF60DC /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4521BFE7C100AF60DC /* Utilities.swift */; };
-		016FAB5221BFE7C200AF60DC /* Vertex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4621BFE7C100AF60DC /* Vertex.swift */; };
-		016FAB5321BFE7C200AF60DC /* Bounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4721BFE7C200AF60DC /* Bounds.swift */; };
-		016FAB5421BFE7C200AF60DC /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4821BFE7C200AF60DC /* Mesh.swift */; };
-		016FAB5521BFE7C200AF60DC /* Path.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4921BFE7C200AF60DC /* Path.swift */; };
-		016FAB5621BFE7C200AF60DC /* Euclid+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4A21BFE7C200AF60DC /* Euclid+SceneKit.swift */; };
-		016FAB5721BFE7C200AF60DC /* Transform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4B21BFE7C200AF60DC /* Transform.swift */; };
-		016FAB5821BFE7C200AF60DC /* Polygon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4C21BFE7C200AF60DC /* Polygon.swift */; };
-		016FAB5921BFE7C200AF60DC /* Plane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4D21BFE7C200AF60DC /* Plane.swift */; };
-		016FAB5A21BFE7C200AF60DC /* Mesh+Shapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB4E21BFE7C200AF60DC /* Mesh+Shapes.swift */; };
-		016FAB6121BFE7CE00AF60DC /* TransformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB5B21BFE7CD00AF60DC /* TransformTests.swift */; };
-		016FAB6221BFE7CE00AF60DC /* PathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB5C21BFE7CD00AF60DC /* PathTests.swift */; };
-		016FAB6321BFE7CE00AF60DC /* UtilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB5D21BFE7CE00AF60DC /* UtilityTests.swift */; };
-		016FAB6421BFE7CE00AF60DC /* PolygonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB5E21BFE7CE00AF60DC /* PolygonTests.swift */; };
-		016FAB6521BFE7CE00AF60DC /* MeshCSGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB5F21BFE7CE00AF60DC /* MeshCSGTests.swift */; };
-		016FAB6621BFE7CE00AF60DC /* PathShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FAB6021BFE7CE00AF60DC /* PathShapeTests.swift */; };
-		016FABED21C078E400AF60DC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FABEC21C078E400AF60DC /* AppDelegate.swift */; };
-		016FABF121C078E400AF60DC /* SceneKitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016FABF021C078E400AF60DC /* SceneKitViewController.swift */; };
-		016FABF621C078E500AF60DC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 016FABF521C078E500AF60DC /* Assets.xcassets */; };
-		0175E7982DAE24400087AABA /* LineSegment+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0175E7972DAE24400087AABA /* LineSegment+CSG.swift */; };
-		0181BED72E79B48600F4C2CD /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0181BED52E79B48600F4C2CD /* PerformanceTests.swift */; };
-		0181BED92E79B50500F4C2CD /* RegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0181BED82E79B50500F4C2CD /* RegressionTests.swift */; };
-		0188525626D94FCC0079C602 /* Euclid+UIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0188525526D94FCC0079C602 /* Euclid+UIKit.swift */; };
-		0188525826D951490079C602 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0188525726D951490079C602 /* Color.swift */; };
-		0188525A26D952890079C602 /* Euclid+AppKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0188525926D952890079C602 /* Euclid+AppKit.swift */; };
-		0188E98326ACA0040029C253 /* LineSegmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0188E98226ACA0040029C253 /* LineSegmentTests.swift */; };
-		018D0ACE255C398D006D2351 /* Euclid.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; platformFilters = (ios, maccatalyst, tvos, xros, ); settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		01A3D52129F32D360085D6BE /* Mesh+STL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A3D52029F32D360085D6BE /* Mesh+STL.swift */; };
-		01A429FA2237A85C00C251A6 /* TextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A429F92237A85C00C251A6 /* TextTests.swift */; };
-		01AAAC702E5F13D800F4AFD0 /* LineSegmentCSGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AAAC6F2E5F13D800F4AFD0 /* LineSegmentCSGTests.swift */; };
-		01AAAC9D2E621D4B00F4AFD0 /* ApproximateEquality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AAAC9C2E621D4900F4AFD0 /* ApproximateEquality.swift */; };
-		01B299572692339200B80A0D /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013B5BE426923087000860DC /* MetadataTests.swift */; };
-		01B9F60E292BCE57002CC3EB /* Stretchable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B9F60D292BCE57002CC3EB /* Stretchable.swift */; };
-		01B9F610292BD7FE002CC3EB /* StretchableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B9F60F292BD7FE002CC3EB /* StretchableTests.swift */; };
-		01BA29712235A63F0088D36B /* Euclid+CoreText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BA29702235A63F0088D36B /* Euclid+CoreText.swift */; };
-		01BA297A2235E34C0088D36B /* CGPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BA29792235E34C0088D36B /* CGPathTests.swift */; };
-		01BA297C2235E3590088D36B /* Euclid+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01BA297B2235E3580088D36B /* Euclid+CoreGraphics.swift */; };
-		01C282C12DB642B70084C89B /* PointComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C282C02DB642B00084C89B /* PointComparable.swift */; };
-		01C282C72DBA33250084C89B /* LineComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C282C62DBA331F0084C89B /* LineComparable.swift */; };
-		01CBE2682775E3EE00B7ED45 /* MeshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CBE2672775E3EE00B7ED45 /* MeshTests.swift */; };
-		01CD7CF02E5C637D0071E13C /* Path+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CD7CEF2E5C63790071E13C /* Path+CSG.swift */; };
-		01CD7CF22E5C888F0071E13C /* PathCSGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CD7CF12E5C888A0071E13C /* PathCSGTests.swift */; };
-		01CD874F2E5D3E140071E13C /* VertexSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CD874E2E5D3E140071E13C /* VertexSet.swift */; };
-		01CD87512E5D41700071E13C /* VertexSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CD87502E5D41700071E13C /* VertexSetTests.swift */; };
-		01D2F9F82AADBB1400C201D9 /* Mesh+Texcoords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D2F9F72AADBB1400C201D9 /* Mesh+Texcoords.swift */; };
-		01D96AB523D8E36A00D0D267 /* BoundsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D96AB423D8E36A00D0D267 /* BoundsTests.swift */; };
-		01E591302DD79FCC00CDECEA /* Transformable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E5912F2DD79FC700CDECEA /* Transformable.swift */; };
-		01E591322DD7A4ED00CDECEA /* Interpolatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E591312DD7A4E400CDECEA /* Interpolatable.swift */; };
-		01E5F54923D59BF100717D58 /* BSP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E5F54823D59BF100717D58 /* BSP.swift */; };
-		01E7119C2E4C7FD200FAC888 /* VolumetricView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E7119B2E4C7FD200FAC888 /* VolumetricView.swift */; };
-		01E711A02E4C821200FAC888 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E7119F2E4C821200FAC888 /* SceneDelegate.swift */; };
-		01E711CB2E53157D00FAC888 /* DebugDescriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E711CA2E53157300FAC888 /* DebugDescriptionTests.swift */; };
-		01F2382023BF4160005EC9DB /* LineSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01F2381F23BF4160005EC9DB /* LineSegment.swift */; };
-		01F995EB2E6455BD0017AAC8 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 016FAB2921BFE78100AF60DC /* Euclid.framework */; };
-		01FAE7BD29744E08008DB288 /* PolygonCSGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FAE7BB29744C22008DB288 /* PolygonCSGTests.swift */; };
-		0A240137256A64FB00C1535C /* AngleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A240136256A64FB00C1535C /* AngleTests.swift */; };
-		0A24013F256A671600C1535C /* Angle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A24013E256A671600C1535C /* Angle.swift */; };
-		52A3852E238D6E5700BE8407 /* LineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A3852D238D6E5700BE8407 /* LineTests.swift */; };
-		52A663A123857D5300FACF9D /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A663A023857D5300FACF9D /* Line.swift */; };
-		52C844E223854CDF009C0A73 /* VectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C844E023854C87009C0A73 /* VectorTests.swift */; };
-		EA6F2219296C5A9000B530BE /* Polygon+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6F2218296C5A9000B530BE /* Polygon+CSG.swift */; };
-		EAF0DCEF2DA474D300CC5D70 /* PlaneComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF0DCEE2DA474D300CC5D70 /* PlaneComparable.swift */; };
-		EAF0DCF12DA4CC8D00CC5D70 /* Bounded.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF0DCF02DA4CC8D00CC5D70 /* Bounded.swift */; };
+		01D70B0176B1E6897E564AD2 /* Interpolatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 338946584407DFEE502BE87A /* Interpolatable.swift */; };
+		0C6D0DC77B6D217DDD41423D /* Mesh+OFF.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7520D97B9152CDA1297D81B /* Mesh+OFF.swift */; };
+		0D5C1FDE29689BC439CCE566 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9336092F443B2AD41D3395 /* Line.swift */; };
+		186ACD219E53654C161DC72B /* Vertex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21584E3910C6EEED32655A68 /* Vertex.swift */; };
+		20CFEE262B1B0B8C813A354A /* Euclid+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A29375505E3DE7BD807F22 /* Euclid+CoreGraphics.swift */; };
+		2E72D81BE7126D21CBA6B032 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34A9DAD218C61ED135EC2D7 /* Utilities.swift */; };
+		377AFB6FF3FB99AAC1BC087B /* Mesh+OBJ.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424E361A6808885399DAE68E /* Mesh+OBJ.swift */; };
+		3A06DD9C7EC47EC96AC83FB2 /* PointComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CCAED178D0CD7611081065E /* PointComparable.swift */; };
+		406930717CF77CE610B184AC /* Euclid+AppKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866696D87743802EABC29A3F /* Euclid+AppKit.swift */; };
+		4917505D431F17F81649F76F /* Polygon+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F04FA9BCF533583556FB2F /* Polygon+CSG.swift */; };
+		4C683B9120C7F2C0CE087506 /* Mesh+IO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 630103C79D598A577B416F14 /* Mesh+IO.swift */; };
+		4DAD1083578811B2396102DC /* Angle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 970B9CEFF2AB29FBB3286E28 /* Angle.swift */; };
+		51F0EC508F4E11EF1F1FA278 /* Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36C0E17F57C8C05B31A16A48 /* Rotation.swift */; };
+		5363FD1796EB57B3986D964C /* VertexSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067784C992527EA1B8829B7E /* VertexSet.swift */; };
+		66BD2FA8B2913986EB176294 /* Bounded.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4986DE3AD3639D8EF4E388FE /* Bounded.swift */; };
+		72CAD8C2FE8ACFBFA19AC5D9 /* LineSegment+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE39EE27523101B3C7910AAC /* LineSegment+CSG.swift */; };
+		73C84CAE2741593245EE0B03 /* Euclid+CoreText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F5BD52D34AD42DF77A56C59 /* Euclid+CoreText.swift */; };
+		80442F244BA9359A95975D23 /* Bounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6053CDB33958DE7D8217EFF2 /* Bounds.swift */; };
+		80EC898A7DDE9D4DF619DA6D /* BSP.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F82BEA77EA0CE88EBED14D /* BSP.swift */; };
+		8AF84A8748A3467ADC4AB482 /* Mesh+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2F60CB504A88B80396AB82 /* Mesh+CSG.swift */; };
+		8F37BBC085AAC977C199E51D /* ApproximateEquality.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06ABB81AF945819251F1D3F2 /* ApproximateEquality.swift */; };
+		955EBD7C852FDAF90CD8CAA3 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7C0CFEDCD05C2B26A1B90B /* Color.swift */; };
+		9655929F7262B488C6E350F3 /* Euclid+RealityKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6A28B02B6FB3AA8C0EF0231 /* Euclid+RealityKit.swift */; };
+		99F9CF380CDB9EE769FCA5F6 /* Mesh+Shapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0650B9D0013DEBC0E27F1A /* Mesh+Shapes.swift */; };
+		9B1268D070E556F586F1CFB6 /* Euclid+UIKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BE77962EA2671F34B904995 /* Euclid+UIKit.swift */; };
+		9D72854886CBAFF6E8D0C286 /* Path+Shapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE3F8C5CEE17592EC7D3CB9 /* Path+Shapes.swift */; };
+		9D8FCBA260CBE1A73BE77CB5 /* LineSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8669B05403FB498CC1B5C3FC /* LineSegment.swift */; };
+		A21153F14BE4CF6BDAFF61E1 /* LineComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D394B380B104E9A3FB70ED0 /* LineComparable.swift */; };
+		AB48587D7371DCBC3D96FC95 /* Stretchable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F44731EAAFB33EA7980429 /* Stretchable.swift */; };
+		AF0D4A06AC68D854768101E7 /* Euclid+SceneKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5148C15F3CD930559E971B4E /* Euclid+SceneKit.swift */; };
+		B36AF40E653FCABBEC41F6FA /* Mesh+Texcoords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6AD638B39F555A79BE052A /* Mesh+Texcoords.swift */; };
+		B470CAB36065A28F44EEF329 /* Transformable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98F127AF01DD3F017FE82099 /* Transformable.swift */; };
+		BBCFB3E6BBFB6180EB4615F2 /* Mesh+STL.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76F8D9D94A211695E34AA11 /* Mesh+STL.swift */; };
+		BEBC520427A5B290E9C67FB6 /* Euclid+SIMD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BC849CE1F47140D334FEC39 /* Euclid+SIMD.swift */; };
+		D214F32CD5B3853C42BC3C11 /* Polygon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98AEA9A1279D4DBD39F8BEF0 /* Polygon.swift */; };
+		DC539F624DA2BCF271DEA3EE /* PathPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09335A4A174380BA5F3E566B /* PathPoint.swift */; };
+		E675A9D89059071519256B5C /* Transform.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0997C8C864BC84631A521A7 /* Transform.swift */; };
+		E7E347A90DDA1B3C964EB52B /* Vector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01B12DA1A714D9A6417D84C /* Vector.swift */; };
+		EA976CBB50F4A5D68D34A066 /* PlaneComparable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6736E90422843A59ED219181 /* PlaneComparable.swift */; };
+		EB0FCCD0D1630960145FCB8F /* Path+CSG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BDD878848C8CDC86C08DEF /* Path+CSG.swift */; };
+		EBADBC9E9E2FAB9BA50332D8 /* Mesh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D336A91CF4981055F0B02F2 /* Mesh.swift */; };
+		EC6F494304B68EFF2562E5F8 /* Path.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28FE96C7106F53F14A85731 /* Path.swift */; };
+		F9E8418D18C4115993A61C2D /* Plane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 327E132C6705E803840D1F9E /* Plane.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		0162A09323795E200078AE84 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 016FAB2021BFE78100AF60DC /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
-			remoteInfo = Euclid;
-		};
-		0162A09723795E820078AE84 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 016FAB2021BFE78100AF60DC /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
-			remoteInfo = Euclid;
-		};
-		01F995EC2E6455BD0017AAC8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 016FAB2021BFE78100AF60DC /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
-			remoteInfo = Euclid;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXCopyFilesBuildPhase section */
-		018D0ACD255C3971006D2351 /* Embed Frameworks */ = {
+		9B701F7CF5A41BD0DCC1CA34 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				018D0ACE255C398D006D2351 /* Euclid.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -136,429 +66,209 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0101BAF425687A450096B1E7 /* CodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingTests.swift; sourceTree = "<group>"; };
-		010A63382A951165000E3306 /* Mesh+OBJ.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Mesh+OBJ.swift"; sourceTree = "<group>"; };
-		010A633A2A955BE9000E3306 /* MeshExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshExportTests.swift; sourceTree = "<group>"; };
-		0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RotationTests.swift; sourceTree = "<group>"; };
-		0110FC102E01F6390015C58B /* MeshLoftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshLoftTests.swift; sourceTree = "<group>"; };
-		0110FC122E01F7E90015C58B /* MeshLatheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshLatheTests.swift; sourceTree = "<group>"; };
-		0112D5C828EE29BB00A1C085 /* Euclid+RealityKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+RealityKit.swift"; sourceTree = "<group>"; };
-		0125477F27AFD53900C442C3 /* MeshShapeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshShapeTests.swift; sourceTree = "<group>"; };
-		0128EEBA2ABA607A00E60976 /* EuclidMesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EuclidMesh.swift; sourceTree = "<group>"; };
-		013312DC21CA532A00626F1B /* PlaneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaneTests.swift; sourceTree = "<group>"; };
-		013499922902FB5900CED6BE /* Euclid+SIMD.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Euclid+SIMD.swift"; sourceTree = "<group>"; };
-		0134999629043ACC00CED6BE /* RealityKitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealityKitViewController.swift; sourceTree = "<group>"; };
-		013B5BE426923087000860DC /* MetadataTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
-		013ED08E23C0E60900FEEE5C /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
-		01416F1A2E79250200D452FB /* Mesh+OFF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+OFF.swift"; sourceTree = "<group>"; };
-		0141CAEE2857DBF4006ADFDB /* Euclid+Testing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+Testing.swift"; sourceTree = "<group>"; };
-		0148ECA3278378D100B3F836 /* Path+Shapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Path+Shapes.swift"; sourceTree = "<group>"; };
-		0148ECA52783796A00B3F836 /* PathPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathPoint.swift; sourceTree = "<group>"; };
-		014AC60D2505963800F54349 /* SceneKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitTests.swift; sourceTree = "<group>"; };
-		0157FEC32B63B1BE009033D1 /* Mesh+IO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+IO.swift"; sourceTree = "<group>"; };
-		016A77F72B2F7C7800B7AB73 /* MeshImportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshImportTests.swift; sourceTree = "<group>"; };
-		016A77F92B32184A00B7AB73 /* RealityKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealityKitTests.swift; sourceTree = "<group>"; };
-		016FAB2921BFE78100AF60DC /* Euclid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Euclid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		016FAB3221BFE78100AF60DC /* EuclidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EuclidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		016FAB4321BFE7C100AF60DC /* Vector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vector.swift; sourceTree = "<group>"; };
-		016FAB4421BFE7C100AF60DC /* Mesh+CSG.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Mesh+CSG.swift"; sourceTree = "<group>"; };
-		016FAB4521BFE7C100AF60DC /* Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
-		016FAB4621BFE7C100AF60DC /* Vertex.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Vertex.swift; sourceTree = "<group>"; };
-		016FAB4721BFE7C200AF60DC /* Bounds.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bounds.swift; sourceTree = "<group>"; };
-		016FAB4821BFE7C200AF60DC /* Mesh.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Mesh.swift; sourceTree = "<group>"; };
-		016FAB4921BFE7C200AF60DC /* Path.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Path.swift; sourceTree = "<group>"; };
-		016FAB4A21BFE7C200AF60DC /* Euclid+SceneKit.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Euclid+SceneKit.swift"; sourceTree = "<group>"; };
-		016FAB4B21BFE7C200AF60DC /* Transform.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transform.swift; sourceTree = "<group>"; };
-		016FAB4C21BFE7C200AF60DC /* Polygon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Polygon.swift; sourceTree = "<group>"; };
-		016FAB4D21BFE7C200AF60DC /* Plane.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Plane.swift; sourceTree = "<group>"; };
-		016FAB4E21BFE7C200AF60DC /* Mesh+Shapes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Mesh+Shapes.swift"; sourceTree = "<group>"; };
-		016FAB5B21BFE7CD00AF60DC /* TransformTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransformTests.swift; sourceTree = "<group>"; };
-		016FAB5C21BFE7CD00AF60DC /* PathTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PathTests.swift; sourceTree = "<group>"; };
-		016FAB5D21BFE7CE00AF60DC /* UtilityTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UtilityTests.swift; sourceTree = "<group>"; };
-		016FAB5E21BFE7CE00AF60DC /* PolygonTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PolygonTests.swift; sourceTree = "<group>"; };
-		016FAB5F21BFE7CE00AF60DC /* MeshCSGTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeshCSGTests.swift; sourceTree = "<group>"; };
-		016FAB6021BFE7CE00AF60DC /* PathShapeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PathShapeTests.swift; sourceTree = "<group>"; };
-		016FABEA21C078E400AF60DC /* EuclidExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EuclidExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		016FABEC21C078E400AF60DC /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		016FABF021C078E400AF60DC /* SceneKitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneKitViewController.swift; sourceTree = "<group>"; };
-		016FABF521C078E500AF60DC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		0175E7972DAE24400087AABA /* LineSegment+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineSegment+CSG.swift"; sourceTree = "<group>"; };
-		0181BED52E79B48600F4C2CD /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
-		0181BED82E79B50500F4C2CD /* RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegressionTests.swift; sourceTree = "<group>"; };
-		0188525526D94FCC0079C602 /* Euclid+UIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+UIKit.swift"; sourceTree = "<group>"; };
-		0188525726D951490079C602 /* Color.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
-		0188525926D952890079C602 /* Euclid+AppKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+AppKit.swift"; sourceTree = "<group>"; };
-		0188E98226ACA0040029C253 /* LineSegmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSegmentTests.swift; sourceTree = "<group>"; };
-		01A3D52029F32D360085D6BE /* Mesh+STL.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Mesh+STL.swift"; sourceTree = "<group>"; };
-		01A429F92237A85C00C251A6 /* TextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTests.swift; sourceTree = "<group>"; };
-		01AAAC6F2E5F13D800F4AFD0 /* LineSegmentCSGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSegmentCSGTests.swift; sourceTree = "<group>"; };
-		01AAAC9C2E621D4900F4AFD0 /* ApproximateEquality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApproximateEquality.swift; sourceTree = "<group>"; };
-		01B9F60D292BCE57002CC3EB /* Stretchable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stretchable.swift; sourceTree = "<group>"; };
-		01B9F60F292BD7FE002CC3EB /* StretchableTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StretchableTests.swift; sourceTree = "<group>"; };
-		01BA29702235A63F0088D36B /* Euclid+CoreText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+CoreText.swift"; sourceTree = "<group>"; };
-		01BA29792235E34C0088D36B /* CGPathTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CGPathTests.swift; sourceTree = "<group>"; };
-		01BA297B2235E3580088D36B /* Euclid+CoreGraphics.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Euclid+CoreGraphics.swift"; sourceTree = "<group>"; };
-		01C282C02DB642B00084C89B /* PointComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointComparable.swift; sourceTree = "<group>"; };
-		01C282C62DBA331F0084C89B /* LineComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineComparable.swift; sourceTree = "<group>"; };
-		01CBE2672775E3EE00B7ED45 /* MeshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshTests.swift; sourceTree = "<group>"; };
-		01CD7CEF2E5C63790071E13C /* Path+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Path+CSG.swift"; sourceTree = "<group>"; };
-		01CD7CF12E5C888A0071E13C /* PathCSGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathCSGTests.swift; sourceTree = "<group>"; };
-		01CD874E2E5D3E140071E13C /* VertexSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexSet.swift; sourceTree = "<group>"; };
-		01CD87502E5D41700071E13C /* VertexSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexSetTests.swift; sourceTree = "<group>"; };
-		01D2F9F72AADBB1400C201D9 /* Mesh+Texcoords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+Texcoords.swift"; sourceTree = "<group>"; };
-		01D96AB423D8E36A00D0D267 /* BoundsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundsTests.swift; sourceTree = "<group>"; };
-		01E5912F2DD79FC700CDECEA /* Transformable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transformable.swift; sourceTree = "<group>"; };
-		01E591312DD7A4E400CDECEA /* Interpolatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpolatable.swift; sourceTree = "<group>"; };
-		01E5F54823D59BF100717D58 /* BSP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BSP.swift; sourceTree = "<group>"; };
-		01E711992E4BEC0D00FAC888 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		01E7119B2E4C7FD200FAC888 /* VolumetricView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumetricView.swift; sourceTree = "<group>"; };
-		01E7119F2E4C821200FAC888 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		01E711CA2E53157300FAC888 /* DebugDescriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDescriptionTests.swift; sourceTree = "<group>"; };
-		01F2381F23BF4160005EC9DB /* LineSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSegment.swift; sourceTree = "<group>"; };
-		01F995E72E6455BD0017AAC8 /* PerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		01FAE7BB29744C22008DB288 /* PolygonCSGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolygonCSGTests.swift; sourceTree = "<group>"; };
-		0A240136256A64FB00C1535C /* AngleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngleTests.swift; sourceTree = "<group>"; };
-		0A24013E256A671600C1535C /* Angle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Angle.swift; sourceTree = "<group>"; };
-		52A3852D238D6E5700BE8407 /* LineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineTests.swift; sourceTree = "<group>"; };
-		52A663A023857D5300FACF9D /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
-		52C844E023854C87009C0A73 /* VectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorTests.swift; sourceTree = "<group>"; };
-		EA6F2218296C5A9000B530BE /* Polygon+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Polygon+CSG.swift"; sourceTree = "<group>"; };
-		EAF0DCEE2DA474D300CC5D70 /* PlaneComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaneComparable.swift; sourceTree = "<group>"; };
-		EAF0DCF02DA4CC8D00CC5D70 /* Bounded.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bounded.swift; sourceTree = "<group>"; };
+		067784C992527EA1B8829B7E /* VertexSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexSet.swift; sourceTree = "<group>"; };
+		06ABB81AF945819251F1D3F2 /* ApproximateEquality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApproximateEquality.swift; sourceTree = "<group>"; };
+		09335A4A174380BA5F3E566B /* PathPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathPoint.swift; sourceTree = "<group>"; };
+		1BC849CE1F47140D334FEC39 /* Euclid+SIMD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+SIMD.swift"; sourceTree = "<group>"; };
+		21584E3910C6EEED32655A68 /* Vertex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vertex.swift; sourceTree = "<group>"; };
+		242941CF15564496F1A60F4E /* Euclid-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Euclid-Info.plist"; sourceTree = "<group>"; };
+		2F5BD52D34AD42DF77A56C59 /* Euclid+CoreText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+CoreText.swift"; sourceTree = "<group>"; };
+		327E132C6705E803840D1F9E /* Plane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plane.swift; sourceTree = "<group>"; };
+		338946584407DFEE502BE87A /* Interpolatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Interpolatable.swift; sourceTree = "<group>"; };
+		36C0E17F57C8C05B31A16A48 /* Rotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rotation.swift; sourceTree = "<group>"; };
+		424E361A6808885399DAE68E /* Mesh+OBJ.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+OBJ.swift"; sourceTree = "<group>"; };
+		43BDD878848C8CDC86C08DEF /* Path+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Path+CSG.swift"; sourceTree = "<group>"; };
+		4986DE3AD3639D8EF4E388FE /* Bounded.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bounded.swift; sourceTree = "<group>"; };
+		5148C15F3CD930559E971B4E /* Euclid+SceneKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+SceneKit.swift"; sourceTree = "<group>"; };
+		5C6AD638B39F555A79BE052A /* Mesh+Texcoords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+Texcoords.swift"; sourceTree = "<group>"; };
+		6053CDB33958DE7D8217EFF2 /* Bounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bounds.swift; sourceTree = "<group>"; };
+		6075980E94FB01913BA13079 /* Euclid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Euclid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		630103C79D598A577B416F14 /* Mesh+IO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+IO.swift"; sourceTree = "<group>"; };
+		6736E90422843A59ED219181 /* PlaneComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaneComparable.swift; sourceTree = "<group>"; };
+		6D336A91CF4981055F0B02F2 /* Mesh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mesh.swift; sourceTree = "<group>"; };
+		7A2F60CB504A88B80396AB82 /* Mesh+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+CSG.swift"; sourceTree = "<group>"; };
+		7BE77962EA2671F34B904995 /* Euclid+UIKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+UIKit.swift"; sourceTree = "<group>"; };
+		7CCAED178D0CD7611081065E /* PointComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointComparable.swift; sourceTree = "<group>"; };
+		866696D87743802EABC29A3F /* Euclid+AppKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+AppKit.swift"; sourceTree = "<group>"; };
+		8669B05403FB498CC1B5C3FC /* LineSegment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineSegment.swift; sourceTree = "<group>"; };
+		970B9CEFF2AB29FBB3286E28 /* Angle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Angle.swift; sourceTree = "<group>"; };
+		98AEA9A1279D4DBD39F8BEF0 /* Polygon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Polygon.swift; sourceTree = "<group>"; };
+		98F127AF01DD3F017FE82099 /* Transformable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transformable.swift; sourceTree = "<group>"; };
+		9D394B380B104E9A3FB70ED0 /* LineComparable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineComparable.swift; sourceTree = "<group>"; };
+		A6A28B02B6FB3AA8C0EF0231 /* Euclid+RealityKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+RealityKit.swift"; sourceTree = "<group>"; };
+		A7F04FA9BCF533583556FB2F /* Polygon+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Polygon+CSG.swift"; sourceTree = "<group>"; };
+		AA0650B9D0013DEBC0E27F1A /* Mesh+Shapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+Shapes.swift"; sourceTree = "<group>"; };
+		B8F82BEA77EA0CE88EBED14D /* BSP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BSP.swift; sourceTree = "<group>"; };
+		C01B12DA1A714D9A6417D84C /* Vector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vector.swift; sourceTree = "<group>"; };
+		C0997C8C864BC84631A521A7 /* Transform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transform.swift; sourceTree = "<group>"; };
+		C34A9DAD218C61ED135EC2D7 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
+		CFE3F8C5CEE17592EC7D3CB9 /* Path+Shapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Path+Shapes.swift"; sourceTree = "<group>"; };
+		D76F8D9D94A211695E34AA11 /* Mesh+STL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+STL.swift"; sourceTree = "<group>"; };
+		D9F44731EAAFB33EA7980429 /* Stretchable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stretchable.swift; sourceTree = "<group>"; };
+		DE39EE27523101B3C7910AAC /* LineSegment+CSG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LineSegment+CSG.swift"; sourceTree = "<group>"; };
+		E28FE96C7106F53F14A85731 /* Path.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Path.swift; sourceTree = "<group>"; };
+		EA9336092F443B2AD41D3395 /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
+		EC7C0CFEDCD05C2B26A1B90B /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
+		F7520D97B9152CDA1297D81B /* Mesh+OFF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Mesh+OFF.swift"; sourceTree = "<group>"; };
+		F7A29375505E3DE7BD807F22 /* Euclid+CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Euclid+CoreGraphics.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		016FAB2621BFE78100AF60DC /* Frameworks */ = {
+		1934FBFE2FE227C08E1E7DE2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FAB2F21BFE78100AF60DC /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0162A09923795EB30078AE84 /* Euclid.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FABE721C078E400AF60DC /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0162A09623795E260078AE84 /* Euclid.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		01F995E42E6455BD0017AAC8 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				01F995EB2E6455BD0017AAC8 /* Euclid.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0162A09523795E260078AE84 /* Frameworks */ = {
+		3105741755FF8E89EF523C74 /* InfoPlists */ = {
 			isa = PBXGroup;
 			children = (
+				242941CF15564496F1A60F4E /* Euclid-Info.plist */,
 			);
-			name = Frameworks;
+			path = InfoPlists;
 			sourceTree = "<group>";
 		};
-		016FAB1F21BFE78100AF60DC = {
+		4E29CFE2BFDD97DEC77B8305 /* Project */ = {
 			isa = PBXGroup;
 			children = (
-				016FAB2B21BFE78100AF60DC /* Sources */,
-				016FAB3621BFE78100AF60DC /* Tests */,
-				016FABEB21C078E400AF60DC /* Example */,
-				0181BED62E79B48600F4C2CD /* PerformanceTests */,
-				016FAB2A21BFE78100AF60DC /* Products */,
-				0162A09523795E260078AE84 /* Frameworks */,
+				997A7E54DBF79B0297BE7FC0 /* Derived */,
+				7EBA8FB38F68F2FB389DE34A /* Sources */,
 			);
-			indentWidth = 4;
+			name = Project;
 			sourceTree = "<group>";
-			tabWidth = 4;
 		};
-		016FAB2A21BFE78100AF60DC /* Products */ = {
+		695E3667C5B2F41E0DE89B66 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				016FAB2921BFE78100AF60DC /* Euclid.framework */,
-				016FAB3221BFE78100AF60DC /* EuclidTests.xctest */,
-				016FABEA21C078E400AF60DC /* EuclidExample.app */,
-				01F995E72E6455BD0017AAC8 /* PerformanceTests.xctest */,
+				6075980E94FB01913BA13079 /* Euclid.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		016FAB2B21BFE78100AF60DC /* Sources */ = {
+		785E3F66B86D33AEDA87EDD6 = {
 			isa = PBXGroup;
 			children = (
-				0A24013E256A671600C1535C /* Angle.swift */,
-				016FAB4721BFE7C200AF60DC /* Bounds.swift */,
-				EAF0DCF02DA4CC8D00CC5D70 /* Bounded.swift */,
-				0188525726D951490079C602 /* Color.swift */,
-				016FAB4521BFE7C100AF60DC /* Utilities.swift */,
-				016FAB4321BFE7C100AF60DC /* Vector.swift */,
-				016FAB4621BFE7C100AF60DC /* Vertex.swift */,
-				01CD874E2E5D3E140071E13C /* VertexSet.swift */,
-				016FAB4C21BFE7C200AF60DC /* Polygon.swift */,
-				EA6F2218296C5A9000B530BE /* Polygon+CSG.swift */,
-				01E5F54823D59BF100717D58 /* BSP.swift */,
-				016FAB4821BFE7C200AF60DC /* Mesh.swift */,
-				016FAB4421BFE7C100AF60DC /* Mesh+CSG.swift */,
-				016FAB4E21BFE7C200AF60DC /* Mesh+Shapes.swift */,
-				01D2F9F72AADBB1400C201D9 /* Mesh+Texcoords.swift */,
-				01A3D52029F32D360085D6BE /* Mesh+STL.swift */,
-				010A63382A951165000E3306 /* Mesh+OBJ.swift */,
-				01416F1A2E79250200D452FB /* Mesh+OFF.swift */,
-				0157FEC32B63B1BE009033D1 /* Mesh+IO.swift */,
-				016FAB4D21BFE7C200AF60DC /* Plane.swift */,
-				EAF0DCEE2DA474D300CC5D70 /* PlaneComparable.swift */,
-				01C282C02DB642B00084C89B /* PointComparable.swift */,
-				01C282C62DBA331F0084C89B /* LineComparable.swift */,
-				01AAAC9C2E621D4900F4AFD0 /* ApproximateEquality.swift */,
-				0148ECA52783796A00B3F836 /* PathPoint.swift */,
-				016FAB4921BFE7C200AF60DC /* Path.swift */,
-				01CD7CEF2E5C63790071E13C /* Path+CSG.swift */,
-				0148ECA3278378D100B3F836 /* Path+Shapes.swift */,
-				52A663A023857D5300FACF9D /* Line.swift */,
-				01F2381F23BF4160005EC9DB /* LineSegment.swift */,
-				0175E7972DAE24400087AABA /* LineSegment+CSG.swift */,
-				013ED08E23C0E60900FEEE5C /* Rotation.swift */,
-				01B9F60D292BCE57002CC3EB /* Stretchable.swift */,
-				016FAB4B21BFE7C200AF60DC /* Transform.swift */,
-				01E5912F2DD79FC700CDECEA /* Transformable.swift */,
-				01E591312DD7A4E400CDECEA /* Interpolatable.swift */,
-				016FAB4A21BFE7C200AF60DC /* Euclid+SceneKit.swift */,
-				0112D5C828EE29BB00A1C085 /* Euclid+RealityKit.swift */,
-				01BA297B2235E3580088D36B /* Euclid+CoreGraphics.swift */,
-				01BA29702235A63F0088D36B /* Euclid+CoreText.swift */,
-				0188525926D952890079C602 /* Euclid+AppKit.swift */,
-				0188525526D94FCC0079C602 /* Euclid+UIKit.swift */,
-				013499922902FB5900CED6BE /* Euclid+SIMD.swift */,
+				695E3667C5B2F41E0DE89B66 /* Products */,
+				4E29CFE2BFDD97DEC77B8305 /* Project */,
+			);
+			sourceTree = "<group>";
+		};
+		7EBA8FB38F68F2FB389DE34A /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				970B9CEFF2AB29FBB3286E28 /* Angle.swift */,
+				06ABB81AF945819251F1D3F2 /* ApproximateEquality.swift */,
+				4986DE3AD3639D8EF4E388FE /* Bounded.swift */,
+				6053CDB33958DE7D8217EFF2 /* Bounds.swift */,
+				B8F82BEA77EA0CE88EBED14D /* BSP.swift */,
+				EC7C0CFEDCD05C2B26A1B90B /* Color.swift */,
+				866696D87743802EABC29A3F /* Euclid+AppKit.swift */,
+				F7A29375505E3DE7BD807F22 /* Euclid+CoreGraphics.swift */,
+				2F5BD52D34AD42DF77A56C59 /* Euclid+CoreText.swift */,
+				A6A28B02B6FB3AA8C0EF0231 /* Euclid+RealityKit.swift */,
+				5148C15F3CD930559E971B4E /* Euclid+SceneKit.swift */,
+				1BC849CE1F47140D334FEC39 /* Euclid+SIMD.swift */,
+				7BE77962EA2671F34B904995 /* Euclid+UIKit.swift */,
+				338946584407DFEE502BE87A /* Interpolatable.swift */,
+				EA9336092F443B2AD41D3395 /* Line.swift */,
+				9D394B380B104E9A3FB70ED0 /* LineComparable.swift */,
+				8669B05403FB498CC1B5C3FC /* LineSegment.swift */,
+				DE39EE27523101B3C7910AAC /* LineSegment+CSG.swift */,
+				6D336A91CF4981055F0B02F2 /* Mesh.swift */,
+				7A2F60CB504A88B80396AB82 /* Mesh+CSG.swift */,
+				630103C79D598A577B416F14 /* Mesh+IO.swift */,
+				424E361A6808885399DAE68E /* Mesh+OBJ.swift */,
+				F7520D97B9152CDA1297D81B /* Mesh+OFF.swift */,
+				AA0650B9D0013DEBC0E27F1A /* Mesh+Shapes.swift */,
+				D76F8D9D94A211695E34AA11 /* Mesh+STL.swift */,
+				5C6AD638B39F555A79BE052A /* Mesh+Texcoords.swift */,
+				E28FE96C7106F53F14A85731 /* Path.swift */,
+				43BDD878848C8CDC86C08DEF /* Path+CSG.swift */,
+				CFE3F8C5CEE17592EC7D3CB9 /* Path+Shapes.swift */,
+				09335A4A174380BA5F3E566B /* PathPoint.swift */,
+				327E132C6705E803840D1F9E /* Plane.swift */,
+				6736E90422843A59ED219181 /* PlaneComparable.swift */,
+				7CCAED178D0CD7611081065E /* PointComparable.swift */,
+				98AEA9A1279D4DBD39F8BEF0 /* Polygon.swift */,
+				A7F04FA9BCF533583556FB2F /* Polygon+CSG.swift */,
+				36C0E17F57C8C05B31A16A48 /* Rotation.swift */,
+				D9F44731EAAFB33EA7980429 /* Stretchable.swift */,
+				C0997C8C864BC84631A521A7 /* Transform.swift */,
+				98F127AF01DD3F017FE82099 /* Transformable.swift */,
+				C34A9DAD218C61ED135EC2D7 /* Utilities.swift */,
+				C01B12DA1A714D9A6417D84C /* Vector.swift */,
+				21584E3910C6EEED32655A68 /* Vertex.swift */,
+				067784C992527EA1B8829B7E /* VertexSet.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
 		};
-		016FAB3621BFE78100AF60DC /* Tests */ = {
+		997A7E54DBF79B0297BE7FC0 /* Derived */ = {
 			isa = PBXGroup;
 			children = (
-				0A240136256A64FB00C1535C /* AngleTests.swift */,
-				01D96AB423D8E36A00D0D267 /* BoundsTests.swift */,
-				01BA29792235E34C0088D36B /* CGPathTests.swift */,
-				0101BAF425687A450096B1E7 /* CodingTests.swift */,
-				01E711CA2E53157300FAC888 /* DebugDescriptionTests.swift */,
-				0188E98226ACA0040029C253 /* LineSegmentTests.swift */,
-				01AAAC6F2E5F13D800F4AFD0 /* LineSegmentCSGTests.swift */,
-				52A3852D238D6E5700BE8407 /* LineTests.swift */,
-				01CBE2672775E3EE00B7ED45 /* MeshTests.swift */,
-				016FAB5F21BFE7CE00AF60DC /* MeshCSGTests.swift */,
-				010A633A2A955BE9000E3306 /* MeshExportTests.swift */,
-				016A77F72B2F7C7800B7AB73 /* MeshImportTests.swift */,
-				0110FC102E01F6390015C58B /* MeshLoftTests.swift */,
-				0110FC122E01F7E90015C58B /* MeshLatheTests.swift */,
-				0125477F27AFD53900C442C3 /* MeshShapeTests.swift */,
-				013B5BE426923087000860DC /* MetadataTests.swift */,
-				016FAB5C21BFE7CD00AF60DC /* PathTests.swift */,
-				01CD7CF12E5C888A0071E13C /* PathCSGTests.swift */,
-				016FAB6021BFE7CE00AF60DC /* PathShapeTests.swift */,
-				016FAB5E21BFE7CE00AF60DC /* PolygonTests.swift */,
-				01FAE7BB29744C22008DB288 /* PolygonCSGTests.swift */,
-				013312DC21CA532A00626F1B /* PlaneTests.swift */,
-				014AC60D2505963800F54349 /* SceneKitTests.swift */,
-				016A77F92B32184A00B7AB73 /* RealityKitTests.swift */,
-				01A429F92237A85C00C251A6 /* TextTests.swift */,
-				016FAB5B21BFE7CD00AF60DC /* TransformTests.swift */,
-				0110FC0E2DFFEF1F0015C58B /* RotationTests.swift */,
-				01B9F60F292BD7FE002CC3EB /* StretchableTests.swift */,
-				016FAB5D21BFE7CE00AF60DC /* UtilityTests.swift */,
-				52C844E023854C87009C0A73 /* VectorTests.swift */,
-				01CD87502E5D41700071E13C /* VertexSetTests.swift */,
-				0141CAEE2857DBF4006ADFDB /* Euclid+Testing.swift */,
+				3105741755FF8E89EF523C74 /* InfoPlists */,
 			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
-		016FABEB21C078E400AF60DC /* Example */ = {
-			isa = PBXGroup;
-			children = (
-				016FABEC21C078E400AF60DC /* AppDelegate.swift */,
-				01E7119F2E4C821200FAC888 /* SceneDelegate.swift */,
-				0128EEBA2ABA607A00E60976 /* EuclidMesh.swift */,
-				016FABF021C078E400AF60DC /* SceneKitViewController.swift */,
-				0134999629043ACC00CED6BE /* RealityKitViewController.swift */,
-				01E7119B2E4C7FD200FAC888 /* VolumetricView.swift */,
-				016FABF521C078E500AF60DC /* Assets.xcassets */,
-				01E711992E4BEC0D00FAC888 /* Info.plist */,
-			);
-			path = Example;
-			sourceTree = "<group>";
-		};
-		0181BED62E79B48600F4C2CD /* PerformanceTests */ = {
-			isa = PBXGroup;
-			children = (
-				0181BED82E79B50500F4C2CD /* RegressionTests.swift */,
-				0181BED52E79B48600F4C2CD /* PerformanceTests.swift */,
-			);
-			path = PerformanceTests;
+			path = Derived;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		016FAB2821BFE78100AF60DC /* Euclid */ = {
+		D476F18EBECE034F3762EB3E /* Euclid */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 016FAB3D21BFE78100AF60DC /* Build configuration list for PBXNativeTarget "Euclid" */;
+			buildConfigurationList = 1AEC9269AD3E5136486531D7 /* Build configuration list for PBXNativeTarget "Euclid" */;
 			buildPhases = (
-				016FAB2521BFE78100AF60DC /* Sources */,
-				0A24014C256AA09600C1535C /* Lint Code */,
-				016FAB2621BFE78100AF60DC /* Frameworks */,
-				016FAB2721BFE78100AF60DC /* Resources */,
+				7114502B20EE4DD014258C67 /* Sources */,
+				BD24D7A29B9401BC95238895 /* Resources */,
+				1934FBFE2FE227C08E1E7DE2 /* Frameworks */,
+				9B701F7CF5A41BD0DCC1CA34 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = Euclid;
-			productName = Euclid;
-			productReference = 016FAB2921BFE78100AF60DC /* Euclid.framework */;
-			productType = "com.apple.product-type.framework";
-		};
-		016FAB3121BFE78100AF60DC /* EuclidTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 016FAB4021BFE78100AF60DC /* Build configuration list for PBXNativeTarget "EuclidTests" */;
-			buildPhases = (
-				016FAB2E21BFE78100AF60DC /* Sources */,
-				01F2A9E9250177730081CDF5 /* Format Code */,
-				016FAB2F21BFE78100AF60DC /* Frameworks */,
-				016FAB3021BFE78100AF60DC /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				0162A09823795E820078AE84 /* PBXTargetDependency */,
-			);
-			name = EuclidTests;
-			productName = EuclidTests;
-			productReference = 016FAB3221BFE78100AF60DC /* EuclidTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		016FABE921C078E400AF60DC /* Example */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 016FABFD21C078E500AF60DC /* Build configuration list for PBXNativeTarget "Example" */;
-			buildPhases = (
-				016FABE621C078E400AF60DC /* Sources */,
-				016FABE721C078E400AF60DC /* Frameworks */,
-				016FABE821C078E400AF60DC /* Resources */,
-				018D0ACD255C3971006D2351 /* Embed Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				0162A09423795E200078AE84 /* PBXTargetDependency */,
-			);
-			name = Example;
-			productName = Example;
-			productReference = 016FABEA21C078E400AF60DC /* EuclidExample.app */;
-			productType = "com.apple.product-type.application";
-		};
-		01F995E62E6455BD0017AAC8 /* PerformanceTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 01F995F02E6455BD0017AAC8 /* Build configuration list for PBXNativeTarget "PerformanceTests" */;
-			buildPhases = (
-				01F995E32E6455BD0017AAC8 /* Sources */,
-				01F995E42E6455BD0017AAC8 /* Frameworks */,
-				01F995E52E6455BD0017AAC8 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				01F995ED2E6455BD0017AAC8 /* PBXTargetDependency */,
-			);
-			name = PerformanceTests;
 			packageProductDependencies = (
 			);
-			productName = PerformanceTests;
-			productReference = 01F995E72E6455BD0017AAC8 /* PerformanceTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
+			productName = Euclid;
+			productReference = 6075980E94FB01913BA13079 /* Euclid.framework */;
+			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		016FAB2021BFE78100AF60DC /* Project object */ = {
+		86CF8D9BE3797C5269BB6DF1 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 2600;
-				ORGANIZATIONNAME = "Nick Lockwood";
+				LastUpgradeCheck = 9999;
 				TargetAttributes = {
-					016FAB2821BFE78100AF60DC = {
-						CreatedOnToolsVersion = 10.1;
-						LastSwiftMigration = 1240;
-					};
-					016FAB3121BFE78100AF60DC = {
-						CreatedOnToolsVersion = 10.1;
-						LastSwiftMigration = 1240;
-					};
-					016FABE921C078E400AF60DC = {
-						CreatedOnToolsVersion = 10.1;
-						LastSwiftMigration = 1240;
-					};
-					01F995E62E6455BD0017AAC8 = {
-						CreatedOnToolsVersion = 26.0;
-					};
 				};
 			};
-			buildConfigurationList = 016FAB2321BFE78100AF60DC /* Build configuration list for PBXProject "Euclid" */;
-			compatibilityVersion = "Xcode 9.3";
+			buildConfigurationList = 811011FEBFCDF78F654BEC5D /* Build configuration list for PBXProject "Euclid" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				en,
 			);
-			mainGroup = 016FAB1F21BFE78100AF60DC;
-			productRefGroup = 016FAB2A21BFE78100AF60DC /* Products */;
+			mainGroup = 785E3F66B86D33AEDA87EDD6;
+			productRefGroup = 695E3667C5B2F41E0DE89B66 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				016FAB2821BFE78100AF60DC /* Euclid */,
-				016FAB3121BFE78100AF60DC /* EuclidTests */,
-				016FABE921C078E400AF60DC /* Example */,
-				01F995E62E6455BD0017AAC8 /* PerformanceTests */,
+				D476F18EBECE034F3762EB3E /* Euclid */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		016FAB2721BFE78100AF60DC /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FAB3021BFE78100AF60DC /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FABE821C078E400AF60DC /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				016FABF621C078E500AF60DC /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		01F995E52E6455BD0017AAC8 /* Resources */ = {
+		BD24D7A29B9401BC95238895 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -567,272 +277,113 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		01F2A9E9250177730081CDF5 /* Format Code */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Format Code";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "export PATH=\"$PATH:$HOME/.mint/bin:/opt/homebrew/bin\"\nif which swiftformat >/dev/null; then\n  swiftformat .\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
-		};
-		0A24014C256AA09600C1535C /* Lint Code */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Lint Code";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "export PATH=\"$PATH:$HOME/.mint/bin:/opt/homebrew/bin\"\nif which swiftformat >/dev/null; then\n  swiftformat . --lint --lenient\nelse\n  echo \"warning: SwiftFormat not installed, download from https://github.com/nicklockwood/SwiftFormat\"\nfi\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
-		016FAB2521BFE78100AF60DC /* Sources */ = {
+		7114502B20EE4DD014258C67 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				013ED08F23C0E60900FEEE5C /* Rotation.swift in Sources */,
-				01C282C72DBA33250084C89B /* LineComparable.swift in Sources */,
-				016FAB5521BFE7C200AF60DC /* Path.swift in Sources */,
-				0188525826D951490079C602 /* Color.swift in Sources */,
-				010A63392A951165000E3306 /* Mesh+OBJ.swift in Sources */,
-				016FAB5421BFE7C200AF60DC /* Mesh.swift in Sources */,
-				EAF0DCF12DA4CC8D00CC5D70 /* Bounded.swift in Sources */,
-				0112D5C928EE29BB00A1C085 /* Euclid+RealityKit.swift in Sources */,
-				EA6F2219296C5A9000B530BE /* Polygon+CSG.swift in Sources */,
-				016FAB5721BFE7C200AF60DC /* Transform.swift in Sources */,
-				0175E7982DAE24400087AABA /* LineSegment+CSG.swift in Sources */,
-				01E591302DD79FCC00CDECEA /* Transformable.swift in Sources */,
-				EAF0DCEF2DA474D300CC5D70 /* PlaneComparable.swift in Sources */,
-				016FAB5121BFE7C200AF60DC /* Utilities.swift in Sources */,
-				016FAB5321BFE7C200AF60DC /* Bounds.swift in Sources */,
-				01BA297C2235E3590088D36B /* Euclid+CoreGraphics.swift in Sources */,
-				0148ECA62783796A00B3F836 /* PathPoint.swift in Sources */,
-				013499932902FB5900CED6BE /* Euclid+SIMD.swift in Sources */,
-				0188525A26D952890079C602 /* Euclid+AppKit.swift in Sources */,
-				01C282C12DB642B70084C89B /* PointComparable.swift in Sources */,
-				01A3D52129F32D360085D6BE /* Mesh+STL.swift in Sources */,
-				01B9F60E292BCE57002CC3EB /* Stretchable.swift in Sources */,
-				01E5F54923D59BF100717D58 /* BSP.swift in Sources */,
-				01BA29712235A63F0088D36B /* Euclid+CoreText.swift in Sources */,
-				0157FEC42B63B1BE009033D1 /* Mesh+IO.swift in Sources */,
-				01F2382023BF4160005EC9DB /* LineSegment.swift in Sources */,
-				016FAB5221BFE7C200AF60DC /* Vertex.swift in Sources */,
-				01416F1B2E79250200D452FB /* Mesh+OFF.swift in Sources */,
-				016FAB5821BFE7C200AF60DC /* Polygon.swift in Sources */,
-				01E591322DD7A4ED00CDECEA /* Interpolatable.swift in Sources */,
-				0188525626D94FCC0079C602 /* Euclid+UIKit.swift in Sources */,
-				01AAAC9D2E621D4B00F4AFD0 /* ApproximateEquality.swift in Sources */,
-				01CD7CF02E5C637D0071E13C /* Path+CSG.swift in Sources */,
-				0148ECA4278378D100B3F836 /* Path+Shapes.swift in Sources */,
-				52A663A123857D5300FACF9D /* Line.swift in Sources */,
-				01D2F9F82AADBB1400C201D9 /* Mesh+Texcoords.swift in Sources */,
-				016FAB4F21BFE7C200AF60DC /* Vector.swift in Sources */,
-				016FAB5021BFE7C200AF60DC /* Mesh+CSG.swift in Sources */,
-				016FAB5621BFE7C200AF60DC /* Euclid+SceneKit.swift in Sources */,
-				0A24013F256A671600C1535C /* Angle.swift in Sources */,
-				016FAB5921BFE7C200AF60DC /* Plane.swift in Sources */,
-				01CD874F2E5D3E140071E13C /* VertexSet.swift in Sources */,
-				016FAB5A21BFE7C200AF60DC /* Mesh+Shapes.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FAB2E21BFE78100AF60DC /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				01FAE7BD29744E08008DB288 /* PolygonCSGTests.swift in Sources */,
-				01A429FA2237A85C00C251A6 /* TextTests.swift in Sources */,
-				0188E98326ACA0040029C253 /* LineSegmentTests.swift in Sources */,
-				0A240137256A64FB00C1535C /* AngleTests.swift in Sources */,
-				01E711CB2E53157D00FAC888 /* DebugDescriptionTests.swift in Sources */,
-				016A77F82B2F7C7800B7AB73 /* MeshImportTests.swift in Sources */,
-				52A3852E238D6E5700BE8407 /* LineTests.swift in Sources */,
-				016FAB6621BFE7CE00AF60DC /* PathShapeTests.swift in Sources */,
-				0110FC0F2DFFEF290015C58B /* RotationTests.swift in Sources */,
-				016FAB6321BFE7CE00AF60DC /* UtilityTests.swift in Sources */,
-				01B9F610292BD7FE002CC3EB /* StretchableTests.swift in Sources */,
-				01CBE2682775E3EE00B7ED45 /* MeshTests.swift in Sources */,
-				016FAB6221BFE7CE00AF60DC /* PathTests.swift in Sources */,
-				014AC60E2505963800F54349 /* SceneKitTests.swift in Sources */,
-				016FAB6121BFE7CE00AF60DC /* TransformTests.swift in Sources */,
-				0110FC112E01F6420015C58B /* MeshLoftTests.swift in Sources */,
-				016FAB6421BFE7CE00AF60DC /* PolygonTests.swift in Sources */,
-				016A77FA2B32184A00B7AB73 /* RealityKitTests.swift in Sources */,
-				01B299572692339200B80A0D /* MetadataTests.swift in Sources */,
-				01AAAC702E5F13D800F4AFD0 /* LineSegmentCSGTests.swift in Sources */,
-				0101BAF525687A450096B1E7 /* CodingTests.swift in Sources */,
-				016FAB6521BFE7CE00AF60DC /* MeshCSGTests.swift in Sources */,
-				01BA297A2235E34C0088D36B /* CGPathTests.swift in Sources */,
-				01CD7CF22E5C888F0071E13C /* PathCSGTests.swift in Sources */,
-				010A633B2A955BE9000E3306 /* MeshExportTests.swift in Sources */,
-				0125478027AFD53900C442C3 /* MeshShapeTests.swift in Sources */,
-				01D96AB523D8E36A00D0D267 /* BoundsTests.swift in Sources */,
-				013312DD21CA532A00626F1B /* PlaneTests.swift in Sources */,
-				0141CAEF2857DBF4006ADFDB /* Euclid+Testing.swift in Sources */,
-				0110FC132E01F7EF0015C58B /* MeshLatheTests.swift in Sources */,
-				01CD87512E5D41700071E13C /* VertexSetTests.swift in Sources */,
-				52C844E223854CDF009C0A73 /* VectorTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		016FABE621C078E400AF60DC /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				016FABF121C078E400AF60DC /* SceneKitViewController.swift in Sources */,
-				01E711A02E4C821200FAC888 /* SceneDelegate.swift in Sources */,
-				0134999729043ACC00CED6BE /* RealityKitViewController.swift in Sources */,
-				0128EEBB2ABA607A00E60976 /* EuclidMesh.swift in Sources */,
-				01E7119C2E4C7FD200FAC888 /* VolumetricView.swift in Sources */,
-				016FABED21C078E400AF60DC /* AppDelegate.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		01F995E32E6455BD0017AAC8 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0181BED72E79B48600F4C2CD /* PerformanceTests.swift in Sources */,
-				0181BED92E79B50500F4C2CD /* RegressionTests.swift in Sources */,
+				4DAD1083578811B2396102DC /* Angle.swift in Sources */,
+				8F37BBC085AAC977C199E51D /* ApproximateEquality.swift in Sources */,
+				80EC898A7DDE9D4DF619DA6D /* BSP.swift in Sources */,
+				66BD2FA8B2913986EB176294 /* Bounded.swift in Sources */,
+				80442F244BA9359A95975D23 /* Bounds.swift in Sources */,
+				955EBD7C852FDAF90CD8CAA3 /* Color.swift in Sources */,
+				406930717CF77CE610B184AC /* Euclid+AppKit.swift in Sources */,
+				20CFEE262B1B0B8C813A354A /* Euclid+CoreGraphics.swift in Sources */,
+				73C84CAE2741593245EE0B03 /* Euclid+CoreText.swift in Sources */,
+				9655929F7262B488C6E350F3 /* Euclid+RealityKit.swift in Sources */,
+				BEBC520427A5B290E9C67FB6 /* Euclid+SIMD.swift in Sources */,
+				AF0D4A06AC68D854768101E7 /* Euclid+SceneKit.swift in Sources */,
+				9B1268D070E556F586F1CFB6 /* Euclid+UIKit.swift in Sources */,
+				01D70B0176B1E6897E564AD2 /* Interpolatable.swift in Sources */,
+				0D5C1FDE29689BC439CCE566 /* Line.swift in Sources */,
+				A21153F14BE4CF6BDAFF61E1 /* LineComparable.swift in Sources */,
+				72CAD8C2FE8ACFBFA19AC5D9 /* LineSegment+CSG.swift in Sources */,
+				9D8FCBA260CBE1A73BE77CB5 /* LineSegment.swift in Sources */,
+				8AF84A8748A3467ADC4AB482 /* Mesh+CSG.swift in Sources */,
+				4C683B9120C7F2C0CE087506 /* Mesh+IO.swift in Sources */,
+				377AFB6FF3FB99AAC1BC087B /* Mesh+OBJ.swift in Sources */,
+				0C6D0DC77B6D217DDD41423D /* Mesh+OFF.swift in Sources */,
+				BBCFB3E6BBFB6180EB4615F2 /* Mesh+STL.swift in Sources */,
+				99F9CF380CDB9EE769FCA5F6 /* Mesh+Shapes.swift in Sources */,
+				B36AF40E653FCABBEC41F6FA /* Mesh+Texcoords.swift in Sources */,
+				EBADBC9E9E2FAB9BA50332D8 /* Mesh.swift in Sources */,
+				EB0FCCD0D1630960145FCB8F /* Path+CSG.swift in Sources */,
+				9D72854886CBAFF6E8D0C286 /* Path+Shapes.swift in Sources */,
+				EC6F494304B68EFF2562E5F8 /* Path.swift in Sources */,
+				DC539F624DA2BCF271DEA3EE /* PathPoint.swift in Sources */,
+				F9E8418D18C4115993A61C2D /* Plane.swift in Sources */,
+				EA976CBB50F4A5D68D34A066 /* PlaneComparable.swift in Sources */,
+				3A06DD9C7EC47EC96AC83FB2 /* PointComparable.swift in Sources */,
+				4917505D431F17F81649F76F /* Polygon+CSG.swift in Sources */,
+				D214F32CD5B3853C42BC3C11 /* Polygon.swift in Sources */,
+				51F0EC508F4E11EF1F1FA278 /* Rotation.swift in Sources */,
+				AB48587D7371DCBC3D96FC95 /* Stretchable.swift in Sources */,
+				E675A9D89059071519256B5C /* Transform.swift in Sources */,
+				B470CAB36065A28F44EEF329 /* Transformable.swift in Sources */,
+				2E72D81BE7126D21CBA6B032 /* Utilities.swift in Sources */,
+				E7E347A90DDA1B3C964EB52B /* Vector.swift in Sources */,
+				186ACD219E53654C161DC72B /* Vertex.swift in Sources */,
+				5363FD1796EB57B3986D964C /* VertexSet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		0162A09423795E200078AE84 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			platformFilters = (
-				ios,
-				maccatalyst,
-				tvos,
-				xros,
-			);
-			target = 016FAB2821BFE78100AF60DC /* Euclid */;
-			targetProxy = 0162A09323795E200078AE84 /* PBXContainerItemProxy */;
-		};
-		0162A09823795E820078AE84 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 016FAB2821BFE78100AF60DC /* Euclid */;
-			targetProxy = 0162A09723795E820078AE84 /* PBXContainerItemProxy */;
-		};
-		01F995ED2E6455BD0017AAC8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 016FAB2821BFE78100AF60DC /* Euclid */;
-			targetProxy = 01F995EC2E6455BD0017AAC8 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCBuildConfiguration section */
-		016FAB3B21BFE78100AF60DC /* Debug */ = {
+		2BECC3375C3D111A82723A35 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = "Derived/InfoPlists/Euclid-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xrsimulator xros watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
-				SUPPORTS_MACCATALYST = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_STRICT_CONCURRENCY = targeted;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				OTHER_SWIFT_FLAGS = "$(inherited)";
+				PRODUCT_BUNDLE_IDENTIFIER = Euclid;
+				PRODUCT_NAME = Euclid;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
-				TVOS_DEPLOYMENT_TARGET = 12.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
-				WATCHOS_DEPLOYMENT_TARGET = 8.7;
-				XROS_DEPLOYMENT_TARGET = 1.3;
 			};
-			name = Debug;
+			name = Release;
 		};
-		016FAB3C21BFE78100AF60DC /* Release */ = {
+		2F92FD0C8A3ED400D01A04BB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
-				ALWAYS_SEARCH_USER_PATHS = NO;
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -848,349 +399,185 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_NO_COMMON_BLOCKS = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"SWIFT_PACKAGE=1",
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xrsimulator xros watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
-				SUPPORTS_MACCATALYST = YES;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_STRICT_CONCURRENCY = targeted;
-				SWIFT_VERSION = 5.0;
-				TVOS_DEPLOYMENT_TARGET = 12.0;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-				WATCHOS_DEPLOYMENT_TARGET = 8.7;
-				XROS_DEPLOYMENT_TARGET = 1.3;
-			};
-			name = Release;
-		};
-		016FAB3E21BFE78100AF60DC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = "";
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				FRAMEWORK_VERSION = A;
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.8.13;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
-				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.Euclid;
-				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
-				PRODUCT_NAME = Euclid;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "$(AVAILABLE_PLATFORMS)";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,3,4,6,7";
-			};
-			name = Debug;
-		};
-		016FAB3F21BFE78100AF60DC /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = "";
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				FRAMEWORK_VERSION = A;
-				GENERATE_INFOPLIST_FILE = YES;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.8.13;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
-				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-expression-type-checking=75";
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.Euclid;
-				PRODUCT_MODULE_NAME = "$(PRODUCT_NAME:c99extidentifier)";
-				PRODUCT_NAME = Euclid;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "$(AVAILABLE_PLATFORMS)";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,3,4,6,7";
-			};
-			name = Release;
-		};
-		016FAB4121BFE78100AF60DC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,3,6";
-			};
-			name = Debug;
-		};
-		016FAB4221BFE78100AF60DC /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
+					SWIFT_PACKAGE,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				TARGETED_DEVICE_FAMILY = "1,2,3,6";
-			};
-			name = Release;
-		};
-		016FABFB21C078E500AF60DC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 8VQKF583ED;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Example/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Euclid Example";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_UIStatusBarHidden = NO;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.8.13;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidExample;
-				PRODUCT_NAME = EuclidExample;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3,7";
-				TVOS_DEPLOYMENT_TARGET = 13.0;
-			};
-			name = Debug;
-		};
-		016FABFC21C078E500AF60DC /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 8VQKF583ED;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Example/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Euclid Example";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_UIStatusBarHidden = NO;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.8.13;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.EuclidExample;
-				PRODUCT_NAME = EuclidExample;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
-				SUPPORTS_MACCATALYST = YES;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3,7";
-				TVOS_DEPLOYMENT_TARGET = 13.0;
+				SWIFT_SUPPRESS_WARNINGS = YES;
+				USE_HEADERMAP = NO;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		01F995EE2E6455BD0017AAC8 /* Debug */ = {
+		6639AF01EC2F6F5474B85EC2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8VQKF583ED;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 0.8.13;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.PerformanceTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = "Derived/InfoPlists/Euclid-Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				OTHER_SWIFT_FLAGS = "$(inherited)";
+				PRODUCT_BUNDLE_IDENTIFIER = Euclid;
+				PRODUCT_NAME = Euclid;
 				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					DEBUG,
+				);
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 1.3;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
 			};
 			name = Debug;
 		};
-		01F995EF2E6455BD0017AAC8 /* Release */ = {
+		88FD22DAAB8B33609B21AC08 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8VQKF583ED;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 0.8.13;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.PerformanceTests;
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = NO;
+				ENABLE_TESTABILITY = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+					"SWIFT_PACKAGE=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 1.3;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					SWIFT_PACKAGE,
+				);
+				SWIFT_SUPPRESS_WARNINGS = YES;
+				USE_HEADERMAP = NO;
 			};
-			name = Release;
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		016FAB2321BFE78100AF60DC /* Build configuration list for PBXProject "Euclid" */ = {
+		1AEC9269AD3E5136486531D7 /* Build configuration list for PBXNativeTarget "Euclid" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				016FAB3B21BFE78100AF60DC /* Debug */,
-				016FAB3C21BFE78100AF60DC /* Release */,
+				6639AF01EC2F6F5474B85EC2 /* Debug */,
+				2BECC3375C3D111A82723A35 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		016FAB3D21BFE78100AF60DC /* Build configuration list for PBXNativeTarget "Euclid" */ = {
+		811011FEBFCDF78F654BEC5D /* Build configuration list for PBXProject "Euclid" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				016FAB3E21BFE78100AF60DC /* Debug */,
-				016FAB3F21BFE78100AF60DC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		016FAB4021BFE78100AF60DC /* Build configuration list for PBXNativeTarget "EuclidTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				016FAB4121BFE78100AF60DC /* Debug */,
-				016FAB4221BFE78100AF60DC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		016FABFD21C078E500AF60DC /* Build configuration list for PBXNativeTarget "Example" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				016FABFB21C078E500AF60DC /* Debug */,
-				016FABFC21C078E500AF60DC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		01F995F02E6455BD0017AAC8 /* Build configuration list for PBXNativeTarget "PerformanceTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				01F995EE2E6455BD0017AAC8 /* Debug */,
-				01F995EF2E6455BD0017AAC8 /* Release */,
+				88FD22DAAB8B33609B21AC08 /* Debug */,
+				2F92FD0C8A3ED400D01A04BB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 016FAB2021BFE78100AF60DC /* Project object */;
+	rootObject = 86CF8D9BE3797C5269BB6DF1 /* Project object */;
 }
