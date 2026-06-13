@@ -58,6 +58,7 @@ import AppKit
 
 public extension Texture {
     var averageColor: Color? {
+        // TODO: memoize this value
         let image = NSImage(self)
         var rect = NSRect(x: 0, y: 0, width: 1, height: 1)
         return image?.cgImage(

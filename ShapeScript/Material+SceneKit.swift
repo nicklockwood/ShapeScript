@@ -90,6 +90,7 @@ public extension SCNMaterial {
 
         isDoubleSided = !isOpaque
         transparencyMode = .dualLayer
+        writesToDepthBuffer = isOpaque
 
         m.glow?.configureProperty(emission)
         if m.roughness != nil || m.metallicity != nil {
