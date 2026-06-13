@@ -527,6 +527,10 @@ extension Value {
             return .vector(Vector(value, 0))
         case let (.number(value), .size):
             return .size(Vector(size: value))
+        case let (.radians(value), .vector):
+            return .vector(Vector(value, 0))
+        case let (.radians(value), .size):
+            return .size(Vector(size: value))
         case let (.number(value), .rotation):
             return .rotation(.roll(.halfturns(value)))
         case let (.halfturns(value), .rotation):

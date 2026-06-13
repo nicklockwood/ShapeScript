@@ -2562,6 +2562,23 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(program, delegate: nil))
     }
 
+    func testRadiansConvertedToSizeAndPosition() throws {
+        let program = try parse("""
+        define ROD_DIAMETER    10
+        define BASE_THICKNESS  20
+
+        sphere {
+            size (ROD_DIAMETER / (pi / 2))
+            position (ROD_DIAMETER / (pi / 2))  (BASE_THICKNESS / 2)
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let sphere = try XCTUnwrap(scene.children.first)
+        let diameter = 20 / Double.pi
+        XCTAssertEqual(sphere.transform.scale, Vector(size: diameter))
+        XCTAssertEqual(sphere.transform.translation, Vector(diameter, 10, 0))
+    }
+
     // MARK: Rotation / orientation
 
     func testRotateWithHalfTurns() throws {
