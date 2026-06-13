@@ -267,9 +267,10 @@ extension EvaluationContext {
             // TODO: should this be a different error type, like "empty path not allowed"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
+        let expandedPath = NSString(string: path).expandingTildeInPath
         let documentRelativePath = baseURL.map {
-            URL(fileURLWithPath: path, relativeTo: $0).path
-        } ?? path
+            URL(fileURLWithPath: expandedPath, relativeTo: $0).path
+        } ?? expandedPath
         guard let url = delegate?.resolveURL(for: documentRelativePath) else {
             // TODO: should this be a different error type, like "delegate not available"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)

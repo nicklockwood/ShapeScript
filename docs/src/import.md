@@ -46,6 +46,12 @@ Imported models can be used just like imported script files. Importing a model i
 import "Rocket.obj"
 ```
 
+Paths beginning with `~/` are resolved relative to your home directory:
+
+```swift
+import "~/Desktop/Rocket.obj"
+```
+
 Or you can [define a symbol](symbols.md) for the model, to be used later:
 
 ```swift

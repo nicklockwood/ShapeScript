@@ -1897,6 +1897,26 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
 
+    func testImportWithTildePath() throws {
+        let program = try parse("import \"~/Desktop/Example Model.stl\"")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        context.baseURL = testsDirectory.appendingPathComponent("Document.shape")
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, [
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Desktop/Example Model.stl").path,
+        ])
+    }
+
+    func testImportWithNonLeadingTilde() throws {
+        let program = try parse("import \"Models/Example~Model.stl\"")
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        try? program.evaluate(in: context) // Throws file not found, but we can ignore
+        XCTAssertEqual(delegate.imports, ["Models/Example~Model.stl"])
+    }
+
     func testImportWithStringInterpolation() throws {
         let program = try parse("import (\"File\" 1 \".shape\")")
         let delegate = TestDelegate()
