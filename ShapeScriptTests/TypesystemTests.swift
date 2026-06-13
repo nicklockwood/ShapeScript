@@ -6,8 +6,8 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
 @testable import ShapeScript
+import Euclid
 import XCTest
 
 private func expressionType(_ source: String) throws -> ValueType {
