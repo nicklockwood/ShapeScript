@@ -141,7 +141,7 @@ extension TextView {
 
     var textColor: UIColor {
         get { textView.textColor ?? .label }
-        set { updateTextColor() }
+        set { updateTextColor(newValue) }
     }
 
     /// The base text attributes
@@ -206,7 +206,7 @@ extension TextView {
         textView.delegate = self
         textView.textDragDelegate = self
         textView.textDropDelegate = self
-        updateTextColor()
+        updateTextColor(.label)
         updateAttributes()
         addSubview(textView)
         gutterView.backgroundColor = textView.backgroundColor
@@ -526,7 +526,9 @@ extension TextView: UITextViewDelegate {
                 replacementText: text
             ) ?? true
         case nil where [".", ",", ";", ":", "!", "?"].contains(text):
-            if mutableString.character(at: fixedRange.location - 1) != text.utf16.first {
+            if fixedRange.location == 0 ||
+                mutableString.character(at: fixedRange.location - 1) != text.utf16.first
+            {
                 currentAction = .typing
             }
         case nil where text == " ":
@@ -971,9 +973,9 @@ private extension TextView {
         return range
     }
 
-    func updateTextColor() {
-        textView.textColor = textColor
-        textView.typingAttributes[.foregroundColor] = textColor
+    func updateTextColor(_ color: UIColor) {
+        textView.textColor = color
+        textView.typingAttributes[.foregroundColor] = color
     }
 
     func updateInsets() {
