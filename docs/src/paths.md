@@ -183,7 +183,7 @@ You can even create a rectangle with rounded corners using the `roundrect` comma
 roundrect
 ```
 
-In addition to `size`, `roundrect` also accepts a `radius` option, which controls the corner radius:
+In addition to `size`, `roundrect` also accepts a `radius` option, which controls the corner radius as a proportion of its size. If the size is non-uniform, the radius is proportional to the smallest dimension. For example, a radius of `0.25` is one quarter of the rectangle's smallest dimension:
 
 ```swift
 roundrect {
