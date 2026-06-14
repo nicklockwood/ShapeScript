@@ -596,6 +596,12 @@ private func evaluateBlockParameters(
         children = try evaluateParameters(parameters, in: context)
     }
     for (j, child) in children {
+        guard child.isFinite else {
+            throw RuntimeError(
+                .assertionFailure("Values must be finite"),
+                at: j < parameters.count ? parameters[j].range : range
+            )
+        }
         do {
             try childContext.addValue(child)
         } catch {
@@ -629,7 +635,14 @@ private func evaluateParameter(
             at: range.upperBound ..< range.upperBound
         )
     }
-    return try parameter.evaluate(as: type, for: identifier.name, in: context)
+    let value = try parameter.evaluate(as: type, for: identifier.name, in: context)
+    guard value.isFinite else {
+        throw RuntimeError(
+            .assertionFailure("Values must be finite"),
+            at: parameter.range
+        )
+    }
+    return value
 }
 
 extension Definition {
@@ -886,6 +899,9 @@ extension Definition {
 
 extension EvaluationContext {
     func addValue(_ value: Value) throws {
+        guard value.isFinite else {
+            throw RuntimeErrorType.assertionFailure("Values must be finite")
+        }
         if let value = try value.as(childTypes, in: self) {
             func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
                 switch value {

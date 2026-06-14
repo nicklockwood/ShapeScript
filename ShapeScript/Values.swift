@@ -84,6 +84,10 @@ struct RangeValue: Hashable {
     var start: Double
     var end, step: Double?
 
+    var isFinite: Bool {
+        start.isFinite && end?.isFinite != false && step?.isFinite != false
+    }
+
     init(from start: Double, to end: Double?) {
         self.start = start
         self.end = end
@@ -158,6 +162,35 @@ extension Value {
             return .number(color.r)
         case let .texture(texture):
             return .texture(texture)
+        }
+    }
+
+    var isFinite: Bool {
+        switch self {
+        case let .color(color):
+            return color.isFinite
+        case let .number(value), let .radians(value), let .halfturns(value):
+            return value.isFinite
+        case let .vector(vector), let .size(vector):
+            return vector.isFinite
+        case let .rotation(rotation):
+            return rotation.isFinite
+        case let .text(text):
+            return text.linespacing?.isFinite != false && text.color?.isFinite != false
+        case let .point(point):
+            return point.position.isFinite
+        case let .tuple(values):
+            return values.allSatisfy(\.isFinite)
+        case let .range(range):
+            return range.isFinite
+        case let .bounds(bounds):
+            return bounds.isFinite
+        case let .object(values):
+            return values.values.allSatisfy(\.isFinite)
+        case let .pretransformed(value):
+            return value.isFinite
+        case .texture, .material, .boolean, .string, .font, .path, .mesh, .polygon:
+            return true
         }
     }
 

@@ -94,6 +94,10 @@ final class MemberTests: XCTestCase {
         #endif
     }
 
+    func testEmptyBoundsAreValid() {
+        XCTAssert(Value.bounds(.empty).isFinite)
+    }
+
     func testTupleVolumeLookup() throws {
         let program = "print (extrude text \"hello\").volume"
         let delegate = TestDelegate()

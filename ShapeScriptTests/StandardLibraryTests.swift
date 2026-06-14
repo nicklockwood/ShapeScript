@@ -860,6 +860,64 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    func testPathWithNonFinitePoint() throws {
+        let source = """
+        path {
+            point 0 / 0
+            point 1
+        }
+        """
+        let range = try XCTUnwrap(source.range(of: "0 / 0"))
+        let program = try parse(source)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(
+                .assertionFailure("Values must be finite"), at: range
+            ))
+        }
+    }
+
+    func testPathWithInfinitePoint() throws {
+        let source = """
+        path {
+            point 1 / 0
+            point 1
+        }
+        """
+        let range = try XCTUnwrap(source.range(of: "1 / 0"))
+        let program = try parse(source)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(
+                .assertionFailure("Values must be finite"), at: range
+            ))
+        }
+    }
+
+    func testArcWithNonFiniteAngle() throws {
+        let source = "arc { angle 0 / 0 }"
+        let range = try XCTUnwrap(source.range(of: "0 / 0"))
+        let program = try parse(source)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(
+                .assertionFailure("Values must be finite"), at: range
+            ))
+        }
+    }
+
+    func testShapeWithNonFinitePosition() throws {
+        let source = "sphere { position 0 / 0 }"
+        let range = try XCTUnwrap(source.range(of: "0 / 0"))
+        let program = try parse(source)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(
+                .assertionFailure("Values must be finite"), at: range
+            ))
+        }
+    }
+
     // MARK: Polygons
 
     func testPrintPolygonPath() throws {

@@ -46,6 +46,10 @@ public extension Color {
 }
 
 extension Color {
+    var isFinite: Bool {
+        components.allSatisfy(\.isFinite)
+    }
+
     init(unchecked components: [Double]) {
         if let color = Color(components) {
             self = color
@@ -70,9 +74,26 @@ extension Angle {
     }
 }
 
+extension Vector {
+    var isFinite: Bool {
+        components.allSatisfy(\.isFinite)
+    }
+}
+
+extension Bounds {
+    var isFinite: Bool {
+        self == .empty || min.components.allSatisfy(\.isFinite) &&
+            max.components.allSatisfy(\.isFinite)
+    }
+}
+
 extension Rotation {
     var rollYawPitchInHalfTurns: [Double] {
         [roll.halfturns, yaw.halfturns, pitch.halfturns]
+    }
+
+    var isFinite: Bool {
+        rollYawPitchInHalfTurns.allSatisfy(\.isFinite)
     }
 
     init(rollYawPitchInHalfTurns: [Double]) {
