@@ -24,6 +24,16 @@ define two 2
 define five three + two
 ```
 
+The expression assigned to a symbol is evaluated once, when the symbol is defined, and the resulting constant value is reused whenever the symbol is referenced. This applies to shapes as well as numbers and other values. To define a reusable constant shape, place the shape expression directly after the symbol name:
+
+```swift
+define detailedSphere sphere {
+    detail 300
+}
+```
+
+This differs from defining a custom [block](blocks.md), whose instructions are evaluated again each time it is called.
+
 Symbols help to make your ShapeScript file more readable by assigning meaningful names to otherwise inscrutable literal values. They also make the script easier to modify and maintain by avoiding duplication of literal values throughout the code.
 
 Existing symbols can be redefined by calling `define` again with the same name. If a symbol is defined inside a `{ ... }` block then it will be [scoped](scope.md) to the code inside that block (meaning that it cannot be used after the closing `}`):

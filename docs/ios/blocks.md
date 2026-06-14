@@ -29,7 +29,7 @@ star
 
 ![Star](../images/star.png)
 
-**Note:** There is a subtle distinction between the code above and the code below:
+**Note:** There is a subtle but important distinction between the code above and the code below:
 
 ```swift
 define star path {
@@ -43,13 +43,15 @@ define star path {
 }
 ```
 
-In the original code, we defined a new block symbol that creates a star-shaped path. In the code above we've defined a symbol whose value is a star-shaped path. The former code is evaluated at the point when it is *called*, whereas the latter code is evaluated at the point when it is *defined*.
+In the original code, we defined a new block symbol that creates a star-shaped path. In the code above we've defined a constant whose value is a star-shaped path. The former code is evaluated at the point when it is *called*, whereas the latter code is evaluated at the point when it is *defined*.
 
-The end-result is the same in this case, so it may seem like the distinction doesn't matter, but the advantage of the former approach is that we can add *options* to vary the behavior of the code when it is called.
+The end-result is the same in this case, so it may seem like the distinction doesn't matter, but the advantage of the former approach is that we can add *options* to vary the behavior of the code when it is called, or use commands like [rnd](commands.md#random-numbers) to generate a different shape each time the block is called.
+
+The disadvantage is that it's typically more expensive (time-consuming) to call a block to generate a new shape on each call vs just using a constant.
 
 ## Options
 
-To add an option to a block, you use the `option` command. This works in a similar way to the [define](symbols.md) command, but it allows the specified value to be overridden by the caller.
+To add configuration options to a block, you use the `option` command. This works in a similar way to the [define](symbols.md) command, but it allows the specified value to be overridden by the caller.
 
 The code below extends the `star` definition with options for the radius and number of points:
 
