@@ -426,14 +426,34 @@ final class MeshImportTests: XCTestCase {
         XCTAssertTrue(mesh.isConvex())
     }
 
+    func testOBJWithNormalsAndNoTexcoordsRoundTrips() throws {
+        let cylinder = Mesh.cylinder(slices: 4).withoutTexcoords()
+        let objString = cylinder.objString()
+        XCTAssert(objString.contains("//"))
+        XCTAssertFalse(objString.contains("\nvt "))
+        XCTAssertEqual(try XCTUnwrap(Mesh(objString: objString)), cylinder)
+    }
+
+    func testOBJWithManyUnknownCommands() throws {
+        let unknownCommands = Array(repeating: "g group", count: 20_000)
+        let objString = (unknownCommands + [
+            "v 0 0 0",
+            "v 1 0 0",
+            "v 0 1 0",
+            "f 1 2 3",
+        ]).joined(separator: "\n")
+        let mesh = try XCTUnwrap(Mesh(objString: objString))
+        XCTAssertEqual(mesh.polygons.count, 1)
+    }
+
     func testMalformedOBJFiles() {
-        let badOffs: [String] = [
+        let badOBJs: [String] = [
             "", // Empty
             "v 1 0 1\nf -1 -1 -1", // Negative index
             "v 1 0 1\nf 1 2 1", // Index out of bounds
         ]
-        for off in badOffs {
-            let mesh = Mesh(offString: off) ?? .empty
+        for obj in badOBJs {
+            let mesh = Mesh(objString: obj) ?? .empty
             XCTAssertEqual(mesh, .empty)
         }
     }
@@ -632,10 +652,11 @@ final class MeshImportTests: XCTestCase {
             "OFF\n0 -1 0", // Negative face count
             "OFF\n2 1 0\n1 0 0\n0 1 0\n3 0 1 2", // Index out of bounds
             "OFF\n2 1 0\n1 0 0\n0 1 0\n3 0 1", // Missing index
+            "OFF\n3 1 0\n0 0 0\n1 0 0\n0 1 0\n-1", // Negative face vertex count
+            "OFF\n3 1 0\n0 0 0\n1 0 0\n0 1 0\n3 -1 1 2", // Negative vertex index
         ]
         for off in badOffs {
-            let mesh = Mesh(offString: off) ?? .empty
-            XCTAssertEqual(mesh, .empty)
+            XCTAssertNil(Mesh(offString: off))
         }
     }
 

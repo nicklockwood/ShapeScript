@@ -332,6 +332,7 @@ public extension Mesh {
     ///   - faces: The direction the polygon faces.
     ///   - wrapMode: The way that texture coordinates are calculated for the sphere.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func sphere(
         radius: Double = 0.5,
         slices: Int = 16,
@@ -339,11 +340,12 @@ public extension Mesh {
         poleDetail: Int = 0,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Material? = nil
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         let stacks = max(2, stacks ?? (slices / 2))
         return lathe(
-            unchecked: .arc(radius: radius, segments: stacks),
+            unchecked: .arc(radius: radius, segments: stacks, isCancelled: isCancelled),
             slices: slices,
             poleDetail: poleDetail,
             addDetailForFlatPoles: false,
@@ -352,7 +354,7 @@ public extension Mesh {
             material: material,
             isConvex: true,
             isWatertight: true,
-            isCancelled: { false }
+            isCancelled: isCancelled
         )
     }
 
@@ -365,6 +367,7 @@ public extension Mesh {
     ///   - faces: The direction of the generated polygon faces.
     ///   - wrapMode: The way that texture coordinates are calculated for the cylinder.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     static func cylinder(
         radius: Double = 0.5,
         height: Double = 1,
@@ -372,7 +375,8 @@ public extension Mesh {
         poleDetail: Int = 0,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Material? = nil
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         let radius = max(abs(radius), scaleLimit / 2)
         let wrapMode = wrapMode == .default ? .tube : wrapMode
@@ -395,7 +399,7 @@ public extension Mesh {
             material: material,
             isConvex: true,
             isWatertight: true,
-            isCancelled: { false }
+            isCancelled: isCancelled
         )
     }
 
@@ -410,6 +414,7 @@ public extension Mesh {
     ///   - faces: The direction of the generated polygon faces.
     ///   - wrapMode: The way that texture coordinates are calculated for the cone.
     ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     ///
     /// > Note: The default `nil` value for poleDetail will derive value automatically.
     /// Use zero instead if you wish to add no extra detail at the poles.
@@ -422,7 +427,8 @@ public extension Mesh {
         addDetailAtBottomPole: Bool = false,
         faces: Faces = .default,
         wrapMode: WrapMode = .default,
-        material: Material? = nil
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
     ) -> Mesh {
         let radius = max(abs(radius), scaleLimit / 2)
         let stacks = max(1, stacks)
@@ -440,7 +446,7 @@ public extension Mesh {
             material: material,
             isConvex: true,
             isWatertight: true,
-            isCancelled: { false }
+            isCancelled: isCancelled
         )
     }
 
@@ -873,7 +879,9 @@ private extension Mesh {
         }
 
         var polygons = [Polygon]()
-        for i in 0 ..< slices where !isCancelled() {
+        var completedSlices = 0
+        for i in 0 ..< slices {
+            if isCancelled() { break }
             let t0 = Double(i) / Double(slices)
             let t1 = Double(i + 1) / Double(slices)
             let a0 = t0 * Angle.twoPi
@@ -980,10 +988,13 @@ private extension Mesh {
                     }
                 }
             }
+            completedSlices += 1
         }
 
+        let wasCancelled = completedSlices < slices
+        let isConvex = isConvex && !wasCancelled
         let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map(\.position))
-        let isWatertight = isSealed ? true : isWatertight
+        let isWatertight = wasCancelled ? nil : isSealed ? true : isWatertight
         switch faces {
         case .default where isSealed, .front:
             return Mesh(
@@ -1256,36 +1267,30 @@ private extension Mesh {
         guard e0.count > 1 || e1.count > 1 else {
             return
         }
-        var t0 = -p0.bounds.center, t1 = -p1.bounds.center
-        var r = rotationBetweenNormalizedVectors(n1, n0)
-        func nearestIndex(to a: Vector, in e: [Vertex]) -> Int {
-            let a = a.translated(by: t1).rotated(by: r)
-            let e = e.map { $0.withPosition($0.position.translated(by: t0)) }
-            var closestIndex = 0
-            var best = Double.infinity
-            for i in stride(from: 0, to: e.count, by: 2) {
-                let b = e[i]
-                let d = b.distance(from: a)
-                if d < best {
-                    closestIndex = i
-                    best = d
-                }
-            }
-            return closestIndex
-        }
         if e0.count == e1.count {
             for j in stride(from: 0, to: e0.count, by: 2) {
                 addFace(e0[j], e0[j + 1], e1[j + 1], e1[j])
             }
             return
         }
+        var t0 = -p0.bounds.center, t1 = -p1.bounds.center
+        var r = rotationBetweenNormalizedVectors(n1, n0)
+        let fp0 = p0.flatteningPlane, fp1 = p1.flatteningPlane
+        var closed0 = p0.isClosed, closed1 = p1.isClosed
         // e1 count must be > than e0, so swap everything if not
         if e0.count > e1.count {
-            (t0, t1, r, invert) = (t1, t0, -r, !invert)
+            invert = !invert
+            (t0, t1, r) = (t1, t0, -r)
             (e0, e1, uvstart, uvend) = (e1, e0, uvend, uvstart)
+            (closed0, closed1) = (closed1, closed0)
         }
-        // ensure points are have same orientation
-        let fp0 = p0.flatteningPlane, fp1 = p1.flatteningPlane
+        if e0.count == 1 {
+            for j in stride(from: 0, to: e1.count, by: 2) {
+                addFace(e0[0], e0[0], e1[j + 1], e1[j])
+            }
+            return
+        }
+        // Ensure edges have the same orientation
         if flattenedPointsAreClockwise(e0.map {
             fp0.flattenPoint($0.position)
         }) != flattenedPointsAreClockwise(e1.map {
@@ -1294,34 +1299,75 @@ private extension Mesh {
             e0.reverse()
             // TODO: fix mirrored texture coords
         }
-        // map nearest e1 edges to e0 points
-        var prev: Int?
-        for i in stride(from: 0, to: e1.count, by: 2) {
-            let a = e1[i], b = e1[i + 1]
-            let ai = nearestIndex(to: a.position, in: e0)
-            if let prev {
-                var ai = ai
-                if ai == 0, prev == e0.count - 2 {
-                    ai += e0.count
-                }
-                if ai > prev {
-                    for j in stride(from: prev, to: ai, by: 2) {
-                        let c = e0[j % e0.count], d = e0[(j + 1) % e0.count]
-                        addFace(c, d, a, a)
-                    }
+
+        let sparseCount = e0.count / 2
+        let denseCount = e1.count / 2
+        let sparsePositions = stride(from: 0, to: e0.count, by: 2).map {
+            e0[$0].position.translated(by: t0)
+        }
+        var densePositions = stride(from: 0, to: e1.count, by: 2).map {
+            e1[$0].position.translated(by: t1).rotated(by: r)
+        }
+        densePositions.append(e1.last!.position.translated(by: t1).rotated(by: r))
+
+        func nearestSparseIndex(to point: Vector) -> Int {
+            var closestIndex = 0
+            var best = Double.infinity
+            for i in 0 ..< sparseCount {
+                let distanceSquared = (point - sparsePositions[i]).lengthSquared
+                if distanceSquared < best {
+                    closestIndex = i
+                    best = distanceSquared
                 }
             }
-            let bi = nearestIndex(to: b.position, in: e0)
-            let c = e0[ai]
-            if ai == bi || (ai == e0.count - 1 && bi == 0) {
+            return closestIndex
+        }
+
+        // Map dense vertices to nearest sparse vertices, then unwrap and
+        // clamp the indices so correspondence never moves backwards
+        var mapping = densePositions.map {
+            nearestSparseIndex(to: $0)
+        }
+        if closed0, closed1 {
+            let start = mapping[0]
+            for j in 1 ..< denseCount {
+                let expected = start + j * sparseCount / denseCount
+                let wrapped = mapping[j] + sparseCount
+                if abs(wrapped - expected) < abs(mapping[j] - expected) {
+                    mapping[j] = wrapped
+                }
+                let lowerBound = start + sparseCount - (denseCount - j)
+                mapping[j] = min(
+                    mapping[j - 1] + 1,
+                    max(lowerBound, mapping[j - 1], mapping[j])
+                )
+            }
+            mapping[denseCount] = start + sparseCount
+        } else {
+            mapping[0] = 0
+            for j in 1 ..< denseCount {
+                let lowerBound = sparseCount - (denseCount - j)
+                mapping[j] = min(
+                    mapping[j - 1] + 1,
+                    max(lowerBound, mapping[j - 1], mapping[j])
+                )
+            }
+            mapping[denseCount] = sparseCount
+        }
+
+        for j in 0 ..< denseCount {
+            let a = e1[j * 2], b = e1[j * 2 + 1]
+            let start = mapping[j], end = mapping[j + 1]
+            if start == end {
+                let c = closed0 ? e0[(start % sparseCount) * 2] :
+                    (start == sparseCount ? e0.last! : e0[start * 2])
                 addFace(c, c, b, a)
-                prev = ai
-            } else {
-                // assert((ai + 2) % e0.count == bi || ai + 1 == bi)
-                let d = e0[(ai + 1) % e0.count]
-                addFace(c, d, b, a)
-                prev = ai + 2
+                continue
             }
+            assert(end == start + 1)
+            let c = e0[(start % sparseCount) * 2]
+            let d = e0[(start % sparseCount) * 2 + 1]
+            addFace(c, d, b, a)
         }
     }
 
