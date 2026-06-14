@@ -311,14 +311,19 @@ private extension Substring {
     mutating func skipBlockComment() {
         assert(first == "*")
         removeFirst()
+        var depth = 1
         while let c = first {
             removeFirst()
             switch c {
             case "*" where first == "/":
                 removeFirst()
-                return
+                depth -= 1
+                if depth == 0 {
+                    return
+                }
             case "/" where first == "*":
-                skipBlockComment()
+                removeFirst()
+                depth += 1
             default:
                 break
             }

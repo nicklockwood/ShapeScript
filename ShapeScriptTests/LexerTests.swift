@@ -92,6 +92,12 @@ final class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
+    func testDeeplyNestedBlockComments() {
+        let input = String(repeating: "/*", count: 20_000) +
+            String(repeating: "*/", count: 20_000)
+        XCTAssertEqual(try tokenize(input).map(\.type), [.eof])
+    }
+
     // MARK: identifiers
 
     func testLetters() {
