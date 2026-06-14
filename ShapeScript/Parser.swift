@@ -13,6 +13,7 @@ import Foundation
 
 public func parse(_ input: String, at url: URL? = nil) throws -> Program {
     var tokens = try ArraySlice(tokenize(input))
+    try tokens.validateNestingDepth()
     let statements = try tokens.readStatements()
     if let token = tokens.first, token.type != .eof {
         throw ParserError(.unexpectedToken(token, expected: nil))
@@ -207,6 +208,28 @@ private extension TokenType {
 }
 
 private extension ArraySlice where Element == Token {
+    func validateNestingDepth() throws {
+        var depth = 0
+        for token in self {
+            switch token.type {
+            case .lbrace, .lparen, .call, .lbracket, .subscript:
+                depth += 1
+                guard depth <= 256 else {
+                    throw ParserError(.custom(
+                        "Maximum parser nesting depth exceeded",
+                        hint: "Reduce the number of nested blocks, parentheses, or brackets.",
+                        at: token.range
+                    ))
+                }
+            case .rbrace, .rparen, .rbracket:
+                depth = Swift.max(0, depth - 1)
+            case .linebreak, .identifier, .keyword, .hexColor, .infix, .prefix,
+                 .number, .string, .dot, .eof:
+                break
+            }
+        }
+    }
+
     var nextToken: Token {
         first!
     }

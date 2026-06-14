@@ -10,6 +10,20 @@
 import XCTest
 
 final class ParserTests: XCTestCase {
+    func testDeeplyNestedParentheses() {
+        let input = String(repeating: "(", count: 20_000) + "1" +
+            String(repeating: ")", count: 20_000)
+        let start = input.index(input.startIndex, offsetBy: 256)
+        let range = start ..< input.index(after: start)
+        XCTAssertThrowsError(try parse(input)) { error in
+            XCTAssertEqual(error as? ParserError, ParserError(.custom(
+                "Maximum parser nesting depth exceeded",
+                hint: "Reduce the number of nested blocks, parentheses, or brackets.",
+                at: range
+            )))
+        }
+    }
+
     // MARK: Operators
 
     func testLeftAssociativity() throws {
