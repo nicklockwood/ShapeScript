@@ -647,11 +647,11 @@ private extension Geometry {
         case .group, .path, .camera, .light:
             mesh = .empty
         case let .cone(segments):
-            mesh = .cone(slices: segments)
+            mesh = .cone(slices: segments, isCancelled: isCancelled)
         case let .cylinder(segments):
-            mesh = .cylinder(slices: segments)
+            mesh = .cylinder(slices: segments, isCancelled: isCancelled)
         case let .sphere(segments):
-            mesh = .sphere(slices: segments, stacks: segments / 2)
+            mesh = .sphere(slices: segments, isCancelled: isCancelled)
         case .cube:
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count == 1:

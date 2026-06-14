@@ -350,7 +350,8 @@ extension Symbols {
             return .path(Path.arc(
                 angle: angle,
                 segments: segments,
-                color: context.material.color
+                color: context.material.color,
+                isCancelled: context.isCancelled
             ).transformed(by: context.transform))
         },
         "circle": .block(.pathShape) { context in

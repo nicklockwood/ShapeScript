@@ -68,6 +68,24 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(sphere.bounds.size, expected, accuracy: 1e-10)
     }
 
+    func testPrimitiveGenerationCanBeCancelled() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        for type in [
+            GeometryType.cone(segments: 256),
+            .cylinder(segments: 256),
+            .sphere(segments: 256),
+        ] {
+            let shape = Geometry(type: type, in: context)
+            var checks = 0
+            XCTAssertFalse(shape.build {
+                checks += 1
+                return checks < 4
+            })
+            XCTAssertLessThan(checks, 10)
+            XCTAssertLessThan(shape.mesh?.polygons.count ?? .max, 256 * 2)
+        }
+    }
+
     func testTransformedCubeBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
