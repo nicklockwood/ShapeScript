@@ -1,3 +1,12 @@
+# Change Log
+
+## [1.3.0](https://github.com/nicklockwood/SVGPath/releases/tag/1.3.0) (2025-12-25)
+
+- Added SwiftUI convenience extensions and example app
+- Increased minimum iOS version to 11 and minimum macOS version to 10.15
+- Added option to not invert the Y axis (inverted by default for backwards compatibility)
+- Added string offset index parameters to `SVGError` cases
+
 ## [1.2.0](https://github.com/nicklockwood/SVGPath/releases/tag/1.2.0) (2025-08-01)
 
 - Added Sendable conformance for all `SVGPath` types

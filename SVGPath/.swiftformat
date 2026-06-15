@@ -11,13 +11,21 @@
 --self init-only
 --wraparguments before-first
 --wrapcollections before-first
---maxwidth 100
+--maxwidth 120
 
 # rules
 
+--lintonly unusedArguments
+--lintonly unusedPrivateDeclarations
+--enable emptyExtensions
 --enable isEmpty
---enable noGuardInTests
---enable throwingTests
+# --enable docComments
+--enable noForceTryInTests
+--enable noForceUnwrapInTests
+# --enable noGuardInTests
+--enable preferFinalClasses
+--enable redundantAsync
+--enable redundantThrows
 --enable redundantEquatable
 --enable redundantMemberwiseInit
 --enable redundantProperty

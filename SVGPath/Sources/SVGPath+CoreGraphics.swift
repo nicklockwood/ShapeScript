@@ -32,24 +32,47 @@
 #if canImport(CoreGraphics)
 
 import CoreGraphics
-import Foundation
 
 // MARK: SVGPath to CGPath
 
 public extension CGPath {
-    static func from(svgPath: String) throws -> CGPath {
-        try from(svgPath: SVGPath(string: svgPath))
+    /// Create a `CGPath` from an SVG path string.
+    /// - Parameters:
+    ///   - svgPath: The SVG path string.
+    ///   - rect: An optional rectangle that the path should be scaled to fit inside.
+    static func from(svgPath: String, in rect: CGRect? = nil) throws -> CGPath {
+        try from(SVGPath(string: svgPath), in: rect)
     }
 
-    static func from(svgPath: SVGPath) -> CGPath {
+    /// Create a `CGPath` from an `SVGPath` instance.
+    /// - Parameters:
+    ///   - svgPath: The `SVGPath` instance to convert to a `CGPath`.
+    ///   - rect: An optional rectangle that the path should be scaled to fit inside.
+    static func from(_ svgPath: SVGPath, in rect: CGRect? = nil) -> CGPath {
         let path = CGMutablePath()
         path.move(to: .zero)
         svgPath.commands.forEach(path.addCommand)
-        return path
+        guard let rect else {
+            return path
+        }
+        let bounds = path.boundingBoxOfPath
+        let target = bounds.scaledToFit(in: rect)
+        var transform = CGAffineTransform.identity
+            .translatedBy(x: target.minX - bounds.minX, y: target.minY - bounds.minY)
+            .scaledBy(x: target.width / bounds.width, y: target.height / bounds.height)
+        return path.copy(using: &transform) ?? path
+    }
+
+    /// Deprecated.
+    @available(*, deprecated, renamed: "from(_:)")
+    static func from(svgPath: SVGPath) -> CGPath {
+        from(svgPath)
     }
 }
 
 public extension CGPoint {
+    /// Create a `CGPoint` from an `SVGPoint`.
+    /// - Parameter svgPoint: The `SVGPoint` to convert.
     init(_ svgPoint: SVGPoint) {
         self.init(x: svgPoint.x, y: svgPoint.y)
     }
@@ -81,25 +104,45 @@ private extension CGMutablePath {
     }
 }
 
+private extension CGRect {
+    func scaledToFit(in rect: CGRect) -> CGRect {
+        var scale = rect.width / width
+        if height * scale > rect.height {
+            scale = rect.height / height
+        }
+        let width = width * scale
+        let height = height * scale
+        return .init(
+            x: rect.midX - width / 2,
+            y: rect.midY - height / 2,
+            width: width,
+            height: height
+        )
+    }
+}
+
 // MARK: CGPath to SVGPath
 
 public extension SVGPath {
-    init(cgPath: CGPath) {
+    /// Create an `SVGPath` from a `CGPath`.
+    /// - Parameter cgPath: The `CGPath` to convert.
+    init(_ cgPath: CGPath) {
         var commands = [SVGCommand]()
-        cgPath.enumerate {
+        cgPath.applyWithBlock {
+            let points = $0.pointee.points
             let command: SVGCommand
-            switch $0.type {
+            switch $0.pointee.type {
             case .moveToPoint:
-                command = .moveTo(SVGPoint($0.points[0]))
+                command = .moveTo(SVGPoint(points[0]))
             case .closeSubpath:
                 command = .end
             case .addLineToPoint:
-                command = .lineTo(SVGPoint($0.points[0]))
+                command = .lineTo(SVGPoint(points[0]))
             case .addQuadCurveToPoint:
-                let p1 = $0.points[0], p2 = $0.points[1]
+                let p1 = points[0], p2 = points[1]
                 command = .quadratic(SVGPoint(p1), SVGPoint(p2))
             case .addCurveToPoint:
-                let p1 = $0.points[0], p2 = $0.points[1], p3 = $0.points[2]
+                let p1 = points[0], p2 = points[1], p3 = points[2]
                 command = .cubic(SVGPoint(p1), SVGPoint(p2), SVGPoint(p3))
             @unknown default:
                 return
@@ -108,36 +151,18 @@ public extension SVGPath {
         }
         self.init(commands: commands)
     }
-}
 
-public extension SVGPoint {
-    init(_ cgPoint: CGPoint) {
-        self.init(x: Double(cgPoint.x), y: Double(cgPoint.y))
+    @available(*, deprecated, renamed: "init(_:)")
+    init(cgPath: CGPath) {
+        self.init(cgPath)
     }
 }
 
-extension CGPath {
-    func enumerate(_ fn: @convention(block) (CGPathElement) -> Void) {
-        if #available(iOS 11.0, tvOS 11.0, OSX 10.13, *) {
-            applyWithBlock { fn($0.pointee) }
-            return
-        }
-
-        // Fallback for earlier OSes
-        typealias Block = @convention(block) (CGPathElement) -> Void
-        let callback: @convention(c) (
-            UnsafeMutableRawPointer,
-            UnsafePointer<CGPathElement>
-        ) -> Void = { info, element in
-            unsafeBitCast(info, to: Block.self)(element.pointee)
-        }
-        withoutActuallyEscaping(fn) { block in
-            let block = unsafeBitCast(block, to: UnsafeMutableRawPointer.self)
-            self.apply(info: block, function: unsafeBitCast(
-                callback,
-                to: CGPathApplierFunction.self
-            ))
-        }
+public extension SVGPoint {
+    /// Create an `SVGPoint` from a `CGPoint`.
+    /// - Parameter cgPoint: The `CGPoint` to convert.
+    init(_ cgPoint: CGPoint) {
+        self.init(x: Double(cgPoint.x), y: Double(cgPoint.y))
     }
 }
 

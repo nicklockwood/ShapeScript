@@ -31,25 +31,47 @@
 
 import Foundation
 
+/// An SVG path structure.
 public struct SVGPath: Hashable, Sendable {
+    /// The array of commands that form the path.
     public var commands: [SVGCommand]
 
+    /// Create an `SVGPath` from an array of commands.
+    /// - Parameter commands: An array of  commands.
     public init(commands: [SVGCommand]) {
         self.commands = commands
     }
 
-    public init(string: String) throws {
-        var token: UnicodeScalar = " "
+    /// A set of options to control how the SVG path data should be interpreted.
+    public struct ParseOptions: Sendable {
+        public static let `default` = Self()
+
+        /// Whether the `SVGPath` data should be flipped vertically.
+        public var invertYAxis: Bool
+
+        public init(invertYAxis: Bool = true) {
+            self.invertYAxis = invertYAxis
+        }
+    }
+
+    /// Create an `SVGPath` from an SVG path string.
+    /// - Parameters:
+    ///   - string: The SVG path string.
+    ///   - options: An optional `ParseOptions` configuration.
+    public init(string: String, with options: ParseOptions = .default) throws {
+        var index = string.startIndex
+        var token = UnicodeScalar(" ")
         var commands = [SVGCommand]()
         var numbers = ArraySlice<Double>()
         var number = ""
         var isRelative = false
+        let yAxisSign = options.invertYAxis ? -1.0 : 1.0
 
         func assertArgs(_ count: Int) throws -> [Double] {
             if numbers.count < count {
-                throw SVGError.missingArgument(for: String(token), expected: count)
+                throw SVGError.missingArgument(for: String(token), at: index, expected: count)
             } else if !numbers.count.isMultiple(of: count) {
-                throw SVGError.unexpectedArgument(for: String(token), expected: count)
+                throw SVGError.unexpectedArgument(for: String(token), at: index, expected: count)
             }
             defer { numbers.removeFirst(count) }
             return Array(numbers.prefix(count))
@@ -57,19 +79,19 @@ public struct SVGPath: Hashable, Sendable {
 
         func moveTo() throws -> SVGCommand {
             let numbers = try assertArgs(2)
-            return .moveTo(SVGPoint(x: numbers[0], y: -numbers[1]))
+            return .moveTo(SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]))
         }
 
         func lineTo() throws -> SVGCommand {
             let numbers = try assertArgs(2)
-            return .lineTo(SVGPoint(x: numbers[0], y: -numbers[1]))
+            return .lineTo(SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]))
         }
 
         func lineToVertical() throws -> SVGCommand {
             let numbers = try assertArgs(1)
             return .lineTo(SVGPoint(
                 x: isRelative ? 0 : commands.lastPoint.x,
-                y: -numbers[0]
+                y: yAxisSign * numbers[0]
             ))
         }
 
@@ -84,8 +106,8 @@ public struct SVGPath: Hashable, Sendable {
         func quadCurve() throws -> SVGCommand {
             let numbers = try assertArgs(4)
             return .quadratic(
-                SVGPoint(x: numbers[0], y: -numbers[1]),
-                SVGPoint(x: numbers[2], y: -numbers[3])
+                SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]),
+                SVGPoint(x: numbers[2], y: yAxisSign * numbers[3])
             )
         }
 
@@ -100,15 +122,15 @@ public struct SVGPath: Hashable, Sendable {
             if !isRelative {
                 control += lastPoint
             }
-            return .quadratic(control, SVGPoint(x: numbers[0], y: -numbers[1]))
+            return .quadratic(control, SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]))
         }
 
         func cubicCurve() throws -> SVGCommand {
             let numbers = try assertArgs(6)
             return .cubic(
-                SVGPoint(x: numbers[0], y: -numbers[1]),
-                SVGPoint(x: numbers[2], y: -numbers[3]),
-                SVGPoint(x: numbers[4], y: -numbers[5])
+                SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]),
+                SVGPoint(x: numbers[2], y: yAxisSign * numbers[3]),
+                SVGPoint(x: numbers[4], y: yAxisSign * numbers[5])
             )
         }
 
@@ -125,19 +147,20 @@ public struct SVGPath: Hashable, Sendable {
             }
             return .cubic(
                 control,
-                SVGPoint(x: numbers[0], y: -numbers[1]),
-                SVGPoint(x: numbers[2], y: -numbers[3])
+                SVGPoint(x: numbers[0], y: yAxisSign * numbers[1]),
+                SVGPoint(x: numbers[2], y: yAxisSign * numbers[3])
             )
         }
 
         func arc() throws -> SVGCommand {
             let numbers = try assertArgs(7)
+            let sweep = numbers[4] != 0
             return .arc(SVGArc(
                 radius: SVGPoint(x: numbers[0], y: numbers[1]),
                 rotation: numbers[2] * .pi / 180,
                 largeArc: numbers[3] != 0,
-                sweep: numbers[4] != 0,
-                end: SVGPoint(x: numbers[5], y: -numbers[6])
+                sweep: options.invertYAxis ? !sweep : sweep,
+                end: SVGPoint(x: numbers[5], y: yAxisSign * numbers[6])
             ))
         }
 
@@ -155,7 +178,8 @@ public struct SVGPath: Hashable, Sendable {
                 number = ""
                 return
             }
-            throw SVGError.unexpectedToken(number)
+            let index = string.range(of: number, range: index ..< string.endIndex)?.lowerBound ?? index
+            throw SVGError.unexpectedToken(number, at: index)
         }
 
         func processCommand() throws {
@@ -176,13 +200,15 @@ public struct SVGPath: Hashable, Sendable {
                 case "a", "A": command = try arc()
                 case "z", "Z": command = try end()
                 case " ": return
-                default: throw SVGError.unexpectedToken(String(token))
+                default: throw SVGError.unexpectedToken(String(token), at: index)
                 }
                 commands.append(isRelative ? command.relative(to: commands) : command)
             } while !numbers.isEmpty
         }
 
-        for char in string.unicodeScalars {
+        let unicodeScalars = string.unicodeScalars
+        for i in unicodeScalars.indices {
+            let char = unicodeScalars[i]
             switch char {
             case "0" ... "9", "E", "e":
                 number.append(Character(char))
@@ -199,12 +225,13 @@ public struct SVGPath: Hashable, Sendable {
             case "a" ... "z", "A" ... "Z":
                 try processNumber()
                 try processCommand()
+                index = i
                 token = char
                 isRelative = char > "Z"
             case " ", "\r", "\n", "\t", ",":
                 try processNumber()
             default:
-                throw SVGError.unexpectedToken(String(char))
+                throw SVGError.unexpectedToken(String(char), at: i)
             }
         }
         try processNumber()
@@ -214,33 +241,48 @@ public struct SVGPath: Hashable, Sendable {
 }
 
 public extension SVGPath {
-    func getPoints(_ points: inout [SVGPoint], detail: Int) {
-        for command in commands {
-            command.getPoints(&points, detail: detail)
-        }
-    }
-
+    /// Get an array of points representing the path.
+    /// - Parameter detail: How many points to use for curved path sections. Use a greater value for higher fidelity.
     func points(withDetail detail: Int) -> [SVGPoint] {
         var points = [SVGPoint]()
         getPoints(&points, detail: detail)
         return points
     }
 
-    struct WriteOptions: Sendable {
-        public static let `default` = Self()
-
-        public var prettyPrinted: Bool
-        public var wrapWidth: Int
-
-        public init(prettyPrinted: Bool = true, wrapWidth: Int = .max) {
-            self.prettyPrinted = prettyPrinted
-            self.wrapWidth = wrapWidth
+    /// Copy the path's points into an existing array. This is more efficient than allocating a new array for each call.
+    /// - Parameters:
+    ///   - points: An `inout` array to copy the points into.
+    ///   - detail: How many points to use for curved path sections. Use a greater value for higher fidelity.
+    func getPoints(_ points: inout [SVGPoint], detail: Int) {
+        for command in commands {
+            command.getPoints(&points, detail: detail)
         }
     }
 
-    func string(with options: WriteOptions) -> String {
+    /// A set of options to control how the SVG path string should be constructed.
+    struct WriteOptions: Sendable {
+        public static let `default` = Self()
+
+        /// Should the string be output using spaces for better readability?
+        public var prettyPrinted: Bool
+        /// The character width at which to wrap the path string onto a new line.
+        public var wrapWidth: Int
+        /// Whether the Y values in the path should be flipped vertically when exporting.
+        public var invertYAxis: Bool
+
+        public init(prettyPrinted: Bool = true, wrapWidth: Int = .max, invertYAxis: Bool = true) {
+            self.prettyPrinted = prettyPrinted
+            self.wrapWidth = wrapWidth
+            self.invertYAxis = invertYAxis
+        }
+    }
+
+    /// Create an SVG path string from the `SVGPath` object.
+    /// - Parameter options: An optional `WriteOptions` configuration.
+    func string(with options: WriteOptions = .default) -> String {
         var output = ""
         var width = 0
+        let yAxisSign = options.invertYAxis ? -1.0 : 1.0
 
         func append(_ string: String) {
             let spaced = width > 0 && (
@@ -269,19 +311,19 @@ public extension SVGPath {
         for command in commands {
             switch command {
             case let .moveTo(point):
-                append("M", point.x, -point.y)
+                append("M", point.x, yAxisSign * point.y)
             case let .lineTo(point):
-                append("L", point.x, -point.y)
+                append("L", point.x, yAxisSign * point.y)
             case let .cubic(c1, c2, point):
-                append("C", c1.x, -c1.y, c2.x, -c2.y, point.x, -point.y)
+                append("C", c1.x, yAxisSign * c1.y, c2.x, yAxisSign * c2.y, point.x, yAxisSign * point.y)
             case let .quadratic(control, point):
-                append("Q", control.x, -control.y, point.x, -point.y)
+                append("Q", control.x, yAxisSign * control.y, point.x, yAxisSign * point.y)
             case let .arc(arc):
                 let rad = arc.radius, end = arc.end
                 let rot = arc.rotation / .pi * 180
                 let large = arc.largeArc ? 1.0 : 0
-                let sweep = arc.sweep ? 1.0 : 0
-                append("A", rad.x, rad.y, rot, large, sweep, end.x, -end.y)
+                let sweep = arc.sweep == options.invertYAxis ? 0 : 1.0
+                append("A", rad.x, rad.y, rot, large, sweep, end.x, yAxisSign * end.y)
             case .end:
                 append("Z")
             }
@@ -314,23 +356,57 @@ private extension [SVGCommand] {
     }
 }
 
+/// An error thrown for invalid SVG path input.
 public enum SVGError: Error, Hashable {
-    case unexpectedToken(String)
-    case unexpectedArgument(for: String, expected: Int)
-    case missingArgument(for: String, expected: Int)
+    case unexpectedToken(String, at: String.Index)
+    case unexpectedArgument(for: String, at: String.Index, expected: Int)
+    case missingArgument(for: String, at: String.Index, expected: Int)
+}
 
-    public var message: String {
+public extension SVGError {
+    /// A human-readable error message.
+    var message: String {
         switch self {
-        case let .unexpectedToken(string):
+        case let .unexpectedToken(string, _):
             return "Unexpected token '\(string)'"
-        case let .unexpectedArgument(command, _):
+        case let .unexpectedArgument(command, _, _):
             return "Too many arguments for '\(command)'"
-        case let .missingArgument(command, _):
+        case let .missingArgument(command, _, _):
             return "Missing argument for '\(command)'"
+        }
+    }
+
+    /// Additonal error info.
+    var hint: String? {
+        switch self {
+        case .unexpectedToken:
+            return nil
+        case let .unexpectedArgument(command, _, expected: expected):
+            switch expected {
+            case 0: return "The '\(command)' command does not expect any arguments"
+            case 1: return "The '\(command)' command expects only one argument"
+            default: return "The '\(command)' command expects only \(expected) arguments"
+            }
+        case let .missingArgument(command, _, expected: expected):
+            switch expected {
+            case 1: return "The '\(command)' command requires one argument"
+            default: return "The '\(command)' command requires \(expected) arguments"
+            }
+        }
+    }
+
+    /// The index within the SVG path string where parsing failed.
+    var index: String.Index {
+        switch self {
+        case let .unexpectedToken(_, index),
+             let .unexpectedArgument(_, index, _),
+             let .missingArgument(_, index, _):
+            return index
         }
     }
 }
 
+/// An SVG path command. All SVG paths consist of a sequence of these commands.
 public enum SVGCommand: Hashable, Sendable {
     case moveTo(SVGPoint)
     case lineTo(SVGPoint)
@@ -341,6 +417,7 @@ public enum SVGCommand: Hashable, Sendable {
 }
 
 public extension SVGCommand {
+    /// The location of the last point added by this command.
     var point: SVGPoint? {
         switch self {
         case let .moveTo(point),
@@ -355,15 +432,7 @@ public extension SVGCommand {
         }
     }
 
-    private var startPoint: SVGPoint? {
-        switch self {
-        case let .moveTo(point):
-            return point
-        default:
-            return nil
-        }
-    }
-
+    /// The first (or only) control point for a Bezier curve command.
     var control1: SVGPoint? {
         switch self {
         case let .cubic(control1, _, _), let .quadratic(control1, _):
@@ -373,6 +442,7 @@ public extension SVGCommand {
         }
     }
 
+    /// The second control point for a cubic Bezier curve command
     var control2: SVGPoint? {
         switch self {
         case let .cubic(_, control2, _):
@@ -382,6 +452,10 @@ public extension SVGCommand {
         }
     }
 
+    /// Get an array of points representing the path section for this command.
+    /// - Parameters:
+    ///   - points: An `inout` array to copy the points into.
+    ///   - detail: How many points to use for curved path sections. Use a greater value for higher fidelity.
     func getPoints(_ points: inout [SVGPoint], detail: Int) {
         var start: Int?
         for (i, point) in points.enumerated() {
@@ -465,6 +539,7 @@ public extension SVGCommand {
     }
 }
 
+/// A 2D point on an SVG path.
 public struct SVGPoint: Hashable, Sendable {
     public var x, y: Double
 
@@ -494,6 +569,7 @@ public extension SVGPoint {
     }
 }
 
+/// A 2D arc for an SVG path.
 public struct SVGArc: Hashable, Sendable {
     public var radius: SVGPoint
     public var rotation: Double
@@ -503,12 +579,11 @@ public struct SVGArc: Hashable, Sendable {
 }
 
 public extension SVGArc {
+    /// Convert an `SVGArc` to a sequence of Bezier curve commands.
     func asBezierPath(from currentPoint: SVGPoint) -> [SVGCommand] {
         let px = currentPoint.x, py = currentPoint.y
         var rx = abs(radius.x), ry = abs(radius.y)
         let xr = -rotation
-        let largeArcFlag = largeArc
-        let sweepFlag = sweep
         let cx = end.x, cy = end.y
         let sinphi = sin(xr), cosphi = cos(xr)
 
@@ -529,7 +604,7 @@ public extension SVGArc {
 
         var radicant = max(0, rxsq * rysq - rxsq * pypsq - rysq * pxpsq)
         radicant /= (rxsq * pypsq) + (rysq * pxpsq)
-        radicant = sqrt(radicant) * (largeArcFlag != sweepFlag ? -1 : 1)
+        radicant = sqrt(radicant) * (largeArc == sweep ? -1 : 1)
 
         let centerxp = radicant * rx / ry * pyp
         let centeryp = radicant * -ry / rx * pxp
@@ -558,10 +633,10 @@ public extension SVGArc {
 
         var a1 = vectorAngle(1, 0, vx1, vy1)
         var a2 = vectorAngle(vx1, vy1, vx2, vy2)
-        if sweepFlag, a2 > 0 {
-            a2 -= .pi * 2
-        } else if !sweepFlag, a2 < 0 {
+        if sweep, a2 < 0 {
             a2 += .pi * 2
+        } else if !sweep, a2 > 0 {
+            a2 -= .pi * 2
         }
 
         let segments = max(ceil(abs(a2) / (.pi / 2)), 1)

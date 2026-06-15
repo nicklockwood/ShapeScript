@@ -6,10 +6,10 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
-import SVGPath
+@testable import SVGPath
 import XCTest
 
-class SVGPathTests: XCTestCase {
+final class SVGPathTests: XCTestCase {
     func testTriangle() throws {
         let svgPath = try SVGPath(string: "M150 0 L75 200 L225 200 Z")
         let expected = SVGPath(commands: [
@@ -19,6 +19,54 @@ class SVGPathTests: XCTestCase {
             .end,
         ])
         XCTAssertEqual(svgPath, expected)
+    }
+
+    func testTriangleWithoutInvertingYAxis() throws {
+        let parseOptions = SVGPath.ParseOptions(invertYAxis: false)
+        let svgPath = try SVGPath(string: "M150 0 L75 200 L225 200 Z", with: parseOptions)
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 150, y: 0)),
+            .lineTo(.init(x: 75, y: 200)),
+            .lineTo(.init(x: 225, y: 200)),
+            .end,
+        ])
+        XCTAssertEqual(svgPath, expected)
+
+        let writeOptions = SVGPath.WriteOptions(invertYAxis: false)
+        XCTAssertEqual(svgPath.string(with: writeOptions), "M150 0 L75 200 L225 200 Z")
+    }
+
+    func testArc() throws {
+        let svgPath = try SVGPath(string: "A50 50 180 1 1 60 0")
+        let expected = SVGPath(commands: [
+            .arc(.init(
+                radius: .init(x: 50.0, y: 50.0),
+                rotation: .pi,
+                largeArc: true,
+                sweep: false,
+                end: .init(x: 60.0, y: 0.0)
+            )),
+        ])
+        XCTAssertEqual(svgPath, expected)
+        XCTAssertEqual(svgPath.string(), "A50 50 180 1 1 60 0")
+    }
+
+    func testArcWithoutInvertingYAxis() throws {
+        let parseOptions = SVGPath.ParseOptions(invertYAxis: false)
+        let svgPath = try SVGPath(string: "A50 50 180 1 1 60 0", with: parseOptions)
+        let expected = SVGPath(commands: [
+            .arc(.init(
+                radius: .init(x: 50.0, y: 50.0),
+                rotation: .pi,
+                largeArc: true,
+                sweep: true,
+                end: .init(x: 60.0, y: 0.0)
+            )),
+        ])
+        XCTAssertEqual(svgPath, expected)
+
+        let writeOptions = SVGPath.WriteOptions(invertYAxis: false)
+        XCTAssertEqual(svgPath.string(with: writeOptions), "A50 50 180 1 1 60 0")
     }
 
     func testCross() throws {
@@ -109,10 +157,45 @@ class SVGPathTests: XCTestCase {
     }
 
     func testTrailingNumber() throws {
-        XCTAssertThrowsError(try SVGPath(string: "M150 0 L75 200 L225 200 Z5")) { error in
+        let path = "M150 0 L75 200 L225 200 Z5"
+        let index = try XCTUnwrap(path.lastIndex(of: "Z"))
+        XCTAssertThrowsError(try SVGPath(string: path)) { error in
             XCTAssertEqual(
                 error as? SVGError,
-                .unexpectedArgument(for: "Z", expected: 0)
+                .unexpectedArgument(for: "Z", at: index, expected: 0)
+            )
+        }
+    }
+
+    func testExtraArgument() throws {
+        let path = "M150 0 L75 200 L225 200 300 Z"
+        let index = try XCTUnwrap(path.lastIndex(of: "L"))
+        XCTAssertThrowsError(try SVGPath(string: path)) { error in
+            XCTAssertEqual(
+                error as? SVGError,
+                .unexpectedArgument(for: "L", at: index, expected: 2)
+            )
+        }
+    }
+
+    func testMissingArgument() throws {
+        let path = "M150 0 L75 200 L Z"
+        let index = try XCTUnwrap(path.lastIndex(of: "L"))
+        XCTAssertThrowsError(try SVGPath(string: path)) { error in
+            XCTAssertEqual(
+                error as? SVGError,
+                .missingArgument(for: "L", at: index, expected: 2)
+            )
+        }
+    }
+
+    func testTruncatedInput() throws {
+        let path = "M150 0 L75 200 L"
+        let index = try XCTUnwrap(path.lastIndex(of: "L"))
+        XCTAssertThrowsError(try SVGPath(string: path)) { error in
+            XCTAssertEqual(
+                error as? SVGError,
+                .missingArgument(for: "L", at: index, expected: 2)
             )
         }
     }
@@ -203,6 +286,486 @@ class SVGPathTests: XCTestCase {
             .end,
         ])
         XCTAssertEqual(svgPath, expected)
+    }
+
+    // MARK: - SVGPoint Tests
+
+    func testSVGPointAddition() {
+        let p1 = SVGPoint(x: 10, y: 20)
+        let p2 = SVGPoint(x: 5, y: 15)
+        let result = p1 + p2
+        XCTAssertEqual(result.x, 15)
+        XCTAssertEqual(result.y, 35)
+    }
+
+    func testSVGPointAdditionAssignment() {
+        var p1 = SVGPoint(x: 10, y: 20)
+        let p2 = SVGPoint(x: 5, y: 15)
+        p1 += p2
+        XCTAssertEqual(p1.x, 15)
+        XCTAssertEqual(p1.y, 35)
+    }
+
+    func testSVGPointSubtraction() {
+        let p1 = SVGPoint(x: 10, y: 20)
+        let p2 = SVGPoint(x: 5, y: 15)
+        let result = p1 - p2
+        XCTAssertEqual(result.x, 5)
+        XCTAssertEqual(result.y, 5)
+    }
+
+    func testSVGPointSubtractionAssignment() {
+        var p1 = SVGPoint(x: 10, y: 20)
+        let p2 = SVGPoint(x: 5, y: 15)
+        p1 -= p2
+        XCTAssertEqual(p1.x, 5)
+        XCTAssertEqual(p1.y, 5)
+    }
+
+    // MARK: - SVGCommand Property Tests
+
+    func testSVGCommandMoveToPoint() {
+        let command = SVGCommand.moveTo(SVGPoint(x: 10, y: 20))
+        XCTAssertEqual(command.point, SVGPoint(x: 10, y: 20))
+        XCTAssertNil(command.control1)
+        XCTAssertNil(command.control2)
+    }
+
+    func testSVGCommandLineToPoint() {
+        let command = SVGCommand.lineTo(SVGPoint(x: 30, y: 40))
+        XCTAssertEqual(command.point, SVGPoint(x: 30, y: 40))
+        XCTAssertNil(command.control1)
+        XCTAssertNil(command.control2)
+    }
+
+    func testSVGCommandQuadraticPoint() {
+        let command = SVGCommand.quadratic(
+            SVGPoint(x: 10, y: 20),
+            SVGPoint(x: 30, y: 40)
+        )
+        XCTAssertEqual(command.point, SVGPoint(x: 30, y: 40))
+        XCTAssertEqual(command.control1, SVGPoint(x: 10, y: 20))
+        XCTAssertNil(command.control2)
+    }
+
+    func testSVGCommandCubicPoint() {
+        let command = SVGCommand.cubic(
+            SVGPoint(x: 10, y: 20),
+            SVGPoint(x: 30, y: 40),
+            SVGPoint(x: 50, y: 60)
+        )
+        XCTAssertEqual(command.point, SVGPoint(x: 50, y: 60))
+        XCTAssertEqual(command.control1, SVGPoint(x: 10, y: 20))
+        XCTAssertEqual(command.control2, SVGPoint(x: 30, y: 40))
+    }
+
+    func testSVGCommandArcPoint() {
+        let arc = SVGArc(
+            radius: SVGPoint(x: 50, y: 50),
+            rotation: 0,
+            largeArc: false,
+            sweep: true,
+            end: SVGPoint(x: 100, y: 100)
+        )
+        let command = SVGCommand.arc(arc)
+        XCTAssertEqual(command.point, SVGPoint(x: 100, y: 100))
+        XCTAssertNil(command.control1)
+        XCTAssertNil(command.control2)
+    }
+
+    func testSVGCommandEndPoint() {
+        let command = SVGCommand.end
+        XCTAssertNil(command.point)
+        XCTAssertNil(command.control1)
+        XCTAssertNil(command.control2)
+    }
+
+    // MARK: - SVGError Property Tests
+
+    func testSVGErrorUnexpectedTokenMessage() {
+        let error = SVGError.unexpectedToken("X", at: "test".startIndex)
+        XCTAssertEqual(error.message, "Unexpected token 'X'")
+        XCTAssertNil(error.hint)
+    }
+
+    func testSVGErrorUnexpectedArgumentMessage() {
+        let error = SVGError.unexpectedArgument(for: "L", at: "test".startIndex, expected: 2)
+        XCTAssertEqual(error.message, "Too many arguments for 'L'")
+        XCTAssertEqual(error.hint, "The 'L' command expects only 2 arguments")
+    }
+
+    func testSVGErrorUnexpectedArgumentHintZero() {
+        let error = SVGError.unexpectedArgument(for: "Z", at: "test".startIndex, expected: 0)
+        XCTAssertEqual(error.hint, "The 'Z' command does not expect any arguments")
+    }
+
+    func testSVGErrorUnexpectedArgumentHintOne() {
+        let error = SVGError.unexpectedArgument(for: "H", at: "test".startIndex, expected: 1)
+        XCTAssertEqual(error.hint, "The 'H' command expects only one argument")
+    }
+
+    func testSVGErrorMissingArgumentMessage() {
+        let error = SVGError.missingArgument(for: "L", at: "test".startIndex, expected: 2)
+        XCTAssertEqual(error.message, "Missing argument for 'L'")
+        XCTAssertEqual(error.hint, "The 'L' command requires 2 arguments")
+    }
+
+    func testSVGErrorMissingArgumentHintOne() {
+        let error = SVGError.missingArgument(for: "H", at: "test".startIndex, expected: 1)
+        XCTAssertEqual(error.hint, "The 'H' command requires one argument")
+    }
+
+    func testSVGErrorIndex() {
+        let str = "M0 0 X10"
+        let index = str.index(str.startIndex, offsetBy: 5)
+        let error = SVGError.unexpectedToken("X", at: index)
+        XCTAssertEqual(error.index, index)
+    }
+
+    // MARK: - Points Conversion Tests
+
+    func testPointsWithDetail() throws {
+        let svgPath = try SVGPath(string: "M0 0 L100 0 L100 100 Z")
+        let points = svgPath.points(withDetail: 10)
+
+        XCTAssertEqual(points.first, .zero)
+    }
+
+    func testGetPointsInout() throws {
+        let svgPath = try SVGPath(string: "M0 0 L100 0 L100 100 Z")
+        var points = [SVGPoint]()
+        svgPath.getPoints(&points, detail: 10)
+
+        XCTAssertEqual(points.first, .zero)
+    }
+
+    func testPointsFromQuadraticCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 Q50 100 100 0", with: .init(invertYAxis: false))
+        let points = svgPath.points(withDetail: 4)
+
+        XCTAssertGreaterThan(points.count, 2)
+        XCTAssertEqual(points.first?.x ?? -1, 0, accuracy: 0.001)
+        XCTAssertEqual(points.last?.x ?? -1, 100, accuracy: 0.001)
+    }
+
+    func testPointsFromCubicCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 C25 100 75 100 100 0", with: .init(invertYAxis: false))
+        let points = svgPath.points(withDetail: 4)
+
+        XCTAssertGreaterThan(points.count, 2)
+        XCTAssertEqual(points.first?.x ?? -1, 0, accuracy: 0.001)
+        XCTAssertEqual(points.last?.x ?? -1, 100, accuracy: 0.001)
+    }
+
+    func testPointsFromArc() throws {
+        let svgPath = try SVGPath(string: "M0 0 A50 50 0 0 1 100 0", with: .init(invertYAxis: false))
+        let points = svgPath.points(withDetail: 10)
+
+        XCTAssertGreaterThan(points.count, 2)
+    }
+
+    // MARK: - Quadratic Curve Tests
+
+    func testQuadraticCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 Q50 100 100 0")
+        XCTAssertEqual(svgPath.commands.count, 2)
+        if case let .quadratic(control, point) = svgPath.commands[1] {
+            XCTAssertEqual(control.x, 50)
+            XCTAssertEqual(control.y, -100)
+            XCTAssertEqual(point.x, 100)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected quadratic command")
+        }
+    }
+
+    func testRelativeQuadraticCurve() throws {
+        let svgPath = try SVGPath(string: "M10 10 q40 90 90 -10")
+        XCTAssertEqual(svgPath.commands.count, 2)
+        if case let .quadratic(control, point) = svgPath.commands[1] {
+            XCTAssertEqual(control.x, 50)
+            XCTAssertEqual(control.y, -100)
+            XCTAssertEqual(point.x, 100)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected quadratic command")
+        }
+    }
+
+    func testSmoothQuadraticCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 Q50 100 100 0 T200 0")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        if case let .quadratic(control, point) = svgPath.commands[2] {
+            XCTAssertEqual(control.x, 150)
+            XCTAssertEqual(control.y, 100)
+            XCTAssertEqual(point.x, 200)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected quadratic command")
+        }
+    }
+
+    func testSmoothQuadraticAfterNonQuadratic() throws {
+        let svgPath = try SVGPath(string: "M0 0 L50 50 T100 0")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        if case let .quadratic(control, point) = svgPath.commands[2] {
+            // Control should be same as last point when previous wasn't quadratic
+            XCTAssertEqual(control.x, 50)
+            XCTAssertEqual(control.y, -50)
+            XCTAssertEqual(point.x, 100)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected quadratic command")
+        }
+    }
+
+    // MARK: - Smooth Cubic Tests
+
+    func testSmoothCubicCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 C25 100 75 100 100 0 S175 -100 200 0")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        if case let .cubic(control1, control2, point) = svgPath.commands[2] {
+            // control1 should be reflection of previous control2
+            XCTAssertEqual(control1.x, 125)
+            XCTAssertEqual(control1.y, 100)
+            XCTAssertEqual(control2.x, 175)
+            XCTAssertEqual(control2.y, 100)
+            XCTAssertEqual(point.x, 200)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected cubic command")
+        }
+    }
+
+    func testRelativeSmoothCubicCurve() throws {
+        let svgPath = try SVGPath(string: "M0 0 C25 100 75 100 100 0 s75 -100 100 0")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        if case let .cubic(control1, control2, point) = svgPath.commands[2] {
+            XCTAssertEqual(control1.x, 125)
+            XCTAssertEqual(control1.y, 100)
+            XCTAssertEqual(control2.x, 175)
+            XCTAssertEqual(control2.y, 100)
+            XCTAssertEqual(point.x, 200)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected cubic command")
+        }
+    }
+
+    func testSmoothCubicAfterNonCubic() throws {
+        let svgPath = try SVGPath(string: "M0 0 L50 50 S100 100 150 0")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        if case let .cubic(control1, _, point) = svgPath.commands[2] {
+            // control1 should be same as last point when previous wasn't cubic
+            XCTAssertEqual(control1.x, 50)
+            XCTAssertEqual(control1.y, -50)
+            XCTAssertEqual(point.x, 150)
+            XCTAssertEqual(point.y, 0)
+        } else {
+            XCTFail("Expected cubic command")
+        }
+    }
+
+    // MARK: - Vertical Line Tests
+
+    func testAbsoluteVerticalLine() throws {
+        let svgPath = try SVGPath(string: "M10 10 V50")
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 10, y: -10)),
+            .lineTo(.init(x: 10, y: -50)),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testRelativeVerticalLine() throws {
+        let svgPath = try SVGPath(string: "M10 10 v40")
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 10, y: -10)),
+            .lineTo(.init(x: 10, y: -50)),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testRelativeHorizontalLine() throws {
+        let svgPath = try SVGPath(string: "M10 10 h40")
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 10, y: -10)),
+            .lineTo(.init(x: 50, y: -10)),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    // MARK: - Arc Tests
+
+    func testArcLargeArcFlag() throws {
+        let svgPath = try SVGPath(string: "M0 0 A50 50 0 1 0 100 0", with: .init(invertYAxis: false))
+        if case let .arc(arc) = svgPath.commands[1] {
+            XCTAssertTrue(arc.largeArc)
+            XCTAssertFalse(arc.sweep)
+        } else {
+            XCTFail("Expected arc command")
+        }
+    }
+
+    func testArcSweepFlag() throws {
+        let svgPath = try SVGPath(string: "M0 0 A50 50 0 0 1 100 0", with: .init(invertYAxis: false))
+        if case let .arc(arc) = svgPath.commands[1] {
+            XCTAssertFalse(arc.largeArc)
+            XCTAssertTrue(arc.sweep)
+        } else {
+            XCTFail("Expected arc command")
+        }
+    }
+
+    func testRelativeArc() throws {
+        let svgPath = try SVGPath(string: "M50 50 a25 25 0 0 1 50 0", with: .init(invertYAxis: false))
+        if case let .arc(arc) = svgPath.commands[1] {
+            XCTAssertEqual(arc.end.x, 100)
+            XCTAssertEqual(arc.end.y, 50)
+            XCTAssertEqual(arc.radius.x, 25)
+            XCTAssertEqual(arc.radius.y, 25)
+        } else {
+            XCTFail("Expected arc command")
+        }
+    }
+
+    func testArcToBezierPath() {
+        let arc = SVGArc(
+            radius: SVGPoint(x: 50, y: 50),
+            rotation: 0,
+            largeArc: false,
+            sweep: true,
+            end: SVGPoint(x: 100, y: 0)
+        )
+        let commands = arc.asBezierPath(from: .zero)
+        XCTAssertGreaterThan(commands.count, 0)
+        // All commands should be cubic bezier curves
+        for command in commands {
+            if case .cubic = command {
+                // Expected
+            } else {
+                XCTFail("Expected cubic command from arc conversion")
+            }
+        }
+    }
+
+    func testArcWithZeroRadius() {
+        let arc = SVGArc(
+            radius: .zero,
+            rotation: 0,
+            largeArc: false,
+            sweep: true,
+            end: SVGPoint(x: 100, y: 0)
+        )
+        let commands = arc.asBezierPath(from: .zero)
+        // Zero radius arc should produce bezier approximation
+        XCTAssertGreaterThanOrEqual(commands.count, 0)
+    }
+
+    func testArcToSamePoint() {
+        let arc = SVGArc(
+            radius: SVGPoint(x: 50, y: 50),
+            rotation: 0,
+            largeArc: false,
+            sweep: true,
+            end: .zero
+        )
+        let commands = arc.asBezierPath(from: .zero)
+        // Arc to same point should return empty
+        XCTAssertEqual(commands.count, 0)
+    }
+
+    // MARK: - WriteOptions Tests
+
+    func testWriteOptionsDefault() {
+        let options = SVGPath.WriteOptions.default
+        XCTAssertTrue(options.prettyPrinted)
+        XCTAssertEqual(options.wrapWidth, .max)
+        XCTAssertTrue(options.invertYAxis)
+    }
+
+    func testWriteOptionsCustom() {
+        let options = SVGPath.WriteOptions(prettyPrinted: false, wrapWidth: 80, invertYAxis: false)
+        XCTAssertFalse(options.prettyPrinted)
+        XCTAssertEqual(options.wrapWidth, 80)
+        XCTAssertFalse(options.invertYAxis)
+    }
+
+    func testStringOutputNotPrettyPrinted() throws {
+        let svgPath = try SVGPath(string: "M0 0 L10 10 L20 0 Z")
+        let options = SVGPath.WriteOptions(prettyPrinted: false)
+        let output = svgPath.string(with: options)
+        // Without pretty printing, numbers should still be separated when needed
+        XCTAssertTrue(output.contains("M0"))
+        XCTAssertTrue(output.contains("L10"))
+    }
+
+    // MARK: - ParseOptions Tests
+
+    func testParseOptionsDefault() {
+        let options = SVGPath.ParseOptions.default
+        XCTAssertTrue(options.invertYAxis)
+    }
+
+    // MARK: - Edge Cases
+
+    func testEmptyPath() throws {
+        let svgPath = try SVGPath(string: "")
+        XCTAssertTrue(svgPath.commands.isEmpty)
+    }
+
+    func testWhitespaceOnlyPath() throws {
+        let svgPath = try SVGPath(string: "   \n\t  ")
+        XCTAssertTrue(svgPath.commands.isEmpty)
+    }
+
+    func testMultipleMoves() throws {
+        let svgPath = try SVGPath(string: "M0 0 M10 10 M20 20")
+        XCTAssertEqual(svgPath.commands.count, 3)
+        for command in svgPath.commands {
+            if case .moveTo = command {
+                // Expected
+            } else {
+                XCTFail("Expected moveTo commands")
+            }
+        }
+    }
+
+    func testRelativeMove() throws {
+        let svgPath = try SVGPath(string: "M10 10 m5 5")
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 10, y: -10)),
+            .moveTo(.init(x: 15, y: -15)),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testImplicitRelativeLines() throws {
+        let svgPath = try SVGPath(string: "m10 10 5 5 10 0")
+        let expected = SVGPath(commands: [
+            .moveTo(.init(x: 10, y: -10)),
+            .lineTo(.init(x: 15, y: -15)),
+            .lineTo(.init(x: 25, y: -15)),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testUnexpectedCharacter() {
+        XCTAssertThrowsError(try SVGPath(string: "M0 0 #")) { error in
+            if case let SVGError.unexpectedToken(token, _) = error {
+                XCTAssertEqual(token, "#")
+            } else {
+                XCTFail("Expected unexpectedToken error")
+            }
+        }
+    }
+
+    func testInvalidNumberFormat() {
+        // "1.2.3" gets parsed as "1.2" and ".3" (two valid numbers)
+        // So test with something truly invalid like just "."
+        XCTAssertThrowsError(try SVGPath(string: "M0 0 L. 0")) { error in
+            XCTAssertTrue(error is SVGError)
+        }
     }
 
     #if !os(WASI)

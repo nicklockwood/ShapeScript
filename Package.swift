@@ -23,7 +23,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/nicklockwood/SVGPath.git",
-            .upToNextMinor(from: "1.2.0")
+            .upToNextMinor(from: "1.3.0")
         ),
     ],
     targets: [
