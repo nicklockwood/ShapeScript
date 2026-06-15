@@ -1,5 +1,17 @@
 # Change Log
 
+## [1.10.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.2) (2026-06-15)
+
+- Added support for tilde in import paths
+- Added size limits for imported files
+- Fixed rendering of nested transparent objects
+- Fixed spurious type mismatch warning
+- Fixed crashes when handling non-finite values
+- Unterminated block comments now produce an error
+- Improved cancellation responsiveness
+- Bumped Euclid to version 0.8.15
+- Bumped SVGPath to version 1.3.0
+
 ## [1.10.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.1) (2026-03-03)
 
 - Fixed regression introduced in 1.10.0 where tuple values could be unexpectedly flattened
