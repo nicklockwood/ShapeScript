@@ -21,6 +21,7 @@ public struct Texture: Hashable {
 public extension Texture {
     static func file(name: String, url: URL?, intensity: Double = 1) throws -> Self {
         let url = url ?? URL(fileURLWithPath: name)
+        try url.validateFileSize(limit: FileSizeLimit.image)
         let data = try Data(contentsOf: url)
         return .init(name: name, url: url, data: data, intensity: intensity)
     }

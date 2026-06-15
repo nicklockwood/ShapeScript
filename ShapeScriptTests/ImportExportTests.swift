@@ -15,6 +15,23 @@ import SceneKit
 #endif
 
 final class ImportExportTests: XCTestCase {
+    private func withSparseFile(
+        extension fileExtension: String,
+        size: Int,
+        _ body: (URL) throws -> Void
+    ) throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Oversized.\(fileExtension)")
+        XCTAssert(FileManager.default.createFile(atPath: url.path, contents: nil))
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.truncate(atOffset: UInt64(size))
+        try handle.close()
+        try body(url)
+    }
+
     // MARK: Geometry
 
     func testCog() throws {
@@ -122,6 +139,45 @@ final class ImportExportTests: XCTestCase {
             } else {
                 XCTAssert(message.hasPrefix("Unescaped control character") ||
                     message.hasPrefix("Badly formed array"))
+            }
+        }
+    }
+
+    // MARK: Import limits
+
+    func testOversizedShapeTextAndJSONImportsAreRejected() throws {
+        for (fileExtension, limit) in [
+            ("shape", FileSizeLimit.shape),
+            ("txt", FileSizeLimit.text),
+            ("json", FileSizeLimit.json),
+        ] {
+            try withSparseFile(extension: fileExtension, size: limit + 1) { url in
+                let delegate = TestDelegate(directory: url.deletingLastPathComponent())
+                let context = EvaluationContext(
+                    source: "",
+                    delegate: delegate
+                )
+                XCTAssertThrowsError(try context.importFile(at: url.lastPathComponent)) { error in
+                    guard case let RuntimeErrorType.fileParsingError(_, at, message) = error else {
+                        XCTFail("Unexpected error: \(error)")
+                        return
+                    }
+                    XCTAssertEqual(at, url)
+                    XCTAssert(message.contains("size limit"))
+                }
+            }
+        }
+    }
+
+    func testOversizedImageImportIsRejected() throws {
+        try withSparseFile(extension: "png", size: FileSizeLimit.image + 1) { url in
+            XCTAssertThrowsError(try Texture.file(name: url.lastPathComponent, url: url)) { error in
+                guard case let FileError.tooLarge(errorURL, maximumSize) = error else {
+                    XCTFail("Unexpected error: \(error)")
+                    return
+                }
+                XCTAssertEqual(errorURL, url)
+                XCTAssertEqual(maximumSize, FileSizeLimit.image)
             }
         }
     }

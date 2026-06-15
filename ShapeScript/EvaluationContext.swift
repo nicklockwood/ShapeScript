@@ -250,10 +250,32 @@ extension EvaluationContext {
 
 // MARK: External file access
 
-extension EvaluationContext {
-    private func isUndownloadedUbiquitousFile(_ url: URL) -> Bool {
+enum FileSizeLimit {
+    static let shape = 8 * 1024 * 1024
+    static let text = 16 * 1024 * 1024
+    static let json = 16 * 1024 * 1024
+    static let image = 64 * 1024 * 1024
+}
+
+enum FileError: Error, LocalizedError {
+    case sizeUnavailable(URL)
+    case tooLarge(URL, maximumSize: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case let .sizeUnavailable(url):
+            return "Unable to determine size of '\(url.lastPathComponent)'"
+        case let .tooLarge(url, maximumSize):
+            let limit = ByteCountFormatter.string(fromByteCount: Int64(maximumSize), countStyle: .file)
+            return "File '\(url.lastPathComponent)' exceeds the \(limit) size limit"
+        }
+    }
+}
+
+extension URL {
+    var isUndownloadedUbiquitousFile: Bool {
         #if os(macOS) || os(iOS)
-        return (try? url.resourceValues(forKeys: [
+        return (try? resourceValues(forKeys: [
             .ubiquitousItemDownloadingStatusKey,
         ]).ubiquitousItemDownloadingStatus) == .notDownloaded
         #else
@@ -261,6 +283,18 @@ extension EvaluationContext {
         #endif
     }
 
+    func validateFileSize(limit: Int) throws {
+        let values = try resourceValues(forKeys: [.fileSizeKey])
+        guard let size = values.fileSize else {
+            throw FileError.sizeUnavailable(self)
+        }
+        guard size <= limit else {
+            throw FileError.tooLarge(self, maximumSize: limit)
+        }
+    }
+}
+
+extension EvaluationContext {
     func resolveURL(for path: String) throws -> URL {
         let path = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !path.isEmpty else {
@@ -279,7 +313,7 @@ extension EvaluationContext {
 //        try? fileManager.evictUbiquitousItem(at: url) // Handy for testing
         // TODO: move this logic out of EvaluationContext into delegate
         // so we can more easily mock the filesystem for testing purposes
-        let isRemote = isUndownloadedUbiquitousFile(url)
+        let isRemote = url.isUndownloadedUbiquitousFile
         #if targetEnvironment(simulator) || !os(iOS)
         // macOS/Linux/Windows can check for existence of files even without access permission
         guard isRemote || fileManager.fileExists(atPath: url.path) else {
@@ -300,7 +334,7 @@ extension EvaluationContext {
             var url = url
             let start = CFAbsoluteTimeGetCurrent()
             let timeout: TimeInterval = 30
-            while isUndownloadedUbiquitousFile(url), !isCancelled() {
+            while url.isUndownloadedUbiquitousFile, !isCancelled() {
                 if CFAbsoluteTimeGetCurrent() - start > timeout {
                     throw RuntimeErrorType.fileTimedOut(for: path, at: url)
                 }
@@ -423,6 +457,7 @@ extension EvaluationContext {
             } else {
                 let source: String
                 do {
+                    try url.validateFileSize(limit: FileSizeLimit.shape)
                     source = try String(contentsOf: url)
                 } catch {
                     throw RuntimeErrorType.fileParsingError(
@@ -459,6 +494,7 @@ extension EvaluationContext {
             }
         case "txt":
             do {
+                try url.validateFileSize(limit: FileSizeLimit.text)
                 let value = try Value.string(String(contentsOf: url))
                 importCache.store[url] = .value(value)
                 return value
@@ -471,6 +507,7 @@ extension EvaluationContext {
             }
         case "json":
             do {
+                try url.validateFileSize(limit: FileSizeLimit.json)
                 let value = try Value(jsonData: Data(contentsOf: url))
                 importCache.store[url] = .value(value)
                 return value
