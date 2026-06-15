@@ -6,6 +6,7 @@
 //  Copyright © 2023 Nick Lockwood. All rights reserved.
 //
 
+import Euclid
 import Foundation
 import ShapeScript
 
