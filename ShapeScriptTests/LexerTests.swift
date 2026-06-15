@@ -80,6 +80,23 @@ final class LexerTests: XCTestCase {
         XCTAssertEqual(try tokenize(input).map(\.type), tokens)
     }
 
+    func testUnterminatedBlockComment() throws {
+        let input = "foo /* abc"
+        let range = try XCTUnwrap(input.range(of: "/* abc"))
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            XCTAssertEqual(error as? LexerError, LexerError(.unterminatedBlockComment, at: range))
+        }
+    }
+
+    func testUnterminatedNestedBlockComment() {
+        let input = "/* abc /* xyz */"
+        XCTAssertThrowsError(try tokenize(input)) { error in
+            let lexerError = error as? LexerError
+            XCTAssertEqual(lexerError?.type, .unterminatedBlockComment)
+            XCTAssertEqual(lexerError?.range, input.startIndex ..< input.endIndex)
+        }
+    }
+
     func testBlockCommentFollowedBySpace() {
         let input = "/* abc */ "
         let tokens: [TokenType] = [.eof]

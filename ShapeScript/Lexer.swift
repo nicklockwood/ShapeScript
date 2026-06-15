@@ -14,7 +14,7 @@ public func tokenize(_ input: String) throws -> [Token] {
     var tokens: [Token] = []
     var characters = Substring(input)
     var spaceBefore = true
-    _ = characters.skipWhitespaceAndComments()
+    _ = try characters.skipWhitespaceAndComments()
     while let token = try characters.readToken(spaceBefore: spaceBefore) {
         switch (tokens.last?.type, token.type) {
         case (.linebreak?, .linebreak):
@@ -39,7 +39,7 @@ public func tokenize(_ input: String) throws -> [Token] {
         default:
             tokens.append(token)
         }
-        spaceBefore = characters.skipWhitespaceAndComments()
+        spaceBefore = try characters.skipWhitespaceAndComments()
         if !spaceBefore, let lastTokenType = tokens.last?.type {
             switch lastTokenType {
             case .infix, .prefix, .dot, .lparen, .lbrace, .call,
@@ -127,6 +127,7 @@ public enum LexerErrorType: Equatable {
     case invalidColor(String)
     case unexpectedToken(String)
     case unterminatedString
+    case unterminatedBlockComment
     case invalidEscapeSequence(String)
 }
 
@@ -154,6 +155,8 @@ public extension LexerError {
             return "Unexpected token '\(token)'"
         case .unterminatedString:
             return "Unterminated string literal"
+        case .unterminatedBlockComment:
+            return "Unterminated block comment"
         case let .invalidEscapeSequence(sequence):
             let sequence = sequence.unicodeScalars.contains {
                 CharacterSet.whitespaces.contains($0)
@@ -194,6 +197,8 @@ public extension LexerError {
             return nil
         case .unterminatedString:
             return "Try adding a closing \" (double quote) at the end of the line."
+        case .unterminatedBlockComment:
+            return "Try adding a closing */ at the end of the comment."
         case .invalidEscapeSequence:
             let hint = "Supported sequences are \\\", \\n and \\\\."
             if let suggestion {
@@ -308,7 +313,7 @@ private extension Character {
 }
 
 private extension Substring {
-    mutating func skipBlockComment() {
+    mutating func skipBlockComment(start: String.Index) throws {
         assert(first == "*")
         removeFirst()
         var depth = 1
@@ -328,9 +333,10 @@ private extension Substring {
                 break
             }
         }
+        throw LexerError(.unterminatedBlockComment, at: start ..< endIndex)
     }
 
-    mutating func skipWhitespaceAndComments() -> Bool {
+    mutating func skipWhitespaceAndComments() throws -> Bool {
         var wasSpace = false
         while let c = first {
             guard c.isWhitespace else {
@@ -346,8 +352,9 @@ private extension Substring {
                                 removeFirst()
                             }
                         case "*":
+                            let start = startIndex
                             removeFirst()
-                            skipBlockComment()
+                            try skipBlockComment(start: start)
                             continue
                         default:
                             break
