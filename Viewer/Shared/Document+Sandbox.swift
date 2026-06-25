@@ -8,7 +8,7 @@
 
 import Foundation
 
-extension Document {
+extension DocumentProtocol {
     var linkedResources: Set<URL> {
         get { fileMonitor?.linkedResources ?? [] }
         set { fileMonitor?.linkedResources = newValue }

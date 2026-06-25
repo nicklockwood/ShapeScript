@@ -31,7 +31,7 @@ final class Settings {
 
     private var documentSettings = [URL: [String: Any]]()
 
-    func value<T>(for key: String, in document: Document) -> T? {
+    func value<T>(for key: String, in document: some DocumentProtocol) -> T? {
         if let url = document._fileURL {
             if let value = documentSettings[url]?[key] as? T {
                 return value
@@ -45,7 +45,7 @@ final class Settings {
         return defaults.object(forKey: key) as? T
     }
 
-    func value<T: RawRepresentable>(for key: String, in document: Document) -> T? {
+    func value<T: RawRepresentable>(for key: String, in document: some DocumentProtocol) -> T? {
         let rawValue = value(for: key, in: document) as T.RawValue?
         return rawValue.flatMap(T.init(rawValue:))
     }
@@ -53,7 +53,7 @@ final class Settings {
     func set(
         _ value: (some Any)?,
         for key: String,
-        in document: Document,
+        in document: some DocumentProtocol,
         andGlobally applyGlobally: Bool = false
     ) {
         if let url = document._fileURL {
@@ -72,7 +72,7 @@ final class Settings {
     func set(
         _ value: (some RawRepresentable)?,
         for key: String,
-        in document: Document,
+        in document: some DocumentProtocol,
         andGlobally applyGlobally: Bool = false
     ) {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
@@ -105,8 +105,8 @@ final class Settings {
     }
 }
 
-private extension Document {
-    var _fileURL: URL? { fileURL }
+private extension DocumentProtocol {
+    var _fileURL: URL? { documentFileURL }
 }
 
 private extension URL {

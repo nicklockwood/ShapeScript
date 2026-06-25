@@ -1,5 +1,5 @@
 //
-//  Document+ModelInfo.swift
+//  DocumentProtocol+ModelInfo.swift
 //  Viewer
 //
 //  Created by Nick Lockwood on 21/01/2022.
@@ -14,7 +14,7 @@ import ShapeScript
 import UIKit
 #endif
 
-extension Document {
+extension DocumentProtocol {
     var importedFileCount: Int {
         linkedResources.filter { !$0.isImageFile && !$0.isFontFile }.count
     }
@@ -54,7 +54,7 @@ extension Document {
             var locationString = ""
             if let location = selectedGeometry.sourceLocation {
                 locationString = "\nDefined on line \(location.line)"
-                if let url = location.file, url != fileURL {
+                if let url = location.file, url != documentFileURL {
                     locationString += " in '\(url.lastPathComponent)'"
                 }
             }

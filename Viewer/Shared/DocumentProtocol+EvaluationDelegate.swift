@@ -1,5 +1,5 @@
 //
-//  Document+EvaluationDelegate.swift
+//  DocumentProtocol+EvaluationDelegate.swift
 //  ShapeScript Viewer
 //
 //  Created by Nick Lockwood on 10/08/2022.
@@ -11,9 +11,9 @@ import Foundation
 import SceneKit
 import ShapeScript
 
-extension Document: EvaluationDelegate {
+extension DocumentProtocol {
     func resolveURL(for path: String) -> URL {
-        let url = URL(fileURLWithPath: path, relativeTo: fileURL)
+        let url = URL(fileURLWithPath: path, relativeTo: documentFileURL)
         linkedResources.insert(url)
 //        clearBookmarks() // Handy for debugging bookmarks
         if let resolvedURL = resolveBookMark(for: url) {

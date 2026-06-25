@@ -1,5 +1,5 @@
 //
-//  Document+View.swift
+//  DocumentProtocol+View.swift
 //  ShapeScript Viewer
 //
 //  Created by Nick Lockwood on 12/08/2022.
@@ -11,24 +11,20 @@ import Foundation
 import SceneKit
 import ShapeScript
 
-extension Document {
-    var optionalFileURL: URL? {
-        fileURL // Optionality varies between platforms
-    }
-
+extension DocumentProtocol {
     var fileName: String {
-        optionalFileURL?.lastPathComponent ?? "File"
+        documentFileURL?.lastPathComponent ?? "File"
     }
 
     var isEditable: Bool {
-        optionalFileURL.map {
+        documentFileURL.map {
             FileManager.default.isWritableFile(atPath: $0.path) &&
                 !$0.path.hasPrefix(Bundle.main.bundlePath)
         } ?? false
     }
 
     var errorURL: URL? {
-        optionalFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
+        documentFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
     var selectedGeometry: Geometry? {
@@ -110,7 +106,7 @@ extension Document {
             return
         }
         let camera = camera
-        let backgroundColor = Color(Self.backgroundColor)
+        let backgroundColor = Self.documentBackgroundColor
         let showWireframe = showWireframe && viewController?.isQuickLook != true
         rerenderRequired = false
         loadingProgress.dispatch { progress in
@@ -221,7 +217,7 @@ extension Document {
         }
         let camera = camera
         let showWireframe = showWireframe
-        let fileURL = fileURL
+        let fileURL = documentFileURL
         let input = sourceString
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self else {
@@ -313,7 +309,7 @@ extension Document {
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
                 for: camera.settings,
-                backgroundColor: Color(Self.backgroundColor),
+                backgroundColor: Self.documentBackgroundColor,
                 wireframe: showWireframe
             )
             _ = scene.build {
@@ -351,7 +347,7 @@ extension Document {
     }
 }
 
-extension Document {
+extension DocumentProtocol {
     var formatVersion: SemanticVersion? {
         get { settings.value(for: #function, in: self) }
         set { settings.set(newValue, for: #function, in: self) }

@@ -12,9 +12,17 @@ import ShapeScript
 import UIKit
 import UniformTypeIdentifiers
 
-final class Document: UIDocument {
+final class Document: UIDocument, DocumentProtocol {
     static let backgroundColor: UIColor = UIColor { traits in
         .init(Color(traits.userInterfaceStyle == .dark ? 0.15 : 0.625))
+    }
+
+    static var documentBackgroundColor: Color {
+        Color(backgroundColor)
+    }
+
+    var documentFileURL: URL? {
+        fileURL
     }
 
     let cache = GeometryCache()

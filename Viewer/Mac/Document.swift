@@ -11,7 +11,7 @@ import Euclid
 import SceneKit
 import ShapeScript
 
-final class Document: NSDocument {
+final class Document: NSDocument, DocumentProtocol {
     static var backgroundColor: NSColor {
         if Thread.isMainThread {
             NSAppearance.current = NSApp.effectiveAppearance
@@ -21,6 +21,14 @@ final class Document: NSDocument {
             }
         }
         return .underPageBackgroundColor
+    }
+
+    static var documentBackgroundColor: Color {
+        Color(backgroundColor)
+    }
+
+    var documentFileURL: URL? {
+        fileURL
     }
 
     let cache = GeometryCache()
