@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import UniformTypeIdentifiers
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -22,7 +23,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = DocumentBrowserViewController(
-            forOpeningFilesWithContentTypes: ["com.charcoaldesign.shapescript-source"]
+            forOpening: [UTType(importedAs: "com.charcoaldesign.shapescript-source")]
         )
         window.backgroundColor = .black
         window.makeKeyAndVisible()
