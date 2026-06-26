@@ -1898,6 +1898,7 @@ final class InterpreterTests: XCTestCase {
     }
 
     func testImportWithTildePath() throws {
+        #if os(macOS)
         let program = try parse("import \"~/Desktop/Example Model.stl\"")
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
@@ -1907,6 +1908,7 @@ final class InterpreterTests: XCTestCase {
             FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Desktop/Example Model.stl").path,
         ])
+        #endif
     }
 
     func testImportWithNonLeadingTilde() throws {
