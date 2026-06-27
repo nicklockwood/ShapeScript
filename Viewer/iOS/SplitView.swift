@@ -8,7 +8,7 @@
 
 import UIKit
 
-final class SplitView: UIView {
+@MainActor final class SplitView: UIView {
     private(set) var arrangedSubviews: [UIView] = []
     var heights: [CGFloat?] = [] {
         didSet {

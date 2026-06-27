@@ -11,10 +11,14 @@ import UIKit
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
 
-final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDocumentBrowserViewControllerDelegate,
+@MainActor
+final class DocumentBrowserViewController: UIDocumentBrowserViewController,
+    @preconcurrency UIDocumentBrowserViewControllerDelegate,
     UITextFieldDelegate
 {
     private var openingDocument = false
+    private var pendingDocument: Document?
+    private var pendingDocumentViewController: DocumentViewController?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,14 +52,16 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDo
         let alert = UIAlertController(
             title: "Welcome to ShapeScript",
             message: """
-
             ShapeScript is a text-based 3D modeling tool for iOS and macOS.
 
-            If this is your first time using ShapeScript, we recommend you check out the Getting Started guide in the online documentation.
+            If this is your first time using ShapeScript, we recommend you check out \
+            the Getting Started guide in the online documentation.
 
-            ShapeScript is free to use for viewing and editing models in ShapeScript's own shape file format.
+            ShapeScript is free to use for viewing and editing models in ShapeScript's \
+            own shape file format.
 
-            There is a one-time in-app purchase required to unlock the ability to export ShapeScript models for use with other applications.
+            There is a one-time in-app purchase required to unlock the ability to \
+            export ShapeScript models for use with other applications.
             """,
             preferredStyle: .alert
         )
@@ -205,19 +211,33 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDo
         transitionController?.loadingProgress = Progress(totalUnitCount: 10)
 
         openingDocument = true
-        document.open { success in
-            self.transitionController?.loadingProgress?.completedUnitCount = 10
-            self.transitionController?.loadingProgress = nil
-            defer { self.openingDocument = false }
-            guard success else {
-                self.presentError("Unable to open file.", onOK: {})
-                return
+        pendingDocument = document
+        pendingDocumentViewController = viewController
+        document.open { [weak self] success in
+            DispatchQueue.main.async { [weak self] in
+                self?.finishOpeningDocument(success: success)
             }
-            if let existing = self.presentedViewController as? DocumentViewController {
-                existing.document = document
-            } else {
-                self.present(viewController, animated: true, completion: nil)
-            }
+        }
+    }
+
+    @MainActor private func finishOpeningDocument(success: Bool) {
+        transitionController?.loadingProgress?.completedUnitCount = 10
+        transitionController?.loadingProgress = nil
+        defer {
+            openingDocument = false
+            pendingDocument = nil
+            pendingDocumentViewController = nil
+        }
+        guard success, let document = pendingDocument,
+              let viewController = pendingDocumentViewController
+        else {
+            presentError("Unable to open file.", onOK: {})
+            return
+        }
+        if let existing = presentedViewController as? DocumentViewController {
+            existing.document = document
+        } else {
+            present(viewController, animated: true, completion: nil)
         }
     }
 

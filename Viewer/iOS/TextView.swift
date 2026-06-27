@@ -13,7 +13,7 @@ import UIKit
 }
 
 // swiftformat:disable:next preferFinalClasses
-class TextView: UIScrollView {
+@MainActor class TextView: UIScrollView {
     private let layoutManager: LayoutManager = .init()
     private let gutterView = LineNumberView()
     private(set) var lineCount: Int = 0
@@ -563,7 +563,7 @@ extension TextView: UITextViewDelegate {
 
     // MARK: Automatic forwarding of UITextViewDelegate methods
 
-    private func isMethod(_ selector: Selector, of proto: Protocol) -> Bool {
+    private static func isMethod(_ selector: Selector, of proto: Protocol) -> Bool {
         protocol_getMethodDescription(
             proto,
             selector,
@@ -573,17 +573,18 @@ extension TextView: UITextViewDelegate {
     }
 
     override func responds(to selector: Selector) -> Bool {
-        super.responds(to: selector) || (
-            isMethod(selector, of: UITextViewDelegate.self) &&
-                delegate?.responds(to: selector) ?? false
-        )
+        super.responds(to: selector) || MainActor.assumeIsolated {
+            Self.isMethod(selector, of: UITextViewDelegate.self) &&
+                (delegate?.responds(to: selector) ?? false)
+        }
     }
 
     override func forwardingTarget(for selector: Selector) -> Any? {
-        if isMethod(selector, of: UITextViewDelegate.self) {
-            return delegate
+        // swiftformat:disable:next redundantVariable
+        nonisolated(unsafe) let target = MainActor.assumeIsolated {
+            Self.isMethod(selector, of: UITextViewDelegate.self) ? delegate : nil
         }
-        return nil
+        return target
     }
 }
 
@@ -629,7 +630,7 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
 
 // MARK: LayoutManager
 
-extension TextView: NSLayoutManagerDelegate {
+extension TextView: @preconcurrency NSLayoutManagerDelegate {
     func layoutManager(
         _: NSLayoutManager,
         didCompleteLayoutFor _: NSTextContainer?,
@@ -756,7 +757,10 @@ private final class LayoutManager: NSLayoutManager {
                     in: charRange,
                     options: .byComposedCharacterSequences
                 ) { string, range, _, _ in
-                    var attributes = textView.typingAttributes
+                    var attributes = textStorage.attributes(
+                        at: range.location,
+                        effectiveRange: nil
+                    )
                     attributes[.foregroundColor] = UIColor.tertiaryLabel
 
                     let symbol: String
@@ -822,7 +826,9 @@ private final class LayoutManager: NSLayoutManager {
             dy: paraHeight
         )
 
-        textView.updateLineNumbers()
+        MainActor.assumeIsolated {
+            textView.updateLineNumbers()
+        }
     }
 
     private func paraNumber(for charRange: NSRange, in text: NSString) -> Int {

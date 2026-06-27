@@ -9,10 +9,11 @@
 import Cocoa
 import ShapeScript
 
-protocol ExportMenuProvider {
+@MainActor protocol ExportMenuProvider {
     func updateExportMenu()
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow? {
         NSApp.mainWindow

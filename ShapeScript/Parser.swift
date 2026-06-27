@@ -21,31 +21,31 @@ public func parse(_ input: String, at url: URL? = nil) throws -> Program {
     return Program(source: input, fileURL: url, statements: statements)
 }
 
-public struct Program: Equatable {
+public struct Program: Equatable, Sendable {
     public let source: String
     public let fileURL: URL?
     public let statements: [Statement]
 }
 
-public enum StatementType: Equatable {
+public enum StatementType: Equatable, Sendable {
     case command(Identifier, Expression?)
     case define(Identifier, Definition)
     case option(Identifier, Expression)
     case expression(ExpressionType)
 }
 
-public struct Statement: Equatable {
+public struct Statement: Equatable, Sendable {
     public let type: StatementType
     public let range: SourceRange
 }
 
-public enum DefinitionType: Equatable {
+public enum DefinitionType: Equatable, Sendable {
     case block(Block)
     case function([Identifier], Block)
     case expression(Expression)
 }
 
-public struct Definition: Equatable {
+public struct Definition: Equatable, Sendable {
     public let type: DefinitionType
     public var range: SourceRange {
         switch type {
@@ -57,7 +57,7 @@ public struct Definition: Equatable {
     }
 }
 
-public enum ExpressionType: Equatable {
+public enum ExpressionType: Equatable, Sendable {
     case number(Double)
     case string(String)
     case color(Color)
@@ -74,34 +74,34 @@ public enum ExpressionType: Equatable {
     indirect case switchcase(Expression, [CaseStatement], else: Block?)
 }
 
-public struct Expression: Equatable {
+public struct Expression: Equatable, Sendable {
     public let type: ExpressionType
     public let range: SourceRange
 }
 
-public struct Block: Equatable {
+public struct Block: Equatable, Sendable {
     public let statements: [Statement]
     public let range: SourceRange
 }
 
-public struct CaseStatement: Equatable {
+public struct CaseStatement: Equatable, Sendable {
     var pattern: Expression
     var body: Block
     var range: SourceRange
 }
 
-public struct Identifier: Equatable {
+public struct Identifier: Equatable, Sendable {
     public let name: String
     public let range: SourceRange
 }
 
-public enum ParserErrorType: Equatable {
+public enum ParserErrorType: Equatable, Sendable {
     case unexpectedToken(Token, expected: String?)
     case duplicateParameter(String, at: SourceRange)
     case custom(String, hint: String?, at: SourceRange?)
 }
 
-public struct ParserError: Error, Equatable {
+public struct ParserError: Error, Equatable, Sendable {
     public let type: ParserErrorType
 
     public init(_ type: ParserErrorType) {

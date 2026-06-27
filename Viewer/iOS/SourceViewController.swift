@@ -9,7 +9,8 @@
 import ShapeScript
 import UIKit
 
-final class SourceViewController: UIViewController {
+@MainActor
+final class SourceViewController: UIViewController, @unchecked Sendable {
     private var undoRegistered = false
     private var undoButton: UIBarButtonItem = .init()
     private var redoButton: UIBarButtonItem = .init()
@@ -19,6 +20,10 @@ final class SourceViewController: UIViewController {
     var document: Document? {
         willSet { unregisterUndoManager() }
         didSet { didSetDocument() }
+    }
+
+    @objc func setOpenedDocument(_ document: Document) {
+        self.document = document
     }
 
     override var undoManager: UndoManager? {
@@ -183,7 +188,7 @@ extension Token {
     }
 }
 
-extension SourceViewController: TokenViewDelegate {
+extension SourceViewController: @preconcurrency TokenViewDelegate {
     func tokens(for input: String) -> [TokenView.Token] {
         var stack = [Set<String>()]
         var isSwitch = [false]

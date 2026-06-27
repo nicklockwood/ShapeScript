@@ -9,13 +9,13 @@
 import Foundation
 import ShapeScript
 
-typealias LoadingTask = (LoadingProgress) throws -> Void
+typealias LoadingTask = @Sendable (LoadingProgress) throws -> Void
 
-final class LoadingProgress {
+final class LoadingProgress: Sendable {
     // Thread-safe
 
     let id: Int
-    var status: Status {
+    nonisolated var status: Status {
         lock.lock()
         defer { lock.unlock() }
         return _status
@@ -24,21 +24,21 @@ final class LoadingProgress {
     // Only accessed from internal thread
 
     private let lock = NSLock()
-    private var _status: Status = .waiting
+    private nonisolated(unsafe) var _status: Status = .waiting
 
     // Only accessed from main thread
 
-    private static var _processID = 0
-    private let observer: (Status) -> Void
-    private var thread: Thread? {
+    @MainActor private static var _processID = 0
+    @MainActor private let observer: @MainActor @Sendable (Status) -> Void
+    @MainActor private var thread: Thread? {
         didSet { assert(Thread.isMainThread) }
     }
 
-    private var queue: [LoadingTask] = [] {
+    @MainActor private var queue: [LoadingTask] = [] {
         didSet { assert(Thread.isMainThread) }
     }
 
-    init(observer: @escaping (Status) -> Void) {
+    @MainActor init(observer: @escaping @MainActor @Sendable (Status) -> Void) {
         assert(Thread.isMainThread)
         Self._processID += 1
         self.id = Self._processID
@@ -70,7 +70,7 @@ extension LoadingProgress {
         case failure(ProgramError)
         case cancelled
 
-        var isCancelledOrFailed: Bool {
+        nonisolated var isCancelledOrFailed: Bool {
             switch self {
             case .waiting, .partial, .success:
                 return false
@@ -82,11 +82,11 @@ extension LoadingProgress {
 
     // Thread-safe
 
-    var isCancelledOrFailed: Bool {
+    nonisolated var isCancelledOrFailed: Bool {
         status.isCancelledOrFailed
     }
 
-    var inProgress: Bool {
+    nonisolated var inProgress: Bool {
         switch status {
         case .waiting, .partial:
             return true
@@ -95,7 +95,7 @@ extension LoadingProgress {
         }
     }
 
-    var didSucceed: Bool {
+    nonisolated var didSucceed: Bool {
         switch status {
         case .success:
             return true
@@ -104,11 +104,11 @@ extension LoadingProgress {
         }
     }
 
-    func cancel() {
+    nonisolated func cancel() {
         setStatus(.cancelled)
     }
 
-    func setStatus(_ status: Status) {
+    nonisolated func setStatus(_ status: Status) {
         lock.lock()
         // Once progress is cancelled or failed it can't be resumed
         if _status.isCancelledOrFailed {
@@ -118,7 +118,9 @@ extension LoadingProgress {
         _status = status
         lock.unlock()
         if Thread.isMainThread {
-            observer(status)
+            MainActor.assumeIsolated {
+                observer(status)
+            }
         } else {
             DispatchQueue.main.async {
                 self.observer(status)
@@ -129,7 +131,7 @@ extension LoadingProgress {
     // Main-thread only
 
     /// Evaluate code on the loading thread (but must be called from the main thread)
-    func dispatch(_ block: @escaping LoadingTask) {
+    @MainActor func dispatch(_ block: @escaping LoadingTask) {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)
         queue.append(block)
@@ -139,7 +141,7 @@ extension LoadingProgress {
         resume()
     }
 
-    private func resume() {
+    @MainActor private func resume() {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)
         let queue = queue
@@ -160,6 +162,7 @@ extension LoadingProgress {
             }
         }
         thread?.name = "shapescript.progress.\(id)"
+        thread?.qualityOfService = .userInitiated
         thread?.stackSize = 4 * 1024 * 1024
         thread?.start()
     }

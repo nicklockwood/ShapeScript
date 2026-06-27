@@ -10,7 +10,7 @@ import Euclid
 import Foundation
 import ShapeScript
 
-protocol DocumentProtocol: AnyObject, EvaluationDelegate {
+protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
     static var documentBackgroundColor: Color { get }
 
     var cache: GeometryCache { get }

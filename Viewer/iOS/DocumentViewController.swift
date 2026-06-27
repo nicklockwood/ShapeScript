@@ -11,10 +11,12 @@ import SceneKit
 import ShapeScript
 import UIKit
 
+@MainActor
 protocol ExportMenuProvider {
     func updateExportMenu()
 }
 
+@MainActor
 final class DocumentViewController: UIViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?
@@ -445,16 +447,20 @@ final class DocumentViewController: UIViewController {
     private var _cameraHadMoved = false
     private func scheduleCameraMovedTimer() {
         Timer.scheduledTimer(
-            withTimeInterval: 1,
+            timeInterval: 1,
+            target: self,
+            selector: #selector(cameraMovedTimerFired),
+            userInfo: nil,
             repeats: false
-        ) { [weak self] _ in
-            guard let self else { return }
-            if self.cameraHasMoved != self._cameraHadMoved {
-                self._cameraHadMoved = self.cameraHasMoved
-                self.rebuildMenu()
-            }
-            self.scheduleCameraMovedTimer()
+        )
+    }
+
+    @objc private func cameraMovedTimerFired() {
+        if cameraHasMoved != _cameraHadMoved {
+            _cameraHadMoved = cameraHasMoved
+            rebuildMenu()
         }
+        scheduleCameraMovedTimer()
     }
 
     private func rebuildMenu() {
@@ -591,11 +597,19 @@ final class DocumentViewController: UIViewController {
             viewController.document = document
         } else {
             let document = Document(fileURL: fileURL)
+            let sourceViewController = viewController
             document.open { success in
                 if success {
-                    viewController.document = document
+                    sourceViewController.perform(
+                        #selector(SourceViewController.setOpenedDocument(_:)),
+                        on: .main,
+                        with: document,
+                        waitUntilDone: false
+                    )
                 } else {
-                    viewController.dismiss(animated: true)
+                    DispatchQueue.main.async {
+                        sourceViewController.dismiss(animated: true)
+                    }
                 }
             }
         }
@@ -661,7 +675,7 @@ final class DocumentViewController: UIViewController {
     }
 }
 
-extension DocumentViewController: SCNCameraControllerDelegate {
+extension DocumentViewController: @preconcurrency SCNCameraControllerDelegate {
     func cameraInertiaWillStart(for _: SCNCameraController) {
         rebuildMenu()
     }

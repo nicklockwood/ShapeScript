@@ -6,7 +6,7 @@
 //  Copyright © 2018 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
+@preconcurrency import Euclid
 import Foundation
 
 #if canImport(SVGPath)

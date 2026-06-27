@@ -14,13 +14,13 @@ import ShapeScript
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!
 
-func loadRTF(_ file: String) -> NSAttributedString {
+@MainActor func loadRTF(_ file: String) -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
     let data = try! Data(contentsOf: file)
     return NSAttributedString(rtf: data, documentAttributes: nil)!
 }
 
-func makeRTFTextView() -> NSTextView {
+@MainActor func makeRTFTextView() -> NSTextView {
     let textView = NSTextView()
     textView.isEditable = false
     textView.importsGraphics = false
@@ -29,7 +29,7 @@ func makeRTFTextView() -> NSTextView {
     return textView
 }
 
-func makeScrollView(for textView: NSTextView) -> NSScrollView {
+@MainActor func makeScrollView(for textView: NSTextView) -> NSScrollView {
     let scrollView = NSScrollView()
     scrollView.translatesAutoresizingMaskIntoConstraints = false
     scrollView.borderType = .noBorder
@@ -41,7 +41,7 @@ func makeScrollView(for textView: NSTextView) -> NSScrollView {
     return scrollView
 }
 
-func showSheet(
+@MainActor func showSheet(
     _ alert: NSAlert,
     in window: NSWindow?,
     _ handler: ((NSApplication.ModalResponse) -> Void)? = nil
@@ -54,7 +54,7 @@ func showSheet(
     }
 }
 
-func showSheet(
+@MainActor func showSheet(
     _ dialog: NSSavePanel,
     in window: NSWindow?,
     _ handler: @escaping (NSApplication.ModalResponse) -> Void
@@ -67,7 +67,7 @@ func showSheet(
     }
 }
 
-func showNewDocumentPanel() {
+@MainActor func showNewDocumentPanel() {
     let dialog = NSSavePanel()
     dialog.title = "New Document"
     dialog.showsHiddenFiles = true
@@ -99,7 +99,7 @@ func showNewDocumentPanel() {
     }
 }
 
-func dismissOpenSavePanel() {
+@MainActor func dismissOpenSavePanel() {
     for window in NSApp.windows where window is NSSavePanel {
         window.close()
     }
@@ -107,7 +107,7 @@ func dismissOpenSavePanel() {
 
 // MARK: Editor selection
 
-func configureEditorPopup(_ popup: NSPopUpButton) {
+@MainActor func configureEditorPopup(_ popup: NSPopUpButton) {
     let selectedEditor = Settings.shared.selectedEditor ?? Settings.shared.defaultEditor
 
     popup.removeAllItems()
@@ -121,7 +121,7 @@ func configureEditorPopup(_ popup: NSPopUpButton) {
     popup.addItem(withTitle: "Other…")
 }
 
-func handleEditorPopupAction(for popup: NSPopUpButton, in window: NSWindow?) {
+@MainActor func handleEditorPopupAction(for popup: NSPopUpButton, in window: NSWindow?) {
     let index = popup.indexOfSelectedItem
     if index < Settings.shared.editorApps.count {
         Settings.shared.selectedEditor = Settings.shared.editorApps[index]
@@ -149,9 +149,9 @@ func handleEditorPopupAction(for popup: NSPopUpButton, in window: NSWindow?) {
 
 // MARK: VoiceOver
 
-private weak var currentSpeech: NSSpeechSynthesizer?
+@MainActor private weak var currentSpeech: NSSpeechSynthesizer?
 
-func voiceOver(_ string: String) {
+@MainActor func voiceOver(_ string: String) {
     currentSpeech?.stopSpeaking()
     if NSWorkspace.shared.isVoiceOverEnabled,
        let speech = NSSpeechSynthesizer(voice: nil)

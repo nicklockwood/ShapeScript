@@ -8,7 +8,7 @@
 
 import Foundation
 
-final class FileMonitor {
+final class FileMonitor: @unchecked Sendable {
     let url: URL
     var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()
@@ -27,45 +27,46 @@ final class FileMonitor {
         self.reload = reload
         self.modified = Date.timeIntervalSinceReferenceDate
 
-        func getModifiedDate(_ url: URL) -> TimeInterval? {
-            let date = (try? FileManager.default
-                .attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
-            return date.map(\.timeIntervalSinceReferenceDate)
-        }
-
-        func fileIsModified(_ url: URL) -> Bool {
-            guard let newDate = getModifiedDate(url), newDate > modified else {
-                return false
-            }
-            return true
-        }
-
         self.timer = Timer.scheduledTimer(
             withTimeInterval: 0.5,
             repeats: true
         ) { [weak self] _ in
-            guard let self else {
-                return
-            }
-            guard getModifiedDate(self.url) != nil else {
-                self.timer?.invalidate()
-                self.timer = nil
-                return
-            }
-            var isModified = false
-            for u in [self.url] + Array(self.linkedResources) {
-                isModified = isModified || fileIsModified(u)
-            }
-            guard isModified else {
-                return
-            }
-            self.markUpdated()
-            try? self.reload(self.url)
+            self?.checkForUpdates()
         }
     }
 
     func markUpdated() {
         modified = Date.timeIntervalSinceReferenceDate
+    }
+
+    private static func getModifiedDate(_ url: URL) -> TimeInterval? {
+        let date = (try? FileManager.default
+            .attributesOfItem(atPath: url.path))?[FileAttributeKey.modificationDate] as? Date
+        return date.map(\.timeIntervalSinceReferenceDate)
+    }
+
+    private func fileIsModified(_ url: URL) -> Bool {
+        guard let newDate = Self.getModifiedDate(url), newDate > modified else {
+            return false
+        }
+        return true
+    }
+
+    private func checkForUpdates() {
+        guard Self.getModifiedDate(url) != nil else {
+            timer?.invalidate()
+            timer = nil
+            return
+        }
+        var isModified = false
+        for url in [url] + Array(linkedResources) {
+            isModified = isModified || fileIsModified(url)
+        }
+        guard isModified else {
+            return
+        }
+        markUpdated()
+        try? reload(url)
     }
 
     deinit {

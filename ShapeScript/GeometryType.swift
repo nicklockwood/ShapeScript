@@ -6,9 +6,9 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
+@preconcurrency import Euclid
 
-public struct Camera: Hashable {
+public struct Camera: Hashable, Sendable {
     public var position: Vector?
     public var orientation: Rotation?
     public var scale: Vector?
@@ -27,7 +27,7 @@ public extension Camera {
     var hasScale: Bool { scale != nil }
 }
 
-public struct Light: Hashable {
+public struct Light: Hashable, Sendable {
     public var position: Vector?
     public var orientation: Rotation?
     public var color: Color
@@ -48,7 +48,7 @@ public extension Light {
     var hasOrientation: Bool { orientation != nil }
 }
 
-public struct ExtrudeOptions: Hashable {
+public struct ExtrudeOptions: Hashable, Sendable {
     public var along: [Path]
     public var twist: Angle
     public var align: Path.Alignment
@@ -62,7 +62,7 @@ public struct ExtrudeOptions: Hashable {
     }
 }
 
-public enum GeometryType: Hashable {
+public enum GeometryType: Hashable, Sendable {
     case group
     // primitives
     case cone(segments: Int)

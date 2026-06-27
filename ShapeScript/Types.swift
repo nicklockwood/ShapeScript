@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: Types
 
-enum ValueType: Hashable {
+enum ValueType: Hashable, Sendable {
     case any
     case color
     case texture
@@ -324,9 +324,9 @@ private extension Set<ValueType> {
 
 // MARK: Function types
 
-typealias Getter = (EvaluationContext) throws -> Value
-typealias Setter = (Value, EvaluationContext) throws -> Void
-typealias Function = (Value, EvaluationContext) throws -> Value
+typealias Getter = @Sendable (EvaluationContext) throws -> Value
+typealias Setter = @Sendable (Value, EvaluationContext) throws -> Void
+typealias Function = @Sendable (Value, EvaluationContext) throws -> Value
 typealias FunctionType = (parameterType: ValueType, returnType: ValueType)
 typealias Parameters = [String: ValueType]
 

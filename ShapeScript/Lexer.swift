@@ -62,7 +62,7 @@ public func tokenize(_ input: String) throws -> [Token] {
 }
 
 /// Note: only includes keywords that start a command, not joining words
-public enum Keyword: String, CaseIterable {
+public enum Keyword: String, CaseIterable, Sendable {
     case define
     case `for`
     case `if`
@@ -70,12 +70,12 @@ public enum Keyword: String, CaseIterable {
     case `import`
 }
 
-public enum PrefixOperator: String {
+public enum PrefixOperator: String, Sendable {
     case plus = "+"
     case minus = "-"
 }
 
-public enum InfixOperator: String, CaseIterable {
+public enum InfixOperator: String, CaseIterable, Sendable {
     case plus = "+"
     case minus = "-"
     case times = "*"
@@ -94,7 +94,7 @@ public enum InfixOperator: String, CaseIterable {
     case `in`, to, step
 }
 
-public enum TokenType: Equatable {
+public enum TokenType: Equatable, Sendable {
     case linebreak
     case identifier(String)
     case keyword(Keyword)
@@ -117,12 +117,12 @@ public enum TokenType: Equatable {
 
 public typealias SourceRange = Range<String.Index>
 
-public struct Token: Equatable {
+public struct Token: Equatable, Sendable {
     public let type: TokenType
     public let range: SourceRange
 }
 
-public enum LexerErrorType: Equatable {
+public enum LexerErrorType: Equatable, Sendable {
     case invalidNumber(String)
     case invalidColor(String)
     case unexpectedToken(String)
@@ -131,7 +131,7 @@ public enum LexerErrorType: Equatable {
     case invalidEscapeSequence(String)
 }
 
-public struct LexerError: Error, Equatable {
+public struct LexerError: Error, Equatable, Sendable {
     public let type: LexerErrorType
     public let range: SourceRange
 

@@ -8,6 +8,7 @@
 
 import Cocoa
 
+@MainActor
 final class PreferencesViewController: NSViewController {
     private let editorPopUp: NSPopUpButton = .init()
 

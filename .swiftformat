@@ -31,6 +31,7 @@
 --enable redundantEquatable
 --enable redundantMemberwiseInit
 --enable redundantVariable
+--disable redundantSendable
 --disable wrapFunctionBodies
 --disable wrapPropertyBodies
 --disable docComments

@@ -12,7 +12,7 @@ import ShapeScript
 import UIKit
 import UniformTypeIdentifiers
 
-final class Document: UIDocument, DocumentProtocol {
+final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked Sendable {
     static let backgroundColor: UIColor = UIColor { traits in
         .init(Color(traits.userInterfaceStyle == .dark ? 0.15 : 0.625))
     }
@@ -33,8 +33,7 @@ final class Document: UIDocument, DocumentProtocol {
 
     var scene: Scene? {
         didSet {
-            updateCameras()
-            updateViews()
+            perform(#selector(updateCamerasAndViews), on: .main, with: nil, waitUntilDone: false)
         }
     }
 
@@ -51,7 +50,9 @@ final class Document: UIDocument, DocumentProtocol {
     }
 
     var loadingProgress: LoadingProgress? {
-        didSet { updateViews() }
+        didSet {
+            perform(#selector(updateViewsFromCallback), on: .main, with: nil, waitUntilDone: false)
+        }
     }
 
     var rerenderRequired: Bool = false
@@ -60,9 +61,7 @@ final class Document: UIDocument, DocumentProtocol {
 
     var sourceString: String = "" {
         didSet {
-            if viewController != nil {
-                didUpdateSource()
-            }
+            perform(#selector(sourceStringDidChange), on: .main, with: nil, waitUntilDone: false)
         }
     }
 
@@ -74,11 +73,12 @@ final class Document: UIDocument, DocumentProtocol {
     func scheduleAutosave() {
         saveTimer?.invalidate()
         saveTimer = Timer.scheduledTimer(
-            withTimeInterval: 1,
+            timeInterval: 1,
+            target: self,
+            selector: #selector(autosaveFromTimer),
+            userInfo: nil,
             repeats: false
-        ) { [weak self] _ in
-            self?.autosave()
-        }
+        )
     }
 
     var cameras: [Camera] = CameraType.allCases.map {
@@ -97,13 +97,36 @@ final class Document: UIDocument, DocumentProtocol {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.rerender()
-            self?.updateViews()
+            self?.perform(#selector(Document.settingsUpdated), on: .main, with: nil, waitUntilDone: false)
         }
     }
 
     deinit {
         observer.map(NotificationCenter.default.removeObserver)
+    }
+
+    @MainActor @objc private func updateCamerasAndViews() {
+        updateCameras()
+        updateViews()
+    }
+
+    @MainActor @objc private func updateViewsFromCallback() {
+        updateViews()
+    }
+
+    @MainActor @objc private func sourceStringDidChange() {
+        if viewController != nil {
+            didUpdateSource()
+        }
+    }
+
+    @objc private func autosaveFromTimer() {
+        autosave()
+    }
+
+    @MainActor @objc private func settingsUpdated() {
+        rerender()
+        updateViews()
     }
 
     override func load(fromContents contents: Any, ofType _: String?) throws {
@@ -118,6 +141,7 @@ final class Document: UIDocument, DocumentProtocol {
 
     override func close(completionHandler: ((Bool) -> Void)? = nil) {
         loadingProgress?.cancel()
+        nonisolated(unsafe) let completionHandler = completionHandler
         super.close { hasChanges in
             completionHandler?(hasChanges)
             for resource in self.securityScopedResources {
@@ -126,7 +150,7 @@ final class Document: UIDocument, DocumentProtocol {
         }
     }
 
-    func grantAccess() {
+    @MainActor func grantAccess() {
         let picker = UIDocumentPickerViewController(
             forOpeningContentTypes: [.folder],
             asCopy: false

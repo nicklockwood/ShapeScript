@@ -21,7 +21,7 @@ extension CameraType: CaseIterable {
     static let top = Self(rawValue: "Top")
     static let bottom = Self(rawValue: "Bottom")
 
-    static var allCases = [front, back, left, right, top, bottom]
+    static let allCases = [front, back, left, right, top, bottom]
 
     static func custom(_ index: Int) -> CameraType {
         Self(rawValue: index > 0 ? "Custom \(index + 1)" : "Custom")

@@ -646,7 +646,7 @@ private func evaluateParameter(
 }
 
 extension Definition {
-    func evaluate(in context: EvaluationContext) throws -> Symbol {
+    nonisolated func evaluate(in context: EvaluationContext) throws -> Symbol {
         switch type {
         case let .expression(expression):
             let context = context.pushDefinition()
@@ -660,7 +660,7 @@ extension Definition {
                 return .constant(.tuple([value]))
             }
         case let .function(names, block):
-            let declarationContext = context
+            nonisolated(unsafe) let declarationContext = context
             let returnType: ValueType
             var params = Dictionary(names.map { ($0.name, ValueType.any) }) { $1 }
             do {
@@ -749,6 +749,7 @@ extension Definition {
             {
                 symbols.merge(.definition) { $1 }
             }
+            nonisolated(unsafe) let context = context
             return .block(.init(symbols, options, childTypes, returnType)) { _context in
                 do {
                     let context = context.pushDefinition()

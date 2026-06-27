@@ -21,7 +21,7 @@ extension Notification.Name {
     static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
 }
 
-final class Settings {
+final class Settings: @unchecked Sendable {
     static let shared = Settings()
 
     let defaults = UserDefaults.standard

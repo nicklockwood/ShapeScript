@@ -83,7 +83,7 @@ private extension Geometry {
 }
 
 public extension Scene {
-    struct OutputOptions: Hashable {
+    struct OutputOptions: Hashable, Sendable {
         public static let `default` = OutputOptions()
 
         /// Line width to use for path drawing
@@ -129,8 +129,8 @@ public extension Scene {
     }
 }
 
-private var scnNodeKey: UInt8 = 1
-private var scnGeometryKey: UInt8 = 1
+private nonisolated(unsafe) var scnNodeKey: UInt8 = 1
+private nonisolated(unsafe) var scnGeometryKey: UInt8 = 1
 
 public extension Geometry {
     fileprivate(set) var scnNode: SCNNode? {

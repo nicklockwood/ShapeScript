@@ -9,7 +9,7 @@
 import Euclid
 import Foundation
 
-enum Value: Hashable {
+enum Value: Hashable, Sendable {
     case color(Color)
     case texture(Texture?)
     case material(Material)

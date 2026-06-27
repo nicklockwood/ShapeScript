@@ -10,6 +10,7 @@ import Euclid
 import SceneKit
 import ShapeScript
 
+@MainActor
 final class DocumentViewController: NSViewController {
     let scnScene = SCNScene()
     var renderTimer: Timer?

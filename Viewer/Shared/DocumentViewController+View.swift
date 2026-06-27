@@ -81,10 +81,18 @@ extension DocumentViewController {
     func refreshView() {
         renderTimer?.invalidate()
         scnView.rendersContinuously = true
-        renderTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { _ in
-            self.scnView.rendersContinuously = false
-            self.renderTimer = nil
-        }
+        renderTimer = Timer.scheduledTimer(
+            timeInterval: 0.1,
+            target: self,
+            selector: #selector(stopRenderingContinuously),
+            userInfo: nil,
+            repeats: false
+        )
+    }
+
+    @MainActor @objc private func stopRenderingContinuously() {
+        scnView.rendersContinuously = false
+        renderTimer = nil
     }
 
     func refreshGeometry() {

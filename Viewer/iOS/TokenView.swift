@@ -12,7 +12,7 @@ protocol TokenViewDelegate: TextViewDelegate {
     func attributes(for tokenType: TokenView.TokenType) -> [NSAttributedString.Key: Any]
 }
 
-final class TokenView: TextView {
+@MainActor final class TokenView: TextView {
     struct TokenType: RawRepresentable, Hashable {
         var rawValue: String
     }

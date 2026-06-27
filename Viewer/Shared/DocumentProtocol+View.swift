@@ -27,11 +27,11 @@ extension DocumentProtocol {
         documentFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
-    var selectedGeometry: Geometry? {
+    @MainActor var selectedGeometry: Geometry? {
         viewController?.selectedGeometry
     }
 
-    var showWireframe: Bool {
+    @MainActor var showWireframe: Bool {
         get { settings.value(for: #function, in: self) ?? false }
         set {
             settings.set(newValue, for: #function, in: self)
@@ -39,7 +39,7 @@ extension DocumentProtocol {
         }
     }
 
-    var showAxes: Bool {
+    @MainActor var showAxes: Bool {
         get { settings.value(for: #function, in: self) ?? false }
         set {
             settings.set(newValue, for: #function, in: self)
@@ -47,7 +47,7 @@ extension DocumentProtocol {
         }
     }
 
-    var isOrthographic: Bool {
+    @MainActor var isOrthographic: Bool {
         get {
             settings.value(for: #function, in: self) ?? false
         }
@@ -57,7 +57,7 @@ extension DocumentProtocol {
         }
     }
 
-    var camera: Camera {
+    @MainActor var camera: Camera {
         get {
             let type: CameraType? = settings.value(for: #function, in: self)
             return cameras.first(where: { $0.type == type }) ?? .default
@@ -68,11 +68,11 @@ extension DocumentProtocol {
         }
     }
 
-    var cameraHasMoved: Bool {
+    @MainActor var cameraHasMoved: Bool {
         viewController?.cameraHasMoved ?? false
     }
 
-    func cameraGeometry(for scnView: SCNView) -> Geometry? {
+    @MainActor func cameraGeometry(for scnView: SCNView) -> Geometry? {
         guard let scnCameraNode = scnView.pointOfView,
               let geometry = try? Geometry(scnCameraNode),
               case var .camera(camera) = geometry.type
@@ -94,18 +94,18 @@ extension DocumentProtocol {
         )
     }
 
-    func cameraConfig(for scnView: SCNView) -> String? {
+    @MainActor func cameraConfig(for scnView: SCNView) -> String? {
         cameraGeometry(for: scnView).logDescription
     }
 
-    func rerender() {
+    @MainActor func rerender() {
         guard let loadingProgress,
               loadingProgress.didSucceed
         else {
             rerenderRequired = true
             return
         }
-        let camera = camera
+        let cameraSettings = camera.settings
         let backgroundColor = Self.documentBackgroundColor
         let showWireframe = showWireframe && viewController?.isQuickLook != true
         rerenderRequired = false
@@ -115,7 +115,7 @@ extension DocumentProtocol {
             {
                 progress.setStatus(.partial(scene))
                 scene.scnBuild(with: scene.outputOptions(
-                    for: camera.settings,
+                    for: cameraSettings,
                     backgroundColor: backgroundColor,
                     wireframe: showWireframe
                 ))
@@ -124,7 +124,7 @@ extension DocumentProtocol {
         }
     }
 
-    func updateCameras() {
+    @MainActor func updateCameras() {
         let customCameras = scene?.cameras ?? []
         if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
             let oldCameras = cameras
@@ -149,7 +149,7 @@ extension DocumentProtocol {
         }
     }
 
-    func selectCamera(at index: Int) -> Bool {
+    @MainActor func selectCamera(at index: Int) -> Bool {
         guard cameras.indices.contains(index) else {
             return false
         }
@@ -163,7 +163,7 @@ extension DocumentProtocol {
         return true
     }
 
-    func updateViews() {
+    @MainActor func updateViews() {
         guard let viewController else { return }
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
@@ -174,7 +174,7 @@ extension DocumentProtocol {
         viewController.camera = camera
     }
 
-    func load(_ data: Data, fileURL: URL) throws {
+    nonisolated func load(_ data: Data, fileURL: URL) throws {
         var nsString: NSString?
         _ = NSString.stringEncoding(
             for: data,
@@ -202,20 +202,25 @@ extension DocumentProtocol {
                 clientVersion = SemanticVersion(appVersion)
             }
             sourceString = input
-            viewController?.updateModals()
+            DispatchQueue.main.async { [viewController] in
+                viewController?.updateModals()
+            }
         } else if viewController != nil {
             // Trigger reload anyway in case imported file has changed
-            didUpdateSource()
+            DispatchQueue.main.async { [self] in
+                didUpdateSource()
+            }
         }
     }
 
-    func didUpdateSource() {
+    @MainActor func didUpdateSource() {
         linkedResources.removeAll()
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
             progress.cancel()
         }
-        let camera = camera
+        let cameraSettings = camera.settings
+        let backgroundColor = Self.documentBackgroundColor
         let showWireframe = showWireframe
         let fileURL = documentFileURL
         let input = sourceString
@@ -308,8 +313,8 @@ extension DocumentProtocol {
             let minUpdatePeriod: TimeInterval = 0.1
             var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
-                for: camera.settings,
-                backgroundColor: Self.documentBackgroundColor,
+                for: cameraSettings,
+                backgroundColor: backgroundColor,
                 wireframe: showWireframe
             )
             _ = scene.build {

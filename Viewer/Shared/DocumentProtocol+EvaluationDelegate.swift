@@ -12,6 +12,7 @@ import SceneKit
 import ShapeScript
 
 extension DocumentProtocol {
+    @MainActor
     func resolveURL(for path: String) -> URL {
         let url = URL(fileURLWithPath: path, relativeTo: documentFileURL)
         linkedResources.insert(url)
@@ -49,8 +50,8 @@ extension DocumentProtocol {
         }
 
         Swift.print(line)
-        DispatchQueue.main.async { [weak self] in
-            if let viewController = self?.viewController {
+        DispatchQueue.main.async { [weak viewController] in
+            if let viewController {
                 viewController.showConsole = true
                 viewController.appendLog(line + "\n")
             }

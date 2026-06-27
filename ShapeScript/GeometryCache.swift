@@ -6,13 +6,13 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
+@preconcurrency import Euclid
 
 #if canImport(LRUCache)
 import LRUCache
 #endif
 
-public final class GeometryCache {
+public final class GeometryCache: Sendable {
     private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>
 
     /// The number of entries currently stored in the cache

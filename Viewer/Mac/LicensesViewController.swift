@@ -8,6 +8,7 @@
 
 import Cocoa
 
+@MainActor
 final class LicensesViewController: NSViewController {
     private let textView: NSTextView = makeRTFTextView()
 

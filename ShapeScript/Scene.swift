@@ -9,7 +9,7 @@
 import Euclid
 import Foundation
 
-public final class Scene {
+public final class Scene: Sendable {
     public let background: MaterialProperty
     public let children: [Geometry]
     public let cameras: [Geometry]

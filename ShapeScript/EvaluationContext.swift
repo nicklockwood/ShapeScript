@@ -23,7 +23,7 @@ import SceneKit
 
 // MARK: Implementation
 
-public struct SourceLocation: Hashable {
+public struct SourceLocation: Hashable, Sendable {
     public let line: Int
     public let file: URL?
 
@@ -92,7 +92,7 @@ final class EvaluationContext {
 
     var stackDepth = 1
 
-    var sourceLocation: () -> SourceLocation? {
+    var sourceLocation: @Sendable () -> SourceLocation? {
         { [sourceIndex, source, baseURL] in
             sourceIndex.map {
                 SourceLocation(at: source.line(at: $0), in: baseURL)

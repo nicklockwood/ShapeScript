@@ -10,7 +10,7 @@ import Euclid
 
 typealias Symbols = [String: Symbol]
 
-enum Symbol {
+enum Symbol: Sendable {
     case function(FunctionType, Function)
     case property(ValueType, Setter, Getter)
     case block(BlockType, Getter)

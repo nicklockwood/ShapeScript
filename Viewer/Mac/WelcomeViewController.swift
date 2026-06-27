@@ -8,6 +8,7 @@
 
 import Cocoa
 
+@MainActor
 final class WelcomeViewController: NSViewController {
     private let textView: NSTextView = makeRTFTextView()
     private var shouldShowAtStartupCheckbox: NSButton = .init()

@@ -11,7 +11,7 @@ import Euclid
 import SceneKit
 import ShapeScript
 
-final class Document: NSDocument, DocumentProtocol {
+final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked Sendable {
     static var backgroundColor: NSColor {
         if Thread.isMainThread {
             NSAppearance.current = NSApp.effectiveAppearance
@@ -80,8 +80,10 @@ final class Document: NSDocument, DocumentProtocol {
 
     override var fileURL: URL? {
         didSet {
-            fileMonitor = FileMonitor(fileURL) { [weak self] url in
-                _ = try self?.read(from: url, ofType: url.pathExtension)
+            MainActor.assumeIsolated {
+                fileMonitor = FileMonitor(fileURL) { [weak self] url in
+                    _ = try self?.read(from: url, ofType: url.pathExtension)
+                }
             }
         }
     }
@@ -125,8 +127,10 @@ final class Document: NSDocument, DocumentProtocol {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.rerender()
-            self?.updateViews()
+            MainActor.assumeIsolated {
+                self?.rerender()
+                self?.updateViews()
+            }
         }
     }
 

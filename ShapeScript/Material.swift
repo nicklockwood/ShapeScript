@@ -11,7 +11,7 @@ import Foundation
 
 public typealias Color = Euclid.Color
 
-public struct Texture: Hashable {
+public struct Texture: Hashable, Sendable {
     public let name: String?
     public let url: URL?
     public let data: Data
@@ -35,7 +35,7 @@ public extension Texture {
     }
 }
 
-public enum MaterialProperty: Hashable {
+public enum MaterialProperty: Hashable, Sendable {
     case color(Color)
     case texture(Texture)
 }
@@ -83,7 +83,7 @@ public extension MaterialProperty {
     }
 }
 
-public struct Material: Hashable {
+public struct Material: Hashable, Sendable {
     public var opacity: Optional<MaterialProperty>
     public var albedo: Optional<MaterialProperty>
     public var normals: Optional<Texture>

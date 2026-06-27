@@ -18,7 +18,7 @@ func loadRTF(_ file: String) throws -> NSAttributedString {
 }
 
 // swiftformat:disable:next preferFinalClasses
-class WhatsNewViewController: UIViewController {
+@MainActor class WhatsNewViewController: UIViewController {
     let textView: UITextView = .init()
 
     override func loadView() {

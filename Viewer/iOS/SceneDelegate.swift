@@ -9,6 +9,8 @@
 import UIKit
 import UniformTypeIdentifiers
 
+@MainActor
+@objc(ShapeScriptSceneDelegate)
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 

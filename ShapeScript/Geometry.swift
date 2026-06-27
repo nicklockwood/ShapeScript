@@ -6,7 +6,7 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-import Euclid
+@preconcurrency import Euclid
 import Foundation
 
 public typealias Polygon = Euclid.Polygon
@@ -17,7 +17,7 @@ public typealias CancellationHandler = () -> Bool
 /// Legacy callback type - return false to cancel
 public typealias LegacyCallback = () -> Bool
 
-public final class Geometry: Hashable {
+public final class Geometry: Hashable, @unchecked Sendable {
     public let type: GeometryType
     public let name: String?
     public let transform: Transform
@@ -26,7 +26,7 @@ public final class Geometry: Hashable {
     public let children: [Geometry]
     public let isOpaque: Bool // Computed
     private let _overestimatedBounds: Bounds
-    private let _sourceLocation: (() -> SourceLocation?)?
+    private let _sourceLocation: (@Sendable () -> SourceLocation?)?
     public private(set) lazy var sourceLocation: SourceLocation? = _sourceLocation?()
     public private(set) weak var parent: Geometry?
 
@@ -146,7 +146,7 @@ public final class Geometry: Hashable {
         material: Material,
         smoothing: Angle?,
         children: [Geometry],
-        sourceLocation: (() -> SourceLocation?)?,
+        sourceLocation: (@Sendable () -> SourceLocation?)?,
         debug: Bool = false
     ) {
         var material = material
@@ -409,7 +409,7 @@ public extension Geometry {
         transform: Transform,
         material: Material?,
         smoothing: Angle?,
-        sourceLocation: @escaping () -> SourceLocation?
+        sourceLocation: @escaping @Sendable () -> SourceLocation?
     ) -> Geometry {
         _with(
             name: nil,
@@ -784,7 +784,7 @@ private extension Geometry {
         transform: Transform?,
         material: Material?,
         smoothing: Angle?,
-        sourceLocation: (() -> SourceLocation?)?,
+        sourceLocation: (@Sendable () -> SourceLocation?)?,
         removingLights: Bool,
         removingGroupTransform: Bool
     ) -> Geometry {

@@ -8,7 +8,7 @@
 
 import UIKit
 
-@main
+@main @MainActor
 final class AppDelegate: UIResponder, UIApplicationDelegate {
     var firstLaunchOfNewVersion: Bool = false
 

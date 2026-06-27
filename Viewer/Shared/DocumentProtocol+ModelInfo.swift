@@ -14,6 +14,7 @@ import ShapeScript
 import UIKit
 #endif
 
+@MainActor
 extension DocumentProtocol {
     var importedFileCount: Int {
         linkedResources.filter { !$0.isImageFile && !$0.isFontFile }.count
