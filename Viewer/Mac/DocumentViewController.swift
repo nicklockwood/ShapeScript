@@ -208,6 +208,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             target: document,
             action: #selector(Document.grantAccess(_:))
         )
+        grantAccessButton.attributedTitle = NSAttributedString(
+            string: grantAccessButton.title,
+            attributes: [.foregroundColor: NSColor.white]
+        )
         grantAccessButton.translatesAutoresizingMaskIntoConstraints = false
         rootView.addSubview(grantAccessButton)
 
