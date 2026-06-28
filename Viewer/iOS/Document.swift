@@ -26,7 +26,6 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     let cache = GeometryCache()
-    let settings = Settings.shared
     private(set) var fileMonitor: FileMonitor?
 
     weak var viewController: DocumentViewController?
@@ -35,18 +34,6 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet {
             perform(#selector(updateCamerasAndViews), on: .main, with: nil, waitUntilDone: false)
         }
-    }
-
-    var geometry: Geometry {
-        Geometry(
-            type: .group,
-            name: nil,
-            transform: .identity,
-            material: .default,
-            smoothing: nil,
-            children: scene?.children ?? [],
-            sourceLocation: nil
-        )
     }
 
     var loadingProgress: LoadingProgress? {

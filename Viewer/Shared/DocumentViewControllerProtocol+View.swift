@@ -1,5 +1,5 @@
 //
-//  DocumentViewController+View.swift
+//  DocumentViewControllerProtocol+View.swift
 //  ShapeScriptApp
 //
 //  Created by Nick Lockwood on 09/09/2022.
@@ -10,7 +10,8 @@ import Euclid
 import SceneKit
 import ShapeScript
 
-extension DocumentViewController {
+@MainActor
+extension DocumentViewControllerProtocol {
     func checkDocumentVersion() {
         guard let document,
               let formatVersion = document.formatVersion,
@@ -81,18 +82,12 @@ extension DocumentViewController {
     func refreshView() {
         renderTimer?.invalidate()
         scnView.rendersContinuously = true
-        renderTimer = Timer.scheduledTimer(
-            timeInterval: 0.1,
-            target: self,
-            selector: #selector(stopRenderingContinuously),
-            userInfo: nil,
-            repeats: false
-        )
-    }
-
-    @MainActor @objc private func stopRenderingContinuously() {
-        scnView.rendersContinuously = false
-        renderTimer = nil
+        renderTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.scnView.rendersContinuously = false
+                self?.renderTimer = nil
+            }
+        }
     }
 
     func refreshGeometry() {
@@ -152,7 +147,7 @@ extension DocumentViewController {
                 scale: axesSize,
                 camera: camera,
                 background: background,
-                backgroundColor: Color(Document.backgroundColor)
+                backgroundColor: Self.documentBackgroundColor
             ))
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
             self.axesNode = axesNode
@@ -164,7 +159,7 @@ extension DocumentViewController {
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double
-        let aspectRatio = Double(view.bounds.height / view.bounds.width)
+        let aspectRatio = Double(scnView.bounds.height / scnView.bounds.width)
         var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
         switch camera.type {
         case .front, .back:

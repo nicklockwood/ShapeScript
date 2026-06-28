@@ -80,7 +80,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
                 let sheet = UIActivityViewController(
                     activityItems: [
                         UISimpleTextPrintFormatter(text: document.sourceString),
-                        document.fileURL,
+                        document.documentFileURL as Any,
                     ],
                     applicationActivities: nil
                 )
@@ -97,7 +97,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
 private extension SourceViewController {
     func didSetDocument() {
-        title = document?.fileURL.lastPathComponent
+        title = document?.documentFileURL?.lastPathComponent
 
         textView.text = document?.sourceString ?? ""
         textView.isEditable = document?.isEditable ?? false

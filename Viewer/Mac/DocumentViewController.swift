@@ -11,10 +11,14 @@ import SceneKit
 import ShapeScript
 
 @MainActor
-final class DocumentViewController: NSViewController {
+final class DocumentViewController: NSViewController, DocumentViewControllerProtocol {
+    static var documentBackgroundColor: Color {
+        Document.documentBackgroundColor
+    }
+
     let scnScene = SCNScene()
     var renderTimer: Timer?
-    private(set) var scnView: SCNView!
+    private(set) var scnView: SCNView = .init()
 
     private var splitView: NSSplitView = .init()
     private var errorScrollView: NSScrollView = .init()
@@ -308,7 +312,11 @@ final class DocumentViewController: NSViewController {
         resetView()
     }
 
-    func copyCamera(_: Any? = nil) {
+    func resetCamera() {
+        resetCamera(nil)
+    }
+
+    func copyCamera() {
         guard let code = document?.cameraConfig(for: scnView) else {
             NSSound.beep()
             return

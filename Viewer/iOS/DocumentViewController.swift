@@ -17,7 +17,11 @@ protocol ExportMenuProvider {
 }
 
 @MainActor
-final class DocumentViewController: UIViewController {
+final class DocumentViewController: UIViewController, DocumentViewControllerProtocol {
+    static var documentBackgroundColor: Color {
+        Document.documentBackgroundColor
+    }
+
     let scnScene = SCNScene()
     var renderTimer: Timer?
     private(set) var interfaceColor: UIColor = .black
@@ -26,7 +30,7 @@ final class DocumentViewController: UIViewController {
     private let loadingIndicator: UIActivityIndicatorView = .init()
     private let containerView: SplitView = .init()
     private let navigationBar: UINavigationBar = .init()
-    private(set) var exportButton: UIBarButtonItem!
+    private(set) var exportButton: UIBarButtonItem = .init()
 
     let errorTextView: UITextView = .init()
     let grantAccessButton: UIButton = .init(type: .system)
@@ -429,7 +433,8 @@ final class DocumentViewController: UIViewController {
         checkDocumentVersion()
     }
 
-    func presentError(_ error: Error, completionHandler: (() -> Void)? = nil) {
+    @discardableResult
+    func presentError(_ error: any Error, completionHandler: (() -> Void)? = nil) -> Bool {
         let alert = UIAlertController(
             title: "Warning",
             message: error.localizedDescription,
@@ -442,6 +447,7 @@ final class DocumentViewController: UIViewController {
             completionHandler?()
         })
         present(alert, animated: true)
+        return true
     }
 
     private var _cameraHadMoved = false
@@ -575,7 +581,7 @@ final class DocumentViewController: UIViewController {
             message: document?.modelInfo ?? "",
             preferredStyle: .alert
         )
-        if let fileURL = selectedGeometry?.sourceLocation?.file ?? document?.fileURL {
+        if let fileURL = selectedGeometry?.sourceLocation?.file ?? document?.documentFileURL {
             sheet.addAction(UIAlertAction(
                 title: document?.isEditable ?? false ? "Open in Editor" : "View Source",
                 style: .default
@@ -593,7 +599,7 @@ final class DocumentViewController: UIViewController {
     }
 
     func openSourceFile(_ fileURL: URL, in viewController: SourceViewController) {
-        if fileURL == document?.fileURL {
+        if fileURL == document?.documentFileURL {
             viewController.document = document
         } else {
             let document = Document(fileURL: fileURL)

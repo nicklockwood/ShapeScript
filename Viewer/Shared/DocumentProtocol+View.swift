@@ -11,7 +11,10 @@ import Foundation
 import SceneKit
 import ShapeScript
 
+@MainActor
 extension DocumentProtocol {
+    var settings: Settings { .shared }
+
     var fileName: String {
         documentFileURL?.lastPathComponent ?? "File"
     }
@@ -27,78 +30,23 @@ extension DocumentProtocol {
         documentFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
-    @MainActor var selectedGeometry: Geometry? {
-        viewController?.selectedGeometry
+    var errorMessage: NSAttributedString? {
+        error?.message(with: sourceString)
     }
 
-    @MainActor var showWireframe: Bool {
-        get { settings.value(for: #function, in: self) ?? false }
-        set {
-            settings.set(newValue, for: #function, in: self)
-            rerender()
-        }
-    }
-
-    @MainActor var showAxes: Bool {
-        get { settings.value(for: #function, in: self) ?? false }
-        set {
-            settings.set(newValue, for: #function, in: self)
-            updateViews()
-        }
-    }
-
-    @MainActor var isOrthographic: Bool {
-        get {
-            settings.value(for: #function, in: self) ?? false
-        }
-        set {
-            settings.set(newValue, for: #function, in: self)
-            updateViews()
-        }
-    }
-
-    @MainActor var camera: Camera {
-        get {
-            let type: CameraType? = settings.value(for: #function, in: self)
-            return cameras.first(where: { $0.type == type }) ?? .default
-        }
-        set {
-            settings.set(newValue.type, for: #function, in: self)
-            updateViews()
-        }
-    }
-
-    @MainActor var cameraHasMoved: Bool {
-        viewController?.cameraHasMoved ?? false
-    }
-
-    @MainActor func cameraGeometry(for scnView: SCNView) -> Geometry? {
-        guard let scnCameraNode = scnView.pointOfView,
-              let geometry = try? Geometry(scnCameraNode),
-              case var .camera(camera) = geometry.type
-        else {
-            return nil
-        }
-        let contentsScale = scnView.contentScaleFactor
-        camera.width = Double(scnView.frame.width * contentsScale)
-        camera.height = Double(scnView.frame.height * contentsScale)
-        camera.background = self.camera.background
-        return Geometry(
-            type: .camera(camera),
-            name: self.camera.geometry?.name,
-            transform: geometry.transform,
+    var geometry: Geometry {
+        Geometry(
+            type: .group,
+            name: nil,
+            transform: .identity,
             material: .default,
             smoothing: nil,
-            children: [],
+            children: scene?.children ?? [],
             sourceLocation: nil
         )
     }
 
-    @MainActor func cameraConfig(for scnView: SCNView) -> String? {
-        cameraGeometry(for: scnView).logDescription
-    }
-
-    @MainActor func rerender() {
+    func rerender() {
         guard let loadingProgress,
               loadingProgress.didSucceed
         else {
@@ -124,46 +72,7 @@ extension DocumentProtocol {
         }
     }
 
-    @MainActor func updateCameras() {
-        let customCameras = scene?.cameras ?? []
-        if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
-            let oldCameras = cameras
-            cameras = CameraType.allCases.map {
-                Camera(type: $0)
-            } + customCameras.enumerated().map { i, geometry in
-                Camera(geometry: geometry, index: i)
-            }
-            if !oldCameras.isEmpty {
-                var didUpdateCamera = false
-                for (old, new) in zip(oldCameras, cameras)
-                    where old.type != new.type || old.settings != new.settings
-                {
-                    camera = new
-                    didUpdateCamera = true
-                    break
-                }
-                if !didUpdateCamera, cameras.count > oldCameras.count {
-                    camera = cameras[oldCameras.count]
-                }
-            }
-        }
-    }
-
-    @MainActor func selectCamera(at index: Int) -> Bool {
-        guard cameras.indices.contains(index) else {
-            return false
-        }
-        let camera = cameras[index]
-        if camera == self.camera {
-            updateViews()
-            viewController?.resetCamera()
-        } else {
-            self.camera = camera
-        }
-        return true
-    }
-
-    @MainActor func updateViews() {
+    func updateViews() {
         guard let viewController else { return }
         viewController.isLoading = (loadingProgress?.inProgress == true)
         viewController.background = camera.background ?? scene?.background
@@ -174,46 +83,7 @@ extension DocumentProtocol {
         viewController.camera = camera
     }
 
-    nonisolated func load(_ data: Data, fileURL: URL) throws {
-        var nsString: NSString?
-        _ = NSString.stringEncoding(
-            for: data,
-            encodingOptions: [
-                .suggestedEncodingsKey: [String.Encoding.utf8.rawValue],
-                .likelyLanguageKey: "en",
-            ],
-            convertedString: &nsString,
-            usedLossyConversion: nil
-        )
-        guard let input = nsString as String? else {
-            throw RuntimeErrorType.fileParsingError(
-                for: fileURL.lastPathComponent,
-                at: fileURL,
-                message: """
-                The file '\(fileURL.lastPathComponent)' couldn’t be opened because the text \
-                encoding of its contents can’t be determined.
-                """
-            )
-        }
-        if input != sourceString {
-            if !sourceString.isEmpty {
-                // Treat as edit
-                formatVersion = SemanticVersion(ShapeScript.version)
-                clientVersion = SemanticVersion(appVersion)
-            }
-            sourceString = input
-            DispatchQueue.main.async { [viewController] in
-                viewController?.updateModals()
-            }
-        } else if viewController != nil {
-            // Trigger reload anyway in case imported file has changed
-            DispatchQueue.main.async { [self] in
-                didUpdateSource()
-            }
-        }
-    }
-
-    @MainActor func didUpdateSource() {
+    func didUpdateSource() {
         linkedResources.removeAll()
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
@@ -236,7 +106,7 @@ extension DocumentProtocol {
             self.error = nil // Error is invalid if sourceString has changed
             switch status {
             case .waiting:
-                if let viewController = self.viewController {
+                if let viewController {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
@@ -350,9 +220,257 @@ extension DocumentProtocol {
             Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
         }
     }
+
+    // MARK: Camera
+
+    var showWireframe: Bool {
+        get { settings.value(for: #function, in: self) ?? false }
+        set {
+            settings.set(newValue, for: #function, in: self)
+            rerender()
+        }
+    }
+
+    var showAxes: Bool {
+        get { settings.value(for: #function, in: self) ?? false }
+        set {
+            settings.set(newValue, for: #function, in: self)
+            updateViews()
+        }
+    }
+
+    var isOrthographic: Bool {
+        get {
+            settings.value(for: #function, in: self) ?? false
+        }
+        set {
+            settings.set(newValue, for: #function, in: self)
+            updateViews()
+        }
+    }
+
+    var camera: Camera {
+        get {
+            let type: CameraType? = settings.value(for: #function, in: self)
+            return cameras.first(where: { $0.type == type }) ?? .default
+        }
+        set {
+            settings.set(newValue.type, for: #function, in: self)
+            updateViews()
+        }
+    }
+
+    var cameraHasMoved: Bool {
+        viewController?.cameraHasMoved ?? false
+    }
+
+    func cameraGeometry(for scnView: SCNView) -> Geometry? {
+        guard let scnCameraNode = scnView.pointOfView,
+              let geometry = try? Geometry(scnCameraNode),
+              case var .camera(camera) = geometry.type
+        else {
+            return nil
+        }
+        let contentsScale = scnView.contentScaleFactor
+        camera.width = Double(scnView.frame.width * contentsScale)
+        camera.height = Double(scnView.frame.height * contentsScale)
+        camera.background = self.camera.background
+        return Geometry(
+            type: .camera(camera),
+            name: self.camera.geometry?.name,
+            transform: geometry.transform,
+            material: .default,
+            smoothing: nil,
+            children: [],
+            sourceLocation: nil
+        )
+    }
+
+    func cameraConfig(for scnView: SCNView) -> String? {
+        cameraGeometry(for: scnView).logDescription
+    }
+
+    func updateCameras() {
+        let customCameras = scene?.cameras ?? []
+        if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
+            let oldCameras = cameras
+            cameras = CameraType.allCases.map {
+                Camera(type: $0)
+            } + customCameras.enumerated().map { i, geometry in
+                Camera(geometry: geometry, index: i)
+            }
+            if !oldCameras.isEmpty {
+                var didUpdateCamera = false
+                for (old, new) in zip(oldCameras, cameras)
+                    where old.type != new.type || old.settings != new.settings
+                {
+                    camera = new
+                    didUpdateCamera = true
+                    break
+                }
+                if !didUpdateCamera, cameras.count > oldCameras.count {
+                    camera = cameras[oldCameras.count]
+                }
+            }
+        }
+    }
+
+    func selectCamera(at index: Int) -> Bool {
+        guard cameras.indices.contains(index) else {
+            return false
+        }
+        let camera = cameras[index]
+        if camera == self.camera {
+            updateViews()
+            viewController?.resetCamera()
+        } else {
+            self.camera = camera
+        }
+        return true
+    }
+
+    // MARK: Selection
+
+    var selectedGeometry: Geometry? {
+        viewController?.selectedGeometry
+    }
+
+    func clearSelection() {
+        voiceOver("Deselected")
+        viewController?.selectGeometry(nil)
+    }
+
+    func selectShape(at index: Int, andSpeakName speakName: Bool = false) {
+        let selectableGeometries = selectableGeometries
+        guard selectableGeometries.indices.contains(index) else {
+            return
+        }
+        let shape = selectableGeometries[index]
+        if speakName {
+            voiceOver(geometryName(for: shape))
+        }
+        viewController?.selectGeometry(shape.scnNode)
+    }
+
+    func selectNextShape() {
+        let selectableGeometries = selectableGeometries
+        if let selectedGeometry,
+           let index = selectableGeometries.firstIndex(where: {
+               $0 === selectedGeometry
+           })
+        {
+            let index = (index + 1) % selectableGeometries.count
+            selectShape(at: index, andSpeakName: true)
+        } else {
+            selectShape(at: 0, andSpeakName: true)
+        }
+    }
+
+    func selectPreviousShape() {
+        let selectableGeometries = selectableGeometries
+        if let selectedGeometry,
+           let index = selectableGeometries.firstIndex(where: {
+               $0 === selectedGeometry
+           })
+        {
+            let index = index > 0 ? index - 1 : selectableGeometries.count - 1
+            selectShape(at: index, andSpeakName: true)
+        } else {
+            selectShape(at: selectableGeometries.count - 1, andSpeakName: true)
+        }
+    }
+
+    func geometryName(for geometry: Geometry) -> String {
+        var countsByType = [String: Int]()
+        let selectableGeometries = selectableGeometries
+        for shape in selectableGeometries {
+            let name = geometryName(for: shape, in: &countsByType)
+            if shape === geometry {
+                return name
+            }
+        }
+        return ""
+    }
+
+    func geometryName(
+        for geometry: Geometry,
+        in countsByType: inout [String: Int]
+    ) -> String {
+        let typeName = geometry.type.logDescription
+        var count = countsByType[typeName] ?? 0
+        count += 1
+        countsByType[typeName] = count
+        if let name = geometry.name, !name.isEmpty {
+            return "\(name) (\(typeName.capitalized) \(count))"
+        }
+        return "\(typeName.capitalized) \(count)"
+    }
+
+    var selectableGeometries: [Geometry] {
+        var geometries = [Geometry]()
+        enumerateGeometries(in: geometry) { geometry in
+            if geometry.isSelectable {
+                geometries.append(geometry)
+            }
+        }
+        return geometries
+    }
+
+    func enumerateGeometries(
+        in shape: Geometry,
+        with fn: (Geometry) -> Void
+    ) {
+        for shape in shape.children {
+            if shape.hasSelectableChildren {
+                fn(shape)
+                enumerateGeometries(in: shape, with: fn)
+            } else if shape.isSelectable {
+                fn(shape)
+            }
+        }
+    }
 }
 
 extension DocumentProtocol {
+    func load(_ data: Data, fileURL: URL) throws {
+        var nsString: NSString?
+        _ = NSString.stringEncoding(
+            for: data,
+            encodingOptions: [
+                .suggestedEncodingsKey: [String.Encoding.utf8.rawValue],
+                .likelyLanguageKey: "en",
+            ],
+            convertedString: &nsString,
+            usedLossyConversion: nil
+        )
+        guard let input = nsString as String? else {
+            throw RuntimeErrorType.fileParsingError(
+                for: fileURL.lastPathComponent,
+                at: fileURL,
+                message: """
+                The file '\(fileURL.lastPathComponent)' couldn’t be opened because the text \
+                encoding of its contents can’t be determined.
+                """
+            )
+        }
+        if input != sourceString {
+            if !sourceString.isEmpty {
+                // Treat as edit
+                formatVersion = SemanticVersion(ShapeScript.version)
+                clientVersion = SemanticVersion(appVersion)
+            }
+            sourceString = input
+            DispatchQueue.main.async { [weak self] in
+                self?.viewController?.updateModals()
+            }
+        } else if viewController != nil {
+            // Trigger reload anyway in case imported file has changed
+            DispatchQueue.main.async { [self] in
+                didUpdateSource()
+            }
+        }
+    }
+
     var formatVersion: SemanticVersion? {
         get { settings.value(for: #function, in: self) }
         set { settings.set(newValue, for: #function, in: self) }
@@ -361,5 +479,32 @@ extension DocumentProtocol {
     var clientVersion: SemanticVersion? {
         get { settings.value(for: #function, in: self) }
         set { settings.set(newValue, for: #function, in: self) }
+    }
+}
+
+extension Geometry {
+    var isSelectable: Bool {
+        switch type {
+        case .cone, .cylinder, .sphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .path:
+            return true
+        case .camera, .light, .group:
+            return false
+        }
+    }
+
+    var hasSelectableChildren: Bool {
+        switch type {
+        case .group:
+            return true
+        case .cone, .cylinder, .sphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill,
+             .path, .camera, .light:
+            return false
+        case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
+            return childDebug
+        }
     }
 }

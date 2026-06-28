@@ -32,7 +32,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     let cache = GeometryCache()
-    let settings = Settings.shared
     private(set) var fileMonitor: FileMonitor?
 
     var viewController: DocumentViewController? {
@@ -48,18 +47,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             updateCameras()
             updateViews()
         }
-    }
-
-    var geometry: Geometry {
-        Geometry(
-            type: .group,
-            name: nil,
-            transform: .identity,
-            material: .default,
-            smoothing: nil,
-            children: scene?.children ?? [],
-            sourceLocation: nil
-        )
     }
 
     var loadingProgress: LoadingProgress? {
@@ -288,101 +275,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         return containsSelection
     }
 
-    private func enumerateGeometries(
-        in shape: Geometry,
-        with fn: (Geometry) -> Void
-    ) {
-        for shape in shape.children {
-            if shape.hasSelectableChildren {
-                fn(shape)
-                enumerateGeometries(in: shape, with: fn)
-            } else if shape.isSelectable {
-                fn(shape)
-            }
-        }
-    }
-
-    private func geometryName(
-        for geometry: Geometry,
-        in countsByType: inout [String: Int]
-    ) -> String {
-        let typeName = geometry.type.logDescription
-        var count = countsByType[typeName] ?? 0
-        count += 1
-        countsByType[typeName] = count
-        if let name = geometry.name, !name.isEmpty {
-            return "\(name) (\(typeName.capitalized) \(count))"
-        }
-        return "\(typeName.capitalized) \(count)"
-    }
-
-    private func geometryName(for geometry: Geometry) -> String {
-        var countsByType = [String: Int]()
-        let selectableGeometries = selectableGeometries
-        for shape in selectableGeometries {
-            let name = geometryName(for: shape, in: &countsByType)
-            if shape === geometry {
-                return name
-            }
-        }
-        return ""
-    }
-
-    private var selectableGeometries: [Geometry] {
-        var geometries = [Geometry]()
-        enumerateGeometries(in: geometry) { geometry in
-            if geometry.isSelectable {
-                geometries.append(geometry)
-            }
-        }
-        return geometries
-    }
-
-    func selectShape(at index: Int, andSpeakName speakName: Bool = false) {
-        let selectableGeometries = selectableGeometries
-        guard selectableGeometries.indices.contains(index) else {
-            return
-        }
-        let shape = selectableGeometries[index]
-        if speakName {
-            voiceOver(geometryName(for: shape))
-        }
-        viewController?.selectGeometry(shape.scnNode)
-    }
-
-    func selectNextShape() {
-        let selectableGeometries = selectableGeometries
-        if let selectedGeometry,
-           let index = selectableGeometries.firstIndex(where: {
-               $0 === selectedGeometry
-           })
-        {
-            let index = (index + 1) % selectableGeometries.count
-            selectShape(at: index, andSpeakName: true)
-        } else {
-            selectShape(at: 0, andSpeakName: true)
-        }
-    }
-
-    func selectPreviousShape() {
-        let selectableGeometries = selectableGeometries
-        if let selectedGeometry,
-           let index = selectableGeometries.firstIndex(where: {
-               $0 === selectedGeometry
-           })
-        {
-            let index = index > 0 ? index - 1 : selectableGeometries.count - 1
-            selectShape(at: index, andSpeakName: true)
-        } else {
-            selectShape(at: selectableGeometries.count - 1, andSpeakName: true)
-        }
-    }
-
-    func clearSelection() {
-        voiceOver("Deselected")
-        viewController?.selectGeometry(nil)
-    }
-
     @objc func selectShapes(_: NSMenuItem) {
         // Does nothing
     }
@@ -488,33 +380,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             break
         }
         return super.validateMenuItem(menuItem)
-    }
-}
-
-private extension Geometry {
-    var isSelectable: Bool {
-        switch type {
-        case .cone, .cylinder, .sphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
-             .path:
-            return true
-        case .camera, .light, .group:
-            return false
-        }
-    }
-
-    var hasSelectableChildren: Bool {
-        switch type {
-        case .group:
-            return true
-        case .cone, .cylinder, .sphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill,
-             .path, .camera, .light:
-            return false
-        case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
-            return childDebug
-        }
     }
 }
 

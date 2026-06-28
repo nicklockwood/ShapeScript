@@ -50,11 +50,10 @@ extension DocumentProtocol {
         }
 
         Swift.print(line)
-        DispatchQueue.main.async { [weak viewController] in
-            if let viewController {
-                viewController.showConsole = true
-                viewController.appendLog(line + "\n")
-            }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            viewController?.showConsole = true
+            viewController?.appendLog(line)
         }
     }
 }

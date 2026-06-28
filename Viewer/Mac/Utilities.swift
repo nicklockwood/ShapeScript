@@ -10,6 +10,13 @@ import AppKit
 import Euclid
 import ShapeScript
 
+// MARK: Types
+
+typealias OSColor = NSColor
+typealias OSFont = NSFont
+typealias OSButton = NSButton
+typealias OSTextView = NSTextView
+
 // MARK: General
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!

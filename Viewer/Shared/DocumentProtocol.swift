@@ -11,13 +11,15 @@ import Foundation
 import ShapeScript
 
 protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
+    associatedtype ViewController: DocumentViewControllerProtocol
+
     static var documentBackgroundColor: Color { get }
 
     var cache: GeometryCache { get }
     var settings: Settings { get }
     var documentFileURL: URL? { get }
     var fileMonitor: FileMonitor? { get }
-    var viewController: DocumentViewController? { get }
+    var viewController: ViewController? { get }
 
     var scene: Scene? { get set }
     var geometry: Geometry { get }

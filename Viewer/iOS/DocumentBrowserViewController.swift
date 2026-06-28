@@ -9,8 +9,6 @@
 import ShapeScript
 import UIKit
 
-let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
-
 @MainActor
 final class DocumentBrowserViewController: UIDocumentBrowserViewController,
     @preconcurrency UIDocumentBrowserViewControllerDelegate,
@@ -197,7 +195,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
         let document = Document(fileURL: documentURL)
         if let viewController = presentedViewController as? DocumentViewController,
-           viewController.document?.fileURL == documentURL
+           viewController.document?.documentFileURL == documentURL
         {
             return
         }
