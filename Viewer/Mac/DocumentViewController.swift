@@ -63,6 +63,9 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             return
         }
         var text = text
+        if logLength > 0 {
+            text = "\n\(text)"
+        }
         var truncated = false
         if remaining < text.count {
             truncated = true

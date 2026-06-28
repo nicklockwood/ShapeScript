@@ -16,6 +16,9 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var redoButton: UIBarButtonItem = .init()
     private var shareButton: UIBarButtonItem = .init()
     private var textView: TokenView = .init()
+    private var didNotifyDismissal = false
+
+    var onDismiss: (() -> Void)?
 
     var document: Document? {
         willSet { unregisterUndoManager() }
@@ -92,6 +95,21 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
         didSetDocument()
         updateUndoButtons()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if isBeingDismissed || navigationController?.isBeingDismissed == true {
+            notifyDismissal()
+        }
+    }
+
+    private func notifyDismissal() {
+        guard !didNotifyDismissal else {
+            return
+        }
+        didNotifyDismissal = true
+        onDismiss?()
     }
 }
 

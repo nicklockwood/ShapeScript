@@ -17,7 +17,9 @@ protocol ExportMenuProvider {
 }
 
 @MainActor
-final class DocumentViewController: UIViewController, DocumentViewControllerProtocol {
+final class DocumentViewController: UIViewController, DocumentViewControllerProtocol,
+    UIAdaptivePresentationControllerDelegate
+{
     static var documentBackgroundColor: Color {
         Document.documentBackgroundColor
     }
@@ -26,7 +28,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     var renderTimer: Timer?
     private(set) var interfaceColor: UIColor = .black
     private(set) var scnView: SCNView = .init()
-    private let consoleTextView: UITextView = .init()
+    private let consoleViewController: ConsoleViewController = .init()
+    private var isPreparingModalPresentation = false
     private let loadingIndicator: UIActivityIndicatorView = .init()
     private let containerView: SplitView = .init()
     private(set) var exportButton: UIBarButtonItem = .init()
@@ -75,70 +78,31 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 
-    private let log = NSMutableAttributedString()
-    private var logLength = 0
-
     func clearLog() {
-        logLength = 0
-        log.mutableString.setString("")
-        consoleTextView.text = ""
+        consoleViewController.clearLog()
     }
 
     func appendLog(_ text: String) {
-        if text.isEmpty {
-            return
-        }
-        let logLimit = 20000
-        let charCount = text.count
-        logLength += charCount
-        let location = log.length
-        if logLength > logLimit {
-            if logLength - charCount > logLimit {
-                return
-            }
-
-            log.append(NSAttributedString(
-                string: "Console limit exceeded. No further logs will be printed.",
-                attributes: [
-                    .foregroundColor: UIColor.red,
-                    .font: UIFont.systemFont(ofSize: 13),
-                ]
-            ))
-        } else {
-            log.append(NSAttributedString(
-                string: text,
-                attributes: [
-                    .foregroundColor: UIColor.label,
-                    .font: UIFont.systemFont(ofSize: 13),
-                ]
-            ))
-        }
-        consoleTextView.attributedText = log
-        let range = NSRange(location: location, length: 1)
+        consoleViewController.appendLog(text)
         DispatchQueue.main.async {
-            if self.containerView.heights.count > 1 {
+            self.presentConsole()
+            if self.consoleViewController.consoleView.superview === self.containerView,
+               self.containerView.heights.count > 1
+            {
                 self.containerView.heights[1] =
-                    min(150, self.consoleTextView.contentSize.height)
+                    self.consoleViewController.inlineHeight(maximumHeight: 150)
             }
-            self.consoleTextView.scrollRangeToVisible(range)
         }
     }
 
     func updateModals() {
-        var presentedViewController = presentedViewController
-        while let vc = presentedViewController?.presentedViewController {
-            presentedViewController = vc
+        guard let viewController = presentedSourceViewController(),
+              let fileURL = viewController.document?.fileURL
+        else {
+            return
         }
-        if let navController = presentedViewController as? UINavigationController,
-           let viewController = navController.viewControllers.first as? SourceViewController,
-           let fileURL = viewController.document?.fileURL
-        {
-            openSourceFile(fileURL, in: viewController)
-        } else {
-            presentedViewController?.dismiss(animated: true) { [weak self] in
-                self?.updateModals()
-            }
-        }
+
+        openSourceFile(fileURL, in: viewController)
     }
 
     var isLoading = false {
@@ -167,24 +131,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 return
             }
             if showConsole {
-                if consoleTextView.superview == nil {
-                    consoleTextView.frame.size.width = scnView.frame.width
-                    consoleTextView.sizeToFit()
-                    consoleTextView.isEditable = false
-                    consoleTextView.textContainerInset = UIEdgeInsets(
-                        top: 5,
-                        left: 5,
-                        bottom: 5,
-                        right: 5
-                    )
-                    let height = consoleTextView.frame.height + view.safeAreaInsets.bottom
-                    containerView.addArrangedSubview(
-                        consoleTextView,
-                        height: height
-                    )
-                }
+                presentConsole()
             } else {
-                containerView.removeArrangedSubview(consoleTextView)
+                dismissConsole()
             }
         }
     }
@@ -425,6 +374,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         checkDocumentVersion()
+        if showConsole {
+            presentConsole()
+        }
     }
 
     @discardableResult
@@ -437,11 +389,175 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         alert.addAction(UIAlertAction(
             title: "OK",
             style: .default
-        ) { _ in
+        ) { [weak self, weak alert] _ in
             completionHandler?()
+            self?.restoreConsoleWhenDismissed(alert)
         })
-        present(alert, animated: true)
+        presentModalHidingConsole(alert)
         return true
+    }
+
+    private func presentConsole() {
+        if #available(iOS 16, *) {
+            presentSheetConsole()
+        } else {
+            presentInlineConsole()
+        }
+    }
+
+    @available(iOS 16, *)
+    private func presentSheetConsole() {
+        guard view.window != nil,
+              consoleViewController.presentingViewController == nil
+        else {
+            return
+        }
+        guard presentedViewController == nil else {
+            restoreConsoleWhenDismissed(nil)
+            return
+        }
+
+        consoleViewController.configureSheetPresentation(delegate: self)
+        present(consoleViewController, animated: true) { [consoleViewController] in
+            consoleViewController.didPresentAsSheet()
+        }
+    }
+
+    private func dismissConsole() {
+        if #available(iOS 15, *) {
+            dismissSheetConsole(restoreIfNeeded: true)
+        } else {
+            containerView.removeArrangedSubview(consoleViewController.consoleView)
+            consoleViewController.removeFromParent()
+        }
+    }
+
+    @available(iOS 15, *)
+    private func dismissSheetConsole(
+        animated: Bool = true,
+        restoreIfNeeded: Bool = false,
+        completion: (() -> Void)? = nil
+    ) {
+        guard consoleViewController.presentingViewController != nil else {
+            completion?()
+            return
+        }
+        consoleViewController.preserveDetent()
+        consoleViewController.dismiss(animated: animated) { [weak self] in
+            completion?()
+            if restoreIfNeeded, self?.showConsole == true {
+                self?.presentConsole()
+            }
+        }
+    }
+
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        if presentationController.presentedViewController === consoleViewController {
+            consoleViewController.preserveDetent()
+            showConsole = false
+            return
+        }
+        restoreConsoleAfterModalIfNeeded()
+    }
+
+    private func presentInlineConsole() {
+        guard consoleViewController.consoleView.superview == nil else {
+            return
+        }
+        addChild(consoleViewController)
+        consoleViewController.consoleView.frame.size.width = scnView.frame.width
+        consoleViewController.consoleView.sizeToFit()
+        let height = consoleViewController.consoleView.frame.height +
+            view.safeAreaInsets.bottom
+        containerView.addArrangedSubview(
+            consoleViewController.consoleView,
+            height: height
+        )
+        consoleViewController.didMove(toParent: self)
+    }
+
+    private func restoreConsoleAfterModalIfNeeded() {
+        guard showConsole,
+              !isPreparingModalPresentation,
+              presentedViewController == nil
+        else {
+            return
+        }
+        presentConsole()
+    }
+
+    private func restoreConsoleWhenDismissed(
+        _: UIViewController?,
+        remainingAttempts: Int = 40
+    ) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self else { return }
+            if self.presentedViewController == nil {
+                self.restoreConsoleAfterModalIfNeeded()
+            } else if remainingAttempts > 0 {
+                self.restoreConsoleWhenDismissed(
+                    nil,
+                    remainingAttempts: remainingAttempts - 1
+                )
+            }
+        }
+    }
+
+    private func presentModalHidingConsole(
+        _ viewController: UIViewController,
+        animated: Bool = true,
+        completion: (() -> Void)? = nil
+    ) {
+        isPreparingModalPresentation = true
+        let usesPresentationDelegate = (viewController as? UIAlertController)?
+            .preferredStyle != .alert
+
+        let presentModal = { [weak self] in
+            guard let self else { return }
+            if usesPresentationDelegate {
+                viewController.presentationController?.delegate = self
+            }
+            present(viewController, animated: animated) { [weak self] in
+                if usesPresentationDelegate {
+                    viewController.presentationController?.delegate = self
+                }
+                self?.isPreparingModalPresentation = false
+                completion?()
+            }
+        }
+
+        guard let presentedViewController else {
+            presentModal()
+            return
+        }
+
+        if #available(iOS 15, *), presentedViewController === consoleViewController {
+            dismissSheetConsole(animated: animated, completion: presentModal)
+        } else if let sourceViewController = presentedSourceViewController() {
+            sourceViewController.present(viewController, animated: animated) { [weak self] in
+                self?.isPreparingModalPresentation = false
+                completion?()
+            }
+        } else {
+            presentedViewController.dismiss(animated: animated, completion: presentModal)
+        }
+    }
+
+    private func presentedSourceViewController() -> SourceViewController? {
+        var viewController = presentedViewController
+        while let current = viewController {
+            if let navController = current as? UINavigationController,
+               let sourceViewController = navController.viewControllers
+               .first(where: { $0 is SourceViewController }) as? SourceViewController
+            {
+                return sourceViewController
+            }
+            if let sourceViewController = current as? SourceViewController {
+                return sourceViewController
+            }
+            viewController = current.presentedViewController
+        }
+        return nil
     }
 
     private var _cameraHadMoved = false
@@ -586,10 +702,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         sheet.addAction(UIAlertAction(
             title: "Done",
             style: .cancel
-        ) { [weak sheet] _ in
-            sheet?.dismiss(animated: true)
+        ) { [weak self, weak sheet] _ in
+            self?.restoreConsoleWhenDismissed(sheet)
         })
-        present(sheet, animated: true, completion: {})
+        presentModalHidingConsole(sheet)
     }
 
     func openSourceFile(_ fileURL: URL, in viewController: SourceViewController) {
@@ -606,10 +722,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                         with: document,
                         waitUntilDone: false
                     )
-                } else {
-                    DispatchQueue.main.async {
-                        sourceViewController.dismiss(animated: true)
-                    }
                 }
             }
         }
@@ -620,7 +732,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)
-        present(navigationController, animated: true, completion: nil)
+        viewController.onDismiss = { [weak self, weak navigationController] in
+            self?.restoreConsoleWhenDismissed(navigationController)
+        }
+        presentModalHidingConsole(navigationController)
     }
 
     func resetCamera() {
@@ -669,8 +784,13 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     @objc func dismissDocumentViewController() {
-        dismiss(animated: true) {
+        let completion: () -> Void = {
             self.document?.close(completionHandler: nil)
+        }
+        if let presentingViewController {
+            presentingViewController.dismiss(animated: true, completion: completion)
+        } else {
+            dismiss(animated: true, completion: completion)
         }
     }
 }
