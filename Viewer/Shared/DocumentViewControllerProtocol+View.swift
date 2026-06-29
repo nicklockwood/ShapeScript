@@ -121,16 +121,27 @@ extension DocumentViewControllerProtocol {
     }
 
     func selectGeometry(at location: CGPoint) {
-        let hits = scnView.hitTest(location, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
-        let hit = hits.first(where: { hit in
-            let material = hit.node.geometry.map { $0.materials[hit.geometryIndex % $0.materials.count] }
-            return material.flatMap { Material($0)?.isVisible } ?? true
-        })
-        selectGeometry(hit?.node)
+        let geometry = selectableGeometries(at: location).first(where: \.isSelectable)
+        selectGeometry(geometry?.scnNode)
     }
 
     func selectGeometry(_ scnNode: SCNNode?) {
         selectedGeometry = geometry?.select(with: scnNode)
+    }
+
+    func selectableGeometries(at location: CGPoint) -> [Geometry] {
+        let hits = scnView.hitTest(location, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
+        var geometries = [Geometry]()
+        for hit in hits where hit.isVisible {
+            guard let geometry = geometry?.geometry(for: hit.node),
+                  geometry.isSelectable || geometry.hasSelectableChildren,
+                  !geometries.contains(where: { $0 === geometry })
+            else {
+                continue
+            }
+            geometries.append(geometry)
+        }
+        return geometries
     }
 
     func refreshOrthographic() {
@@ -212,6 +223,18 @@ extension DocumentViewControllerProtocol {
 }
 
 extension Geometry {
+    func geometry(for scnNode: SCNNode) -> Geometry? {
+        if self.scnNode === scnNode {
+            return self
+        }
+        for child in children {
+            if let geometry = child.geometry(for: scnNode) {
+                return geometry
+            }
+        }
+        return nil
+    }
+
     func select(with scnNode: SCNNode?) -> Geometry? {
         let isSelected = (scnNode != nil && self.scnNode === scnNode)
         if isSelected {
@@ -231,5 +254,25 @@ extension Geometry {
             selected = child.select(with: scnNode) ?? selected
         }
         return selected
+    }
+
+    func isDescendant(of geometry: Geometry) -> Bool {
+        var parent = parent
+        while let current = parent {
+            if current === geometry {
+                return true
+            }
+            parent = current.parent
+        }
+        return false
+    }
+}
+
+private extension SCNHitTestResult {
+    var isVisible: Bool {
+        let material = node.geometry.map { geometry in
+            geometry.materials[geometryIndex % geometry.materials.count]
+        }
+        return material.flatMap { Material($0)?.isVisible } ?? true
     }
 }

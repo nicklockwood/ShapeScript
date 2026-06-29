@@ -361,6 +361,14 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
+        if #available(iOS 16, *) {
+            let longPressGesture = UILongPressGestureRecognizer(
+                target: self,
+                action: #selector(handleLongPress(_:))
+            )
+            scnView.addGestureRecognizer(longPressGesture)
+            scnView.addInteraction(UIEditMenuInteraction(delegate: self))
+        }
 
         // add a tap gesture to error view
         let tapGesture2 = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
@@ -783,6 +791,24 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         selectGeometry(at: location)
     }
 
+    @objc private func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
+        guard gestureRecognizer.state == .began else {
+            return
+        }
+
+        if #available(iOS 16, *) {
+            let location = gestureRecognizer.location(in: scnView)
+            let configuration = UIEditMenuConfiguration(
+                identifier: nil,
+                sourcePoint: location
+            )
+            let interaction = scnView.interactions.first {
+                $0 is UIEditMenuInteraction
+            } as? UIEditMenuInteraction
+            interaction?.presentEditMenu(with: configuration)
+        }
+    }
+
     @objc func dismissDocumentViewController() {
         let completion: () -> Void = {
             self.document?.close(completionHandler: nil)
@@ -791,6 +817,88 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             presentingViewController.dismiss(animated: true, completion: completion)
         } else {
             dismiss(animated: true, completion: completion)
+        }
+    }
+}
+
+@available(iOS 16, *)
+extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate {
+    func editMenuInteraction(
+        _: UIEditMenuInteraction,
+        menuFor configuration: UIEditMenuConfiguration,
+        suggestedActions _: [UIMenuElement]
+    ) -> UIMenu? {
+        guard let document else {
+            return nil
+        }
+
+        let location = configuration.sourcePoint
+        let geometries = selectableGeometries(at: location)
+        let children = selectionMenuElements(for: geometries, document: document)
+        guard !children.isEmpty else {
+            return nil
+        }
+
+        let menu = UIMenu(title: "Select Shape", children: children)
+        menu.preferredElementSize = .large
+        return menu
+    }
+
+    private func selectionMenuElements(
+        for geometries: [Geometry],
+        document: Document
+    ) -> [UIMenuElement] {
+        geometries.compactMap { geometry in
+            guard !geometries.contains(where: { geometry.isDescendant(of: $0) }) else {
+                return nil
+            }
+            return selectionMenuElement(
+                for: geometry,
+                in: geometries,
+                document: document
+            )
+        }
+    }
+
+    private func selectionMenuElement(
+        for geometry: Geometry,
+        in geometries: [Geometry],
+        document: Document
+    ) -> UIMenuElement? {
+        let title = document.geometryName(for: geometry)
+        let childGeometries = geometries.filter {
+            $0 !== geometry && $0.isDescendant(of: geometry)
+        }
+        let childElements = selectionMenuElements(
+            for: childGeometries,
+            document: document
+        )
+
+        if geometry.hasSelectableChildren, !childElements.isEmpty {
+            var children = [UIMenuElement]()
+            if geometry.isSelectable {
+                children.append(selectionAction(for: geometry, title: title))
+            }
+            children.append(contentsOf: childElements)
+            return UIMenu(title: title, children: children)
+        }
+
+        guard geometry.isSelectable else {
+            return nil
+        }
+        return selectionAction(for: geometry, title: title)
+    }
+
+    private func selectionAction(for geometry: Geometry, title: String) -> UIAction {
+        UIAction(
+            title: title,
+            image: nil,
+            identifier: nil,
+            discoverabilityTitle: nil,
+            attributes: [],
+            state: selectedGeometry === geometry ? .on : .off
+        ) { [weak self] _ in
+            self?.selectGeometry(geometry.scnNode)
         }
     }
 }
