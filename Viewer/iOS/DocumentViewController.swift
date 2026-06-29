@@ -41,6 +41,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private var infoButton: UIBarButtonItem = .init()
     private var cameraButton: UIBarButtonItem = .init()
     private var editButton: UIBarButtonItem = .init()
+    private var selectionMenuButton: UIButton?
 
     var document: Document? {
         didSet {
@@ -367,7 +368,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 action: #selector(handleLongPress(_:))
             )
             scnView.addGestureRecognizer(longPressGesture)
-            scnView.addInteraction(UIEditMenuInteraction(delegate: self))
         }
 
         // add a tap gesture to error view
@@ -791,24 +791,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         selectGeometry(at: location)
     }
 
-    @objc private func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
-        guard gestureRecognizer.state == .began else {
-            return
-        }
-
-        if #available(iOS 16, *) {
-            let location = gestureRecognizer.location(in: scnView)
-            let configuration = UIEditMenuConfiguration(
-                identifier: nil,
-                sourcePoint: location
-            )
-            let interaction = scnView.interactions.first {
-                $0 is UIEditMenuInteraction
-            } as? UIEditMenuInteraction
-            interaction?.presentEditMenu(with: configuration)
-        }
-    }
-
     @objc func dismissDocumentViewController() {
         let completion: () -> Void = {
             self.document?.close(completionHandler: nil)
@@ -828,11 +810,67 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
         menuFor configuration: UIEditMenuConfiguration,
         suggestedActions _: [UIMenuElement]
     ) -> UIMenu? {
+        selectionMenu(at: configuration.sourcePoint)
+    }
+
+    @objc private func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
+        guard gestureRecognizer.state == .began else {
+            return
+        }
+
+        let location = gestureRecognizer.location(in: scnView)
+        selectionMenuButton?.removeFromSuperview()
+
+        let selectableHitCount = selectableGeometries(at: location).count
+        if #available(iOS 17.4, *), selectableHitCount != 1 {
+            guard let menu = selectionMenu(at: location) else {
+                return
+            }
+
+            let button = SelectionMenuButton(type: .custom)
+            button.frame = CGRect(origin: location, size: CGSize(width: 1, height: 1))
+            button.alpha = 0.01
+            button.isAccessibilityElement = false
+            button.showsMenuAsPrimaryAction = true
+            button.menu = menu
+            button.preferredMenuElementOrder = .fixed
+            button.onMenuDismiss = { [weak self, weak button] in
+                guard self?.selectionMenuButton === button else {
+                    return
+                }
+                button?.removeFromSuperview()
+                self?.selectionMenuButton = nil
+            }
+            scnView.addSubview(button)
+            selectionMenuButton = button
+            DispatchQueue.main.async {
+                button.performPrimaryAction()
+            }
+        } else {
+            let configuration = UIEditMenuConfiguration(
+                identifier: nil,
+                sourcePoint: location
+            )
+            selectionEditMenuInteraction.presentEditMenu(with: configuration)
+        }
+    }
+
+    private var selectionEditMenuInteraction: UIEditMenuInteraction {
+        if let interaction = scnView.interactions.first(where: {
+            $0 is UIEditMenuInteraction
+        }) as? UIEditMenuInteraction {
+            return interaction
+        }
+        let interaction = UIEditMenuInteraction(delegate: self)
+        scnView.addInteraction(interaction)
+        return interaction
+    }
+
+    private func selectionMenu(at location: CGPoint) -> UIMenu? {
         guard let document else {
             return nil
         }
 
-        let location = configuration.sourcePoint
         let geometries = selectableGeometries(at: location)
         let children = selectionMenuElements(for: geometries, document: document)
         guard !children.isEmpty else {
@@ -899,6 +937,8 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
             state: selectedGeometry === geometry ? .on : .off
         ) { [weak self] _ in
             self?.selectGeometry(geometry.scnNode)
+            self?.selectionMenuButton?.removeFromSuperview()
+            self?.selectionMenuButton = nil
         }
     }
 }
@@ -910,5 +950,29 @@ extension DocumentViewController: @preconcurrency SCNCameraControllerDelegate {
 
     func cameraInertiaDidEnd(for _: SCNCameraController) {
         rebuildMenu()
+    }
+}
+
+private final class SelectionMenuButton: UIButton {
+    var onMenuDismiss: (() -> Void)?
+
+    override func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        willEndFor configuration: UIContextMenuConfiguration,
+        animator: (any UIContextMenuInteractionAnimating)?
+    ) {
+        super.contextMenuInteraction(
+            interaction,
+            willEndFor: configuration,
+            animator: animator
+        )
+
+        if let animator {
+            animator.addCompletion { [weak self] in
+                self?.onMenuDismiss?()
+            }
+        } else {
+            onMenuDismiss?()
+        }
     }
 }
