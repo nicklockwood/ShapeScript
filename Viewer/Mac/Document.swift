@@ -86,16 +86,24 @@ final class Document: NSDocument {
             return
         }
 
-        // Returns the Storyboard that contains your Document window.
-        let storyboard = NSStoryboard(name: NSStoryboard.Name("Main"), bundle: nil)
-        let windowController = storyboard
-            .instantiateController(withIdentifier: NSStoryboard
-                .SceneIdentifier("Document Window Controller")) as! NSWindowController
+        let viewController = DocumentViewController()
+        viewController.document = self
+        let window = NSWindow(
+            contentRect: NSRect(x: 172, y: 381, width: 640, height: 480),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Viewer"
+        window.minSize = NSSize(width: 200, height: 150)
+        window.contentViewController = viewController
+        let windowController = NSWindowController(window: window)
+        windowController.shouldCascadeWindows = true
         addWindowController(windowController)
         guard let newWindow = windowController.window else {
             return
         }
-        newWindow.delegate = windowController.contentViewController as? NSWindowDelegate
+        newWindow.delegate = viewController
         if let currentWindow = NSDocumentController.shared.currentDocument?
             .windowControllers.first?.window, currentWindow.tabbedWindows != nil
         {
@@ -125,7 +133,7 @@ final class Document: NSDocument {
         try load(Data(contentsOf: url), fileURL: url)
     }
 
-    @IBAction private func didSelectEditor(_ sender: NSPopUpButton) {
+    @objc private func didSelectEditor(_ sender: NSPopUpButton) {
         handleEditorPopupAction(for: sender, in: windowForSheet)
     }
 
@@ -174,11 +182,11 @@ final class Document: NSDocument {
         }
     }
 
-    @IBAction func openInEditor(_: AnyObject) {
+    @objc func openInEditor(_: AnyObject) {
         openFileInEditor(errorURL ?? selectedGeometry?.sourceLocation?.file ?? fileURL)
     }
 
-    @IBAction func grantAccess(_: Any?) {
+    @objc func grantAccess(_: Any?) {
         let dialog = NSOpenPanel()
         dialog.title = "Grant Access"
         dialog.showsHiddenFiles = false
@@ -195,13 +203,13 @@ final class Document: NSDocument {
         }
     }
 
-    @IBAction func revealInFinder(_: AnyObject) {
+    @objc func revealInFinder(_: AnyObject) {
         if let fileURL {
             NSWorkspace.shared.activateFileViewerSelecting([fileURL])
         }
     }
 
-    @IBAction func showModelInfo(_: AnyObject) {
+    @objc func showModelInfo(_: AnyObject) {
         let actionSheet = NSAlert()
         actionSheet.messageText = selectedGeometry.map { _ in
             "Selected Shape Info"
@@ -363,17 +371,17 @@ final class Document: NSDocument {
         viewController?.selectGeometry(nil)
     }
 
-    @IBAction func selectShapes(_: NSMenuItem) {
+    @objc func selectShapes(_: NSMenuItem) {
         // Does nothing
     }
 
-    @IBAction func selectShape(_ menuItem: NSMenuItem) {
+    @objc func selectShape(_ menuItem: NSMenuItem) {
         if menuItem.tag > 0 {
             selectShape(at: menuItem.tag - 1)
         }
     }
 
-    @IBAction func clearSelection(_: NSMenuItem) {
+    @objc func clearSelection(_: NSMenuItem) {
         viewController?.selectGeometry(nil)
     }
 
@@ -401,29 +409,29 @@ final class Document: NSDocument {
         }
     }
 
-    @IBAction func selectCameras(_: NSMenuItem) {
+    @objc func selectCameras(_: NSMenuItem) {
         // Does nothing
     }
 
-    @IBAction func selectCamera(_ menuItem: NSMenuItem) {
+    @objc func selectCamera(_ menuItem: NSMenuItem) {
         if !selectCamera(at: menuItem.tag) {
             NSSound.beep()
         }
     }
 
-    @IBAction func copyCamera(_: NSMenuItem) {
+    @objc func copyCamera(_: NSMenuItem) {
         viewController?.copyCamera()
     }
 
-    @IBAction func showWireframe(_: NSMenuItem) {
+    @objc func showWireframe(_: NSMenuItem) {
         showWireframe.toggle()
     }
 
-    @IBAction func showAxes(_: NSMenuItem) {
+    @objc func showAxes(_: NSMenuItem) {
         showAxes.toggle()
     }
 
-    @IBAction func setOrthographic(_: NSMenuItem) {
+    @objc func setOrthographic(_: NSMenuItem) {
         isOrthographic.toggle()
     }
 

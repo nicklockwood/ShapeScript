@@ -16,8 +16,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         willConnectTo _: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        window?.backgroundColor = .black
+        guard let windowScene = scene as? UIWindowScene else {
+            return
+        }
 
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = DocumentBrowserViewController(
+            forOpeningFilesWithContentTypes: ["com.charcoaldesign.shapescript-source"]
+        )
+        window.backgroundColor = .black
+        window.makeKeyAndVisible()
+        self.window = window
         self.scene(scene, openURLContexts: connectionOptions.urlContexts)
     }
 

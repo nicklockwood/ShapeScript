@@ -20,6 +20,27 @@ func loadRTF(_ file: String) -> NSAttributedString {
     return NSAttributedString(rtf: data, documentAttributes: nil)!
 }
 
+func makeRTFTextView() -> NSTextView {
+    let textView = NSTextView()
+    textView.isEditable = false
+    textView.importsGraphics = false
+    textView.isVerticallyResizable = true
+    textView.drawsBackground = false
+    return textView
+}
+
+func makeScrollView(for textView: NSTextView) -> NSScrollView {
+    let scrollView = NSScrollView()
+    scrollView.translatesAutoresizingMaskIntoConstraints = false
+    scrollView.borderType = .noBorder
+    scrollView.hasHorizontalScroller = false
+    scrollView.hasVerticalScroller = true
+    scrollView.contentView.drawsBackground = false
+    scrollView.contentInsets = NSEdgeInsets(top: 0, left: 15, bottom: 15, right: 15)
+    scrollView.documentView = textView
+    return scrollView
+}
+
 func showSheet(
     _ alert: NSAlert,
     in window: NSWindow?,

@@ -1,6 +1,6 @@
 //
 //  Settings+Editor.swift
-//  ShapeScript Viewer
+//  Viewer
 //
 //  Created by Nick Lockwood on 09/05/2022.
 //  Copyright © 2022 Nick Lockwood. All rights reserved.

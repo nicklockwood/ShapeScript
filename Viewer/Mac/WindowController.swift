@@ -1,6 +1,6 @@
 //
 //  WindowController.swift
-//  ShapeScript Viewer
+//  Viewer
 //
 //  Created by Nick Lockwood on 19/10/2021.
 //  Copyright © 2021 Nick Lockwood. All rights reserved.

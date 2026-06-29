@@ -19,7 +19,26 @@ func loadRTF(_ file: String) throws -> NSAttributedString {
 
 // swiftformat:disable:next preferFinalClasses
 class WhatsNewViewController: UIViewController {
-    @IBOutlet private(set) var textView: UITextView!
+    let textView: UITextView = .init()
+
+    override func loadView() {
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.backgroundColor = .systemBackground
+        textView.textColor = .label
+        textView.font = .systemFont(ofSize: 14)
+        textView.isEditable = false
+        textView.contentInsetAdjustmentBehavior = .always
+
+        view = UIView()
+        view.backgroundColor = .systemBackground
+        view.addSubview(textView)
+        NSLayoutConstraint.activate([
+            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            textView.topAnchor.constraint(equalTo: view.topAnchor),
+            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()

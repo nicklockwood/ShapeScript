@@ -15,13 +15,14 @@ final class DocumentViewController: NSViewController {
     var renderTimer: Timer?
     private(set) var scnView: SCNView!
 
-    @IBOutlet private var containerView: NSSplitView!
-    @IBOutlet private var errorScrollView: NSScrollView!
-    @IBOutlet private(set) var errorTextView: NSTextView!
-    @IBOutlet private var loadingIndicator: NSProgressIndicator!
-    @IBOutlet private(set) var grantAccessButton: NSButton!
-    @IBOutlet private var consoleScrollView: NSScrollView!
-    @IBOutlet private var consoleTextView: NSTextView!
+    private var splitView: NSSplitView = .init()
+    private var errorScrollView: NSScrollView = .init()
+    private(set) var errorTextView: NSTextView = .init()
+    private let loadingIndicator: NSProgressIndicator = .init()
+    private(set) var grantAccessButton: NSButton = .init()
+    private let consoleScrollView: NSScrollView = .init()
+    private let consoleTextView: NSTextView = .init()
+    private let defaultConsoleHeight: CGFloat = 135
 
     weak var document: Document?
 
@@ -109,11 +110,15 @@ final class DocumentViewController: NSViewController {
             }
             if showConsole, !isQuickLook {
                 if consoleScrollView.superview == nil {
-                    containerView.insertArrangedSubview(consoleScrollView, at: 1)
+                    consoleScrollView.frame.size = NSSize(
+                        width: splitView.bounds.width,
+                        height: defaultConsoleHeight
+                    )
+                    splitView.insertArrangedSubview(consoleScrollView, at: 1)
                     consoleTextView.textContainerInset = CGSize(width: 5, height: 5)
                 }
             } else {
-                containerView.removeArrangedSubview(consoleScrollView)
+                splitView.removeArrangedSubview(consoleScrollView)
             }
         }
     }
@@ -154,13 +159,96 @@ final class DocumentViewController: NSViewController {
 
     weak var selectedGeometry: Geometry?
 
+    override func loadView() {
+        let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 700, height: 500))
+        rootView.autoresizingMask = [.width, .height]
+
+        splitView = NSSplitView(frame: rootView.bounds)
+        splitView.translatesAutoresizingMaskIntoConstraints = false
+        splitView.wantsLayer = true
+        rootView.addSubview(splitView)
+
+        errorScrollView = NSScrollView(frame: rootView.bounds)
+        errorScrollView.translatesAutoresizingMaskIntoConstraints = false
+        errorScrollView.borderType = .noBorder
+        errorScrollView.hasHorizontalScroller = false
+        errorScrollView.autohidesScrollers = true
+        errorScrollView.scrollerKnobStyle = .light
+        errorScrollView.isHidden = true
+        errorScrollView.wantsLayer = true
+
+        errorTextView = NSTextView(frame: errorScrollView.bounds)
+        errorTextView.isEditable = false
+        errorTextView.isRichText = false
+        errorTextView.importsGraphics = false
+        errorTextView.textColor = .white
+        errorTextView.backgroundColor = NSColor(
+            calibratedRed: 0.863,
+            green: 0.129,
+            blue: 0.007,
+            alpha: 0.8
+        )
+        errorTextView.autoresizingMask = [.width, .height]
+        errorScrollView.documentView = errorTextView
+        rootView.addSubview(errorScrollView)
+
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        loadingIndicator.style = .spinning
+        loadingIndicator.controlSize = .small
+        loadingIndicator.isDisplayedWhenStopped = false
+        rootView.addSubview(loadingIndicator)
+
+        grantAccessButton = NSButton(
+            title: "Grant Access",
+            target: document,
+            action: #selector(Document.grantAccess(_:))
+        )
+        grantAccessButton.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(grantAccessButton)
+
+        consoleScrollView.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: rootView.bounds.width,
+            height: defaultConsoleHeight
+        )
+        consoleScrollView.hasVerticalScroller = true
+        consoleScrollView.hasHorizontalScroller = false
+        consoleScrollView.borderType = .noBorder
+        consoleTextView.isEditable = false
+        consoleTextView.isRichText = false
+        consoleTextView.importsGraphics = false
+        consoleTextView.backgroundColor = .textBackgroundColor
+        consoleScrollView.documentView = consoleTextView
+
+        NSLayoutConstraint.activate([
+            splitView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            splitView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            splitView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            splitView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            errorScrollView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            errorScrollView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            errorScrollView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            errorScrollView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            loadingIndicator.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 20),
+            loadingIndicator.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 20),
+
+            grantAccessButton.centerXAnchor.constraint(equalTo: rootView.centerXAnchor),
+            grantAccessButton.bottomAnchor.constraint(equalTo: rootView.bottomAnchor, constant: -20),
+        ])
+
+        view = rootView
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // create view
-        scnView = SCNView(frame: containerView.bounds)
+        scnView = SCNView(frame: splitView.bounds)
         scnView.autoresizingMask = [.width, .height]
-        containerView.insertArrangedSubview(scnView, at: 0)
+        splitView.insertArrangedSubview(scnView, at: 0)
 
         // set view background color
         scnView.wantsLayer = true
@@ -214,12 +302,12 @@ final class DocumentViewController: NSViewController {
         }
     }
 
-    @IBAction func resetCamera(_: Any? = nil) {
+    @objc func resetCamera(_: Any? = nil) {
         updateAxesAndCamera()
         resetView()
     }
 
-    @IBAction func copyCamera(_: Any? = nil) {
+    func copyCamera(_: Any? = nil) {
         guard let code = document?.cameraConfig(for: scnView) else {
             NSSound.beep()
             return

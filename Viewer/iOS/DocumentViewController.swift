@@ -22,17 +22,17 @@ final class DocumentViewController: UIViewController {
     private(set) var scnView: SCNView = .init()
     private let consoleTextView: UITextView = .init()
     private let loadingIndicator: UIActivityIndicatorView = .init()
+    private let containerView: SplitView = .init()
+    private let navigationBar: UINavigationBar = .init()
+    private(set) var exportButton: UIBarButtonItem!
 
-    @IBOutlet private var containerView: SplitView!
-    @IBOutlet private var errorScrollView: UIScrollView!
-    @IBOutlet private(set) var errorTextView: UITextView!
-    @IBOutlet private(set) var grantAccessButton: UIButton!
-    @IBOutlet private(set) var exportButton: UIBarButtonItem!
-    @IBOutlet private var closeButton: UIBarButtonItem!
-    @IBOutlet private var infoButton: UIBarButtonItem!
-    @IBOutlet private var cameraButton: UIBarButtonItem!
-    @IBOutlet private var editButton: UIBarButtonItem!
-    @IBOutlet private var navigationBar: UINavigationBar?
+    let errorTextView: UITextView = .init()
+    let grantAccessButton: UIButton = .init(type: .system)
+
+    private var closeButton: UIBarButtonItem = .init()
+    private var infoButton: UIBarButtonItem = .init()
+    private var cameraButton: UIBarButtonItem = .init()
+    private var editButton: UIBarButtonItem = .init()
 
     var document: Document? {
         didSet {
@@ -52,15 +52,15 @@ final class DocumentViewController: UIViewController {
     var errorMessage: NSAttributedString? {
         didSet {
             guard let errorMessage else {
-                errorScrollView.isHidden = true
-                navigationBar?.tintColor = interfaceColor
+                errorTextView.isHidden = true
+                navigationBar.tintColor = interfaceColor
                 cameraButton.isEnabled = true
                 exportButton.isEnabled = true
                 return
             }
             errorTextView.attributedText = errorMessage
-            errorScrollView.isHidden = false
-            navigationBar?.tintColor = .white
+            errorTextView.isHidden = false
+            navigationBar.tintColor = .white
             cameraButton.isEnabled = false
             exportButton.isEnabled = false
         }
@@ -139,7 +139,7 @@ final class DocumentViewController: UIViewController {
             }
             if #available(iOS 16, *) {
                 // Hide the bar item to prevent extended border on iOS 26
-                navigationBar?.topItem?.leftBarButtonItems?.first(where: {
+                navigationBar.topItem?.leftBarButtonItems?.first(where: {
                     $0.customView === loadingIndicator
                 })?.isHidden = !isLoading
             }
@@ -230,7 +230,7 @@ final class DocumentViewController: UIViewController {
 
     func updateInterfaceColor() {
         interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
-        navigationBar?.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
+        navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
         #if os(iOS)
@@ -239,7 +239,7 @@ final class DocumentViewController: UIViewController {
     }
 
     func updateEditButton() {
-        editButton?.image = UIImage(systemName: document?.isEditable ?? false ?
+        editButton.image = UIImage(systemName: document?.isEditable ?? false ?
             "square.and.pencil" : "doc.plaintext")
     }
 
@@ -255,6 +255,92 @@ final class DocumentViewController: UIViewController {
     }
 
     weak var selectedGeometry: Geometry?
+
+    override func loadView() {
+        let rootView = UIView()
+        rootView.backgroundColor = .systemBackground
+
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        rootView.addSubview(containerView)
+
+        errorTextView.translatesAutoresizingMaskIntoConstraints = false
+        errorTextView.isEditable = false
+        errorTextView.backgroundColor = UIColor(
+            red: 0.863,
+            green: 0.129,
+            blue: 0.008,
+            alpha: 0.8
+        )
+        errorTextView.isHidden = true
+        rootView.addSubview(errorTextView)
+
+        grantAccessButton.translatesAutoresizingMaskIntoConstraints = false
+        grantAccessButton.setTitle("Grant Access", for: .normal)
+        grantAccessButton.addTarget(self, action: #selector(grantAccess), for: .touchUpInside)
+        rootView.addSubview(grantAccessButton)
+
+        closeButton = UIBarButtonItem(
+            image: UIImage(systemName: "xmark"),
+            style: .plain,
+            target: self,
+            action: #selector(dismissDocumentViewController)
+        )
+        exportButton = UIBarButtonItem(
+            image: UIImage(systemName: "square.and.arrow.up"),
+            style: .plain,
+            target: nil,
+            action: nil
+        )
+        cameraButton = UIBarButtonItem(
+            image: UIImage(systemName: "camera"),
+            style: .plain,
+            target: nil,
+            action: nil
+        )
+        infoButton = UIBarButtonItem(
+            image: UIImage(systemName: "info.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(showModelInfo)
+        )
+        editButton = UIBarButtonItem(
+            image: UIImage(systemName: "square.and.pencil"),
+            style: .plain,
+            target: self,
+            action: #selector(openSourceEditor)
+        )
+        let item = UINavigationItem()
+        item.leftBarButtonItem = closeButton
+        item.rightBarButtonItems = [exportButton, cameraButton, infoButton, editButton]
+
+        navigationBar.translatesAutoresizingMaskIntoConstraints = false
+        navigationBar.items = [item]
+        rootView.addSubview(navigationBar)
+
+        NSLayoutConstraint.activate([
+            containerView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            containerView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            containerView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            errorTextView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            errorTextView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            errorTextView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            errorTextView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+
+            grantAccessButton.centerXAnchor.constraint(equalTo: rootView.centerXAnchor),
+            grantAccessButton.bottomAnchor.constraint(
+                equalTo: rootView.safeAreaLayoutGuide.bottomAnchor,
+                constant: -20
+            ),
+
+            navigationBar.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+            navigationBar.topAnchor.constraint(equalTo: rootView.safeAreaLayoutGuide.topAnchor),
+        ])
+
+        view = rootView
+    }
 
     override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
@@ -300,12 +386,12 @@ final class DocumentViewController: UIViewController {
         if #available(iOS 16, *) {
             loadingItem.isHidden = !isLoading
         }
-        navigationBar?.topItem?.leftBarButtonItems?.append(loadingItem)
-        navigationBar?.standardAppearance.configureWithTransparentBackground()
+        navigationBar.topItem?.leftBarButtonItems?.append(loadingItem)
+        navigationBar.standardAppearance.configureWithTransparentBackground()
         if let exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {
-            navigationBar?.topItem?.rightBarButtonItems?.removeAll(where: {
+            navigationBar.topItem?.rightBarButtonItems?.removeAll(where: {
                 $0 === exportButton
             })
         }
@@ -475,7 +561,7 @@ final class DocumentViewController: UIViewController {
         exportMenuProvider?.updateExportMenu()
     }
 
-    @IBAction func showModelInfo() {
+    @objc func showModelInfo() {
         let sheet = UIAlertController(
             title: selectedGeometry.map { _ in
                 "Selected Shape Info"
@@ -516,22 +602,20 @@ final class DocumentViewController: UIViewController {
     }
 
     func openSourceView(withContentsOf fileURL: URL) {
-        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard
-            .instantiateViewController(withIdentifier: "SourceViewController") as! SourceViewController
+        let viewController = SourceViewController()
         openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)
         present(navigationController, animated: true, completion: nil)
     }
 
-    @IBAction func resetCamera() {
+    func resetCamera() {
         updateAxesAndCamera()
         resetView()
         rebuildMenu()
     }
 
-    @IBAction func copyCamera() {
+    func copyCamera() {
         guard let code = document?.cameraConfig(for: scnView) else {
             return
         }
@@ -539,7 +623,7 @@ final class DocumentViewController: UIViewController {
         UIPasteboard.general.string = code
     }
 
-    @IBAction func openSourceEditor() {
+    @objc func openSourceEditor() {
         if let url = document?.errorURL ??
             selectedGeometry?.sourceLocation?.file ??
             document?.fileURL
@@ -548,20 +632,20 @@ final class DocumentViewController: UIViewController {
         }
     }
 
-    @IBAction func grantAccess() {
+    @objc func grantAccess() {
         document?.grantAccess()
     }
 
-    @IBAction func toggleWireframe() {
+    func toggleWireframe() {
         document?.showWireframe.toggle()
         rebuildMenu()
     }
 
-    @IBAction func toggleAxes() {
+    func toggleAxes() {
         document?.showAxes.toggle()
     }
 
-    @IBAction func toggleOrthographic() {
+    func toggleOrthographic() {
         document?.isOrthographic.toggle()
     }
 
@@ -570,7 +654,7 @@ final class DocumentViewController: UIViewController {
         selectGeometry(at: location)
     }
 
-    @IBAction func dismissDocumentViewController() {
+    @objc func dismissDocumentViewController() {
         dismiss(animated: true) {
             self.document?.close(completionHandler: nil)
         }

@@ -11,11 +11,10 @@ import UIKit
 
 final class SourceViewController: UIViewController {
     private var undoRegistered = false
-    private var undoButton: UIBarButtonItem!
-    private var redoButton: UIBarButtonItem!
-    private var shareButton: UIBarButtonItem!
-
-    @IBOutlet private var textView: TokenView!
+    private var undoButton: UIBarButtonItem = .init()
+    private var redoButton: UIBarButtonItem = .init()
+    private var shareButton: UIBarButtonItem = .init()
+    private var textView: TokenView = .init()
 
     var document: Document? {
         willSet { unregisterUndoManager() }
@@ -24,6 +23,19 @@ final class SourceViewController: UIViewController {
 
     override var undoManager: UndoManager? {
         document?.undoManager
+    }
+
+    override func loadView() {
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        view = UIView()
+        view.backgroundColor = .systemBackground
+        view.addSubview(textView)
+        NSLayoutConstraint.activate([
+            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            textView.topAnchor.constraint(equalTo: view.topAnchor),
+            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     override func viewDidLoad() {
@@ -81,7 +93,6 @@ final class SourceViewController: UIViewController {
 private extension SourceViewController {
     func didSetDocument() {
         title = document?.fileURL.lastPathComponent
-        guard let textView else { return }
 
         textView.text = document?.sourceString ?? ""
         textView.isEditable = document?.isEditable ?? false
@@ -113,7 +124,7 @@ private extension SourceViewController {
     }
 
     func registerUndoManager() {
-        guard !undoRegistered, let document, textView != nil else { return }
+        guard !undoRegistered, let document else { return }
         undoRegistered = true
         document.undoManager = textView.undoManager
         NotificationCenter.default.addObserver(

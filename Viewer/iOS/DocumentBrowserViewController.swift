@@ -69,18 +69,14 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDo
     }
 
     func showWhatsNewScreen() {
-        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard
-            .instantiateViewController(withIdentifier: "WhatsNewViewController") as! WhatsNewViewController
+        let viewController = WhatsNewViewController()
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .formSheet
         present(navigationController, animated: true)
     }
 
     func showLicensesScreen() {
-        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard
-            .instantiateViewController(withIdentifier: "LicensesViewController") as! LicensesViewController
+        let viewController = LicensesViewController()
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .formSheet
         present(navigationController, animated: true)
@@ -200,9 +196,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController, UIDo
             return
         }
 
-        let storyBoard = UIStoryboard(name: "Main", bundle: nil)
-        let viewController = storyBoard
-            .instantiateViewController(withIdentifier: "DocumentViewController") as! DocumentViewController
+        let viewController = DocumentViewController()
         viewController.document = document
         viewController.modalPresentationStyle = .fullScreen
 
