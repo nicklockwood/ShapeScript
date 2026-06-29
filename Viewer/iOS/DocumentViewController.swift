@@ -871,8 +871,16 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
             return nil
         }
 
-        let geometries = selectableGeometries(at: location)
-        let children = selectionMenuElements(for: geometries, document: document)
+        var geometries = selectableGeometries(at: location)
+        if geometries.isEmpty {
+            geometries = selectionMenuGeometries(for: document)
+        }
+        let namesByGeometry = selectionMenuNames(for: document)
+        let children = selectionMenuElements(
+            for: geometries,
+            document: document,
+            namesByGeometry: namesByGeometry
+        )
         guard !children.isEmpty else {
             return nil
         }
@@ -884,7 +892,8 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
 
     private func selectionMenuElements(
         for geometries: [Geometry],
-        document: Document
+        document: Document,
+        namesByGeometry: [ObjectIdentifier: String]
     ) -> [UIMenuElement] {
         geometries.compactMap { geometry in
             guard !geometries.contains(where: { geometry.isDescendant(of: $0) }) else {
@@ -893,7 +902,8 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
             return selectionMenuElement(
                 for: geometry,
                 in: geometries,
-                document: document
+                document: document,
+                namesByGeometry: namesByGeometry
             )
         }
     }
@@ -901,15 +911,17 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
     private func selectionMenuElement(
         for geometry: Geometry,
         in geometries: [Geometry],
-        document: Document
+        document: Document,
+        namesByGeometry: [ObjectIdentifier: String]
     ) -> UIMenuElement? {
-        let title = document.geometryName(for: geometry)
+        let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
         let childGeometries = geometries.filter {
             $0 !== geometry && $0.isDescendant(of: geometry)
         }
         let childElements = selectionMenuElements(
             for: childGeometries,
-            document: document
+            document: document,
+            namesByGeometry: namesByGeometry
         )
 
         if geometry.hasSelectableChildren, !childElements.isEmpty {
@@ -925,6 +937,26 @@ extension DocumentViewController: @preconcurrency UIEditMenuInteractionDelegate 
             return nil
         }
         return selectionAction(for: geometry, title: title)
+    }
+
+    private func selectionMenuGeometries(for document: Document) -> [Geometry] {
+        var geometries = [Geometry]()
+        document.enumerateGeometries(in: document.geometry) { geometry in
+            geometries.append(geometry)
+        }
+        return geometries
+    }
+
+    private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
+        var countsByType = [String: Int]()
+        var namesByGeometry = [ObjectIdentifier: String]()
+        document.enumerateGeometries(in: document.geometry) { geometry in
+            namesByGeometry[ObjectIdentifier(geometry)] = document.geometryName(
+                for: geometry,
+                in: &countsByType
+            )
+        }
+        return namesByGeometry
     }
 
     private func selectionAction(for geometry: Geometry, title: String) -> UIAction {

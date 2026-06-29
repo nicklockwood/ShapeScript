@@ -110,6 +110,8 @@ To get info about a particular shape in the scene, tap on it in the viewer to se
 
 ![Object info](../images/object-info-ios-1.6.4.png)
 
+If multiple shapes overlap, long-press in the viewer to open a menu of selectable shapes under your finger. Shapes with selectable children appear as submenus. Long-pressing empty space shows all selectable shapes in the scene.
+
 **Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
 
 ---
