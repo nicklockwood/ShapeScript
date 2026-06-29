@@ -29,7 +29,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private let consoleTextView: UITextView = .init()
     private let loadingIndicator: UIActivityIndicatorView = .init()
     private let containerView: SplitView = .init()
-    private let navigationBar: UINavigationBar = .init()
     private(set) var exportButton: UIBarButtonItem = .init()
 
     let errorTextView: UITextView = .init()
@@ -55,18 +54,22 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     weak var axesNode: SCNNode?
 
+    var navigationBar: UINavigationBar? {
+        navigationController?.navigationBar
+    }
+
     var errorMessage: NSAttributedString? {
         didSet {
             guard let errorMessage else {
                 errorTextView.isHidden = true
-                navigationBar.tintColor = interfaceColor
+                navigationBar?.tintColor = interfaceColor
                 cameraButton.isEnabled = true
                 exportButton.isEnabled = true
                 return
             }
             errorTextView.attributedText = errorMessage
             errorTextView.isHidden = false
-            navigationBar.tintColor = .white
+            navigationBar?.tintColor = .white
             cameraButton.isEnabled = false
             exportButton.isEnabled = false
         }
@@ -145,7 +148,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             }
             if #available(iOS 16, *) {
                 // Hide the bar item to prevent extended border on iOS 26
-                navigationBar.topItem?.leftBarButtonItems?.first(where: {
+                navigationItem.leftBarButtonItems?.first(where: {
                     $0.customView === loadingIndicator
                 })?.isHidden = !isLoading
             }
@@ -236,7 +239,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     func updateInterfaceColor() {
         interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
-        navigationBar.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
+        navigationBar?.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
         #if os(iOS)
@@ -315,13 +318,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             target: self,
             action: #selector(openSourceEditor)
         )
-        let item = UINavigationItem()
-        item.leftBarButtonItem = closeButton
-        item.rightBarButtonItems = [exportButton, cameraButton, infoButton, editButton]
-
-        navigationBar.translatesAutoresizingMaskIntoConstraints = false
-        navigationBar.items = [item]
-        rootView.addSubview(navigationBar)
+        navigationItem.leftBarButtonItem = closeButton
+        navigationItem.rightBarButtonItems = [exportButton, cameraButton, infoButton, editButton]
 
         NSLayoutConstraint.activate([
             containerView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
@@ -339,10 +337,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 equalTo: rootView.safeAreaLayoutGuide.bottomAnchor,
                 constant: -20
             ),
-
-            navigationBar.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
-            navigationBar.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
-            navigationBar.topAnchor.constraint(equalTo: rootView.safeAreaLayoutGuide.topAnchor),
         ])
 
         view = rootView
@@ -392,12 +386,12 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         if #available(iOS 16, *) {
             loadingItem.isHidden = !isLoading
         }
-        navigationBar.topItem?.leftBarButtonItems?.append(loadingItem)
-        navigationBar.standardAppearance.configureWithTransparentBackground()
+        navigationItem.leftBarButtonItems?.append(loadingItem)
+        navigationBar?.standardAppearance.configureWithTransparentBackground()
         if let exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {
-            navigationBar.topItem?.rightBarButtonItems?.removeAll(where: {
+            navigationItem.rightBarButtonItems?.removeAll(where: {
                 $0 === exportButton
             })
         }

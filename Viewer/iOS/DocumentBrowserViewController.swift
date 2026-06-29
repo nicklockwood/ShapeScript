@@ -14,8 +14,8 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
     @preconcurrency UIDocumentBrowserViewControllerDelegate,
     UITextFieldDelegate
 {
+    private weak var rootNavigationController: UINavigationController?
     private var openingDocument = false
-    private var pendingDocument: Document?
     private var pendingDocumentViewController: DocumentViewController?
 
     override func viewDidLoad() {
@@ -164,9 +164,6 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
     func documentBrowser(_: UIDocumentBrowserViewController, didPickDocumentsAt documentURLs: [URL]) {
         guard let sourceURL = documentURLs.first else { return }
-
-        // Present the Document View Controller for the first document that was picked.
-        // If you support picking multiple items, make sure you handle them all.
         presentDocument(at: sourceURL)
     }
 
@@ -176,12 +173,15 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
         toDestinationURL destinationURL: URL
     ) {
         print("importing", sourceURL, destinationURL)
-        // Present the Document View Controller for the new newly created document
         presentDocument(at: destinationURL)
     }
 
-    func documentBrowser(_: UIDocumentBrowserViewController, failedToImportDocumentAt _: URL, error _: Error?) {
-        // Make sure to handle the failed import appropriately, e.g., by presenting an error message to the user.
+    func documentBrowser(
+        _: UIDocumentBrowserViewController,
+        failedToImportDocumentAt _: URL,
+        error: Error?
+    ) {
+        presentError(error?.localizedDescription ?? "An unknown error occured.", onOK: {})
     }
 
     // MARK: Document Presentation
@@ -189,27 +189,32 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
     var transitionController: UIDocumentBrowserTransitionController?
 
     func presentDocument(at documentURL: URL) {
-        guard !openingDocument else {
-            return
-        }
+        guard !openingDocument else { return }
 
-        let document = Document(fileURL: documentURL)
-        if let viewController = presentedViewController as? DocumentViewController,
-           viewController.document?.documentFileURL == documentURL
+        if let viewController = rootNavigationController?
+            .viewControllers.first as? DocumentViewController,
+            let document = viewController.document
         {
+            if document.fileURL != documentURL {
+                viewController.dismiss(animated: true) {
+                    document.close()
+                    self.rootNavigationController = nil
+                    self.presentDocument(at: documentURL)
+                }
+            }
             return
         }
 
         let viewController = DocumentViewController()
+        let document = Document(fileURL: documentURL)
         viewController.document = document
-        viewController.modalPresentationStyle = .fullScreen
+        viewController.loadViewIfNeeded()
 
         transitionController = transitionController(forDocumentAt: documentURL)
         transitionController?.targetView = viewController.scnView
         transitionController?.loadingProgress = Progress(totalUnitCount: 10)
 
         openingDocument = true
-        pendingDocument = document
         pendingDocumentViewController = viewController
         document.open { [weak self] success in
             DispatchQueue.main.async { [weak self] in
@@ -223,19 +228,21 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
         transitionController?.loadingProgress = nil
         defer {
             openingDocument = false
-            pendingDocument = nil
             pendingDocumentViewController = nil
         }
-        guard success, let document = pendingDocument,
-              let viewController = pendingDocumentViewController
-        else {
+        guard success, let viewController = pendingDocumentViewController else {
             presentError("Unable to open file.", onOK: {})
             return
         }
-        if let existing = presentedViewController as? DocumentViewController {
-            existing.document = document
+        if let navigationController = rootNavigationController {
+            navigationController.setViewControllers([viewController], animated: true)
         } else {
-            present(viewController, animated: true, completion: nil)
+            let navigationController = UINavigationController(
+                rootViewController: viewController
+            )
+            navigationController.modalPresentationStyle = .fullScreen
+            rootNavigationController = navigationController
+            present(navigationController, animated: true)
         }
     }
 
