@@ -31,7 +31,8 @@ final class PlatformTests: XCTestCase {
         let opaque = SCNMaterial(Material(color: .red), isOpaque: true)
         let opaqueWithinTransparentGeometry = SCNMaterial(
             Material(color: .red),
-            isOpaque: false
+            isOpaque: false,
+            writesToDepthBuffer: false
         )
         let transparent = SCNMaterial(
             Material(color: Color.red.withAlpha(0.5)),
@@ -46,9 +47,78 @@ final class PlatformTests: XCTestCase {
 
         XCTAssertTrue(opaque.writesToDepthBuffer)
         XCTAssertFalse(opaqueWithinTransparentGeometry.writesToDepthBuffer)
-        XCTAssertFalse(transparent.writesToDepthBuffer)
-        XCTAssertFalse(textured.writesToDepthBuffer)
+        XCTAssertTrue(transparent.writesToDepthBuffer)
+        XCTAssertTrue(textured.writesToDepthBuffer)
         XCTAssertEqual(transparent.transparencyMode, .dualLayer)
+    }
+
+    func testSceneBuildDisablesDepthBufferWritesForOverlappingTransparentGeometry() throws {
+        let transparent = cube(material: Material(color: Color.red.withAlpha(0.5)))
+        let opaque = cube(material: Material(color: .blue))
+        let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
+
+        XCTAssertTrue(scene.build { true })
+        scene.scnBuild(with: .default)
+
+        let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
+        XCTAssertFalse(material.writesToDepthBuffer)
+    }
+
+    func testSceneBuildPreservesDepthBufferWritesForSeparateTransparentGeometry() throws {
+        let transparent = cube(
+            transform: .translation(.init(2, 0, 0)),
+            material: Material(color: Color.red.withAlpha(0.5))
+        )
+        let opaque = cube(material: Material(color: .blue))
+        let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
+
+        XCTAssertTrue(scene.build { true })
+        scene.scnBuild(with: .default)
+
+        let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
+        XCTAssertTrue(material.writesToDepthBuffer)
+    }
+
+    func testSceneBuildUsesNestedTransformsForTransparentGeometryOverlap() throws {
+        let transparent = cube(
+            transform: .translation(.init(1, 0, 0)),
+            material: Material(color: Color.red.withAlpha(0.5))
+        )
+        let group = Geometry(
+            type: .group,
+            name: nil,
+            transform: .translation(.init(2, 0, 0)),
+            material: .default,
+            smoothing: nil,
+            children: [transparent],
+            sourceLocation: nil
+        )
+        let opaque = cube(
+            transform: .translation(.init(3, 0, 0)),
+            material: Material(color: .blue)
+        )
+        let scene = Scene(background: .color(.clear), children: [group, opaque], cache: nil)
+
+        XCTAssertTrue(scene.build { true })
+        scene.scnBuild(with: .default)
+
+        let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
+        XCTAssertFalse(material.writesToDepthBuffer)
+    }
+
+    private func cube(
+        transform: Transform = .identity,
+        material: Material
+    ) -> Geometry {
+        Geometry(
+            type: .cube,
+            name: nil,
+            transform: transform,
+            material: material,
+            smoothing: nil,
+            children: [],
+            sourceLocation: nil
+        )
     }
 }
 

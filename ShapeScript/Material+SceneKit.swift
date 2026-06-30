@@ -64,7 +64,7 @@ public extension MaterialProperty {
 }
 
 public extension SCNMaterial {
-    convenience init(_ m: Material, isOpaque: Bool) {
+    convenience init(_ m: Material, isOpaque: Bool, writesToDepthBuffer: Bool = true) {
         self.init()
         m.normals.flatMap(MaterialProperty.init)?.configureProperty(normal)
         m.opacity?.configureProperty(transparent)
@@ -90,7 +90,7 @@ public extension SCNMaterial {
 
         isDoubleSided = !isOpaque
         transparencyMode = .dualLayer
-        writesToDepthBuffer = isOpaque
+        self.writesToDepthBuffer = writesToDepthBuffer
 
         m.glow?.configureProperty(emission)
         if m.roughness != nil || m.metallicity != nil {

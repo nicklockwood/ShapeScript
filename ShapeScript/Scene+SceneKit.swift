@@ -21,9 +21,13 @@ typealias OSImage = NSImage
 #endif
 
 private extension SCNGeometry {
-    convenience init(_ mesh: Mesh, for geometry: Geometry) {
+    convenience init(_ mesh: Mesh, for geometry: Geometry, writesToDepthBuffer: Bool) {
         self.init(mesh, materialLookup: {
-            SCNMaterial($0 as? Material ?? geometry.material, isOpaque: geometry.isOpaque)
+            SCNMaterial(
+                $0 as? Material ?? geometry.material,
+                isOpaque: geometry.isOpaque,
+                writesToDepthBuffer: writesToDepthBuffer
+            )
         })
     }
 }
@@ -66,13 +70,14 @@ public extension SCNNode {
 
     convenience init(merged geometry: Geometry) {
         let mesh = geometry.merged()
-        self.init(geometry: SCNGeometry(mesh, for: geometry))
+        self.init(geometry: SCNGeometry(mesh, for: geometry, writesToDepthBuffer: true))
     }
 }
 
 private struct DataKey: Hashable {
     var debug: Bool
     var options: Scene.OutputOptions
+    var writesToDepthBuffer: Bool
 }
 
 private extension Geometry {
@@ -125,7 +130,11 @@ public extension Scene {
     }
 
     func scnBuild(with options: OutputOptions) {
-        children.scnBuild(with: options, debug: false)
+        children.scnBuild(
+            with: options,
+            debug: false,
+            disablingDepthBufferWritesFor: children.geometriesWithOverlappingBounds
+        )
     }
 }
 
@@ -163,11 +172,32 @@ public extension Geometry {
     }
 
     func scnBuild(with options: Scene.OutputOptions) {
+        scnBuild(
+            with: options,
+            disablingDepthBufferWritesFor: [self].geometriesWithOverlappingBounds
+        )
+    }
+}
+
+private extension Geometry {
+    func scnBuild(
+        with options: Scene.OutputOptions,
+        disablingDepthBufferWritesFor geometries: Set<Geometry>
+    ) {
         if renderChildren || childDebug {
-            children.scnBuild(with: options, debug: !renderChildren)
+            children.scnBuild(
+                with: options,
+                debug: !renderChildren,
+                disablingDepthBufferWritesFor: geometries
+            )
         }
 
-        let key = DataKey(debug: debug, options: options)
+        let writesToDepthBuffer = !geometries.contains(self)
+        let key = DataKey(
+            debug: debug,
+            options: options,
+            writesToDepthBuffer: writesToDepthBuffer
+        )
         if let scnGeometry = scnData[key] {
             self.scnGeometry = scnGeometry
             return
@@ -251,7 +281,11 @@ public extension Geometry {
                     let m = SCNMaterial(material, isOpaque: false)
                     geometry = SCNGeometry(mesh.scaled(by: 1.001)) { _ in m }
                 } else {
-                    geometry = SCNGeometry(mesh, for: self)
+                    geometry = SCNGeometry(
+                        mesh,
+                        for: self,
+                        writesToDepthBuffer: writesToDepthBuffer
+                    )
                 }
                 scnData[key] = geometry
                 scnGeometry = geometry
@@ -261,14 +295,63 @@ public extension Geometry {
 }
 
 private extension [Geometry] {
-    func scnBuild(with options: Scene.OutputOptions, debug: Bool) {
-        for child in self {
-            if debug, !child.debug {
-                child.children.scnBuild(with: options, debug: true)
-            } else {
-                child.scnBuild(with: options)
+    var geometriesWithOverlappingBounds: Set<Geometry> {
+        let geometries = flatMap(\.renderedGeometriesWithBounds)
+        var result = Set<Geometry>()
+        for (geometry, bounds) in geometries where !geometry.isOpaque {
+            if geometries.contains(where: {
+                $0.geometry !== geometry && bounds.intersects($0.bounds)
+            }) {
+                result.insert(geometry)
             }
         }
+        return result
+    }
+
+    func scnBuild(
+        with options: Scene.OutputOptions,
+        debug: Bool,
+        disablingDepthBufferWritesFor geometries: Set<Geometry>
+    ) {
+        for child in self {
+            if debug, !child.debug {
+                child.children.scnBuild(
+                    with: options,
+                    debug: true,
+                    disablingDepthBufferWritesFor: geometries
+                )
+            } else {
+                child.scnBuild(
+                    with: options,
+                    disablingDepthBufferWritesFor: geometries
+                )
+            }
+        }
+    }
+}
+
+private extension Geometry {
+    var renderedGeometriesWithBounds: [(geometry: Geometry, bounds: Bounds)] {
+        renderedGeometriesWithBounds(parentTransform: .identity)
+    }
+
+    private func renderedGeometriesWithBounds(
+        parentTransform: Transform
+    ) -> [(geometry: Geometry, bounds: Bounds)] {
+        let accumulatedTransform = transform * parentTransform
+        var result = [(geometry: Geometry, bounds: Bounds)]()
+        if path != nil || mesh != nil || debug && light != nil {
+            let bounds = overestimatedBounds.transformed(by: parentTransform)
+            if !bounds.isEmpty {
+                result.append((self, bounds))
+            }
+        }
+        if renderChildren || childDebug {
+            result += children.flatMap {
+                $0.renderedGeometriesWithBounds(parentTransform: accumulatedTransform)
+            }
+        }
+        return result
     }
 }
 
