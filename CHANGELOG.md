@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.10.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.3) (2026-06-30)
+
+- Fixed rendering order for non-overlapping transparent objects (broken in 1.10.2)
+- Added long-press/right-click contextual menu for selecting objects
+- Console in iOS app now uses a resizable bottom sheet instead of a fixed-size footer
+- Fixed "Grant Access" button color in light mode on macOS
+- ShapeScript now uses strict concurrency checking
+- Converted Storyboards to programmatic layout
+- Increased minimum Swift version to 5.10
+
 ## [1.10.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.2) (2026-06-15)
 
 - Added support for tilde in import paths
