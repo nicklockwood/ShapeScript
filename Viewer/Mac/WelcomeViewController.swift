@@ -21,7 +21,10 @@ final class WelcomeViewController: NSViewController {
         titleLabel.alignment = .center
         titleLabel.font = .systemFont(ofSize: 25)
 
-        let scrollView = makeScrollView(for: textView)
+        let scrollView = makeScrollView(
+            for: textView,
+            documentSize: NSSize(width: 442, height: 197)
+        )
 
         let guideButton = NSButton(
             title: "Getting Started Guide",

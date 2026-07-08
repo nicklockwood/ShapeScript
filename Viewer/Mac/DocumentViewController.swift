@@ -122,6 +122,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                         width: splitView.bounds.width,
                         height: defaultConsoleHeight
                     )
+                    updateConsoleTextViewSize()
                     splitView.insertArrangedSubview(consoleScrollView, at: 1)
                     consoleTextView.textContainerInset = CGSize(width: 5, height: 5)
                 }
@@ -227,10 +228,15 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         consoleScrollView.hasVerticalScroller = true
         consoleScrollView.hasHorizontalScroller = false
         consoleScrollView.borderType = .noBorder
+        consoleScrollView.contentView.drawsBackground = false
         consoleTextView.isEditable = false
         consoleTextView.isRichText = false
         consoleTextView.importsGraphics = false
+        consoleTextView.isHorizontallyResizable = false
+        consoleTextView.isVerticallyResizable = true
+        consoleTextView.autoresizingMask = [.width, .height]
         consoleTextView.backgroundColor = .textBackgroundColor
+        updateConsoleTextViewSize()
         consoleScrollView.documentView = consoleTextView
 
         NSLayoutConstraint.activate([
@@ -252,6 +258,22 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         ])
 
         view = rootView
+    }
+
+    private func updateConsoleTextViewSize() {
+        let documentSize = consoleScrollView.bounds.size
+        consoleTextView.frame = NSRect(origin: .zero, size: documentSize)
+        consoleTextView.minSize = NSSize(width: 0, height: documentSize.height)
+        consoleTextView.maxSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        consoleTextView.textContainer?.widthTracksTextView = true
+        consoleTextView.textContainer?.heightTracksTextView = false
+        consoleTextView.textContainer?.containerSize = NSSize(
+            width: documentSize.width,
+            height: CGFloat.greatestFiniteMagnitude
+        )
     }
 
     override func viewDidLoad() {

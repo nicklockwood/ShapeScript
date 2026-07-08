@@ -28,15 +28,22 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
 }
 
 @MainActor func makeRTFTextView() -> NSTextView {
-    let textView = NSTextView()
+    let textView = NSTextView(frame: .zero)
     textView.isEditable = false
     textView.importsGraphics = false
+    textView.isHorizontallyResizable = false
     textView.isVerticallyResizable = true
+    textView.autoresizingMask = [.width]
+    textView.textContainer?.widthTracksTextView = true
+    textView.textContainer?.heightTracksTextView = false
     textView.drawsBackground = false
     return textView
 }
 
-@MainActor func makeScrollView(for textView: NSTextView) -> NSScrollView {
+@MainActor func makeScrollView(
+    for textView: NSTextView,
+    documentSize: NSSize
+) -> NSScrollView {
     let scrollView = NSScrollView()
     scrollView.translatesAutoresizingMaskIntoConstraints = false
     scrollView.borderType = .noBorder
@@ -44,6 +51,16 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
     scrollView.hasVerticalScroller = true
     scrollView.contentView.drawsBackground = false
     scrollView.contentInsets = NSEdgeInsets(top: 0, left: 15, bottom: 15, right: 15)
+    textView.frame = NSRect(origin: .zero, size: documentSize)
+    textView.minSize = NSSize(width: 0, height: documentSize.height)
+    textView.maxSize = NSSize(
+        width: CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+    )
+    textView.textContainer?.containerSize = NSSize(
+        width: documentSize.width,
+        height: CGFloat.greatestFiniteMagnitude
+    )
     scrollView.documentView = textView
     return scrollView
 }

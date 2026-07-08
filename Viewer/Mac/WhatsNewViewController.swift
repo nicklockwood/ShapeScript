@@ -14,7 +14,10 @@ final class WhatsNewViewController: NSViewController {
 
     override func loadView() {
         let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 660, height: 480))
-        let scrollView = makeScrollView(for: textView)
+        let scrollView = makeScrollView(
+            for: textView,
+            documentSize: NSSize(width: 630, height: 465)
+        )
         rootView.addSubview(scrollView)
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
