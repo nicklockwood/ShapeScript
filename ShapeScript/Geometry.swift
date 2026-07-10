@@ -6,16 +6,16 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-@preconcurrency import Euclid
+import Euclid
 import Foundation
 
 public typealias Polygon = Euclid.Polygon
 
 /// Cancellation handler - return true to cancel
-public typealias CancellationHandler = () -> Bool
+public typealias CancellationHandler = @Sendable () -> Bool
 
 /// Legacy callback type - return false to cancel
-public typealias LegacyCallback = () -> Bool
+public typealias LegacyCallback = @Sendable () -> Bool
 
 public final class Geometry: Hashable, @unchecked Sendable {
     public let type: GeometryType
@@ -545,7 +545,7 @@ private extension Geometry {
     /// Returns the meshes of the receivers children and their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes the receiver's material but not its transform
-    func childMeshes(_ callback: @escaping () -> Bool) -> [Mesh] {
+    func childMeshes(_ callback: @escaping LegacyCallback) -> [Mesh] {
         children.meshes(with: material, callback)
     }
 
@@ -639,7 +639,7 @@ private extension Geometry {
             self.mesh = mesh
             return callback()
         }
-        let isCancelled = { !callback() }
+        let isCancelled = { @Sendable in !callback() }
         if isCancelled() {
             return false
         }
@@ -656,9 +656,6 @@ private extension Geometry {
             mesh = .cube()
         case let .extrude(paths, .default) where paths.count == 1:
             mesh = .extrude(paths[0], isCancelled: isCancelled)
-            if paths[0].subpaths.count > 1 {
-                mesh = mesh?.makeWatertight().detessellate()
-            }
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
             mesh = .extrude(
                 paths[0].materialToVertexColors(material: material),
@@ -667,9 +664,6 @@ private extension Geometry {
                 align: options.align,
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
-            if !options.along[0].isClosed, paths[0].subpaths.count > 1 {
-                mesh = mesh?.makeWatertight().detessellate()
-            }
         case let .lathe(paths, segments: segments) where paths.count == 1:
             mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled)
         case let .fill(paths) where paths.count == 1:
@@ -769,7 +763,13 @@ private extension Geometry {
             self.mesh = .merge([mesh] + childMeshes(callback))
         }
         if callback() {
-            mesh = mesh?.makeWatertight()
+            switch type {
+            case .extrude:
+                let detessellatedMesh = mesh?.detessellate().makeWatertight()
+                mesh = detessellatedMesh?.isWatertight == true ? detessellatedMesh : mesh?.makeWatertight()
+            default:
+                mesh = mesh?.makeWatertight()
+            }
             if let smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }

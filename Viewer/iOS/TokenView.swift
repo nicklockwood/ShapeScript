@@ -8,8 +8,8 @@
 import UIKit
 
 protocol TokenViewDelegate: TextViewDelegate {
-    func tokens(for input: String) -> [TokenView.Token]
-    func attributes(for tokenType: TokenView.TokenType) -> [NSAttributedString.Key: Any]
+    @MainActor func tokens(for input: String) -> [TokenView.Token]
+    @MainActor func attributes(for tokenType: TokenView.TokenType) -> [NSAttributedString.Key: Any]
 }
 
 @MainActor final class TokenView: TextView {

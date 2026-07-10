@@ -1065,7 +1065,7 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
         _ = geometry.build { true }
-        XCTAssertEqual(geometry.mesh?.polygons.count, 1)
+        XCTAssertEqual(geometry.mesh?.polygons.count, 2)
     }
 
     func testEmptyMesh() throws {

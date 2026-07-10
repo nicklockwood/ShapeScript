@@ -123,7 +123,7 @@ final class LongPressMenuInteraction: NSObject, UIInteraction {
 }
 
 @available(iOS 16, *)
-extension LongPressMenuInteraction: @preconcurrency UIEditMenuInteractionDelegate {
+extension LongPressMenuInteraction: @MainActor UIEditMenuInteractionDelegate {
     func editMenuInteraction(
         _: UIEditMenuInteraction,
         menuFor configuration: UIEditMenuConfiguration,

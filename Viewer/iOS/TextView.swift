@@ -630,7 +630,7 @@ extension TextView: UITextDragDelegate, UITextDropDelegate {
 
 // MARK: LayoutManager
 
-extension TextView: @preconcurrency NSLayoutManagerDelegate {
+extension TextView: @MainActor NSLayoutManagerDelegate {
     func layoutManager(
         _: NSLayoutManager,
         didCompleteLayoutFor _: NSTextContainer?,

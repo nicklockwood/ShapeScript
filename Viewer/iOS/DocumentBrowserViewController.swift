@@ -11,7 +11,7 @@ import UIKit
 
 @MainActor
 final class DocumentBrowserViewController: UIDocumentBrowserViewController,
-    @preconcurrency UIDocumentBrowserViewControllerDelegate,
+    @MainActor UIDocumentBrowserViewControllerDelegate,
     UITextFieldDelegate
 {
     private weak var rootNavigationController: UINavigationController?

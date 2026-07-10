@@ -387,13 +387,23 @@ public extension Mesh {
         )
     }
 
-    /// Removes hairline cracks by inserting additional vertices without altering the shape.
-    /// - Returns: A new mesh with new vertices inserted if needed.
+    /// Removes holes by inserting additional vertices and capping closed boundary loops.
+    /// - Returns: A new mesh with new vertices and polygons inserted if needed.
     ///
     /// > Note: This method is not always successful. Check ``Mesh/isWatertight`` after to verify.
     func makeWatertight() -> Mesh {
         if watertightIfSet == true {
-            return self
+            guard !polygons.areConsistentlyWound else {
+                return self
+            }
+            return Mesh(
+                unchecked: polygons.withConsistentWinding(),
+                bounds: boundsIfSet,
+                bsp: nil,
+                isConvex: isKnownConvex,
+                isWatertight: true,
+                submeshes: submeshesIfEmpty
+            )
         }
         var holeEdges = polygons.holeEdges, polygons = polygons
         var precision = epsilon
@@ -402,20 +412,84 @@ public extension Mesh {
                 .insertingEdgeVertices(with: holeEdges)
                 .mergingVertices(withPrecision: precision)
             let newEdges = merged.holeEdges
-            if newEdges.count >= holeEdges.count {
-                // No improvement
-                break
+            if newEdges.count < holeEdges.count {
+                polygons = merged
+                holeEdges = newEdges
+                precision *= 10
+                continue
             }
-            polygons = merged
-            holeEdges = newEdges
-            precision *= 10
+            // No improvement
+            break
         }
+        if !holeEdges.isEmpty {
+            func capMaterial(for path: Path, in polygons: [Polygon]) -> Material? {
+                var weights = [(material: Material?, length: Double)]()
+                let pathEdges = path.undirectedEdges
+                for polygon in polygons {
+                    for edge in polygon.undirectedEdges where pathEdges.contains(edge) {
+                        if let index = weights.firstIndex(where: { $0.material == polygon.material }) {
+                            weights[index].length += edge.length
+                        } else {
+                            weights.append((polygon.material, edge.length))
+                        }
+                    }
+                }
+                return weights.max(by: { $0.length < $1.length })?.material
+            }
+
+            func capPolygons(for path: Path, material: Material?) -> [Polygon] {
+                let polygons = path.closed().facePolygons(material: material)
+                if !polygons.isEmpty {
+                    return polygons
+                }
+                guard path.isClosed else {
+                    return []
+                }
+                let vertices = path.points.dropLast().map(Vertex.init)
+                guard vertices.count > 2 else {
+                    return []
+                }
+                let center = Vertex(vertices.centroid)
+                return vertices.indices.compactMap { i in
+                    let j = (i + 1) % vertices.count
+                    guard vertices[i].position != vertices[j].position else {
+                        return nil
+                    }
+                    return Polygon(
+                        unchecked: [center, vertices[i], vertices[j]],
+                        plane: nil,
+                        isConvex: true,
+                        sanitizeNormals: true,
+                        material: material
+                    )
+                }
+            }
+            while !holeEdges.isEmpty {
+                let paths = Path(holeEdges).subpaths
+                let caps = paths.flatMap {
+                    capPolygons(for: $0, material: capMaterial(for: $0, in: polygons))
+                }
+                guard !caps.isEmpty else {
+                    break
+                }
+                let capped = (polygons + caps)
+                    .insertingEdgeVertices(with: holeEdges)
+                    .mergingVertices(withPrecision: epsilon)
+                let newEdges = capped.holeEdges
+                guard newEdges.count < holeEdges.count else {
+                    break
+                }
+                polygons = capped
+                holeEdges = newEdges
+            }
+        }
+        let isWatertight = holeEdges.isEmpty
         return Mesh(
-            unchecked: polygons,
+            unchecked: isWatertight ? polygons.withConsistentWinding() : polygons,
             bounds: boundsIfSet,
             bsp: nil,
             isConvex: false, // TODO: can makeWatertight make this false?
-            isWatertight: holeEdges.isEmpty,
+            isWatertight: isWatertight,
             submeshes: submeshesIfEmpty
         )
     }
@@ -499,6 +573,19 @@ extension Mesh {
 
     func isConvex(isCancelled: CancellationHandler = { false }) -> Bool {
         storage.isConvex(isCancelled: isCancelled)
+    }
+
+    /// Checks whether all polygon windings are consistent across shared edges.
+    var isConsistentlyWound: Bool {
+        polygons.areConsistentlyWound
+    }
+
+    var vertexNormalsFaceOutward: Bool {
+        polygons.allSatisfy { polygon in
+            polygon.vertices.allSatisfy {
+                $0.normal.dot(polygon.plane.normal) > 0
+            }
+        }
     }
 
     var boundsIfSet: Bounds? { storage.boundsIfSet }

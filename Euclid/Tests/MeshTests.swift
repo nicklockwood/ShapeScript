@@ -70,6 +70,83 @@ final class MeshTests: XCTestCase {
         }
     }
 
+    func testInsetExtrudedConcaveShapeRemovesCrossingFaces() {
+        let shape = Path([
+            .point(0, 0),
+            .point(0, 3),
+            .point(1, 3),
+            .point(1, 1),
+            .point(2, 1),
+            .point(2, 3),
+            .point(3, 3),
+            .point(3, 0),
+            .point(0, 0),
+        ])
+        let mesh = Mesh.extrude(shape).inset(by: 0.6)
+        XCTAssertFalse(mesh.polygons.contains { $0.orderedEdgesContainCrossings })
+    }
+
+    func testInsetConeDoesNotTurnTipInsideOut() {
+        let cone = Mesh.cone()
+        let mesh = cone.inset(by: 0.1)
+        XCTAssertEqual(mesh.polygons.count, cone.polygons.count)
+        XCTAssert(mesh.isWatertight, "hole edges: \(mesh.polygons.holeEdges.count)")
+        XCTAssert(mesh.polygons.areWatertight, "hole edges: \(mesh.polygons.holeEdges.count)")
+        XCTAssertFalse(mesh.polygons.contains {
+            $0.orderedEdgesContainCrossings
+        }, "crossing faces: \(mesh.polygons.filter(\.orderedEdgesContainCrossings).count)")
+    }
+
+    func testInsetConeKeepsSideEdgesStraight() throws {
+        let mesh = Mesh.cone().inset(by: 0.1)
+        let positions = Set(mesh.polygons.flatMap { $0.vertices.map(\.position) })
+        let side = positions.filter {
+            let radius = Vector($0.x, $0.z).length
+            return radius > epsilon && $0.y > mesh.bounds.min.y + epsilon
+        }
+        let directions = Dictionary(grouping: side) { position in
+            let angle = atan2(position.z, position.x)
+            return Int((angle / (Double.pi * 2) * 16).rounded())
+        }
+        for line in directions.values where line.count > 2 {
+            let sorted = line.sorted { $0.y < $1.y }
+            let edge = try XCTUnwrap(sorted.last) - sorted.first!
+            for position in sorted.dropFirst().dropLast() {
+                XCTAssert(edge.cross(position - sorted.first!).length < 1e-6)
+            }
+        }
+    }
+
+    func testInsetConePreservesAspectRatio() {
+        let cone = Mesh.cone()
+        let mesh = cone.inset(by: 0.1)
+        let coneSize = cone.bounds.size
+        let meshSize = mesh.bounds.size
+        XCTAssertEqual(meshSize.x / coneSize.x, meshSize.y / coneSize.y, accuracy: 1e-6)
+        XCTAssertEqual(meshSize.z / coneSize.z, meshSize.y / coneSize.y, accuracy: 1e-6)
+    }
+
+    func testInsetConeDisappearsWhenInsetPastRadius() {
+        let mesh = Mesh.cone().inset(by: 0.5)
+        XCTAssert(mesh.isEmpty, "polygons: \(mesh.polygons.count), bounds: \(mesh.bounds)")
+    }
+
+    func testInsetCubeSubtractingSphereDoesNotDisappear() {
+        let source = Mesh.cube(size: 0.8).subtracting(Mesh.sphere()).makeWatertight()
+        let mesh = source.inset(by: 0.01)
+        XCTAssert(source.isWatertight, "source hole edges: \(source.polygons.holeEdges.count)")
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThanOrEqual(mesh.polygons.count, source.polygons.count)
+        XCTAssert(
+            mesh.isWatertight,
+            "source polygons: \(source.polygons.count), inset polygons: \(mesh.polygons.count), inset hole edges: \(mesh.polygons.holeEdges.count)"
+        )
+        XCTAssert(mesh.polygons.areWatertight, "inset hole edges: \(mesh.polygons.holeEdges.count)")
+        XCTAssertFalse(mesh.polygons.contains {
+            $0.orderedEdgesContainCrossings
+        }, "crossing faces: \(mesh.polygons.filter(\.orderedEdgesContainCrossings).count)")
+    }
+
     func testSphereIsWatertightAndConvex() {
         let mesh = Mesh.sphere()
         XCTAssertEqual(mesh.watertightIfSet, true)
@@ -85,7 +162,7 @@ final class MeshTests: XCTestCase {
             { Mesh.cylinder(slices: 256, isCancelled: $0) },
             { Mesh.sphere(slices: 256, isCancelled: $0) },
         ] {
-            var checks = 0
+            nonisolated(unsafe) var checks = 0
             let mesh = build {
                 checks += 1
                 return checks > 3
@@ -102,7 +179,7 @@ final class MeshTests: XCTestCase {
             { Mesh.cylinder(slices: 20_000_000, isCancelled: $0) },
             { Mesh.sphere(slices: 20_000_000, isCancelled: $0) },
         ] {
-            var checks = 0
+            nonisolated(unsafe) var checks = 0
             let mesh = build {
                 checks += 1
                 return true
@@ -113,7 +190,7 @@ final class MeshTests: XCTestCase {
     }
 
     func testHighDetailSphereGenerationCanBeCancelledWhileBuildingProfile() {
-        var checks = 0
+        nonisolated(unsafe) var checks = 0
         let mesh = Mesh.sphere(slices: 20_000_000) {
             checks += 1
             return checks > 2
@@ -293,6 +370,40 @@ final class MeshTests: XCTestCase {
         mesh = mesh.makeWatertight()
         XCTAssertTrue(mesh.isWatertight)
         #endif
+    }
+
+    func testMakeWatertightCapUsesSurroundingMaterial() throws {
+        let red = Color(1, 0, 0)
+        let blue = Color(0, 0, 1)
+        let mesh = Mesh(openBoxPolygons(topMaterials: [red, red, blue, red]))
+
+        let watertight = mesh.makeWatertight()
+        let cap = try XCTUnwrap(watertight.polygons.first(where: { polygon in
+            polygon.vertices.allSatisfy { $0.position.z == 1 }
+        }))
+
+        XCTAssertTrue(watertight.isWatertight)
+        XCTAssertEqual(cap.material, red)
+    }
+
+    func testMakeWatertightCapUsesInterpolatedNormalsAndTexcoords() throws {
+        let red = Color(1, 0, 0)
+        let mesh = Mesh(openBoxPolygons(topMaterials: [red, red, red, red]))
+
+        let watertight = mesh.makeWatertight()
+        let cap = try XCTUnwrap(watertight.polygons.first(where: { polygon in
+            polygon.vertices.allSatisfy { $0.position.z == 1 }
+        }))
+
+        XCTAssertTrue(watertight.isWatertight)
+        XCTAssertFalse(cap.hasVertexNormals)
+        XCTAssertTrue(cap.hasTexcoords)
+        for vertex in cap.vertices {
+            XCTAssert(vertex.normal.isApproximatelyEqual(to: cap.plane.normal))
+            XCTAssert((0 ... 1).contains(vertex.texcoord.x))
+            XCTAssert((0 ... 1).contains(vertex.texcoord.y))
+        }
+        XCTAssertGreaterThan(Set(cap.vertices.map(\.texcoord)).count, 1)
     }
 
     // MARK: plane intersection
@@ -553,6 +664,101 @@ final class MeshTests: XCTestCase {
         XCTAssertFalse(sphere.hasVertexNormals)
     }
 
+    func testSmoothingNormalsWeightsCoplanarPolygonGroups() {
+        let center = Vertex(0, 0, 0)
+        let topCorners = [
+            Vertex(-1, 0, -1),
+            Vertex(1, 0, -1),
+            Vertex(1, 0, 1),
+            Vertex(-1, 0, 1),
+        ]
+        let bottomCorners = [
+            Vertex(-1, -0.2, -1),
+            Vertex(1, -0.2, -1),
+            Vertex(1, -0.2, 1),
+            Vertex(-1, -0.2, 1),
+        ]
+        let top = topCorners.indices.map { i in
+            Polygon(unchecked: [
+                center,
+                topCorners[(i + 1) % topCorners.count],
+                topCorners[i],
+            ])
+        }
+        let sides = topCorners.indices.map { i in
+            Polygon(unchecked: [
+                topCorners[i],
+                topCorners[(i + 1) % topCorners.count],
+                bottomCorners[(i + 1) % bottomCorners.count],
+                bottomCorners[i],
+            ])
+        }
+
+        let mesh = Mesh(top + sides).smoothingNormals(forAnglesGreaterThan: .pi)
+        let smoothedTop = mesh.polygons.prefix(top.count)
+        for polygon in smoothedTop {
+            for vertex in polygon.vertices {
+                XCTAssertEqual(vertex.normal.y, 1, accuracy: 0.02)
+            }
+        }
+    }
+
+    func testSmoothingNormalsReconstructsSmoothSphereNormals() {
+        let sphere = Mesh.sphere(slices: 32)
+        let smoothed = sphere.flatteningNormals().smoothingNormals(forAnglesGreaterThan: .pi)
+        for (expected, actual) in zip(sphere.polygons, smoothed.polygons) {
+            for (expected, actual) in zip(expected.vertices, actual.vertices) {
+                XCTAssertEqual(actual.position, expected.position)
+                XCTAssertGreaterThan(actual.normal.dot(expected.normal), 0.99)
+            }
+        }
+    }
+
+    func testSmoothingNormalsForPiSmoothsAllSphereFacesAtEachVertex() {
+        let smoothed = Mesh.sphere(slices: 32)
+            .flatteningNormals()
+            .smoothingNormals(forAnglesGreaterThan: .pi)
+
+        var normalsByPosition = [Vector: Vector]()
+        for polygon in smoothed.polygons {
+            for vertex in polygon.vertices {
+                if let normal = normalsByPosition[vertex.position] {
+                    XCTAssertEqual(vertex.normal, normal, accuracy: 1e-10)
+                } else {
+                    normalsByPosition[vertex.position] = vertex.normal
+                }
+            }
+        }
+    }
+
+    func testSmoothingNormalsAreIndependentOfPolygonOrder() throws {
+        struct VertexKey: Hashable {
+            let position: Vector
+            let plane: Plane
+        }
+
+        func normalsByVertex(in mesh: Mesh) -> [VertexKey: Vector] {
+            var result = [VertexKey: Vector]()
+            for polygon in mesh.polygons {
+                for vertex in polygon.vertices {
+                    result[VertexKey(position: vertex.position, plane: polygon.plane)] = vertex.normal
+                }
+            }
+            return result
+        }
+
+        let polygons = Mesh.sphere(slices: 32).flatteningNormals().polygons
+        let forward = Mesh(polygons).smoothingNormals(forAnglesGreaterThan: .pi)
+        let reversed = Mesh(Array(polygons.reversed())).smoothingNormals(forAnglesGreaterThan: .pi)
+        let expectedNormals = normalsByVertex(in: forward)
+
+        XCTAssertEqual(normalsByVertex(in: reversed).count, expectedNormals.count)
+        for (key, normal) in normalsByVertex(in: reversed) {
+            let expectedNormal = try XCTUnwrap(expectedNormals[key])
+            XCTAssertEqual(normal, expectedNormal, accuracy: 1e-15)
+        }
+    }
+
     // MARK: Reflection
 
     func testQuadReflectionAlongPlane() {
@@ -574,5 +780,42 @@ final class MeshTests: XCTestCase {
 
         XCTAssertEqual(reflection.plane.normal, -.unitY)
         XCTAssertEqual(reflection.vertices, expected.vertices)
+    }
+}
+
+private extension MeshTests {
+    func openBoxPolygons(topMaterials: [Mesh.Material?]) -> [Euclid.Polygon] {
+        precondition(topMaterials.count == 4)
+        let bottom = Polygon(unchecked: [
+            [-1, -1, -1],
+            [-1, 1, -1],
+            [1, 1, -1],
+            [1, -1, -1],
+        ])
+        let front = Polygon([
+            [-1, -1, -1],
+            [1, -1, -1],
+            [1, -1, 1],
+            [-1, -1, 1],
+        ], material: topMaterials[0])!
+        let right = Polygon([
+            [1, -1, -1],
+            [1, 1, -1],
+            [1, 1, 1],
+            [1, -1, 1],
+        ], material: topMaterials[1])!
+        let back = Polygon([
+            [1, 1, -1],
+            [-1, 1, -1],
+            [-1, 1, 1],
+            [1, 1, 1],
+        ], material: topMaterials[2])!
+        let left = Polygon([
+            [-1, 1, -1],
+            [-1, -1, -1],
+            [-1, -1, 1],
+            [-1, 1, 1],
+        ], material: topMaterials[3])!
+        return [bottom, front, right, back, left]
     }
 }

@@ -103,7 +103,7 @@ final class EvaluationContext {
     init(
         source: String,
         delegate: EvaluationDelegate?,
-        isCancelled: @escaping () -> Bool = { false }
+        isCancelled: @escaping CancellationHandler = { false }
     ) {
         self.source = source
         self.delegate = delegate

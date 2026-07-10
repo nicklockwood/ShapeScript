@@ -106,6 +106,31 @@ final class PlatformTests: XCTestCase {
         XCTAssertFalse(material.writesToDepthBuffer)
     }
 
+    func testSceneBuildRendersSelfIntersectingFilledPath() throws {
+        let scene = try evaluate(parse("""
+        fill path {
+            curve 0
+            curve 1
+            curve 0 2
+            curve 1 2
+            curve 0
+        }
+        """), delegate: nil)
+        XCTAssertTrue(scene.build { true })
+        scene.scnBuild(with: .default)
+
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertGreaterThan(try XCTUnwrap(geometry.mesh).polygons.count, 0)
+        XCTAssertGreaterThan(
+            geometry.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0,
+            0
+        )
+        XCTAssertGreaterThan(
+            geometry.scnGeometry.sources(for: .normal).first?.vectorCount ?? 0,
+            0
+        )
+    }
+
     private func cube(
         transform: Transform = .identity,
         material: Material

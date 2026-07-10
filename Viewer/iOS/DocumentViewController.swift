@@ -918,7 +918,7 @@ extension DocumentViewController {
     }
 }
 
-extension DocumentViewController: @preconcurrency SCNCameraControllerDelegate {
+extension DocumentViewController: @MainActor SCNCameraControllerDelegate {
     func cameraInertiaWillStart(for _: SCNCameraController) {
         rebuildMenu()
     }

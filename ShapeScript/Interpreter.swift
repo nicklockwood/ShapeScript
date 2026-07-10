@@ -17,7 +17,7 @@ public func evaluate(
     _ program: Program,
     delegate: EvaluationDelegate?,
     cache: GeometryCache? = GeometryCache(),
-    isCancelled: @escaping () -> Bool = { false }
+    isCancelled: @escaping CancellationHandler = { false }
 ) throws -> Scene {
     let (scene, error) = evaluate(
         program,
@@ -36,7 +36,7 @@ public func evaluate(
     _ program: Program,
     delegate: EvaluationDelegate?,
     cache: GeometryCache?,
-    isCancelled: @escaping () -> Bool
+    isCancelled: @escaping CancellationHandler
 ) -> (Scene, Error?) {
     let context = EvaluationContext(
         source: program.source,

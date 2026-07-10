@@ -144,7 +144,7 @@ public extension Polygon {
     typealias Material = AnyHashable
 
     /// Supported `NSSecureCodable` Material base classes.
-    static var codableClasses: [AnyClass] = {
+    nonisolated(unsafe) static var codableClasses: [AnyClass] = {
         #if canImport(AppKit) || canImport(UIKit)
         return [OSImage.self, OSColor.self] + scnMaterialTypes
         #else
@@ -403,14 +403,15 @@ public extension Polygon {
     ///
     /// > Note: Passing a negative `distance` will expand the polygon instead of shrinking it.
     func inset(by distance: Double) -> Polygon? {
-        let count = vertices.count
-        var v1 = vertices[count - 1]
-        var v2 = vertices[0]
+        let source = vertices
+        let count = source.count
+        var v1 = source[count - 1]
+        var v2 = source[0]
         var p1p2 = v2.position - v1.position
         var n1: Vector!
-        return Polygon((0 ..< count).map { i in
+        let insetVertices = (0 ..< count).map { i in
             v1 = v2
-            v2 = i < count - 1 ? vertices[i + 1] : vertices[0]
+            v2 = i < count - 1 ? source[i + 1] : source[0]
             let p0p1 = p1p2
             p1p2 = v2.position - v1.position
             let faceNormal = plane.normal
@@ -419,7 +420,25 @@ public extension Polygon {
             // TODO: do we need to inset texcoord as well? If so, by how much?
             let normal = (n0 + n1).normalized()
             return v1.translated(by: normal * -(distance / n0.dot(normal)))
-        })
+        }
+        let inset = resolveInsetIntersections(
+            in: insetVertices,
+            isClosed: true,
+            normal: plane.normal,
+            position: { (vertex: Vertex) in vertex.position },
+            interpolate: { (a: Vertex, b: Vertex, t: Double) in a.lerp(b, t) }
+        ).dropLast()
+        guard inset.count > 2, !verticesAreDegenerate(inset) else {
+            return nil
+        }
+        return Polygon(
+            unchecked: Array(inset),
+            plane: plane,
+            isConvex: nil,
+            sanitizeNormals: false,
+            material: material,
+            id: id
+        )
     }
 
     /// Splits a polygon into two or more convex polygons using the "ear clipping" method.
@@ -536,6 +555,33 @@ public extension Polygon {
     }
 }
 
+private extension Polygon {
+    /// Returns inset polygons, splitting into triangles if the moved polygon becomes invalid.
+    func insetPolygons(using positionCache: [Vector: Vector], by distance: Double) -> [Polygon] {
+        func moved(_ polygon: Polygon) -> Polygon? {
+            let vertices = polygon.vertices.map { vertex -> Vertex in
+                let key = vertex.position
+                let position = positionCache[key] ?? key.translated(by: polygon.plane.normal * -distance)
+                return Vertex(unchecked: position, vertex.normal, vertex.texcoord, vertex.color)
+            }
+            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
+                return nil
+            }
+            return Polygon(
+                unchecked: vertices,
+                normal: polygon.plane.normal,
+                isConvex: nil, // Inset can alter shape
+                sanitizeNormals: false,
+                material: polygon.material
+            )
+        }
+        if let polygon = moved(self) {
+            return [polygon]
+        }
+        return triangulate().compactMap(moved)
+    }
+}
+
 extension Collection<LineSegment> {
     /// Set of all unique start/end points in edge collection.
     var endPoints: Set<Vector> {
@@ -594,6 +640,94 @@ extension [Polygon] {
             $0.polygons.coplanarDetessellate(ensureConvex: ensureConvex, maxSides: maxSides)
         }
     }
+
+    /// Returns a copy of the polygons with winding made consistent across shared edges.
+    ///
+    /// The repair is propagated through two-polygon shared edges first, then makes
+    /// bounded balancing passes over non-manifold edges that are shared by more
+    /// than two polygons.
+    ///
+    /// - Parameter isLocked: A predicate that returns `true` for polygons whose
+    ///   current orientation should be preserved. Components containing locked
+    ///   polygons are used as fixed references when neighboring polygons are
+    ///   inverted to resolve inconsistent winding.
+    /// - Returns: A copy of the receiver with polygons inverted as needed to make
+    ///   shared-edge winding consistent.
+    func withConsistentWinding(isLocked: (Polygon) -> Bool = { _ in false }) -> [Polygon] {
+        let edgeMap = windingEdgeMap
+        var adjacency = [[(index: Int, parity: Int)]](repeating: [], count: count)
+        for matches in edgeMap.values where matches.count == 2 {
+            let parity = -matches[0].sign * matches[1].sign
+            adjacency[matches[0].index].append((matches[1].index, parity))
+            adjacency[matches[1].index].append((matches[0].index, parity))
+        }
+        let locked = map(isLocked)
+        var signs = [Int](repeating: 0, count: count)
+        var componentIDs = [Int](repeating: -1, count: count)
+        var components = [[Int]]()
+        func addComponent(from start: Int) {
+            let componentID = components.count
+            var component = [Int]()
+            signs[start] = 1
+            componentIDs[start] = componentID
+            var queue = [start]
+            while let index = queue.popLast() {
+                component.append(index)
+                for neighbor in adjacency[index] {
+                    let expectedSign = signs[index] * neighbor.parity
+                    if componentIDs[neighbor.index] < 0 {
+                        signs[neighbor.index] = expectedSign
+                        componentIDs[neighbor.index] = componentID
+                        queue.append(neighbor.index)
+                    }
+                }
+            }
+            components.append(component)
+        }
+        for start in indices where locked[start] && componentIDs[start] < 0 {
+            addComponent(from: start)
+        }
+        for start in indices where componentIDs[start] < 0 {
+            addComponent(from: start)
+        }
+        let componentIsLocked = components.map { component in
+            component.contains { locked[$0] }
+        }
+        var componentSigns = [Int](repeating: 1, count: components.count)
+        let multiEdgeMatches = inconsistentWindingEdges(in: edgeMap).compactMap {
+            edgeMap[$0]
+        }.filter {
+            $0.count != 2
+        }
+        let maxPasses = multiEdgeMatches.count
+        for _ in 0 ..< maxPasses {
+            var changed = false
+            for matches in multiEdgeMatches {
+                let balance = matches.reduce(0) {
+                    $0 + componentSigns[componentIDs[$1.index]] * signs[$1.index] * $1.sign
+                }
+                guard balance != 0 else {
+                    continue
+                }
+                let signToFlip = balance > 0 ? 1 : -1
+                if let match = matches.first(where: {
+                    let componentID = componentIDs[$0.index]
+                    return !componentIsLocked[componentID] &&
+                        componentSigns[componentID] * signs[$0.index] * $0.sign == signToFlip
+                }) {
+                    componentSigns[componentIDs[match.index]] *= -1
+                    changed = true
+                }
+            }
+            if !changed {
+                break
+            }
+        }
+        return enumerated().map { index, polygon in
+            let sign = signs[index] * componentSigns[componentIDs[index]]
+            return sign < 0 ? polygon.inverted() : polygon
+        }
+    }
 }
 
 extension Collection<Polygon> {
@@ -625,6 +759,11 @@ extension Collection<Polygon> {
         holeEdges.isEmpty
     }
 
+    /// Check if polygons have consistent winding, i.e. that they are not showing any back faces.
+    var areConsistentlyWound: Bool {
+        inconsistentlyWoundEdges.isEmpty
+    }
+
     /// Returns all edges that exist at the boundary of a hole.
     var holeEdges: Set<LineSegment> {
         var edges = Set<LineSegment>()
@@ -654,6 +793,11 @@ extension Collection<Polygon> {
             }
         }
         return edges
+    }
+
+    /// Returns all edges that are wound inconsistently.
+    var inconsistentlyWoundEdges: [LineSegment] {
+        inconsistentWindingEdges(in: windingEdgeMap)
     }
 
     /// Check if polygons all lie on the same plane.
@@ -756,21 +900,77 @@ extension Collection<Polygon> {
         guard threshold > .zero else {
             return flatteningNormals()
         }
-        var polygonsByVertex = [Vector: [Polygon]]()
-        forEach { polygon in
-            for vertex in polygon.vertices {
-                polygonsByVertex[vertex.position, default: []].append(polygon)
+
+        let polygons = Array(self)
+        var edgesToPolygons = [LineSegment: [Int]]()
+        for (index, polygon) in polygons.enumerated() {
+            for edge in polygon.undirectedEdges.sorted() {
+                edgesToPolygons[edge, default: []].append(index)
             }
         }
-        return map { p0 in
-            let n0 = p0.plane.normal
+
+        var polygonGroups = Array(repeating: -1, count: polygons.count)
+        var groupPolygons = [[Int]]()
+        for start in polygons.indices where polygonGroups[start] < 0 {
+            let group = groupPolygons.count
+            var members = [Int]()
+            var queue = [start]
+            polygonGroups[start] = group
+            while let index = queue.popLast() {
+                members.append(index)
+                for edge in polygons[index].undirectedEdges.sorted() {
+                    for neighbor in edgesToPolygons[edge] ?? [] where polygonGroups[neighbor] < 0 {
+                        guard polygons[index].plane.isApproximatelyEqual(to: polygons[neighbor].plane) else {
+                            continue
+                        }
+                        polygonGroups[neighbor] = group
+                        queue.append(neighbor)
+                    }
+                }
+            }
+            groupPolygons.append(members)
+        }
+
+        let groupNormals = groupPolygons.map { polygons[$0[0]].plane.normal }
+        let groupWeights = groupPolygons.map { group -> Double in
+            let area = group.reduce(0) { $0 + polygons[$1].area }
+            return area > 0 ? area : 1
+        }
+
+        var groupsByVertex = [Vector: Set<Int>]()
+        for (index, polygon) in polygons.enumerated() {
+            let group = polygonGroups[index]
+            for vertex in polygon.vertices {
+                groupsByVertex[vertex.position, default: []].insert(group)
+            }
+        }
+
+        func smoothedNormal(for group: Int, at vertex: Vector) -> Vector {
+            let normal = groupNormals[group]
+            let groups = (groupsByVertex[vertex] ?? [group])
+                .filter {
+                    angleBetweenNormalizedVectors(normal, groupNormals[$0]) < threshold
+                }
+                .sorted { lhs, rhs in
+                    if groupNormals[lhs] != groupNormals[rhs] {
+                        return groupNormals[lhs] < groupNormals[rhs]
+                    }
+                    if groupWeights[lhs] != groupWeights[rhs] {
+                        return groupWeights[lhs] < groupWeights[rhs]
+                    }
+                    return lhs < rhs
+                }
+            let sum = groups.reduce(Vector.zero) {
+                $0 + groupNormals[$1] * groupWeights[$1]
+            }
+            return sum == .zero ? normal : sum
+        }
+
+        return polygons.enumerated().map { index, p0 in
+            let group = polygonGroups[index]
             return Polygon(
                 unchecked: p0.vertices.map { v0 in
-                    let polygons = polygonsByVertex[v0.position] ?? []
-                    return v0.withNormal(polygons.compactMap { p1 in
-                        let n1 = p1.plane.normal
-                        return .acos(n0.dot(n1)) < threshold ? n1 : nil
-                    }.reduce(.zero) { $0 + $1 })
+                    v0.withNormal(smoothedNormal(for: group, at: v0.position))
                 },
                 plane: p0.plane,
                 isConvex: p0.isConvex,
@@ -807,41 +1007,180 @@ extension Collection<Polygon> {
 
     /// Inset along face normals
     func insetFaces(by distance: Double) -> [Polygon] {
-        compactMap { p0 in
-            Polygon(
-                p0.vertices.map { v0 in
-                    var planes: [Plane] = [p0.plane]
-                    for p1 in self where p1.vertices.contains(where: {
-                        $0.position.isApproximatelyEqual(to: v0.position)
-                    }) {
-                        let plane = p1.plane
-                        if !planes.contains(where: { $0.isApproximatelyEqual(to: plane) }) {
-                            planes.append(plane)
-                        }
-                    }
-                    let position: Vector
-                    switch planes.count {
-                    case 2:
-                        let normal = planes.map(\.normal).reduce(.zero) { $0 + $1 }.normalized()
-                        let distance = -(distance / p0.plane.normal.dot(normal))
-                        position = v0.position.translated(by: normal * distance)
-                    case 3...:
-                        planes = planes.map { $0.translated(by: $0.normal * -distance) }
-                        if let line = planes[0].intersection(with: planes[1]),
-                           let p = line.intersection(with: planes[2])
-                        {
-                            position = p
-                        } else {
-                            fallthrough
-                        }
-                    default:
-                        position = v0.position.translated(by: p0.plane.normal * -distance)
-                    }
-                    return Vertex(unchecked: position, v0.normal, v0.texcoord, v0.color)
-                },
-                material: p0.material
+        let source = Array(self).mergingVertices(withPrecision: epsilon)
+        var vertexInfo = [Vector: (planes: [Plane], neighbors: Set<Vector>)]()
+        for polygon in source {
+            for i in polygon.vertices.indices {
+                let position = polygon.vertices[i].position
+                let previous = polygon.vertices[i == 0 ? polygon.vertices.count - 1 : i - 1].position
+                let next = polygon.vertices[(i + 1) % polygon.vertices.count].position
+                var info = vertexInfo[position] ?? ([], [])
+                if !info.planes.contains(where: { $0.isApproximatelyEqual(to: polygon.plane) }) {
+                    info.planes.append(polygon.plane)
+                }
+                info.neighbors.insert(previous)
+                info.neighbors.insert(next)
+                vertexInfo[position] = info
+            }
+        }
+
+        var positionCache = [Vector: Vector]()
+        for (position, info) in vertexInfo {
+            positionCache[position] = insetPosition(
+                for: position,
+                planes: info.planes,
+                by: distance
             )
         }
+        let sourceBounds = Bounds(source.flatMap(\.vertices))
+        let isConvexSurface = source.isConvexSurface
+        if isConvexSurface {
+            for position in positionCache.keys {
+                guard let (a, b, t) = straightChain(for: position, in: vertexInfo),
+                      let a1 = positionCache[a],
+                      let b1 = positionCache[b]
+                else {
+                    continue
+                }
+                positionCache[position] = a1 + (b1 - a1) * t
+            }
+        }
+        let polygons = source.flatMap { polygon in
+            polygon.insetPolygons(using: positionCache, by: distance)
+        }
+        guard distance > 0, isConvexSurface else {
+            return polygons.mergingVertices(withPrecision: epsilon)
+        }
+        let insetBounds = Bounds(polygons.flatMap(\.vertices))
+        return insetBounds.isInside(sourceBounds) ? polygons
+            .mergingVertices(withPrecision: epsilon) : []
+    }
+
+    /// Returns true if all polygon vertices lie behind every face plane.
+    private var isConvexSurface: Bool {
+        let points = flatMap { $0.vertices.map(\.position) }
+        return allSatisfy { polygon in
+            points.allSatisfy { $0.signedDistance(from: polygon.plane) < epsilon }
+        }
+    }
+
+    /// Finds the longest straight neighbor chain passing through a vertex.
+    private func straightChain(
+        for position: Vector,
+        in vertexInfo: [Vector: (planes: [Plane], neighbors: Set<Vector>)]
+    ) -> (Vector, Vector, Double)? {
+        guard let info = vertexInfo[position] else {
+            return nil
+        }
+        let neighbors = Array(info.neighbors)
+        var best: (Vector, Vector)?
+        var bestLengthSquared = 0.0
+        for i in neighbors.indices {
+            for j in neighbors.indices.dropFirst(i + 1) {
+                let a = neighbors[i], b = neighbors[j]
+                guard pointsAreCollinear(a, position, b),
+                      (a - position).dot(b - position) < 0
+                else {
+                    continue
+                }
+                let lengthSquared = (b - a).lengthSquared
+                if lengthSquared > bestLengthSquared {
+                    best = (a, b)
+                    bestLengthSquared = lengthSquared
+                }
+            }
+        }
+        guard let best else {
+            return nil
+        }
+        let a = chainEndpoint(from: best.0, through: position, in: vertexInfo)
+        let b = chainEndpoint(from: best.1, through: position, in: vertexInfo)
+        let ab = b - a
+        let lengthSquared = ab.lengthSquared
+        guard lengthSquared > epsilon else {
+            return nil
+        }
+        let t = (position - a).dot(ab) / lengthSquared
+        guard t > epsilon, t < 1 - epsilon else {
+            return nil
+        }
+        return (a, b, t)
+    }
+
+    /// Walks from a vertex to the end of a straight chain.
+    private func chainEndpoint(
+        from neighbor: Vector,
+        through position: Vector,
+        in vertexInfo: [Vector: (planes: [Plane], neighbors: Set<Vector>)]
+    ) -> Vector {
+        var previous = position
+        var current = neighbor
+        while let next = vertexInfo[current]?.neighbors.first(where: {
+            $0 != previous && pointsAreCollinear(previous, current, $0) &&
+                ($0 - current).dot(current - previous) > 0
+        }) {
+            previous = current
+            current = next
+        }
+        return current
+    }
+
+    /// Calculates the inset position produced by offsetting the adjacent planes.
+    private func insetPosition(for position: Vector, planes: [Plane], by distance: Double) -> Vector {
+        let planes = planes.map { $0.translated(by: $0.normal * -distance) }
+        switch planes.count {
+        case 0:
+            return position
+        case 1:
+            return planes[0].nearestPoint(to: position)
+        case 2:
+            return planes[0].intersection(with: planes[1])?.nearestPoint(to: position) ?? position
+        case 3:
+            if let line = planes[0].intersection(with: planes[1]),
+               let point = line.intersection(with: planes[2])
+            {
+                return point
+            }
+            return bestFitIntersection(of: planes) ?? position
+        default:
+            return bestFitIntersection(of: planes) ?? position
+        }
+    }
+
+    /// Finds the least-squares intersection point for a set of planes.
+    private func bestFitIntersection(of planes: [Plane]) -> Vector? {
+        var m00 = 0.0, m01 = 0.0, m02 = 0.0
+        var m11 = 0.0, m12 = 0.0, m22 = 0.0
+        var b0 = 0.0, b1 = 0.0, b2 = 0.0
+        for plane in planes {
+            let n = plane.normal
+            m00 += n.x * n.x
+            m01 += n.x * n.y
+            m02 += n.x * n.z
+            m11 += n.y * n.y
+            m12 += n.y * n.z
+            m22 += n.z * n.z
+            b0 += n.x * plane.w
+            b1 += n.y * plane.w
+            b2 += n.z * plane.w
+        }
+        let determinant = m00 * (m11 * m22 - m12 * m12) -
+            m01 * (m01 * m22 - m12 * m02) +
+            m02 * (m01 * m12 - m11 * m02)
+        guard abs(determinant) > epsilon else {
+            return nil
+        }
+        return Vector(
+            (b0 * (m11 * m22 - m12 * m12) -
+                m01 * (b1 * m22 - m12 * b2) +
+                m02 * (b1 * m12 - m11 * b2)) / determinant,
+            (m00 * (b1 * m22 - m12 * b2) -
+                b0 * (m01 * m22 - m12 * m02) +
+                m02 * (m01 * b2 - b1 * m02)) / determinant,
+            (m00 * (m11 * b2 - b1 * m12) -
+                m01 * (m01 * b2 - b1 * m02) +
+                b0 * (m01 * m12 - m11 * m02)) / determinant
+        )
     }
 
     /// Flip each polygon along its plane
@@ -978,6 +1317,42 @@ extension Collection<Polygon> {
             }
         }
         return submeshes
+    }
+}
+
+private extension Collection<Polygon> {
+    typealias EdgeIndexMap = [LineSegment: [(index: Index, sign: Int)]]
+
+    /// Returns a map of undirected polygon edges to the polygons that contain them.
+    ///
+    /// Each map value preserves the collection index for the containing polygon
+    /// and a sign indicating whether that polygon uses the normalized edge
+    /// direction (`1`) or the opposite direction (`-1`).
+    var windingEdgeMap: EdgeIndexMap {
+        var edgeMap = EdgeIndexMap()
+        for index in indices {
+            for edge in self[index].orderedEdges {
+                let undirectedEdge = LineSegment(undirected: edge)
+                let sign = edge == undirectedEdge ? 1 : -1
+                edgeMap[undirectedEdge, default: []].append((index, sign))
+            }
+        }
+        return edgeMap
+    }
+
+    /// Returns edges whose matched polygon directions do not balance.
+    ///
+    /// Consistently wound two-polygon edges have one `1` sign and one `-1` sign.
+    /// Non-manifold edges are considered balanced when their signed uses sum to
+    /// zero.
+    ///
+    /// - Parameter edgeMap: A map produced by `windingEdgeMap`.
+    /// - Returns: The undirected edges whose signed uses do not cancel out.
+    func inconsistentWindingEdges(in edgeMap: EdgeIndexMap) -> [LineSegment] {
+        edgeMap.compactMap { edge, matches in
+            let balance = matches.reduce(0) { $0 + $1.sign }
+            return balance == 0 ? nil : edge
+        }
     }
 }
 

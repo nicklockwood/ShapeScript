@@ -76,7 +76,7 @@ final class GeometryTests: XCTestCase {
             .sphere(segments: 256),
         ] {
             let shape = Geometry(type: type, in: context)
-            var checks = 0
+            nonisolated(unsafe) var checks = 0
             XCTAssertFalse(shape.build {
                 checks += 1
                 return checks < 4
@@ -126,6 +126,26 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.overestimatedBounds.size, [1, 1, 0])
         XCTAssertEqual(shape.overestimatedBounds.center, [1, 2, 3])
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
+    }
+
+    func testSelfIntersectingFilledPathBuildsMesh() throws {
+        let scene = try evaluate(parse("""
+        fill path {
+            curve 0
+            curve 1
+            curve 0 2
+            curve 1 2
+            curve 0
+        }
+        """), delegate: nil)
+        XCTAssertTrue(scene.build { true })
+
+        let geometry = try XCTUnwrap(scene.children.first)
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.polygons.isEmpty)
+        XCTAssertFalse(mesh.bounds.isEmpty)
+        XCTAssertEqual(mesh.bounds, Bounds(min: [0.26, 0, 0], max: [0.74, 2, 0]))
+        XCTAssertEqual(geometry.overestimatedBounds, mesh.bounds)
     }
 
     func testTransformedMultipleFilledPathBounds() {

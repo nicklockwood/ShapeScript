@@ -6,7 +6,7 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
-@preconcurrency import Euclid
+import Euclid
 
 public struct Camera: Hashable, Sendable {
     public var position: Vector?

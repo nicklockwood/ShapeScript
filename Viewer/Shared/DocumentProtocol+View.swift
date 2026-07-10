@@ -181,7 +181,7 @@ extension DocumentProtocol {
             progress.setStatus(.partial(.empty))
 
             let minUpdatePeriod: TimeInterval = 0.1
-            var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
+            nonisolated(unsafe) var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
                 for: cameraSettings,
                 backgroundColor: backgroundColor,

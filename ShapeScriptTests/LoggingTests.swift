@@ -313,7 +313,7 @@ final class LoggingTests: XCTestCase {
         let input = try Geometry(type: .mesh(.init([
             XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)
-        XCTAssertEqual(input.logDescription, "mesh { polygons 1 }")
+        XCTAssertEqual(input.logDescription, "mesh { polygons 2 }")
         XCTAssertEqual(input.nestedLogDescription, "mesh")
     }
 
@@ -326,7 +326,7 @@ final class LoggingTests: XCTestCase {
         XCTAssertEqual(input.logDescription, """
         mesh {
             name "Mesh"
-            polygons 1
+            polygons 2
         }
         """)
         XCTAssertEqual(input.nestedLogDescription, "mesh")
@@ -339,7 +339,7 @@ final class LoggingTests: XCTestCase {
             XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)
         XCTAssertEqual(input.logDescription, """
-        mesh { polygons 7 }
+        mesh { polygons 8 }
         """)
         XCTAssertEqual(input.nestedLogDescription, "mesh")
     }

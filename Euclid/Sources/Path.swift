@@ -182,15 +182,16 @@ public extension Path {
         plane?.normal ?? faceNormalForPoints(points.map(\.position))
     }
 
+    /// Returns a copy of the polygon with transformed points
+    /// - Parameter transform: A closure to be applied to each point in the path.
+    func mapPoints(_ transform: (PathPoint) -> PathPoint) -> Path {
+        mapPoints(unchecked: transform, plane: nil)
+    }
+
     /// Returns a copy of the polygon with transformed point colors
     /// - Parameter transform: A closure to be applied to each color in the path.
     func mapColors(_ transform: (Color?) -> Color?) -> Path {
-        switch storage {
-        case let .points(points):
-            return .init(unchecked: .points(points.map { $0.withColor(transform($0.color)) }), plane: plane)
-        case let .subpaths(subpaths):
-            return .init(unchecked: .subpaths(subpaths.map { $0.mapColors(transform) }), plane: plane)
-        }
+        mapPoints(unchecked: { $0.withColor(transform($0.color)) }, plane: plane)
     }
 
     /// Returns a copy of the path with the specified color applied to each point.
@@ -308,13 +309,22 @@ public extension Path {
     /// If the path points do not include textcoords, they will be calculated automatically based on the
     /// path point positions relative to the bounding rectangle of the path.
     func facePolygons(material: Mesh.Material? = nil) -> [Polygon] {
+        if usesNonZeroFill, let polygons = nonZeroFillPolygons(material: material) {
+            return polygons
+        }
         guard subpaths.count <= 1 else {
             return subpaths.flatMap { $0.facePolygons(material: material) }
         }
         guard let vertices = faceVertices else {
             return []
         }
-        return .init(vertices, material: material)
+        let polygons = [Polygon](vertices, material: material)
+        if polygons.count == 1, polygons[0].triangulate().isEmpty,
+           let nonZeroPolygons = nonZeroFillPolygons(material: material), !nonZeroPolygons.isEmpty
+        {
+            return nonZeroPolygons
+        }
+        return polygons
     }
 
     /// An array of vertices suitable for constructing a polygon from the path.
@@ -378,87 +388,7 @@ public extension Path {
     /// - Parameter wrapMode: The wrap mode to use for generating texture coordinates.
     /// - Returns: The edge vertices, or an empty array if path has subpaths.
     func edgeVertices(for wrapMode: Mesh.WrapMode) -> [Vertex] {
-        guard subpaths.count <= 1, points.count > 1 else {
-            return points.first.map { [Vertex($0)] } ?? []
-        }
-
-        // get path length
-        var totalLength = 0.0
-        switch wrapMode {
-        case .shrink, .default:
-            var prev = points[0].position
-            totalLength = points.dropFirst().reduce(0) { total, point in
-                defer { prev = point.position }
-                return total + point.distance(from: prev)
-            }
-        case .tube:
-            var min = Double.infinity
-            var max = -Double.infinity
-            for point in points {
-                min = Swift.min(min, point.position.y)
-                max = Swift.max(max, point.position.y)
-            }
-            totalLength = max - min
-        case .none:
-            break
-        }
-
-        let count = isClosed ? points.count - 1 : points.count
-        var p1 = isClosed ? points[count - 1] : (
-            count > 2 ?
-                extrapolate(points[2], points[1], points[0]) :
-                extrapolate(points[1], points[0])
-        )
-        var p2 = points[0]
-        var p1p2 = p2.position - p1.position
-        var n1: Vector!
-        var vertices = [Vertex]()
-        var v = 0.0
-        let endIndex = count
-        let faceNormal = faceNormal
-        for i in 0 ..< endIndex {
-            p1 = p2
-            p2 = i < points.count - 1 ? points[i + 1] :
-                (isClosed ? points[1] : (
-                    count > 2 ?
-                        extrapolate(points[i - 2], points[i - 1], points[i]) :
-                        extrapolate(points[i - 1], points[i])
-                ))
-            let p0p1 = p1p2
-            p1p2 = p2.position - p1.position
-            let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
-            n1 = p1p2.cross(faceNormal).normalized()
-            let uv = Vector(0, v, 0)
-            switch wrapMode {
-            case .shrink, .default:
-                v += p1p2.length / totalLength
-            case .tube:
-                v += abs(p1p2.y) / totalLength
-            case .none:
-                break
-            }
-            if p1.isCurved {
-                let v = Vertex(
-                    unchecked: p1.position,
-                    (n0 + n1).normalized(),
-                    uv,
-                    p1.color
-                )
-                vertices.append(v)
-                vertices.append(v)
-            } else {
-                vertices.append(Vertex(unchecked: p1.position, n0, uv, p1.color))
-                vertices.append(Vertex(unchecked: p1.position, n1, uv, p1.color))
-            }
-        }
-        var first = vertices.removeFirst()
-        if isClosed {
-            first.texcoord = [0, v, 0]
-            vertices.append(first)
-        } else {
-            vertices.removeLast()
-        }
-        return vertices
+        edgeVertices(for: wrapMode, resolvingNonZeroFill: true)
     }
 
     /// Returns the ordered array of path edges.
@@ -483,25 +413,37 @@ public extension Path {
     ///
     /// > Note: Passing a negative `distance` will expand the path instead of shrinking it.
     func inset(by distance: Double) -> Path {
-        guard subpaths.count <= 1, points.count >= 2 else {
+        guard subpaths.count <= 1 else {
+            let subpaths = subpaths
+            let containment = PathContainmentIndex(subpaths)
+            return Path(subpaths: subpaths.enumerated().map { index, subpath in
+                let distance = containment.depth(of: index).isMultiple(of: 2) ? distance : -distance
+                return subpath.inset(by: distance)
+            })
+        }
+        guard points.count >= 2 else {
             return Path(subpaths: subpaths.map { $0.inset(by: distance) })
         }
-        let count = points.count
-        var p1 = isClosed ? points[count - 2] : (
+        if isClosed, !isSimple, let boundary = nonZeroFillBoundary() {
+            return boundary.inset(by: distance)
+        }
+        let source = points
+        let count = source.count
+        var p1 = isClosed ? source[count - 2] : (
             count > 2 ?
-                extrapolate(points[2], points[1], points[0]) :
-                extrapolate(points[1], points[0])
+                extrapolate(source[2], source[1], source[0]) :
+                extrapolate(source[1], source[0])
         )
-        var p2 = points[0]
+        var p2 = source[0]
         var p1p2 = p2.position - p1.position
         var n1: Vector!
-        return Path((0 ..< count).map { i in
+        let insetPoints = (0 ..< count).map { i in
             p1 = p2
-            p2 = i < count - 1 ? points[i + 1] :
-                (isClosed ? points[1] : (
+            p2 = i < count - 1 ? source[i + 1] :
+                (isClosed ? source[1] : (
                     count > 2 ?
-                        extrapolate(points[i - 2], points[i - 1], points[i]) :
-                        extrapolate(points[i - 1], points[i])
+                        extrapolate(source[i - 2], source[i - 1], source[i]) :
+                        extrapolate(source[i - 1], source[i])
                 ))
             let p0p1 = p1p2
             p1p2 = p2.position - p1.position
@@ -511,7 +453,18 @@ public extension Path {
             // TODO: do we need to inset texcoord as well? If so, by how much?
             let normal = (n0 + n1).normalized()
             return p1.translated(by: normal * -(distance / n0.dot(normal)))
-        })
+        }
+        let inset = resolveInsetIntersections(
+            in: insetPoints,
+            isClosed: isClosed,
+            normal: isClosed ? faceNormal : nil,
+            position: { (point: PathPoint) in point.position },
+            interpolate: { (a: PathPoint, b: PathPoint, t: Double) in a.lerp(b, t) }
+        )
+        guard !inset.isEmpty else {
+            return .empty
+        }
+        return Path(inset)
     }
 
     /// Returns the path recentered on the origin.
@@ -545,6 +498,31 @@ public extension Path {
             return [point]
         })
         return split ? path.withDetail(detail, twist: twist) : path
+    }
+}
+
+private struct PathContainmentIndex {
+    private let entries: [(point: Vector?, bounds: Bounds, polygon: Polygon?)]
+
+    init(_ paths: [Path]) {
+        self.entries = paths.map { ($0.points.first?.position, $0.bounds, Polygon($0)) }
+    }
+
+    func depth(of index: Int) -> Int {
+        guard entries.indices.contains(index),
+              let point = entries[index].point
+        else {
+            return 0
+        }
+        return entries.indices.reduce(0) { count, otherIndex in
+            guard otherIndex != index,
+                  entries[otherIndex].bounds.intersects(point),
+                  entries[otherIndex].polygon?.intersects(point) == true
+            else {
+                return count
+            }
+            return count + 1
+        }
     }
 }
 
@@ -640,6 +618,14 @@ extension Path {
         !pointsAreSelfIntersecting(points.map(\.position))
     }
 
+    /// Returns if path should use non-zero fill algorithm
+    var usesNonZeroFill: Bool {
+        guard isClosed, plane != nil else {
+            return false
+        }
+        return subpaths.count > 1 || pointsAreSelfIntersecting(points.map(\.position))
+    }
+
     /// Returns the most suitable FlatteningPlane for the path
     var flatteningPlane: FlatteningPlane {
         FlatteningPlane(normal: faceNormal)
@@ -649,6 +635,20 @@ extension Path {
     // TODO: Could this make use of Polygon.area?
     var hasZeroArea: Bool {
         points.count < (isClosed ? 4 : 3)
+    }
+
+    /// Returns a copy of the polygon with transformed points, preserving current plane
+    func mapPoints(unchecked transform: (PathPoint) -> PathPoint, plane: Plane?) -> Path {
+        switch storage {
+        case let .points(points):
+            return .init(unchecked: .points(sanitizePoints(points.map(transform))), plane: plane)
+        case let .subpaths(subpaths):
+            return .init(unchecked: .subpaths(subpaths.map {
+                // subpaths can sometimes have an inverse plane to the overall path
+                let plane = $0.plane == self.plane ? plane : plane?.inverted()
+                return $0.mapPoints(unchecked: transform, plane: plane)
+            }), plane: plane)
+        }
     }
 
     // flattens z-axis
@@ -669,6 +669,263 @@ extension Path {
                 isCurved: $0.isCurved
             )
         }), plane: .xy)
+    }
+
+    /// Compute the path edge vertices for a given wrap and fill mode
+    func edgeVertices(for wrapMode: Mesh.WrapMode, resolvingNonZeroFill: Bool) -> [Vertex] {
+        if resolvingNonZeroFill, usesNonZeroFill, let boundary = nonZeroFillBoundary() {
+            return boundary.subpaths.flatMap {
+                $0.edgeVertices(for: wrapMode, resolvingNonZeroFill: false)
+            }
+        }
+        guard subpaths.count <= 1, points.count > 1 else {
+            return points.first.map { [Vertex($0)] } ?? []
+        }
+
+        // get path length
+        var totalLength = 0.0
+        switch wrapMode {
+        case .shrink, .default:
+            var prev = points[0].position
+            totalLength = points.dropFirst().reduce(0) { total, point in
+                defer { prev = point.position }
+                return total + point.distance(from: prev)
+            }
+        case .tube:
+            var min = Double.infinity
+            var max = -Double.infinity
+            for point in points {
+                min = Swift.min(min, point.position.y)
+                max = Swift.max(max, point.position.y)
+            }
+            totalLength = max - min
+        case .none:
+            break
+        }
+
+        let count = isClosed ? points.count - 1 : points.count
+        var p1 = isClosed ? points[count - 1] : (
+            count > 2 ?
+                extrapolate(points[2], points[1], points[0]) :
+                extrapolate(points[1], points[0])
+        )
+        var p2 = points[0]
+        var p1p2 = p2.position - p1.position
+        var n1: Vector!
+        var vertices = [Vertex]()
+        var v = 0.0
+        let endIndex = count
+        let faceNormal = faceNormal
+        for i in 0 ..< endIndex {
+            p1 = p2
+            p2 = i < points.count - 1 ? points[i + 1] :
+                (isClosed ? points[1] : (
+                    count > 2 ?
+                        extrapolate(points[i - 2], points[i - 1], points[i]) :
+                        extrapolate(points[i - 1], points[i])
+                ))
+            let p0p1 = p1p2
+            p1p2 = p2.position - p1.position
+            let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
+            n1 = p1p2.cross(faceNormal).normalized()
+            let uv = Vector(0, v, 0)
+            switch wrapMode {
+            case .shrink, .default:
+                v += p1p2.length / totalLength
+            case .tube:
+                v += abs(p1p2.y) / totalLength
+            case .none:
+                break
+            }
+            if p1.isCurved {
+                let v = Vertex(
+                    unchecked: p1.position,
+                    (n0 + n1).normalized(),
+                    uv,
+                    p1.color
+                )
+                vertices.append(v)
+                vertices.append(v)
+            } else {
+                vertices.append(Vertex(unchecked: p1.position, n0, uv, p1.color))
+                vertices.append(Vertex(unchecked: p1.position, n1, uv, p1.color))
+            }
+        }
+        var first = vertices.removeFirst()
+        if isClosed {
+            first.texcoord = [0, v, 0]
+            vertices.append(first)
+        } else {
+            vertices.removeLast()
+        }
+        return vertices
+    }
+
+    func nonZeroFillPolygons(material: Mesh.Material?) -> [Polygon]? {
+        guard isClosed, let plane else {
+            return nil
+        }
+        let flatteningPlane = FlatteningPlane(normal: plane.normal)
+        let contours = subpaths.map {
+            $0.points.dropLast().map { flatteningPlane.flattenPoint($0.position) }
+        }.filter { $0.count > 2 }
+        guard !contours.isEmpty else {
+            return nil
+        }
+
+        struct ScanlineEdge {
+            let start: Vector
+            let end: Vector
+            let segment: LineSegment
+            let bounds: Bounds
+            let yMin: Double
+            let yMax: Double
+            let winding: Int
+
+            init?(_ start: Vector, _ end: Vector) {
+                guard !start.y.isApproximatelyEqual(to: end.y),
+                      let segment = LineSegment(start: start, end: end)
+                else {
+                    return nil
+                }
+                self.start = start
+                self.end = end
+                self.segment = segment
+                self.bounds = segment.bounds
+                self.yMin = min(start.y, end.y)
+                self.yMax = max(start.y, end.y)
+                self.winding = start.y < end.y ? 1 : -1
+            }
+
+            func contains(_ y: Double) -> Bool {
+                yMin < y && y < yMax
+            }
+
+            func x(at y: Double) -> Double {
+                let t = (y - start.y) / (end.y - start.y)
+                return start.x + (end.x - start.x) * t
+            }
+        }
+
+        let edges = contours.flatMap { contour -> [ScanlineEdge] in
+            var edges = [ScanlineEdge]()
+            var p0 = contour.last!
+            for p1 in contour {
+                if let edge = ScanlineEdge(p0, p1) {
+                    edges.append(edge)
+                }
+                p0 = p1
+            }
+            return edges
+        }
+        guard !edges.isEmpty else {
+            return []
+        }
+
+        var yValues = edges.flatMap { [$0.yMin, $0.yMax] }
+        for i in edges.indices {
+            for j in edges.indices.dropFirst(i + 1) {
+                guard edges[i].bounds.intersects(edges[j].bounds),
+                      let intersection = edges[i].segment.intersection(with: edges[j].segment),
+                      edges[i].yMin < intersection.y,
+                      intersection.y < edges[i].yMax,
+                      edges[j].yMin < intersection.y,
+                      intersection.y < edges[j].yMax
+                else {
+                    continue
+                }
+                yValues.append(intersection.y)
+            }
+        }
+        yValues.sort()
+        yValues = yValues.reduce(into: []) { values, y in
+            if let last = values.last, last.isApproximatelyEqual(to: y) {
+                return
+            }
+            values.append(y)
+        }
+
+        var polygons = [Polygon]()
+        for (y0, y1) in zip(yValues, yValues.dropFirst()) where y1 - y0 > epsilon {
+            let y = (y0 + y1) / 2
+            let activeEdges = edges.filter { $0.contains(y) }.sorted {
+                let x0 = $0.x(at: y), x1 = $1.x(at: y)
+                if x0.isApproximatelyEqual(to: x1) {
+                    return $0.winding < $1.winding
+                }
+                return x0 < x1
+            }
+
+            var winding = 0
+            var startEdge: ScanlineEdge?
+            for edge in activeEdges {
+                let previousWinding = winding
+                winding += edge.winding
+                if previousWinding == 0, winding != 0 {
+                    startEdge = edge
+                } else if previousWinding != 0, winding == 0, let leftEdge = startEdge {
+                    let x0Left = leftEdge.x(at: y0)
+                    let x0Right = edge.x(at: y0)
+                    let x1Right = edge.x(at: y1)
+                    let x1Left = leftEdge.x(at: y1)
+                    guard abs(edge.x(at: y) - leftEdge.x(at: y)) > epsilon else {
+                        continue
+                    }
+                    let vertices = [
+                        flatteningPlane.unflattenPoint([x0Left, y0], onto: plane),
+                        flatteningPlane.unflattenPoint([x0Right, y0], onto: plane),
+                        flatteningPlane.unflattenPoint([x1Right, y1], onto: plane),
+                        flatteningPlane.unflattenPoint([x1Left, y1], onto: plane),
+                    ].removingAdjacentDuplicates()
+                    if vertices.count > 2,
+                       let polygon = Polygon(vertices, material: material)
+                    {
+                        polygons.append(polygon.plane.normal.dot(plane.normal) < 0 ? polygon.inverted() : polygon)
+                    }
+                    startEdge = nil
+                }
+            }
+        }
+
+        return polygons
+    }
+
+    func nonZeroFillBoundary() -> Path? {
+        nonZeroFillPolygons(material: nil).map {
+            Path(unchecked: .subpaths($0.outlinePaths), plane: plane).restoringCurvature(from: self)
+        }
+    }
+
+    func nonZeroFillBoundaryEdges() -> [LineSegment]? {
+        nonZeroFillBoundary().map(\.orderedEdges)
+    }
+
+    func restoringCurvature(from source: Path) -> Path {
+        let curvedEdges = source.subpaths.flatMap { subpath -> [LineSegment] in
+            let points = subpath.points
+            return zip(points, points.dropFirst()).compactMap { p0, p1 in
+                guard p0.isCurved || p1.isCurved else {
+                    return nil
+                }
+                return LineSegment(unchecked: p0.position, p1.position)
+            }
+        }
+        guard !curvedEdges.isEmpty else {
+            return self
+        }
+        func isCurved(_ point: PathPoint) -> Bool {
+            curvedEdges.contains { $0.intersects(point.position) }
+        }
+        switch storage {
+        case let .points(points):
+            return Path(unchecked: points.map {
+                isCurved($0) ? $0.curved() : $0
+            }, plane: plane)
+        case let .subpaths(subpaths):
+            return Path(unchecked: .subpaths(subpaths.map {
+                $0.restoringCurvature(from: source)
+            }), plane: plane)
+        }
     }
 
     func clippedToYAxis() -> Path {
@@ -746,5 +1003,75 @@ extension Path {
             unchecked: points,
             plane: nil // Might have changed if path is self-intersecting
         )
+    }
+}
+
+private extension Collection<Polygon> {
+    var outlinePaths: [Path] {
+        var edges = outlineEdges
+        var paths = [Path]()
+        let plane = first?.plane
+        let normal = plane?.normal ?? .zero
+        while !edges.isEmpty {
+            let firstEdge = edges.removeFirst()
+            var points: [PathPoint] = [.point(firstEdge.start), .point(firstEdge.end)]
+            while points.last!.position != points[0].position {
+                let position = points.last!.position
+                let indices = edges.indices.filter { edges[$0].start == position }
+                let index: [LineSegment].Index?
+                if indices.count > 1 {
+                    let previousPosition = points[points.count - 2].position
+                    let incoming = position - previousPosition
+                    index = indices.max {
+                        incoming.cross(edges[$0].end - position).dot(normal) <
+                            incoming.cross(edges[$1].end - position).dot(normal)
+                    }
+                } else {
+                    index = indices.first
+                }
+                if let index {
+                    points.append(.point(edges.remove(at: index).end))
+                } else {
+                    break
+                }
+            }
+            points = points.rotatedToCanonicalStart()
+            paths.append(Path(points))
+        }
+        return paths.sorted { lhs, rhs in
+            lhs.points.map(\.position).lexicographicallyPrecedes(
+                rhs.points.map(\.position),
+                by: <
+            )
+        }
+    }
+
+    var outlineEdges: [LineSegment] {
+        var edgesByUndirectedEdge = [LineSegment: LineSegment]()
+        for polygon in self {
+            for edge in polygon.orderedEdges {
+                let undirectedEdge = LineSegment(undirected: edge)
+                if edgesByUndirectedEdge[undirectedEdge] != nil {
+                    edgesByUndirectedEdge[undirectedEdge] = nil
+                } else {
+                    edgesByUndirectedEdge[undirectedEdge] = edge
+                }
+            }
+        }
+        return Array(edgesByUndirectedEdge.values)
+    }
+}
+
+private extension [PathPoint] {
+    func rotatedToCanonicalStart() -> [PathPoint] {
+        guard first?.position == last?.position else {
+            return self
+        }
+        let points = dropLast()
+        guard let startIndex = points.indices.min(by: { self[$0].position < self[$1].position }) else {
+            return self
+        }
+        let rotated = Array(self[startIndex ..< points.endIndex] + self[points.startIndex ..< startIndex])
+        return rotated + [rotated[0]]
     }
 }

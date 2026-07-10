@@ -206,7 +206,7 @@ extension Token {
     }
 }
 
-extension SourceViewController: @preconcurrency TokenViewDelegate {
+extension SourceViewController: TokenViewDelegate {
     func tokens(for input: String) -> [TokenView.Token] {
         var stack = [Set<String>()]
         var isSwitch = [false]
