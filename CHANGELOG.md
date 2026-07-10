@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.10.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.4) (2026-07-10)
+
+- Fixed missing or ultra-narrow console text and release notes on macOS
+- Removed duplicate "Open Recent" file menu on macOS
+- Bumped Euclid to version 0.8.16
+
 ## [1.10.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.3) (2026-06-30)
 
 - Fixed rendering order for non-overlapping transparent objects (broken in 1.10.2)
