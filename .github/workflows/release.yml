@@ -26,12 +26,15 @@ jobs:
           ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Import Code Signing Certificate
+        env:
+          DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
         run: |
-          if [ -z "${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}" ]; then
+          if [ -z "$DEVELOPER_ID_CERTIFICATE_BASE64" ]; then
             echo "ERROR: DEVELOPER_ID_CERTIFICATE_BASE64 secret is empty or not set"
             exit 1
           fi
-          if [ -z "${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}" ]; then
+          if [ -z "$DEVELOPER_ID_CERTIFICATE_PASSWORD" ]; then
             echo "ERROR: DEVELOPER_ID_CERTIFICATE_PASSWORD secret is empty or not set"
             exit 1
           fi
@@ -41,11 +44,30 @@ jobs:
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
 
-          echo "${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
-          security import certificate.p12 -k build.keychain -P "${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          echo "$DEVELOPER_ID_CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+          trap 'rm -f certificate.p12' EXIT
+          security import certificate.p12 -k build.keychain -P "$DEVELOPER_ID_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
 
-          rm certificate.p12
+          security find-identity -v -p codesigning build.keychain
+          if ! security find-identity -v -p codesigning build.keychain | grep -q "Developer ID Application: .* (8VQKF583ED)"; then
+            echo "ERROR: DEVELOPER_ID_CERTIFICATE_BASE64 must contain a Developer ID Application certificate for team 8VQKF583ED with its private key"
+            exit 1
+          fi
+
+      - name: Validate notarization credentials
+        env:
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+        run: |
+          if [ -z "$NOTARIZATION_USERNAME" ]; then
+            echo "ERROR: NOTARIZATION_USERNAME secret is empty or not set"
+            exit 1
+          fi
+          if [ -z "$NOTARIZATION_PASSWORD" ]; then
+            echo "ERROR: NOTARIZATION_PASSWORD secret is empty or not set"
+            exit 1
+          fi
 
       - name: Archive ShapeScript Viewer
         run: |
@@ -59,6 +81,7 @@ jobs:
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="8VQKF583ED" \
             PROVISIONING_PROFILE_SPECIFIER="" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $HOME/Library/Keychains/build.keychain-db" \
             archive
 
       - name: Copy archived app
@@ -77,6 +100,7 @@ jobs:
           spctl -a -v "$APP_PATH"
 
       - name: Notarize app
+        id: notarize
         uses: lando/notarize-action@v2
         with:
           product-path: ${{ steps.export-app.outputs.app-path }}
@@ -90,7 +114,7 @@ jobs:
         run: xcrun stapler staple "${{ steps.export-app.outputs.app-path }}"
 
       - name: Get notarization logs
-        if: failure()
+        if: failure() && steps.notarize.outcome == 'failure'
         run: |
           xcrun notarytool history --team-id 8VQKF583ED --apple-id "${{ secrets.NOTARIZATION_USERNAME }}" --password "${{ secrets.NOTARIZATION_PASSWORD }}"
           REQUEST_UUID=$(xcrun notarytool history --team-id 8VQKF583ED --apple-id "${{ secrets.NOTARIZATION_USERNAME }}" --password "${{ secrets.NOTARIZATION_PASSWORD }}" | grep -E "id:\s*[a-f0-9-]{36}" | head -1 | sed 's/.*id: //')
