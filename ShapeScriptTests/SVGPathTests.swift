@@ -35,7 +35,7 @@ final class SVGPathTests: XCTestCase {
             string: svgPathWithDoubledBackSegments,
             with: .init(invertYAxis: false)
         ), detail: 1)
-        let mesh = Mesh.extrude(path, depth: 8)
+        let mesh = Mesh.extrude(path, depth: 8).makeWatertight()
         let capArea = Mesh(mesh.polygons.filter {
             abs($0.plane.normal.z) > 0.5
         }).surfaceArea

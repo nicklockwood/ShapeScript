@@ -465,7 +465,7 @@ public extension Mesh {
                 }
             }
             while !holeEdges.isEmpty {
-                let paths = Path(holeEdges).subpaths
+                let paths = Path(holeEdges.sorted()).subpaths
                 let caps = paths.flatMap {
                     capPolygons(for: $0, material: capMaterial(for: $0, in: polygons))
                 }
@@ -577,7 +577,8 @@ extension Mesh {
 
     /// Checks whether all polygon windings are consistent across shared edges.
     var isConsistentlyWound: Bool {
-        polygons.areConsistentlyWound
+        assert(polygons.areWatertight) // always returns false otherwise
+        return polygons.areConsistentlyWound
     }
 
     var vertexNormalsFaceOutward: Bool {

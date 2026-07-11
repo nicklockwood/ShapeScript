@@ -75,6 +75,62 @@ extension Euclid.Polygon {
     var orderedEdgesContainCrossings: Bool {
         orderedEdges.containCrossings(isClosed: true)
     }
+
+    func containsProjectedPoint(_ point: Vector) -> Bool {
+        let positions = vertices.map(\.position)
+        return positions.containProjectedPoint(point)
+    }
+
+    func containsProjectedPoint(_ point: Vector, normal: Vector) -> Bool {
+        let positions = vertices.map { $0.position.projectedForTesting(along: normal) }
+        return positions.containProjectedPoint(point)
+    }
+}
+
+private extension Collection<Vector> {
+    func containProjectedPoint(_ point: Vector) -> Bool {
+        let positions = Array(self)
+        var contains = false
+        var previousIndex = positions.count - 1
+        for index in positions.indices {
+            let current = positions[index]
+            let previous = positions[previousIndex]
+            if (current.y > point.y) != (previous.y > point.y) {
+                let x = (previous.x - current.x) * (point.y - current.y) / (previous.y - current.y) + current.x
+                if point.x < x {
+                    contains.toggle()
+                }
+            }
+            previousIndex = index
+        }
+        return contains
+    }
+}
+
+extension Collection<Euclid.Polygon> {
+    func containProjectedPoint(_ point: Vector) -> Bool {
+        contains { $0.containsProjectedPoint(point) }
+    }
+
+    func containProjectedPoint(_ point: Vector, normal: Vector) -> Bool {
+        contains { $0.containsProjectedPoint(point, normal: normal) }
+    }
+}
+
+extension Vector {
+    func projectedForTesting(along normal: Vector) -> Vector {
+        let normal = normal.normalized()
+        let x = abs(normal.x)
+        let y = abs(normal.y)
+        let z = abs(normal.z)
+        if x > y, x > z {
+            return [self.y, self.z]
+        }
+        if y > z {
+            return [self.x, self.z]
+        }
+        return [self.x, self.y]
+    }
 }
 
 extension Mesh {
@@ -150,6 +206,18 @@ extension Transform {
 }
 
 extension Path {
+    static func star(sides: Int) -> Path {
+        var points = [PathPoint]()
+        for i in 0 ..< sides {
+            let innerAngle = -.pi / 2 + Double(i) * 2 * .pi / Double(sides)
+            let outerAngle = innerAngle + .pi / Double(sides)
+            points.append(.point(0.5 * cos(innerAngle), 0.5 * sin(innerAngle)))
+            points.append(.point(cos(outerAngle), sin(outerAngle)))
+        }
+        points.append(points[0])
+        return Path(points)
+    }
+
     static let compoundPath: Path = .init(subpaths: [
         Path([
             .point(0, 0),

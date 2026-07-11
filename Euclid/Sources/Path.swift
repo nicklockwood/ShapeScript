@@ -128,8 +128,8 @@ public extension Path {
     /// > Note: If the path has subpaths then the points returned may not represent a single contour
     var points: [PathPoint] {
         switch storage {
-        case let .points(points): return points
-        case let .subpaths(subpaths): return subpaths.flatMap(\.points)
+        case let .points(points): points
+        case let .subpaths(subpaths): subpaths.flatMap(\.points)
         }
     }
 
@@ -137,8 +137,8 @@ public extension Path {
     /// > Note: For paths without nested subpaths, this will return an array containing only `self`.
     var subpaths: [Path] {
         switch storage {
-        case .points: return [self]
-        case let .subpaths(subpaths): return subpaths
+        case .points: [self]
+        case let .subpaths(subpaths): subpaths
         }
     }
 
@@ -146,8 +146,8 @@ public extension Path {
     /// > Note: If path is empty, will return true. If path has subpaths, will return true only if all are closed.
     var isClosed: Bool {
         switch storage {
-        case let .points(points): return pointsAreClosed(unchecked: points)
-        case let .subpaths(subpaths): return subpaths.allSatisfy(\.isClosed)
+        case let .points(points): pointsAreClosed(unchecked: points)
+        case let .subpaths(subpaths): subpaths.allSatisfy(\.isClosed)
         }
     }
 
@@ -219,9 +219,9 @@ public extension Path {
     func inverted() -> Path {
         switch storage {
         case let .points(points):
-            return .init(unchecked: .points(points.reversed()), plane: plane)
+            .init(unchecked: .points(points.reversed()), plane: plane)
         case let .subpaths(subpaths):
-            return .init(unchecked: .subpaths(subpaths.map { $0.inverted() }), plane: plane)
+            .init(unchecked: .subpaths(subpaths.map { $0.inverted() }), plane: plane)
         }
     }
 
@@ -395,9 +395,9 @@ public extension Path {
     var orderedEdges: [LineSegment] {
         switch storage {
         case let .subpaths(subpaths):
-            return subpaths.flatMap(\.orderedEdges)
+            subpaths.flatMap(\.orderedEdges)
         case let .points(points):
-            return points.orderedEdges
+            points.orderedEdges
         }
     }
 
@@ -567,7 +567,7 @@ extension Path {
         self.init(unchecked: .subpaths(subpaths), plane: plane)
     }
 
-    /// This method assumed points do not have subpaths and may assert if they do
+    /// This method assumes points do not have subpaths and may assert if they do
     init(unchecked points: [PathPoint], plane: Plane?) {
         assert(subpathsFor(points).count <= 1)
         self.init(unchecked: .points(points), plane: plane)
@@ -620,10 +620,10 @@ extension Path {
 
     /// Returns if path should use non-zero fill algorithm
     var usesNonZeroFill: Bool {
-        guard isClosed, plane != nil else {
+        guard isClosed, subpaths.count <= 1, plane != nil else {
             return false
         }
-        return subpaths.count > 1 || pointsAreSelfIntersecting(points.map(\.position))
+        return pointsAreSelfIntersecting(points.map(\.position))
     }
 
     /// Returns the most suitable FlatteningPlane for the path
@@ -641,9 +641,9 @@ extension Path {
     func mapPoints(unchecked transform: (PathPoint) -> PathPoint, plane: Plane?) -> Path {
         switch storage {
         case let .points(points):
-            return .init(unchecked: .points(sanitizePoints(points.map(transform))), plane: plane)
+            .init(unchecked: .points(sanitizePoints(points.map(transform))), plane: plane)
         case let .subpaths(subpaths):
-            return .init(unchecked: .subpaths(subpaths.map {
+            .init(unchecked: .subpaths(subpaths.map {
                 // subpaths can sometimes have an inverse plane to the overall path
                 let plane = $0.plane == self.plane ? plane : plane?.inverted()
                 return $0.mapPoints(unchecked: transform, plane: plane)
@@ -901,26 +901,103 @@ extension Path {
     }
 
     func restoringCurvature(from source: Path) -> Path {
-        let curvedEdges = source.subpaths.flatMap { subpath -> [LineSegment] in
+        struct CurvedEdge {
+            let subpathIndex: Int
+            let edgeIndex: Int
+            let edgeCount: Int
+            let segment: LineSegment
+
+            var direction: Vector { segment.direction }
+
+            func isAdjacent(to other: CurvedEdge, at point: Vector) -> Bool {
+                guard subpathIndex == other.subpathIndex,
+                      segment.start == point || segment.end == point,
+                      other.segment.start == point || other.segment.end == point
+                else {
+                    return false
+                }
+                let nextIndex = (edgeIndex + 1) % edgeCount
+                let otherNextIndex = (other.edgeIndex + 1) % other.edgeCount
+                return nextIndex == other.edgeIndex || otherNextIndex == edgeIndex
+            }
+        }
+        let curvedEdges = source.subpaths.enumerated().flatMap { subpathIndex, subpath -> [CurvedEdge] in
             let points = subpath.points
-            return zip(points, points.dropFirst()).compactMap { p0, p1 in
+            let edgeCount = max(0, points.count - 1)
+            return zip(points.indices, zip(points, points.dropFirst())).compactMap { edgeIndex, points in
+                let (p0, p1) = points
                 guard p0.isCurved || p1.isCurved else {
                     return nil
                 }
-                return LineSegment(unchecked: p0.position, p1.position)
+                return CurvedEdge(
+                    subpathIndex: subpathIndex,
+                    edgeIndex: edgeIndex,
+                    edgeCount: edgeCount,
+                    segment: LineSegment(unchecked: p0.position, p1.position)
+                )
             }
         }
         guard !curvedEdges.isEmpty else {
             return self
         }
-        func isCurved(_ point: PathPoint) -> Bool {
-            curvedEdges.contains { $0.intersects(point.position) }
+        func matchingCurvedEdges(for segment: LineSegment) -> [CurvedEdge] {
+            curvedEdges.filter {
+                $0.segment.intersects(segment.start) && $0.segment.intersects(segment.end)
+            }
+        }
+        func isCurved(_ point: Vector, between incoming: LineSegment, and outgoing: LineSegment) -> Bool {
+            let incomingMatches = matchingCurvedEdges(for: incoming)
+            let outgoingMatches = matchingCurvedEdges(for: outgoing)
+            guard !incomingMatches.isEmpty, !outgoingMatches.isEmpty else {
+                return false
+            }
+            for match in incomingMatches {
+                for other in outgoingMatches {
+                    if match.subpathIndex == other.subpathIndex, match.edgeIndex == other.edgeIndex {
+                        return true
+                    }
+                    if match.isAdjacent(to: other, at: point) {
+                        return true
+                    }
+                    if abs(match.direction.dot(other.direction)) > 1 - epsilon {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+        func pointsWithRestoredCurvature(_ points: [PathPoint]) -> [PathPoint] {
+            let isClosed = pointsAreClosed(unchecked: points)
+            guard points.count > (isClosed ? 3 : 2) else {
+                return points
+            }
+            let indices = isClosed ? points.indices.dropLast() : points.indices[...]
+            var result = indices.map { i in
+                guard isClosed || (i > 0 && i < points.count - 1) else {
+                    return points[i]
+                }
+                let previousIndex = i == 0 ? points.count - 2 : i - 1
+                let nextIndex = isClosed && i == points.count - 2 ? 0 : i + 1
+                guard let incoming = LineSegment(
+                    start: points[previousIndex].position,
+                    end: points[i].position
+                ), let outgoing = LineSegment(
+                    start: points[i].position,
+                    end: points[nextIndex].position
+                ) else {
+                    return points[i]
+                }
+                return isCurved(points[i].position, between: incoming, and: outgoing) ?
+                    points[i].curved() : points[i]
+            }
+            if isClosed, let first = result.first {
+                result.append(first)
+            }
+            return result
         }
         switch storage {
         case let .points(points):
-            return Path(unchecked: points.map {
-                isCurved($0) ? $0.curved() : $0
-            }, plane: plane)
+            return Path(unchecked: pointsWithRestoredCurvature(points), plane: plane)
         case let .subpaths(subpaths):
             return Path(unchecked: .subpaths(subpaths.map {
                 $0.restoringCurvature(from: source)

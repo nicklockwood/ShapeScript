@@ -108,10 +108,9 @@ public extension Mesh {
             min: center - halfSize,
             max: center + halfSize
         )
-        let mesh: Mesh
-        switch faces {
+        let mesh = switch faces {
         case .front, .default:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons,
                 bounds: bounds,
                 bsp: nil,
@@ -120,7 +119,7 @@ public extension Mesh {
                 submeshes: []
             )
         case .back:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons.inverted(),
                 bounds: bounds,
                 bsp: nil,
@@ -129,7 +128,7 @@ public extension Mesh {
                 submeshes: []
             )
         case .frontAndBack:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: bounds,
                 bsp: nil,
@@ -604,6 +603,25 @@ public extension Mesh {
                 )
             }, isCancelled: isCancelled))
         }
+        let shapeGroups = (shape.nonZeroFillBoundaryForLoft() ?? shape).filledSubpathGroups()
+        if shapeGroups.count > 1 {
+            let material = SendableMaterial(material)
+            let meshes = batch(shapeGroups, stride: 1) {
+                $0.map { shape in
+                    isCancelled() ? .empty : loft(
+                        shape.extrusionContours(
+                            along: along,
+                            twist: twist,
+                            align: align
+                        ),
+                        faces: faces,
+                        material: material.value,
+                        isCancelled: isCancelled
+                    )
+                }
+            }
+            return .merge(meshes)
+        }
         return loft(shape.extrusionContours(
             along: along,
             twist: twist,
@@ -647,17 +665,19 @@ public extension Mesh {
     ) -> Mesh {
         let shape = shape.closed()
         let subpaths = shape.subpaths
-        let polygons = shape.facePolygons(material: material)
-        if subpaths.count > 1, polygons.isEmpty {
+        if subpaths.count > 1 {
+            if let boundary = shape.nonZeroFillBoundaryForLoft(), boundary != shape {
+                return fill(boundary, faces: faces, material: material, isCancelled: isCancelled)
+            }
             return .symmetricDifference(subpaths.map {
                 .fill($0, faces: faces, material: material, isCancelled: isCancelled)
             }, isCancelled: isCancelled)
         }
+        let polygons = shape.facePolygons(material: material)
         let isConvex = polygons.count == 1 && polygons[0].isConvex
-        let mesh: Mesh
-        switch faces {
+        let mesh = switch faces {
         case .front:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons,
                 bounds: nil,
                 bsp: nil,
@@ -666,7 +686,7 @@ public extension Mesh {
                 submeshes: []
             )
         case .back:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil,
                 bsp: nil,
@@ -675,7 +695,7 @@ public extension Mesh {
                 submeshes: []
             )
         case .frontAndBack, .default:
-            mesh = Mesh(
+            Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil,
                 bsp: nil,
@@ -847,6 +867,55 @@ private extension Collection<Path> {
 }
 
 private extension Path {
+    func filledSubpathGroups() -> [Path] {
+        let subpaths = subpaths.filter { !$0.isEmpty }
+        guard subpaths.count > 1 else {
+            return subpaths
+        }
+
+        struct Entry {
+            let point: Vector?
+            let bounds: Bounds
+            let polygon: Polygon?
+        }
+
+        let entries = subpaths.map {
+            Entry(point: $0.points.first?.position, bounds: $0.bounds, polygon: Polygon($0))
+        }
+        let containers = entries.indices.map { index in
+            entries.indices.filter { otherIndex in
+                guard otherIndex != index,
+                      let point = entries[index].point,
+                      entries[otherIndex].bounds.intersects(point),
+                      entries[otherIndex].polygon?.intersects(point) == true
+                else {
+                    return false
+                }
+                return true
+            }
+        }
+        let depths = containers.map(\.count)
+        let outerIndexes = entries.indices.filter { depths[$0].isMultiple(of: 2) }
+        guard outerIndexes.count > 1 else {
+            return [self]
+        }
+
+        return outerIndexes.map { outerIndex in
+            let group = entries.indices.filter { index in
+                if index == outerIndex {
+                    return true
+                }
+                guard !depths[index].isMultiple(of: 2),
+                      depths[index] == depths[outerIndex] + 1
+                else {
+                    return false
+                }
+                return containers[index].contains(outerIndex)
+            }
+            return Path(subpaths: group.sorted().map { subpaths[$0] })
+        }
+    }
+
     func nonZeroFillBoundaryForLoft() -> Path? {
         guard isClosed, let boundary = nonZeroFillBoundary() else {
             return nil
@@ -857,10 +926,11 @@ private extension Path {
         if hasCurvedPoints {
             return subpathsShareVertices ? boundary : nil
         }
-        guard boundary.subpaths.count > 1 || subpathsHaveConsistentWinding || subpathsShareVertices else {
-            return nil
-        }
-        return boundary
+        let preservesSubpaths = boundary.subpaths.count == subpaths.count
+        return boundary.subpaths.count > 1 && (
+            !subpathsShareVertices || subpathsSharePoints ||
+                (subpathsHaveConsistentWinding && preservesSubpaths)
+        ) ? boundary : nil
     }
 
     var hasCurvedPoints: Bool {
@@ -890,6 +960,19 @@ private extension Path {
                 }
             }
             previousEdges += subpath.orderedEdges
+        }
+        return false
+    }
+
+    var subpathsSharePoints: Bool {
+        var vertices = Set<Vector>()
+        for subpath in subpaths {
+            let positions = subpath.points.dropLast(subpath.isClosed ? 1 : 0).map(\.position)
+            for position in positions {
+                guard vertices.insert(position).inserted else {
+                    return true
+                }
+            }
         }
         return false
     }
@@ -1232,7 +1315,9 @@ private extension Mesh {
         let faceNormal = originalShapes.first?.faceNormal ?? .zero
         let shapes = originalShapes.filter { !$0.isEmpty }
         let first = shapes.first
-        let firstFacePolygons = first?.facePolygons(material: material) ?? []
+        let firstBoundary = first?.nonZeroFillBoundary()
+        let firstFacePolygons = firstBoundary?.facePolygons(material: material) ??
+            first?.facePolygons(material: material) ?? []
         let firstCapPolygons: [Polygon] = first.flatMap { first in
             shapes.first(where: { $0 != first }).map { next in
                 let p0p1 = directionBetweenShapes(first, next)
@@ -1247,10 +1332,7 @@ private extension Mesh {
         } ?? []
         let canBuildMappedSides = transforms.allSatisfy { $0 != nil }
         var polygons: [Polygon]
-        if canBuildMappedSides,
-           let first,
-           let boundary = first.nonZeroFillBoundary()
-        {
+        if canBuildMappedSides, let boundary = firstBoundary {
             polygons = []
             func transformedVertex(_ vertex: Vertex, by transform: (Vector) -> Vector) -> Vertex {
                 let position = transform(vertex.position)
@@ -1441,7 +1523,7 @@ private extension Mesh {
                     isCancelled: isCancelled
                 )
             }
-            return .symmetricDifference(subshapes.map {
+            return Mesh.symmetricDifference(subshapes.map {
                 Mesh.loft($0, faces: faces, material: material, isCancelled: isCancelled)
             }, isCancelled: isCancelled)
         }
@@ -1641,12 +1723,6 @@ private extension Mesh {
         guard e0.count > 1 || e1.count > 1 else {
             return
         }
-        if e0.count == e1.count {
-            for j in stride(from: 0, to: e0.count, by: 2) {
-                addFace(e0[j], e0[j + 1], e1[j + 1], e1[j])
-            }
-            return
-        }
         var t0 = -p0.bounds.center, t1 = -p1.bounds.center
         var r = rotationBetweenNormalizedVectors(n1, n0)
         var closed0 = p0.isClosed, closed1 = p1.isClosed
@@ -1663,6 +1739,13 @@ private extension Mesh {
             }
             return
         }
+        let shouldAlignClosedRings = closed0 && closed1 && abs(n0.dot(n1)) > 1 - epsilon
+        if e0.count == e1.count, !shouldAlignClosedRings {
+            for j in stride(from: 0, to: e0.count, by: 2) {
+                addFace(e0[j], e0[j + 1], e1[j + 1], e1[j])
+            }
+            return
+        }
         let fp0 = p0.flatteningPlane, fp1 = p1.flatteningPlane
         // Ensure edges have the same orientation
         if flattenedPointsAreClockwise(e0.map {
@@ -1672,6 +1755,37 @@ private extension Mesh {
         }) {
             e0.reverse()
             // TODO: fix mirrored texture coords
+        }
+        if e0.count == e1.count {
+            if shouldAlignClosedRings {
+                let count = e0.count / 2
+                var bestOffset = 0
+                var bestDistance = Double.infinity
+                let positions0 = stride(from: 0, to: e0.count, by: 2).map {
+                    e0[$0].position.translated(by: t0)
+                }
+                let positions1 = stride(from: 0, to: e1.count, by: 2).map {
+                    e1[$0].position.translated(by: t1).rotated(by: r)
+                }
+                for offset in 0 ..< count {
+                    var distance = 0.0
+                    for i in 0 ..< count {
+                        distance += (positions0[i] - positions1[(i + offset) % count]).lengthSquared
+                    }
+                    if distance < bestDistance {
+                        bestOffset = offset
+                        bestDistance = distance
+                    }
+                }
+                if bestOffset > 0 {
+                    let index = bestOffset * 2
+                    e1 = Array(e1[index ..< e1.count]) + Array(e1[0 ..< index])
+                }
+            }
+            for j in stride(from: 0, to: e0.count, by: 2) {
+                addFace(e0[j], e0[j + 1], e1[j + 1], e1[j])
+            }
+            return
         }
         let sparseCount = e0.count / 2
         let denseCount = e1.count / 2
