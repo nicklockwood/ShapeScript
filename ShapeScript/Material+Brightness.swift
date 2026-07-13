@@ -20,9 +20,9 @@ public extension MaterialProperty {
     var averageColor: Color {
         switch self {
         case let .color(color):
-            return color
+            color
         case let .texture(texture):
-            return texture.averageColor ?? .clear
+            texture.averageColor ?? .clear
         }
     }
 }

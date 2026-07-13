@@ -55,30 +55,30 @@ public extension MaterialProperty {
     var opacity: Double {
         switch self {
         case let .color(color):
-            return color.a
+            color.a
         case .texture:
             // There's not really a good option here but
             // it works best to treat textures as opaque
             // even if they have partial transparency
-            return 1
+            1
         }
     }
 
     var color: Color? {
         switch self {
         case let .color(color):
-            return color
+            color
         case .texture:
-            return nil
+            nil
         }
     }
 
     var texture: Texture? {
         switch self {
         case let .texture(texture):
-            return texture
+            texture
         case .color:
-            return nil
+            nil
         }
     }
 }

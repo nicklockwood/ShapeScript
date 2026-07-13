@@ -77,7 +77,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         shareButton = UIBarButtonItem(
             systemItem: .action,
             primaryAction: UIAction { [weak self] _ in
-                guard let self, let document = self.document else {
+                guard let self, let document else {
                     return
                 }
                 let sheet = UIActivityViewController(
@@ -88,8 +88,8 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
                     applicationActivities: nil
                 )
                 sheet.popoverPresentationController?
-                    .barButtonItem = self.navigationItem.rightBarButtonItem
-                self.present(sheet, animated: true)
+                    .barButtonItem = navigationItem.rightBarButtonItem
+                present(sheet, animated: true)
             }
         )
 
@@ -180,19 +180,19 @@ extension TokenType {
     var tokenViewType: TokenView.TokenType {
         switch self {
         case .dot, .prefix, .infix, .lbrace, .rbrace, .lparen, .rparen, .call, .lbracket, .rbracket, .subscript:
-            return .operator
+            .operator
         case .identifier:
-            return .identifier
+            .identifier
         case .keyword:
-            return .keyword
+            .keyword
         case .hexColor:
-            return .color
+            .color
         case .number:
-            return .number
+            .number
         case .string:
-            return .string
+            .string
         case .linebreak, .eof:
-            return .default
+            .default
         }
     }
 }
@@ -274,19 +274,19 @@ extension SourceViewController: TokenViewDelegate {
     func attributes(for tokenType: TokenView.TokenType) -> [NSAttributedString.Key: Any] {
         switch tokenType {
         case .keyword:
-            return [.foregroundColor: UIColor.systemPurple]
+            [.foregroundColor: UIColor.systemPurple]
         case .number:
-            return [.foregroundColor: UIColor.orange]
+            [.foregroundColor: UIColor.orange]
         case .string, .color:
-            return [.foregroundColor: UIColor.systemRed]
+            [.foregroundColor: UIColor.systemRed]
         case .stdlib, .member:
-            return [.foregroundColor: UIColor {
+            [.foregroundColor: UIColor {
                 $0.userInterfaceStyle == .dark ? .systemTeal : .systemIndigo
             }]
         case .default:
-            return [.foregroundColor: UIColor.systemGray]
+            [.foregroundColor: UIColor.systemGray]
         case .identifier, .operator, _:
-            return [:]
+            [:]
         }
     }
 

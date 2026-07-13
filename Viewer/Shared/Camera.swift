@@ -55,13 +55,13 @@ extension Camera: Equatable {
 
     var orientation: Rotation {
         switch type {
-        case .front: return .identity
-        case .back: return .yaw(.pi)
-        case .left: return .yaw(.halfPi)
-        case .right: return .yaw(-.halfPi)
-        case .top: return .pitch(.halfPi)
-        case .bottom: return .pitch(-.halfPi)
-        default: return geometry?.transform.rotation ?? .identity
+        case .front: .identity
+        case .back: .yaw(.pi)
+        case .left: .yaw(.halfPi)
+        case .right: .yaw(-.halfPi)
+        case .top: .pitch(.halfPi)
+        case .bottom: .pitch(-.halfPi)
+        default: geometry?.transform.rotation ?? .identity
         }
     }
 

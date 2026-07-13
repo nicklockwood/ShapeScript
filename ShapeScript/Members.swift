@@ -14,9 +14,9 @@ extension ValueType {
     func instance(with values: [String: Value]) -> Value? {
         switch self {
         case .object:
-            return .object(values)
+            .object(values)
         case .material:
-            return .material(.init(
+            .material(.init(
                 opacity: values["opacity"]?.numberOrTextureValue,
                 albedo: (values["color"] ?? values["texture"])?.colorOrTextureValue,
                 normals: values["normals"]?.value as? Texture,
@@ -27,16 +27,16 @@ extension ValueType {
         case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
              .point, .range, .partialRange, .bounds, .union, .tuple, .list, .any:
-            return nil
+            nil
         }
     }
 
     var memberTypes: [String: ValueType] {
         switch self {
         case let .object(members):
-            return members
+            members
         case .material:
-            return [
+            [
                 "color": .color,
                 "opacity": .number,
                 "texture": .texture,
@@ -49,9 +49,9 @@ extension ValueType {
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
              .point, .range, .partialRange, .bounds, .union, .tuple, .list:
             // TODO: something better
-            return Self.memberTypes
+            Self.memberTypes
         case .any:
-            return [:]
+            [:]
         }
     }
 
@@ -302,22 +302,22 @@ extension Value {
                 return .bounds(Bounds(values.flattened(recursive: true).compactMap {
                     switch $0.value {
                     case let bounded as Bounded:
-                        return bounded.bounds
+                        bounded.bounds
                     case let geometry as Geometry:
-                        return geometry.exactBounds(with: geometry.transform) {
+                        geometry.exactBounds(with: geometry.transform) {
                             !isCancelled()
                         }
                     default:
-                        return nil
+                        nil
                     }
                 }))
             case "volume":
                 return .number(values.flattened(recursive: true).reduce(0) {
                     switch $1 {
                     case let .mesh(geometry) where geometry.hasMesh:
-                        return $0 + geometry.volume(isCancelled)
+                        $0 + geometry.volume(isCancelled)
                     default:
-                        return $0
+                        $0
                     }
                 })
             case "polygons":

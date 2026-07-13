@@ -42,31 +42,31 @@ enum ValueType: Hashable, Sendable {
 extension ValueType: Comparable {
     private var sortIndex: Int {
         switch self {
-        case .any: return 0
-        case .color: return 1
-        case .boolean: return 2
-        case .number: return 3
-        case .radians: return 4
-        case .halfturns: return 5
-        case .vector: return 6
-        case .size: return 7
-        case .rotation: return 8
-        case .string: return 9
-        case .text: return 10
-        case .path: return 11
-        case .mesh: return 12
-        case .polygon: return 13
-        case .point: return 14
-        case .range: return 15
-        case .texture: return 16
-        case .font: return 17
-        case .bounds: return 18
-        case .union: return 19
-        case .tuple: return 20
-        case .list: return 21
-        case .object: return 22
-        case .material: return 23
-        case .partialRange: return 24
+        case .any: 0
+        case .color: 1
+        case .boolean: 2
+        case .number: 3
+        case .radians: 4
+        case .halfturns: 5
+        case .vector: 6
+        case .size: 7
+        case .rotation: 8
+        case .string: 9
+        case .text: 10
+        case .path: 11
+        case .mesh: 12
+        case .polygon: 13
+        case .point: 14
+        case .range: 15
+        case .texture: 16
+        case .font: 17
+        case .bounds: 18
+        case .union: 19
+        case .tuple: 20
+        case .list: 21
+        case .object: 22
+        case .material: 23
+        case .partialRange: 24
         }
     }
 
@@ -116,9 +116,9 @@ extension ValueType {
     var subtypes: Set<ValueType> {
         switch self {
         case let .union(types):
-            return types
+            types
         default:
-            return [self]
+            [self]
         }
     }
 
@@ -147,11 +147,11 @@ extension ValueType {
     func union(_ type: ValueType) -> ValueType {
         switch (self, type) {
         case let (.union(lhs), .union(rhs)):
-            return Self.union(lhs.union(rhs)).simplified()
+            Self.union(lhs.union(rhs)).simplified()
         case let (.union(lhs), rhs):
-            return Self.union(lhs.union([rhs])).simplified()
+            Self.union(lhs.union([rhs])).simplified()
         case let (lhs, rhs):
-            return Self.union([lhs, rhs]).simplified()
+            Self.union([lhs, rhs]).simplified()
         }
     }
 
@@ -192,20 +192,20 @@ extension ValueType {
     func isSubtype(of type: ValueType) -> Bool {
         switch (self, type) {
         case (_, .any):
-            return true
+            true
         case let (.union(lhs), rhs):
-            return lhs.allSatisfy { $0.isSubtype(of: rhs) }
+            lhs.allSatisfy { $0.isSubtype(of: rhs) }
         case let (_, .union(types)):
-            return types.contains(where: isSubtype(of:))
+            types.contains(where: isSubtype(of:))
         case let (.list(lhs), .list(rhs)):
-            return lhs.isSubtype(of: rhs)
+            lhs.isSubtype(of: rhs)
         case let (.tuple(lhs), .tuple(rhs)):
-            return lhs.count == rhs.count &&
+            lhs.count == rhs.count &&
                 zip(lhs, rhs).allSatisfy { $0.isSubtype(of: $1) }
         case let (.tuple(lhs), .list(rhs)):
-            return lhs.allSatisfy { $0.isSubtype(of: rhs) }
+            lhs.allSatisfy { $0.isSubtype(of: rhs) }
         default:
-            return self == type
+            self == type
         }
     }
 
@@ -227,44 +227,44 @@ extension ValueType {
 
     fileprivate func description(pluralized: Bool) -> String {
         switch self {
-        case .color: return "color\(pluralized ? "s" : "")"
-        case .texture: return "texture\(pluralized ? "s" : "")"
-        case .material: return "material\(pluralized ? "s" : "")"
-        case .font: return "font\(pluralized ? "s" : "")"
-        case .boolean: return "boolean\(pluralized ? "s" : "")"
-        case .number: return "number\(pluralized ? "s" : "")"
-        case .radians: return "angle\(pluralized ? "s" : "") in radians"
-        case .halfturns: return "angle\(pluralized ? "s" : "") in half-turns"
-        case .vector: return "vector\(pluralized ? "s" : "")"
-        case .size: return "size\(pluralized ? "s" : "")"
-        case .rotation: return "rotation\(pluralized ? "s" : "")"
-        case .string: return "string\(pluralized ? "s" : "")"
-        case .text, .list(.text): return "text"
-        case .path: return "path\(pluralized ? "s" : "")"
-        case .mesh: return "mesh\(pluralized ? "es" : "")"
-        case .polygon: return "polygon\(pluralized ? "s" : "")"
-        case .point: return "point\(pluralized ? "s" : "")"
-        case .range: return "range\(pluralized ? "s" : "")"
-        case .partialRange: return "partial range\(pluralized ? "s" : "")"
-        case .bounds: return "bounds"
-        case .any: return "any"
+        case .color: "color\(pluralized ? "s" : "")"
+        case .texture: "texture\(pluralized ? "s" : "")"
+        case .material: "material\(pluralized ? "s" : "")"
+        case .font: "font\(pluralized ? "s" : "")"
+        case .boolean: "boolean\(pluralized ? "s" : "")"
+        case .number: "number\(pluralized ? "s" : "")"
+        case .radians: "angle\(pluralized ? "s" : "") in radians"
+        case .halfturns: "angle\(pluralized ? "s" : "") in half-turns"
+        case .vector: "vector\(pluralized ? "s" : "")"
+        case .size: "size\(pluralized ? "s" : "")"
+        case .rotation: "rotation\(pluralized ? "s" : "")"
+        case .string: "string\(pluralized ? "s" : "")"
+        case .text, .list(.text): "text"
+        case .path: "path\(pluralized ? "s" : "")"
+        case .mesh: "mesh\(pluralized ? "es" : "")"
+        case .polygon: "polygon\(pluralized ? "s" : "")"
+        case .point: "point\(pluralized ? "s" : "")"
+        case .range: "range\(pluralized ? "s" : "")"
+        case .partialRange: "partial range\(pluralized ? "s" : "")"
+        case .bounds: "bounds"
+        case .any: "any"
         case let .tuple(types) where types.count == 1:
-            return types[0].description(pluralized: pluralized)
-        case .tuple([]): return "empty tuple\(pluralized ? "s" : "")"
+            types[0].description(pluralized: pluralized)
+        case .tuple([]): "empty tuple\(pluralized ? "s" : "")"
         case let .tuple(types) where Set(types) == [.number] && (2 ... 3).contains(types.count):
-            return "vector"
+            "vector"
         case let .tuple(types) where Set(types).count == 1:
-            return "list\(pluralized ? "s" : "") of \(types[0].description(pluralized: true))"
+            "list\(pluralized ? "s" : "") of \(types[0].description(pluralized: true))"
         case .tuple:
             // TODO: list the types?
-            return "tuple\(pluralized ? "s" : "")"
-        case .list(.any): return "list"
-        case .list(.number): return "vector"
+            "tuple\(pluralized ? "s" : "")"
+        case .list(.any): "list"
+        case .list(.number): "vector"
         case let .list(type):
-            return "list\(pluralized ? "s" : "") of \(type.description(pluralized: true))"
+            "list\(pluralized ? "s" : "") of \(type.description(pluralized: true))"
         case let .union(types):
-            return types.description(pluralized: pluralized)
-        case .object: return "object\(pluralized ? "s" : "")"
+            types.description(pluralized: pluralized)
+        case .object: "object\(pluralized ? "s" : "")"
         }
     }
 }
@@ -283,12 +283,12 @@ private extension Set<ValueType> {
     }
 
     func simplified() -> Self {
-        let types = flatMap {
-            switch $0.simplified() {
+        let types = flatMap { type -> Set<ValueType> in
+            switch type.simplified() {
             case let .union(types):
-                return types
+                types
             default:
-                return [$0]
+                [type]
             }
         }.sorted()
         guard var result = types.first.map({ [$0] }) else {
@@ -365,13 +365,13 @@ extension Symbol {
     var type: ValueType {
         switch self {
         case let .function(type, _):
-            return type.returnType
+            type.returnType
         case let .block(type, _):
-            return type.returnType
+            type.returnType
         case let .property(type, _, _), let .placeholder(type):
-            return type
+            type
         case let .constant(value), let .option(value):
-            return value.type
+            value.type
         }
     }
 }
@@ -379,32 +379,32 @@ extension Symbol {
 extension Value {
     var type: ValueType {
         switch self {
-        case .color: return .color
-        case .texture: return .texture
-        case .material: return .material
-        case .boolean: return .boolean
-        case .number: return .number
-        case .radians: return .radians
-        case .halfturns: return .halfturns
-        case .vector: return .vector
-        case .size: return .size
-        case .rotation: return .rotation
-        case .string: return .string
-        case .font: return .font
-        case .text: return .text
-        case .path: return .path
-        case .mesh: return .mesh
-        case .polygon: return .polygon
-        case .point: return .point
-        case .bounds: return .bounds
+        case .color: .color
+        case .texture: .texture
+        case .material: .material
+        case .boolean: .boolean
+        case .number: .number
+        case .radians: .radians
+        case .halfturns: .halfturns
+        case .vector: .vector
+        case .size: .size
+        case .rotation: .rotation
+        case .string: .string
+        case .font: .font
+        case .text: .text
+        case .path: .path
+        case .mesh: .mesh
+        case .polygon: .polygon
+        case .point: .point
+        case .bounds: .bounds
         case let .range(range):
-            return range.end == nil ? .partialRange : .range
+            range.end == nil ? .partialRange : .range
         case let .tuple(values):
-            return .tuple(values.map(\.type))
+            .tuple(values.map(\.type))
         case let .object(values):
-            return .object(values.mapValues { $0.type })
+            .object(values.mapValues { $0.type })
         case let .pretransformed(value):
-            return value.type
+            value.type
         }
     }
 
@@ -659,9 +659,9 @@ extension Definition {
     func staticSymbol(in context: EvaluationContext) throws -> Symbol {
         switch type {
         case let .expression(expression):
-            return try .placeholder(expression.staticType(in: context))
+            try .placeholder(expression.staticType(in: context))
         case .function, .block:
-            return try evaluate(in: context)
+            try evaluate(in: context)
         }
     }
 
@@ -934,17 +934,16 @@ extension Expression {
             var type: ValueType = .void
             try context.pushScope { context in
                 if let identifier {
-                    let elementType: ValueType
-                    switch try expression.staticType(in: context) {
+                    let elementType: ValueType = switch try expression.staticType(in: context) {
                     case let .tuple(types):
-                        elementType = .union(Set(types))
+                        .union(Set(types))
                     case let .list(type):
-                        elementType = type
+                        type
                     case .range:
-                        elementType = .number
+                        .number
                     default:
                         // TODO: can we do better here?
-                        elementType = .any
+                        .any
                     }
                     context.define(identifier.name, as: .placeholder(elementType))
                 }

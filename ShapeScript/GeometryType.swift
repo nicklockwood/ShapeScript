@@ -96,20 +96,20 @@ public extension GeometryType {
     var isEmpty: Bool {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
-            return true
+            true
         case .cone, .cylinder, .sphere, .cube:
-            return false
+            false
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
              let .loft(shapes),
              let .fill(shapes):
-            return shapes.isEmpty || shapes.allSatisfy { $0.points.count < 2 }
+            shapes.isEmpty || shapes.allSatisfy { $0.points.count < 2 }
         case let .hull(vertices):
-            return vertices.count < 2
+            vertices.count < 2
         case let .path(path):
-            return path.points.count < 2
+            path.points.count < 2
         case let .mesh(mesh):
-            return mesh.polygons.isEmpty
+            mesh.polygons.isEmpty
         }
     }
 
@@ -154,11 +154,11 @@ extension GeometryType {
     var isLeafGeometry: Bool {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
-            return !paths.isEmpty
+            !paths.isEmpty
         case .cone, .cylinder, .sphere, .cube, .loft, .path, .group, .camera, .light:
-            return true
+            true
         case .mesh, .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
-            return false
+            false
         }
     }
 

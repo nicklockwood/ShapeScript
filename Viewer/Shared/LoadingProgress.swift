@@ -73,9 +73,9 @@ extension LoadingProgress {
         nonisolated var isCancelledOrFailed: Bool {
             switch self {
             case .waiting, .partial, .success:
-                return false
+                false
             case .cancelled, .failure:
-                return true
+                true
             }
         }
     }
@@ -89,18 +89,18 @@ extension LoadingProgress {
     nonisolated var inProgress: Bool {
         switch status {
         case .waiting, .partial:
-            return true
+            true
         case .cancelled, .success, .failure:
-            return false
+            false
         }
     }
 
     nonisolated var didSucceed: Bool {
         switch status {
         case .success:
-            return true
+            true
         case .waiting, .partial, .cancelled, .failure:
-            return false
+            false
         }
     }
 
@@ -155,7 +155,7 @@ extension LoadingProgress {
                 }
                 DispatchQueue.main.async { [weak self] in
                     guard let self, !self.status.isCancelledOrFailed else { return }
-                    self.resume()
+                    resume()
                 }
             } catch {
                 self?.setStatus(.failure(ProgramError(error)))

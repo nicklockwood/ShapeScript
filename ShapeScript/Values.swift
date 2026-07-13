@@ -139,58 +139,58 @@ extension Value {
     static func pretransformed(_ array: [Value]) -> Value {
         switch array.count {
         case 0:
-            return .void
+            .void
         case 1:
-            return .pretransformed(array[0])
+            .pretransformed(array[0])
         default:
-            return .tuple(array.map { .pretransformed($0) })
+            .tuple(array.map { .pretransformed($0) })
         }
     }
 
     static func colorOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
         case let .color(color):
-            return .color(color)
+            .color(color)
         case let .texture(texture):
-            return .texture(texture)
+            .texture(texture)
         }
     }
 
     static func numberOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
         case let .color(color):
-            return .number(color.r)
+            .number(color.r)
         case let .texture(texture):
-            return .texture(texture)
+            .texture(texture)
         }
     }
 
     var isFinite: Bool {
         switch self {
         case let .color(color):
-            return color.isFinite
+            color.isFinite
         case let .number(value), let .radians(value), let .halfturns(value):
-            return value.isFinite
+            value.isFinite
         case let .vector(vector), let .size(vector):
-            return vector.isFinite
+            vector.isFinite
         case let .rotation(rotation):
-            return rotation.isFinite
+            rotation.isFinite
         case let .text(text):
-            return text.linespacing?.isFinite != false && text.color?.isFinite != false
+            text.linespacing?.isFinite != false && text.color?.isFinite != false
         case let .point(point):
-            return point.position.isFinite
+            point.position.isFinite
         case let .tuple(values):
-            return values.allSatisfy(\.isFinite)
+            values.allSatisfy(\.isFinite)
         case let .range(range):
-            return range.isFinite
+            range.isFinite
         case let .bounds(bounds):
-            return bounds.isFinite
+            bounds.isFinite
         case let .object(values):
-            return values.values.allSatisfy(\.isFinite)
+            values.values.allSatisfy(\.isFinite)
         case let .pretransformed(value):
-            return value.isFinite
+            value.isFinite
         case .texture, .material, .boolean, .string, .font, .path, .mesh, .polygon:
-            return true
+            true
         }
     }
 
@@ -198,46 +198,46 @@ extension Value {
         switch self {
         case let .mesh(geometry):
             switch geometry.type {
-            case .path: return "path"
-            case .cone: return "cone"
-            case .cylinder: return "cylinder"
-            case .sphere: return "sphere"
-            case .cube: return "cube"
+            case .path: "path"
+            case .cone: "cone"
+            case .cylinder: "cylinder"
+            case .sphere: "sphere"
+            case .cube: "cube"
             case .group, .extrude, .lathe, .loft, .fill, .hull, .minkowski, .union, .difference,
                  .intersection, .xor, .stencil, .mesh:
-                return "mesh"
-            case .camera: return "camera"
-            case .light: return "light"
+                "mesh"
+            case .camera: "camera"
+            case .light: "light"
             }
         default:
-            return type.errorDescription
+            type.errorDescription
         }
     }
 
     var value: AnyHashable {
         switch unwrapped(recursive: true) {
-        case let .color(color): return color
-        case let .texture(texture): return texture.map { $0 as AnyHashable } ?? AnyHashable("")
-        case let .material(material): return material
-        case let .boolean(boolean): return boolean
-        case let .number(number): return number
-        case let .radians(radians): return radians
-        case let .halfturns(halfturns): return halfturns
-        case let .vector(vector): return vector
-        case let .size(size): return size
-        case let .rotation(rotation): return rotation
-        case let .string(string): return string
-        case let .font(font): return font
-        case let .text(text): return text
-        case let .path(path): return path
-        case let .mesh(geometry): return geometry
-        case let .polygon(polygon): return polygon
-        case let .point(point): return point
-        case let .tuple(values): return values.map(\.value)
-        case let .range(range): return range
-        case let .bounds(bounds): return bounds
-        case let .object(values): return values.mapValues { $0.value }
-        case let .pretransformed(value): return value.value
+        case let .color(color): color
+        case let .texture(texture): texture.map { $0 as AnyHashable } ?? AnyHashable("")
+        case let .material(material): material
+        case let .boolean(boolean): boolean
+        case let .number(number): number
+        case let .radians(radians): radians
+        case let .halfturns(halfturns): halfturns
+        case let .vector(vector): vector
+        case let .size(size): size
+        case let .rotation(rotation): rotation
+        case let .string(string): string
+        case let .font(font): font
+        case let .text(text): text
+        case let .path(path): path
+        case let .mesh(geometry): geometry
+        case let .polygon(polygon): polygon
+        case let .point(point): point
+        case let .tuple(values): values.map(\.value)
+        case let .range(range): range
+        case let .bounds(bounds): bounds
+        case let .object(values): values.mapValues { $0.value }
+        case let .pretransformed(value): value.value
         }
     }
 
@@ -309,14 +309,14 @@ extension Value {
     var tupleValue: [AnyHashable] {
         switch self {
         case let .tuple(values):
-            return values.map(\.value)
+            values.map(\.value)
         case let .pretransformed(value):
-            return value.tupleValue
+            value.tupleValue
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
              .range, .bounds, .object:
-            return [value]
+            [value]
         }
     }
 
@@ -374,26 +374,26 @@ extension Value {
     var colorOrTextureValue: MaterialProperty? {
         switch self {
         case let .color(color):
-            return .color(color)
+            .color(color)
         case let .texture(texture):
-            return texture.map { .texture($0) }
+            texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
              .radians, .halfturns, .string, .font, .text, .path, .material, .mesh,
              .polygon, .point, .bounds, .object, .pretransformed:
-            return nil
+            nil
         }
     }
 
     var numberOrTextureValue: MaterialProperty? {
         switch self {
         case let .number(value):
-            return .color(.init(value, value))
+            .color(.init(value, value))
         case let .texture(texture):
-            return texture.map { .texture($0) }
+            texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .color,
              .radians, .halfturns, .string, .font, .text, .path, .material,
              .mesh, .polygon, .point, .bounds, .object, .pretransformed:
-            return nil
+            nil
         }
     }
 
@@ -401,14 +401,14 @@ extension Value {
     func unwrapped(recursive: Bool) -> Value {
         switch self {
         case let .tuple(values) where values.count == 1:
-            return recursive ? values[0].unwrapped(recursive: true) : values[0]
+            recursive ? values[0].unwrapped(recursive: true) : values[0]
         case let .pretransformed(.tuple(values)) where values.count == 1:
-            return .pretransformed(recursive ? values[0].unwrapped(recursive: true) : values[0])
+            .pretransformed(recursive ? values[0].unwrapped(recursive: true) : values[0])
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
              .range, .tuple, .bounds, .object, .pretransformed:
-            return self
+            self
         }
     }
 
@@ -439,17 +439,17 @@ extension [Value] {
 
     /// Recursively flatten nested tuples
     func flattened(recursive: Bool) -> [Value] {
-        flatMap {
-            switch $0 {
+        flatMap { value -> [Value] in
+            switch value {
             case let .tuple(values):
-                return recursive ? values.flattened(recursive: true) : values
+                recursive ? values.flattened(recursive: true) : values
             case let .pretransformed(.tuple(values)):
-                return (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
+                (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
             case .color, .texture, .material, .boolean, .number,
                  .radians, .halfturns, .vector, .size, .rotation,
                  .string, .font, .text, .path, .mesh, .polygon, .point,
                  .range, .bounds, .object, .pretransformed:
-                return [$0]
+                [value]
             }
         }
     }

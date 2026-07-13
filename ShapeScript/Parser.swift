@@ -50,9 +50,9 @@ public struct Definition: Equatable, Sendable {
     public var range: SourceRange {
         switch type {
         case let .block(block), let .function(_, block):
-            return block.range
+            block.range
         case let .expression(expression):
-            return expression.range
+            expression.range
         }
     }
 }
@@ -113,22 +113,22 @@ public extension ParserError {
     var range: SourceRange? {
         switch type {
         case let .unexpectedToken(token, _):
-            return token.range
+            token.range
         case let .duplicateParameter(_, at: range):
-            return range
+            range
         case let .custom(_, _, at: range):
-            return range
+            range
         }
     }
 
     var message: String {
         switch type {
         case let .unexpectedToken(token, _):
-            return "Unexpected \(token.type.errorDescription)"
+            "Unexpected \(token.type.errorDescription)"
         case let .duplicateParameter(name, _):
-            return "Duplicate function parameter '\(name)'"
+            "Duplicate function parameter '\(name)'"
         case let .custom(message, _, _):
-            return message
+            message
         }
     }
 
@@ -187,22 +187,22 @@ extension ParserError {
 private extension TokenType {
     var errorDescription: String {
         switch self {
-        case .linebreak: return "end of line"
-        case let .identifier(name): return "token '\(name)'"
-        case let .keyword(keyword): return "keyword '\(keyword)'"
-        case let .hexColor(string): return "color \(string)"
-        case let .infix(op): return "operator '\(op.rawValue)'"
-        case let .prefix(op): return "prefix operator '\(op.rawValue)'"
-        case .number: return "numeric literal"
-        case .string: return "text literal"
-        case .lbrace: return "opening brace"
-        case .rbrace: return "closing brace"
-        case .lparen, .call: return "opening paren"
-        case .rparen: return "closing paren"
-        case .lbracket, .subscript: return "opening bracket"
-        case .rbracket: return "closing bracket"
-        case .dot: return "dot"
-        case .eof: return "end of file"
+        case .linebreak: "end of line"
+        case let .identifier(name): "token '\(name)'"
+        case let .keyword(keyword): "keyword '\(keyword)'"
+        case let .hexColor(string): "color \(string)"
+        case let .infix(op): "operator '\(op.rawValue)'"
+        case let .prefix(op): "prefix operator '\(op.rawValue)'"
+        case .number: "numeric literal"
+        case .string: "text literal"
+        case .lbrace: "opening brace"
+        case .rbrace: "closing brace"
+        case .lparen, .call: "opening paren"
+        case .rparen: "closing paren"
+        case .lbracket, .subscript: "opening bracket"
+        case .rbracket: "closing bracket"
+        case .dot: "dot"
+        case .eof: "end of file"
         }
     }
 }

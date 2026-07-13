@@ -1092,11 +1092,11 @@ private final class _UITextView: UITextView {
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         switch action {
         case #selector(selectAll(_:)):
-            return true
+            true
         case #selector(captureTextFromCamera(_:)):
-            return false // weird and broken
+            false // weird and broken
         default:
-            return super.canPerformAction(action, withSender: sender)
+            super.canPerformAction(action, withSender: sender)
         }
     }
 

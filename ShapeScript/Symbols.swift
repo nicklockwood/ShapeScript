@@ -41,12 +41,12 @@ extension Symbol {
 
     var errorDescription: String {
         switch self {
-        case .block, .function((_, .void), _): return "command"
-        case .function: return "function"
-        case .property: return "property"
-        case .constant: return "constant"
-        case .option: return "option"
-        case .placeholder: return "placeholder"
+        case .block, .function((_, .void), _): "command"
+        case .function: "function"
+        case .property: "property"
+        case .constant: "constant"
+        case .option: "option"
+        case .placeholder: "placeholder"
         }
     }
 }

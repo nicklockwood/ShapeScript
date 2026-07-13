@@ -480,9 +480,9 @@ extension Symbols {
         },
         "sign": .function(.number, .number) { value, _ in
             switch value.doubleValue {
-            case 0: return .number(0)
-            case ..<0: return .number(-1)
-            default: return .number(1)
+            case 0: .number(0)
+            case ..<0: .number(-1)
+            default: .number(1)
             }
         },
         "ceil": .function(.number, .number) { value, _ in

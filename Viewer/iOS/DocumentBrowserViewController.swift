@@ -297,14 +297,13 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             let fileURL = URL(fileURLWithPath: NSTemporaryDirectory())
                 .appendingPathComponent(fileName)
             do {
-                let data: Data
-                if let templateURL = Bundle.main.url(
+                let data: Data = if let templateURL = Bundle.main.url(
                     forResource: "Untitled",
                     withExtension: "shape"
                 ) {
-                    data = try Data(contentsOf: templateURL)
+                    try Data(contentsOf: templateURL)
                 } else {
-                    data = Data()
+                    Data()
                 }
                 try data.write(to: fileURL, options: .atomic)
                 completion(fileURL)
@@ -414,21 +413,21 @@ private extension UITextField {
             guard let self else {
                 return
             }
-            let text = self.text ?? ""
+            let text = text ?? ""
             label.text = text.hasSuffix(".") ?
                 String(placeholder.dropFirst()) : placeholder
-            label.font = self.font
-            container.frame = self.textRect(forBounds: self.bounds)
+            label.font = font
+            container.frame = textRect(forBounds: bounds)
             label.frame = container.bounds
-            if self.window?.contentScaleFactor == 3, UIDevice.current.systemVersion
+            if window?.contentScaleFactor == 3, UIDevice.current.systemVersion
                 .compare("16", options: .numeric) == .orderedAscending
             {
                 // Fix for slight baseline misalignment on @3x displays
                 container.frame.origin.y -= 0.3
             }
-            let size = text.size(withAttributes: self.defaultTextAttributes)
+            let size = text.size(withAttributes: defaultTextAttributes)
             label.frame.origin.x = size.width
-            label.isHidden = !self.hasText || !text.pathExtension.isEmpty
+            label.isHidden = !hasText || !text.pathExtension.isEmpty
         }, for: .editingChanged)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.sendActions(for: .editingChanged)

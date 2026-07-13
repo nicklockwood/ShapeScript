@@ -98,12 +98,12 @@ extension DocumentProtocol {
             guard let self else {
                 return
             }
-            if !status.isCancelledOrFailed, input != self.sourceString {
-                self.didUpdateSource()
+            if !status.isCancelledOrFailed, input != sourceString {
+                didUpdateSource()
                 return
             }
-            let wasEvaluationError = self.error?.type == .evaluation
-            self.error = nil // Error is invalid if sourceString has changed
+            let wasEvaluationError = error?.type == .evaluation
+            error = nil // Error is invalid if sourceString has changed
             switch status {
             case .waiting:
                 if let viewController {
@@ -114,14 +114,14 @@ extension DocumentProtocol {
                     updateViews()
                 }
             case let .partial(scene), let .success(scene):
-                self.error = nil
+                error = nil
                 self.scene = scene
-                if case .success = status, self.rerenderRequired {
-                    self.rerender()
+                if case .success = status, rerenderRequired {
+                    rerender()
                 }
             case let .failure(error):
                 self.error = error
-                self.updateViews()
+                updateViews()
             case .cancelled:
                 break
             }
@@ -489,22 +489,22 @@ extension Geometry {
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path:
-            return true
+            true
         case .camera, .light, .group:
-            return false
+            false
         }
     }
 
     var hasSelectableChildren: Bool {
         switch type {
         case .group:
-            return true
+            true
         case .cone, .cylinder, .sphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill,
              .path, .camera, .light:
-            return false
+            false
         case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
-            return childDebug
+            childDebug
         }
     }
 }

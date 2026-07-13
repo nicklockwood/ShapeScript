@@ -145,18 +145,18 @@ extension MaterialProperty: Loggable {
     public var logDescription: String {
         switch self {
         case let .color(color):
-            return color.logDescription
+            color.logDescription
         case let .texture(texture):
-            return texture.logDescription
+            texture.logDescription
         }
     }
 
     public var nestedLogDescription: String {
         switch self {
         case let .color(color):
-            return color.nestedLogDescription
+            color.nestedLogDescription
         case let .texture(texture):
-            return texture.nestedLogDescription
+            texture.nestedLogDescription
         }
     }
 }
@@ -238,26 +238,26 @@ extension Bounds: Loggable {
 extension GeometryType: Loggable {
     public var logDescription: String {
         switch self {
-        case .group: return "group"
-        case .cone: return "cone"
-        case .cylinder: return "cylinder"
-        case .sphere: return "sphere"
-        case .cube: return "cube"
-        case .extrude: return "extrusion"
-        case .lathe: return "lathe"
-        case .loft: return "loft"
-        case .fill: return "fill"
-        case .hull: return "hull"
-        case .minkowski: return "minkowski"
-        case .union: return "union"
-        case .difference: return "difference"
-        case .intersection: return "intersection"
-        case .xor: return "xor"
-        case .stencil: return "stencil"
-        case .path: return "path"
-        case .mesh: return "mesh"
-        case .camera: return "camera"
-        case .light: return "light"
+        case .group: "group"
+        case .cone: "cone"
+        case .cylinder: "cylinder"
+        case .sphere: "sphere"
+        case .cube: "cube"
+        case .extrude: "extrusion"
+        case .lathe: "lathe"
+        case .loft: "loft"
+        case .fill: "fill"
+        case .hull: "hull"
+        case .minkowski: "minkowski"
+        case .union: "union"
+        case .difference: "difference"
+        case .intersection: "intersection"
+        case .xor: "xor"
+        case .stencil: "stencil"
+        case .path: "path"
+        case .mesh: "mesh"
+        case .camera: "camera"
+        case .light: "light"
         }
     }
 
@@ -270,11 +270,10 @@ extension Geometry: Loggable {
     public var logDescription: String {
         let epsilon = 0.0001
         let scale = transform.scale
-        let scaleDescription: String?
-        if abs(scale.x - scale.y) < epsilon, abs(scale.y - scale.z) < epsilon {
-            scaleDescription = abs(scale.x - 1) < epsilon ? nil : "size \(scale.x.logDescription)"
+        let scaleDescription: String? = if abs(scale.x - scale.y) < epsilon, abs(scale.y - scale.z) < epsilon {
+            abs(scale.x - 1) < epsilon ? nil : "size \(scale.x.logDescription)"
         } else {
-            scaleDescription = "size \(scale.logDescription)"
+            "size \(scale.logDescription)"
         }
 
         var fields = [
@@ -327,14 +326,13 @@ extension Geometry: Loggable {
             break
         }
 
-        let block: String
-        switch fields.count {
+        let block = switch fields.count {
         case 0:
-            block = ""
+            ""
         case 1:
-            block = " { \(fields[0]) }"
+            " { \(fields[0]) }"
         default:
-            block = " {\n    \(fields.joined(separator: "\n    "))\n}"
+            " {\n    \(fields.joined(separator: "\n    "))\n}"
         }
         return type.logDescription + block
     }
@@ -404,28 +402,28 @@ extension Value: Loggable {
         // Note: this switch is technically not needed, but serves to
         // ensure logging conformance is not forgotten for new types
         switch self {
-        case let .color(color): return color
-        case let .texture(texture): return texture
-        case let .material(material): return material
-        case let .boolean(boolean): return boolean
-        case let .number(number): return number
-        case let .radians(radians): return radians
-        case let .halfturns(halfturns): return halfturns
-        case let .vector(vector): return vector
-        case let .size(size): return size
-        case let .rotation(rotation): return rotation
-        case let .string(string): return string
-        case let .font(font): return font
-        case let .text(text): return text
-        case let .path(path): return path
-        case let .mesh(mesh): return mesh
-        case let .polygon(polygon): return polygon
-        case let .point(point): return point
-        case let .tuple(tuple): return tuple
-        case let .range(range): return range
-        case let .bounds(bounds): return bounds
-        case let .object(object): return object
-        case let .pretransformed(values): return values
+        case let .color(color): color
+        case let .texture(texture): texture
+        case let .material(material): material
+        case let .boolean(boolean): boolean
+        case let .number(number): number
+        case let .radians(radians): radians
+        case let .halfturns(halfturns): halfturns
+        case let .vector(vector): vector
+        case let .size(size): size
+        case let .rotation(rotation): rotation
+        case let .string(string): string
+        case let .font(font): font
+        case let .text(text): text
+        case let .path(path): path
+        case let .mesh(mesh): mesh
+        case let .polygon(polygon): polygon
+        case let .point(point): point
+        case let .tuple(tuple): tuple
+        case let .range(range): range
+        case let .bounds(bounds): bounds
+        case let .object(object): object
+        case let .pretransformed(values): values
         }
     }
 

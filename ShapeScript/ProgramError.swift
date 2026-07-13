@@ -38,50 +38,50 @@ public extension ProgramError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
             case .fileAccessRestricted:
-                return .fileAccess
+                .fileAccess
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
                  .typeMismatch, .forwardReference, .unexpectedArgument,
                  .missingArgument, .unusedValue, .assertionFailure,
                  .fileNotFound, .fileTimedOut, .fileTypeMismatch,
                  .fileParsingError, .circularImport, .importError:
-                return .evaluation
+                .evaluation
             }
         case .parserError, .lexerError, .unknownError:
-            return .evaluation
+            .evaluation
         }
     }
 
     var title: String {
         switch type {
-        case .evaluation: return "Error"
-        case .fileAccess: return "Permission Required"
+        case .evaluation: "Error"
+        case .fileAccess: "Permission Required"
         }
     }
 
     var message: String {
         switch self {
-        case let .lexerError(error): return error.message
-        case let .parserError(error): return error.message
-        case let .runtimeError(error): return error.message
-        case let .unknownError(message): return message ?? "Unknown error"
+        case let .lexerError(error): error.message
+        case let .parserError(error): error.message
+        case let .runtimeError(error): error.message
+        case let .unknownError(message): message ?? "Unknown error"
         }
     }
 
     var range: SourceRange? {
         switch self {
-        case let .lexerError(error): return error.range
-        case let .parserError(error): return error.range
-        case let .runtimeError(error): return error.range
-        case .unknownError: return nil
+        case let .lexerError(error): error.range
+        case let .parserError(error): error.range
+        case let .runtimeError(error): error.range
+        case .unknownError: nil
         }
     }
 
     var hint: String? {
         switch self {
-        case let .lexerError(error): return error.hint
-        case let .parserError(error): return error.hint
-        case let .runtimeError(error): return error.hint
-        case .unknownError: return nil
+        case let .lexerError(error): error.hint
+        case let .parserError(error): error.hint
+        case let .runtimeError(error): error.hint
+        case .unknownError: nil
         }
     }
 
@@ -89,9 +89,9 @@ public extension ProgramError {
     var accessErrorURL: URL? {
         switch underlyingError {
         case let .runtimeError(runtimeError):
-            return runtimeError.accessErrorURL
+            runtimeError.accessErrorURL
         case .parserError, .lexerError, .unknownError:
-            return nil
+            nil
         }
     }
 
@@ -123,16 +123,16 @@ public extension ProgramError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
             case let .importError(error, _, _):
-                return error.underlyingError
+                error.underlyingError
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
                  .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
                  .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError,
                  .circularImport:
-                return self
+                self
             }
         case .lexerError, .parserError, .unknownError:
-            return self
+            self
         }
     }
 

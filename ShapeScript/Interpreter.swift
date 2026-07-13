@@ -171,9 +171,9 @@ public extension RuntimeError {
         func nthArgument(_ index: Int) -> String {
             switch index {
             case 0 ..< String.ordinals.count:
-                return "\(String.ordinals[index]) argument"
+                "\(String.ordinals[index]) argument"
             default:
-                return "argument"
+                "argument"
             }
         }
         func theSymbol(_ name: String) -> String {
@@ -225,13 +225,12 @@ public extension RuntimeError {
             }
             return ""
         case let .typeMismatch(for: name, index: i, expected: type, got: got):
-            let description: String
-            if InfixOperator(rawValue: name) != nil, (0 ... 1).contains(i) {
-                description = "\(i == 0 ? "left" : "right") operand for '\(name)'"
+            let description: String = if InfixOperator(rawValue: name) != nil, (0 ... 1).contains(i) {
+                "\(i == 0 ? "left" : "right") operand for '\(name)'"
             } else if !["if condition", "loop bounds"].contains(name) {
-                description = "\(nthArgument(i)) for '\(name)'"
+                "\(nthArgument(i)) for '\(name)'"
             } else {
-                description = name
+                name
             }
             let got = got.contains(",") ? got : aOrAn(got)
             return "The \(description) should be \(aOrAn(type)), not \(got)."
@@ -287,9 +286,9 @@ public extension RuntimeError {
     var accessErrorURL: URL? {
         switch type {
         case let .fileAccessRestricted(for: _, at: url):
-            return url
+            url
         case let .importError(error, _, _):
-            return error.accessErrorURL
+            error.accessErrorURL
         case .typeMismatch,
              .forwardReference,
              .unexpectedArgument,
@@ -305,7 +304,7 @@ public extension RuntimeError {
              .unknownMember,
              .invalidIndex,
              .unknownFont:
-            return nil
+            nil
         }
     }
 
@@ -346,14 +345,13 @@ extension RuntimeErrorType {
         expected: ValueType,
         got: ValueType
     ) -> RuntimeErrorType {
-        let typeDescription: String
-        switch expected {
+        let typeDescription: String = switch expected {
         case let .list(type):
-            typeDescription = type.errorDescription
+            type.errorDescription
         case let .tuple(types) where !types.isEmpty:
-            typeDescription = types[0].errorDescription
+            types[0].errorDescription
         default:
-            typeDescription = expected.errorDescription
+            expected.errorDescription
         }
         return typeMismatch(
             for: name,
@@ -375,14 +373,13 @@ extension RuntimeErrorType {
         index: Int = 0,
         type: ValueType
     ) -> RuntimeErrorType {
-        let typeDescription: String
-        switch type {
+        let typeDescription: String = switch type {
         case let .list(type):
-            typeDescription = type.errorDescription
+            type.errorDescription
         case let .tuple(types) where !types.isEmpty:
-            typeDescription = types[0].errorDescription
+            types[0].errorDescription
         default:
-            typeDescription = type.errorDescription
+            type.errorDescription
         }
         return missingArgument(for: name, index: index, type: typeDescription)
     }
@@ -390,9 +387,9 @@ extension RuntimeErrorType {
     static func unusedValue(type: ValueType) -> RuntimeErrorType {
         switch type {
         case let .list(type):
-            return unusedValue(type: type)
+            unusedValue(type: type)
         default:
-            return unusedValue(type: type.errorDescription)
+            unusedValue(type: type.errorDescription)
         }
     }
 
@@ -835,13 +832,13 @@ extension Definition {
                         return .tuple(children.map {
                             switch $0 {
                             case let .path(path):
-                                return .path(path.transformed(by: context.transform))
+                                .path(path.transformed(by: context.transform))
                             case let .mesh(geometry):
-                                return .mesh(geometry.transformed(by: context.transform))
+                                .mesh(geometry.transformed(by: context.transform))
                             case let .polygon(polygon):
-                                return .polygon(polygon.transformed(by: context.transform))
+                                .polygon(polygon.transformed(by: context.transform))
                             default:
-                                return $0
+                                $0
                             }
                         })
                     }
@@ -1017,11 +1014,10 @@ extension Statement {
                 try RuntimeError.wrap(setter(argument, context), at: range)
             case let .block(type, fn):
                 if let parameter {
-                    let parameters: [Expression]
-                    if case let .tuple(expressions) = parameter.type {
-                        parameters = expressions
+                    let parameters: [Expression] = if case let .tuple(expressions) = parameter.type {
+                        expressions
                     } else {
-                        parameters = [parameter]
+                        [parameter]
                     }
                     let childContext = context.push(type)
                     childContext.userSymbols.removeAll()

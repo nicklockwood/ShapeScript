@@ -210,9 +210,9 @@ extension EvaluationContext {
         allSymbols.filter {
             switch $1 {
             case let .function(type, _) where type.returnType == .void:
-                return false
+                false
             case .function, .property, .block, .constant, .option, .placeholder:
-                return true
+                true
             }
         }.keys + ["else"]
     }
@@ -222,9 +222,9 @@ extension EvaluationContext {
         Array(allSymbols.filter {
             switch $1 {
             case .function, .property, .block, .placeholder:
-                return true
+                true
             case .constant, .option:
-                return false
+                false
             }
         }.keys) + Keyword.allCases.map(\.rawValue)
     }
@@ -233,9 +233,9 @@ extension EvaluationContext {
     func value(for name: String) -> Value? {
         switch symbol(for: name) {
         case let .constant(value), let .option(value):
-            return value
+            value
         case .function, .property, .block, .placeholder, nil:
-            return nil
+            nil
         }
     }
 }

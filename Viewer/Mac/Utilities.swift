@@ -102,14 +102,13 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
             return
         }
         do {
-            let data: Data
-            if let templateURL = Bundle.main.url(
+            let data: Data = if let templateURL = Bundle.main.url(
                 forResource: "Untitled",
                 withExtension: "shape"
             ) {
-                data = try Data(contentsOf: templateURL)
+                try Data(contentsOf: templateURL)
             } else {
-                data = Data()
+                Data()
             }
             try data.write(to: url, options: .atomic)
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in

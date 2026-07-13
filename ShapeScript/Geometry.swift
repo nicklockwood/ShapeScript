@@ -71,13 +71,13 @@ public final class Geometry: Hashable, @unchecked Sendable {
     public var renderChildren: Bool {
         switch type {
         case .group:
-            return true
+            true
         case .lathe, .intersection, .difference, .stencil, .minkowski:
-            return false
+            false
         case .loft, .union, .xor, .extrude, .fill, .hull:
-            return mesh == nil
+            mesh == nil
         case .cone, .cylinder, .sphere, .cube, .path, .mesh, .camera, .light:
-            return false // These don't have children
+            false // These don't have children
         }
     }
 
@@ -1013,12 +1013,12 @@ public extension Geometry {
     var hasMesh: Bool {
         switch type {
         case .camera, .light, .path:
-            return false
+            false
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .group, .mesh:
-            return true // TODO: should group return false if it has no child meshes?
+            true // TODO: should group return false if it has no child meshes?
         }
     }
 
@@ -1027,14 +1027,14 @@ public extension Geometry {
     var objectCount: Int {
         switch type {
         case .group:
-            return children.reduce(0) { $0 + $1.objectCount }
+            children.reduce(0) { $0 + $1.objectCount }
         case .camera, .light:
-            return 0
+            0
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
-            return 1
+            1
         }
     }
 
@@ -1045,9 +1045,9 @@ public extension Geometry {
         case .cone, .cylinder, .sphere, .cube,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
-            return 0 // TODO: should paths/points/submeshes be treated as children?
+            0 // TODO: should paths/points/submeshes be treated as children?
         case .union, .xor, .difference, .intersection, .stencil, .group, .hull, .minkowski:
-            return children.count
+            children.count
         }
     }
 
@@ -1109,11 +1109,10 @@ public extension Geometry {
             }
             return Bounds(paths.transformed(by: transform))
         case .hull, .mesh:
-            let bounds: Bounds
-            if transform.rotation == .identity {
-                bounds = type.bounds.transformed(by: transform)
+            let bounds: Bounds = if transform.rotation == .identity {
+                type.bounds.transformed(by: transform)
             } else {
-                bounds = Bounds(type.representativePoints.transformed(by: transform))
+                Bounds(type.representativePoints.transformed(by: transform))
             }
             return children.reduce(bounds) {
                 $0.union($1.exactBounds(with: $1.transform * transform, callback))

@@ -157,9 +157,9 @@ private extension Data {
     func `as`<T>(_ type: T.Type) -> T? {
         switch type {
         case is Data.Type:
-            return self as? T
+            self as? T
         default:
-            return String(data: self, encoding: .utf8)?.as(type)
+            String(data: self, encoding: .utf8)?.as(type)
         }
     }
 
@@ -187,13 +187,13 @@ private extension String {
     func `as`<T>(_ type: T.Type) -> T? {
         switch type {
         case is String.Type:
-            return self as? T
+            self as? T
         case is Double.Type:
-            return Double(self) as? T
+            Double(self) as? T
         case is Int.Type:
-            return Int(self) as? T
+            Int(self) as? T
         case is Bool.Type:
-            return Bool(self) as? T
+            Bool(self) as? T
         default:
             preconditionFailure("Conversion of String to \(type) is not supported")
         }

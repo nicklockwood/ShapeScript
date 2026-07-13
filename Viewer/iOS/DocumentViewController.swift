@@ -505,10 +505,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     ) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
-            if self.presentedViewController == nil {
-                self.restoreConsoleAfterModalIfNeeded()
+            if presentedViewController == nil {
+                restoreConsoleAfterModalIfNeeded()
             } else if remainingAttempts > 0 {
-                self.restoreConsoleWhenDismissed(
+                restoreConsoleWhenDismissed(
                     nil,
                     remainingAttempts: remainingAttempts - 1
                 )
@@ -594,11 +594,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     private func rebuildMenu() {
         // Update camera menu
-        let cameras: [Camera]
-        if let document {
-            cameras = document.cameras
+        let cameras: [Camera] = if let document {
+            document.cameras
         } else {
-            cameras = CameraType.allCases.map {
+            CameraType.allCases.map {
                 Camera(type: $0)
             } + (0 ..< 9 - CameraType.allCases.count).map {
                 Camera(type: CameraType(rawValue: "custom\($0)"))
