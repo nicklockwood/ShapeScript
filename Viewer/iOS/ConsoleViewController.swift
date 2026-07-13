@@ -10,22 +10,27 @@ import UIKit
 
 @MainActor
 final class ConsoleViewController: UIViewController {
+    private let containerView = UIView()
     private let textView = UITextView()
+    private let topFadeView = EdgeFadeView(edge: .top)
+    private let bottomFadeView = EdgeFadeView(edge: .bottom)
     private let log = NSMutableAttributedString()
     private var logLength = 0
     private let consoleFont = UIFont.monospacedSystemFont(ofSize: 15, weight: .regular)
     private let sheetTopInset: CGFloat = 12
+    private let fadeHeight: CGFloat = 24
     private var didSelectDefaultDetent = false
     private var needsInitialDetentSelection = false
     private var appliedDetentHeights = [CGFloat]()
     private var savedDetentHeight: CGFloat?
 
     var consoleView: UIView {
-        textView
+        view
     }
 
     override func loadView() {
-        view = textView
+        view = containerView
+        configureViewHierarchy()
     }
 
     override func viewDidLoad() {
@@ -273,6 +278,34 @@ final class ConsoleViewController: UIViewController {
         }
     }
 
+    private func configureViewHierarchy() {
+        containerView.backgroundColor = .systemBackground
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        topFadeView.translatesAutoresizingMaskIntoConstraints = false
+        bottomFadeView.translatesAutoresizingMaskIntoConstraints = false
+
+        containerView.addSubview(textView)
+        containerView.addSubview(topFadeView)
+        containerView.addSubview(bottomFadeView)
+
+        NSLayoutConstraint.activate([
+            textView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            textView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            textView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            textView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            topFadeView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            topFadeView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            topFadeView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            topFadeView.heightAnchor.constraint(equalToConstant: fadeHeight),
+
+            bottomFadeView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            bottomFadeView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            bottomFadeView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            bottomFadeView.heightAnchor.constraint(equalToConstant: fadeHeight),
+        ])
+    }
+
     private func configureTextView() {
         textView.isEditable = false
         textView.isSelectable = true
@@ -324,5 +357,60 @@ final class ConsoleViewController: UIViewController {
             textView.contentInset.bottom +
             contentHeight
         return min(max(height, minimumHeight), maximumHeight)
+    }
+}
+
+private final class EdgeFadeView: UIView {
+    enum Edge {
+        case top
+        case bottom
+    }
+
+    private let edge: Edge
+    private var gradientLayer: CAGradientLayer {
+        layer as! CAGradientLayer
+    }
+
+    override class var layerClass: AnyClass {
+        CAGradientLayer.self
+    }
+
+    init(edge: Edge) {
+        self.edge = edge
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        nil
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateGradient()
+    }
+
+    override func tintColorDidChange() {
+        super.tintColorDidChange()
+        updateGradient()
+    }
+
+    private func updateGradient() {
+        let backgroundColor = UIColor.systemBackground.cgColor
+        let transparentColor = UIColor.systemBackground.withAlphaComponent(0).cgColor
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        gradientLayer.colors = edge == .top ? [
+            backgroundColor,
+            transparentColor,
+        ] : [
+            transparentColor,
+            backgroundColor,
+        ]
+        gradientLayer.locations = [0, 1]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        CATransaction.commit()
     }
 }
