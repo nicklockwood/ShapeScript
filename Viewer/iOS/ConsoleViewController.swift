@@ -50,6 +50,7 @@ final class ConsoleViewController: UIViewController {
         super.viewDidLayoutSubviews()
         if #available(iOS 16, *) {
             updateSheetDetents()
+            updateScrollIndicatorVisibility()
         }
         hideDimmingView()
     }
@@ -175,6 +176,7 @@ final class ConsoleViewController: UIViewController {
         }
         sheet.selectedDetentIdentifier = newSelectedIdentifier
         configureSheetAppearance(largestUndimmedDetentIdentifier: largestIdentifier)
+        updateScrollIndicatorVisibility(selectedIdentifier: newSelectedIdentifier)
         needsInitialDetentSelection = false
         DispatchQueue.main.async { [weak self] in
             self?.hideDimmingView()
@@ -254,6 +256,17 @@ final class ConsoleViewController: UIViewController {
         for identifier: UISheetPresentationController.Detent.Identifier
     ) -> Int {
         Int(identifier.rawValue.replacingOccurrences(of: "console-", with: "")) ?? -1
+    }
+
+    @available(iOS 16, *)
+    private func updateScrollIndicatorVisibility(
+        selectedIdentifier: UISheetPresentationController.Detent.Identifier? = nil
+    ) {
+        guard let identifier = selectedIdentifier ?? sheetPresentationController?.selectedDetentIdentifier else {
+            textView.showsVerticalScrollIndicator = true
+            return
+        }
+        textView.showsVerticalScrollIndicator = detentIndex(for: identifier) != 0
     }
 
     private var screenHeight: CGFloat {
