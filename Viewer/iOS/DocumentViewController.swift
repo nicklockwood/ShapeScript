@@ -499,7 +499,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         presentConsole()
     }
 
-    private func restoreConsoleWhenDismissed(
+    func restoreConsoleWhenDismissed(
         _: UIViewController?,
         remainingAttempts: Int = 40
     ) {
@@ -516,7 +516,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 
-    private func presentModalHidingConsole(
+    func presentModalHidingConsole(
         _ viewController: UIViewController,
         animated: Bool = true,
         completion: (() -> Void)? = nil
