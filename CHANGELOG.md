@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.10.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.5) (2026-07-13)
+
+- Improved iOS console readability with fade effects at the top and bottom
+- The iOS console scrollbar is now hidden when the console is at its smallest size
+- Bumped Euclid to version 0.8.18
+
 ## [1.10.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.4) (2026-07-10)
 
 - Fixed missing or ultra-narrow console text and release notes on macOS
