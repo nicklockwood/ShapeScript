@@ -834,4 +834,89 @@ final class MemberTests: XCTestCase {
             XCTAssertEqual(error?.type, .invalidIndex(1, range: -1 ..< 1))
         }
     }
+
+    func testTextGeometryOrdinalSubscripting() {
+        let program = """
+        print (text "foo").second
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.count, 1)
+    }
+
+    // MARK: tuple count
+
+    func testTupleCount() {
+        let program = """
+        define foo (1 2 3)
+        print foo.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testInlineTupleCount() {
+        let program = """
+        print (1 2 3).count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testNestedTupleCount() {
+        let program = """
+        print ((1 2 3)).count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testStringCount() {
+        let program = """
+        print "foo".count
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .unknownMember("count", of: .string("foo")))
+        }
+    }
+
+    func testStringCharactersCount() {
+        let program = """
+        print "foo".characters.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testStringTupleCount() {
+        let program = """
+        print ("foo").count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testTextGeometryCount() {
+        let program = """
+        print (text "foo").count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [3])
+    }
+
+    func testTextGeometrySubrangeCount() {
+        let program = """
+        print (text "foo").allButLast.count
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [2])
+    }
 }

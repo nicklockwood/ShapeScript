@@ -283,11 +283,11 @@ extension Value {
             case "last":
                 return values.last
             case "allButFirst":
-                return .tuple(Array(values.dropFirst()))
+                return .tuple(Array(values.unwrapped(recursive: true).dropFirst()))
             case "allButLast":
-                return .tuple(Array(values.dropLast()))
+                return .tuple(Array(values.unwrapped(recursive: true).dropLast()))
             case "count":
-                return .number(Double(values.count))
+                return .number(Double(values.unwrapped(recursive: true).count))
             case "lines", "words", "characters":
                 return self.as(.string)?[name, isCancelled]
             case "x", "y", "z":
@@ -347,6 +347,7 @@ extension Value {
                     }
                 })
             default:
+                let values = values.unwrapped(recursive: true)
                 if let index = name.ordinalIndex {
                     return index < values.count ? values[index] : nil
                 }
