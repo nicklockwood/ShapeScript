@@ -4850,6 +4850,17 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
+    func testPrintEmptyStringBetweenNonEmptyStrings() {
+        let program = """
+        print "foo"
+        print ""
+        print "bar"
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, ["foo", "", "bar"])
+    }
+
     func testCallVoidCommandWithoutArgs() throws {
         let program = """
         define foo {

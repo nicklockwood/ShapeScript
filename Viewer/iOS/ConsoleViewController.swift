@@ -68,7 +68,7 @@ final class ConsoleViewController: UIViewController {
     func appendLog(_ text: String) {
         let logLimit = 20000
         let remaining = logLimit - logLength
-        if text.isEmpty || remaining <= 0 {
+        if remaining <= 0 || text.isEmpty && logLength == 0 {
             return
         }
         var text = text

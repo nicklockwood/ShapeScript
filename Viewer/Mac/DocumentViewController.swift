@@ -59,7 +59,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     func appendLog(_ text: String) {
         let logLimit = 100000
         let remaining = logLimit - logLength
-        if text.isEmpty || remaining <= 0 {
+        if remaining <= 0 || text.isEmpty && logLength == 0 {
             return
         }
         var text = text
