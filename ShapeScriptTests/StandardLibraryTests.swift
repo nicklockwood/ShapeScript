@@ -81,6 +81,105 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    func testClosedNestedPathIsDistinctSubpath() throws {
+        let program = try parse("""
+        path {
+            point -2 0
+            point -1 0
+            square { position 10 0 }
+            point 2 0
+            point 3 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        try program.evaluate(in: context)
+
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.subpaths.count, 3)
+        XCTAssertEqual(path.subpaths.map(\.isClosed), [false, true, false])
+        XCTAssertEqual(path.subpaths[0].points.map(\.position), [
+            Vector(-2, 0, 0),
+            Vector(-1, 0, 0),
+        ])
+        XCTAssertEqual(path.subpaths[2].points.map(\.position), [
+            Vector(2, 0, 0),
+            Vector(3, 0, 0),
+        ])
+    }
+
+    func testOpenNestedPathIsAddedToCurrentPath() throws {
+        let program = try parse("""
+        path {
+            point 0 0
+            path {
+                point 1 0
+                point 2 0
+            }
+            point 3 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        try program.evaluate(in: context)
+
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertFalse(path.isClosed)
+        XCTAssertEqual(path.points.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(2, 0, 0),
+            Vector(3, 0, 0),
+        ])
+    }
+
+    func testSingleOpenNestedPathDoesNotCreateTrailingSubpath() throws {
+        let program = try parse("""
+        define nestedPath path {
+            point 0 0
+            point 1 0
+        }
+
+        path {
+            nestedPath
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        try program.evaluate(in: context)
+
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertFalse(path.isClosed)
+        XCTAssertEqual(path.points.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+        ])
+    }
+
+    func testExtrudeAlongSingleOpenNestedPathBuildsMesh() throws {
+        let scene = try evaluate(parse("""
+        define nestedPath path {
+            point 0 0 -0.5
+            point 0 0 0.5
+        }
+
+        extrude {
+            square
+            along path {
+                nestedPath
+            }
+        }
+        """), delegate: nil)
+        XCTAssertTrue(scene.build { true })
+
+        let geometry = try XCTUnwrap(scene.children.first)
+        let mesh = geometry.flattened()
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertFalse(mesh.bounds.isEmpty)
+    }
+
     func testColorInSVGPath() throws {
         let program = try parse("""
         svgpath {
@@ -904,6 +1003,81 @@ final class StandardLibraryTests: XCTestCase {
                 .assertionFailure("Values must be finite"), at: range
             ))
         }
+    }
+
+    func testArcDetailIsScaledByAngle() throws {
+        func pathFor(_ body: String) throws -> Path {
+            let program = try parse("""
+            detail 16
+            \(body)
+            """)
+            let context = EvaluationContext(source: program.source, delegate: nil)
+            try program.evaluate(in: context)
+
+            let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+            return try XCTUnwrap(geometry.path)
+        }
+
+        XCTAssertEqual(try pathFor("arc { angle 2 }").points.count - 1, 16)
+        XCTAssertEqual(try pathFor("arc { angle 0.5 }").points.count - 1, 4)
+
+        let nestedPath = try pathFor("""
+        path {
+            arc { angle 0.5 }
+        }
+        """)
+        let nestedArc = try XCTUnwrap(nestedPath.subpaths.first { $0.points.count > 1 })
+        XCTAssertEqual(nestedArc.points.count - 1, 4)
+    }
+
+    func testNestedArcPreservesCurvedPoints() throws {
+        let program = try parse("""
+        detail 16
+        path {
+            point -1 0
+            arc { angle 0.5 }
+            point 1 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        try program.evaluate(in: context)
+
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.points.map(\.isCurved), [
+            false, true, true, true, true, true, false,
+        ])
+    }
+
+    func testNestedOpenArcsCanClosePath() throws {
+        let program = try parse("""
+        path {
+            arc {
+                orientation -0.5 -0.5 0
+                angle 0.5
+            }
+            point 0.5 0 -0.5
+            point 0.5 0 -1
+            arc {
+                size 2
+                orientation 1.0 0.0 0.5
+                angle 0.5
+            }
+            point -0.5 0 0
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        try program.evaluate(in: context)
+
+        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertEqual(path.points.first?.position, path.points.last?.position)
+        XCTAssertEqual(path.points.map(\.isCurved), [
+            false, true, true, true, true, false, false,
+            true, true, true, true, true, false,
+        ])
     }
 
     func testShapeWithNonFinitePosition() throws {

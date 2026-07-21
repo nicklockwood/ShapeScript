@@ -309,13 +309,26 @@ extension Symbols {
                 }
                 points.removeAll()
             }
-            for child in context.children {
+            for i in context.children.indices {
+                let child = context.children[i]
                 switch child {
                 case let .point(point):
                     points.append(point)
                 case let .path(path):
+                    if !path.isClosed, let point = path.points.first, !points.isEmpty {
+                        points.append(point.curved(false))
+                    }
                     endPath()
                     subpaths.append(path)
+                    if !path.isClosed, context.children.indices.contains(i + 1), {
+                        switch context.children[i + 1] {
+                        case .point: true
+                        case let .path(path): !path.isClosed
+                        default: false
+                        }
+                    }(), let point = path.points.last {
+                        points.append(point.curved(false))
+                    }
                 case .tuple:
                     // Special case due to tuple type returning element type
                     throw RuntimeErrorType.assertionFailure(
