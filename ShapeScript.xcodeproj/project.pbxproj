@@ -229,6 +229,14 @@
 			);
 			target = EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */;
 		};
+		0195F9542FEBAF0300E772D9 /* Exceptions for "Shared" folder in "Viewer (Mac)" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets/AppIcon.appiconset,
+				Assets.xcassets/AppIcon.solidimagestack,
+			);
+			target = 0158DA762E8077C700C53A29 /* Viewer (Mac) */;
+		};
 		0195F9762FEBAF5800E772D9 /* Exceptions for "Mac" folder in "Viewer (Mac)" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -280,6 +288,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				0195F9532FEBAF0300E772D9 /* Exceptions for "Shared" folder in "Preview (Mac)" target */,
+				0195F9542FEBAF0300E772D9 /* Exceptions for "Shared" folder in "Viewer (Mac)" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -952,7 +961,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -989,7 +998,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = ShapeScript;
@@ -1202,7 +1211,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
@@ -1246,7 +1255,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
@@ -1340,7 +1349,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1386,7 +1395,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
@@ -1420,7 +1429,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1457,7 +1466,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 1.10.5;
+				MARKETING_VERSION = 1.10.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

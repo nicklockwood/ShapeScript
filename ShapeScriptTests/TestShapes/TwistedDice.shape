@@ -1,0 +1,75 @@
+// ShapeScript document
+
+detail 32
+
+difference {
+    define pipSize 0.2
+    define pipDist 0.5
+    define twist 0.25
+
+    define pip {
+        color white
+        sphere { size pipSize }
+    }
+
+    // dice
+    intersection {
+        color red
+        sphere {
+            detail 64
+            size 1.39
+        }
+        extrude {
+            detail 1024 // needs to be high to avoid distortion
+            orientation 0 0 0.5
+            square
+            twist twist
+        }
+    }
+
+    // 1
+    pip { position 0 pipDist }
+    // 6
+    pip { position 0.25 -pipDist }
+    pip { position 0.25 -pipDist 0.25 }
+    pip { position 0.25 -pipDist -0.25 }
+    pip { position -0.25 -pipDist }
+    pip { position -0.25 -pipDist 0.25 }
+    pip { position -0.25 -pipDist -0.25 }
+    // layer 1
+    group {
+        orientation 0 0.25 * twist
+        // 2
+        pip { position -0.2 -0.2 -pipDist }
+        // 3
+        pip { position -pipDist -0.25 -0.25 }
+        // 4
+        pip { position pipDist -0.25 0.25 }
+        pip { position pipDist -0.25 -0.25 }
+        // 5
+        pip { position 0.25 -0.25 pipDist }
+        pip { position -0.25 -0.25 pipDist }
+    }
+    // layer 2
+    group {
+        orientation 0 0.5 * twist
+        // 3
+        pip { position -pipDist 0 0 }
+        // 5
+        pip { position 0 0 pipDist }
+    }
+    // layer 3
+    group {
+        orientation 0 0.75 * twist
+        // 2
+        pip { position 0.2 0.2 -pipDist }
+        // 3
+        pip { position -pipDist 0.25 0.25 }
+        // 4
+        pip { position pipDist 0.25 0.25 }
+        pip { position pipDist 0.25 -0.25 }
+        // 5
+        pip { position 0.25 0.25 pipDist }
+        pip { position -0.25 0.25 pipDist }
+    }
+}

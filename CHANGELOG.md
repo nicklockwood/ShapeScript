@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.10.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.6) (2026-07-23)
+
+- Fixed incorrect `count`, `allButFirst`, `allButLast` and indexed member results for geometry tuples
+- Fixed child transforms being ignored when looping over shape values returned from a function
+- Fixed performance regression when extruding along a path (introduced in 1.10.4)
+- Fixed blank lines being omitted from console output
+- Fixed title bar clipping in the macOS release notes and licenses windows
+- Improved extrusion/fill output for complex compound paths and SVG-derived geometry
+- Restored original subpath joining behavior
+- Bumped Euclid to version 0.8.19
+
 ## [1.10.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.5) (2026-07-13)
 
 - Improved iOS console readability with fade effects at the top and bottom

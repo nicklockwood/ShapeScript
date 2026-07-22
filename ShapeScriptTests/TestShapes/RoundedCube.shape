@@ -1,0 +1,42 @@
+// ShapeScript document
+
+detail 32
+
+define roundedcube {
+    option radius 0.25
+    define offset 0.5 - radius / 2
+    detail max(4 detail)
+    union {
+        cube { size 1 offset * 2 offset * 2 }
+        cube { size offset * 2 1 offset * 2 }
+        cube { size offset * 2 offset * 2 1 }
+        for y in (-1 1) {
+            for x in (-1 1) {
+                cylinder {
+                    position offset * x 0 offset * y
+                    size radius offset * 2 radius
+                }
+                cylinder {
+                    orientation 0.5
+                    position 0 offset * x offset * y
+                    size radius offset * 2 radius
+                }
+                cylinder {
+                    orientation 0 0 0.5
+                    position offset * x offset * y 0
+                    size radius offset * 2 radius
+                }
+                for z in (-1 1) {
+                    sphere {
+                        position offset * x offset * y offset * z
+                        size radius
+                    }
+                }
+            }
+        }
+    }
+}
+
+roundedcube {
+    radius 0.25
+}
