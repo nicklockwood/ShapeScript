@@ -30,14 +30,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         contentViewController: WhatsNewViewController(),
         size: NSSize(width: 640, height: 480),
         title: nil,
-        hidesTitle: true
+        hidesTitle: true,
+        extendsContentIntoTitleBar: true
     )
 
     lazy var licensesWindowController: NSWindowController? = makeWindowController(
         contentViewController: LicensesViewController(),
         size: NSSize(width: 640, height: 480),
         title: nil,
-        hidesTitle: true
+        hidesTitle: true,
+        extendsContentIntoTitleBar: true
     )
 
     lazy var preferencesWindowController: NSWindowController = makeWindowController(
@@ -193,18 +195,24 @@ extension AppDelegate {
         contentViewController: NSViewController,
         size: NSSize,
         title: String?,
-        hidesTitle: Bool = false
+        hidesTitle: Bool = false,
+        extendsContentIntoTitleBar: Bool = false
     ) -> NSWindowController {
+        var styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
+        if extendsContentIntoTitleBar {
+            styleMask.insert(.fullSizeContentView)
+        }
+
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: styleMask,
             backing: .buffered,
             defer: false
         )
         window.center()
         window.title = title ?? ""
         window.titleVisibility = hidesTitle ? .hidden : .visible
-        window.titlebarAppearsTransparent = hidesTitle
+        window.titlebarAppearsTransparent = hidesTitle && !extendsContentIntoTitleBar
         window.isMovableByWindowBackground = true
         window.contentViewController = contentViewController
         return NSWindowController(window: window)

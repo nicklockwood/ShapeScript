@@ -49,6 +49,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
     scrollView.borderType = .noBorder
     scrollView.hasHorizontalScroller = false
     scrollView.hasVerticalScroller = true
+    scrollView.automaticallyAdjustsContentInsets = true
     scrollView.contentView.drawsBackground = false
     scrollView.contentInsets = NSEdgeInsets(top: 0, left: 15, bottom: 15, right: 15)
     textView.frame = NSRect(origin: .zero, size: documentSize)
