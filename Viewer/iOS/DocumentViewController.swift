@@ -6,6 +6,7 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
+import ContextMenu
 import Euclid
 import SceneKit
 import ShapeScript
@@ -361,15 +362,15 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
-        scnView.addInteraction(LongPressMenuInteraction { [weak self] location in
+        scnView.addInteraction(ContextMenuInteraction { [weak self] location in
             guard let self,
                   let menu = selectionMenu(at: location)
             else {
                 return nil
             }
-            let style: LongPressMenuInteraction.Configuration.PresentationStyle =
+            let style: ContextMenuInteraction.Configuration.PresentationStyle =
                 selectableGeometries(at: location).count == 1 ? .editMenu : .automatic
-            return LongPressMenuInteraction.Configuration(
+            return ContextMenuInteraction.Configuration(
                 menu: menu,
                 presentationStyle: style
             )

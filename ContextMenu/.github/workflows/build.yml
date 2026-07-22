@@ -1,0 +1,62 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ios:
+    strategy:
+      fail-fast: false
+      matrix:
+        macos:
+          - 14
+        xcode:
+          - latest-stable
+    runs-on: macos-${{ matrix.macos }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build Example
+        run: |
+          xcodebuild build \
+            -project ContextMenu.xcodeproj \
+            -scheme ContextMenuExample \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath Build
+      - name: Build Example for Mac Catalyst
+        run: |
+          xcodebuild build \
+            -project ContextMenu.xcodeproj \
+            -scheme ContextMenuExample \
+            -destination "platform=macOS,arch=x86_64,variant=Mac Catalyst" \
+            -derivedDataPath Build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project ContextMenu.xcodeproj \
+            -scheme ContextMenu \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -enableCodeCoverage YES \
+            -derivedDataPath Build
+      - name: Generate Coverage Report
+        run: |
+          set -euo pipefail
+
+          profdata=$(find Build/Build/ProfileData -name Coverage.profdata -print -quit)
+          binary="Build/Build/Products/Debug-iphonesimulator/ContextMenu.framework/ContextMenu"
+
+          xcrun llvm-cov export \
+            -format=lcov \
+            -instr-profile "$profdata" \
+            "$binary" > coverage.lcov
+
+          ! grep -Ev "^SF:(.*/)?Sources/" coverage.lcov | grep "^SF:"
+      - name: Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.lcov
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,6 +1,6 @@
 //
-//  LongPressMenuInteraction.swift
-//  ShapeScript Viewer
+//  ContextMenuInteraction.swift
+//  ContextMenu
 //
 //  Created by Nick Lockwood on 29/06/2026.
 //  Copyright © 2026 Nick Lockwood. All rights reserved.
@@ -9,35 +9,43 @@
 import UIKit
 
 @MainActor
-final class LongPressMenuInteraction: NSObject, UIInteraction {
-    struct Configuration {
-        enum PresentationStyle {
+public final class ContextMenuInteraction: NSObject, UIInteraction {
+    public struct Configuration {
+        public enum PresentationStyle {
             case automatic
             case editMenu
         }
 
-        var menu: UIMenu
-        var presentationStyle: PresentationStyle = .automatic
+        public var menu: UIMenu
+        public var presentationStyle: PresentationStyle
+
+        public init(
+            menu: UIMenu,
+            presentationStyle: PresentationStyle = .automatic
+        ) {
+            self.menu = menu
+            self.presentationStyle = presentationStyle
+        }
     }
 
-    typealias MenuProvider = (_ location: CGPoint) -> Configuration?
+    public typealias MenuProvider = (_ location: CGPoint) -> Configuration?
 
     private let menuProvider: MenuProvider
     private weak var attachedView: UIView?
     private var longPressGesture: UILongPressGestureRecognizer?
     private var editMenuInteraction: AnyObject?
-    private weak var menuButton: LongPressMenuButton?
+    private weak var menuButton: ContextMenuButton?
 
-    var view: UIView? {
+    public var view: UIView? {
         attachedView
     }
 
-    init(menuProvider: @escaping MenuProvider) {
+    public init(menuProvider: @escaping MenuProvider) {
         self.menuProvider = menuProvider
         super.init()
     }
 
-    func willMove(to view: UIView?) {
+    public func willMove(to view: UIView?) {
         if view == nil {
             cleanupButton()
             if let longPressGesture {
@@ -54,11 +62,16 @@ final class LongPressMenuInteraction: NSObject, UIInteraction {
         }
     }
 
-    func didMove(to view: UIView?) {
+    public func didMove(to view: UIView?) {
         guard let view else {
             return
         }
         attachedView = view
+
+        if runningOnMac, #available(iOS 16, *) {
+            _ = editMenuInteraction(for: view)
+        }
+
         let gesture = UILongPressGestureRecognizer(
             target: self,
             action: #selector(handleLongPress(_:))
@@ -78,7 +91,7 @@ final class LongPressMenuInteraction: NSObject, UIInteraction {
         presentMenu(at: location)
     }
 
-    func presentMenu(at location: CGPoint) {
+    public func presentMenu(at location: CGPoint) {
         guard let view = attachedView,
               let configuration = menuProvider(location)
         else {
@@ -87,16 +100,24 @@ final class LongPressMenuInteraction: NSObject, UIInteraction {
 
         cleanupButton()
 
-        if #available(iOS 17.4, *), configuration.presentationStyle == .automatic {
+        if #available(iOS 17.4, *), !runningOnMac, configuration.presentationStyle == .automatic {
             presentContextMenu(configuration.menu, at: location, in: view)
         } else if #available(iOS 16, *) {
             presentEditMenu(at: location, in: view)
         }
     }
 
+    private var runningOnMac: Bool {
+        #if targetEnvironment(macCatalyst)
+        true
+        #else
+        ProcessInfo.processInfo.isiOSAppOnMac
+        #endif
+    }
+
     @available(iOS 17.4, *)
     private func presentContextMenu(_ menu: UIMenu, at location: CGPoint, in view: UIView) {
-        let button = LongPressMenuButton(type: .custom)
+        let button = ContextMenuButton(type: .custom)
         button.frame = CGRect(origin: location, size: CGSize(width: 1, height: 1))
         button.alpha = 0.01
         button.isAccessibilityElement = false
@@ -122,9 +143,18 @@ final class LongPressMenuInteraction: NSObject, UIInteraction {
     }
 }
 
+#if compiler(>=6.2)
 @available(iOS 16, *)
-extension LongPressMenuInteraction: @MainActor UIEditMenuInteractionDelegate {
-    func editMenuInteraction(
+extension ContextMenuInteraction: @MainActor UIEditMenuInteractionDelegate {}
+#else
+@MainActor
+@available(iOS 16, *)
+extension ContextMenuInteraction: UIEditMenuInteractionDelegate {}
+#endif
+
+@available(iOS 16, *)
+extension ContextMenuInteraction {
+    public func editMenuInteraction(
         _: UIEditMenuInteraction,
         menuFor configuration: UIEditMenuConfiguration,
         suggestedActions _: [UIMenuElement]
@@ -151,7 +181,7 @@ extension LongPressMenuInteraction: @MainActor UIEditMenuInteractionDelegate {
     }
 }
 
-private final class LongPressMenuButton: UIButton {
+private final class ContextMenuButton: UIButton {
     var onMenuDismiss: (() -> Void)?
 
     override func contextMenuInteraction(

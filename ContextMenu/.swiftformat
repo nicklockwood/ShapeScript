@@ -1,0 +1,37 @@
+# file options
+
+--exclude Package.swift
+
+# format options
+
+--swift-version 5.10
+--hex-grouping ignore
+--decimal-grouping ignore
+--ifdef no-indent
+--import-grouping testable-first
+--self init-only
+--short-optionals except-properties
+--wrap-arguments before-first
+--wrap-parameters before-first
+--wrap-collections before-first
+--wrap-conditions after-first
+--max-width 120
+
+# rules
+
+--lint-only unusedArguments
+--lint-only unusedPrivateDeclarations
+--enable emptyExtensions
+--enable isEmpty
+--enable noForceTryInTests
+--enable noForceUnwrapInTests
+--enable preferFinalClasses
+--enable redundantAsync
+--enable redundantThrows
+--enable redundantEquatable
+--enable redundantMemberwiseInit
+--enable redundantVariable
+--disable redundantSendable
+--disable wrapFunctionBodies
+--disable wrapPropertyBodies
+--disable docComments

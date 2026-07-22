@@ -11,10 +11,12 @@
 		012B51B62E8093CD00D69BA4 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
 		012B51B72E8093CD00D69BA4 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
 		012B51B82E8093CD00D69BA4 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; };
+		012B51B32FF0000000000001 /* ContextMenu.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 012B51B72FF0000000000005 /* ContextMenu.framework */; };
 		012B51B92E80942200D69BA4 /* Examples in Resources */ = {isa = PBXBuildFile; fileRef = 01D435A22E807CBA008B915E /* Examples */; };
 		012B51BB2E8094B000D69BA4 /* LRUCache.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BC2E8094B000D69BA4 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BD2E8094B000D69BA4 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		012B51B42FF0000000000001 /* ContextMenu.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 012B51B72FF0000000000005 /* ContextMenu.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51EF2E8098A300D69BA4 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; platformFilters = (ios, maccatalyst, macos, xros, ); };
 		012B51F02E8098A300D69BA4 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
@@ -77,6 +79,13 @@
 			remoteGlobalIDString = 016FAB2921BFE78100AF60DC;
 			remoteInfo = LRUCache;
 		};
+		012B51B52FF0000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 012B51B62FF0000000000001 /* ContextMenu.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 010000000000000000000008;
+			remoteInfo = ContextMenu;
+		};
 		0158D9722E8072C400C53A29 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
@@ -104,6 +113,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 016FAB2821BFE78100AF60DC;
 			remoteInfo = Euclid;
+		};
+		012B51B82FF0000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 012B51B62FF0000000000001 /* ContextMenu.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 01000000000000000000000D;
+			remoteInfo = ContextMenu;
 		};
 		01D435962E807C0F008B915E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -138,6 +154,7 @@
 				012B51BB2E8094B000D69BA4 /* LRUCache.framework in Copy Frameworks */,
 				012B51BC2E8094B000D69BA4 /* SVGPath.framework in Copy Frameworks */,
 				012B51BD2E8094B000D69BA4 /* Euclid.framework in Copy Frameworks */,
+				012B51B42FF0000000000001 /* ContextMenu.framework in Copy Frameworks */,
 				012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */,
 			);
 			name = "Copy Frameworks";
@@ -185,6 +202,7 @@
 		0158D8362E806BB600C53A29 /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Euclid.xcodeproj; path = Euclid/Euclid.xcodeproj; sourceTree = "<group>"; };
 		0158D8452E806BCF00C53A29 /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SVGPath.xcodeproj; path = SVGPath/SVGPath.xcodeproj; sourceTree = "<group>"; };
 		0158D84F2E806BEE00C53A29 /* LRUCache.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LRUCache.xcodeproj; path = LRUCache/LRUCache.xcodeproj; sourceTree = "<group>"; };
+		012B51B62FF0000000000001 /* ContextMenu.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ContextMenu.xcodeproj; path = ContextMenu/ContextMenu.xcodeproj; sourceTree = "<group>"; };
 		0158D9682E8072C400C53A29 /* ShapeScript.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShapeScript.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0158D9702E8072C400C53A29 /* ShapeScriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShapeScriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -306,6 +324,7 @@
 				012B51B62E8093CD00D69BA4 /* Euclid.framework in Frameworks */,
 				012B51B72E8093CD00D69BA4 /* LRUCache.framework in Frameworks */,
 				012B51B82E8093CD00D69BA4 /* SVGPath.framework in Frameworks */,
+				012B51B32FF0000000000001 /* ContextMenu.framework in Frameworks */,
 				012B51B52E8093C100D69BA4 /* ShapeScript.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -396,6 +415,7 @@
 				0158D84F2E806BEE00C53A29 /* LRUCache.xcodeproj */,
 				0158D8452E806BCF00C53A29 /* SVGPath.xcodeproj */,
 				0158D8362E806BB600C53A29 /* Euclid.xcodeproj */,
+				012B51B62FF0000000000001 /* ContextMenu.xcodeproj */,
 				EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */,
 			);
 			name = Frameworks;
@@ -421,6 +441,14 @@
 			isa = PBXGroup;
 			children = (
 				0158D8562E806BEE00C53A29 /* LRUCache.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		012B51B92FF0000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				012B51B72FF0000000000005 /* ContextMenu.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -463,6 +491,7 @@
 			);
 			dependencies = (
 				012B51B42E8093A600D69BA4 /* PBXTargetDependency */,
+				012B51BA2FF0000000000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				0195F9222FEBAF0200E772D9 /* Shared */,
@@ -656,6 +685,10 @@
 					ProductGroup = 0158D8462E806BCF00C53A29 /* Products */;
 					ProjectRef = 0158D8452E806BCF00C53A29 /* SVGPath.xcodeproj */;
 				},
+				{
+					ProductGroup = 012B51B92FF0000000000001 /* Products */;
+					ProjectRef = 012B51B62FF0000000000001 /* ContextMenu.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -689,6 +722,13 @@
 			fileType = wrapper.framework;
 			path = LRUCache.framework;
 			remoteRef = 0158D8552E806BEE00C53A29 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		012B51B72FF0000000000005 /* ContextMenu.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = ContextMenu.framework;
+			remoteRef = 012B51B52FF0000000000001 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -843,6 +883,11 @@
 			isa = PBXTargetDependency;
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
 			targetProxy = 012B51B32E8093A600D69BA4 /* PBXContainerItemProxy */;
+		};
+		012B51BA2FF0000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ContextMenu;
+			targetProxy = 012B51B82FF0000000000001 /* PBXContainerItemProxy */;
 		};
 		012B51EE2E80989A00D69BA4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
