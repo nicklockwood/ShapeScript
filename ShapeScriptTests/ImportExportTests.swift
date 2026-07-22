@@ -68,7 +68,7 @@ final class ImportExportTests: XCTestCase {
         XCTAssert(geometry.build { true })
         let mesh = try XCTUnwrap(geometry.mesh)
         let polygons = mesh.polygons
-        XCTAssertEqual(polygons.count, 80)
+        XCTAssertEqual(polygons.count, 96)
         XCTAssert(polygons.areWatertight)
         let triangles = mesh.triangulate().polygons
         XCTAssertEqual(triangles.count, 256)

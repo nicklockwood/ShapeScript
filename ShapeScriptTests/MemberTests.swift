@@ -114,7 +114,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let polygons = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
         #if canImport(CoreText)
-        XCTAssertEqual(polygons.count, 58)
+        XCTAssertEqual(polygons.count, 14)
         #endif
     }
 
@@ -124,7 +124,7 @@ final class MemberTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         let triangles = try XCTUnwrap(delegate.log as? [Euclid.Polygon])
         #if canImport(CoreText)
-        XCTAssertEqual(triangles.count, 238)
+        XCTAssertEqual(triangles.count, 210)
         #endif
     }
 
@@ -836,12 +836,14 @@ final class MemberTests: XCTestCase {
     }
 
     func testTextGeometryOrdinalSubscripting() {
+        #if canImport(CoreText)
         let program = """
         print (text "foo").second
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log.count, 1)
+        #endif
     }
 
     // MARK: tuple count
@@ -908,7 +910,9 @@ final class MemberTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        #if canImport(CoreText)
         XCTAssertEqual(delegate.log, [3])
+        #endif
     }
 
     func testTextGeometrySubrangeCount() {
@@ -917,6 +921,8 @@ final class MemberTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        #if canImport(CoreText)
         XCTAssertEqual(delegate.log, [2])
+        #endif
     }
 }

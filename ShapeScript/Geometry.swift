@@ -669,8 +669,7 @@ private extension Geometry {
         case let .fill(paths) where paths.count == 1:
             mesh = .fill(paths[0], isCancelled: isCancelled)
             if paths[0].subpaths.count > 1 {
-                // No point calling makeWatertight() as it doesn't work with double-sided polys
-                mesh = mesh?.detessellate()
+                mesh = mesh?.makeWatertight().detessellate()
             }
         case let .loft(paths):
             mesh = .loft(paths, isCancelled: isCancelled)
@@ -764,9 +763,19 @@ private extension Geometry {
         }
         if callback() {
             switch type {
-            case .extrude:
-                let detessellatedMesh = mesh?.detessellate().makeWatertight()
-                mesh = detessellatedMesh?.isWatertight == true ? detessellatedMesh : mesh?.makeWatertight()
+            case let .extrude(paths, options):
+                let watertightMesh = mesh?.makeWatertight()
+                if let detessellatedMesh = watertightMesh?.detessellate().makeWatertight(),
+                   detessellatedMesh.isWatertight
+                {
+                    mesh = detessellatedMesh.replacingDamagedExtrudeCaps(
+                        withCapsFrom: watertightMesh,
+                        paths: paths,
+                        options: options
+                    )
+                } else {
+                    mesh = watertightMesh
+                }
             default:
                 mesh = mesh?.makeWatertight()
             }
@@ -1170,5 +1179,159 @@ public extension Geometry {
     @available(*, deprecated, message: "Use isWatertight() instead")
     var isWatertight: Bool {
         isWatertight { false }
+    }
+}
+
+private extension Mesh {
+    /// Detessellation can merge a cap's scanline tessellation into non-convex polygons, which then depends on
+    /// downstream triangulation when rendered. Keep the compact detessellated body, but restore the original cap
+    /// tessellation for terminal sections when it is the safer renderable representation.
+    func replacingDamagedExtrudeCaps(
+        withCapsFrom originalMesh: Mesh?,
+        paths: [Path],
+        options: ExtrudeOptions
+    ) -> Mesh {
+        guard let originalMesh,
+              let capSpecs = ExtrudeCapSpec.capSpecs(for: paths, options: options)
+        else {
+            return self
+        }
+
+        var polygons = polygons
+        var didReplaceCaps = false
+        for capSpec in capSpecs {
+            let originalCaps = originalMesh.polygons.terminalCapPolygons(
+                on: capSpec.section,
+                facing: capSpec.outwardNormal,
+                allowInverted: false
+            )
+            let currentCaps = polygons.terminalCapPolygons(
+                on: capSpec.section,
+                facing: capSpec.outwardNormal,
+                allowInverted: true
+            )
+            guard !originalCaps.isEmpty,
+                  originalCaps.allSatisfy(\.isConvex),
+                  currentCaps.contains(where: { !$0.isConvex }),
+                  paths.contains(where: \.hasCoincidentSubpathPoints) ||
+                  !currentCaps.matchesCapCoverage(of: originalCaps, facing: capSpec.outwardNormal)
+            else {
+                continue
+            }
+
+            let capsToReplace = Set(currentCaps)
+            polygons.removeAll { capsToReplace.contains($0) }
+            polygons.append(contentsOf: originalCaps)
+            didReplaceCaps = true
+        }
+
+        guard didReplaceCaps else {
+            return self
+        }
+        let repairedMesh = Mesh(polygons).makeWatertight()
+        return repairedMesh.isWatertight ? repairedMesh : self
+    }
+}
+
+private extension Path {
+    /// QR/SVG repair paths can revisit exact points across subpaths. Those cap polygons may have
+    /// matching area after detessellation while still triangulating incorrectly for rendering.
+    var hasCoincidentSubpathPoints: Bool {
+        guard subpaths.count > 1 else {
+            return false
+        }
+        var positions = Set<Vector>()
+        for subpath in subpaths {
+            for point in subpath.points.dropLast(subpath.isClosed ? 1 : 0) {
+                guard positions.insert(point.position).inserted else {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+}
+
+private struct ExtrudeCapSpec {
+    var section: Path
+    var outwardNormal: Vector
+
+    /// Recreates the first and last section planes used by a single-profile extrusion along one path.
+    static func capSpecs(for paths: [Path], options: ExtrudeOptions) -> [Self]? {
+        guard paths.count == 1, options.along.count == 1,
+              !options.along[0].isClosed,
+              options.along[0].plane != nil
+        else {
+            return nil
+        }
+        let sections = paths[0].extrusionContours(
+            along: options.along[0],
+            twist: options.twist,
+            align: options.align
+        )
+        guard sections.count > 1,
+              let first = sections.first,
+              let second = sections.dropFirst().first,
+              let last = sections.last,
+              let penultimate = sections.dropLast().last,
+              let firstNormal = capNormal(from: second, to: first),
+              let lastNormal = capNormal(from: penultimate, to: last)
+        else {
+            return nil
+        }
+        return [
+            Self(section: first, outwardNormal: firstNormal),
+            Self(section: last, outwardNormal: lastNormal),
+        ]
+    }
+
+    private static func capNormal(from a: Path, to b: Path) -> Vector? {
+        let delta = b.bounds.center - a.bounds.center
+        guard delta.length > 0 else {
+            return nil
+        }
+        return delta / delta.length
+    }
+}
+
+private extension Collection<Polygon> {
+    /// Compares filled cap coverage without requiring the same tessellation.
+    /// Detessellated caps are kept when they cover the same area as the original convex cap pieces.
+    func matchesCapCoverage(of reference: [Polygon], facing outwardNormal: Vector) -> Bool {
+        let area = signedCapArea(facing: outwardNormal)
+        let referenceArea = reference.signedCapArea(facing: outwardNormal)
+        let tolerance = Swift.max(abs(referenceArea) * 1e-8, 1e-8)
+        guard abs(area - referenceArea) <= tolerance else {
+            return false
+        }
+
+        let polygons = Array(self)
+        return reference.allSatisfy { referencePolygon in
+            let positions = referencePolygon.vertices.map(\.position)
+            let sample = positions.reduce(.zero, +) / Double(positions.count)
+            return polygons.contains {
+                $0.bounds.intersects(sample) && $0.intersects(sample)
+            }
+        }
+    }
+
+    func signedCapArea(facing outwardNormal: Vector) -> Double {
+        reduce(0) { area, polygon in
+            let sign = polygon.plane.normal.dot(outwardNormal) < 0 ? -1.0 : 1.0
+            return area + polygon.area * sign
+        }
+    }
+
+    /// Finds polygons lying on a terminal cap plane. `allowInverted` is used when removing candidate caps,
+    /// so incorrectly wound cap polygons are still replaced.
+    func terminalCapPolygons(on section: Path, facing outwardNormal: Vector, allowInverted: Bool) -> [Polygon] {
+        guard let plane = section.plane else {
+            return []
+        }
+        return filter { polygon in
+            let dot = polygon.plane.normal.dot(outwardNormal)
+            let isFacingCap = allowInverted ? abs(dot) > 0.99 : dot > 0.99
+            return isFacingCap && polygon.vertices.allSatisfy { plane.intersects($0.position) }
+        }
     }
 }

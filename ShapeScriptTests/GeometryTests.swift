@@ -6,8 +6,8 @@
 //  Copyright © 2022 Nick Lockwood. All rights reserved.
 //
 
+@testable import Euclid
 @testable import ShapeScript
-import Euclid
 import XCTest
 
 final class GeometryTests: XCTestCase {
@@ -63,9 +63,9 @@ final class GeometryTests: XCTestCase {
         let cone = GeometryType.cone(segments: 3)
         let sphere = GeometryType.sphere(segments: 3)
         let expected = Vector(0.75, 1, 0.866025403784)
-        XCTAssertEqual(cylinder.bounds.size, expected, accuracy: 1e-10)
-        XCTAssertEqual(cone.bounds.size, expected, accuracy: 1e-10)
-        XCTAssertEqual(sphere.bounds.size, expected, accuracy: 1e-10)
+        XCTAssertEqual(cylinder.bounds.size, expected, accuracy: epsilon)
+        XCTAssertEqual(cone.bounds.size, expected, accuracy: epsilon)
+        XCTAssertEqual(sphere.bounds.size, expected, accuracy: epsilon)
     }
 
     func testPrimitiveGenerationCanBeCancelled() {
@@ -105,8 +105,8 @@ final class GeometryTests: XCTestCase {
         _ = shape.build { true }
         let mesh = try XCTUnwrap(shape.mesh)
         let expected = mesh.transformed(by: context.transform).bounds
-        XCTAssertEqual(bounds.min, expected.min, accuracy: 1e-10)
-        XCTAssertEqual(bounds.max, expected.max, accuracy: 1e-10)
+        XCTAssertEqual(bounds.min, expected.min, accuracy: epsilon)
+        XCTAssertEqual(bounds.max, expected.max, accuracy: epsilon)
     }
 
     func testTransformedSquarePathBounds() {
@@ -146,6 +146,71 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(mesh.bounds.isEmpty)
         XCTAssertEqual(mesh.bounds, Bounds(min: [0.26, 0, 0], max: [0.74, 2, 0]))
         XCTAssertEqual(geometry.overestimatedBounds, mesh.bounds)
+    }
+
+    func testTextFourCounterUsesOddEvenFillForCaps() throws {
+        #if canImport(CoreText)
+        func centroid(of path: Path) -> Vector {
+            let positions = path.points.dropLast(path.isClosed ? 1 : 0).map(\.position)
+            return positions.reduce(.zero, +) / Double(positions.count)
+        }
+
+        func mesh(for program: String) throws -> Mesh {
+            let scene = try evaluate(parse(program), delegate: TestDelegate())
+            XCTAssertEqual(scene.children.count, 1)
+            let geometry = try XCTUnwrap(scene.children.first)
+            XCTAssertTrue(geometry.build { true })
+            return geometry.flattened()
+        }
+
+        func capCovers(_ point: Vector, in mesh: Mesh) -> Bool {
+            mesh.polygons.contains { polygon in
+                guard abs(polygon.plane.normal.z) > 0.5,
+                      let z = polygon.vertices.first?.position.z
+                else {
+                    return false
+                }
+                return polygon.intersects(Vector(point.x, point.y, z))
+            }
+        }
+
+        let glyph = try XCTUnwrap(Path.text("4").first)
+        let subpaths = glyph.subpaths
+        let subpathPolygons = subpaths.map { Polygon($0) }
+        let subpathPoints = subpaths.map {
+            Array($0.points.dropLast($0.isClosed ? 1 : 0).map(\.position))
+        }
+        let counterIndex = try XCTUnwrap(subpaths.indices.first { index in
+            subpathPolygons.indices.contains { otherIndex in
+                guard otherIndex != index else {
+                    return false
+                }
+                guard let polygon = subpathPolygons[otherIndex] else {
+                    return false
+                }
+                let insideCount = subpathPoints[index].filter {
+                    polygon.bounds.intersects($0) && polygon.intersects($0)
+                }.count
+                return insideCount > subpathPoints[index].count / 2
+            }
+        })
+        let counterPoint = centroid(of: subpaths[counterIndex])
+
+        let fillMesh = try mesh(for: "fill text \"4\"")
+        XCTAssertFalse(capCovers(counterPoint, in: fillMesh))
+        let extrudeMesh = try mesh(for: "extrude text \"4\"")
+        XCTAssertFalse(capCovers(counterPoint, in: extrudeMesh))
+        let alongMesh = try mesh(for: """
+        extrude {
+            text "4"
+            along path {
+                point 0 0 -0.5
+                point 0 0 0.5
+            }
+        }
+        """)
+        XCTAssertFalse(capCovers(counterPoint, in: alongMesh))
+        #endif
     }
 
     func testTransformedMultipleFilledPathBounds() {

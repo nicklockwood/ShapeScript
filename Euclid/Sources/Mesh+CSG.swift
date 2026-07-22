@@ -922,7 +922,7 @@ private extension Mesh {
         // Add remaining polygons
         // Note: no need to use a VertexSet here as vertex positions should already
         // be unique, but perhaps there is an opportunity to merge some things?
-        var pointSet = Set<Vector>()
+        var pointSet = Set(polygons.flatMap { $0.vertices.map(\.position) })
         for polygon in polygonsToAdd where !isCancelled() {
             for vertex in polygon.vertices where pointSet.insert(vertex.position).inserted {
                 polygons.addPoint(
@@ -1087,7 +1087,7 @@ private extension [Polygon] {
         }
         // Extend polygons to include point
         guard facing.isEmpty else {
-            addTriangles(with: facing.boundingEdges.sorted(), faceNormal: nil)
+            addTriangles(with: facing.boundingEdges, faceNormal: nil)
             return
         }
         // Only add coplanar points if the triangle is added to both sides
@@ -1097,7 +1097,7 @@ private extension [Polygon] {
         }
         for (plane, polygons) in coplanar {
             guard let polygon = polygons.first else { continue }
-            let edges = polygons.boundingEdges.sorted().compactMap {
+            let edges = polygons.boundingEdges.compactMap {
                 let edgePlane = polygon.edgePlane(for: $0)
                 if point.compare(with: edgePlane) == .front {
                     return $0.inverted()

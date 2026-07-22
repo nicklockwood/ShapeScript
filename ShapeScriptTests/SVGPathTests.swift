@@ -70,17 +70,20 @@ final class SVGPathTests: XCTestCase {
             detail: 4,
             color: ShapeScript.Material.default.color
         )
+        let along = Path([
+            .point(1, 20),
+            .point(0, 10),
+            .point(0, -10),
+        ], color: ShapeScript.Material.default.color)
         let mesh = Mesh
-            .extrude(path, along: Path([
-                .point(1, 20),
-                .point(0, 10),
-                .point(0, -10),
-            ], color: ShapeScript.Material.default.color))
+            .extrude(path, along: along)
             .makeWatertight()
 
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
     }
 
     func testShapeScriptExtrudesSVGPathWithDoubledBackSegmentsAlongBentPath() throws {
@@ -101,10 +104,97 @@ final class SVGPathTests: XCTestCase {
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        let path = try Path(
+            SVGPath(string: svgPathWithDoubledBackSegments),
+            detail: 4,
+            color: ShapeScript.Material.default.color
+        )
+        let along = Path([
+            .point(1, 20),
+            .point(0, 10),
+            .point(0, -10),
+        ], color: ShapeScript.Material.default.color)
+        try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
+    }
+}
+
+private func assertCapsMatchFilledSections(
+    for path: Path,
+    extrudedAlong along: Path,
+    in mesh: Mesh,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) throws {
+    let sections = path.extrusionContours(along: along)
+    let capSpecs = try [
+        (section: XCTUnwrap(sections.first), outwardNormal: Vector(0.099503719021, 0.99503719021, 0)),
+        (section: XCTUnwrap(sections.last), outwardNormal: Vector(0, -1, 0)),
+    ]
+    for (section, outwardNormal) in capSpecs {
+        let expectedPolygons = Mesh.fill(section, faces: .front).polygons
+        let expectedArea = abs(expectedPolygons.signedProjectedArea(along: outwardNormal))
+        let actualPolygons = mesh.polygons.coplanar(with: section, normal: outwardNormal)
+        let actualArea = actualPolygons.signedProjectedArea(along: outwardNormal)
+        XCTAssertEqual(actualArea, expectedArea, accuracy: max(epsilon, expectedArea * 1e-9), file: file, line: line)
+        XCTAssertTrue(actualPolygons.allSatisfy(\.isConvex), file: file, line: line)
+        XCTAssertTrue(
+            actualPolygons.matchesFilledCoverage(of: expectedPolygons, sampleSpacing: 4),
+            file: file,
+            line: line
+        )
     }
 }
 
 private extension Collection<Euclid.Polygon> {
+    func signedProjectedArea(along normal: Vector) -> Double {
+        reduce(0) { $0 + $1.vertices.vectorArea.dot(normal) }
+    }
+
+    func coplanar(with path: Path, normal: Vector) -> [Euclid.Polygon] {
+        filter { polygon in
+            abs(polygon.plane.normal.dot(normal)) > 0.99 &&
+                polygon.vertices.allSatisfy { path.plane?.intersects($0.position) == true }
+        }
+    }
+
+    func matchesFilledCoverage(
+        of expectedPolygons: [Euclid.Polygon],
+        sampleSpacing: Double
+    ) -> Bool {
+        guard let plane = expectedPolygons.first?.plane else {
+            return isEmpty
+        }
+        let flatteningPlane = FlatteningPlane(normal: plane.normal)
+        let points = expectedPolygons.flatMap { polygon in
+            polygon.vertices.map { flatteningPlane.flattenPoint($0.position) }
+        }
+        guard let minX = points.map(\.x).min(),
+              let maxX = points.map(\.x).max(),
+              let minY = points.map(\.y).min(),
+              let maxY = points.map(\.y).max()
+        else {
+            return isEmpty
+        }
+        for x in stride(from: minX + sampleSpacing / 2, to: maxX, by: sampleSpacing) {
+            for y in stride(from: minY + sampleSpacing / 2, to: maxY, by: sampleSpacing) {
+                let point = flatteningPlane.unflattenPoint([x, y], onto: plane)
+                let expectedContains = expectedPolygons.containsCoplanarPoint(point)
+                let actualContains = containsCoplanarPoint(point)
+                if expectedContains != actualContains {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    func containsCoplanarPoint(_ point: Vector) -> Bool {
+        contains {
+            $0.plane.intersects(point) && $0.intersectsCoplanarPoint(point)
+        }
+    }
+
     func containsProjectedPoint(_ point: Vector) -> Bool {
         contains { $0.containsProjectedPoint(point) }
     }

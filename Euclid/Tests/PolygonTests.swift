@@ -311,6 +311,54 @@ final class PolygonTests: XCTestCase {
         ]))
     }
 
+    func testMergePolygonsWithMultipleSharedBoundaryVertices() {
+        let normal = Vector.unitZ
+        let a = Polygon(unchecked: [
+            Vertex(0, 0, normal: normal),
+            Vertex(1, 0, normal: normal),
+            Vertex(2, 0, normal: normal),
+            Vertex(2, 1, normal: normal),
+            Vertex(0, 1, normal: normal),
+        ])
+        let b = Polygon(unchecked: [
+            Vertex(2, 0, normal: normal),
+            Vertex(1, 0, normal: normal),
+            Vertex(0, 0, normal: normal),
+            Vertex(0, -1, normal: normal),
+            Vertex(2, -1, normal: normal),
+        ])
+        guard let c = a.merge(b) else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(c, Polygon(unchecked: [
+            Vertex(2, 1, normal: normal),
+            Vertex(0, 1, normal: normal),
+            Vertex(0, -1, normal: normal),
+            Vertex(2, -1, normal: normal),
+        ]))
+    }
+
+    func testMergeRejectsRepeatedVertexPositionsWithDifferentAttributes() {
+        let normal = Vector.unitZ
+        let a = Polygon(unchecked: [
+            Vertex(0, 0, normal: normal),
+            Vertex(1, 0, normal: normal),
+            Vertex(1, 1, normal: normal),
+        ])
+        let b = Polygon(unchecked: [
+            Vertex(1, 1, normal: normal),
+            Vertex(1, 0, normal: normal),
+            Vertex(0, 0, normal: .unitX),
+        ])
+
+        XCTAssertNil(a.merge(
+            unchecked: b,
+            ensureConvex: false,
+            allowDisjointSharedVertices: false
+        ))
+    }
+
     func testMergeR2LAdjacentRects() {
         let normal = Vector.unitZ
         let a = Polygon(unchecked: [
@@ -791,6 +839,7 @@ final class PolygonTests: XCTestCase {
             ],
         ])
         let merged = triangles.detessellate()
+        XCTAssertEqual(merged.count, 1)
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
     }
 
@@ -829,6 +878,7 @@ final class PolygonTests: XCTestCase {
             ],
         ])
         let merged = triangles.detessellate()
+        XCTAssertEqual(merged.count, 1)
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
     }
 
@@ -1009,12 +1059,34 @@ final class PolygonTests: XCTestCase {
         ])
     }
 
+    func testConcentricCirclesDetessellated() {
+        let path = Path(subpaths: [
+            .circle(radius: 1, segments: 16),
+            .circle(radius: 0.5, segments: 16).inverted(),
+        ])
+        let mesh = Mesh.fill(path).detessellate()
+        XCTAssertEqual(mesh.polygons.count, 4)
+        XCTAssertFalse(mesh.polygons.contains { $0.intersects(.zero) })
+    }
+
+    func testRotatedConcentricCirclesDetessellated() {
+        let path = Path(subpaths: [
+            .circle(radius: 1, segments: 16),
+            .circle(radius: 0.5, segments: 16).inverted(),
+        ]).rotated(by: Rotation(pitch: .pi / 4, yaw: .pi / 5))
+        let mesh = Mesh.fill(path).detessellate()
+        XCTAssertEqual(mesh.polygons.count, 4)
+        XCTAssertFalse(mesh.polygons.contains { $0.intersects(.zero) })
+    }
+
     func testWatertightMeshDetesselated() {
         let detail = 64
         let a = Mesh.cube(size: 0.8)
         let b = Mesh.sphere(slices: detail)
         let c = a.subtracting(b).makeWatertight()
         let d = c.detessellate()
+        XCTAssertEqual(c.polygons.count, 1330)
+        XCTAssertEqual(d.polygons.count, 939)
         XCTAssert(d.polygons.count < c.polygons.count)
     }
 
@@ -1025,6 +1097,7 @@ final class PolygonTests: XCTestCase {
         let polygons = paths.flatMap {
             $0.subpaths.flatMap { $0.facePolygons() }
         }
+        XCTAssertEqual(polygons.count, 2)
         XCTAssertEqual(polygons.detessellate().count, 2)
         #endif
     }
@@ -1036,6 +1109,7 @@ final class PolygonTests: XCTestCase {
         let polygons = paths.flatMap {
             $0.subpaths.flatMap { $0.facePolygons() }
         }
+        XCTAssertEqual(polygons.count, 4)
         XCTAssertEqual(polygons.detessellate().count, 4)
         #endif
     }

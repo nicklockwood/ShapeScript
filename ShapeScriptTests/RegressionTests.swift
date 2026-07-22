@@ -6,6 +6,7 @@
 //  Copyright © 2023 Nick Lockwood. All rights reserved.
 //
 
+@testable import Euclid
 @testable import ShapeScript
 import XCTest
 
@@ -40,7 +41,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 58)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 14)
         #endif
     }
 
@@ -51,7 +52,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 129)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 130)
         #endif
     }
 
@@ -71,7 +72,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 618)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 614)
         #endif
     }
 
@@ -82,7 +83,39 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 1712)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 1587)
+        #endif
+    }
+
+    func testExtrudedTextAlongNonPlanarCurvedPathIsWatertight() throws {
+        let program = """
+        detail 64
+
+        extrude {
+            text {
+                orientation -0.5
+                "Hello"
+                size 0.1
+            }
+            along path {
+                point 0 0
+                curve 0 0 1
+                curve 0 1 1
+                curve 1 1 1
+                point 1 1 2
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = geometry.flattened()
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
         #endif
     }
 
@@ -139,6 +172,42 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 69)
         #endif
+    }
+
+    func testOffCenterHullIsWatertight() throws {
+        let program = """
+        detail 16
+        smoothing 0
+
+        hull {
+            position 0 0.15
+
+            cylinder {
+                size 0.3 1 0.3
+                orientation 0.5
+                position 0 0 0.5
+            }
+            cylinder {
+                size 0.3 1 0.3
+                orientation 0.5
+                position 0 0 -0.5
+            }
+            cylinder {
+                size 0.2 1.1 0.2
+                orientation 0.5
+                position 0 0 0.5
+            }
+            cylinder {
+                size 0.2 1.1 0.2
+                orientation 0.5
+                position 0 0 -0.5
+            }
+        }
+        """
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
     }
 
     func testMinkowski() throws {

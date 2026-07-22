@@ -21,6 +21,13 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(path.points.count, 1)
     }
 
+    func testEmptyPathWithPlaneHasNoPlane() {
+        let path = Path([], plane: .xy)
+        XCTAssertEqual(path, .empty)
+        XCTAssertTrue(path.isEmpty)
+        XCTAssertNil(path.plane)
+    }
+
     func testCoincidentPoints() {
         let path = Path([
             .point(0, 0),
@@ -715,7 +722,7 @@ final class PathTests: XCTestCase {
             .circle(segments: 16),
             .circle(radius: 0.25, segments: 16).translated(by: [0.5, 0]),
         ])
-        let boundary = try XCTUnwrap(path.nonZeroFillBoundary())
+        let boundary = try XCTUnwrap(path.nonZeroFillBoundary)
         let connectorEndpoints = boundary.points.filter {
             (abs(abs($0.position.x) - 0.4318) < 0.001 &&
                 abs(abs($0.position.y) - 0.2364) < 0.001) ||
@@ -732,7 +739,7 @@ final class PathTests: XCTestCase {
             .circle(segments: 16),
             .circle(radius: 0.25, segments: 16).translated(by: [0.5, 0]),
         ])
-        let boundary = try XCTUnwrap(path.nonZeroFillBoundary())
+        let boundary = try XCTUnwrap(path.nonZeroFillBoundary)
         let arcPoints = boundary.points.filter {
             $0.position.isApproximatelyEqual(to: [-0.5, 0], absoluteTolerance: 0.001) ||
                 $0.position.isApproximatelyEqual(to: [0, -0.5], absoluteTolerance: 0.001) ||
@@ -973,6 +980,19 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(path.plane?.normal, .unitZ)
     }
 
+    func testFilledSubpathsGroupsNestedContoursWithTheirOuters() {
+        let firstOuter = Path.square(size: 10)
+        let firstInner = Path.square(size: 4)
+        let secondOuter = Path.square(size: 10).translated(by: [20, 0])
+        let secondInner = Path.square(size: 4).translated(by: [20, 0])
+        let path = Path(subpaths: [firstOuter, firstInner, secondOuter, secondInner])
+
+        XCTAssertEqual(path.filledSubpaths(), [
+            Path(subpaths: [firstOuter, firstInner]),
+            Path(subpaths: [secondOuter, secondInner]),
+        ])
+    }
+
     func testLinkedArcSubpathsAreJoinedCorrectly() {
         let quarterTurn = Angle.pi / 2
         let first = Path.arc(angle: quarterTurn, segments: 4)
@@ -981,6 +1001,20 @@ final class PathTests: XCTestCase {
         let path = Path(subpaths: [first, second])
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertEqual(path.points, Path.arc(angle: .pi, segments: 8).points)
+    }
+
+    func testLinkedSubpathsPreserveCurvedEndpoint() {
+        let first = Path([
+            .point(-1, 0),
+            .point(0, 0),
+        ])
+        let second = Path([
+            .curve(0, 0),
+            .curve(1, 0),
+        ])
+        let path = Path(subpaths: [first, second])
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertEqual(path.points.map(\.isCurved), [false, true, true])
     }
 
     func testTouchingClosedPathsNotLinked() {
