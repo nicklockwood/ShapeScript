@@ -13,7 +13,7 @@ import ShapeScript
 @MainActor
 extension DocumentViewControllerProtocol {
     func checkDocumentVersion() {
-        guard let document,
+        guard !isQuickLook, let document,
               let formatVersion = document.formatVersion,
               formatVersion > SemanticVersion(ShapeScript.version)
         else {
