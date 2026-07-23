@@ -8,6 +8,7 @@
 
 @testable import Euclid
 @testable import ShapeScript
+import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
@@ -254,6 +255,53 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.overestimatedBounds.size, [2, 2, 1])
         XCTAssertEqual(shape.overestimatedBounds.center, [1.5, 1.5, 3])
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
+    }
+
+    func testDetailedExtrusionBuildTiming() throws {
+        let path = Path([
+            .point(-0.075, -0.344),
+            .point(-0.075, -0.328),
+            .point(-0.060, -0.328),
+            .point(-0.060, -0.281),
+            .point(0.060, -0.281),
+            .point(0.060, -0.217),
+            .point(0.075, -0.217),
+            .point(0.075, -0.344),
+            .point(-0.075, -0.344),
+        ])
+        let along = Path.curve([
+            .point(-1.011, 0, 0),
+            .point(-1.011, 1.587, 0),
+            .curve(-0.934, 1.973, 0),
+            .curve(-0.715, 2.308, 0),
+            .curve(-0.386, 2.531, 0),
+            .curve(0, 2.609, 0),
+            .curve(0.386, 2.531, 0),
+            .curve(0.715, 2.308, 0),
+            .curve(0.934, 1.973, 0),
+            .point(1.587, 1.011, 0),
+        ], detail: 99)
+        let geometry = Geometry(
+            type: .extrude([path], .init(along: [along], twist: .zero, align: nil)),
+            in: EvaluationContext(source: "", delegate: nil)
+        )
+
+        let rawExtrusion = timed("detailed extrusion raw Mesh.extrude") {
+            Mesh.extrude(path, along: along)
+        }
+        let rawMesh = rawExtrusion.result
+        XCTAssertFalse(rawMesh.isEmpty)
+        XCTAssertLessThan(rawExtrusion.duration, 1.5)
+
+        let build = timed("detailed extrusion Geometry.build") {
+            geometry.build { true }
+        }
+        let buildSucceeded = build.result
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertTrue(buildSucceeded)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertLessThan(build.duration, 1.5)
     }
 
     func testTransformedMultipleLathedPathBounds() {
@@ -629,6 +677,23 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(meshes.first?.hasVertexColors, true)
         XCTAssertEqual(meshes.last?.hasVertexColors, true)
         XCTAssertNotEqual(meshes.first, meshes.last)
+    }
+}
+
+private func timed<T>(
+    _ label: String,
+    _ operation: () throws -> T
+) rethrows -> (result: T, duration: TimeInterval) {
+    let start = Date.timeIntervalSinceReferenceDate
+    do {
+        let result = try operation()
+        let duration = Date.timeIntervalSinceReferenceDate - start
+        print(String(format: "Timing: %@ %.3fs", label, duration))
+        return (result, duration)
+    } catch {
+        let duration = Date.timeIntervalSinceReferenceDate - start
+        print(String(format: "Timing: %@ %.3fs", label, duration))
+        throw error
     }
 }
 

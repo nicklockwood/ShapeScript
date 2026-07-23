@@ -762,9 +762,14 @@ private extension Geometry {
             self.mesh = .merge([mesh] + childMeshes(callback))
         }
         if callback() {
+            let watertightMesh = mesh?.makeWatertight()
             switch type {
             case let .extrude(paths, options):
-                let watertightMesh = mesh?.makeWatertight()
+                guard paths.contains(where: { $0.subpaths.count > 1 }),
+                      options.along.isEmpty || options.along.contains(where: { !$0.isClosed })
+                else {
+                    fallthrough
+                }
                 if let detessellatedMesh = watertightMesh?.detessellate().makeWatertight(),
                    detessellatedMesh.isWatertight
                 {
@@ -777,7 +782,7 @@ private extension Geometry {
                     mesh = watertightMesh
                 }
             default:
-                mesh = mesh?.makeWatertight()
+                mesh = watertightMesh
             }
             if let smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
