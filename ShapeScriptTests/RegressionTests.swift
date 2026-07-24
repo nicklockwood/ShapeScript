@@ -56,6 +56,68 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testInsetFilledTextDoesNotBakeMaterial() throws {
+        let program = "inset (fill text \"Hello\") 0.03"
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertEqual(mesh.materials, [nil])
+        XCTAssertFalse(mesh.hasVertexColors)
+        #endif
+    }
+
+    func testInsetFilledTextPreservesSourceMaterial() throws {
+        let program = """
+        inset (fill {
+            color red
+            text "Hello"
+        }) 0.03
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertEqual(mesh.materials, [Material(color: .red)])
+        XCTAssertFalse(mesh.hasVertexColors)
+        #endif
+    }
+
+    func testInsetExtrudedTextAlongPathPreservesEndCapMaterial() throws {
+        let program = """
+        inset (extrude {
+            color red
+            text "e"
+            along path {
+                point 0
+                point 1
+                point 1 0 1
+            }
+        }) 0.01
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        let endCapPolygons = mesh.polygons.filter {
+            $0.vertices.allSatisfy { $0.position.x.isApproximatelyEqual(to: mesh.bounds.min.x) } ||
+                $0.vertices.allSatisfy { $0.position.z.isApproximatelyEqual(to: mesh.bounds.max.z) }
+        }
+        XCTAssertFalse(endCapPolygons.isEmpty)
+        XCTAssertTrue(endCapPolygons.allSatisfy {
+            $0.material as? Material == Material(color: .red)
+        })
+        XCTAssertFalse(mesh.hasVertexColors)
+        #endif
+    }
+
     func testExtrusionAlongOpenPath() throws {
         let program = """
         extrude {
