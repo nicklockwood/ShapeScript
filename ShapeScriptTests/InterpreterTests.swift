@@ -2966,6 +2966,27 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
+    func testForLoopOverFunctionResultAppliesChildTransforms() throws {
+        let program = """
+        define shapes() {
+            for i in 1 to 3 {
+                cube
+            }
+        }
+        for shape in shapes() {
+            shape
+            translate 0.2
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.count, 3)
+        for (index, child) in scene.children.enumerated() {
+            XCTAssertEqual(child.transform.translation.x, 0.2 * Double(index), accuracy: 1e-10)
+            XCTAssertEqual(child.transform.translation.y, 0, accuracy: 1e-10)
+            XCTAssertEqual(child.transform.translation.z, 0, accuracy: 1e-10)
+        }
+    }
+
     func testPrintTo() {
         let program = """
         define to 5

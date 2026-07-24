@@ -328,11 +328,8 @@ extension Value {
         switch self {
         case let .range(range):
             return range.stride.map { AnySequence($0.lazy.map { .number($0) }) }
-        case let .pretransformed(.tuple(values)):
-            if values.count == 1 {
-                fallthrough
-            }
-            return AnySequence(values.map { .pretransformed($0) })
+        case let .pretransformed(value):
+            return value.sequenceValue
         case let .tuple(values):
             if values.count == 1, let first = values.first {
                 if case .range = first {
@@ -342,7 +339,12 @@ extension Value {
                     return sequenceValue
                 }
             }
-            return AnySequence(values)
+            return AnySequence(values.map { value in
+                if case let .pretransformed(value) = value {
+                    return value
+                }
+                return value
+            })
         case let .object(values):
             return AnySequence(values.sorted(by: {
                 $0.0 < $1.0
@@ -351,7 +353,7 @@ extension Value {
             })
         case .boolean, .vector, .size, .rotation, .color, .texture, .material,
              .number, .radians, .halfturns, .string, .font, .text, .path, .mesh,
-             .polygon, .point, .bounds, .pretransformed:
+             .polygon, .point, .bounds:
             return nil
         }
     }
