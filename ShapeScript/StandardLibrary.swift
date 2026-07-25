@@ -447,27 +447,11 @@ extension Symbols {
                 case let .path(path):
                     return [.path(path.inset(by: inset).transformed(by: context.state.transform))]
                 case let .mesh(geometry):
-                    _ = geometry.build { true }
-                    let sourceMesh = geometry.mesh
-                    var mesh = sourceMesh?.inset(by: inset) ?? .empty
-                    // ShapeScript may keep material on Geometry rather than baking it
-                    // into Euclid polygons, so carry explicit source material across inset.
-                    // Some build paths temporarily use white material/vertex-color meshes,
-                    // so replacing nil materials is not sufficient.
-                    if geometry.material != .default {
-                        mesh = mesh.withoutVertexColors().withMaterial(geometry.material)
-                    }
-                    let geometry = Geometry(
-                        type: .mesh(mesh),
-                        name: geometry.name,
-                        transform: geometry.transform,
-                        material: geometry.material,
-                        smoothing: geometry.smoothing,
-                        children: [],
-                        sourceLocation: context.sourceLocation,
-                        debug: geometry.debug
+                    let geometry = geometry.insetByRewritingPrimitives(
+                        by: inset,
+                        sourceLocation: context.sourceLocation
                     )
-                    return [.mesh(geometry)]
+                    return [.mesh(geometry.transformed(by: context.state.transform))]
                 case let .tuple(values):
                     return values.flatMap(process)
                 default:

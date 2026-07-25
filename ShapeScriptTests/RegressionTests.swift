@@ -152,6 +152,459 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testInsetFilledPrimitiveRewritesPathBeforeFill() throws {
+        let scene = try evaluate(parse("inset (fill square) 0.1"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .fill(paths) = geometry.type else {
+            return XCTFail("Expected fill geometry, got \(geometry.type)")
+        }
+
+        let path = try XCTUnwrap(paths.first)
+        XCTAssertEqual(paths.count, 1)
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetExtrudedPrimitiveRewritesPathAndDepth() throws {
+        let scene = try evaluate(parse("inset (extrude square) 0.1"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .loft(paths) = geometry.type else {
+            return XCTFail("Expected loft geometry, got \(geometry.type)")
+        }
+
+        XCTAssertEqual(paths.count, 2)
+        let path = try XCTUnwrap(paths.first)
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+        XCTAssertEqual(path.bounds.min.z, -0.4, accuracy: epsilon)
+        XCTAssertEqual(paths.last?.bounds.max.z ?? 0, 0.4, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetNonAxisAlignedExtrusionRewritesAsLoft() throws {
+        let distance = 0.1
+        let rotation = Rotation(pitch: .halfturns(0.125))
+        let program = """
+        inset (extrude {
+            rotate 0 0 0.125
+            square
+        }) \(distance)
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .loft(paths) = geometry.type else {
+            return XCTFail("Expected loft geometry, got \(geometry.type)")
+        }
+        XCTAssertEqual(paths.count, 2)
+        XCTAssertNil(geometry.mesh)
+
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        let path = Path.square().rotated(by: rotation).inset(by: distance)
+        let expected = Mesh.extrude(path, depth: 1 - distance * 2)
+        XCTAssertEqual(mesh.vertexPositionSignature, expected.vertexPositionSignature)
+    }
+
+    func testInsetExtrudedAlongPathRewritesProfileAndPath() throws {
+        let program = """
+        inset (extrude {
+            square
+            along path {
+                point 0
+                point 0 0 2
+            }
+        }) 0.1
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .extrude(paths, options) = geometry.type else {
+            return XCTFail("Expected extrude geometry, got \(geometry.type)")
+        }
+
+        let path = try XCTUnwrap(paths.first)
+        let along = try XCTUnwrap(options.along.first)
+        let start = try XCTUnwrap(along.points.first)
+        let end = try XCTUnwrap(along.points.last)
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+        XCTAssertEqual(start.position.z, 0.1, accuracy: epsilon)
+        XCTAssertEqual(end.position.z, 1.9, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetGroupRewritesNestedFillPrimitive() throws {
+        let scene = try evaluate(parse("inset (group { fill square }) 0.1"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .group = geometry.type else {
+            return XCTFail("Expected group geometry, got \(geometry.type)")
+        }
+        let child = try XCTUnwrap(geometry.children.first)
+        guard case let .fill(paths) = child.type else {
+            return XCTFail("Expected fill child, got \(child.type)")
+        }
+        let path = try XCTUnwrap(paths.first)
+
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(child.mesh)
+    }
+
+    func testInsetGroupRewritesSiblingAndMeshInsetsFallbackChild() throws {
+        let geometry = Geometry(
+            type: .group,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            smoothing: nil,
+            children: [
+                Geometry(
+                    type: .fill([.square()]),
+                    name: nil,
+                    transform: .identity,
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                ),
+                Geometry(
+                    type: .mesh(.cube()),
+                    name: nil,
+                    transform: .translation(.unitX),
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                ),
+            ],
+            sourceLocation: nil
+        ).insetByRewritingPrimitives(by: 0.1, sourceLocation: { nil })
+        guard case .group = geometry.type else {
+            return XCTFail("Expected group geometry, got \(geometry.type)")
+        }
+        XCTAssertEqual(geometry.children.count, 2)
+
+        let fill = geometry.children[0]
+        guard case let .fill(paths) = fill.type else {
+            return XCTFail("Expected fill child, got \(fill.type)")
+        }
+        let path = try XCTUnwrap(paths.first)
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+
+        let fallback = geometry.children[1]
+        guard case let .mesh(mesh) = fallback.type else {
+            return XCTFail("Expected mesh fallback child, got \(fallback.type)")
+        }
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(fill.mesh)
+        XCTAssertNil(fallback.mesh)
+    }
+
+    func testInsetGroupPreservesCameraAndLightChildren() {
+        let camera = Camera.default
+        let light = Light.default
+        let geometry = Geometry(
+            type: .group,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            smoothing: nil,
+            children: [
+                Geometry(
+                    type: .camera(camera),
+                    name: nil,
+                    transform: .translation(.unitX),
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                ),
+                Geometry(
+                    type: .light(light),
+                    name: nil,
+                    transform: .translation(.unitY),
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                ),
+                Geometry(
+                    type: .fill([.square()]),
+                    name: nil,
+                    transform: .identity,
+                    material: .default,
+                    smoothing: nil,
+                    children: [],
+                    sourceLocation: nil
+                ),
+            ],
+            sourceLocation: nil
+        ).insetByRewritingPrimitives(by: 0.1, sourceLocation: { nil })
+        guard case .group = geometry.type else {
+            return XCTFail("Expected group geometry, got \(geometry.type)")
+        }
+        XCTAssertEqual(geometry.children.count, 3)
+        guard case .camera = geometry.children[0].type else {
+            return XCTFail("Expected camera child, got \(geometry.children[0].type)")
+        }
+        guard case .light = geometry.children[1].type else {
+            return XCTFail("Expected light child, got \(geometry.children[1].type)")
+        }
+        XCTAssertEqual(geometry.children[0].transform.translation, .unitX)
+        XCTAssertEqual(geometry.children[1].transform.translation, .unitY)
+        guard case let .fill(paths) = geometry.children[2].type else {
+            return XCTFail("Expected fill child, got \(geometry.children[2].type)")
+        }
+        XCTAssertEqual(paths.first?.bounds.size.x ?? 0, 0.8, accuracy: epsilon)
+    }
+
+    func testInsetUnionRewritesNestedExtrudeAlongPath() throws {
+        let program = """
+        inset (union {
+            extrude {
+                square
+                along path {
+                    point 0
+                    point 0 0 2
+                }
+            }
+        }) 0.1
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .union = geometry.type else {
+            return XCTFail("Expected union geometry, got \(geometry.type)")
+        }
+        let child = try XCTUnwrap(geometry.children.first)
+        guard case let .extrude(paths, options) = child.type else {
+            return XCTFail("Expected extrude child, got \(child.type)")
+        }
+        let path = try XCTUnwrap(paths.first)
+        let along = try XCTUnwrap(options.along.first)
+        let start = try XCTUnwrap(along.points.first)
+        let end = try XCTUnwrap(along.points.last)
+
+        XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
+        XCTAssertEqual(start.position.z, 0.1, accuracy: epsilon)
+        XCTAssertEqual(end.position.z, 1.9, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(child.mesh)
+    }
+
+    func testInsetDifferenceRewritesSubtractiveChildrenWithOppositeInset() throws {
+        let program = """
+        inset (difference {
+            cube
+            cylinder
+        }) 0.1
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .difference = geometry.type else {
+            return XCTFail("Expected difference geometry, got \(geometry.type)")
+        }
+        XCTAssertEqual(geometry.children.count, 2)
+
+        let solid = try XCTUnwrap(geometry.children.first)
+        let subtractive = try XCTUnwrap(geometry.children.last)
+        guard case .cube = solid.type else {
+            return XCTFail("Expected cube child, got \(solid.type)")
+        }
+        guard case .cylinder = subtractive.type else {
+            return XCTFail("Expected cylinder child, got \(subtractive.type)")
+        }
+
+        let radiusScale = 1 + 0.1 / (0.5 * cos(.pi / 16))
+        XCTAssertEqual(solid.transform.scale, .init(size: 0.8), accuracy: epsilon)
+        XCTAssertEqual(subtractive.transform.scale, [radiusScale, 1.2, radiusScale], accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(solid.mesh)
+        XCTAssertNil(subtractive.mesh)
+    }
+
+    func testInsetCubeRewritesScale() throws {
+        let scene = try evaluate(parse("inset cube 0.1"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .cube = geometry.type else {
+            return XCTFail("Expected cube geometry, got \(geometry.type)")
+        }
+
+        XCTAssertEqual(geometry.transform.scale, .init(size: 0.8), accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testNegativeInsetCubeMatchesMeshInsetBounds() throws {
+        let (primitive, mesh) = try assertInsetPrimitiveMatchesMeshBounds(
+            "cube { size 0.8 }",
+            by: -0.5
+        )
+        XCTAssertEqual(primitive.exactBounds(with: primitive.transform).size, .init(size: 1.8), accuracy: epsilon)
+        XCTAssertEqual(primitive.flattened().bounds.size, .init(size: 1.8), accuracy: epsilon)
+        XCTAssertNotNil(mesh.mesh)
+    }
+
+    func testNegativeInsetScaledSphereRewritesScale() throws {
+        let distance = -0.1
+        let size = 0.8
+        let segments = 8
+        let scene = try evaluate(
+            parse("detail \(segments)\ninset sphere { size \(size) } \(distance)"),
+            delegate: TestDelegate()
+        )
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .sphere = geometry.type else {
+            return XCTFail("Expected sphere geometry, got \(geometry.type)")
+        }
+        let stacks = max(2, segments / 2)
+        let verticalApothem = 0.5 * cos(.pi / Double(stacks * 2))
+        let radialApothem = verticalApothem * cos(.pi / Double(segments))
+        let expectedScale = [
+            size * (1 - distance / (radialApothem * size)),
+            size * (1 - distance / (verticalApothem * size)),
+            size * (1 - distance / (radialApothem * size)),
+        ] as Vector
+
+        XCTAssertEqual(geometry.transform.scale, expectedScale, accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testNegativeInsetCylinderMatchesMeshInsetBounds() throws {
+        try assertInsetPrimitiveMatchesMeshBounds("cylinder { size 0.8 }", by: -0.1, prefix: "detail 8")
+    }
+
+    func testNegativeInsetConeMatchesMeshInsetBounds() throws {
+        try assertInsetPrimitiveMatchesMeshBounds("cone { size 0.8 }", by: -0.1, prefix: "detail 8")
+    }
+
+    @discardableResult
+    private func assertInsetPrimitiveMatchesMeshBounds(
+        _ primitive: String,
+        by distance: Double,
+        prefix: String = ""
+    ) throws -> (primitive: Geometry, mesh: Geometry) {
+        let prefix = prefix.isEmpty ? "" : "\(prefix)\n"
+        let primitiveScene = try evaluate(parse("\(prefix)inset \(primitive) \(distance)"), delegate: TestDelegate())
+        let meshScene = try evaluate(parse("\(prefix)inset (mesh \(primitive)) \(distance)"), delegate: TestDelegate())
+        let primitive = try XCTUnwrap(primitiveScene.children.first)
+        let mesh = try XCTUnwrap(meshScene.children.first)
+
+        let primitiveBounds = primitive.exactBounds(with: primitive.transform)
+        let meshBounds = mesh.exactBounds(with: mesh.transform)
+
+        XCTAssertEqual(primitiveBounds.min, meshBounds.min, accuracy: epsilon)
+        XCTAssertEqual(primitiveBounds.max, meshBounds.max, accuracy: epsilon)
+
+        _ = primitive.build { true }
+        _ = mesh.build { true }
+        let primitiveMeshBounds = primitive.flattened().bounds
+        let meshMeshBounds = mesh.flattened().bounds
+
+        XCTAssertEqual(primitiveMeshBounds.min, meshMeshBounds.min, accuracy: epsilon)
+        XCTAssertEqual(primitiveMeshBounds.max, meshMeshBounds.max, accuracy: epsilon)
+        return (primitive, mesh)
+    }
+
+    func testInsetSphereRewritesScale() throws {
+        let distance = 0.1
+        let segments = 4
+        let scene = try evaluate(parse("detail \(segments)\ninset sphere \(distance)"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .sphere = geometry.type else {
+            return XCTFail("Expected sphere geometry, got \(geometry.type)")
+        }
+        let stacks = max(2, segments / 2)
+        let verticalApothem = 0.5 * cos(.pi / Double(stacks * 2))
+        let radialApothem = verticalApothem * cos(.pi / Double(segments))
+        let expectedScale = [
+            1 - distance / radialApothem,
+            1 - distance / verticalApothem,
+            1 - distance / radialApothem,
+        ] as Vector
+
+        XCTAssertEqual(geometry.transform.scale, expectedScale, accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetCylinderRewritesScale() throws {
+        let distance = 0.1
+        let segments = 4
+        let scene = try evaluate(parse("detail \(segments)\ninset cylinder \(distance)"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .cylinder = geometry.type else {
+            return XCTFail("Expected cylinder geometry, got \(geometry.type)")
+        }
+        let expectedRadiusScale = 1 - distance / (0.5 * cos(.pi / Double(segments)))
+        let expectedHeightScale = 1 - distance * 2
+
+        XCTAssertEqual(
+            geometry.transform.scale,
+            [expectedRadiusScale, expectedHeightScale, expectedRadiusScale],
+            accuracy: epsilon
+        )
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetConeRewritesScaleAndOffset() throws {
+        let distance = 0.1
+        let segments = 4
+        let scene = try evaluate(parse("detail \(segments)\ninset cone \(distance)"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .cone = geometry.type else {
+            return XCTFail("Expected cone geometry, got \(geometry.type)")
+        }
+        let apothem = 0.5 * cos(.pi / Double(segments))
+        let sideLength = sqrt(apothem * apothem + 1)
+        let expectedScale = 1 - distance * (sideLength / apothem + 1)
+        let expectedOffset = distance * (1 - sideLength / apothem) / 2
+
+        XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .unitY * expectedOffset, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetExtrudedTextIsNotMirrored() throws {
+        #if canImport(CoreText)
+        let distance = 0.01
+        let scene = try evaluate(parse("inset (extrude text \"F\") \(distance)"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = geometry.merged()
+        let shape = try XCTUnwrap(Path.text("F", detail: 2).first)
+        let expected = Mesh.extrude(shape.inset(by: distance), depth: 1 - distance * 2)
+
+        XCTAssertEqual(mesh.vertexPositionSignature, expected.vertexPositionSignature)
+        #endif
+    }
+
+    func testInsetNonAxisAlignedExtrudedTextIsNotMirrored() throws {
+        #if canImport(CoreText)
+        let distance = 0.01
+        let rotation = Rotation(pitch: .halfturns(0.125))
+        let program = """
+        inset (extrude {
+            rotate 0 0 0.125
+            text "F"
+        }) \(distance)
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .loft = geometry.type else {
+            return XCTFail("Expected loft geometry, got \(geometry.type)")
+        }
+        XCTAssertTrue(geometry.build { true })
+        let mesh = geometry.merged()
+        let shape = try XCTUnwrap(Path.text("F", detail: 2).first)
+        let expected = Mesh.extrude(
+            shape.rotated(by: rotation).inset(by: distance),
+            depth: 1 - distance * 2
+        )
+
+        XCTAssertEqual(mesh.vertexPositionSignature, expected.vertexPositionSignature)
+        #endif
+    }
+
     func testInsetFilledTextDoesNotDisappear() throws {
         let program = "inset (fill text \"txt\") 0.01"
         let scene = try evaluate(parse(program), delegate: TestDelegate())
@@ -199,6 +652,38 @@ final class RegressionTests: XCTestCase {
     func testInsetFilledTextPreservesSourceMaterial() throws {
         let program = """
         inset (fill {
+            color red
+            text "Hello"
+        }) 0.03
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertEqual(geometry.material, Material(color: .red))
+        XCTAssertEqual(mesh.materials, [nil])
+        XCTAssertFalse(mesh.hasVertexColors)
+        #endif
+    }
+
+    func testInsetMeshDoesNotBakeMaterial() throws {
+        let program = "inset (mesh fill text \"Hello\") 0.03"
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertEqual(mesh.materials, [nil])
+        XCTAssertFalse(mesh.hasVertexColors)
+        #endif
+    }
+
+    func testInsetMeshPreservesSourceMaterial() throws {
+        let program = """
+        inset (mesh fill {
             color red
             text "Hello"
         }) 0.03
@@ -513,6 +998,45 @@ private extension Collection<Euclid.Polygon> {
             }
         }
         return false
+    }
+}
+
+private extension Mesh {
+    var vertexPositionSignature: [String] {
+        Set(polygons.flatMap { polygon in
+            polygon.vertices.map { vertex in
+                let p = vertex.position
+                return "\(p.x.roundedForSignature),\(p.y.roundedForSignature),\(p.z.roundedForSignature)"
+            }
+        }).sorted()
+    }
+}
+
+private extension Double {
+    var roundedForSignature: Double {
+        (self * 1e8).rounded() / 1e8
+    }
+}
+
+private func XCTAssertEqual(
+    _ a: @autoclosure () throws -> Vector,
+    _ b: @autoclosure () throws -> Vector,
+    accuracy: Double,
+    _ message: @autoclosure () -> String = "",
+    file: StaticString = #file,
+    line: UInt = #line
+) {
+    do {
+        let a = try a(), b = try b()
+        if abs(a.x - b.x) > accuracy || abs(a.y - b.y) > accuracy || abs(a.z - b.z) > accuracy {
+            var m = message()
+            if m.isEmpty {
+                m = "\(a) is not equal to \(b) +/- \(accuracy)"
+            }
+            XCTFail(m, file: file, line: line)
+        }
+    } catch {
+        XCTFail(error.localizedDescription)
     }
 }
 

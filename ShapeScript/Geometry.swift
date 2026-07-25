@@ -398,6 +398,146 @@ public extension Geometry {
         )
     }
 
+    /// Returns an inset copy by rewriting path-backed primitives where the operation is equivalent.
+    func insetByRewritingPrimitives(
+        by distance: Double,
+        sourceLocation: @escaping @Sendable () -> SourceLocation?
+    ) -> Geometry {
+        func copy(
+            type: GeometryType = type,
+            transform: Transform = transform,
+            children: [Geometry] = []
+        ) -> Geometry {
+            Geometry(
+                type: type,
+                name: name,
+                transform: transform,
+                material: material,
+                smoothing: smoothing,
+                children: children,
+                sourceLocation: sourceLocation,
+                debug: debug
+            )
+        }
+
+        func insetMesh() -> Geometry {
+            _ = build { true }
+            var mesh = mesh?.inset(by: distance) ?? .empty
+            if material != .default {
+                mesh = mesh.withoutVertexColors().withMaterial(material)
+            }
+            return copy(type: .mesh(mesh))
+        }
+
+        func insetChildren(by distance: Double = distance) -> [Geometry] {
+            children.map {
+                $0.insetByRewritingPrimitives(by: distance, sourceLocation: sourceLocation)
+            }
+        }
+
+        func circularApothem(segments: Int, radius: Double) -> Double {
+            radius * cos(.pi / Double(max(3, segments)))
+        }
+
+        func insetScale(for apothems: Vector) -> Vector {
+            [
+                max(0, 1 - distance / apothems.x / abs(transform.scale.x)),
+                max(0, 1 - distance / apothems.y / abs(transform.scale.y)),
+                max(0, 1 - distance / apothems.z / abs(transform.scale.z)),
+            ]
+        }
+
+        switch type {
+        case .cube:
+            return copy(transform: transform * .scale(insetScale(for: .init(size: 0.5))))
+        case let .sphere(segments):
+            let radius = 0.5
+            let stacks = max(2, segments / 2)
+            let verticalApothem = radius * cos(.pi / Double(stacks * 2))
+            let radialApothem = circularApothem(segments: segments, radius: verticalApothem)
+            return copy(transform: transform * .scale(insetScale(
+                for: [radialApothem, verticalApothem, radialApothem]
+            )))
+        case let .cylinder(segments):
+            let radialApothem = circularApothem(segments: segments, radius: 0.5)
+            return copy(transform: transform * .scale(insetScale(
+                for: [radialApothem, 0.5, radialApothem]
+            )))
+        case let .cone(segments):
+            let radius = 0.5 * (abs(transform.scale.x) + abs(transform.scale.z)) / 2
+            let height = abs(transform.scale.y)
+            let apothem = circularApothem(segments: segments, radius: radius)
+            let sideLength = sqrt(apothem * apothem + height * height)
+            let scale = max(0, 1 - distance * (sideLength / apothem + 1) / height)
+            let offset = distance * (1 - sideLength / apothem) / 2
+            return copy(transform: transform * .scale(scale) * .translation(.unitY * offset))
+        case .group, .union, .xor:
+            return copy(children: insetChildren())
+        case .difference:
+            let inset = children.enumerated().map { index, child in
+                child.insetByRewritingPrimitives(
+                    by: index == 0 ? distance : -distance,
+                    sourceLocation: sourceLocation
+                )
+            }
+            return copy(children: inset)
+        case let .loft(paths):
+            return copy(type: .loft(paths.map { $0.inset(by: distance) }))
+        case let .path(path):
+            return copy(type: .path(path.inset(by: distance)))
+        case let .fill(paths) where paths.count == 1:
+            return copy(type: .fill([paths[0].inset(by: distance)]))
+        case let .extrude(paths, .default) where paths.count == 1:
+            if distance > 0 {
+                _ = build { true }
+                if mesh?.inset(by: distance).isEmpty == true {
+                    return copy(type: .mesh(.empty))
+                }
+            }
+            let depth = max(0, 1 - distance * 2)
+            let path = paths[0].inset(by: distance)
+            guard !path.isEmpty, depth > 0 else {
+                return copy(type: .mesh(.empty))
+            }
+            let offset = path.faceNormal * depth
+            return copy(type: .loft([
+                path.translated(by: -offset / 2),
+                path.translated(by: offset / 2),
+            ]))
+        case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
+            let path = paths[0].inset(by: distance)
+            guard !path.isEmpty, let along = options.along[0].trimmingEnds(by: distance) else {
+                return copy(type: .mesh(.empty))
+            }
+            var options = options
+            options.along = [along]
+            if material != .default {
+                let mesh = Mesh.extrude(
+                    path,
+                    along: along,
+                    twist: options.twist,
+                    align: options.align,
+                    material: material
+                )
+                return copy(type: .mesh(mesh))
+            }
+            return copy(type: .extrude([path], options))
+        case .fill, .extrude, .lathe:
+            guard !children.isEmpty else {
+                return insetMesh()
+            }
+            return copy(children: insetChildren())
+        case .hull,
+             .minkowski,
+             .intersection,
+             .stencil,
+             .mesh:
+            return insetMesh()
+        case .camera, .light:
+            return copy()
+        }
+    }
+
     @available(*, deprecated, message: "Do not use")
     func hasUniformMaterial(_: Material? = nil) -> Bool {
         true
@@ -517,6 +657,94 @@ private extension Collection<Geometry> {
             result = result.merge(child.merged(callback))
         }
         return result
+    }
+}
+
+private extension Path {
+    func trimmingEnds(by distance: Double) -> Path? {
+        guard subpaths.count == 1, !isClosed else {
+            return self
+        }
+        guard points.count > 1 else {
+            return nil
+        }
+        if distance < 0 {
+            return extendingEnds(by: -distance)
+        }
+        guard length > distance * 2 else {
+            return nil
+        }
+        let start = point(atDistanceFromStart: distance)
+        let end = point(atDistanceFromEnd: distance)
+        guard let start, let end else {
+            return nil
+        }
+        let startIndex = points.lastIndex { point in
+            distanceFromStart(to: point) <= distance
+        } ?? points.startIndex
+        let endIndex = points.firstIndex { point in
+            distanceFromEnd(to: point) <= distance
+        } ?? points.index(before: points.endIndex)
+        let middle = startIndex < endIndex ? Array(points[points.index(after: startIndex) ..< endIndex]) : []
+        return Path([start] + middle + [end])
+    }
+
+    func extendingEnds(by distance: Double) -> Path {
+        var points = points
+        let firstDirection = (points[1].position - points[0].position).normalized()
+        let lastDirection = (points[points.count - 1].position - points[points.count - 2].position).normalized()
+        points[0].position -= firstDirection * distance
+        points[points.count - 1].position += lastDirection * distance
+        return Path(points)
+    }
+
+    func point(atDistanceFromStart distance: Double) -> PathPoint? {
+        point(atDistance: distance, in: points)
+    }
+
+    func point(atDistanceFromEnd distance: Double) -> PathPoint? {
+        point(atDistance: distance, in: points.reversed())
+    }
+
+    func point(atDistance distance: Double, in points: some Collection<PathPoint>) -> PathPoint? {
+        var previous = points.first
+        var remaining = distance
+        for point in points.dropFirst() {
+            guard let previousPoint = previous else {
+                return nil
+            }
+            let length = (point.position - previousPoint.position).length
+            if remaining <= length {
+                return previousPoint.interpolated(with: point, by: remaining / length)
+            }
+            remaining -= length
+            previous = point
+        }
+        return nil
+    }
+
+    func distanceFromStart(to target: PathPoint) -> Double {
+        distance(to: target, in: points)
+    }
+
+    func distanceFromEnd(to target: PathPoint) -> Double {
+        distance(to: target, in: points.reversed())
+    }
+
+    func distance(to target: PathPoint, in points: some Collection<PathPoint>) -> Double {
+        var previous = points.first
+        var distance = 0.0
+        for point in points.dropFirst() {
+            guard let previousPoint = previous else {
+                return distance
+            }
+            if point.position == target.position {
+                return distance + (point.position - previousPoint.position).length
+            }
+            distance += (point.position - previousPoint.position).length
+            previous = point
+        }
+        return distance
     }
 }
 
