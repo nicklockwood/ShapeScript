@@ -321,6 +321,358 @@ public extension RuntimeError {
 
 private struct EvaluationCancelled: Error {}
 
+final class UserFunction: @unchecked Sendable {
+    let names: [Identifier]
+    let block: Block
+    let declarationContext: EvaluationContext
+
+    init(names: [Identifier], block: Block, declarationContext: EvaluationContext) {
+        self.names = names
+        self.block = block
+        self.declarationContext = declarationContext
+    }
+
+    func evaluate(with argument: Value, in context: EvaluationContext) throws -> Value {
+        do {
+            let oldState = FunctionContextState(
+                children: context.children,
+                childTypes: context.childTypes,
+                userSymbols: context.userSymbols,
+                source: context.source,
+                baseURL: context.baseURL
+            )
+            context.children = []
+            context.childTypes = .any
+            context.source = declarationContext.source
+            context.baseURL = declarationContext.baseURL
+            context.userSymbols = declarationContext.userSymbols
+            defer {
+                context.children = oldState.children
+                context.childTypes = oldState.childTypes
+                context.source = oldState.source
+                context.baseURL = oldState.baseURL
+                context.userSymbols = oldState.userSymbols
+            }
+            let values = [argument].flattened(recursive: false)
+            assert(values.count == names.count)
+            for (identifier, value) in zip(names, values) {
+                context.define(identifier.name, as: .constant(value))
+            }
+            try block.evaluate(in: context)
+            return .pretransformed(context.children)
+        } catch let request as CallRequest {
+            throw request
+        } catch {
+            if declarationContext.baseURL == context.baseURL {
+                throw error
+            }
+            throw RuntimeErrorType.importError(
+                ProgramError(error),
+                for: declarationContext.baseURL,
+                in: declarationContext.source
+            )
+        }
+    }
+}
+
+final class UserBlock: @unchecked Sendable {
+    let block: Block
+    let source: String
+    let sourceIndex: String.Index?
+    let baseURL: URL?
+    let declarationContext: EvaluationContext
+
+    init(
+        block: Block,
+        source: String,
+        sourceIndex: String.Index?,
+        baseURL: URL?,
+        declarationContext: EvaluationContext
+    ) {
+        self.block = block
+        self.source = source
+        self.sourceIndex = sourceIndex
+        self.baseURL = baseURL
+        self.declarationContext = declarationContext
+    }
+
+    func evaluate(with argument: BlockCallArgument) throws -> Value {
+        do {
+            let context = declarationContext.pushDefinition()
+            apply(argument, to: context)
+            context.baseURL = baseURL
+            context.source = source
+            context.sourceIndex = sourceIndex
+            block.statements.gatherDefinitions(in: context)
+            for statement in block.statements {
+                if case let .option(identifier, expression) = statement.type {
+                    if case .option? = context.symbol(for: identifier.name) {
+                        // Ignore default
+                    } else {
+                        try context.define(
+                            identifier.name,
+                            as: .constant(expression.evaluate(in: context))
+                        )
+                    }
+                } else {
+                    try statement.evaluate(in: context)
+                }
+            }
+            let children = context.children.unwrapped(recursive: true)
+            if children.count == 1 {
+                switch children[0] {
+                case let .path(path):
+                    guard context.name.isEmpty else {
+                        return .mesh(Geometry(
+                            type: .path(path),
+                            name: context.name,
+                            transform: context.transform,
+                            material: .default,
+                            smoothing: nil,
+                            children: [],
+                            sourceLocation: context.sourceLocation
+                        ))
+                    }
+                    return .path(path.transformed(by: context.transform))
+                case let .mesh(geometry):
+                    // TODO: why not just use `geometry.transformed(by: context.transform)`?
+                    // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
+                    return .mesh(Geometry(
+                        type: geometry.type,
+                        name: context.name,
+                        transform: geometry.transform * context.transform,
+                        material: geometry.material,
+                        smoothing: geometry.smoothing,
+                        children: geometry.children,
+                        sourceLocation: context.sourceLocation,
+                        debug: geometry.debug
+                    ))
+                case let .polygon(polygon):
+                    return .polygon(polygon.transformed(by: context.transform))
+                case let value:
+                    return value
+                }
+            } else if context.name.isEmpty,
+                      // Manage backwards compatibility for blocks that return
+                      // multiple meshes to be used inside difference block
+                      !children.contains(where: { $0.type == .mesh }) ||
+                      children.contains(where: { ![.mesh, .path].contains($0.type) })
+            {
+                return .tuple(children.map {
+                    switch $0 {
+                    case let .path(path):
+                        .path(path.transformed(by: context.transform))
+                    case let .mesh(geometry):
+                        .mesh(geometry.transformed(by: context.transform))
+                    case let .polygon(polygon):
+                        .polygon(polygon.transformed(by: context.transform))
+                    default:
+                        $0
+                    }
+                })
+            }
+            return try .mesh(Geometry(
+                type: .group,
+                name: context.name,
+                transform: context.transform,
+                material: .default,
+                smoothing: context.smoothing,
+                children: children.map {
+                    switch $0 {
+                    case let .path(path):
+                        return Geometry(
+                            type: .path(path),
+                            name: nil,
+                            transform: .identity,
+                            material: .default,
+                            smoothing: nil,
+                            children: [],
+                            sourceLocation: context.sourceLocation
+                        )
+                    case let .mesh(geometry):
+                        return geometry
+                    default:
+                        throw RuntimeErrorType.assertionFailure(
+                            "Blocks that return \(aOrAn($0.errorDescription)) " +
+                                "value cannot be assigned a name"
+                        )
+                    }
+                },
+                sourceLocation: context.sourceLocation
+            ))
+        } catch let request as CallRequest {
+            throw request
+        } catch var error {
+            if let e = error as? RuntimeError,
+               case let .unknownSymbol(name, options: options) = e.type
+            {
+                // TODO: find a less hacky way to limit the scope of option keyword
+                error = RuntimeError(
+                    .unknownSymbol(name, options: options + ["option"]),
+                    at: e.range
+                )
+            }
+            if baseURL == argument.baseURL {
+                throw error
+            }
+            throw RuntimeErrorType.importError(ProgramError(error), for: baseURL, in: source)
+        }
+    }
+}
+
+struct BlockCallArgument: Hashable {
+    let children: [Value]
+    let options: [String: Value]
+    let name: String
+    let material: Material
+    let font: String
+    let transform: Transform
+    let opacity: Double
+    let detail: Int
+    let smoothing: Angle?
+    let baseURL: URL?
+}
+
+extension BlockCallArgument {
+    init(from context: EvaluationContext) {
+        self.init(
+            children: context.children,
+            options: context.userSymbols.compactMapValues {
+                switch $0 {
+                case let .option(value):
+                    value
+                case .block, .function, .property, .constant, .placeholder:
+                    nil
+                }
+            },
+            name: context.name,
+            material: context.material,
+            font: context.font,
+            transform: context.transform,
+            opacity: context.opacity,
+            detail: context.detail,
+            smoothing: context.smoothing,
+            baseURL: context.baseURL
+        )
+    }
+}
+
+enum Call {
+    case function(UserFunction, Value)
+    case block(UserBlock, BlockCallArgument)
+}
+
+extension Call: Equatable {
+    static func == (lhs: Call, rhs: Call) -> Bool {
+        switch (lhs, rhs) {
+        case let (.function(lhsFunction, lhsArgument), .function(rhsFunction, rhsArgument)):
+            lhsFunction === rhsFunction && lhsArgument == rhsArgument
+        case let (.block(lhsBlock, lhsArgument), .block(rhsBlock, rhsArgument)):
+            lhsBlock === rhsBlock && lhsArgument == rhsArgument
+        case (.function, .block), (.block, .function):
+            false
+        }
+    }
+
+    func isRecursive(in activeCalls: [Call]) -> Bool {
+        activeCalls.contains {
+            switch (self, $0) {
+            case let (.function(lhs, _), .function(rhs, _)):
+                lhs === rhs
+            case let (.block(lhs, _), .block(rhs, _)):
+                lhs === rhs
+            case (.function, .block), (.block, .function):
+                false
+            }
+        }
+    }
+
+    func evaluate(in context: EvaluationContext) throws -> Value {
+        if context.callState.depth > 0 {
+            if let i = context.callState.results.lastIndex(where: { $0.call == self }) {
+                return context.callState.results.remove(at: i).value
+            }
+            if !isRecursive(in: context.callState.active) {
+                context.callState.active.append(self)
+                defer { context.callState.active.removeLast() }
+                return switch self {
+                case let .function(function, argument):
+                    try function.evaluate(with: argument, in: context)
+                case let .block(block, argument):
+                    try block.evaluate(with: argument)
+                }
+            }
+            throw CallRequest(call: self, range: context.callState.range)
+        }
+
+        context.callState.depth += 1
+        defer {
+            context.callState.depth -= 1
+            context.callState.results.removeAll()
+            context.callState.active.removeAll()
+        }
+
+        var frames = [CallFrame(call: self, results: [])]
+        while let last = frames.indices.last {
+            context.callState.results = frames[last].results
+            do {
+                let call = frames[last].call
+                let oldActive = context.callState.active
+                context.callState.active = frames.map(\.call)
+                defer { context.callState.active = oldActive }
+                let value = switch call {
+                case let .function(function, argument):
+                    try function.evaluate(with: argument, in: context)
+                case let .block(block, argument):
+                    try block.evaluate(with: argument)
+                }
+                frames.removeLast()
+                if let parent = frames.indices.last {
+                    frames[parent].results = context.callState.results
+                    frames[parent].results.append(CallResult(call: call, value: value))
+                } else {
+                    return value
+                }
+            } catch let request as CallRequest {
+                guard frames.count < maxCallDepth else {
+                    throw RuntimeError(
+                        .assertionFailure("Too much recursion"),
+                        at: request.range ?? context.source.startIndex ..< context.source.startIndex
+                    )
+                }
+                frames[last].results = context.callState.results
+                frames.append(CallFrame(call: request.call, results: []))
+            }
+        }
+        return .void
+    }
+}
+
+struct CallResult {
+    let call: Call
+    let value: Value
+}
+
+private struct CallRequest: Error {
+    let call: Call
+    let range: SourceRange?
+}
+
+private struct CallFrame {
+    let call: Call
+    var results: [CallResult]
+}
+
+private struct FunctionContextState {
+    let children: [Value]
+    let childTypes: ValueType
+    let userSymbols: Symbols
+    let source: String
+    let baseURL: URL?
+}
+
+private let maxCallDepth = 1024
+
 private func aOrAn(_ string: String, capitalized: Bool = false) -> String {
     guard let first = string.first else {
         return capitalized ? "An" : "an"
@@ -580,7 +932,7 @@ private func evaluateParameters(
             let arg = try evaluateParameter(param, as: parameterType, for: identifier, in: context)
             try RuntimeError.wrap({
                 do {
-                    switch try fn(arg, context) {
+                    switch try context.callFunction(fn, with: arg, at: range) {
                     case let .tuple(tuple):
                         values += tuple.map { (i, $0) }
                     case let value:
@@ -602,7 +954,10 @@ private func evaluateParameters(
                 parameters, for: identifier,
                 type: type, in: context, childContext
             )
-            try RuntimeError.wrap(values.append((i, fn(childContext))), at: param.range)
+            try RuntimeError.wrap(
+                values.append((i, context.callBlock(fn, with: childContext, at: param.range))),
+                at: param.range
+            )
             break loop
         case .function, .block, .property, .constant, .option, .placeholder:
             try values.append((i, param.evaluate(in: context)))
@@ -683,6 +1038,20 @@ private func evaluateParameter(
     return value
 }
 
+private func apply(_ argument: BlockCallArgument, to context: EvaluationContext) {
+    for (name, value) in argument.options {
+        context.define(name, as: .option(value))
+    }
+    context.define("children", as: .constant(.tuple(argument.children)))
+    context.name = argument.name
+    context.material = argument.material
+    context.font = argument.font
+    context.transform = argument.transform
+    context.opacity = argument.opacity
+    context.detail = argument.detail
+    context.smoothing = argument.smoothing
+}
+
 extension Definition {
     nonisolated func evaluate(in context: EvaluationContext) throws -> Symbol {
         switch type {
@@ -698,7 +1067,7 @@ extension Definition {
                 return .constant(.tuple([value]))
             }
         case let .function(names, block):
-            nonisolated(unsafe) let declarationContext = context
+            let function = UserFunction(names: names, block: block, declarationContext: context)
             let returnType: ValueType
             var params = Dictionary(names.map { ($0.name, ValueType.any) }) { $1 }
             do {
@@ -711,46 +1080,7 @@ extension Definition {
             }
             let paramTypes = names.map { params[$0.name] ?? .any }
             return .function(.tuple(paramTypes), returnType) { value, context in
-                do {
-                    let oldChildren = context.children
-                    let oldChildTypes = context.childTypes
-                    let oldSymbols = context.userSymbols
-                    let oldSource = context.source
-                    let oldBaseURL = context.baseURL
-                    context.children = []
-                    context.childTypes = .any
-                    context.source = declarationContext.source
-                    context.baseURL = declarationContext.baseURL
-                    context.userSymbols = declarationContext.userSymbols
-                    context.stackDepth += 1
-                    defer {
-                        context.children = oldChildren
-                        context.childTypes = oldChildTypes
-                        context.source = oldSource
-                        context.baseURL = oldBaseURL
-                        context.userSymbols = oldSymbols
-                        context.stackDepth -= 1
-                    }
-                    if context.stackDepth > 25 {
-                        throw RuntimeErrorType.assertionFailure("Too much recursion")
-                    }
-                    let values = [value].flattened(recursive: false)
-                    assert(values.count == names.count)
-                    for (identifier, value) in zip(names, values) {
-                        context.define(identifier.name, as: .constant(value))
-                    }
-                    try block.evaluate(in: context)
-                    return .pretransformed(context.children)
-                } catch {
-                    if declarationContext.baseURL == context.baseURL {
-                        throw error
-                    }
-                    throw RuntimeErrorType.importError(
-                        ProgramError(error),
-                        for: declarationContext.baseURL,
-                        in: declarationContext.source
-                    )
-                }
+                try Call.function(function, value).evaluate(in: context)
             }
         case let .block(block):
             var options: Options! = [:]
@@ -787,156 +1117,35 @@ extension Definition {
             {
                 symbols.merge(.definition) { $1 }
             }
-            nonisolated(unsafe) let context = context
-            return .block(.init(symbols, options, childTypes, returnType)) { _context in
-                do {
-                    let context = context.pushDefinition()
-                    context.stackDepth = _context.stackDepth + 1
-                    if context.stackDepth > 48 {
-                        throw RuntimeErrorType.assertionFailure("Too much recursion")
-                    }
-                    for (name, symbol) in _context.userSymbols {
-                        switch symbol {
-                        case .option:
-                            // Only options are copied from call scope
-                            context.define(name, as: symbol)
-                        case .block, .function, .property, .constant, .placeholder:
-                            break
-                        }
-                    }
-                    context.define("children", as: .constant(.tuple(_context.children)))
-                    context.name = _context.name
-                    context.material = _context.material
-                    context.font = _context.font
-                    context.transform = _context.transform
-                    context.opacity = _context.opacity
-                    context.detail = _context.detail
-                    context.smoothing = _context.smoothing
-                    context.baseURL = baseURL
-                    context.source = source
-                    context.sourceIndex = sourceIndex
-                    block.statements.gatherDefinitions(in: context)
-                    for statement in block.statements {
-                        if case let .option(identifier, expression) = statement.type {
-                            if case .option? = context.symbol(for: identifier.name) {
-                                // Ignore default
-                            } else {
-                                try context.define(
-                                    identifier.name,
-                                    as: .constant(expression.evaluate(in: context))
-                                )
-                            }
-                        } else {
-                            try statement.evaluate(in: context)
-                        }
-                    }
-                    let children = context.children.unwrapped(recursive: true)
-                    if children.count == 1 {
-                        switch children[0] {
-                        case let .path(path):
-                            guard context.name.isEmpty else {
-                                return .mesh(Geometry(
-                                    type: .path(path),
-                                    name: context.name,
-                                    transform: context.transform,
-                                    material: .default,
-                                    smoothing: nil,
-                                    children: [],
-                                    sourceLocation: context.sourceLocation
-                                ))
-                            }
-                            return .path(path.transformed(by: context.transform))
-                        case let .mesh(geometry):
-                            // TODO: why not just use `geometry.transformed(by: context.transform)`?
-                            // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
-                            return .mesh(Geometry(
-                                type: geometry.type,
-                                name: context.name,
-                                transform: geometry.transform * context.transform,
-                                material: geometry.material,
-                                smoothing: geometry.smoothing,
-                                children: geometry.children,
-                                sourceLocation: context.sourceLocation,
-                                debug: geometry.debug
-                            ))
-                        case let .polygon(polygon):
-                            return .polygon(polygon.transformed(by: context.transform))
-                        case let value:
-                            return value
-                        }
-                    } else if context.name.isEmpty,
-                              // Manage backwards compatibility for blocks that return
-                              // multiple meshes to be used inside difference block
-                              !children.contains(where: { $0.type == .mesh }) ||
-                              children.contains(where: { ![.mesh, .path].contains($0.type) })
-                    {
-                        return .tuple(children.map {
-                            switch $0 {
-                            case let .path(path):
-                                .path(path.transformed(by: context.transform))
-                            case let .mesh(geometry):
-                                .mesh(geometry.transformed(by: context.transform))
-                            case let .polygon(polygon):
-                                .polygon(polygon.transformed(by: context.transform))
-                            default:
-                                $0
-                            }
-                        })
-                    }
-                    return try .mesh(Geometry(
-                        type: .group,
-                        name: context.name,
-                        transform: context.transform,
-                        material: .default,
-                        smoothing: context.smoothing,
-                        children: children.map {
-                            switch $0 {
-                            case let .path(path):
-                                return Geometry(
-                                    type: .path(path),
-                                    name: nil,
-                                    transform: .identity,
-                                    material: .default,
-                                    smoothing: nil,
-                                    children: [],
-                                    sourceLocation: context.sourceLocation
-                                )
-                            case let .mesh(geometry):
-                                return geometry
-                            default:
-                                throw RuntimeErrorType.assertionFailure(
-                                    "Blocks that return \(aOrAn($0.errorDescription)) " +
-                                        "value cannot be assigned a name"
-                                )
-                            }
-                        },
-                        sourceLocation: context.sourceLocation
-                    ))
-                } catch var error {
-                    if let e = error as? RuntimeError,
-                       case let .unknownSymbol(name, options: options) = e.type
-                    {
-                        // TODO: find a less hacky way to limit the scope of option keyword
-                        error = RuntimeError(
-                            .unknownSymbol(name, options: options + ["option"]),
-                            at: e.range
-                        )
-                    }
-                    if baseURL == _context.baseURL {
-                        throw error
-                    }
-                    throw RuntimeErrorType.importError(
-                        ProgramError(error),
-                        for: baseURL,
-                        in: source
-                    )
-                }
+            let userBlock = UserBlock(
+                block: block,
+                source: source,
+                sourceIndex: sourceIndex,
+                baseURL: baseURL,
+                declarationContext: context
+            )
+            return .block(.init(symbols, options, childTypes, returnType)) { context in
+                try Call.block(userBlock, .init(from: context)).evaluate(in: context)
             }
         }
     }
 }
 
 extension EvaluationContext {
+    func callFunction(_ fn: Function, with value: Value, at range: SourceRange) throws -> Value {
+        let oldRange = callState.range
+        callState.range = range
+        defer { callState.range = oldRange }
+        return try fn(value, self)
+    }
+
+    func callBlock(_ fn: Getter, with context: EvaluationContext, at range: SourceRange) throws -> Value {
+        let oldRange = callState.range
+        callState.range = range
+        defer { callState.range = oldRange }
+        return try fn(context)
+    }
+
     func addValue(_ value: Value) throws {
         guard value.isFinite else {
             throw RuntimeErrorType.assertionFailure("Values must be finite")
@@ -1034,7 +1243,7 @@ extension Statement {
                     for: identifier,
                     in: context
                 )
-                try RuntimeError.wrap(context.addValue(fn(argument, context)), at: range)
+                try RuntimeError.wrap(context.addValue(context.callFunction(fn, with: argument, at: range)), at: range)
             case let .property(type, setter, getter):
                 if parameter == nil {
                     let value = try RuntimeError.wrap(getter(context), at: range)
@@ -1066,7 +1275,10 @@ extension Statement {
                         parameters, for: identifier, type: type,
                         in: context, childContext
                     )
-                    try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
+                    try RuntimeError.wrap(
+                        context.addValue(context.callBlock(fn, with: childContext, at: range)),
+                        at: range
+                    )
                 } else if !type.childTypes.isOptional {
                     throw RuntimeError(.missingArgument(
                         for: name,
@@ -1075,7 +1287,10 @@ extension Statement {
                 } else {
                     let childContext = context.push(type)
                     childContext.userSymbols.removeAll()
-                    try RuntimeError.wrap(context.addValue(fn(childContext)), at: range)
+                    try RuntimeError.wrap(
+                        context.addValue(context.callBlock(fn, with: childContext, at: range)),
+                        at: range
+                    )
                 }
             case let .constant(value), let .option(value):
                 var value = value
@@ -1128,7 +1343,7 @@ extension Expression {
             switch symbol {
             case let .function((parameterType, _), fn):
                 if parameterType.isOptional {
-                    return try RuntimeError.wrap(fn(.void, context), at: range)
+                    return try RuntimeError.wrap(context.callFunction(fn, with: .void, at: range), at: range)
                 }
                 // Functions with parameters can't be called without arguments
                 throw RuntimeError(.missingArgument(
@@ -1145,7 +1360,7 @@ extension Expression {
                         type: type.childTypes.errorDescriptionOrBlock
                     ), at: range.upperBound ..< range.upperBound)
                 }
-                return try RuntimeError.wrap(fn(context.push(type)), at: range)
+                return try RuntimeError.wrap(context.callBlock(fn, with: context.push(type), at: range), at: range)
             case let .constant(value), let .option(value):
                 return value
             case .placeholder:
@@ -1175,7 +1390,7 @@ extension Expression {
                         try statement.evaluate(in: newContext)
                     }
                 }
-                return try RuntimeError.wrap(fn(newContext), at: range)
+                return try RuntimeError.wrap(context.callBlock(fn, with: newContext, at: range), at: range)
             case let .constant(value), let .option(value):
                 guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),
                       case let .tuple(values) = value

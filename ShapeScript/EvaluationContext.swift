@@ -38,6 +38,13 @@ public struct SourceLocation: Hashable, Sendable {
 }
 
 final class EvaluationContext {
+    final class CallState {
+        var depth = 0
+        var results = [CallResult]()
+        var range: SourceRange?
+        var active = [Call]()
+    }
+
     private final class ImportCache {
         enum Import {
             case program(Program)
@@ -90,7 +97,7 @@ final class EvaluationContext {
     var font: String = ""
     var opacity: Double = 1
 
-    var stackDepth = 1
+    let callState: CallState
 
     var sourceLocation: @Sendable () -> SourceLocation? {
         { [sourceIndex, source, baseURL] in
@@ -110,6 +117,7 @@ final class EvaluationContext {
         self.isCancelled = isCancelled
         self.importCache = ImportCache()
         self.importStack = []
+        self.callState = CallState()
         self.random = RandomSequence(seed: 0)
     }
 
@@ -124,6 +132,7 @@ final class EvaluationContext {
         self.userSymbols = parent.userSymbols
         self.importCache = parent.importCache
         self.importStack = parent.importStack
+        self.callState = parent.callState
         self.material = parent.material
         self.childTypes = parent.childTypes
         self.namedObjects = parent.namedObjects
@@ -139,8 +148,6 @@ final class EvaluationContext {
         self.transform = .identity
         self.childTransform = .identity
         self.children = []
-        // stack
-        self.stackDepth = parent.stackDepth + 1
     }
 
     func push(_ type: BlockType) -> EvaluationContext {

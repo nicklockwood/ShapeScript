@@ -10,6 +10,10 @@
 @testable import ShapeScript
 import XCTest
 
+private final class ActiveCallRecorder: @unchecked Sendable {
+    var calls = [[Call]]()
+}
+
 final class InterpreterTests: XCTestCase {
     // MARK: Random numbers
 
@@ -5224,5 +5228,102 @@ final class InterpreterTests: XCTestCase {
         print foo {}
         """
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testCustomFunctionRecursionUsesVirtualStack() throws {
+        let program = """
+        define sum(n) {
+            if n > 0 {
+                sum(n - 1) + 1
+            } else {
+                0
+            }
+        }
+        print sum(100)
+        """
+        let delegate = TestDelegate()
+        _ = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(delegate.log, [100])
+    }
+
+    func testCustomBlockRecursionUsesVirtualStack() throws {
+        let program = """
+        define sum {
+            if children.first > 0 {
+                sum(children.first - 1) + 1
+            } else {
+                0
+            }
+        }
+        print sum(100)
+        """
+        let delegate = TestDelegate()
+        _ = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(delegate.log, [100])
+    }
+
+    func testCustomFunctionAndBlockShareVirtualStack() throws {
+        let program = """
+        define sum(n) {
+            if n > 0 {
+                (step (n - 1)) + 1
+            } else {
+                0
+            }
+        }
+        define step {
+            sum(children.first)
+        }
+        print sum(100)
+        """
+        let delegate = TestDelegate()
+        _ = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(delegate.log, [100])
+    }
+
+    func testCallEvaluateUsesCurrentFrameActiveCallStack() throws {
+        let source = "probe"
+        let range = source.startIndex ..< source.endIndex
+        let context = EvaluationContext(source: source, delegate: nil)
+        let recorder = ActiveCallRecorder()
+        context.define("probe", as: .function((.void, .void)) { _, context in
+            recorder.calls.append(context.callState.active)
+            return .void
+        })
+        let block = Block(statements: [
+            Statement(
+                type: .command(Identifier(name: "probe", range: range), nil),
+                range: range
+            ),
+        ], range: range)
+        let function = UserFunction(names: [], block: block, declarationContext: context)
+        let call = Call.function(function, .void)
+
+        context.callState.active = [call]
+        _ = try call.evaluate(in: context)
+
+        XCTAssertEqual(recorder.calls, [[call]])
+    }
+
+    func testNestedNonRecursiveCustomBlocksDoNotUseVirtualStack() throws {
+        let program = """
+        define leaf {
+            children.first + 1
+        }
+        define row {
+            for i in 1 to 50 {
+                leaf i
+            }
+        }
+        define column {
+            for i in 1 to 50 {
+                row
+            }
+        }
+        print column.count
+        """
+        let delegate = TestDelegate()
+        _ = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(delegate.log, [50])
     }
 }
