@@ -35,34 +35,34 @@ extension Symbols {
 
     static let transform: Symbols = [
         "position": .property(.vector, { parameter, context in
-            context.transform.translation = parameter.vectorValue
+            context.state.transform.translation = parameter.vectorValue
         }, { context in
-            .vector(context.transform.translation)
+            .vector(context.state.transform.translation)
         }),
         "orientation": .property(.rotation, { parameter, context in
-            context.transform.rotation = parameter.rotationValue
+            context.state.transform.rotation = parameter.rotationValue
         }, { context in
-            .rotation(context.transform.rotation)
+            .rotation(context.state.transform.rotation)
         }),
         "size": .property(.size, { parameter, context in
-            context.transform.scale = parameter.vectorValue
+            context.state.transform.scale = parameter.vectorValue
         }, { context in
-            .size(context.transform.scale)
+            .size(context.state.transform.scale)
         }),
     ]
 
     static let childTransform: Symbols = [
         "translate": .command(.vector) { parameter, context in
             let vector = parameter.vectorValue
-            context.childTransform.translate(by: vector)
+            context.state.childTransform.translate(by: vector)
         },
         "rotate": .command(.rotation) { parameter, context in
             let rotation = parameter.rotationValue
-            context.childTransform.rotate(by: rotation)
+            context.state.childTransform.rotate(by: rotation)
         },
         "scale": .command(.size) { parameter, context in
             let scale = parameter.vectorValue
-            context.childTransform.scale(by: scale)
+            context.state.childTransform.scale(by: scale)
         },
     ]
 
@@ -81,9 +81,9 @@ extension Symbols {
 
     static let color: Symbols = colors + [
         "color": .property(.color, { parameter, context in
-            context.material.albedo = parameter.colorOrTextureValue
+            context.state.material.albedo = parameter.colorOrTextureValue
         }, { context in
-            .color(context.material.color ?? .white)
+            .color(context.state.material.color ?? .white)
         }),
     ]
 
@@ -91,64 +91,64 @@ extension Symbols {
         "opacity": .property(.numberOrTexture, { parameter, context in
             switch parameter {
             case let .number(opacity):
-                let opacity = opacity * context.opacity
-                context.material.opacity = .color(.init(white: opacity, alpha: opacity))
+                let opacity = opacity * context.state.opacity
+                context.state.material.opacity = .color(.init(white: opacity, alpha: opacity))
             case let .texture(texture):
                 guard let texture else { fallthrough }
-                let opacity = texture.intensity * context.opacity
-                context.material.opacity = .texture(texture.withIntensity(opacity))
+                let opacity = texture.intensity * context.state.opacity
+                context.state.material.opacity = .texture(texture.withIntensity(opacity))
             default:
-                let opacity = context.opacity
-                context.material.opacity = .color(.init(white: opacity, alpha: opacity))
+                let opacity = context.state.opacity
+                context.state.material.opacity = .color(.init(white: opacity, alpha: opacity))
             }
         }, { context in
-            switch context.material.opacity ?? .color(.white) {
+            switch context.state.material.opacity ?? .color(.white) {
             case let .color(color):
-                return .number(color.alpha / context.opacity)
+                return .number(color.alpha / context.state.opacity)
             case let .texture(texture):
                 // Since user cannot specify texture opacity, this should always be 1
-                let opacity = texture.intensity / context.opacity
+                let opacity = texture.intensity / context.state.opacity
                 return .texture(texture.withIntensity(opacity))
             }
         }),
         "texture": .property(.texture, { parameter, context in
-            context.material.albedo = parameter.colorOrTextureValue
+            context.state.material.albedo = parameter.colorOrTextureValue
         }, { context in
-            .texture(context.material.texture)
+            .texture(context.state.material.texture)
         }),
         "normals": .property(.texture, { parameter, context in
-            context.material.normals = parameter.value as? Texture
+            context.state.material.normals = parameter.value as? Texture
         }, { context in
-            .texture(context.material.normals)
+            .texture(context.state.material.normals)
         }),
         "metallicity": .property(.numberOrTexture, { parameter, context in
-            context.material.metallicity = parameter.numberOrTextureValue
+            context.state.material.metallicity = parameter.numberOrTextureValue
         }, { context in
-            .numberOrTexture(context.material.metallicity ?? .color(.black))
+            .numberOrTexture(context.state.material.metallicity ?? .color(.black))
         }),
         "roughness": .property(.numberOrTexture, { parameter, context in
-            context.material.roughness = parameter.numberOrTextureValue
+            context.state.material.roughness = parameter.numberOrTextureValue
         }, { context in
-            .numberOrTexture(context.material.roughness ?? .color(.black))
+            .numberOrTexture(context.state.material.roughness ?? .color(.black))
         }),
         "glow": .property(.colorOrTexture, { parameter, context in
-            context.material.glow = parameter.colorOrTextureValue
+            context.state.material.glow = parameter.colorOrTextureValue
         }, { context in
-            .colorOrTexture(context.material.glow ?? .color(.black))
+            .colorOrTexture(context.state.material.glow ?? .color(.black))
         }),
         "material": .property(.material, { parameter, context in
-            context.material = parameter.value as? Material ?? .default
+            context.state.material = parameter.value as? Material ?? .default
         }, { context in
-            .material(context.material)
+            .material(context.state.material)
         }),
     ]
 
     static let polygons: Symbols = [
         "polygon": .block(.init(.polygon, [:], .point, .list(.polygon))) { context in
-            let path = Path(context.children.compactMap {
+            let path = Path(context.state.children.compactMap {
                 $0.value as? PathPoint
-            }).transformed(by: context.transform)
-            let polygons = path.closed().facePolygons(material: context.material)
+            }).transformed(by: context.state.transform)
+            let polygons = path.closed().facePolygons(material: context.state.material)
             return .tuple(polygons.map { .polygon($0) })
         },
     ]
@@ -156,13 +156,13 @@ extension Symbols {
     static let meshes: Symbols = [
         // primitives
         "cone": .block(.shape) { context in
-            .mesh(Geometry(type: .cone(segments: context.detail), in: context))
+            .mesh(Geometry(type: .cone(segments: context.state.detail), in: context))
         },
         "cylinder": .block(.shape) { context in
-            .mesh(Geometry(type: .cylinder(segments: context.detail), in: context))
+            .mesh(Geometry(type: .cylinder(segments: context.state.detail), in: context))
         },
         "sphere": .block(.shape) { context in
-            .mesh(Geometry(type: .sphere(segments: context.detail), in: context))
+            .mesh(Geometry(type: .sphere(segments: context.state.detail), in: context))
         },
         "cube": .block(.shape) { context in
             .mesh(Geometry(type: .cube, in: context))
@@ -184,7 +184,7 @@ extension Symbols {
             if let along = context.value(for: "along")?.tupleValue as? [Path] {
                 // shapes follow a common path
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
-                    along: along.map { $0.withDetail(context.detail, forTwist: twist) },
+                    along: along.map { $0.withDetail(context.state.detail, forTwist: twist) },
                     twist: twist,
                     align: align
                 )), in: context))
@@ -199,7 +199,8 @@ extension Symbols {
             // Slow path, each calculated separately, no reuse
             return .tuple(context.paths.map {
                 let vector = $0.faceNormal / 2
-                let along = Path.line(-vector, vector).withDetail(context.detail, forTwist: twist)
+                let along = Path.line(-vector, vector)
+                    .withDetail(context.state.detail, forTwist: twist)
                 return .mesh(Geometry(type: .extrude([$0], .init(
                     along: [along],
                     twist: twist,
@@ -209,7 +210,7 @@ extension Symbols {
         },
         "lathe": .block(.builder) { context in
             .mesh(Geometry(
-                type: .lathe(context.paths, segments: context.detail),
+                type: .lathe(context.paths, segments: context.state.detail),
                 in: context
             ))
         },
@@ -220,7 +221,7 @@ extension Symbols {
             .mesh(Geometry(type: .fill(context.paths), in: context))
         },
         "hull": .block(.hull) { context in
-            let vertices = try context.children.flatMap { child -> [Vertex] in
+            let vertices = try context.state.children.flatMap { child -> [Vertex] in
                 switch child {
                 case let .point(point):
                     return [Vertex(point)]
@@ -241,7 +242,7 @@ extension Symbols {
         },
         // mesh
         "mesh": .block(.mesh) { context in
-            let polygons = context.children.compactMap { $0.value as? Polygon }
+            let polygons = context.state.children.compactMap { $0.value as? Polygon }
             return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context))
         },
         // csg
@@ -270,9 +271,9 @@ extension Symbols {
             "shadow": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
-            position.map { context.transform.translation = $0 }
+            position.map { context.state.transform.translation = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
-            orientation.map { context.transform.rotation = $0 }
+            orientation.map { context.state.transform.rotation = $0 }
             return .mesh(Geometry(
                 type: .light(Light(
                     position: position,
@@ -287,11 +288,11 @@ extension Symbols {
         },
         // debug
         "debug": .block(.group) { context in
-            for case let .mesh(geometry) in context.children {
+            for case let .mesh(geometry) in context.state.children {
                 geometry.debug = true
             }
-            if context.children.count == 1,
-               case let .mesh(child) = context.children[0]
+            if context.state.children.count == 1,
+               case let .mesh(child) = context.state.children[0]
             {
                 return .mesh(child)
             }
@@ -305,12 +306,12 @@ extension Symbols {
             var points = [PathPoint]()
             func endPath() {
                 if !points.isEmpty {
-                    subpaths.append(.curve(points, detail: context.detail / 4))
+                    subpaths.append(.curve(points, detail: context.state.detail / 4))
                 }
                 points.removeAll()
             }
-            for i in context.children.indices {
-                let child = context.children[i]
+            for i in context.state.children.indices {
+                let child = context.state.children[i]
                 switch child {
                 case let .point(point):
                     points.append(point)
@@ -320,8 +321,8 @@ extension Symbols {
                     }
                     endPath()
                     subpaths.append(path)
-                    if !path.isClosed, context.children.indices.contains(i + 1), {
-                        switch context.children[i + 1] {
+                    if !path.isClosed, context.state.children.indices.contains(i + 1), {
+                        switch context.state.children[i + 1] {
                         case .point: true
                         case let .path(path): !path.isClosed
                         default: false
@@ -344,14 +345,14 @@ extension Symbols {
             if subpaths.count != 1 {
                 subpaths = [Path(subpaths: subpaths)]
             }
-            return .path(subpaths[0].transformed(by: context.transform))
+            return .path(subpaths[0].transformed(by: context.state.transform))
         },
         "arc": .block(.init(.polygon, [
             "angle": .halfturns,
         ], .void, .list(.point))) { context in
             let angle = context.value(for: "angle")?.angleValue ?? .pi
             let span = Swift.max(0, Swift.min(1, abs(angle.radians) / (2 * .pi)))
-            var segments = Int(ceil(span * Double(context.detail)))
+            var segments = Int(ceil(span * Double(context.state.detail)))
             switch span {
             case 0 ..< 0.5:
                 segments = Swift.max(1, segments)
@@ -363,38 +364,38 @@ extension Symbols {
             return .path(Path.arc(
                 angle: angle,
                 segments: segments,
-                color: context.material.color,
+                color: context.state.material.color,
                 isCancelled: context.isCancelled
-            ).transformed(by: context.transform))
+            ).transformed(by: context.state.transform))
         },
         "circle": .block(.pathShape) { context in
             .path(Path.circle(
-                segments: context.detail,
-                color: context.material.color
-            ).transformed(by: context.transform))
+                segments: context.state.detail,
+                color: context.state.material.color
+            ).transformed(by: context.state.transform))
         },
         "square": .block(.pathShape) { context in
             .path(Path.square(
-                color: context.material.color
-            ).transformed(by: context.transform))
+                color: context.state.material.color
+            ).transformed(by: context.state.transform))
         },
         "polygon": .block(.init(.polygon, [
             "sides": .number,
         ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
             let sides = context.value(for: "sides")?.intValue
-            let points = context.children.compactMap { $0.value as? PathPoint }
+            let points = context.state.children.compactMap { $0.value as? PathPoint }
             if !points.isEmpty {
                 if sides != nil {
                     throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
                 }
-                let path = Path(points).transformed(by: context.transform)
-                let polygons = path.closed().facePolygons(material: context.material)
+                let path = Path(points).transformed(by: context.state.transform)
+                let polygons = path.closed().facePolygons(material: context.state.material)
                 return .tuple(polygons.map { .polygon($0) })
             }
             return .path(Path.polygon(
                 sides: sides ?? 5,
-                color: context.material.color
-            ).transformed(by: context.transform))
+                color: context.state.material.color
+            ).transformed(by: context.state.transform))
         },
         "roundrect": .block(.init(.pathShape, [
             "radius": .number,
@@ -407,9 +408,9 @@ extension Symbols {
                 width: size.x,
                 height: size.y,
                 radius: radius,
-                detail: context.detail / 4,
-                color: context.material.color
-            ).transformed(by: context.transform))
+                detail: context.state.detail / 4,
+                color: context.state.material.color
+            ).transformed(by: context.state.transform))
         },
         "text": .block(.init(.pathShape, [
             "font": .font,
@@ -417,12 +418,12 @@ extension Symbols {
             "linespacing": .number,
         ], .text, .list(.path))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
-            let text = context.children.compactMap { $0.value as? TextValue }
-            let paths = Path.text(text, width: width, detail: context.detail / 8)
-            return .tuple(paths.map { .path($0.transformed(by: context.transform)) })
+            let text = context.state.children.compactMap { $0.value as? TextValue }
+            let paths = Path.text(text, width: width, detail: context.state.detail / 8)
+            return .tuple(paths.map { .path($0.transformed(by: context.state.transform)) })
         },
         "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
-            let text = context.children.map(\.stringValue).joined(separator: "\n")
+            let text = context.state.children.map(\.stringValue).joined(separator: "\n")
             let svgPath: SVGPath
             do {
                 svgPath = try SVGPath(string: text)
@@ -431,9 +432,9 @@ extension Symbols {
             }
             return .path(Path(
                 svgPath,
-                detail: context.detail / 4,
-                color: context.material.color
-            ).transformed(by: context.transform))
+                detail: context.state.detail / 4,
+                color: context.state.material.color
+            ).transformed(by: context.state.transform))
         },
         "inset": .function(
             .tuple([.list(.union([.path, .mesh])), .number]),
@@ -444,7 +445,7 @@ extension Symbols {
             func process(_ value: ShapeScript.Value) -> [ShapeScript.Value] {
                 switch value {
                 case let .path(path):
-                    return [.path(path.inset(by: inset).transformed(by: context.transform))]
+                    return [.path(path.inset(by: inset).transformed(by: context.state.transform))]
                 case let .mesh(geometry):
                     _ = geometry.build { true }
                     let mesh = geometry.mesh?.inset(by: inset) ?? .empty
@@ -474,7 +475,7 @@ extension Symbols {
         "point": .command(.vector) { parameter, context in
             try context.addValue(.point(.point(
                 parameter.vectorValue,
-                color: context.material.color
+                color: context.state.material.color
             )))
         },
     ]
@@ -483,7 +484,7 @@ extension Symbols {
         "curve": .command(.vector) { parameter, context in
             try context.addValue(.point(.curve(
                 parameter.vectorValue,
-                color: context.material.color
+                color: context.state.material.color
             )))
         },
     ])
@@ -651,9 +652,9 @@ extension Symbols {
 
     static let name: Symbols = [
         "name": .property(.string, { parameter, context in
-            context.name = parameter.stringValue
+            context.state.name = parameter.stringValue
         }, { context in
-            .string(context.name)
+            .string(context.state.name)
         }),
     ]
 
@@ -665,18 +666,18 @@ extension Symbols {
 
     static let font: Symbols = [
         "font": .property(.font, { parameter, context in
-            context.font = parameter.stringValue
+            context.state.font = parameter.stringValue
         }, { context in
-            .font(context.font)
+            .font(context.state.font)
         }),
     ]
 
     static let detail: Symbols = [
         "detail": .property(.number, { parameter, context in
             // TODO: throw error if min/max detail level exceeded
-            context.detail = Swift.max(0, parameter.intValue)
+            context.state.detail = Swift.max(0, parameter.intValue)
         }, { context in
-            .number(Double(context.detail))
+            .number(Double(context.state.detail))
         }),
     ]
 
@@ -684,9 +685,9 @@ extension Symbols {
         "smoothing": .property(.halfturns, { parameter, context in
             // TODO: find a better way to represent null/auto
             let angle = Swift.min(.pi, parameter.angleValue ?? .zero)
-            context.smoothing = angle < .zero ? nil : angle
+            context.state.smoothing = angle < .zero ? nil : angle
         }, { context in
-            .halfturns(context.smoothing.map(\.halfturns) ?? -1)
+            .halfturns(context.state.smoothing.map(\.halfturns) ?? -1)
         }),
     ]
 
@@ -702,11 +703,11 @@ extension Symbols {
             "height": .number,
         ], .void, .mesh)) { context in
             let position = context.value(for: "position")?.value as? Vector
-            position.map { context.transform.translation = $0 }
+            position.map { context.state.transform.translation = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
-            orientation.map { context.transform.rotation = $0 }
+            orientation.map { context.state.transform.rotation = $0 }
             let scale = context.value(for: "size")?.value as? Vector
-            scale.map { context.transform.scale = $0 }
+            scale.map { context.state.transform.scale = $0 }
             return .mesh(Geometry(
                 type: .camera(Camera(
                     position: position,
@@ -745,7 +746,7 @@ extension Symbols {
 
 extension EvaluationContext {
     var paths: [Path] {
-        children.compactMap { $0.value as? Path }
+        state.children.compactMap { $0.value as? Path }
     }
 }
 
@@ -753,11 +754,11 @@ extension Geometry {
     convenience init(type: GeometryType, in context: EvaluationContext) {
         self.init(
             type: type,
-            name: context.name,
-            transform: context.transform,
-            material: context.material,
-            smoothing: context.smoothing,
-            children: context.children.compactMap { $0.value as? Geometry },
+            name: context.state.name,
+            transform: context.state.transform,
+            material: context.state.material,
+            smoothing: context.state.smoothing,
+            children: context.state.children.compactMap { $0.value as? Geometry },
             sourceLocation: context.sourceLocation
         )
     }

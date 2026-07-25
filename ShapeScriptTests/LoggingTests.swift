@@ -289,7 +289,7 @@ final class LoggingTests: XCTestCase {
 
     func testCubeGeometry() {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.transform = Transform(scale: -.one)
+        context.state.transform = Transform(scale: -.one)
         let input = Geometry(type: .cube, in: context)
         XCTAssertEqual(input.logDescription, "cube { size -1 }")
         XCTAssertEqual(input.nestedLogDescription, "cube")
@@ -297,7 +297,7 @@ final class LoggingTests: XCTestCase {
 
     func testCubeGeometry2() {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.transform = Transform(scale: -.one, translation: .init(1, 2))
+        context.state.transform = Transform(scale: -.one, translation: .init(1, 2))
         let input = Geometry(type: .cube, in: context)
         XCTAssertEqual(input.logDescription, """
         cube {
@@ -319,7 +319,7 @@ final class LoggingTests: XCTestCase {
 
     func testMeshGeometryNamedContext() throws {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.name = "Mesh"
+        context.state.name = "Mesh"
         let input = try Geometry(type: .mesh(.init([
             XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)
@@ -334,7 +334,7 @@ final class LoggingTests: XCTestCase {
 
     func testSubmeshes() throws {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.children.append(.mesh(Geometry(type: .cube, in: context)))
+        context.state.children.append(.mesh(Geometry(type: .cube, in: context)))
         let input = try Geometry(type: .mesh(.init([
             XCTUnwrap(Polygon([[0, 0], [1, 0], [1, 1]])),
         ])), in: context)

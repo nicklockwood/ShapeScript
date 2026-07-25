@@ -46,7 +46,7 @@ public func evaluate(
     let result = Result { try program.evaluate(in: context) }
     let scene = Scene(
         background: context.background ?? .color(.clear),
-        children: context.children.compactMap { $0.value as? Geometry },
+        children: context.state.children.compactMap { $0.value as? Geometry },
         cache: cache
     )
     switch result {
@@ -335,22 +335,22 @@ final class UserFunction: @unchecked Sendable {
     func evaluate(with argument: Value, in context: EvaluationContext) throws -> Value {
         do {
             let oldState = FunctionContextState(
-                children: context.children,
-                childTypes: context.childTypes,
+                children: context.state.children,
+                childTypes: context.state.childTypes,
                 userSymbols: context.userSymbols,
                 source: context.source,
-                baseURL: context.baseURL
+                baseURL: context.state.baseURL
             )
-            context.children = []
-            context.childTypes = .any
+            context.state.children = []
+            context.state.childTypes = .any
             context.source = declarationContext.source
-            context.baseURL = declarationContext.baseURL
+            context.state.baseURL = declarationContext.state.baseURL
             context.userSymbols = declarationContext.userSymbols
             defer {
-                context.children = oldState.children
-                context.childTypes = oldState.childTypes
+                context.state.children = oldState.children
+                context.state.childTypes = oldState.childTypes
                 context.source = oldState.source
-                context.baseURL = oldState.baseURL
+                context.state.baseURL = oldState.baseURL
                 context.userSymbols = oldState.userSymbols
             }
             let values = [argument].flattened(recursive: false)
@@ -359,16 +359,16 @@ final class UserFunction: @unchecked Sendable {
                 context.define(identifier.name, as: .constant(value))
             }
             try block.evaluate(in: context)
-            return .pretransformed(context.children)
+            return .pretransformed(context.state.children)
         } catch let request as CallRequest {
             throw request
         } catch {
-            if declarationContext.baseURL == context.baseURL {
+            if declarationContext.state.baseURL == context.state.baseURL {
                 throw error
             }
             throw RuntimeErrorType.importError(
                 ProgramError(error),
-                for: declarationContext.baseURL,
+                for: declarationContext.state.baseURL,
                 in: declarationContext.source
             )
         }
@@ -396,11 +396,11 @@ final class UserBlock: @unchecked Sendable {
         self.declarationContext = declarationContext
     }
 
-    func evaluate(with argument: BlockCallArgument) throws -> Value {
+    func evaluate(with state: BlockState) throws -> Value {
         do {
             let context = declarationContext.pushDefinition()
-            apply(argument, to: context)
-            context.baseURL = baseURL
+            context.apply(state)
+            context.state.baseURL = baseURL
             context.source = source
             context.sourceIndex = sourceIndex
             block.statements.gatherDefinitions(in: context)
@@ -418,29 +418,29 @@ final class UserBlock: @unchecked Sendable {
                     try statement.evaluate(in: context)
                 }
             }
-            let children = context.children.unwrapped(recursive: true)
+            let children = context.state.children.unwrapped(recursive: true)
             if children.count == 1 {
                 switch children[0] {
                 case let .path(path):
-                    guard context.name.isEmpty else {
+                    guard context.state.name.isEmpty else {
                         return .mesh(Geometry(
                             type: .path(path),
-                            name: context.name,
-                            transform: context.transform,
+                            name: context.state.name,
+                            transform: context.state.transform,
                             material: .default,
                             smoothing: nil,
                             children: [],
                             sourceLocation: context.sourceLocation
                         ))
                     }
-                    return .path(path.transformed(by: context.transform))
+                    return .path(path.transformed(by: context.state.transform))
                 case let .mesh(geometry):
-                    // TODO: why not just use `geometry.transformed(by: context.transform)`?
+                    // TODO: why not just use `geometry.transformed(by: context.state.transform)`?
                     // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                     return .mesh(Geometry(
                         type: geometry.type,
-                        name: context.name,
-                        transform: geometry.transform * context.transform,
+                        name: context.state.name,
+                        transform: geometry.transform * context.state.transform,
                         material: geometry.material,
                         smoothing: geometry.smoothing,
                         children: geometry.children,
@@ -448,11 +448,11 @@ final class UserBlock: @unchecked Sendable {
                         debug: geometry.debug
                     ))
                 case let .polygon(polygon):
-                    return .polygon(polygon.transformed(by: context.transform))
+                    return .polygon(polygon.transformed(by: context.state.transform))
                 case let value:
                     return value
                 }
-            } else if context.name.isEmpty,
+            } else if context.state.name.isEmpty,
                       // Manage backwards compatibility for blocks that return
                       // multiple meshes to be used inside difference block
                       !children.contains(where: { $0.type == .mesh }) ||
@@ -461,11 +461,11 @@ final class UserBlock: @unchecked Sendable {
                 return .tuple(children.map {
                     switch $0 {
                     case let .path(path):
-                        .path(path.transformed(by: context.transform))
+                        .path(path.transformed(by: context.state.transform))
                     case let .mesh(geometry):
-                        .mesh(geometry.transformed(by: context.transform))
+                        .mesh(geometry.transformed(by: context.state.transform))
                     case let .polygon(polygon):
-                        .polygon(polygon.transformed(by: context.transform))
+                        .polygon(polygon.transformed(by: context.state.transform))
                     default:
                         $0
                     }
@@ -473,10 +473,10 @@ final class UserBlock: @unchecked Sendable {
             }
             return try .mesh(Geometry(
                 type: .group,
-                name: context.name,
-                transform: context.transform,
+                name: context.state.name,
+                transform: context.state.transform,
                 material: .default,
-                smoothing: context.smoothing,
+                smoothing: context.state.smoothing,
                 children: children.map {
                     switch $0 {
                     case let .path(path):
@@ -512,7 +512,7 @@ final class UserBlock: @unchecked Sendable {
                     at: e.range
                 )
             }
-            if baseURL == argument.baseURL {
+            if baseURL == state.baseURL {
                 throw error
             }
             throw RuntimeErrorType.importError(ProgramError(error), for: baseURL, in: source)
@@ -520,46 +520,9 @@ final class UserBlock: @unchecked Sendable {
     }
 }
 
-struct BlockCallArgument: Hashable {
-    let children: [Value]
-    let options: [String: Value]
-    let name: String
-    let material: Material
-    let font: String
-    let transform: Transform
-    let opacity: Double
-    let detail: Int
-    let smoothing: Angle?
-    let baseURL: URL?
-}
-
-extension BlockCallArgument {
-    init(from context: EvaluationContext) {
-        self.init(
-            children: context.children,
-            options: context.userSymbols.compactMapValues {
-                switch $0 {
-                case let .option(value):
-                    value
-                case .block, .function, .property, .constant, .placeholder:
-                    nil
-                }
-            },
-            name: context.name,
-            material: context.material,
-            font: context.font,
-            transform: context.transform,
-            opacity: context.opacity,
-            detail: context.detail,
-            smoothing: context.smoothing,
-            baseURL: context.baseURL
-        )
-    }
-}
-
 enum Call {
     case function(UserFunction, Value)
-    case block(UserBlock, BlockCallArgument)
+    case block(UserBlock, BlockState)
 }
 
 extension Call: Equatable {
@@ -896,14 +859,14 @@ extension Program {
     func evaluate(in context: EvaluationContext) throws {
         let oldSource = context.source
         let oldSourceIndex = context.sourceIndex
-        let oldBaseURL = context.baseURL
+        let oldBaseURL = context.state.baseURL
         context.source = source
         context.sourceIndex = nil
-        context.baseURL = fileURL ?? oldBaseURL
+        context.state.baseURL = fileURL ?? oldBaseURL
         defer {
             context.source = oldSource
             context.sourceIndex = oldSourceIndex
-            context.baseURL = oldBaseURL
+            context.state.baseURL = oldBaseURL
         }
         statements.gatherDefinitions(in: context)
         do {
@@ -1038,20 +1001,6 @@ private func evaluateParameter(
     return value
 }
 
-private func apply(_ argument: BlockCallArgument, to context: EvaluationContext) {
-    for (name, value) in argument.options {
-        context.define(name, as: .option(value))
-    }
-    context.define("children", as: .constant(.tuple(argument.children)))
-    context.name = argument.name
-    context.material = argument.material
-    context.font = argument.font
-    context.transform = argument.transform
-    context.opacity = argument.opacity
-    context.detail = argument.detail
-    context.smoothing = argument.smoothing
-}
-
 extension Definition {
     nonisolated func evaluate(in context: EvaluationContext) throws -> Symbol {
         switch type {
@@ -1105,7 +1054,7 @@ extension Definition {
             }
             let source = context.source
             let sourceIndex = context.sourceIndex
-            let baseURL = context.baseURL
+            let baseURL = context.state.baseURL
             var symbols = Symbols.font // TODO: should this be supported?
             if returnType.contains(where: { $0.isSubtype(of: .union([.mesh, .path, .polygon])) }) {
                 symbols.merge(.shape) { $1 }
@@ -1150,7 +1099,7 @@ extension EvaluationContext {
         guard value.isFinite else {
             throw RuntimeErrorType.assertionFailure("Values must be finite")
         }
-        if let value = try value.as(childTypes, in: self) {
+        if let value = try value.as(state.childTypes, in: self) {
             func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
                 switch value {
                 case let .tuple(values):
@@ -1163,23 +1112,28 @@ extension EvaluationContext {
                 case let .point(p):
                     return .point(p.transformed(by: childTransform))
                 case let .polygon(p):
-                    return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: material))
+                    return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: state.material))
                 case let .path(path):
                     return .path(path.transformed(by: childTransform))
                 case let .pretransformed(value):
                     return valueForAdding(value, .identity)
-                case _ where childTypes.subtypes.contains(.text):
+                case _ where state.childTypes.subtypes.contains(.text):
                     return .text(TextValue(
                         string: value.stringValue,
-                        font: self.value(for: "font")?.stringValue ?? font,
-                        color: material.color,
+                        font: self.value(for: "font")?.stringValue ?? state.font,
+                        color: state.material.color,
                         linespacing: self.value(for: "linespacing")?.doubleValue
                     ))
                 default:
                     return value
                 }
             }
-            valueForAdding(value, childTransform).map { children.append($0) }
+            valueForAdding(value, state.childTransform).map {
+                if case let .mesh(geometry) = $0 {
+                    geometry.gatherNamedObjects(&namedObjects)
+                }
+                state.children.append($0)
+            }
         } else if case let .tuple(values) = value {
             try values.forEach(addValue)
         } else if case let .pretransformed(.tuple(values)) = value {
@@ -1406,11 +1360,11 @@ extension Expression {
                 newContext.sourceIndex = sourceIndex
                 if values.first?.type == .path {
                     return .tuple(values.map {
-                        .path(($0.value as! Path).transformed(by: newContext.transform))
+                        .path(($0.value as! Path).transformed(by: newContext.state.transform))
                     })
                 }
                 return .tuple(values.map {
-                    .mesh(($0.value as! Geometry).transformed(by: newContext.transform))
+                    .mesh(($0.value as! Geometry).transformed(by: newContext.state.transform))
                 })
             case let .property(type, setter, _):
                 let blockType = BlockType([:], type.memberTypes, .void, type)
@@ -1432,7 +1386,7 @@ extension Expression {
                     ), at: block.range)
                 }
                 try RuntimeError.wrap(setter(instance, context), at: range)
-                return type.isSubtype(of: context.childTypes) ? instance : .void
+                return type.isSubtype(of: context.state.childTypes) ? instance : .void
             case .function((.void, _), _):
                 throw RuntimeError(.unexpectedArgument(for: name, max: 0), at: block.range)
             case let .function((type, _), _):
@@ -1697,8 +1651,8 @@ extension Expression {
             context.sourceIndex = expression.range.lowerBound
             return try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
         case let .ifelse(condition, body, else: elseBody):
-            let oldChildren = context.children
-            defer { context.children = oldChildren }
+            let oldChildren = context.state.children
+            defer { context.state.children = oldChildren }
             try context.pushScope { context in
                 let value = try condition.evaluate(
                     as: .boolean,
@@ -1711,7 +1665,7 @@ extension Expression {
                     try elseBody.evaluate(in: context)
                 }
             }
-            return .pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.state.children[oldChildren.count...]))
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
             // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
@@ -1727,8 +1681,8 @@ extension Expression {
                     at: expression.range
                 )
             }
-            let oldChildren = context.children
-            defer { context.children = oldChildren }
+            let oldChildren = context.state.children
+            defer { context.state.children = oldChildren }
             for value in sequence {
                 if context.isCancelled() {
                     throw EvaluationCancelled()
@@ -1740,10 +1694,10 @@ extension Expression {
                     try block.evaluate(in: context)
                 }
             }
-            return .pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.state.children[oldChildren.count...]))
         case let .switchcase(condition, cases, else: elseBody):
-            let oldChildren = context.children
-            defer { context.children = oldChildren }
+            let oldChildren = context.state.children
+            defer { context.state.children = oldChildren }
             try context.pushScope { context in
                 let value = try condition.evaluate(
                     as: .any,
@@ -1790,7 +1744,7 @@ extension Expression {
                 }
                 try elseBody?.evaluate(in: context)
             }
-            return .pretransformed(Array(context.children[oldChildren.count...]))
+            return .pretransformed(Array(context.state.children[oldChildren.count...]))
         }
     }
 

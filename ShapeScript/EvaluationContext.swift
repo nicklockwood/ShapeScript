@@ -37,6 +37,30 @@ public struct SourceLocation: Hashable, Sendable {
     }
 }
 
+struct BlockState: Hashable {
+    var children = [Value]()
+    var optionValues = [String: Value]()
+    var material: Material = .default
+    var transform = Transform.identity
+    var childTransform = Transform.identity
+    var childTypes: ValueType = .mesh
+    var name: String = ""
+    var detail: Int = 16
+    var smoothing: Angle?
+    var font: String = ""
+    var opacity: Double = 1
+    var baseURL: URL?
+}
+
+extension BlockState {
+    init(from context: EvaluationContext) {
+        self = context.state
+        self.optionValues = context.userSymbols.compactMapValues {
+            if case let .option(value) = $0 { value } else { nil }
+        }
+    }
+}
+
 final class EvaluationContext {
     final class CallState {
         var depth = 0
@@ -74,33 +98,15 @@ final class EvaluationContext {
 
     var source: String
     var sourceIndex: String.Index?
-    var baseURL: URL?
-
-    var material: Material = .default
+    var state = BlockState()
     var background: MaterialProperty?
-    var transform = Transform.identity
-    var childTransform = Transform.identity
-    var childTypes: ValueType = .mesh
-    var name: String = ""
     var namedObjects: [String: Geometry] = [:]
-    var children = [Value]() {
-        didSet {
-            for case let .mesh(geometry) in children {
-                geometry.gatherNamedObjects(&namedObjects)
-            }
-        }
-    }
-
     var random: RandomSequence
-    var detail: Int = 16
-    var smoothing: Angle?
-    var font: String = ""
-    var opacity: Double = 1
 
     let callState: CallState
 
     var sourceLocation: @Sendable () -> SourceLocation? {
-        { [sourceIndex, source, baseURL] in
+        { [sourceIndex, source, baseURL = state.baseURL] in
             sourceIndex.map {
                 SourceLocation(at: source.line(at: $0), in: baseURL)
             }
@@ -125,7 +131,7 @@ final class EvaluationContext {
         // preserve
         self.source = parent.source
         self.sourceIndex = parent.sourceIndex
-        self.baseURL = parent.baseURL
+        self.state = parent.state
         self.delegate = parent.delegate
         self.isCancelled = parent.isCancelled
         self.symbols = parent.symbols
@@ -133,26 +139,22 @@ final class EvaluationContext {
         self.importCache = parent.importCache
         self.importStack = parent.importStack
         self.callState = parent.callState
-        self.material = parent.material
-        self.childTypes = parent.childTypes
         self.namedObjects = parent.namedObjects
         self.random = parent.random
-        self.detail = parent.detail
-        self.smoothing = parent.smoothing
-        self.font = parent.font
         // root-only
         self.background = parent.background
         // opacity is cumulative
-        self.opacity = parent.material.opacity?.color?.alpha ?? parent.opacity
+        state.opacity = parent.state.material.opacity?.color?.alpha ?? parent.state.opacity
         // reset
-        self.transform = .identity
-        self.childTransform = .identity
-        self.children = []
+        state.name = ""
+        state.transform = .identity
+        state.childTransform = .identity
+        state.children = []
     }
 
     func push(_ type: BlockType) -> EvaluationContext {
         let new = EvaluationContext(parent: self)
-        new.childTypes = type.childTypes
+        new.state.childTypes = type.childTypes
         new.symbols = type.symbols
         new.options = type.options
         for (name, symbol) in type.symbols where Symbols.global[name] == nil {
@@ -181,13 +183,25 @@ final class EvaluationContext {
 
     func pushDefinition() -> EvaluationContext {
         let new = EvaluationContext(parent: self)
-        new.name = name
+        new.state.name = state.name
         new.namedObjects = namedObjects
-        new.transform = transform
-        new.opacity = opacity
-        new.childTypes = ValueType.any
+        new.state.transform = state.transform
+        new.state.opacity = state.opacity
+        new.state.childTypes = ValueType.any
         new.symbols = .definition
         return new
+    }
+
+    func apply(_ state: BlockState) {
+        let localState = self.state
+        self.state = state
+        self.state.children = localState.children
+        self.state.childTransform = localState.childTransform
+        self.state.childTypes = localState.childTypes
+        for (name, value) in state.optionValues {
+            define(name, as: .option(value))
+        }
+        define("children", as: .constant(.tuple(state.children)))
     }
 }
 
@@ -309,7 +323,7 @@ extension EvaluationContext {
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
         let expandedPath = NSString(string: path).expandingTildeInPath
-        let documentRelativePath = baseURL.map {
+        let documentRelativePath = state.baseURL.map {
             URL(fileURLWithPath: expandedPath, relativeTo: $0).path
         } ?? expandedPath
         guard let url = delegate?.resolveURL(for: documentRelativePath) else {
@@ -589,8 +603,8 @@ extension EvaluationContext {
                 }
                 return .mesh(geometry.with(
                     transform: .identity,
-                    material: material,
-                    smoothing: smoothing,
+                    material: state.material,
+                    smoothing: state.smoothing,
                     sourceLocation: sourceLocation
                 ))
             } catch let error as ProgramError {

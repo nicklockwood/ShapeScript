@@ -469,7 +469,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.transform.scale, .init(size: 2))
     }
 
@@ -483,7 +483,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.transform.scale, .init(size: 3))
     }
 
@@ -1162,7 +1162,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -1177,7 +1177,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -1192,7 +1192,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -1207,8 +1207,8 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        XCTAssertEqual(geometry.material.color, Color.red.withAlphaComponent(0.5))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        XCTAssertEqual(geometry.material.color, .red.withAlphaComponent(0.5))
     }
 
     func testSetNonColorWithColorConstant() throws {
@@ -1273,7 +1273,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("cube { color 1 0 0 }")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -1281,7 +1281,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("circle { color 1 0 0 }")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -1296,7 +1296,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.points.first?.color, .red)
         XCTAssertEqual(path.points.last?.color, .blue)
@@ -1313,7 +1313,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.subpaths.first?.points.first?.color, .red)
         XCTAssertEqual(path.subpaths.last?.points.first?.color, .green)
@@ -1331,9 +1331,9 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         #if canImport(CoreText)
-        let line1 = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let line1 = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(line1.material.color, .red)
-        let line2 = try XCTUnwrap(context.children.last?.value as? Geometry)
+        let line2 = try XCTUnwrap(context.state.children.last?.value as? Geometry)
         XCTAssertEqual(line2.material.color, .blue)
         #endif
     }
@@ -1786,7 +1786,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("font \"Courier\"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Courier")
+        XCTAssertEqual(context.state.font, "Courier")
     }
 
     func testGetValidFont() throws {
@@ -1803,14 +1803,14 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("font (\"Cou\" \"rier\")")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Courier")
+        XCTAssertEqual(context.state.font, "Courier")
     }
 
     func testSetValidFontWithStringInterpolationWithoutParens() throws {
         let program = try parse("font \"Cou\" \"rier\"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Courier")
+        XCTAssertEqual(context.state.font, "Courier")
     }
 
     func testSetValidFontWithInterpolatedConstant() throws {
@@ -1820,14 +1820,14 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Courier")
+        XCTAssertEqual(context.state.font, "Courier")
     }
 
     func testSetValidFontWithUntrimmedSpace() throws {
         let program = try parse("font \" Courier \"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Courier")
+        XCTAssertEqual(context.state.font, "Courier")
     }
 
     func testSetInvalidFont() throws {
@@ -1844,7 +1844,7 @@ final class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertEqual(context.font, "")
+        XCTAssertEqual(context.state.font, "")
         #endif
     }
 
@@ -1862,7 +1862,7 @@ final class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertEqual(context.font, "")
+        XCTAssertEqual(context.state.font, "")
         #endif
     }
 
@@ -1880,7 +1880,7 @@ final class InterpreterTests: XCTestCase {
                 return
             }
         }
-        XCTAssertEqual(context.font, "")
+        XCTAssertEqual(context.state.font, "")
         #endif
     }
 
@@ -1890,7 +1890,7 @@ final class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(context.state.font, "Edge of the Galaxy Regular")
         #endif
     }
 
@@ -1934,7 +1934,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("import \"~/Desktop/Example Model.stl\"")
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
-        context.baseURL = testsDirectory.appendingPathComponent("Document.shape")
+        context.state.baseURL = testsDirectory.appendingPathComponent("Document.shape")
         try? program.evaluate(in: context) // Throws file not found, but we can ignore
         XCTAssertEqual(delegate.imports, [
             FileManager.default.homeDirectoryForCurrentUser
@@ -2284,7 +2284,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.children.count, 1)
+        XCTAssertEqual(context.state.children.count, 1)
     }
 
     func testBlockReturningPathInsidePath() throws {
@@ -4553,7 +4553,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.childTransform.translation, .init(1, 0, 0))
+        XCTAssertEqual(context.state.childTransform.translation, .init(1, 0, 0))
     }
 
     func testValidUseOfPointInCustomFunction() {
@@ -4635,7 +4635,7 @@ final class InterpreterTests: XCTestCase {
         """
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
-        let mesh = context.children.first?.value as? Geometry
+        let mesh = context.state.children.first?.value as? Geometry
         XCTAssertEqual(mesh?.transform.translation, .init(1, 0, 0))
     }
 
@@ -4687,7 +4687,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        XCTAssertEqual(context.children.count, 4)
+        XCTAssertEqual(context.state.children.count, 4)
         #endif
     }
 
@@ -4699,7 +4699,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        XCTAssertEqual(context.children.count, 4)
+        XCTAssertEqual(context.state.children.count, 4)
         #endif
     }
 
@@ -4711,7 +4711,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 4)
         XCTAssertEqual(chars.first?.overestimatedBounds.min.y, chars.last?.overestimatedBounds.min.y)
         #endif
@@ -4726,7 +4726,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
         XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
@@ -4744,7 +4744,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
         XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
@@ -4759,7 +4759,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
         XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
@@ -4777,7 +4777,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
         XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
@@ -4794,7 +4794,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        let chars = context.children.compactMap { $0.value as? Geometry }
+        let chars = context.state.children.compactMap { $0.value as? Geometry }
         XCTAssertEqual(chars.count, 2)
         XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
         #endif
@@ -4806,7 +4806,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("fill svgpath \"M150 0 L75 200 225 200 Z\"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         guard case let .fill(paths) = geometry.type else {
             XCTFail()
             return
@@ -4820,7 +4820,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("light")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let light = try XCTUnwrap(geometry.light)
         XCTAssertEqual(light.color, .white)
         XCTAssertFalse(light.hasPosition)
@@ -4831,7 +4831,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("light { color yellow }")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let light = try XCTUnwrap(geometry.light)
         XCTAssertEqual(light.color, .yellow)
         XCTAssertFalse(light.hasPosition)
@@ -4847,7 +4847,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         guard case let .light(light) = geometry.type else {
             XCTFail()
             return
@@ -4867,7 +4867,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let light = try XCTUnwrap(geometry.light)
         XCTAssertEqual(light.color, .yellow)
         XCTAssert(light.hasPosition)
@@ -4885,7 +4885,7 @@ final class InterpreterTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let light = try XCTUnwrap(geometry.light)
         XCTAssertEqual(light.color, .yellow)
         XCTAssert(light.hasPosition)
@@ -4900,7 +4900,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("light { colour yellow }")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let light = try XCTUnwrap(geometry.light)
         XCTAssertEqual(light.color, .yellow)
     }
@@ -4911,14 +4911,14 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("debug cube")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssert((context.children.first?.value as? Geometry)?.debug == true)
+        XCTAssert((context.state.children.first?.value as? Geometry)?.debug == true)
     }
 
     func testDebugText() throws {
         let program = try parse("debug extrude text \"M\"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssert((context.children.first?.value as? Geometry)?.debug == true)
+        XCTAssert((context.state.children.first?.value as? Geometry)?.debug == true)
     }
 
     func testDebugColorCommand() throws {

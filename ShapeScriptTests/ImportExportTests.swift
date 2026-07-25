@@ -64,7 +64,7 @@ final class ImportExportTests: XCTestCase {
         let program = try parse(source)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssert(geometry.build { true })
         let mesh = try XCTUnwrap(geometry.mesh)
         let polygons = mesh.polygons

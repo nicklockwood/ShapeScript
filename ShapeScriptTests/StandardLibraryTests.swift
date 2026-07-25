@@ -94,7 +94,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
 
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.subpaths.count, 3)
         XCTAssertEqual(path.subpaths.map(\.isClosed), [false, true, false])
@@ -122,7 +122,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
 
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertFalse(path.isClosed)
@@ -148,7 +148,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
 
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertFalse(path.isClosed)
@@ -212,7 +212,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -227,7 +227,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.material.color, .red)
     }
 
@@ -831,7 +831,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(context.state.font, "Edge of the Galaxy Regular")
         XCTAssertEqual(delegate.log, ["Edge of the Galaxy Regular", "Arial", "Edge of the Galaxy Regular"])
         #endif
     }
@@ -849,7 +849,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssertEqual(context.font, "Edge of the Galaxy Regular")
+        XCTAssertEqual(context.state.font, "Edge of the Galaxy Regular")
         XCTAssertEqual(delegate.log, ["Edge of the Galaxy Regular", "Arial", "Edge of the Galaxy Regular"])
         #endif
     }
@@ -1014,7 +1014,7 @@ final class StandardLibraryTests: XCTestCase {
             let context = EvaluationContext(source: program.source, delegate: nil)
             try program.evaluate(in: context)
 
-            let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+            let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
             return try XCTUnwrap(geometry.path)
         }
 
@@ -1042,7 +1042,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
 
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertEqual(path.points.map(\.isCurved), [
             false, true, true, true, true, true, false,
@@ -1069,7 +1069,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
 
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let path = try XCTUnwrap(geometry.path)
         XCTAssertTrue(path.isClosed)
         XCTAssertEqual(path.subpaths.count, 1)
@@ -1134,7 +1134,7 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse("polygon")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssert(context.children.first?.value is Geometry)
+        XCTAssert(context.state.children.first?.value is Geometry)
     }
 
     func testPrintAmbiguousPolygon() throws {
@@ -1237,7 +1237,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh?.polygons.count, 2)
     }
@@ -1248,7 +1248,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh, .empty)
     }
@@ -1263,7 +1263,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh?.polygons.count, 134)
         XCTAssertEqual(geometry.children.count, 2)
@@ -1278,7 +1278,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        XCTAssert(context.children.first?.value is Geometry)
+        XCTAssert(context.state.children.first?.value is Geometry)
     }
 
     func testMultiplePathsInHull() throws {
@@ -1292,7 +1292,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         _ = geometry.build { true }
         XCTAssertEqual(geometry.mesh?.bounds, Mesh.cube().bounds)
     }
@@ -1309,7 +1309,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let expected = Mesh.cube(size: 1.5)
         XCTAssertEqual(geometry.overestimatedBounds, expected.bounds)
         _ = geometry.build { true }
@@ -1482,7 +1482,7 @@ final class StandardLibraryTests: XCTestCase {
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         XCTAssertEqual(geometry.transform.scale, Vector(1, 2, 3))
     }
 

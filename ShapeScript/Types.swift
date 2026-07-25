@@ -672,8 +672,8 @@ extension Value {
         case let (.path(path), .mesh):
             return .mesh(Geometry(
                 type: .path(path),
-                name: context?.name,
-                transform: context?.transform ?? .identity,
+                name: context?.state.name,
+                transform: context?.state.transform ?? .identity,
                 material: .default, // not used for paths
                 smoothing: nil,
                 children: [],
@@ -1103,7 +1103,7 @@ extension Statement {
             guard let expression, let symbol = context.symbol(for: identifier.name) else {
                 expression?.inferTypes(for: &params, in: context, with: .any)
                 if identifier.name == "children" {
-                    let childTypes = context.childTypes == .void ? .any : context.childTypes
+                    let childTypes = context.state.childTypes == .void ? .any : context.state.childTypes
                     params["children", default: .any].narrow(with: childTypes)
                 }
                 return

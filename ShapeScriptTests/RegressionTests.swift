@@ -275,7 +275,7 @@ final class RegressionTests: XCTestCase {
             let delegate = TestDelegate(directory: url.deletingLastPathComponent())
             let context = EvaluationContext(source: program.source, delegate: delegate)
             XCTAssertNoThrow(try program.evaluate(in: context), "\(name) errored")
-            for (i, geometry) in context.children.compactMap({
+            for (i, geometry) in context.state.children.compactMap({
                 $0.value as? Geometry
             }).enumerated() {
                 XCTAssert(geometry.isWatertight { false }, """

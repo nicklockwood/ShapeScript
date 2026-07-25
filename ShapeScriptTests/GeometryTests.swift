@@ -90,14 +90,14 @@ final class GeometryTests: XCTestCase {
     func testTransformedCubeBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.cube, in: context)
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
     }
 
     func testTransformedConeBounds() throws {
         let context = EvaluationContext(source: "", delegate: nil)
-        context.transform = Transform(
+        context.state.transform = Transform(
             rotation: .yaw(.degrees(45)),
             translation: [1, 2, 3]
         )
@@ -105,7 +105,7 @@ final class GeometryTests: XCTestCase {
         let bounds = shape.exactBounds(with: shape.transform)
         _ = shape.build { true }
         let mesh = try XCTUnwrap(shape.mesh)
-        let expected = mesh.transformed(by: context.transform).bounds
+        let expected = mesh.transformed(by: context.state.transform).bounds
         XCTAssertEqual(bounds.min, expected.min, accuracy: epsilon)
         XCTAssertEqual(bounds.max, expected.max, accuracy: epsilon)
     }
@@ -113,7 +113,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedSquarePathBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: .path(.square()), in: context)
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
     }
@@ -121,7 +121,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedFilledSquareBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.fill([.square()]), in: context)
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
         XCTAssertEqual(shape.overestimatedBounds.size, [1, 1, 0])
@@ -244,7 +244,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedMultipleFilledPathBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.fill([
             .square(),
             .circle(radius: 0.5).translated(by: [1, 0, 0]),
@@ -257,7 +257,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedMultipleExtrudedPathBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.extrude([
             .square(),
             .circle(radius: 0.5).translated(by: [1, 0, 0]),
@@ -270,7 +270,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedMultipleExtrudedPathBoundsWithTwist() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.extrude([
             .square(),
             .circle(radius: 0.5).translated(by: [1, 0, 0]),
@@ -334,7 +334,7 @@ final class GeometryTests: XCTestCase {
     func testTransformedMultipleLathedPathBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
-        context.transform = .translation(offset)
+        context.state.transform = .translation(offset)
         let shape = Geometry(type: GeometryType.lathe([
             .square(),
             .circle(radius: 0.5).translated(by: [0, 1, 0]),
