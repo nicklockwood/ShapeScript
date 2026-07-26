@@ -104,6 +104,7 @@ final class SVGPathTests: XCTestCase {
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertTrue(mesh.vertexNormalsFaceOutward)
         XCTAssertGreaterThan(mesh.signedVolume, 0)
         let path = try Path(
             SVGPath(string: svgPathWithDoubledBackSegments),
@@ -116,6 +117,11 @@ final class SVGPathTests: XCTestCase {
             .point(0, -10),
         ], color: ShapeScript.Material.default.color)
         try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
+        assertSidePolygonsFaceOutward(
+            of: mesh,
+            shape: path,
+            along: along
+        )
     }
 }
 
@@ -127,9 +133,19 @@ private func assertCapsMatchFilledSections(
     line: UInt = #line
 ) throws {
     let sections = path.extrusionContours(along: along)
-    let capSpecs = try [
-        (section: XCTUnwrap(sections.first), outwardNormal: Vector(0.099503719021, 0.99503719021, 0)),
-        (section: XCTUnwrap(sections.last), outwardNormal: Vector(0, -1, 0)),
+    let firstSection = try XCTUnwrap(sections.first)
+    let firstNextSection = try XCTUnwrap(sections.first(where: { $0 != firstSection }))
+    let lastSection = try XCTUnwrap(sections.last)
+    let lastPreviousSection = try XCTUnwrap(sections.last(where: { $0 != lastSection }))
+    let capSpecs = [
+        (
+            section: firstSection,
+            outwardNormal: (firstSection.bounds.center - firstNextSection.bounds.center).normalized()
+        ),
+        (
+            section: lastSection,
+            outwardNormal: (lastSection.bounds.center - lastPreviousSection.bounds.center).normalized()
+        ),
     ]
     for (section, outwardNormal) in capSpecs {
         let expectedPolygons = Mesh.fill(section, faces: .front).polygons
@@ -143,6 +159,43 @@ private func assertCapsMatchFilledSections(
             file: file,
             line: line
         )
+    }
+}
+
+private func assertSidePolygonsFaceOutward(
+    of mesh: Mesh,
+    shape: Path,
+    along: Path,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) {
+    let contours = shape.extrusionContours(along: along)
+    guard let firstContour = contours.first,
+          let lastContour = contours.last
+    else {
+        XCTFail("Expected extrusion contours", file: file, line: line)
+        return
+    }
+    let filledPolygons = Mesh.fill(firstContour, faces: .front).polygons
+    let offset = (lastContour.bounds.center - firstContour.bounds.center) / 2
+    let capNormals = [firstContour.faceNormal, lastContour.faceNormal]
+    for polygon in mesh.polygons where !capNormals.contains(where: {
+        abs($0.dot(polygon.plane.normal)) > 0.5
+    }) {
+        let midpoint = polygon.vertices.reduce(Vector.zero) { $0 + $1.position } / Double(polygon.vertices.count)
+        let projectedMidpoint = midpoint - offset
+        let normal = polygon.plane.normal.normalized()
+        let normalSideIsFilled = filledPolygons.contains {
+            $0.intersects(projectedMidpoint + normal * 1e-4)
+        }
+        let backSideIsFilled = filledPolygons.contains {
+            $0.intersects(projectedMidpoint - normal * 1e-4)
+        }
+        guard normalSideIsFilled != backSideIsFilled else {
+            continue
+        }
+        XCTAssertFalse(normalSideIsFilled, file: file, line: line)
+        XCTAssertTrue(backSideIsFilled, file: file, line: line)
     }
 }
 

@@ -45,6 +45,62 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testExtrudedOutsetComicSans3HasValidCaps() throws {
+        #if os(macOS)
+        let program = """
+        detail 64
+        font "comic sans ms"
+        extrude inset (text "3") -0.01
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        let font = CTFontCreateWithName("comic sans ms" as CFString, 1, nil)
+        let shape = try XCTUnwrap(Path.text("3", font: font, detail: 8).first)
+        let expected = Mesh.extrude(shape.inset(by: -0.01))
+
+        XCTAssertEqual(mesh.polygons.count, expected.polygons.count)
+        XCTAssertFalse(mesh.polygons.containsIntersections)
+        XCTAssertTrue(mesh.hasConsistentCapDirections)
+        let internalCapPolygons = mesh.polygons.filter { polygon in
+            abs(polygon.plane.normal.z) > 0.5 && polygon.vertices.contains {
+                let z = $0.position.z
+                return abs(z - mesh.bounds.min.z) > epsilon && abs(z - mesh.bounds.max.z) > epsilon
+            }
+        }
+        XCTAssertTrue(internalCapPolygons.isEmpty)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        #endif
+    }
+
+    func testExtrudedOutsetComicSansDPreservesHole() throws {
+        #if os(macOS)
+        let program = """
+        detail 64
+        font "comic sans ms"
+        extrude inset (text "d") -0.03
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        let font = CTFontCreateWithName("comic sans ms" as CFString, 1, nil)
+        let shape = try XCTUnwrap(Path.text("d", font: font, detail: 8).first)
+        let filledArea = Mesh.fill(shape.inset(by: -0.03)).surfaceArea / 2
+
+        XCTAssertEqual(mesh.endCapArea(at: mesh.bounds.min.z), filledArea, accuracy: epsilon)
+        XCTAssertEqual(mesh.endCapArea(at: mesh.bounds.max.z), filledArea, accuracy: epsilon)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.isConsistentlyWound)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        #endif
+    }
+
     func testExtrusion() throws {
         let program = "extrude text \"hello\""
         let delegate = TestDelegate()
@@ -53,6 +109,77 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 129)
+        #endif
+    }
+
+    func testInsetExtrudedNumber8() throws {
+        let program = "inset (extrude text \"8\") 0.03"
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        #endif
+    }
+
+    func testInsetExtrudedNumber8PastStrokeWidthIsEmpty() throws {
+        let program = "inset (extrude text \"8\") 0.06"
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertTrue(mesh.isEmpty)
+        #endif
+    }
+
+    func testInsetExtrudedTextDoesNotDisappear() throws {
+        let program = "inset (extrude text \"Hello\") 0.01"
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        XCTAssertTrue(mesh.polygons.areWatertight, "hole edges: \(mesh.polygons.holeEdges.count)")
+        #endif
+    }
+
+    func testInsetFilledTextDoesNotDisappear() throws {
+        let program = "inset (fill text \"txt\") 0.01"
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThan(mesh.polygons.surfaceArea, 0)
+        #endif
+    }
+
+    func testInsetFilledTextPreservesCharacterOffsets() throws {
+        let program = "inset (fill text \"Hello\") 0.04"
+        let originalScene = try evaluate(parse("fill text \"Hello\""), delegate: TestDelegate())
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        #if canImport(CoreText)
+        XCTAssertEqual(originalScene.children.count, 1)
+        XCTAssertEqual(scene.children.count, 1)
+        let originalGeometry = try XCTUnwrap(originalScene.children.first)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(originalGeometry.build { true })
+        XCTAssertTrue(geometry.build { true })
+        let original = try XCTUnwrap(originalGeometry.mesh)
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThan(mesh.bounds.size.x, original.bounds.size.x * 0.5)
         #endif
     }
 
@@ -345,5 +472,70 @@ final class RegressionTests: XCTestCase {
                 """)
             }
         }
+    }
+}
+
+private extension Mesh {
+    var hasConsistentCapDirections: Bool {
+        let capPolygons = polygons.filter {
+            $0.endCapZ(in: bounds) != nil
+        }
+        let capsByZ = Dictionary(grouping: capPolygons) {
+            $0.endCapZ(in: bounds) == bounds.min.z
+        }
+        return capsByZ.values.allSatisfy { polygons in
+            guard let normal = polygons.first?.plane.normal.z.sign else {
+                return true
+            }
+            return polygons.allSatisfy {
+                $0.plane.normal.z.sign == normal
+            }
+        }
+    }
+
+    func endCapArea(at z: Double) -> Double {
+        polygons.filter {
+            $0.vertices.allSatisfy { abs($0.position.z - z) < epsilon }
+        }.reduce(0) {
+            $0 + $1.area
+        }
+    }
+}
+
+private extension Collection<Euclid.Polygon> {
+    var containsIntersections: Bool {
+        let polygons = Array(self)
+        for i in polygons.indices {
+            for j in polygons.indices.dropFirst(i + 1) {
+                if polygons[i].hasInteriorIntersection(with: polygons[j]) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+}
+
+private extension Euclid.Polygon {
+    func hasInteriorIntersection(with other: Euclid.Polygon) -> Bool {
+        let sharedVertices = Set(vertices.map(\.position)).intersection(other.vertices.map(\.position))
+        if sharedVertices.count >= 2 {
+            return false
+        }
+        return vertices.contains {
+            !sharedVertices.contains($0.position) && other.intersects($0.position)
+        } || other.vertices.contains {
+            !sharedVertices.contains($0.position) && intersects($0.position)
+        }
+    }
+
+    func endCapZ(in bounds: Bounds) -> Double? {
+        if vertices.allSatisfy({ abs($0.position.z - bounds.min.z) < epsilon }) {
+            return bounds.min.z
+        }
+        if vertices.allSatisfy({ abs($0.position.z - bounds.max.z) < epsilon }) {
+            return bounds.max.z
+        }
+        return nil
     }
 }
