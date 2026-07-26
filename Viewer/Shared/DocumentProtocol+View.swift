@@ -485,7 +485,7 @@ extension DocumentProtocol {
 extension Geometry {
     var isSelectable: Bool {
         switch type {
-        case .cone, .cylinder, .sphere, .cube, .mesh,
+        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path:
@@ -499,9 +499,8 @@ extension Geometry {
         switch type {
         case .group:
             true
-        case .cone, .cylinder, .sphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill,
-             .path, .camera, .light:
+        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .path, .camera, .light:
             false
         case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
             childDebug

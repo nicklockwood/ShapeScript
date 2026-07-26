@@ -69,11 +69,16 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(sphere.bounds.size, expected, accuracy: epsilon)
     }
 
+    func testIcospherePrimitiveBounds() {
+        XCTAssertEqual(GeometryType.icosphere(subdivisions: 0).bounds.size, Vector(size: 1))
+    }
+
     func testPrimitiveGenerationCanBeCancelled() {
         let context = EvaluationContext(source: "", delegate: nil)
         for type in [
             GeometryType.cone(segments: 256),
             .cylinder(segments: 256),
+            .icosphere(subdivisions: 6),
             .sphere(segments: 256),
         ] {
             let shape = Geometry(type: type, in: context)

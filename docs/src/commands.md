@@ -67,7 +67,7 @@ The `rotate`, `translate` and `scale` commands are useful for procedurally gener
 
 ## Primitives
 
-The `cube`, `sphere`, `cone` and `cylinder` commands are used to generate simple 3D shapes that can be composed into more complex forms. They are documented in the [primitives](primitives.md) section.
+The `cube`, `sphere`, `icosphere`, `cone` and `cylinder` commands are used to generate simple 3D shapes that can be composed into more complex forms. They are documented in the [primitives](primitives.md) section.
 
 ## Paths
 

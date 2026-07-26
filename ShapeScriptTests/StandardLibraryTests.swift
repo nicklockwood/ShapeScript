@@ -11,6 +11,46 @@
 import XCTest
 
 final class StandardLibraryTests: XCTestCase {
+    // MARK: Primitives
+
+    func testIcospherePrimitive() throws {
+        let program = try parse("icosphere")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        guard case let .icosphere(subdivisions) = geometry.type else {
+            return XCTFail("Expected icosphere geometry, got \(geometry.type)")
+        }
+        XCTAssertEqual(subdivisions, 2)
+        _ = geometry.build { true }
+        XCTAssertEqual(geometry.mesh?.polygons.count, Mesh.icosphere(wrapMode: .none).polygons.count)
+    }
+
+    func testIcospherePrimitiveHasTextureCoordinates() throws {
+        let program = try parse("icosphere")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+
+        XCTAssertTrue(geometry.build { true })
+        XCTAssertEqual(geometry.mesh?.polygons.count, Mesh.icosphere().polygons.count)
+        XCTAssertEqual(geometry.mesh?.polygons.hasTexcoords, true)
+    }
+
+    func testIcospherePrimitiveUsesDetail() throws {
+        let expectedSubdivisions = [8: 1, 16: 2, 32: 3, 64: 4]
+        for (detail, expected) in expectedSubdivisions {
+            let program = try parse("detail \(detail)\nicosphere")
+            let context = EvaluationContext(source: program.source, delegate: nil)
+            XCTAssertNoThrow(try program.evaluate(in: context))
+            let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+            guard case let .icosphere(subdivisions) = geometry.type else {
+                return XCTFail("Expected icosphere geometry, got \(geometry.type)")
+            }
+            XCTAssertEqual(subdivisions, expected)
+        }
+    }
+
     // MARK: Color
 
     func testColorInRoot() throws {

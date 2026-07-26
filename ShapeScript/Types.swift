@@ -683,7 +683,7 @@ extension Value {
             switch geometry.type {
             case let .path(path):
                 return .path(path.transformed(by: geometry.transform))
-            case .cone, .cylinder, .sphere, .cube, .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+            case .cone, .cylinder, .icosphere, .sphere, .cube, .extrude, .lathe, .loft, .fill, .hull, .minkowski,
                  .union, .difference, .intersection, .xor, .stencil, .group, .mesh, .camera, .light:
                 return nil
             }

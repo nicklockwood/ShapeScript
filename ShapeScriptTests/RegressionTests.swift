@@ -468,6 +468,28 @@ final class RegressionTests: XCTestCase {
         XCTAssertNil(geometry.mesh)
     }
 
+    func testNegativeInsetScaledIcosphereRewritesScale() throws {
+        let distance = -0.1
+        let size = 0.8
+        let subdivisions = 1
+        let scene = try evaluate(
+            parse("detail 8\ninset icosphere { size \(size) } \(distance)"),
+            delegate: TestDelegate()
+        )
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .icosphere = geometry.type else {
+            return XCTFail("Expected icosphere geometry, got \(geometry.type)")
+        }
+        let apothem = Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none).polygons.reduce(0.5) {
+            Swift.min($0, abs($1.plane.w))
+        }
+        let expectedScale = size * (1 - distance / (apothem * size))
+
+        XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
     func testNegativeInsetCylinderMatchesMeshInsetBounds() throws {
         try assertInsetPrimitiveMatchesMeshBounds("cylinder { size 0.8 }", by: -0.1, prefix: "detail 8")
     }
@@ -522,6 +544,24 @@ final class RegressionTests: XCTestCase {
         ] as Vector
 
         XCTAssertEqual(geometry.transform.scale, expectedScale, accuracy: epsilon)
+        XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
+        XCTAssertNil(geometry.mesh)
+    }
+
+    func testInsetIcosphereRewritesScale() throws {
+        let distance = 0.1
+        let subdivisions = 1
+        let scene = try evaluate(parse("detail 8\ninset icosphere \(distance)"), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case .icosphere = geometry.type else {
+            return XCTFail("Expected icosphere geometry, got \(geometry.type)")
+        }
+        let apothem = Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none).polygons.reduce(0.5) {
+            Swift.min($0, abs($1.plane.w))
+        }
+        let expectedScale = 1 - distance / apothem
+
+        XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
         XCTAssertNil(geometry.mesh)
     }

@@ -161,6 +161,10 @@ extension Symbols {
         "cylinder": .block(.shape) { context in
             .mesh(Geometry(type: .cylinder(segments: context.state.detail), in: context))
         },
+        "icosphere": .block(.shape) { context in
+            let subdivisions = Int(log2(Double(Swift.max(4, context.state.detail))).rounded()) - 2
+            return .mesh(Geometry(type: .icosphere(subdivisions: subdivisions), in: context))
+        },
         "sphere": .block(.shape) { context in
             .mesh(Geometry(type: .sphere(segments: context.state.detail), in: context))
         },

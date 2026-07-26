@@ -67,6 +67,7 @@ public enum GeometryType: Hashable, Sendable {
     // primitives
     case cone(segments: Int)
     case cylinder(segments: Int)
+    case icosphere(subdivisions: Int)
     case sphere(segments: Int)
     case cube
     // builders
@@ -97,7 +98,7 @@ public extension GeometryType {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
             true
-        case .cone, .cylinder, .sphere, .cube:
+        case .cone, .cylinder, .icosphere, .sphere, .cube:
             false
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
@@ -128,6 +129,8 @@ public extension GeometryType {
                 min: .init(bounds.min.x, -0.5, bounds.min.y),
                 max: .init(bounds.max.x, 0.5, bounds.max.y)
             )
+        case .icosphere:
+            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
         case let .extrude(paths, .default):
             return paths.reduce(into: .empty) { bounds, path in
                 let offset = path.faceNormal / 2
@@ -155,7 +158,7 @@ extension GeometryType {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             !paths.isEmpty
-        case .cone, .cylinder, .sphere, .cube, .loft, .path, .group, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .loft, .path, .group, .camera, .light:
             true
         case .mesh, .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
             false
@@ -192,6 +195,10 @@ extension GeometryType {
                 .pointPositions
             return points.translated(by: [0, -0.5, 0])
                 + points.translated(by: [0, 0.5, 0])
+        case let .icosphere(subdivisions):
+            return Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none).polygons.flatMap { polygon in
+                polygon.vertices.map(\.position)
+            }
         case let .sphere(segments):
             let stacks = max(2, segments / 2)
             return GeometryType

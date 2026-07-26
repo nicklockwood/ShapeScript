@@ -16,6 +16,7 @@ ShapeScript Help
     - [Primitives](primitives.md)
         - [Cube](primitives.md#cube)
         - [Sphere](primitives.md#sphere)
+        - [Icosphere](primitives.md#icosphere)
         - [Cylinder](primitives.md#cylinder)
         - [Cone](primitives.md#cone)
     - [Options](options.md)

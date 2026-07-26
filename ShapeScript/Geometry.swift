@@ -76,7 +76,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             false
         case .loft, .union, .xor, .extrude, .fill, .hull:
             mesh == nil
-        case .cone, .cylinder, .sphere, .cube, .path, .mesh, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .path, .mesh, .camera, .light:
             false // These don't have children
         }
     }
@@ -274,7 +274,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             if debug {
                 children.forEach { $0.debug = true }
             }
-        case .cone, .cylinder, .sphere, .cube, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .camera, .light:
             break
         }
 
@@ -333,7 +333,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             self._overestimatedBounds = children.reduce(.empty) {
                 $0.minkowskiSum(with: $1.overestimatedBounds)
             }
-        case .cone, .cylinder, .sphere, .cube, .path:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .path:
             self._overestimatedBounds = type.bounds
         case .camera, .light:
             self._overestimatedBounds = .empty
@@ -463,6 +463,10 @@ public extension Geometry {
             return copy(transform: transform * .scale(insetScale(
                 for: [radialApothem, verticalApothem, radialApothem]
             )))
+        case let .icosphere(subdivisions):
+            let mesh = Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none)
+            let apothem = mesh.polygons.reduce(0.5) { Swift.min($0, abs($1.plane.w)) }
+            return copy(transform: transform * .scale(insetScale(for: .init(size: apothem))))
         case let .cylinder(segments):
             let radialApothem = circularApothem(segments: segments, radius: 0.5)
             return copy(transform: transform * .scale(insetScale(
@@ -841,7 +845,7 @@ private extension Geometry {
         case .mesh:
             mesh = children.merged(callback) // TODO: not really sure what to do here
         case .group, .path,
-             .cone, .cylinder, .sphere, .cube,
+             .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
@@ -883,6 +887,8 @@ private extension Geometry {
             mesh = .cone(slices: segments, isCancelled: isCancelled)
         case let .cylinder(segments):
             mesh = .cylinder(slices: segments, isCancelled: isCancelled)
+        case let .icosphere(subdivisions):
+            mesh = .icosphere(subdivisions: subdivisions, isCancelled: isCancelled)
         case let .sphere(segments):
             mesh = .sphere(slices: segments, isCancelled: isCancelled)
         case .cube:
@@ -1261,7 +1267,7 @@ public extension Geometry {
         switch type {
         case .camera, .light, .path:
             false
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .group, .mesh:
@@ -1277,7 +1283,7 @@ public extension Geometry {
             children.reduce(0) { $0 + $1.objectCount }
         case .camera, .light:
             0
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
@@ -1289,7 +1295,7 @@ public extension Geometry {
     /// - Note: only child meshes or groups are counted
     var childCount: Int {
         switch type {
-        case .cone, .cylinder, .sphere, .cube,
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             0 // TODO: should paths/points/submeshes be treated as children?
@@ -1320,7 +1326,7 @@ public extension Geometry {
     /// Builds and caches the mesh (if required). Already-cached meshes will be re-used if available
     func isWatertight(_ isCancelled: @escaping CancellationHandler) -> Bool {
         switch type {
-        case .cone, .cylinder, .sphere, .cube:
+        case .cone, .cylinder, .icosphere, .sphere, .cube:
             return true
         case .group:
             return children.allSatisfy { $0.isWatertight(isCancelled) }
@@ -1343,7 +1349,7 @@ public extension Geometry {
             return Bounds(children.map {
                 $0.exactBounds(with: $0.transform * transform, callback)
             })
-        case .cone, .cylinder, .sphere, .cube, .path, .extrude, .lathe:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .path, .extrude, .lathe:
             assert(children.isEmpty)
             if transform.rotation == .identity {
                 return type.bounds.transformed(by: transform)

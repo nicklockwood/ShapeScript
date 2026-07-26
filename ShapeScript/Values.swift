@@ -201,6 +201,7 @@ extension Value {
             case .path: "path"
             case .cone: "cone"
             case .cylinder: "cylinder"
+            case .icosphere: "icosphere"
             case .sphere: "sphere"
             case .cube: "cube"
             case .group, .extrude, .lathe, .loft, .fill, .hull, .minkowski, .union, .difference,

@@ -241,6 +241,7 @@ extension GeometryType: Loggable {
         case .group: "group"
         case .cone: "cone"
         case .cylinder: "cylinder"
+        case .icosphere: "icosphere"
         case .sphere: "sphere"
         case .cube: "cube"
         case .extrude: "extrusion"
