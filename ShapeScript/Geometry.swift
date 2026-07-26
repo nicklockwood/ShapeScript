@@ -422,9 +422,14 @@ public extension Geometry {
 
         func insetMesh() -> Geometry {
             _ = build { true }
-            var mesh = mesh?.inset(by: distance) ?? .empty
+            let sourceMesh = mesh ?? .empty
+            var mesh = sourceMesh.inset(by: distance)
             if material != .default {
-                mesh = mesh.withoutVertexColors().withMaterial(material)
+                if sourceMesh.materials.contains(where: { $0 != nil }) {
+                    mesh = mesh.replacing(nil, with: material)
+                } else if !sourceMesh.hasVertexColors || sourceMesh.uniformVertexColor == .white {
+                    mesh = mesh.withoutVertexColors().withMaterial(material)
+                }
             }
             return copy(type: .mesh(mesh))
         }

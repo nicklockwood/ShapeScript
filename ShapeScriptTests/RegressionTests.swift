@@ -699,6 +699,30 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testInsetMeshPreservesMixedSourceMaterials() throws {
+        let program = """
+        inset (mesh union {
+            cube {
+                color blue
+                size 0.8
+            }
+            cube {
+                color red
+                position 2
+            }
+        }) -0.1
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        XCTAssertEqual(scene.children.count, 1)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertEqual(Set(mesh.materials.compactMap { $0 as? Material }), [
+            Material(color: .blue),
+            Material(color: .red),
+        ])
+    }
+
     func testInsetExtrudedTextAlongPathPreservesEndCapMaterial() throws {
         let program = """
         inset (extrude {
