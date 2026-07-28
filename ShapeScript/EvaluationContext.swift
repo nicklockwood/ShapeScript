@@ -206,7 +206,7 @@ final class EvaluationContext {
 }
 
 extension EvaluationContext {
-    static let altNames = ["colour": "color", "centre": "center", "grey": "gray"]
+    static let altNames = ["colour": "color", "centre": "center", "grey": "gray", "mitreLimit": "miterLimit"]
 
     func symbol(for name: String) -> Symbol? {
         if let symbol = userSymbols[name] ?? symbols[name] ?? Symbols.global[name] {

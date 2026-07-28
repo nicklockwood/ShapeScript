@@ -230,6 +230,34 @@ final class RegressionTests: XCTestCase {
         XCTAssertNil(geometry.mesh)
     }
 
+    func testExtrudePassesMiterLimitToMeshGeneration() throws {
+        let program = """
+        extrude {
+            miterLimit 1
+            square { size 0.2 }
+            along path {
+                point 0
+                point 1
+                point 1 1
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        let expected = Mesh.extrude(
+            .square().scaled(by: 0.2),
+            along: Path([
+                .point(.zero),
+                .point(.unitX),
+                .point([1, 1]),
+            ]),
+            miterLimit: 1
+        )
+        XCTAssertEqual(mesh.vertexPositionSignature, expected.vertexPositionSignature)
+    }
+
     func testInsetGroupRewritesNestedFillPrimitive() throws {
         let scene = try evaluate(parse("inset (group { fill square }) 0.1"), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)

@@ -160,7 +160,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
                 break
             case (1, 0):
                 (paths, material) = paths.vertexColorsToMaterial(material: material)
-                type = .extrude(paths, options)
+                type = .extrude(paths, .default)
             case (1, 1):
                 var pair = (paths + options.along)
                 (pair, material) = pair.vertexColorsToMaterial(material: material)
@@ -496,7 +496,7 @@ public extension Geometry {
             return copy(type: .path(path.inset(by: distance)))
         case let .fill(paths) where paths.count == 1:
             return copy(type: .fill([paths[0].inset(by: distance)]))
-        case let .extrude(paths, .default) where paths.count == 1:
+        case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
                 _ = build { true }
                 if mesh?.inset(by: distance).isEmpty == true {
@@ -526,6 +526,7 @@ public extension Geometry {
                     along: along,
                     twist: options.twist,
                     align: options.align,
+                    miterLimit: options.miterLimit,
                     material: material
                 )
                 return copy(type: .mesh(mesh))
@@ -893,7 +894,7 @@ private extension Geometry {
             mesh = .sphere(slices: segments, isCancelled: isCancelled)
         case .cube:
             mesh = .cube()
-        case let .extrude(paths, .default) where paths.count == 1:
+        case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             mesh = .extrude(paths[0], isCancelled: isCancelled)
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
             mesh = .extrude(
@@ -901,6 +902,7 @@ private extension Geometry {
                 along: options.along[0].materialToVertexColors(material: material).predividedBy(material),
                 twist: options.twist,
                 align: options.align,
+                miterLimit: options.miterLimit,
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case let .lathe(paths, segments: segments) where paths.count == 1:
@@ -1511,7 +1513,8 @@ private struct ExtrudeCapSpec {
         let sections = paths[0].extrusionContours(
             along: options.along[0],
             twist: options.twist,
-            align: options.align
+            align: options.align,
+            miterLimit: options.miterLimit
         )
         guard sections.count > 1,
               let first = sections.first,

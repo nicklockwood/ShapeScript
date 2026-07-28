@@ -1163,7 +1163,7 @@ extension Statement {
             var name = identifier.name
             if let type = context.options[name] ?? {
                 if let altName = EvaluationContext.altNames[name],
-                   let type = context.options["color"]
+                   let type = context.options[altName]
                 {
                     name = altName
                     return type
@@ -1401,9 +1401,12 @@ extension Expression {
         case let .tuple(expressions):
             guard let identifier = expressions.first,
                   case let .identifier(name) = identifier.type,
-                  let type = context.options[name],
                   expressions.count > 1
             else {
+                return try .tuple(evaluateParameters(expressions, in: context).map(\.value))
+            }
+            let optionName = EvaluationContext.altNames[name] ?? name
+            guard let type = context.options[optionName] else {
                 return try .tuple(evaluateParameters(expressions, in: context).map(\.value))
             }
             let params = Array(expressions.dropFirst())
@@ -1411,8 +1414,8 @@ extension Expression {
                 type: .tuple(params),
                 range: params[0].range.lowerBound ..< params.last!.range.upperBound
             )
-            let value = try param.evaluate(as: type, for: name, in: context)
-            context.define(name, as: .option(value))
+            let value = try param.evaluate(as: type, for: optionName, in: context)
+            context.define(optionName, as: .option(value))
             return .void
         case let .prefix(op, expression):
             let value = try expression.evaluate(as: .numberOrVector, for: op.rawValue, in: context)

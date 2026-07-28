@@ -52,13 +52,20 @@ public struct ExtrudeOptions: Hashable, Sendable {
     public var along: [Path]
     public var twist: Angle
     public var align: Path.Alignment
+    public var miterLimit: MiterLimit
 
-    public static let `default`: Self = .init(along: [], twist: .zero, align: nil)
+    public static let `default`: Self = .init(
+        along: [],
+        twist: .zero,
+        align: nil,
+        miterLimit: nil
+    )
 
-    init(along: [Path], twist: Angle, align: Path.Alignment?) {
+    init(along: [Path], twist: Angle, align: Path.Alignment?, miterLimit: MiterLimit?) {
         self.along = along
         self.twist = twist
         self.align = (along.isEmpty ? nil : align) ?? .default
+        self.miterLimit = miterLimit ?? .infinity
     }
 }
 
@@ -131,7 +138,7 @@ public extension GeometryType {
             )
         case .icosphere:
             return .init(min: .init(size: -0.5), max: .init(size: 0.5))
-        case let .extrude(paths, .default):
+        case let .extrude(paths, options) where options.along.isEmpty:
             return paths.reduce(into: .empty) { bounds, path in
                 let offset = path.faceNormal / 2
                 let pathBounds = path.bounds
@@ -204,7 +211,7 @@ extension GeometryType {
             return GeometryType
                 .lathe([.arc(segments: stacks)], segments: stacks)
                 .representativePoints
-        case let .extrude(paths, .default):
+        case let .extrude(paths, options) where options.along.isEmpty:
             return paths.reduce(into: []) { vertices, path in
                 let offset = path.faceNormal / 2
                 let points = path.pointPositions
@@ -216,7 +223,8 @@ extension GeometryType {
                     path.extrusionContours(
                         along: along,
                         twist: options.twist,
-                        align: options.align
+                        align: options.align,
+                        miterLimit: options.miterLimit
                     ).flatMap(\.pointPositions)
                 }
             }

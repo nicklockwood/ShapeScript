@@ -272,6 +272,21 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
+    func testStraightExtrusionBoundsIgnoreMiterLimit() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let shape = Geometry(type: GeometryType.extrude([
+            .square(),
+        ], .init(
+            along: [],
+            twist: .zero,
+            align: nil,
+            miterLimit: 1
+        )), in: context)
+        XCTAssertEqual(shape.type, .extrude([.square()], .default))
+        XCTAssertEqual(shape.overestimatedBounds.size, [1, 1, 1])
+        XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
+    }
+
     func testTransformedMultipleExtrudedPathBoundsWithTwist() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
@@ -282,11 +297,42 @@ final class GeometryTests: XCTestCase {
         ], .init(
             along: [.line([0, 0, -0.5], [0, 0, 0.5])],
             twist: .halfPi,
-            align: nil
+            align: nil,
+            miterLimit: nil
         )), in: context)
         XCTAssertEqual(shape.overestimatedBounds.size, [2, 2, 1])
         XCTAssertEqual(shape.overestimatedBounds.center, [1.5, 1.5, 3])
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
+    }
+
+    func testExtrusionBoundsRespectMiterLimit() {
+        let profile = Path.square(size: 0.2)
+        let along = Path([
+            .point(0, 0, 0),
+            .point(10, 0, 0),
+            .point(0, 1, 0),
+        ])
+        let limitedOptions = ExtrudeOptions(
+            along: [along],
+            twist: .zero,
+            align: nil,
+            miterLimit: 1
+        )
+        let unlimitedBounds = GeometryType.extrude([profile], .init(
+            along: [along],
+            twist: .zero,
+            align: nil,
+            miterLimit: nil
+        )).bounds
+        let limitedBounds = GeometryType.extrude([profile], limitedOptions).bounds
+        let meshBounds = Mesh.extrude(
+            profile,
+            along: along,
+            miterLimit: limitedOptions.miterLimit
+        ).bounds
+
+        XCTAssertNotEqual(limitedBounds, unlimitedBounds)
+        XCTAssertEqual(limitedBounds, meshBounds)
     }
 
     func testDetailedExtrusionBuildTiming() throws {
@@ -314,7 +360,12 @@ final class GeometryTests: XCTestCase {
             .point(1.587, 1.011, 0),
         ], detail: 99)
         let geometry = Geometry(
-            type: .extrude([path], .init(along: [along], twist: .zero, align: nil)),
+            type: .extrude([path], .init(
+                along: [along],
+                twist: .zero,
+                align: nil,
+                miterLimit: nil
+            )),
             in: EvaluationContext(source: "", delegate: nil)
         )
 
@@ -334,6 +385,23 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertLessThan(build.duration, 1.5)
+    }
+
+    func testStraightExtrusionBuildIgnoresMiterLimit() throws {
+        let geometry = Geometry(
+            type: .extrude([.square()], .init(
+                along: [],
+                twist: .zero,
+                align: nil,
+                miterLimit: 1
+            )),
+            in: EvaluationContext(source: "", delegate: nil)
+        )
+
+        XCTAssertTrue(geometry.build { true })
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertEqual(mesh.bounds.size, [1, 1, 1])
     }
 
     func testTransformedMultipleLathedPathBounds() {

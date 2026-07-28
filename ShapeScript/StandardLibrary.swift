@@ -180,8 +180,10 @@ extension Symbols {
             "along": .list(.path),
             "twist": .halfturns,
             "axisAligned": .boolean,
+            "miterLimit": .number,
         ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
+            let miterLimit = (context.value(for: "miterLimit")?.doubleValue).map(MiterLimit.ratio)
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
             } ?? .default
@@ -190,7 +192,8 @@ extension Symbols {
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
                     along: along.map { $0.withDetail(context.state.detail, forTwist: twist) },
                     twist: twist,
-                    align: align
+                    align: align,
+                    miterLimit: miterLimit
                 )), in: context))
             }
             if twist == .zero {
@@ -208,7 +211,8 @@ extension Symbols {
                 return .mesh(Geometry(type: .extrude([$0], .init(
                     along: [along],
                     twist: twist,
-                    align: align
+                    align: align,
+                    miterLimit: miterLimit
                 )), in: context))
             })
         },

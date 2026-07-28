@@ -2086,6 +2086,57 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
     }
 
+    func testInvokeExtrudeWithMiterLimit() throws {
+        let program = """
+        extrude {
+            miterLimit 1
+            square
+            along path {
+                point 0
+                point 1
+                point 1 1
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        guard case let .extrude(paths, options) = scene.children.first?.type else {
+            return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
+        }
+        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(options.miterLimit, 1)
+    }
+
+    func testInvokeExtrudeWithMitreLimit() throws {
+        let program = """
+        extrude {
+            mitreLimit 1
+            square
+            along path {
+                point 0
+                point 1
+                point 1 1
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        guard case let .extrude(paths, options) = scene.children.first?.type else {
+            return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
+        }
+        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(options.miterLimit, 1)
+    }
+
+    func testInvokeStraightExtrudeWithMiterLimitIgnoresMiterLimit() throws {
+        let program = """
+        extrude {
+            miterLimit 1
+            square
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+    }
+
     func testInvokeExtrudeWithMultipleArguments() throws {
         let program = "extrude square circle"
         let scene = try evaluate(parse(program), delegate: nil)
