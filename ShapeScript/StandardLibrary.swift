@@ -107,6 +107,7 @@ extension Symbols {
         "cyan": .constant(.color(.cyan)),
         "magenta": .constant(.color(.magenta)),
         "orange": .constant(.color(.orange)),
+        "purple": .constant(.color(.purple)),
     ]
 
     static let color: Symbols = colors + [

@@ -154,6 +154,7 @@ green     | 0   1   0   | #00FF00     | #0F0
 cyan      | 0   1   1   | #00FFFF     | #0FF
 red       | 1   0   0   | #FF0000     | #F00
 magenta   | 1   0   1   | #FF00FF     | #F0F
+purple    | 0.5 0   0.5 | #800080     | #808
 yellow    | 1   1   0   | #FFFF00     | #FF0
 white     | 1   1   1   | #FFFFFF     | #FFF
 orange    | 1   0.5 0   | #FF7F00     | -
