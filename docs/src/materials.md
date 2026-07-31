@@ -7,12 +7,11 @@ Materials in ShapeScript allow you to alter the [color](#color) and [texture](#t
 
 ## Color
 
-You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: Numeric RGB, hexadecimal or predefined:
-
-The following commands all produce a red cube:
+You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: RGB tuples, block syntax, hexadecimal, or predefined constants. The following commands all produce a red cube:
 
 ```swift
 cube { color 1 0 0 }
+cube { color { red 1 } }
 cube { color #FF0000 }
 cube { color #F00 }
 cube { color red }
@@ -72,6 +71,21 @@ color 1 0.5
 color 1 1 1 0.5
 ```
 
+### Color Blocks
+
+You can also specify color components more explicitly by using [block syntax](blocks.md):
+
+```swift
+color {
+    red 0.25
+    green 0.5
+    blue 0.75
+    alpha 0.8
+}
+```
+
+As with numeric RGB colors, the `alpha` value is optional and defaults to 1; All other components default to 0.
+
 ### Hexadecimal Colors
 
 Instead of numeric values, you can use web-style hex codes to specify colors. These consist of a hash character (`#`) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255. Hex color codes are a popular convention and are supported by many graphics tools. Here are some examples:
@@ -94,7 +108,7 @@ As with [web colors](https://en.wikipedia.org/wiki/Web_colors), you can use a th
 color #F00 // equivalent to #FF0000
 ```
 
-And you can also use a fourth digit to specify alpha:
+And you can add a fourth digit to specify alpha:
 
 ```swift
 color #F006 // equivalent to #FF000066
@@ -149,9 +163,9 @@ color #ff0 0.5 // 50% transparent yellow
 
 ## Texture
 
-A texture is an image that is wrapped around a 3D shape, either as decoration, or to give the appearance of more surface detail than is actually there. Contrary to what the name implies, textures do not actually affect the smoothness of surface to which they are applied - they only affect its color.
+A texture is an image that is wrapped around a 3D shape, either as a decorative decal, or to give the appearance of more surface detail than is actually there. Contrary to what the name implies, the texture does not actually affect the smoothness of surface to which it is applied - it only alters the color.
 
-You can set the texture for your shapes using the `texture` command:
+You can set a texture for your shapes using the `texture` command:
 
 ```swift
 sphere {
@@ -345,7 +359,7 @@ As with the [metallicity](#metallicity) property, `roughness` is specified in th
 
 ## Material
 
-It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can define a collection of material properties and assign them to a [symbol](symbols.md) by using the `material` command:
+It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can specify a material using [block syntax](blocks.md), and assign it to a [symbol](symbols.md) using `define`:
 
 ```swift
 define redMetal material {

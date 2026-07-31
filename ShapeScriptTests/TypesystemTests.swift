@@ -292,6 +292,13 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("color.red"), .number)
     }
 
+    func testColorPropertyMemberTypes() {
+        XCTAssertEqual(try expressionType("color.red"), .number)
+        XCTAssertEqual(try expressionType("color.green"), .number)
+        XCTAssertEqual(try expressionType("color.blue"), .number)
+        XCTAssertEqual(try expressionType("color.alpha"), .number)
+    }
+
     func testBlockMemberType() {
         XCTAssertEqual(try expressionType("cube.bounds"), .bounds)
     }
@@ -1059,6 +1066,54 @@ final class TypesystemTests: XCTestCase {
 
     func testCastHexStringToColor() throws {
         XCTAssertEqual(try evaluate("\"#f00\"", as: .color), .color(.red))
+    }
+
+    func testCastObjectToColor() {
+        let type = ValueType.color
+        let value = Value.object([
+            "red": .number(0.25),
+            "green": .number(0.5),
+            "blue": .number(0.75),
+            "alpha": .number(0.8),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .color(Color(red: 0.25, green: 0.5, blue: 0.75, alpha: 0.8)))
+    }
+
+    func testCastObjectToColorDefaultsAlpha() {
+        let type = ValueType.color
+        let value = Value.object([
+            "red": .number(0.25),
+            "green": .number(0.5),
+            "blue": .number(0.75),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .color(Color(red: 0.25, green: 0.5, blue: 0.75, alpha: 1)))
+    }
+
+    func testCastObjectToColorDefaultsMissingComponents() {
+        let type = ValueType.color
+        let value = Value.object(["green": .number(0.5)])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .color(Color(red: 0, green: 0.5, blue: 0, alpha: 1)))
+    }
+
+    func testCastObjectToColorCoercesStringComponents() {
+        let type = ValueType.color
+        let value = Value.object([
+            "red": .string("0.25"),
+            "green": .string("0.5"),
+            "blue": .string("0.75"),
+            "alpha": .string("0.8"),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .color(Color(red: 0.25, green: 0.5, blue: 0.75, alpha: 0.8)))
+    }
+
+    func testCastInvalidObjectToColor() {
+        let type = ValueType.color
+        let value = Value.object(["red": .number(0.25), "hue": .number(0.5)])
+        XCTAssertFalse(value.isConvertible(to: type))
     }
 
     func testCastNestedTupleArguments() throws {

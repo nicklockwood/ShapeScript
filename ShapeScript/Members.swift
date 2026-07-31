@@ -24,7 +24,14 @@ extension ValueType {
                 roughness: values["roughness"]?.numberOrTextureValue,
                 glow: values["glow"]?.colorOrTextureValue
             ))
-        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+        case .color:
+            .color(.init(
+                red: values["red"]?.doubleValue ?? 0,
+                green: values["green"]?.doubleValue ?? 0,
+                blue: values["blue"]?.doubleValue ?? 0,
+                alpha: values["alpha"]?.doubleValue ?? 1
+            ))
+        case .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
              .point, .range, .partialRange, .bounds, .union, .tuple, .list, .any:
             nil
@@ -45,7 +52,9 @@ extension ValueType {
                 "roughness": .numberOrTexture,
                 "glow": .colorOrTexture,
             ]
-        case .color, .texture, .boolean, .font, .number, .radians, .halfturns,
+        case .color:
+            ["red": .number, "green": .number, "blue": .number, "alpha": .number]
+        case .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
              .point, .range, .partialRange, .bounds, .union, .tuple, .list:
             // TODO: something better

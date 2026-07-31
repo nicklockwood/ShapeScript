@@ -413,6 +413,54 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1])
     }
 
+    func testColorComponentLookup() {
+        let program = """
+        define foo red
+        print foo.red
+        print foo.green
+        print foo.blue
+        print foo.alpha
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1.0, 0.0, 0.0, 1.0])
+    }
+
+    func testColorMemberwiseInitializerComponentLookup() {
+        let program = """
+        color {
+            red 0.25
+            green 0.5
+            blue 0.75
+            alpha 0.8
+        }
+        print color.red
+        print color.green
+        print color.blue
+        print color.alpha
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.25, 0.5, 0.75, 0.8])
+    }
+
+    func testColorMemberwiseInitializerDefaultsAlpha() {
+        let program = """
+        color {
+            red 0.25
+            green 0.5
+            blue 0.75
+        }
+        print color.red
+        print color.green
+        print color.blue
+        print color.alpha
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.25, 0.5, 0.75, 1.0])
+    }
+
     func testMeshVolumeLookup() throws {
         let program = """
         print cube.volume
