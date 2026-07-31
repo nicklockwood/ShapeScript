@@ -47,20 +47,15 @@ sed -i '' "s/'~> [^\']*'/'~> $NEW_VERSION'/" README.md
 sed -i '' "s/\" ~> [^ \n]*/\" ~> $NEW_VERSION/" README.md
 sed -i '' "s/from: \"[^\"]*\"/from: \"$NEW_VERSION\"/" README.md
 
-# 3. Update version in ShapeScript.podspec.json
-echo "Updating ShapeScript.podspec.json..."
-sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" ShapeScript.podspec.json
-sed -i '' "s/\"tag\": \"[^\"]*\"/\"tag\": \"$NEW_VERSION\"/" ShapeScript.podspec.json
-
-# 4. Update version in Sources/ShapeScript.swift
+# 3. Update version in Sources/ShapeScript.swift
 echo "Updating Sources/ShapeScript.swift..."
 sed -i '' "s/public let version: String = \"[^\"]*\"/public let version: String = \"$NEW_VERSION\"/" ShapeScript/Interpreter.swift
 
-# 5. Update version in ShapeScript.xcodeproj
+# 4. Update version in ShapeScript.xcodeproj
 echo "Updating ShapeScript.xcodeproj..."
 sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $NEW_VERSION/" ShapeScript.xcodeproj/project.pbxproj
 
-# 6. Ensure docs version folder exists
+# 5. Ensure docs version folder exists
 echo "Checking docs version folder..."
 DOCS_VERSION_PATH="docs/$NEW_VERSION"
 if [ -e "$DOCS_VERSION_PATH" ] || [ -L "$DOCS_VERSION_PATH" ]; then

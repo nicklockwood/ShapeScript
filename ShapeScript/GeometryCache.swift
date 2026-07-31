@@ -7,10 +7,7 @@
 //
 
 import Euclid
-
-#if canImport(LRUCache)
 import LRUCache
-#endif
 
 public final class GeometryCache: Sendable {
     private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>

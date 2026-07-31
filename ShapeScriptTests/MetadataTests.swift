@@ -23,9 +23,6 @@ private let whatsNewMacURL = projectDirectory
 private let whatsNewIOSURL = projectDirectory
     .appendingPathComponent("Viewer/iOS/WhatsNew.rtf")
 
-private let podspecURL: URL = projectDirectory
-    .appendingPathComponent("ShapeScript.podspec.json")
-
 private let projectURL: URL = projectDirectory
     .appendingPathComponent("ShapeScript.xcodeproj")
     .appendingPathComponent("project.pbxproj")
@@ -245,18 +242,6 @@ final class MetadataTests: XCTestCase {
         XCTAssertTrue(
             readme.contains("from: \"\(projectVersion)\""),
             "README.md version does not match latest release"
-        )
-    }
-
-    func testLatestVersionInPodspec() throws {
-        let podspec = try String(contentsOf: podspecURL, encoding: .utf8)
-        XCTAssertTrue(
-            podspec.contains("\"version\": \"\(projectVersion)\""),
-            "Podspec version does not match latest release"
-        )
-        XCTAssertTrue(
-            podspec.contains("\"tag\": \"\(projectVersion)\""),
-            "Podspec tag does not match latest release"
         )
     }
 
