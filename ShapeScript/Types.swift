@@ -434,6 +434,51 @@ extension Value {
             }
             return numbers
         }
+        func rotation(fromAxisAngle values: [Value]) throws -> Rotation? {
+            let angleValue: Value
+            let axisValue: Value
+            func strictNumber(_ value: Value) -> Double? {
+                value.type == .number ? value.doubleValue : nil
+            }
+            func isVectorLike(_ value: Value) -> Bool {
+                switch value.type {
+                case .vector, .size, .tuple, .list:
+                    true
+                default:
+                    false
+                }
+            }
+            switch values.count {
+            case 2:
+                switch (isVectorLike(values[0]), isVectorLike(values[1])) {
+                case (false, true):
+                    angleValue = values[0]
+                    axisValue = values[1]
+                case (true, false):
+                    angleValue = values[1]
+                    axisValue = values[0]
+                default:
+                    return nil
+                }
+            case 4:
+                guard let angle = try values[0].as(.halfturns, in: context)?.angleValue,
+                      let x = strictNumber(values[1]),
+                      let y = strictNumber(values[2]),
+                      let z = strictNumber(values[3])
+                else {
+                    return nil
+                }
+                return Rotation(axis: Vector(x, y, z), angle: angle)
+            default:
+                return nil
+            }
+            guard let angle = try angleValue.as(.halfturns, in: context)?.angleValue,
+                  let axis = try axisValue.as(.vector, in: context)?.vectorValue
+            else {
+                return nil
+            }
+            return Rotation(axis: axis, angle: angle)
+        }
         switch (self, type) {
         case let (.pretransformed(value), type):
             return try value.as(type, in: context).map { Value.pretransformed($0) }
@@ -572,6 +617,9 @@ extension Value {
         case let (.tuple(values), .size):
             return numerify(values, range: 1 ... 3).map { .size(Vector(size: $0)) }
         case let (.tuple(values), .rotation):
+            if let rotation = try rotation(fromAxisAngle: values) {
+                return .rotation(rotation)
+            }
             return numerify(values, as: .halfturns, range: 1 ... 3).map {
                 .rotation(Rotation(rollYawPitchInHalfTurns: $0))
             }

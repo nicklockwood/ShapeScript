@@ -2623,6 +2623,142 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Rotation.roll(.pi)])
     }
 
+    func testRotateWithAxisAngle() throws {
+        let program = """
+        cube {
+            orientation 0.5 0 1 0
+            print orientation
+        }
+        """
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotateWithAngleAndVector() throws {
+        let program = """
+        cube {
+            orientation 0.5 (0 1 0)
+            print orientation
+        }
+        """
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotateWithVectorAndAngle() throws {
+        let program = """
+        cube {
+            orientation (0 1 0) 0.5
+            print orientation
+        }
+        """
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotateWithAxisAngleRejectsRadiansInAnglePosition() throws {
+        let program = """
+        cube {
+            orientation pi 1 0 0
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "orientation",
+                index: 0,
+                expected: "angle in half-turns",
+                got: "angle in radians"
+            ))
+            XCTAssertEqual(
+                error?.hint,
+                "The first argument for 'orientation' should be an angle in half-turns, not an angle in radians."
+            )
+        }
+    }
+
+    func testRotateWithAxisAngleRejectsRadiansInAxisPosition() throws {
+        let program = """
+        cube {
+            orientation 1 0 0 pi
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.type, .typeMismatch(
+                for: "orientation",
+                index: 3,
+                expected: "number",
+                got: "angle in radians"
+            ))
+            XCTAssertEqual(
+                error?.hint,
+                "The fourth argument for 'orientation' should be a number, not an angle in radians."
+            )
+        }
+    }
+
+    func testRotateWithAxisAngleRejectsZeroAxis() throws {
+        let program = """
+        cube {
+            orientation 1 0 0 0
+        }
+        """
+        let range = try XCTUnwrap(program.range(of: "0 0 0"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error, RuntimeError(
+                .assertionFailure("Axis vector must be nonzero"), at: range
+            ))
+            XCTAssertEqual(error?.hint, "Axis vector must be nonzero.")
+        }
+    }
+
+    func testRotateCommandWithAxisAngle() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.5 0 1 0
+            cube
+        }
+        foo
+        """)
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, expected)
+    }
+
+    func testRotateCommandWithVectorAndAngle() throws {
+        let program = try parse("""
+        define foo {
+            rotate (0 1 0) 0.5
+            cube
+        }
+        foo
+        """)
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, expected)
+    }
+
+    func testRotateCommandWithAngleAndVector() throws {
+        let program = try parse("""
+        define foo {
+            rotate 0.5 (0 1 0)
+            cube
+        }
+        foo
+        """)
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let geometry = try evaluate(program, delegate: nil).children.first
+        XCTAssertEqual(geometry?.transform.rotation, expected)
+    }
+
     func testRotateWithRadians() throws {
         let program = """
         cube {

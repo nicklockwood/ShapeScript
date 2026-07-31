@@ -35,6 +35,26 @@ Angles of rotation are specified as numbers in the range 0 to 2 (or 0 to -2 if y
 
 While it is relatively simple to use the `orientation` property to specify a rotation around a single axis, it can be awkward to apply a rotation around multiple axes at once due to the fixed order. If you need to do that, you may find it simpler to use the `rotate` command instead (described [below](#relative-transforms)), which can be applied multiple times in any order.
 
+Alternatively, you can specify a rotation using an angle followed by an arbitrary axis. The angle is measured in half-turns, and the axis can be specified either using separate X/Y/Z component values, or with a [vector](literals.md#vectors-and-tuples):
+
+```swift
+cube {
+    orientation 0.5 0 1 0 // rotates the cube 90 degrees around the Y axis
+}
+
+cube {
+    orientation 0.5 (1 1 0) // rotates around a diagonal axis
+}
+```
+
+When using a vector/tuple axis value, the axis and angle can also be written in the opposite order:
+
+```swift
+cube {
+    orientation (0 1 0) 0.5
+}
+```
+
 ## Size
 
 The `size` option scales the shape it is applied to. A size of `2 1 0.5` makes the shape twice as wide, unchanged in height, and half as deep:
@@ -109,6 +129,13 @@ As mentioned in the [orientation](#orientation) section above, an advantage of t
 ```swift
 rotate 0 0 0.25 // pitch 45 degrees
 rotate 0.4 0 0 // roll 80 degrees
+cube
+```
+
+Like `orientation`, the `rotate` command also supports angle-axis formats, which can be useful when you want to rotate the current scope around an arbitrary axis:
+
+```swift
+rotate 0.25 (1 1 0)
 cube
 ```
 

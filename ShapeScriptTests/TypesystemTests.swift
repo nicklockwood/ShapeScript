@@ -1315,6 +1315,88 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), .rotation(.pitch(.halfturns(0.5))))
     }
 
+    func testCastAxisAngleTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([.halfturns(0.5), 0, 1, 0])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastNumberAxisAngleTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0.5, 0, 1, 0])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastAngleAndVectorTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([.halfturns(0.5), .vector(.unitY)])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastVectorAndAngleTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([.vector(.unitY), .halfturns(0.5)])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastAngleAndUnnormalizedVectorTupleToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([.halfturns(0.5), .vector(Vector(0, 2, 0))])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastAxisAngleExpressionToRotation() throws {
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssertEqual(try evaluate("0.5 0 1 0", as: .rotation), expected.map { .rotation($0) })
+    }
+
+    func testCastAngleAndVectorExpressionToRotation() throws {
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssertEqual(try evaluate("0.5 (0 1 0)", as: .rotation), expected.map { .rotation($0) })
+    }
+
+    func testCastVectorAndAngleExpressionToRotation() throws {
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssertEqual(try evaluate("(0 1 0) 0.5", as: .rotation), expected.map { .rotation($0) })
+    }
+
+    func testCastTwoNumberTupleToRotationStillUsesEulerOrder() {
+        let type = ValueType.rotation
+        let value = Value.tuple([1, 0.5])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(Rotation(roll: .pi, yaw: .halfPi)))
+    }
+
+    func testCastHalfturnsInFourPartTupleToRotationIsAcceptedInAnglePosition() {
+        let type = ValueType.rotation
+        let value = Value.tuple([.halfturns(0.5), 0, 1, 0])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastHalfturnsInFourPartTupleToRotationIsRejectedInAxisPosition() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0.5, 0, 1, .halfturns(0.5)])
+        XCTAssertFalse(value.isConvertible(to: type))
+    }
+
+    func testCastAxisAngleWithZeroVectorToRotation() {
+        let type = ValueType.rotation
+        let value = Value.tuple([0.5, 0, 0, 0])
+        XCTAssertFalse(value.isConvertible(to: type))
+    }
+
     func testCastRadiansToRotation() {
         let type = ValueType.rotation
         let value = Value.radians(.pi / 2)

@@ -1648,12 +1648,54 @@ extension Expression {
             )
         case let (.tuple(expressions), type) where
             (ValueType.vector.isSubtype(of: type) ||
-                ValueType.size.isSubtype(of: type) ||
-                ValueType.rotation.isSubtype(of: type)) && expressions.count > 3:
+                ValueType.size.isSubtype(of: type)) && expressions.count > 3:
             throw RuntimeError(
                 .unexpectedArgument(for: name, max: 3),
                 at: expressions[3].range
             )
+        case let (.tuple(expressions), type) where
+            ValueType.rotation.isSubtype(of: type) && expressions.count > 4:
+            throw RuntimeError(
+                .unexpectedArgument(for: name, max: 4),
+                at: expressions[4].range
+            )
+        case let (.tuple(expressions), type) where
+            ValueType.rotation.isSubtype(of: type) && expressions.count == 4:
+            if !values[0].value.isConvertible(to: .halfturns) {
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: 0,
+                    expected: .halfturns,
+                    got: values[0].value.type
+                ), at: expressions[0].range)
+            }
+            if let index = values.dropFirst().firstIndex(where: {
+                $0.value.type != .number
+            }) {
+                throw RuntimeError(.typeMismatch(
+                    for: name,
+                    index: index,
+                    expected: .number,
+                    got: values[index].value.type
+                ), at: expressions[index].range)
+            }
+            let axis = Vector(
+                values[1].value.doubleValue,
+                values[2].value.doubleValue,
+                values[3].value.doubleValue
+            )
+            guard !axis.isZero else {
+                throw RuntimeError(
+                    .assertionFailure("Axis vector must be nonzero"),
+                    at: expressions[1].range.lowerBound ..< expressions[3].range.upperBound
+                )
+            }
+            throw RuntimeError(.typeMismatch(
+                for: name,
+                index: index,
+                expected: type,
+                got: value.type
+            ), at: range)
         case let (.tuple(expressions), type) where ValueType.rotation.isSubtype(of: type):
             if let index = values.firstIndex(where: {
                 !$0.value.isConvertible(to: .halfturns)
