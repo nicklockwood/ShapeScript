@@ -588,21 +588,21 @@ extension Value {
         case let (.rotation(value), .list(type)) where ValueType.halfturns.isSubtype(of: type):
             return .tuple(value.rollYawPitchInHalfTurns.map { .halfturns($0) })
         case let (.object(values), .list(type)):
-            let values = try values.sorted(by: { $0.0 < $1.0 }).compactMap {
+            let result = try values.sorted(by: { $0.0 < $1.0 }).compactMap {
                 try Value(.string($0), $1).as(type, in: context)
             }
-            guard values.count == values.count else {
+            guard result.count == values.count else {
                 return nil
             }
-            return .tuple(values)
+            return .tuple(result)
         case let (.object(values), .tuple(types)):
-            let values = try zip(values.sorted(by: { $0.0 < $1.0 }), types).compactMap {
+            let result = try zip(values.sorted(by: { $0.0 < $1.0 }), types).compactMap {
                 try Value(.string($0.key), $0.value).as($1, in: context)
             }
-            guard values.count == types.count else {
+            guard result.count == types.count else {
                 return nil
             }
-            return .tuple(values)
+            return .tuple(result)
         case let (.object(values), type):
             // Note: fails if any member value is not found for the type
             // Does not necessarily fail if type fields are missing (they may be optional)
