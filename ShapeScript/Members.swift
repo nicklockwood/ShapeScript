@@ -9,198 +9,201 @@
 import Euclid
 
 private struct MemberProperty: Sendable {
-    let name: String
     let type: ValueType
     let isAvailable: @Sendable (Value) -> Bool
     let get: @Sendable (Value, @escaping Mesh.CancellationHandler) -> Value?
 
     init(
-        _ name: String,
         _ type: ValueType,
         isAvailable: @escaping @Sendable (Value) -> Bool = { _ in true },
         get: @escaping @Sendable (Value, @escaping Mesh.CancellationHandler) -> Value?
     ) {
-        self.name = name
         self.type = type
         self.isAvailable = isAvailable
         self.get = get
     }
 }
 
-private extension [MemberProperty] {
-    static let all: [MemberProperty] = [
-        vector, size, rotation, color, texture, material, range, mesh,
-        path, polygon, point, bounds, string, font, text,
-    ].flatMap { $0 }
+private typealias MemberProperties = [String: MemberProperty]
 
-    static let vector: [MemberProperty] = [
-        .init("x", .number) { value, _ in
+private extension MemberProperties {
+    static func + (lhs: MemberProperties, rhs: MemberProperties) -> MemberProperties {
+        lhs.merging(rhs) { $1 }
+    }
+
+    static let all = _merge(
+        vector, size, rotation, color, texture, material, range, mesh,
+        path, polygon, point, bounds, string, font, text
+    )
+
+    static let vector: MemberProperties = [
+        "x": .init(.number) { value, _ in
             guard case let .vector(vector) = value else { return nil }
             return .number(vector.x)
         },
-        .init("y", .number) { value, _ in
+        "y": .init(.number) { value, _ in
             guard case let .vector(vector) = value else { return nil }
             return .number(vector.y)
         },
-        .init("z", .number) { value, _ in
+        "z": .init(.number) { value, _ in
             guard case let .vector(vector) = value else { return nil }
             return .number(vector.z)
         },
     ]
 
-    static let size: [MemberProperty] = [
-        .init("width", .number) { value, _ in
+    static let size: MemberProperties = [
+        "width": .init(.number) { value, _ in
             guard case let .size(size) = value else { return nil }
             return .number(size.x)
         },
-        .init("height", .number) { value, _ in
+        "height": .init(.number) { value, _ in
             guard case let .size(size) = value else { return nil }
             return .number(size.y)
         },
-        .init("depth", .number) { value, _ in
+        "depth": .init(.number) { value, _ in
             guard case let .size(size) = value else { return nil }
             return .number(size.z)
         },
     ]
 
-    static let rotation: [MemberProperty] = [
-        .init("roll", .halfturns) { value, _ in
+    static let rotation: MemberProperties = [
+        "roll": .init(.halfturns) { value, _ in
             guard case let .rotation(rotation) = value else { return nil }
             return .halfturns(rotation.roll.halfturns)
         },
-        .init("yaw", .halfturns) { value, _ in
+        "yaw": .init(.halfturns) { value, _ in
             guard case let .rotation(rotation) = value else { return nil }
             return .halfturns(rotation.yaw.halfturns)
         },
-        .init("pitch", .halfturns) { value, _ in
+        "pitch": .init(.halfturns) { value, _ in
             guard case let .rotation(rotation) = value else { return nil }
             return .halfturns(rotation.pitch.halfturns)
         },
-        .init("axis", .vector) { value, _ in
+        "axis": .init(.vector) { value, _ in
             guard case let .rotation(rotation) = value else { return nil }
             return .vector(rotation.axis)
         },
-        .init("angle", .halfturns) { value, _ in
+        "angle": .init(.halfturns) { value, _ in
             guard case let .rotation(rotation) = value else { return nil }
             return .halfturns(rotation.angle.halfturns)
         },
     ]
 
-    static let color: [MemberProperty] = [
-        .init("red", .number) { value, _ in
+    static let color: MemberProperties = [
+        "red": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.red)
         },
-        .init("green", .number) { value, _ in
+        "green": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.green)
         },
-        .init("blue", .number) { value, _ in
+        "blue": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.blue)
         },
-        .init("hue", .number) { value, _ in
+        "hue": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.hue)
         },
-        .init("saturation", .number) { value, _ in
+        "saturation": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.saturation)
         },
-        .init("brightness", .number) { value, _ in
+        "brightness": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.brightness)
         },
-        .init("alpha", .number) { value, _ in
+        "alpha": .init(.number) { value, _ in
             guard case let .color(color) = value else { return nil }
             return .number(color.alpha)
         },
     ]
 
-    static let texture: [MemberProperty] = [
-        .init("intensity", .number) { value, _ in
+    static let texture: MemberProperties = [
+        "intensity": .init(.number) { value, _ in
             guard case let .texture(texture) = value else { return nil }
             return .number(texture?.intensity ?? 0)
         },
     ]
 
-    static let material: [MemberProperty] = [
-        .init("opacity", .number) { value, _ in
+    static let material: MemberProperties = [
+        "opacity": .init(.number) { value, _ in
             guard case let .material(material) = value else { return nil }
             return material.opacity.map { .numberOrTexture($0) } ?? .number(1)
         },
-        .init("color", .color) { value, _ in
+        "color": .init(.color) { value, _ in
             guard case let .material(material) = value else { return nil }
             return .color(material.color ?? .white)
         },
-        .init("texture", .texture) { value, _ in
+        "texture": .init(.texture) { value, _ in
             guard case let .material(material) = value else { return nil }
             return .texture(material.texture)
         },
-        .init("normals", .texture) { value, _ in
+        "normals": .init(.texture) { value, _ in
             guard case let .material(material) = value else { return nil }
             return .texture(material.normals)
         },
-        .init("metallicity", .numberOrTexture) { value, _ in
+        "metallicity": .init(.numberOrTexture) { value, _ in
             guard case let .material(material) = value else { return nil }
             return material.metallicity.map { .numberOrTexture($0) } ?? .number(0)
         },
-        .init("roughness", .numberOrTexture) { value, _ in
+        "roughness": .init(.numberOrTexture) { value, _ in
             guard case let .material(material) = value else { return nil }
             return material.roughness.flatMap { .numberOrTexture($0) } ?? .number(0)
         },
-        .init("glow", .colorOrTexture) { value, _ in
+        "glow": .init(.colorOrTexture) { value, _ in
             guard case let .material(material) = value else { return nil }
             return material.glow.flatMap { .colorOrTexture($0) } ?? .color(.black)
         },
     ]
 
-    static let range: [MemberProperty] = [
-        .init("start", .number) { value, _ in
+    static let range: MemberProperties = [
+        "start": .init(.number) { value, _ in
             guard case let .range(range) = value else { return nil }
             return .number(range.start)
         },
-        .init("end", .number) { value, _ in
+        "end": .init(.number) { value, _ in
             guard case let .range(range) = value else { return nil }
-            return range.end.map(Value.number)
+            return range.end.map(ShapeScript.Value.number)
         },
-        .init("step", .number) { value, _ in
+        "step": .init(.number) { value, _ in
             guard case let .range(range) = value else { return nil }
-            return range.step.map(Value.number)
+            return range.step.map(ShapeScript.Value.number)
         },
     ]
 
-    static let mesh: [MemberProperty] = [
-        .init("name", .string) { value, _ in
+    static let mesh: MemberProperties = [
+        "name": .init(.string) { value, _ in
             guard case let .mesh(geometry) = value else { return nil }
             return .string(geometry.name ?? "")
         },
-        .init("bounds", .bounds) { value, isCancelled in
+        "bounds": .init(.bounds) { value, isCancelled in
             guard case let .mesh(geometry) = value else { return nil }
             return .bounds(geometry.exactBounds(with: geometry.transform) { !isCancelled() })
         },
-        .init("polygons", .list(.polygon), isAvailable: {
+        "polygons": .init(.list(.polygon), isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
             return geometry.hasMesh
         }) { value, isCancelled in
             guard case let .mesh(geometry) = value, geometry.hasMesh else { return nil }
             return .tuple(geometry.polygons(isCancelled).map { .polygon($0) })
         },
-        .init("triangles", .list(.polygon), isAvailable: {
+        "triangles": .init(.list(.polygon), isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
             return geometry.hasMesh
         }) { value, isCancelled in
             guard case let .mesh(geometry) = value, geometry.hasMesh else { return nil }
             return .tuple(geometry.triangles(isCancelled).map { .polygon($0) })
         },
-        .init("material", .material, isAvailable: {
+        "material": .init(.material, isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
             return geometry.hasMesh
         }) { value, _ in
             guard case let .mesh(geometry) = value, geometry.hasMesh else { return nil }
             return .material(geometry.material)
         },
-        .init("volume", .number, isAvailable: {
+        "volume": .init(.number, isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
             return geometry.hasMesh
         }) { value, isCancelled in
@@ -209,132 +212,132 @@ private extension [MemberProperty] {
         },
     ]
 
-    static let path: [MemberProperty] = [
-        .init("bounds", .bounds) { value, _ in
+    static let path: MemberProperties = [
+        "bounds": .init(.bounds) { value, _ in
             guard case let .path(path) = value else { return nil }
             return .bounds(path.bounds)
         },
-        .init("points", .list(.point)) { value, _ in
+        "points": .init(.list(.point)) { value, _ in
             guard case let .path(path) = value else { return nil }
             return .tuple(path.points.map { .point($0) })
         },
     ]
 
-    static let polygon: [MemberProperty] = [
-        .init("bounds", .bounds) { value, _ in
+    static let polygon: MemberProperties = [
+        "bounds": .init(.bounds) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
             return .bounds(polygon.bounds)
         },
-        .init("center", .vector) { value, _ in
+        "center": .init(.vector) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
             return .vector(polygon.centroid)
         },
-        .init("points", .list(.point)) { value, _ in
+        "points": .init(.list(.point)) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
             return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
         },
-        .init("triangles", .list(.polygon)) { value, _ in
+        "triangles": .init(.list(.polygon)) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
             return .tuple(polygon.triangulate().map { .polygon($0) })
         },
     ]
 
-    static let point: [MemberProperty] = [
-        .init("x", .number) { value, _ in
+    static let point: MemberProperties = [
+        "x": .init(.number) { value, _ in
             guard case let .point(point) = value else { return nil }
             return .number(point.position.x)
         },
-        .init("y", .number) { value, _ in
+        "y": .init(.number) { value, _ in
             guard case let .point(point) = value else { return nil }
             return .number(point.position.y)
         },
-        .init("z", .number) { value, _ in
+        "z": .init(.number) { value, _ in
             guard case let .point(point) = value else { return nil }
             return .number(point.position.z)
         },
-        .init("position", .vector) { value, _ in
+        "position": .init(.vector) { value, _ in
             guard case let .point(point) = value else { return nil }
             return .vector(point.position)
         },
-        .init("color", .optional(.color)) { value, _ in
+        "color": .init(.optional(.color)) { value, _ in
             guard case let .point(point) = value else { return nil }
             return point.color.map { .color($0) } ?? .void
         },
-        .init("isCurved", .boolean) { value, _ in
+        "isCurved": .init(.boolean) { value, _ in
             guard case let .point(point) = value else { return nil }
             return .boolean(point.isCurved)
         },
     ]
 
-    static let bounds: [MemberProperty] = [
-        .init("min", .vector) { value, _ in
+    static let bounds: MemberProperties = [
+        "min": .init(.vector) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .vector(bounds.min)
         },
-        .init("max", .vector) { value, _ in
+        "max": .init(.vector) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .vector(bounds.max)
         },
-        .init("size", .size) { value, _ in
+        "size": .init(.size) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .size(bounds.size)
         },
-        .init("center", .vector) { value, _ in
+        "center": .init(.vector) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .vector(bounds.center)
         },
-        .init("width", .number) { value, _ in
+        "width": .init(.number) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .number(bounds.size.x)
         },
-        .init("height", .number) { value, _ in
+        "height": .init(.number) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .number(bounds.size.y)
         },
-        .init("depth", .number) { value, _ in
+        "depth": .init(.number) { value, _ in
             guard case let .bounds(bounds) = value else { return nil }
             return .number(bounds.size.z)
         },
     ]
 
-    static let string: [MemberProperty] = [
-        .init("lines", .list(.string)) { value, _ in
+    static let string: MemberProperties = [
+        "lines": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
             return .tuple(string.split { $0.isNewline }.map { .string("\($0)") })
         },
-        .init("words", .list(.string)) { value, _ in
+        "words": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
             return .tuple(string.split(omittingEmptySubsequences: true) {
                 $0.isWhitespace || $0.isNewline
             }.map { .string("\($0)") })
         },
-        .init("characters", .list(.string)) { value, _ in
+        "characters": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
             return .tuple(string.map { .string("\($0)") })
         },
     ]
 
-    static let font: [MemberProperty] = [
-        .init("name", .string) { value, _ in
+    static let font: MemberProperties = [
+        "name": .init(.string) { value, _ in
             guard case let .font(font) = value else { return nil }
             return .string(font)
         },
     ]
 
-    static let text: [MemberProperty] = [
-        .init("string", .string) { value, _ in
+    static let text: MemberProperties = [
+        "string": .init(.string) { value, _ in
             guard case let .text(text) = value else { return nil }
             return .string(text.string)
         },
-        .init("font", .optional(.font)) { value, _ in
+        "font": .init(.optional(.font)) { value, _ in
             guard case let .text(text) = value else { return nil }
             return text.font.map { .font($0) } ?? .void
         },
-        .init("color", .optional(.color)) { value, _ in
+        "color": .init(.optional(.color)) { value, _ in
             guard case let .text(text) = value else { return nil }
             return text.color.map { .color($0) } ?? .void
         },
-        .init("linespacing", .optional(.number)) { value, _ in
+        "linespacing": .init(.optional(.number)) { value, _ in
             guard case let .text(text) = value else { return nil }
             return text.linespacing.map { .number($0) } ?? .void
         },
@@ -342,20 +345,17 @@ private extension [MemberProperty] {
 }
 
 private struct TupleMemberProperty: Sendable {
-    let name: String
     let fallbackType: ValueType?
     let type: @Sendable ([ValueType]) -> ValueType?
     let isAvailable: @Sendable ([Value]) -> Bool
     let get: @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
 
     init(
-        _ name: String,
         fallbackType: ValueType? = nil,
         type: @escaping @Sendable ([ValueType]) -> ValueType?,
         isAvailable: @escaping @Sendable ([Value]) -> Bool = { _ in true },
         get: @escaping @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
     ) {
-        self.name = name
         self.fallbackType = fallbackType
         self.type = type
         self.isAvailable = isAvailable
@@ -363,13 +363,11 @@ private struct TupleMemberProperty: Sendable {
     }
 
     init(
-        _ name: String,
         _ type: ValueType,
         isAvailable: @escaping @Sendable ([Value]) -> Bool = { _ in true },
         get: @escaping @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
     ) {
         self.init(
-            name,
             fallbackType: type,
             type: { _ in type },
             isAvailable: isAvailable,
@@ -378,24 +376,26 @@ private struct TupleMemberProperty: Sendable {
     }
 }
 
-private extension [TupleMemberProperty] {
-    static let all = [
-        structural, vector, size, rotation, string, color, bounds, aggregate, mesh,
-    ].flatMap { $0 }
+private typealias TupleMemberProperties = [String: TupleMemberProperty]
 
-    static let structural: [TupleMemberProperty] = [
-        .init("last", fallbackType: .any, type: { $0.last }, isAvailable: { !$0.isEmpty }) { _, values, _ in
+private extension TupleMemberProperties {
+    static let all = _merge(
+        structural, vector, size, rotation, string, color, bounds, aggregate, mesh
+    )
+
+    static let structural: TupleMemberProperties = [
+        "last": .init(fallbackType: .any, type: { $0.last }, isAvailable: { !$0.isEmpty }) { _, values, _ in
             values.last
         },
-        .init("count", .number) { _, values, _ in
+        "count": .init(.number) { _, values, _ in
             .number(Double(values.unwrapped(recursive: true).count))
         },
-        .init("allButFirst", fallbackType: .list(.any), type: { types in
+        "allButFirst": .init(fallbackType: .list(.any), type: { types in
             .tuple(Swift.Array(types.dropFirst()))
         }) { _, values, _ in
             .tuple(Swift.Array(values.unwrapped(recursive: true).dropFirst()))
         },
-        .init("allButLast", fallbackType: .list(.any), type: { types in
+        "allButLast": .init(fallbackType: .list(.any), type: { types in
             .tuple(Swift.Array(types.dropLast()))
         }) { _, values, _ in
             .tuple(Swift.Array(values.unwrapped(recursive: true).dropLast()))
@@ -409,8 +409,8 @@ private extension [TupleMemberProperty] {
     static let color = forwarding(.color, properties: .color)
     static let bounds = forwarding(.bounds, properties: .bounds)
 
-    static let aggregate: [TupleMemberProperty] = [
-        .init("bounds", .bounds, isAvailable: {
+    static let aggregate: TupleMemberProperties = [
+        "bounds": .init(.bounds, isAvailable: {
             $0.isEmpty || $0.flattened(recursive: true).contains {
                 $0.value is Bounded || $0.value is Geometry
             }
@@ -430,8 +430,8 @@ private extension [TupleMemberProperty] {
         },
     ]
 
-    static let mesh: [TupleMemberProperty] = [
-        .init("polygons", .list(.polygon), isAvailable: {
+    static let mesh: TupleMemberProperties = [
+        "polygons": .init(.list(.polygon), isAvailable: {
             $0.isEmpty || $0.flattened(recursive: true).contains { value in
                 value.type == .mesh || value.type == .polygon
             }
@@ -441,7 +441,7 @@ private extension [TupleMemberProperty] {
                 case let .mesh(geometry) where geometry.hasMesh:
                     let polygons = geometry.polygons(isCancelled)
                         .transformed(by: geometry.transform)
-                    return polygons.map { Value.polygon($0) }
+                    return polygons.map { ShapeScript.Value.polygon($0) }
                 case let .polygon(polygon):
                     return [.polygon(polygon)]
                 default:
@@ -449,7 +449,7 @@ private extension [TupleMemberProperty] {
                 }
             })
         },
-        .init("triangles", .list(.polygon), isAvailable: {
+        "triangles": .init(.list(.polygon), isAvailable: {
             $0.isEmpty || $0.flattened(recursive: true).contains { value in
                 value.type == .mesh || value.type == .polygon
             }
@@ -459,15 +459,15 @@ private extension [TupleMemberProperty] {
                 case let .mesh(geometry) where geometry.hasMesh:
                     let triangles = geometry.triangles(isCancelled)
                         .transformed(by: geometry.transform)
-                    return triangles.map { Value.polygon($0) }
+                    return triangles.map { ShapeScript.Value.polygon($0) }
                 case let .polygon(polygon):
-                    return polygon.triangulate().map { Value.polygon($0) }
+                    return polygon.triangulate().map { ShapeScript.Value.polygon($0) }
                 default:
                     return []
                 }
             })
         },
-        .init("volume", .number, isAvailable: {
+        "volume": .init(.number, isAvailable: {
             $0.isEmpty || $0.flattened(recursive: true).contains { $0.type == .mesh }
         }) { _, values, isCancelled in
             .number(values.flattened(recursive: true).reduce(0) {
@@ -483,24 +483,26 @@ private extension [TupleMemberProperty] {
 
     private static func forwarding(
         _ valueType: ValueType,
-        properties: [MemberProperty]
-    ) -> [TupleMemberProperty] {
-        properties.map { property in
-            TupleMemberProperty(
-                property.name,
-                property.type,
-                isAvailable: { Value.tuple($0).as(valueType) != nil },
-                get: { value, _, isCancelled in
-                    value.as(valueType)?[property.name, isCancelled]
-                }
+        properties: MemberProperties
+    ) -> TupleMemberProperties {
+        Dictionary(uniqueKeysWithValues: properties.map { name, property in
+            (
+                name,
+                TupleMemberProperty(
+                    property.type,
+                    isAvailable: { ShapeScript.Value.tuple($0).as(valueType) != nil },
+                    get: { _, values, isCancelled in
+                        ShapeScript.Value.tuple(values).as(valueType)?[name, isCancelled]
+                    }
+                )
             )
-        }
+        })
     }
 
     var fallbackTypes: [String: ValueType] {
-        Dictionary(
-            compactMap { property in
-                property.fallbackType.map { (property.name, $0) }
+        .init(
+            compactMap { name, property in
+                property.fallbackType.map { (name, $0) }
             },
             uniquingKeysWith: { lhs, _ in lhs }
         )
@@ -592,7 +594,7 @@ extension ValueType {
         case let .object(members):
             members
         case .material, .color, .rotation:
-            Dictionary(uniqueKeysWithValues: memberProperties.map { ($0.name, $0.type) })
+            memberProperties.mapValues(\.type)
         case .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .string, .text, .path, .mesh, .polygon, .point,
              .range, .partialRange, .bounds, .union, .tuple, .list:
@@ -602,7 +604,7 @@ extension ValueType {
         }
     }
 
-    fileprivate var memberProperties: [MemberProperty] {
+    fileprivate var memberProperties: MemberProperties {
         switch self {
         case .vector: .vector
         case .size: .size
@@ -621,7 +623,7 @@ extension ValueType {
         case .text: .text
         case .boolean, .number, .radians, .halfturns,
              .object, .union, .tuple, .list, .any:
-            []
+            [:]
         }
     }
 
@@ -649,7 +651,7 @@ extension ValueType {
             if let index = name.ordinalIndex {
                 return types.indices.contains(index) ? types[index] : nil
             }
-            if let type = tupleMemberProperties.first(where: { $0.name == name })?.type(types) {
+            if let type = tupleMemberProperties[name]?.type(types) {
                 return type
             }
             return types.count <= 1 ? types.first?.memberType(name) : Self.knownMemberTypes[name]
@@ -665,18 +667,26 @@ extension ValueType {
         }
     }
 
-    private var tupleMemberProperties: [TupleMemberProperty] {
+    private var tupleMemberProperties: TupleMemberProperties {
         guard case .tuple = self else {
-            return []
+            return [:]
         }
         return .all
     }
 
     private static let knownMemberTypes = Dictionary(
-        [MemberProperty].all.map { ($0.name, $0.type) },
+        MemberProperties.all.map { ($0.key, $0.value.type) },
         uniquingKeysWith: { lhs, _ in lhs }
-    ).merging([TupleMemberProperty].all.fallbackTypes) { _, rhs in rhs }
+    ).merging(TupleMemberProperties.all.fallbackTypes) { _, rhs in rhs }
         .merging(["color": .optional(.color)]) { _, rhs in rhs }
+}
+
+private func _merge<T>(_ dictionaries: [String: T]...) -> [String: T] {
+    var result = [String: T]()
+    for dictionary in dictionaries {
+        result.merge(dictionary) { $1 }
+    }
+    return result
 }
 
 private extension [String] {
@@ -692,18 +702,21 @@ extension Value {
         switch self {
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
-            members.appendUnique(contentsOf: [TupleMemberProperty].all.filter {
-                $0.isAvailable(values)
-            }.map(\.name))
+            members.appendUnique(contentsOf: TupleMemberProperties.all.compactMap {
+                $0.value.isAvailable(values) ? $0.key : nil
+            })
+            if ShapeScript.Value.tuple(values).as(.size) != nil {
+                members.appendUnique(contentsOf: Array(MemberProperties.size.keys))
+            }
             if values.count == 1 {
                 members.appendUnique(contentsOf: values[0].members)
             }
             return members
         case .vector, .size, .rotation, .color, .texture, .material,
              .range, .mesh, .path, .polygon, .point, .bounds, .font, .text:
-            return type.memberProperties.filter { $0.isAvailable(self) }.map(\.name)
+            return type.memberProperties.compactMap { $0.value.isAvailable(self) ? $0.key : nil }
         case .string:
-            var members = type.memberProperties.map(\.name)
+            var members = Array(type.memberProperties.keys)
             if let color = self.as(.color) {
                 members += color.members
             }
@@ -734,10 +747,11 @@ extension Value {
     private func _member(_ name: String, _ isCancelled: @escaping Mesh.CancellationHandler) -> Value? {
         switch self {
         case let .tuple(values):
-            if let value = [TupleMemberProperty].all.first(where: { $0.name == name })?
-                .get(self, values, isCancelled)
-            {
+            if let value = TupleMemberProperties.all[name]?.get(self, values, isCancelled) {
                 return value
+            }
+            if MemberProperties.size[name] != nil {
+                return ShapeScript.Value.tuple(values).as(.size)?[name, isCancelled]
             }
             let values = values.unwrapped(recursive: true)
             if let index = name.ordinalIndex {
@@ -747,11 +761,11 @@ extension Value {
                 return values[0][name, isCancelled]
             }
             return nil
-        case .string where ValueType.color.memberProperties.contains(where: { $0.name == name }):
+        case .string where ValueType.color.memberProperties[name] != nil:
             return self.as(.color)?[name, isCancelled]
         case .vector, .size, .rotation, .color, .texture, .material,
              .range, .mesh, .path, .polygon, .point, .bounds, .string, .font, .text:
-            return type.memberProperties.first { $0.name == name }?.get(self, isCancelled)
+            return type.memberProperties[name]?.get(self, isCancelled)
         case let .object(values):
             return values[name]
         case let .pretransformed(value):
