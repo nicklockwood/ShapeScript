@@ -588,6 +588,9 @@ extension Value {
         case let (.rotation(value), .list(type)) where ValueType.halfturns.isSubtype(of: type):
             return .tuple(value.rollYawPitchInHalfTurns.map { .halfturns($0) })
         case let (.object(values), .list(type)):
+            if !type.isSubtype(of: .list(.any)), let value = try self.as(type, in: context) {
+                return [value]
+            }
             let result = try values.sorted(by: { $0.0 < $1.0 }).compactMap {
                 try Value(.string($0), $1).as(type, in: context)
             }
