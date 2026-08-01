@@ -1406,7 +1406,13 @@ extension Expression {
                 return try .tuple(evaluateParameters(expressions, in: context).map(\.value))
             }
             let optionName = EvaluationContext.altNames[name] ?? name
-            guard let type = context.options[optionName] else {
+            let type: ValueType
+            if let optionType = context.options[optionName] {
+                type = optionType
+            } else if let optionType = context.options["*"] {
+                type = optionType
+                context.options[optionName] = optionType
+            } else {
                 return try .tuple(evaluateParameters(expressions, in: context).map(\.value))
             }
             let params = Array(expressions.dropFirst())

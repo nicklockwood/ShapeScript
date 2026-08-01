@@ -1644,4 +1644,18 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(delegate.log, [["bar": 5, "baz": "hello"] as [String: AnyHashable]])
     }
+
+    func testObjectConstructorAllowsPropertyNameMatchingSymbol() throws {
+        let program = try parse("""
+        define foo object {
+            width 2
+            length 1
+        }
+        print foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [["width": 2, "length": 1] as [String: AnyHashable]])
+    }
 }
