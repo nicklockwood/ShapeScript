@@ -1112,6 +1112,29 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
+    func testMemberAccessOnBlockExpression() throws {
+        let input = "path { point 0 }.bounds"
+        let pathRange = try XCTUnwrap(input.range(of: "path"))
+        let pointRange = try XCTUnwrap(input.range(of: "point"))
+        let numberRange = try XCTUnwrap(input.range(of: "0"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ point 0 }"))
+        let boundsRange = try XCTUnwrap(input.range(of: "bounds"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(type: .expression(.member(
+                Expression(type: .block(
+                    Identifier(name: "path", range: pathRange),
+                    Block(statements: [
+                        Statement(type: .command(
+                            Identifier(name: "point", range: pointRange),
+                            Expression(type: .number(0), range: numberRange)
+                        ), range: pointRange.lowerBound ..< numberRange.upperBound),
+                    ], range: bodyRange)
+                ), range: pathRange.lowerBound ..< bodyRange.upperBound),
+                Identifier(name: "bounds", range: boundsRange)
+            )), range: pathRange.lowerBound ..< boundsRange.upperBound),
+        ]))
+    }
+
     // MARK: Functions
 
     func testFunctionDeclaration() throws {

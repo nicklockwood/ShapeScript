@@ -516,7 +516,12 @@ private extension ArraySlice where Element == Token {
             self = start
             return nil
         }
-        var expression = Expression(type: type, range: range)
+        let expression = Expression(type: type, range: range)
+        return try readMemberOrSubscript(for: expression)
+    }
+
+    mutating func readMemberOrSubscript(for expression: Expression) throws -> Expression {
+        var expression = expression
         loop: while true {
             switch nextToken.type {
             case .dot:
@@ -524,7 +529,7 @@ private extension ArraySlice where Element == Token {
                 let rhs = try require(readIdentifier(), as: "member name")
                 expression = Expression(
                     type: .member(expression, rhs),
-                    range: range.lowerBound ..< rhs.range.upperBound
+                    range: expression.range.lowerBound ..< rhs.range.upperBound
                 )
             case .subscript:
                 removeFirst()
@@ -532,7 +537,7 @@ private extension ArraySlice where Element == Token {
                 try requireToken(.rbracket)
                 expression = Expression(
                     type: .subscript(expression, rhs),
-                    range: range.lowerBound ..< rhs.range.upperBound
+                    range: expression.range.lowerBound ..< rhs.range.upperBound
                 )
             default:
                 break loop
@@ -697,6 +702,7 @@ private extension ArraySlice where Element == Token {
                 let range = expression.range.lowerBound ..< block.range.upperBound
                 let identifier = Identifier(name: name, range: expression.range)
                 expression = Expression(type: .block(identifier, block), range: range)
+                expression = try readMemberOrSubscript(for: expression)
             }
             expressions.append(expression)
             if allowLinebreaks {

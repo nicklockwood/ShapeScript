@@ -296,6 +296,10 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("cube.bounds"), .bounds)
     }
 
+    func testBlockExpressionMemberType() {
+        XCTAssertEqual(try expressionType("path { point 0 }.bounds"), .bounds)
+    }
+
     func testCustomConstantMemberType() {
         XCTAssertEqual(try expressionType("""
         define foo red
