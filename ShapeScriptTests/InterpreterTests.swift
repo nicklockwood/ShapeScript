@@ -769,6 +769,34 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
+    func testCommonSynonymAlternatives() {
+        let source = "roundedrectangle"
+        let error = RuntimeError(
+            .unknownSymbol("roundedrectangle", options: ["roundrect"]),
+            at: source.startIndex ..< source.endIndex
+        )
+        XCTAssertEqual(error.suggestion, "roundrect")
+        XCTAssertEqual(error.hint, "Did you mean 'roundrect'?")
+    }
+
+    func testCommonOptionSynonymAlternatives() {
+        let source = "align"
+        let error = RuntimeError(
+            .unknownSymbol("align", options: ["axisAligned"]),
+            at: source.startIndex ..< source.endIndex
+        )
+        XCTAssertEqual(error.suggestion, "axisAligned")
+    }
+
+    func testCommonCamelCaseSynonymAlternatives() {
+        let source = "lineSpacing"
+        let error = RuntimeError(
+            .unknownSymbol("lineSpacing", options: ["linespacing"]),
+            at: source.startIndex ..< source.endIndex
+        )
+        XCTAssertEqual(error.suggestion, "linespacing")
+    }
+
     func testShadowedColorInheritedByBlock() throws {
         let program = """
         define black 1 0 0

@@ -254,6 +254,16 @@ final class MemberTests: XCTestCase {
         }
     }
 
+    func testMeshSizeLookupSuggestsBounds() {
+        let program = "print cube.size"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Member 'size' not found in cube")
+            XCTAssertEqual(error?.suggestion, "bounds")
+            XCTAssertEqual(error?.hint, "Did you mean 'bounds'?")
+        }
+    }
+
     func testRotationXLookup() {
         let program = """
         cube {
