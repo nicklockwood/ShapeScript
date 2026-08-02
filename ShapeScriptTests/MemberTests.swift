@@ -288,6 +288,94 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log.first as? Double ?? 0, 0.2, accuracy: epsilon)
     }
 
+    func testRotationAxisAngleLookup() {
+        let program = """
+        cube {
+            orientation 0.5 0 1 0
+            print orientation.axis
+            print orientation.angle
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.first as? Vector, .unitY)
+        XCTAssertEqual(delegate.log.last as? Double ?? 0, 0.5, accuracy: epsilon)
+    }
+
+    func testRotationMemberwiseAxisAngleInitializerLookup() {
+        let program = """
+        cube {
+            orientation {
+                axis 0 1 0
+                angle 0.5
+            }
+            print orientation.axis
+            print orientation.angle
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.first as? Vector, .unitY)
+        XCTAssertEqual(delegate.log.last as? Double ?? 0, 0.5, accuracy: epsilon)
+    }
+
+    func testRotationMemberwiseEulerInitializerLookup() {
+        let program = """
+        cube {
+            orientation {
+                yaw 0.5
+            }
+            print orientation.roll
+            print orientation.yaw
+            print orientation.pitch
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log[0] as? Double ?? 0, 0, accuracy: epsilon)
+        XCTAssertEqual(delegate.log[1] as? Double ?? 0, 0.5, accuracy: epsilon)
+        XCTAssertEqual(delegate.log[2] as? Double ?? 0, 0, accuracy: epsilon)
+    }
+
+    func testRotationMemberwiseInitializerRejectsMixedEulerAndAxisAngleMembers() {
+        let program = """
+        cube {
+            orientation {
+                yaw 0.25
+                axis 0 1 0
+                angle 0.5
+            }
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error?.hint, """
+            Rotation initializer cannot mix roll/yaw/pitch with axis/angle.
+            """)
+            XCTAssertEqual(error?.type, .assertionFailure(
+                "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
+            ))
+        }
+    }
+
+    func testRotationMemberwiseInitializerRejectsZeroAxis() throws {
+        let program = """
+        cube {
+            orientation {
+                axis 0 0 0
+                angle 0.5
+            }
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error?.hint, "Axis vector must be nonzero.")
+            XCTAssertEqual(error?.type, .assertionFailure("Axis vector must be nonzero"))
+        }
+    }
+
     func testTupleOrdinalLookup() {
         let program = "define col 1 0.5\nprint col.second"
         let delegate = TestDelegate()
@@ -940,7 +1028,7 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .unknownMember("count", of: .string("foo")))
+            XCTAssertEqual(error?.message, "Member 'count' not found in string")
         }
     }
 

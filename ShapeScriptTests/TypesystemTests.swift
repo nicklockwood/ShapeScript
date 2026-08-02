@@ -299,6 +299,14 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("color.alpha"), .number)
     }
 
+    func testRotationPropertyMemberTypes() {
+        XCTAssertEqual(ValueType.rotation.memberType("roll"), .halfturns)
+        XCTAssertEqual(ValueType.rotation.memberType("yaw"), .halfturns)
+        XCTAssertEqual(ValueType.rotation.memberType("pitch"), .halfturns)
+        XCTAssertEqual(ValueType.rotation.memberType("axis"), .vector)
+        XCTAssertEqual(ValueType.rotation.memberType("angle"), .halfturns)
+    }
+
     func testBlockMemberType() {
         XCTAssertEqual(try expressionType("cube.bounds"), .bounds)
     }
@@ -1444,6 +1452,79 @@ final class TypesystemTests: XCTestCase {
         let type = ValueType.rotation
         let value = Value.tuple([0.5, 0, 1, .halfturns(0.5)])
         XCTAssertFalse(value.isConvertible(to: type))
+    }
+
+    func testCastObjectToRotation() {
+        let type = ValueType.rotation
+        let value = Value.object([
+            "roll": .halfturns(0.25),
+            "yaw": .halfturns(0.5),
+            "pitch": .halfturns(0.125),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.init(
+            roll: .halfturns(0.25),
+            yaw: .halfturns(0.5),
+            pitch: .halfturns(0.125)
+        )))
+    }
+
+    func testCastObjectToRotationDefaultsMissingComponents() {
+        let type = ValueType.rotation
+        let value = Value.object(["yaw": .halfturns(0.5)])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.yaw(.halfturns(0.5))))
+    }
+
+    func testCastObjectToAxisAngleRotation() {
+        let type = ValueType.rotation
+        let value = Value.object([
+            "axis": .vector(.unitY),
+            "angle": .halfturns(0.5),
+        ])
+        let expected = Rotation(axis: .unitY, angle: .halfturns(0.5))
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), expected.map { .rotation($0) })
+    }
+
+    func testCastObjectToAxisAngleRotationDefaultsAngle() {
+        let type = ValueType.rotation
+        let value = Value.object(["axis": .vector(.unitY)])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .rotation(.identity))
+    }
+
+    func testCastObjectToAxisAngleRotationRejectsZeroAxis() {
+        let type = ValueType.rotation
+        let value = Value.object([
+            "axis": .vector(.zero),
+            "angle": .halfturns(0.5),
+        ])
+        XCTAssertFalse(value.isConvertible(to: type))
+        XCTAssertThrowsError(try value.as(type, in: nil)) { error in
+            XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
+                "Axis vector must be nonzero"
+            ))
+        }
+    }
+
+    func testCastObjectToRotationRejectsMixedEulerAndAxisAngleMembers() {
+        let type = ValueType.rotation
+        for eulerMember in ["roll", "yaw", "pitch"] {
+            let value = Value.object([
+                eulerMember: .halfturns(0.25),
+                "axis": .vector(.unitY),
+                "angle": .halfturns(0.5),
+            ])
+            XCTAssertFalse(value.isConvertible(to: type), """
+            Expected mixed \(eulerMember) and axis/angle to be rejected
+            """)
+            XCTAssertThrowsError(try value.as(type, in: nil)) { error in
+                XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
+                    "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
+                ))
+            }
+        }
     }
 
     func testCastAxisAngleWithZeroVectorToRotation() {

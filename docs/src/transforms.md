@@ -55,6 +55,36 @@ cube {
 }
 ```
 
+You can also specify a rotation or orientation using [block syntax](blocks.md):
+
+```swift
+cube {
+    orientation { yaw 0.5 } // rotates the cube 90 degrees around the Y axis
+}
+
+cube { 
+    orientation { // rotates around a diagonal axis
+        pitch 0.4
+        roll 0.6
+    } 
+}
+```
+
+Omitted roll/yaw/pitch values default to zero. The order in which they are specified in the block does not affect the order in which they are applied, which is always `roll`, `yaw`, then `pitch` (Z, Y, X).
+
+Instead of `roll`/`yaw`/`pitch`, you can use `axis` and `angle`:
+
+```swift
+cube {
+    orientation {
+        axis 0 1 0
+        angle 0.5
+    }
+}
+```
+
+If you use `angle` without specifying an `axis`, the axis defaults to `0 0 1`. You can use roll/yaw/pitch values or axis/angle values, but not both in the same block.
+
 ## Size
 
 The `size` option scales the shape it is applied to. A size of `2 1 0.5` makes the shape twice as wide, unchanged in height, and half as deep:
@@ -124,18 +154,21 @@ rotate -0.25
 scale 0.5
 ```
 
-As mentioned in the [orientation](#orientation) section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be very difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
+As mentioned in the [orientation](#orientation) section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
 
 ```swift
 rotate 0 0 0.25 // pitch 45 degrees
-rotate 0.4 0 0 // roll 80 degrees
+rotate { roll 0.4 } // roll 80 degrees
 cube
 ```
 
 Like `orientation`, the `rotate` command also supports angle-axis formats, which can be useful when you want to rotate the current scope around an arbitrary axis:
 
 ```swift
-rotate 0.25 (1 1 0)
+rotate {
+    angle 0.5
+    axis 1 0 1
+}
 cube
 ```
 

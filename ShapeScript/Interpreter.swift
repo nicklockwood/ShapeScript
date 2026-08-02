@@ -1208,7 +1208,7 @@ extension Expression {
                 let values = Dictionary(uniqueKeysWithValues: newContext.options.keys.compactMap { key in
                     newContext.value(for: key).map { (key, $0) }
                 })
-                guard let instance = type.instance(with: values) else {
+                guard let instance = try RuntimeError.wrap(type.instance(with: values), at: block.range) else {
                     throw RuntimeError(.typeMismatch(
                         for: name,
                         expected: type.errorDescription,

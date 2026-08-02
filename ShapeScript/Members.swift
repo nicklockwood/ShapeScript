@@ -11,7 +11,7 @@ import Euclid
 extension ValueType {
     /// Create an instance from a dictionary of memberwise values
     /// Note: this function assumes values have already been validated and cast to correct types
-    func instance(with values: [String: Value]) -> Value? {
+    func instance(with values: [String: Value]) throws -> Value? {
         switch self {
         case .object:
             .object(values)
@@ -31,9 +31,30 @@ extension ValueType {
                 blue: values["blue"]?.doubleValue ?? 0,
                 alpha: values["alpha"]?.doubleValue ?? 1
             ))
+        case .rotation where values["axis"] ?? values["angle"] != nil:
+            if values["roll"] ?? values["yaw"] ?? values["pitch"] == nil {
+                if let rotation = Rotation(
+                    axis: values["axis"]?.vectorValue ?? .unitZ,
+                    angle: values["angle"]?.angleValue ?? .zero
+                ) {
+                    .rotation(rotation)
+                } else {
+                    throw RuntimeErrorType.assertionFailure("Axis vector must be nonzero")
+                }
+            } else {
+                throw RuntimeErrorType.assertionFailure(
+                    "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
+                )
+            }
+        case .rotation:
+            .rotation(.init(
+                roll: values["roll"]?.angleValue ?? .zero,
+                yaw: values["yaw"]?.angleValue ?? .zero,
+                pitch: values["pitch"]?.angleValue ?? .zero
+            ))
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .partialRange, .bounds, .union, .tuple, .list, .any:
+             .vector, .size, .string, .text, .path, .mesh, .polygon, .point,
+             .range, .partialRange, .bounds, .union, .tuple, .list, .any:
             nil
         }
     }
@@ -54,9 +75,17 @@ extension ValueType {
             ]
         case .color:
             ["red": .number, "green": .number, "blue": .number, "alpha": .number]
+        case .rotation:
+            [
+                "roll": .halfturns,
+                "yaw": .halfturns,
+                "pitch": .halfturns,
+                "axis": .vector,
+                "angle": .halfturns,
+            ]
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .partialRange, .bounds, .union, .tuple, .list:
+             .vector, .size, .string, .text, .path, .mesh, .polygon, .point,
+             .range, .partialRange, .bounds, .union, .tuple, .list:
             // TODO: something better
             Self.memberTypes
         case .any:
@@ -86,8 +115,8 @@ extension ValueType {
             let types = Set(types.compactMap { $0.memberType(name) })
             return types.isEmpty ? nil : ValueType.union(types).simplified()
         case .color, .texture, .material, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon,
-             .point, .range, .partialRange, .bounds, .object:
+             .vector, .size, .rotation, .string, .text, .path, .mesh, .polygon, .point,
+             .range, .partialRange, .bounds, .object:
             return memberTypes[name]
         case .any:
             return nil
@@ -104,6 +133,8 @@ extension ValueType {
         "roll": .halfturns,
         "yaw": .halfturns,
         "pitch": .halfturns,
+        "axis": .vector,
+        "angle": .halfturns,
         "red": .number,
         "green": .number,
         "blue": .number,
@@ -146,7 +177,7 @@ extension Value {
         case .size:
             return ["width", "height", "depth"]
         case .rotation:
-            return ["roll", "yaw", "pitch"]
+            return ["roll", "yaw", "pitch", "axis", "angle"]
         case .color:
             return ["red", "green", "blue", "alpha"]
         case .texture:
@@ -262,6 +293,8 @@ extension Value {
             case "roll": return .halfturns(rotation.roll.halfturns)
             case "yaw": return .halfturns(rotation.yaw.halfturns)
             case "pitch": return .halfturns(rotation.pitch.halfturns)
+            case "axis": return .vector(rotation.axis)
+            case "angle": return .halfturns(rotation.angle.halfturns)
             default: return nil
             }
         case let .color(color):
@@ -303,7 +336,7 @@ extension Value {
                 return self.as(.vector)?[name, isCancelled]
             case "width", "height", "depth":
                 return (self.as(.size) ?? self.as(.bounds))?[name, isCancelled]
-            case "roll", "yaw", "pitch":
+            case "roll", "yaw", "pitch", "axis", "angle":
                 return self.as(.rotation)?[name, isCancelled]
             case "red", "green", "blue", "alpha":
                 return self.as(.color)?[name, isCancelled]

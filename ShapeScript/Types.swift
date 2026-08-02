@@ -666,7 +666,7 @@ extension Value {
                 }
                 values[key] = value
             }
-            return type.instance(with: values)
+            return try type.instance(with: values)
         case let (_, .list(type)):
             return try self.as(type, in: context).map { [$0] }
         case let (.path(path), .mesh):
