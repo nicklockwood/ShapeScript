@@ -221,6 +221,10 @@ private extension MemberProperties {
             guard case let .path(path) = value else { return nil }
             return .tuple(path.points.map { .point($0) })
         },
+        "color": .init(.optional(.color)) { value, _ in
+            guard case let .path(path) = value else { return nil }
+            return path.uniformVertexColor.map { .color($0) } ?? .void
+        },
     ]
 
     static let polygon: MemberProperties = [
@@ -558,7 +562,8 @@ private extension MemberwiseConstructor {
 
     static let path = MemberwiseConstructor { values in
         let points = values["points"]?.tupleValue as? [PathPoint] ?? []
-        return .path(Path(points))
+        let path = Path(points)
+        return .path(values["color"].map { path.withColor($0.colorValue) } ?? path)
     }
 
     static let point = MemberwiseConstructor { values in

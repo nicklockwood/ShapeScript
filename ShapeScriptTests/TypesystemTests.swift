@@ -1327,6 +1327,39 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(path.points.map(\.color), [.red, .green, nil])
     }
 
+    func testCastObjectToPathAppliesOptionalColorToAllPoints() throws {
+        let type = ValueType.path
+        let value = Value.object([
+            "points": .tuple([
+                .point(PathPoint(0, 0, color: .red)),
+                .point(PathPoint(1, 0)),
+                .point(PathPoint(1, 1, color: .green)),
+            ]),
+            "color": .color(.blue),
+        ])
+        let path = try XCTUnwrap(value.as(type)?.value as? Path)
+        XCTAssertEqual(path.points.map(\.color), [.blue, .blue, .blue])
+    }
+
+    func testCastJSONLikeObjectToPathAppliesOptionalColorToAllPoints() throws {
+        let type = ValueType.path
+        let value = Value.object([
+            "points": .tuple([
+                .object(["position": .tuple([.number(0), .number(0)])]),
+                .object(["position": .tuple([.number(1), .number(0)])]),
+                .object(["position": .tuple([.number(1), .number(1)])]),
+            ]),
+            "color": .color(.blue),
+        ])
+        let path = try XCTUnwrap(value.as(type)?.value as? Path)
+        XCTAssertEqual(path.points.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(1, 1, 0),
+        ])
+        XCTAssertEqual(path.points.map(\.color), [.blue, .blue, .blue])
+    }
+
     func testCastObjectToPointUsesMemberwiseConstructor() throws {
         let type = ValueType.point
         let value = Value.object([
