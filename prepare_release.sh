@@ -81,7 +81,7 @@ fi
 
 # 7. Run tests
 echo "Running tests..."
-if ! swift test --parallel --num-workers 10; then
+if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS=1 swift test --parallel --num-workers 10; then
     echo "Error: Tests failed. Please fix the issues before proceeding."
     exit 1
 fi
