@@ -117,7 +117,7 @@ public extension Scene {
     ) -> OutputOptions {
         var options = OutputOptions.default
         let color = backgroundColor ?? .gray
-        let size = overestimatedBounds.size
+        let size = visibleBounds.size
         options.lineWidth = max(0.005, 0.002 * max(size.x, size.y, size.z))
         let background = camera?.background ?? background
         options.lineColor = background.brightness(over: color) > 0.5 ? .black : .white

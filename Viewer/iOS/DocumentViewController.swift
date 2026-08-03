@@ -996,6 +996,11 @@ extension DocumentViewController {
         document: Document,
         namesByGeometry: [ObjectIdentifier: String]
     ) -> UIMenuElement? {
+        guard geometry.isVisibleInSelectionMenu else {
+            return nil
+        }
+        let focus = document.geometry.childIsFocused
+        let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
         let childGeometries = geometries.filter {
             $0 !== geometry && $0.isDescendant(of: geometry)
@@ -1006,24 +1011,21 @@ extension DocumentViewController {
             namesByGeometry: namesByGeometry
         )
 
-        if geometry.hasSelectableChildren, !childElements.isEmpty {
+        if geometry.hasSelectionMenuChildren, !childElements.isEmpty {
             var children = [UIMenuElement]()
-            if geometry.isSelectable {
+            if isSelectable {
                 children.append(selectionAction(for: geometry, title: title))
             }
             children.append(contentsOf: childElements)
             return UIMenu(title: title, children: children)
         }
 
-        guard geometry.isSelectable else {
-            return nil
-        }
-        return selectionAction(for: geometry, title: title)
+        return selectionAction(for: geometry, title: title, isEnabled: isSelectable)
     }
 
     private func selectionMenuGeometries(for document: Document) -> [Geometry] {
         var geometries = [Geometry]()
-        document.enumerateGeometries(in: document.geometry) { geometry in
+        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
             geometries.append(geometry)
         }
         return geometries
@@ -1032,7 +1034,7 @@ extension DocumentViewController {
     private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
         var countsByType = [String: Int]()
         var namesByGeometry = [ObjectIdentifier: String]()
-        document.enumerateGeometries(in: document.geometry) { geometry in
+        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
             namesByGeometry[ObjectIdentifier(geometry)] = document.geometryName(
                 for: geometry,
                 in: &countsByType
@@ -1041,15 +1043,22 @@ extension DocumentViewController {
         return namesByGeometry
     }
 
-    private func selectionAction(for geometry: Geometry, title: String) -> UIAction {
+    private func selectionAction(
+        for geometry: Geometry,
+        title: String,
+        isEnabled: Bool = true
+    ) -> UIAction {
         UIAction(
             title: title,
             image: nil,
             identifier: nil,
             discoverabilityTitle: nil,
-            attributes: [],
+            attributes: isEnabled ? [] : [.disabled],
             state: selectedGeometry === geometry ? .on : .off
         ) { [weak self] _ in
+            guard isEnabled else {
+                return
+            }
             self?.selectGeometry(geometry.scnNode)
         }
     }

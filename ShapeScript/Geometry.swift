@@ -91,7 +91,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
     }
 
     /// Hide all other geometry
-    var isFocused: Bool {
+    public internal(set) var isFocused: Bool {
         didSet {
             if isFocused, type == .group {
                 children.forEach { $0.isFocused = true }
@@ -396,6 +396,25 @@ public extension Geometry {
     /// Returns `true` if the geometry or any of its children are focused
     var childIsFocused: Bool {
         isFocused || children.contains(where: \.childIsFocused)
+    }
+
+    /// Returns `true` if this geometry is rendered as part of the scene
+    func isRenderedInScene(focus: Bool) -> Bool {
+        guard !focus || isFocused else {
+            return false
+        }
+        let target = self
+        var geometry = self
+        while let parent = geometry.parent {
+            guard parent.renderChildren ||
+                (geometry === target && (geometry.debug || geometry.isFocused)) ||
+                (geometry !== target && (geometry.childDebug || geometry.childIsFocused))
+            else {
+                return false
+            }
+            geometry = parent
+        }
+        return true
     }
 
     /// The absolute geometry transform relative to the world/scene

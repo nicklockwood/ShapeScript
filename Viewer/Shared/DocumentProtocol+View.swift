@@ -35,15 +35,7 @@ extension DocumentProtocol {
     }
 
     var geometry: Geometry {
-        Geometry(
-            type: .group,
-            name: nil,
-            transform: .identity,
-            material: .default,
-            smoothing: nil,
-            children: scene?.children ?? [],
-            sourceLocation: nil
-        )
+        (scene ?? .empty).geometry
     }
 
     func rerender() {
@@ -408,8 +400,10 @@ extension DocumentProtocol {
 
     var selectableGeometries: [Geometry] {
         var geometries = [Geometry]()
-        enumerateGeometries(in: geometry) { geometry in
-            if geometry.isSelectable {
+        let root = geometry
+        let focus = root.childIsFocused
+        enumerateGeometries(in: root) { geometry in
+            if geometry.isSelectable(focus: focus) {
                 geometries.append(geometry)
             }
         }
@@ -420,12 +414,39 @@ extension DocumentProtocol {
         in shape: Geometry,
         with fn: (Geometry) -> Void
     ) {
+        let focus = shape.childIsFocused
+        enumerateGeometries(in: shape, focus: focus, with: fn)
+    }
+
+    private func enumerateGeometries(
+        in shape: Geometry,
+        focus: Bool,
+        with fn: (Geometry) -> Void
+    ) {
         for shape in shape.children {
-            if shape.hasSelectableChildren {
+            guard shape.isVisibleForSelection(focus: focus) else {
+                continue
+            }
+            if shape.hasVisibleSelectableDescendants(focus: focus) {
                 fn(shape)
-                enumerateGeometries(in: shape, with: fn)
-            } else if shape.isSelectable {
+                enumerateGeometries(in: shape, focus: focus, with: fn)
+            } else if shape.isSelectable(focus: focus) {
                 fn(shape)
+            }
+        }
+    }
+
+    func enumerateSelectionMenuGeometries(
+        in shape: Geometry,
+        with fn: (Geometry) -> Void
+    ) {
+        for shape in shape.children {
+            guard shape.isVisibleInSelectionMenu else {
+                continue
+            }
+            fn(shape)
+            if shape.hasSelectionMenuChildren {
+                enumerateSelectionMenuGeometries(in: shape, with: fn)
             }
         }
     }
@@ -505,5 +526,62 @@ extension Geometry {
         case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
             childDebug
         }
+    }
+
+    func isVisibleForSelection(focus: Bool) -> Bool {
+        !focus || isFocused || childIsFocused
+    }
+
+    var isVisibleInSelectionMenu: Bool {
+        switch type {
+        case .camera, .light:
+            false
+        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .path, .group:
+            true
+        }
+    }
+
+    func isSelectable(focus: Bool) -> Bool {
+        isSelectable && (!focus || isFocused)
+    }
+
+    func isSelectableInSelectionMenu(focus: Bool) -> Bool {
+        isSelectable(focus: focus) && isRenderedInScene(focus: focus)
+    }
+
+    func hasVisibleSelectableDescendants(focus: Bool) -> Bool {
+        children.contains {
+            $0.isVisibleForSelection(focus: focus) &&
+                ($0.isSelectable(focus: focus) || $0.hasVisibleSelectableDescendants(focus: focus))
+        }
+    }
+
+    var hasSelectionMenuChildren: Bool {
+        children.contains {
+            $0.isVisibleInSelectionMenu
+        }
+    }
+
+    func hasSelectableSelectionMenuDescendants(focus: Bool) -> Bool {
+        children.contains {
+            $0.isVisibleInSelectionMenu &&
+                ($0.isSelectableInSelectionMenu(focus: focus) ||
+                    $0.hasSelectableSelectionMenuDescendants(focus: focus))
+        }
+    }
+
+    func selectionMenuPath(focus _: Bool, root: Geometry) -> [Geometry] {
+        var path = [Geometry]()
+        var geometry: Geometry? = self
+        while let current = geometry, current !== root {
+            if current.isVisibleInSelectionMenu {
+                path.append(current)
+            }
+            geometry = current.parent
+        }
+        return path.reversed()
     }
 }

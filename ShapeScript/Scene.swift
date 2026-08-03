@@ -41,8 +41,26 @@ extension Scene: Equatable {
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
-    /// Returns the approximate (overestimated) bounds of the scene geometry.
-    var overestimatedBounds: Bounds {
+    /// Returns the raw scene geometry, including unfocused geometry.
+    var geometry: Geometry {
+        Geometry(
+            type: .group,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            smoothing: nil,
+            children: children,
+            sourceLocation: nil
+        )
+    }
+
+    /// Returns the visible scene geometry, excluding unfocused geometry if any child is focused.
+    var visibleGeometry: Geometry {
+        geometry.withoutUnfocusedGeometry()
+    }
+
+    /// Returns the approximate bounds of the visible scene geometry.
+    var visibleBounds: Bounds {
         let focus = children.contains(where: \.childIsFocused)
         return Bounds(children.map {
             $0.overestimatedBoundsForFocus(focus: focus)
@@ -50,9 +68,15 @@ public extension Scene {
     }
 
     /// Returns the approximate (overestimated) bounds of the scene geometry.
+    @available(*, deprecated, renamed: "visibleBounds")
+    var overestimatedBounds: Bounds {
+        visibleBounds
+    }
+
+    /// Returns the approximate (overestimated) bounds of the scene geometry.
     @available(*, deprecated, renamed: "overestimatedBounds")
     var bounds: Bounds {
-        overestimatedBounds
+        visibleBounds
     }
 
     func build(_ callback: @escaping LegacyCallback) -> Bool {

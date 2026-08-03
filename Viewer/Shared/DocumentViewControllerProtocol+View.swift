@@ -26,8 +26,8 @@ extension DocumentViewControllerProtocol {
         isBrightBackground ? .black : .white
     }
 
-    var geometryBounds: Bounds {
-        document?.scene?.overestimatedBounds ?? .empty
+    var visibleBounds: Bounds {
+        document?.scene?.visibleBounds ?? .empty
     }
 
     func checkDocumentVersion() {
@@ -80,13 +80,13 @@ extension DocumentViewControllerProtocol {
     }
 
     var axesSize: Double {
-        let bounds = geometryBounds
+        let bounds = visibleBounds
         let m = max(-bounds.min, bounds.max)
         return max(m.x, m.y, m.z) * 1.1
     }
 
     var viewCenter: Vector {
-        showAxes ? .zero : geometryBounds.center
+        showAxes ? .zero : visibleBounds.center
     }
 
     func resetView() {
@@ -138,7 +138,10 @@ extension DocumentViewControllerProtocol {
     }
 
     func selectGeometry(at location: CGPoint) {
-        let geometry = selectableGeometries(at: location).first(where: \.isSelectable)
+        let focus = geometry?.childIsFocused ?? false
+        let geometry = selectableGeometries(at: location).first {
+            $0.isSelectableInSelectionMenu(focus: focus)
+        }
         selectGeometry(geometry?.scnNode)
     }
 
@@ -148,15 +151,20 @@ extension DocumentViewControllerProtocol {
 
     func selectableGeometries(at location: CGPoint) -> [Geometry] {
         let hits = scnView.hitTest(location, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
+        guard let root = geometry else {
+            return []
+        }
+        let focus = root.childIsFocused
         var geometries = [Geometry]()
         for hit in hits where hit.isVisible {
-            guard let geometry = geometry?.geometry(for: hit.node),
-                  geometry.isSelectable || geometry.hasSelectableChildren,
-                  !geometries.contains(where: { $0 === geometry })
-            else {
+            guard let geometry = root.geometry(for: hit.node) else {
                 continue
             }
-            geometries.append(geometry)
+            for geometry in geometry.selectionMenuPath(focus: focus, root: root) {
+                if !geometries.contains(where: { $0 === geometry }) {
+                    geometries.append(geometry)
+                }
+            }
         }
         return geometries
     }
@@ -182,7 +190,7 @@ extension DocumentViewControllerProtocol {
     }
 
     func updateCamera() {
-        let bounds = geometryBounds
+        let bounds = visibleBounds
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double

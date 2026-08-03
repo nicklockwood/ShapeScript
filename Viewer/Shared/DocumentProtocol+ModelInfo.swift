@@ -31,7 +31,7 @@ extension DocumentProtocol {
     var modelInfo: String {
         // Geometry info
         let rootGeometry = geometry
-        let geometry = selectedGeometry ?? rootGeometry.withoutUnfocusedGeometry()
+        let geometry = selectedGeometry ?? (scene ?? .empty).visibleGeometry
         let polygons: String
         let triangles: String
         let dimensions: String

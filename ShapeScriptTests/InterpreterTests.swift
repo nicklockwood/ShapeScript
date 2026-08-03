@@ -214,7 +214,7 @@ final class InterpreterTests: XCTestCase {
         pair { size 2 }
         """)
         let scene = try evaluate(program, delegate: nil)
-        XCTAssertEqual(scene.overestimatedBounds.size, Vector(4, 2, 2))
+        XCTAssertEqual(scene.visibleBounds.size, Vector(4, 2, 2))
     }
 
     func testSetCustomTupleBlockPosition() throws {
@@ -227,7 +227,7 @@ final class InterpreterTests: XCTestCase {
         pair { position 3 }
         """)
         let scene = try evaluate(program, delegate: nil)
-        XCTAssertEqual(scene.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(scene.visibleBounds.center, Vector(3, 0, 0))
     }
 
     func testSetCustomPassthroughBlockTransform() throws {
@@ -242,8 +242,8 @@ final class InterpreterTests: XCTestCase {
         }
         """)
         let scene = try evaluate(program, delegate: nil)
-        XCTAssertEqual(scene.overestimatedBounds.center, Vector(3, 0, 0))
-        XCTAssertEqual(scene.overestimatedBounds.size, Vector(2, 2, 2))
+        XCTAssertEqual(scene.visibleBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(scene.visibleBounds.size, Vector(2, 2, 2))
     }
 
     func testSetCustomBlockPropertiesOnLocalMeshConstant() throws {
@@ -338,7 +338,7 @@ final class InterpreterTests: XCTestCase {
         part { position 3 }
         """)
         let scene = try evaluate(program, delegate: nil)
-        XCTAssertEqual(scene.overestimatedBounds.center, Vector(4, 0, 0))
+        XCTAssertEqual(scene.visibleBounds.center, Vector(4, 0, 0))
     }
 
     func testSetPathBlockName() throws {

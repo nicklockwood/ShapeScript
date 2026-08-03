@@ -231,21 +231,24 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         _ menu: NSMenu,
         for shape: Geometry,
         with index: inout Int,
-        countsByType: inout [String: Int]
+        countsByType: inout [String: Int],
+        focus: Bool
     ) -> Bool {
         menu.removeAllItems()
         var containsSelection = false
         for shape in shape.children {
-            let isSelectable = shape.isSelectable
-            let hasSelectableChildren = shape.hasSelectableChildren
-            guard isSelectable || hasSelectableChildren else {
+            guard shape.isVisibleInSelectionMenu else {
                 continue
             }
+            let isSelectable = shape.isSelectableInSelectionMenu(focus: focus)
+            let hasSelectionMenuChildren = shape.hasSelectionMenuChildren
+            let hasSelectableSelectionMenuDescendants = shape.hasSelectableSelectionMenuDescendants(focus: focus)
             let menuItem = menu.addItem(
                 withTitle: geometryName(for: shape, in: &countsByType),
-                action: #selector(selectShape(_:)),
+                action: isSelectable ? #selector(selectShape(_:)) : nil,
                 keyEquivalent: ""
             )
+            menuItem.isEnabled = isSelectable || hasSelectableSelectionMenuDescendants
             if isSelectable {
                 index += 1
                 menuItem.tag = index
@@ -254,13 +257,14 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                     containsSelection = (selectedGeometry === shape)
                 }
             }
-            if hasSelectableChildren {
+            if hasSelectionMenuChildren {
                 let submenu = NSMenu()
                 if configureSelectMenu(
                     submenu,
                     for: shape,
                     with: &index,
-                    countsByType: &countsByType
+                    countsByType: &countsByType,
+                    focus: focus
                 ) {
                     containsSelection = true
                     menuItem.state = .mixed
@@ -360,7 +364,8 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                     submenu,
                     for: geometry,
                     with: &index,
-                    countsByType: &countsByType
+                    countsByType: &countsByType,
+                    focus: geometry.childIsFocused
                 )
                 return submenu.numberOfItems != 0
             }

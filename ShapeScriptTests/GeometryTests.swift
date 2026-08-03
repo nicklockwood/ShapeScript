@@ -59,7 +59,7 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(group.overestimatedBounds, cube.overestimatedBounds)
     }
 
-    func testSceneBoundsIgnoreHiddenSiblingsWhenGeometryIsFocused() throws {
+    func testSceneVisibleBoundsIgnoreHiddenSiblingsWhenGeometryIsFocused() throws {
         let scene = try evaluate(parse("""
         group {
             focus cube {
@@ -71,11 +71,33 @@ final class GeometryTests: XCTestCase {
         }
         """), delegate: nil)
 
-        XCTAssertEqual(scene.overestimatedBounds.center, [10, 0, 0])
-        XCTAssertEqual(scene.overestimatedBounds.size, [1, 1, 1])
+        XCTAssertEqual(scene.geometry.overestimatedBounds.center, [55, 0, 0])
+        XCTAssertEqual(scene.geometry.overestimatedBounds.size, [91, 1, 1])
+        XCTAssertEqual(scene.visibleBounds.center, [10, 0, 0])
+        XCTAssertEqual(scene.visibleBounds.size, [1, 1, 1])
     }
 
-    func testSceneBoundsUseOnlyFocusedRootGeometry() throws {
+    func testSceneVisibleGeometryIgnoresHiddenSiblingsWhenGeometryIsFocused() throws {
+        let scene = try evaluate(parse("""
+        group {
+            focus cube {
+                position 10
+            }
+            cube {
+                position 100
+            }
+        }
+        """), delegate: nil)
+
+        XCTAssertEqual(scene.geometry.children.first?.children.count, 2)
+        let group = try XCTUnwrap(scene.visibleGeometry.children.first)
+        XCTAssertEqual(group.children.count, 1)
+        XCTAssertEqual(group.children.first?.transform.translation, [10, 0, 0])
+        XCTAssertEqual(scene.visibleGeometry.overestimatedBounds.center, scene.visibleBounds.center)
+        XCTAssertEqual(scene.visibleGeometry.overestimatedBounds.size, scene.visibleBounds.size)
+    }
+
+    func testSceneVisibleBoundsUseOnlyFocusedRootGeometry() throws {
         let scene = try evaluate(parse("""
         focus cube {
             position 10
@@ -85,8 +107,69 @@ final class GeometryTests: XCTestCase {
         }
         """), delegate: nil)
 
-        XCTAssertEqual(scene.overestimatedBounds.center, [10, 0, 0])
-        XCTAssertEqual(scene.overestimatedBounds.size, [1, 1, 1])
+        XCTAssertEqual(scene.visibleBounds.center, [10, 0, 0])
+        XCTAssertEqual(scene.visibleBounds.size, [1, 1, 1])
+    }
+
+    func testGroupedChildrenAreRenderedInScene() throws {
+        let scene = try evaluate(parse("""
+        group {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+
+        let group = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(group.children.first)
+        let sphere = try XCTUnwrap(group.children.last)
+
+        XCTAssertTrue(cube.isRenderedInScene(focus: false))
+        XCTAssertTrue(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testBooleanChildrenAreOnlyRenderedInSceneWhenDebugged() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            cube {
+                size 0.8
+                color blue
+            }
+            debug sphere {
+                color green
+            }
+        }
+        """), delegate: nil)
+
+        let difference = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(difference.children.first)
+        let sphere = try XCTUnwrap(difference.children.last)
+
+        XCTAssertFalse(cube.debug)
+        XCTAssertTrue(sphere.debug)
+        XCTAssertTrue(difference.isRenderedInScene(focus: false))
+        XCTAssertFalse(cube.isRenderedInScene(focus: false))
+        XCTAssertTrue(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testBooleanChildrenAreOnlyRenderedInSceneWhenFocused() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            focus cube {
+                size 0.8
+            }
+            sphere
+        }
+        """), delegate: nil)
+
+        let difference = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(difference.children.first)
+        let sphere = try XCTUnwrap(difference.children.last)
+
+        XCTAssertTrue(cube.isFocused)
+        XCTAssertFalse(sphere.isFocused)
+        XCTAssertFalse(difference.isRenderedInScene(focus: true))
+        XCTAssertTrue(cube.isRenderedInScene(focus: true))
+        XCTAssertFalse(sphere.isRenderedInScene(focus: true))
     }
 
     func testWithoutUnfocusedGeometryRemovesHiddenSiblings() throws {
@@ -519,7 +602,7 @@ final class GeometryTests: XCTestCase {
             }
         }
         """), delegate: nil)
-        XCTAssertEqual(a.overestimatedBounds, b.overestimatedBounds)
+        XCTAssertEqual(a.visibleBounds, b.visibleBounds)
         XCTAssertEqual(a.children.count, b.children.count)
         XCTAssertEqual(a.children.map(\.mesh), b.children.map(\.mesh))
         XCTAssertEqual(a.children.map {

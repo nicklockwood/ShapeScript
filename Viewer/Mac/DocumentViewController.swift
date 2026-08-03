@@ -562,20 +562,23 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         in geometries: [Geometry],
         namesByGeometry: [ObjectIdentifier: String]
     ) -> NSMenuItem? {
+        let focus = document?.geometry.childIsFocused ?? false
+        let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
         let menuItem = NSMenuItem(
             title: title,
-            action: geometry.isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
+            action: isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
             keyEquivalent: ""
         )
         menuItem.target = self
         menuItem.representedObject = geometry
         menuItem.state = (selectedGeometry === geometry) ? .on : .off
+        menuItem.isEnabled = isSelectable
 
         let childGeometries = geometries.filter {
             $0 !== geometry && $0.isDescendant(of: geometry)
         }
-        if geometry.hasSelectableChildren, !childGeometries.isEmpty {
+        if geometry.hasSelectionMenuChildren, !childGeometries.isEmpty {
             let submenu = NSMenu()
             if addSelectionMenuItems(
                 to: submenu,
@@ -585,9 +588,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 menuItem.state = .mixed
             }
             menuItem.submenu = submenu
+            menuItem.isEnabled = isSelectable || geometry.hasSelectableSelectionMenuDescendants(focus: focus)
         }
 
-        guard geometry.isSelectable || menuItem.submenu != nil else {
+        guard geometry.isVisibleInSelectionMenu else {
             return nil
         }
         return menuItem
@@ -595,7 +599,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     private func selectionMenuGeometries(for document: Document) -> [Geometry] {
         var geometries = [Geometry]()
-        document.enumerateGeometries(in: document.geometry) { geometry in
+        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
             geometries.append(geometry)
         }
         return geometries
@@ -604,7 +608,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
         var countsByType = [String: Int]()
         var namesByGeometry = [ObjectIdentifier: String]()
-        document.enumerateGeometries(in: document.geometry) { geometry in
+        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
             namesByGeometry[ObjectIdentifier(geometry)] = document.geometryName(
                 for: geometry,
                 in: &countsByType
