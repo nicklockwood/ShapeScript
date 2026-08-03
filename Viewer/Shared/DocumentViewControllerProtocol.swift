@@ -36,6 +36,7 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
 
     @discardableResult
     func presentError(_ error: Error, completionHandler: (() -> Void)?) -> Bool
+    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void)
 
     func clearLog()
     func appendLog(_ text: String)

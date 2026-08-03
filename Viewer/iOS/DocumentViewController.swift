@@ -29,6 +29,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private let loadingIndicator: UIActivityIndicatorView = .init()
     private let containerView: SplitView = .init()
     private(set) var exportButton: UIBarButtonItem = .init()
+    private weak var warningView: UIView?
+    private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
+    private var compactWarningConstraints = [NSLayoutConstraint]()
+    private var regularWarningConstraints = [NSLayoutConstraint]()
 
     let errorTextView: UITextView = .init()
     let grantAccessButton: UIButton = .init(type: .system)
@@ -289,6 +293,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         _ previousTraitCollection: UITraitCollection?
     ) {
         super.traitCollectionDidChange(previousTraitCollection)
+        updateWarningLayoutConstraints()
         view.setNeedsLayout()
     }
 
@@ -397,6 +402,150 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         })
         presentModalHidingConsole(alert)
         return true
+    }
+
+    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void) {
+        dismissWarning(notify: false)
+        warningDismissHandler = onDismiss
+
+        let banner = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+        banner.translatesAutoresizingMaskIntoConstraints = false
+        banner.clipsToBounds = true
+        banner.layer.cornerRadius = 18
+        banner.layer.cornerCurve = .continuous
+
+        let tintView = UIView()
+        tintView.translatesAutoresizingMaskIntoConstraints = false
+        tintView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.22)
+        banner.contentView.addSubview(tintView)
+
+        let imageView = UIImageView(
+            image: UIImage(systemName: "exclamationmark.triangle.fill")
+        )
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.tintColor = .secondaryLabel
+        imageView.contentMode = .scaleAspectFit
+
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = message
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .label
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let closeButton = UIButton(type: .system)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        closeButton.tintColor = .secondaryLabel
+        closeButton.accessibilityLabel = "Dismiss"
+        closeButton.addTarget(
+            self,
+            action: #selector(dismissWarningPressed),
+            for: .touchUpInside
+        )
+
+        banner.contentView.addSubview(imageView)
+        banner.contentView.addSubview(label)
+        banner.contentView.addSubview(closeButton)
+        view.addSubview(banner)
+        warningView = banner
+        compactWarningConstraints = [
+            banner.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: 16
+            ),
+            banner.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -16
+            ),
+        ]
+        regularWarningConstraints = [
+            banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            banner.leadingAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: 16
+            ),
+            banner.trailingAnchor.constraint(
+                lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -16
+            ),
+            banner.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
+        ]
+
+        NSLayoutConstraint.activate([
+            tintView.leadingAnchor.constraint(equalTo: banner.contentView.leadingAnchor),
+            tintView.trailingAnchor.constraint(equalTo: banner.contentView.trailingAnchor),
+            tintView.topAnchor.constraint(equalTo: banner.contentView.topAnchor),
+            tintView.bottomAnchor.constraint(equalTo: banner.contentView.bottomAnchor),
+
+            banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+
+            imageView.leadingAnchor.constraint(equalTo: banner.contentView.leadingAnchor, constant: 14),
+            imageView.centerYAnchor.constraint(equalTo: banner.contentView.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 24),
+            imageView.heightAnchor.constraint(equalToConstant: 24),
+
+            label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 9),
+            label.topAnchor.constraint(equalTo: banner.contentView.topAnchor, constant: 12),
+            label.bottomAnchor.constraint(equalTo: banner.contentView.bottomAnchor, constant: -12),
+
+            closeButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
+            closeButton.trailingAnchor.constraint(equalTo: banner.contentView.trailingAnchor, constant: -10),
+            closeButton.centerYAnchor.constraint(equalTo: banner.contentView.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 32),
+            closeButton.heightAnchor.constraint(equalToConstant: 32),
+        ])
+        updateWarningLayoutConstraints()
+    }
+
+    @objc private func dismissWarningPressed() {
+        dismissWarning(notify: true)
+    }
+
+    private func dismissWarning(notify: Bool) {
+        guard let warningView else {
+            if notify, let handler = warningDismissHandler {
+                warningDismissHandler = nil
+                handler()
+            } else if !notify {
+                warningDismissHandler = nil
+            }
+            return
+        }
+        self.warningView = nil
+        guard notify, let handler = warningDismissHandler else {
+            NSLayoutConstraint.deactivate(compactWarningConstraints + regularWarningConstraints)
+            warningView.removeFromSuperview()
+            compactWarningConstraints.removeAll()
+            regularWarningConstraints.removeAll()
+            if !notify {
+                warningDismissHandler = nil
+            }
+            return
+        }
+        warningDismissHandler = nil
+        UIView.animate(
+            withDuration: 0.18,
+            delay: 0,
+            options: [.curveEaseInOut, .beginFromCurrentState]
+        ) {
+            warningView.alpha = 0
+            warningView.transform = CGAffineTransform(translationX: 0, y: -8)
+        } completion: { _ in
+            NSLayoutConstraint.deactivate(self.compactWarningConstraints + self.regularWarningConstraints)
+            warningView.removeFromSuperview()
+            self.compactWarningConstraints.removeAll()
+            self.regularWarningConstraints.removeAll()
+            handler()
+        }
+    }
+
+    private func updateWarningLayoutConstraints() {
+        let isCompact = traitCollection.horizontalSizeClass == .compact
+        NSLayoutConstraint.deactivate(isCompact ? regularWarningConstraints : compactWarningConstraints)
+        NSLayoutConstraint.activate(isCompact ? compactWarningConstraints : regularWarningConstraints)
     }
 
     private func presentConsole() {

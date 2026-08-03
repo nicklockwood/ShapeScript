@@ -39,12 +39,11 @@ extension DocumentViewControllerProtocol {
             return
         }
         let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
-        presentError(NSError(domain: "", code: 0, userInfo: [
-            NSLocalizedDescriptionKey: """
+        showWarning("""
             \(document.fileName) was last edited with a newer version of \
             ShapeScript\(clientVersion) and may not be fully compatible with this version.
-            """,
-        ])) {
+            """
+        ) {
             document.clientVersion = SemanticVersion(appVersion)
         }
     }

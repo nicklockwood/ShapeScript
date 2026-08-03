@@ -24,6 +24,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private let consoleScrollView: NSScrollView = .init()
     private let consoleTextView: NSTextView = .init()
     private let defaultConsoleHeight: CGFloat = 135
+    private weak var warningView: NSView?
+    private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
 
     weak var document: Document?
 
@@ -325,6 +327,141 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             return true
         }
         return super.presentError(error)
+    }
+
+    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void) {
+        dismissWarning(notify: false)
+        warningDismissHandler = onDismiss
+
+        let banner = NSVisualEffectView()
+        banner.translatesAutoresizingMaskIntoConstraints = false
+        banner.material = .hudWindow
+        banner.blendingMode = .withinWindow
+        banner.state = .active
+        banner.wantsLayer = true
+        banner.layer?.cornerRadius = 16
+        banner.layer?.cornerCurve = .continuous
+        banner.layer?.masksToBounds = true
+
+        let tintView = NSView()
+        tintView.translatesAutoresizingMaskIntoConstraints = false
+        tintView.wantsLayer = true
+        tintView.layer?.backgroundColor = NSColor.systemYellow.withAlphaComponent(0.22).cgColor
+        banner.addSubview(tintView, positioned: .below, relativeTo: nil)
+
+        let symbol: NSImage? = if #available(macOS 11, *) {
+            NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Warning")
+        } else {
+            NSImage(named: NSImage.cautionName)
+        }
+        let imageView = NSImageView(image: symbol ?? NSImage())
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.contentTintColor = .secondaryLabelColor
+        if #available(macOS 11, *) {
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(
+                pointSize: 17,
+                weight: .semibold
+            )
+        }
+
+        let label = NSTextField(labelWithString: message)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .labelColor
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 0
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let closeButton = NSButton()
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        closeButton.target = self
+        closeButton.action = #selector(dismissWarningPressed)
+        closeButton.bezelStyle = .inline
+        closeButton.isBordered = false
+        closeButton.imagePosition = .imageOnly
+        closeButton.toolTip = "Dismiss"
+        if #available(macOS 11, *) {
+            closeButton.image = NSImage(
+                systemSymbolName: "xmark.circle.fill",
+                accessibilityDescription: "Dismiss"
+            )
+            closeButton.symbolConfiguration = NSImage.SymbolConfiguration(
+                pointSize: 15,
+                weight: .medium
+            )
+        } else {
+            closeButton.title = "x"
+        }
+        closeButton.contentTintColor = .secondaryLabelColor
+
+        banner.addSubview(imageView)
+        banner.addSubview(label)
+        banner.addSubview(closeButton)
+        view.addSubview(banner, positioned: .above, relativeTo: nil)
+        warningView = banner
+
+        NSLayoutConstraint.activate([
+            tintView.leadingAnchor.constraint(equalTo: banner.leadingAnchor),
+            tintView.trailingAnchor.constraint(equalTo: banner.trailingAnchor),
+            tintView.topAnchor.constraint(equalTo: banner.topAnchor),
+            tintView.bottomAnchor.constraint(equalTo: banner.bottomAnchor),
+
+            banner.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
+            banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            banner.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            banner.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20),
+            banner.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
+
+            imageView.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 14),
+            imageView.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 22),
+            imageView.heightAnchor.constraint(equalToConstant: 22),
+
+            label.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 8),
+            label.topAnchor.constraint(equalTo: banner.topAnchor, constant: 11),
+            label.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -11),
+
+            closeButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
+            closeButton.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -10),
+            closeButton.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24),
+        ])
+    }
+
+    @objc private func dismissWarningPressed() {
+        dismissWarning(notify: true)
+    }
+
+    private func dismissWarning(notify: Bool) {
+        guard let warningView else {
+            if notify, let handler = warningDismissHandler {
+                warningDismissHandler = nil
+                handler()
+            } else if !notify {
+                warningDismissHandler = nil
+            }
+            return
+        }
+        self.warningView = nil
+        guard notify, let handler = warningDismissHandler else {
+            warningView.removeFromSuperview()
+            if !notify {
+                warningDismissHandler = nil
+            }
+            return
+        }
+        warningDismissHandler = nil
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            warningView.animator().alphaValue = 0
+        } completionHandler: {
+            Task { @MainActor in
+                warningView.removeFromSuperview()
+                handler()
+            }
+        }
     }
 
     override func viewWillLayout() {
