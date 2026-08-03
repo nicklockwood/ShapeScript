@@ -1169,6 +1169,22 @@ extension Block {
         statements.gatherDefinitions(in: context)
         try statements.forEach { try $0.evaluate(in: context) }
     }
+
+    /// Memberwise constructor
+    func evaluate(as type: ValueType, in context: EvaluationContext) throws -> Value? {
+        let blockType = BlockType([:], type.memberTypes, .void, type)
+        let newContext = context.push(blockType)
+        try newContext.pushScope { newContext in
+            statements.gatherDefinitions(in: newContext)
+            for statement in statements {
+                try statement.evaluate(in: newContext)
+            }
+        }
+        let values = Dictionary(uniqueKeysWithValues: newContext.options.keys.compactMap { key in
+            newContext.value(for: key).map { (key, $0) }
+        })
+        return try RuntimeError.wrap(type.instance(with: values), at: range)
+    }
 }
 
 extension Statement {
@@ -1387,18 +1403,7 @@ extension Expression {
                     .mesh(($0.value as! Geometry).transformed(by: newContext.state.transform))
                 })
             case let .property(type, setter, _):
-                let blockType = BlockType([:], type.memberTypes, .void, type)
-                let newContext = context.push(blockType)
-                try newContext.pushScope { newContext in
-                    block.statements.gatherDefinitions(in: newContext)
-                    for statement in block.statements {
-                        try statement.evaluate(in: newContext)
-                    }
-                }
-                let values = Dictionary(uniqueKeysWithValues: newContext.options.keys.compactMap { key in
-                    newContext.value(for: key).map { (key, $0) }
-                })
-                guard let instance = try RuntimeError.wrap(type.instance(with: values), at: block.range) else {
+                guard let instance = try block.evaluate(as: type, in: context) else {
                     throw RuntimeError(.typeMismatch(
                         for: name,
                         expected: type.errorDescription,
@@ -1415,6 +1420,16 @@ extension Expression {
                     expected: type.errorDescription,
                     got: "block"
                 ), at: block.range)
+            case let .placeholder(type) where context.options[EvaluationContext.altNames[name] ?? name] != nil:
+                guard let instance = try block.evaluate(as: type, in: context) else {
+                    throw RuntimeError(.typeMismatch(
+                        for: name,
+                        expected: type.errorDescription,
+                        got: "block"
+                    ), at: block.range)
+                }
+                context.define(EvaluationContext.altNames[name] ?? name, as: .option(instance))
+                return .void
             case .placeholder:
                 throw RuntimeError(.forwardReference(name), at: identifier.range)
             }
