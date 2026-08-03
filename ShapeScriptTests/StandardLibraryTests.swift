@@ -1658,4 +1658,40 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         XCTAssertEqual(delegate.log, [["width": 2, "length": 1] as [String: AnyHashable]])
     }
+
+    func testObjectConstructorAllowsNestedBareBlock() throws {
+        let program = try parse("""
+        define foo object {
+            bar {
+                baz 1
+            }
+        }
+        print foo
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [
+            ["bar": ["baz": 1] as [String: AnyHashable]] as [String: AnyHashable],
+        ])
+    }
+
+    func testObjectConstructorAllowsNestedBareBlockRecursively() throws {
+        let program = try parse("""
+        define foo object {
+            bar {
+                baz {
+                    quux 1
+                }
+            }
+        }
+        print foo.bar
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        XCTAssertEqual(delegate.log, [
+            ["baz": ["quux": 1] as [String: AnyHashable]] as [String: AnyHashable],
+        ])
+    }
 }

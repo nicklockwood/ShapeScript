@@ -1359,6 +1359,13 @@ extension Expression {
         case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
             guard let symbol = context.symbol(for: name) else {
+                if context.options["*"] != nil,
+                   let object = try block.evaluate(as: .anyObject, in: context)
+                {
+                    context.options[name] = .any
+                    context.define(name, as: .option(object))
+                    return .void
+                }
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
                     at: range
