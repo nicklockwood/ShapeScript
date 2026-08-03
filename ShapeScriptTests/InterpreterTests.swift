@@ -5440,6 +5440,26 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
+    func testDebugBlockDoesNotGroupChildren() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            debug {
+                cylinder {
+                    size 1 0.2
+                }
+                cylinder {
+                    position 0.4
+                    size 1 0.2
+                }
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(geometry.children.count, 2)
+        XCTAssertTrue(geometry.children.allSatisfy(\.debug))
+    }
+
     // MARK: Tuples
 
     func testTupleDeclarationNotFlattened() throws {

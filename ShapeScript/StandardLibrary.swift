@@ -339,7 +339,7 @@ extension Symbols {
             {
                 return .mesh(child)
             }
-            return .mesh(Geometry(type: .group, in: context))
+            return .tuple(context.state.children)
         },
     ]
 

@@ -39,6 +39,24 @@ This makes the cylinder visible in the ShapeScript viewer and allows it to be se
 
 ![Moon debug](../images/moon-debug.png)
 
+You can debug multiple shapes at once by using the `debug` command more than once, or by wrapping several shapes in a `debug` block:
+
+```swift
+difference {   
+    // both child objects are now visible
+    debug {
+        cylinder {
+            size 1 0.2
+        }
+        
+        cylinder {
+            position 0.4
+            size 1 0.2
+        }
+    }
+}
+```
+
 ## Logging
 
 When creating complex scripts, it can sometimes be difficult to understand what's happening in the code. To help you debug your scripts, you can use the `print` command:
