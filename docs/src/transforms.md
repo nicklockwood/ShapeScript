@@ -37,11 +37,17 @@ While it is relatively simple to use the `orientation` property to specify a rot
 
 ## Size
 
-The `size` option applies a scaling factor to all subsequent geometry. A scale factor of `0.5 0.5 0.5` for example, would halve the size of all subsequent shapes, as well as halving the offset applied by subsequent `translate` commands.
+The `size` option scales the shape it is applied to. A size of `2 1 0.5` makes the shape twice as wide, unchanged in height, and half as deep:
+
+```swift
+cube {
+    size 2 1 0.5
+}
+```
 
 Like the `position` and `orientation` commands, `size` allows you to omit one or two parameters, however unlike the other commands, omitted parameters are assumed to be equal to the first value given. So `size 0.5` is equivalent to `size 0.5 0.5 0.5`.
 
-It it possible to apply a negative scale factor, which has the effect of flipping the geometry. For example, `size 1 -1 1` would flip all subsequent shapes upside-down along the Y axis. This does not always work as intended however, and may produce odd side-effects such as turning shapes inside-out. In general it is better to stick to positive `size` values, and use `orientation` if you need to flip a shape around.
+It is possible to apply a negative size value, which has the effect of flipping or mirroring the shape. For example, `size 1 -1 1` would flip the shape upside-down along the Y axis. This does not always work as intended however, and may produce odd side-effects such as turning shapes inside-out. In general it's better to stick to positive `size` values and use `orientation` if you need to flip a shape around.
 
 ## Relative Transforms
 
@@ -73,7 +79,7 @@ translate -1 0 0
 sphere // located at 0 0 0
 ```
 
-Just as the `translate` command moves the origin, the `rotate` command rotates it, and the `scale` command increases or decreases the scale factor. These are equivalent:
+Just as the `translate` command moves the origin, the `rotate` command rotates it, and the `scale` command increases or decreases the scale factor for subsequent geometry. A scale factor of `0.5 0.5 0.5` will halve the size of all subsequent shapes, as well as halving the offset applied by subsequent `translate` commands. These are equivalent:
 
 ```swift
 cube {
