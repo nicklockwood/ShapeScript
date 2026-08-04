@@ -218,7 +218,9 @@ public extension RuntimeError {
             }
             return suggestion.map { "Did you mean '\($0)'?" }
         case let .invalidIndex(_, range: range):
-            return range.upperBound == 0 ? nil : "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
+            return range.upperBound == 0 ?
+                "Tuple is empty." :
+                "Valid range is \(range.lowerBound) to \(range.upperBound - 1)."
         case .unknownFont:
             if let suggestion {
                 return "Did you mean '\(suggestion)'?"
