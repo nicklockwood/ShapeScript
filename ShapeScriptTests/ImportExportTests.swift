@@ -143,6 +143,54 @@ final class ImportExportTests: XCTestCase {
         }
     }
 
+    func testImportJSONGeometryDescriptionAsMesh() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let url = directory.appendingPathComponent("triangle.json")
+        let json = """
+        {
+            "name": "triangle",
+            "polygons": [
+                {
+                    "points": [
+                        { "position": [0, 0] },
+                        { "position": [1, 0] },
+                        { "position": [0, 1] }
+                    ]
+                }
+            ]
+        }
+        """
+        try json.write(to: url, atomically: true, encoding: .utf8)
+
+        let source = #"import "triangle.json""#
+        let program = try parse(source)
+        guard case let .expression(expressionType) = program.statements.first?.type else {
+            XCTFail("Expression not found")
+            return
+        }
+        let expression = Expression(
+            type: expressionType,
+            range: program.statements.first?.range ?? source.startIndex ..< source.endIndex
+        )
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: source, delegate: delegate)
+        let value = try expression.evaluate(as: .mesh, for: "", in: context)
+        let geometry = try XCTUnwrap(value.value as? Geometry)
+
+        XCTAssertEqual(delegate.imports, ["triangle.json"])
+        XCTAssertEqual(geometry.name, "triangle")
+        XCTAssertEqual(geometry.polygons { false }.count, 2)
+        XCTAssertEqual(geometry.polygons { false }.first?.vertices.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(0, 1, 0),
+        ])
+    }
+
     // MARK: Import limits
 
     func testOversizedShapeTextAndJSONImportsAreRejected() throws {

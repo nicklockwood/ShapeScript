@@ -1188,6 +1188,159 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), .size(Vector(2, 1, 4)))
     }
 
+    func testCastObjectToPolygonUsesMemberwiseConstructor() throws {
+        let type = ValueType.polygon
+        let value = Value.object([
+            "points": .tuple([
+                .point(PathPoint(0, 0)),
+                .point(PathPoint(1, 0)),
+                .point(PathPoint(0, 1)),
+            ]),
+        ])
+        let polygon = try XCTUnwrap(value.as(type)?.value as? Euclid.Polygon)
+        XCTAssertEqual(polygon.vertices.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(0, 1, 0),
+        ])
+    }
+
+    func testCastObjectToPolygonPreservesExplicitMaterialAndVertexColors() throws {
+        let material = Material(color: .blue)
+        let type = ValueType.polygon
+        let value = Value.object([
+            "points": .tuple([
+                .point(PathPoint(0, 0, color: .red)),
+                .point(PathPoint(1, 0, color: .red)),
+                .point(PathPoint(0, 1, color: .red)),
+            ]),
+            "material": .material(material),
+        ])
+        let polygon = try XCTUnwrap(value.as(type)?.value as? Euclid.Polygon)
+        XCTAssertEqual(polygon.material as? Material, material)
+        XCTAssertEqual(polygon.vertices.map(\.color), [.red, .red, .red])
+    }
+
+    func testCastJSONLikeObjectToPolygonUsesMemberwiseConstructor() throws {
+        let type = ValueType.polygon
+        let value = Value.object([
+            "points": .tuple([
+                .object(["position": .tuple([.number(0), .number(0)])]),
+                .object(["position": .tuple([.number(1), .number(0)])]),
+                .object(["position": .tuple([.number(0), .number(1)])]),
+            ]),
+        ])
+        let polygon = try XCTUnwrap(value.as(type)?.value as? Euclid.Polygon)
+        XCTAssertEqual(polygon.vertices.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(0, 1, 0),
+        ])
+    }
+
+    func testCastObjectToMeshUsesMemberwiseConstructor() throws {
+        let polygon = try XCTUnwrap(Euclid.Polygon([[0, 0], [1, 0], [0, 1]]))
+        let type = ValueType.mesh
+        let value = Value.object([
+            "name": .string("triangle"),
+            "polygons": .tuple([.polygon(polygon)]),
+        ])
+        let geometry = try XCTUnwrap(value.as(type)?.value as? Geometry)
+        XCTAssertEqual(geometry.name, "triangle")
+        XCTAssertEqual(geometry.polygons { false }.count, 2)
+        XCTAssertEqual(geometry.polygons { false }.first, polygon)
+    }
+
+    func testCastObjectToMeshPreservesExplicitMaterialAndVertexColors() throws {
+        let material = Material(color: .blue)
+        let polygon = try XCTUnwrap(Euclid.Polygon([
+            Vertex(0, 0, color: .red),
+            Vertex(1, 0, color: .red),
+            Vertex(0, 1, color: .red),
+        ]))
+        let type = ValueType.mesh
+        let value = Value.object([
+            "name": .string("triangle"),
+            "polygons": .tuple([.polygon(polygon)]),
+            "material": .material(material),
+        ])
+        let geometry = try XCTUnwrap(value.as(type)?.value as? Geometry)
+        let outputPolygon = try XCTUnwrap(geometry.polygons { false }.first)
+        XCTAssertEqual(geometry.material, material)
+        XCTAssertEqual(outputPolygon.material as? Material, material)
+        XCTAssertEqual(outputPolygon.vertices.map(\.color), [.red, .red, .red])
+    }
+
+    func testCastJSONLikeObjectToMeshUsesMemberwiseConstructor() throws {
+        let type = ValueType.mesh
+        let value = Value.object([
+            "name": .string("triangle"),
+            "polygons": .tuple([
+                .object([
+                    "points": .tuple([
+                        .object(["position": .tuple([.number(0), .number(0)])]),
+                        .object(["position": .tuple([.number(1), .number(0)])]),
+                        .object(["position": .tuple([.number(0), .number(1)])]),
+                    ]),
+                ]),
+            ]),
+        ])
+        if case let .object(values) = value {
+            if case let .tuple(polygons)? = values["polygons"] {
+                XCTAssertNotNil(try polygons.first?.as(.polygon, in: nil))
+            }
+            XCTAssertNotNil(try values["polygons"]?.as(.list(.any), in: nil))
+            XCTAssertNotNil(try values["polygons"]?.as(.list(.polygon), in: nil))
+        }
+        let geometry = try XCTUnwrap(value.as(type)?.value as? Geometry)
+        XCTAssertEqual(geometry.name, "triangle")
+        XCTAssertEqual(geometry.polygons { false }.count, 2)
+    }
+
+    func testCastObjectToPathUsesMemberwiseConstructor() throws {
+        let type = ValueType.path
+        let value = Value.object([
+            "points": .tuple([
+                .point(PathPoint(0, 0)),
+                .point(PathPoint(1, 0)),
+                .point(PathPoint(1, 1)),
+            ]),
+        ])
+        let path = try XCTUnwrap(value.as(type)?.value as? Path)
+        XCTAssertEqual(path.points.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(1, 1, 0),
+        ])
+    }
+
+    func testCastObjectToPathPreservesExistingPointColorsWhenColorIsOmitted() throws {
+        let type = ValueType.path
+        let value = Value.object([
+            "points": .tuple([
+                .point(PathPoint(0, 0, color: .red)),
+                .point(PathPoint(1, 0, color: .green)),
+                .point(PathPoint(1, 1)),
+            ]),
+        ])
+        let path = try XCTUnwrap(value.as(type)?.value as? Path)
+        XCTAssertEqual(path.points.map(\.color), [.red, .green, nil])
+    }
+
+    func testCastObjectToPointUsesMemberwiseConstructor() throws {
+        let type = ValueType.point
+        let value = Value.object([
+            "position": .vector(Vector(1, 2, 3)),
+            "z": .number(4),
+            "color": .color(.red),
+            "isCurved": .boolean(true),
+        ])
+        let point = try XCTUnwrap(value.as(type)?.value as? PathPoint)
+        XCTAssertEqual(point.position, Vector(1, 2, 4))
+        XCTAssertEqual(point.color, .red)
+        XCTAssertTrue(point.isCurved)
+    }
+
     func testCastNestedTupleArguments() throws {
         let type = ValueType.tuple([.list(.string), .string])
         XCTAssert(Value(Value("foo", "bar"), "baz").isConvertible(to: type))

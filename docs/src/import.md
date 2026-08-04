@@ -89,6 +89,34 @@ ShapeScript also supports importing JSON files as [structured data](literals.md#
 define data import "Data.json"
 ```
 
+ShapeScript converts JSON arrays to tuples, and JSON objects to [objects](literals.md#objects). If the object uses the same member names as ShapeScript's [block syntax](blocks.md), it can be directly used to create meshes, polygons, points, materials, colors, vectors, and other structured values.
+
+For example, the following JSON file describes a triangular mesh:
+
+```json
+{
+    "name": "triangle",
+    "polygons": [
+        {
+            "points": [
+                { "position": [0, 0], "color": [1, 0, 0] },
+                { "position": [1, 0], "color": [0, 1, 0] },
+                { "position": [0, 1], "color": [0, 0, 1] }
+            ]
+        }
+    ]
+}
+```
+
+If this file is named `Triangle.json`, it can be imported and displayed like this:
+
+```swift
+define triangle import "Triangle.json"
+mesh triangle
+```
+
+The top-level JSON object can be interpreted as a [mesh](meshes.md) because it matches the mesh object structure. Mesh objects support `name`, `polygons`, and `material` members. Polygon objects support `points` and `material`. Point objects support `position`, `x`, `y`, `z`, `color`, and `isCurved`. Materials use the same member names as [material block syntax](materials.md#material), such as `color`, `opacity`, `roughness`, `metallicity` and `glow`.
+
 **Note:** ShapeScript currently only supports `txt` or `json` file extensions for data files. To import structured text in other formats you will need to change the file extension.
 
 ## Textures and Fonts

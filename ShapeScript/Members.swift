@@ -240,6 +240,10 @@ private extension MemberProperties {
             guard case let .polygon(polygon) = value else { return nil }
             return .tuple(polygon.triangulate().map { .polygon($0) })
         },
+        "material": .init(.material) { value, _ in
+            guard case let .polygon(polygon) = value else { return nil }
+            return .material(polygon.material as? Material ?? .default)
+        },
     ]
 
     static let point: MemberProperties = [
@@ -531,6 +535,44 @@ private extension MemberwiseConstructor {
         ))
     }
 
+    static let mesh = MemberwiseConstructor { values in
+        let polygons = values["polygons"]?.tupleValue as? [Polygon] ?? []
+        let material = values["material"]?.value as? Material
+        let mesh = material.map { Mesh(polygons).withMaterial($0) } ?? Mesh(polygons)
+        return .mesh(Geometry(
+            type: .mesh(mesh),
+            name: values["name"]?.stringValue,
+            transform: .identity,
+            material: material ?? .default,
+            smoothing: nil,
+            children: [],
+            sourceLocation: nil
+        ))
+    }
+
+    static let polygon = MemberwiseConstructor { values in
+        let points = values["points"]?.tupleValue as? [PathPoint] ?? []
+        let material = values["material"]?.value as? Material
+        return Polygon(points.map(Vertex.init), material: material).map(Value.polygon)
+    }
+
+    static let path = MemberwiseConstructor { values in
+        let points = values["points"]?.tupleValue as? [PathPoint] ?? []
+        return .path(Path(points))
+    }
+
+    static let point = MemberwiseConstructor { values in
+        var position = values["position"]?.vectorValue ?? .zero
+        position.x = values["x"]?.doubleValue ?? position.x
+        position.y = values["y"]?.doubleValue ?? position.y
+        position.z = values["z"]?.doubleValue ?? position.z
+        let color = values["color"]?.colorValue
+        let point = values["isCurved"]?.boolValue == true
+            ? PathPoint.curve(position, color: color)
+            : PathPoint.point(position, color: color)
+        return .point(point)
+    }
+
     static let material = MemberwiseConstructor { values in
         .material(.init(
             opacity: values["opacity"]?.numberOrTextureValue,
@@ -609,10 +651,10 @@ extension ValueType {
         switch self {
         case let .object(members):
             members
-        case .material, .color, .rotation:
+        case .material, .color, .rotation, .mesh, .polygon:
             memberProperties.mapValues(\.type)
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .string, .text, .path, .mesh, .polygon, .point,
+             .vector, .size, .string, .text, .path, .point,
              .range, .partialRange, .bounds, .union, .tuple, .list:
             Self.knownMemberTypes
         case .any:
@@ -647,12 +689,16 @@ extension ValueType {
         switch self {
         case .vector: [.vector]
         case .size: [.size]
+        case .mesh: [.mesh]
+        case .polygon: [.polygon]
+        case .path: [.path]
+        case .point: [.point]
         case .material: [.material]
         case .color: [.colorHSB, .colorRGB]
         case .rotation: [.rotationAxisAngle, .rotationEuler]
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .string, .text, .path, .mesh, .polygon, .point, .bounds,
-             .range, .partialRange, .object, .union, .tuple, .list, .any:
+             .string, .text, .bounds, .range, .partialRange,
+             .object, .union, .tuple, .list, .any:
             []
         }
     }
