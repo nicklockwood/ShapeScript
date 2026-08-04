@@ -1168,6 +1168,26 @@ final class TypesystemTests: XCTestCase {
         }
     }
 
+    func testCastObjectToVectorUsesMemberwiseConstructor() {
+        let type = ValueType.vector
+        let value = Value.object([
+            "x": .number(1),
+            "y": .number(2),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .vector(Vector(1, 2, 0)))
+    }
+
+    func testCastObjectToSizeUsesMemberwiseConstructor() {
+        let type = ValueType.size
+        let value = Value.object([
+            "width": .number(2),
+            "depth": .number(4),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .size(Vector(2, 1, 4)))
+    }
+
     func testCastNestedTupleArguments() throws {
         let type = ValueType.tuple([.list(.string), .string])
         XCTAssert(Value(Value("foo", "bar"), "baz").isConvertible(to: type))

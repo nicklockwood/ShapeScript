@@ -515,6 +515,22 @@ private struct MemberwiseConstructor: Sendable {
 }
 
 private extension MemberwiseConstructor {
+    static let vector = MemberwiseConstructor { values in
+        .vector(.init(
+            values["x"]?.doubleValue ?? 0,
+            values["y"]?.doubleValue ?? 0,
+            values["z"]?.doubleValue ?? 0
+        ))
+    }
+
+    static let size = MemberwiseConstructor { values in
+        .size(.init(
+            values["width"]?.doubleValue ?? 1,
+            values["height"]?.doubleValue ?? 1,
+            values["depth"]?.doubleValue ?? 1
+        ))
+    }
+
     static let material = MemberwiseConstructor { values in
         .material(.init(
             opacity: values["opacity"]?.numberOrTextureValue,
@@ -629,12 +645,14 @@ extension ValueType {
 
     private var memberwiseConstructors: [MemberwiseConstructor] {
         switch self {
+        case .vector: [.vector]
+        case .size: [.size]
         case .material: [.material]
         case .color: [.colorHSB, .colorRGB]
         case .rotation: [.rotationAxisAngle, .rotationEuler]
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .string, .text, .path, .mesh, .polygon, .point,
-             .range, .partialRange, .bounds, .object, .union, .tuple, .list, .any:
+             .string, .text, .path, .mesh, .polygon, .point, .bounds,
+             .range, .partialRange, .object, .union, .tuple, .list, .any:
             []
         }
     }

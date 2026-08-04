@@ -19,6 +19,19 @@ cube {
 
 Positions are applied hierarchically. For shapes located at the root of the ShapeScript file, their `position` is relative to the world origin, however you can nests shapes inside [groups](groups.md), in which case the `position` of the child shapes will be measured relative to the `position` of their containing group.
 
+If you prefer, you can set the position using [block syntax](blocks.md):
+
+```swift
+cube {
+    position {
+        y 1
+        z 5
+    }
+}
+```
+
+This lets you specify `x`, `y` and `z` values explicitly rather than positionally. Omitted values default to zero.
+
 ## Orientation
 
 The `orientation` option defines the rotation for the shape using three parameters called `roll`, `yaw` and `pitch`.  The `roll` value represents a rotation around the Z axis, the `yaw` is rotation around the Y axis, and the `pitch` is a rotation around the X axis:
@@ -98,6 +111,20 @@ cube {
 Like the `position` and `orientation` commands, `size` allows you to omit one or two parameters, however unlike the other commands, omitted parameters are assumed to be equal to the first value given. So `size 0.5` is equivalent to `size 0.5 0.5 0.5`.
 
 It is possible to apply a negative size value, which has the effect of flipping or mirroring the shape. For example, `size 1 -1 1` would flip the shape upside-down along the Y axis. This does not always work as intended however, and may produce odd side-effects such as turning shapes inside-out. In general it's better to stick to positive `size` values and use `orientation` if you need to flip a shape around.
+
+You can also set a size using [block syntax](blocks.md):
+
+```swift
+cube {
+    size {
+        width 2
+        height 3
+        depth 4
+    }
+}
+```
+
+With this approach, omitted `width`, `height` and `depth` values will default to 1.
 
 ## Relative Transforms
 

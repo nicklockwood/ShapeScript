@@ -376,6 +376,27 @@ final class MemberTests: XCTestCase {
         }
     }
 
+    func testVectorAndSizeMemberwiseInitializers() throws {
+        let program = """
+        cube {
+            position {
+                x 1
+                y 2
+                z 3
+            }
+            size {
+                width 2
+                height 3
+                depth 4
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.transform.translation, Vector(1, 2, 3))
+        XCTAssertEqual(geometry.transform.scale, Vector(2, 3, 4))
+    }
+
     func testTupleOrdinalLookup() {
         let program = "define col 1 0.5\nprint col.second"
         let delegate = TestDelegate()
