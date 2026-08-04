@@ -7,52 +7,8 @@
 //
 
 import Euclid
-import Foundation
-
-#if canImport(CoreGraphics) && canImport(ImageIO)
-import CoreGraphics
-import ImageIO
-#endif
 
 public typealias Color = Euclid.Color
-
-public struct Texture: Hashable, Sendable {
-    public let name: String?
-    public let url: URL?
-    public let data: Data
-    public var intensity: Double
-}
-
-public extension Texture {
-    static func file(name: String, url: URL?, intensity: Double = 1) throws -> Self {
-        let url = url ?? URL(fileURLWithPath: name)
-        try url.validateFileSize(limit: FileSizeLimit.image)
-        let data = try Data(contentsOf: url)
-        return .init(name: name, url: url, data: data, intensity: intensity)
-    }
-
-    static func data(_ data: Data, intensity: Double = 1) -> Texture {
-        .init(name: nil, url: nil, data: data, intensity: intensity)
-    }
-
-    #if canImport(CoreGraphics) && canImport(ImageIO)
-    static let checkerboard: Texture = {
-        let data = NSMutableData()
-        if let destination = CGImageDestinationCreateWithData(
-            // TODO: use UTType.png once we drop macOS 10.15 support
-            data, "public.png" as CFString, 1, nil
-        ) {
-            CGImageDestinationAddImage(destination, .checkerboard(), nil)
-            CGImageDestinationFinalize(destination)
-        }
-        return .data(data as Data)
-    }()
-    #endif
-
-    func withIntensity(_ intensity: Double) -> Self {
-        .init(name: name, url: url, data: data, intensity: intensity)
-    }
-}
 
 public enum MaterialProperty: Hashable, Sendable {
     case color(Color)

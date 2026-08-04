@@ -86,6 +86,18 @@ final class PlatformTests: XCTestCase {
         XCTAssertEqual(Texture.data(maskData).averageOpacity ?? 0, 0.5, accuracy: 0.01)
     }
 
+    func testTextureAverageColor() throws {
+        let data = try pngData(pixels: [
+            .init(red: 255, green: 0, blue: 0, alpha: 255),
+        ])
+        let color = try XCTUnwrap(Texture.data(data).averageColor)
+
+        XCTAssertEqual(color.red, 1, accuracy: 0.01)
+        XCTAssertEqual(color.green, 0, accuracy: 0.01)
+        XCTAssertEqual(color.blue, 0, accuracy: 0.01)
+        XCTAssertEqual(color.alpha, 1, accuracy: 0.01)
+    }
+
     func testSceneBuildDisablesDepthBufferWritesForOverlappingTransparentGeometry() throws {
         let transparent = cube(material: Material(color: .red.withAlphaComponent(0.5)))
         let opaque = cube(material: Material(color: .blue))

@@ -110,13 +110,9 @@ extension Symbols {
         "purple": .constant(.color(.purple)),
     ]
 
-    static let textures: Symbols = {
-        var symbols = Symbols()
-        #if canImport(CoreGraphics) && canImport(ImageIO)
-        symbols["checkerboard"] = .constant(.texture(.checkerboard))
-        #endif
-        return symbols
-    }()
+    static let textures: Symbols = [
+        "checkerboard": .constant(.texture(.checkerboard)),
+    ]
 
     static let color: Symbols = colors + [
         "color": .property(.color, { parameter, context in
