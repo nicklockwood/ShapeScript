@@ -61,13 +61,35 @@ public extension MaterialProperty {
             }
         }
     }
+
+    func configureOpacityProperty(_ property: SCNMaterialProperty) {
+        switch self {
+        case .color:
+            configureProperty(property)
+        case let .texture(texture):
+            property.magnificationFilter = .nearest
+            property.minificationFilter = .linear
+            if texture.intensity > 0 {
+                if let data = texture.opacityMaskData {
+                    property.contents = data
+                } else if let url = texture.url {
+                    property.contents = url
+                } else {
+                    property.contents = texture.data
+                }
+                property.intensity = texture.intensity
+            } else {
+                property.contents = OSColor.clear
+            }
+        }
+    }
 }
 
 public extension SCNMaterial {
     convenience init(_ m: Material, isOpaque: Bool, writesToDepthBuffer: Bool = true) {
         self.init()
         m.normals.flatMap(MaterialProperty.init)?.configureProperty(normal)
-        m.opacity?.configureProperty(transparent)
+        m.opacity?.configureOpacityProperty(transparent)
         if case let .color(albedo)? = m.albedo, albedo.alpha < 1 {
             // Workaround for SceneKit blending bugs with translucent colors
             diffuse.contents = OSColor(albedo.withAlphaComponent(1))

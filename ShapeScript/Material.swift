@@ -56,11 +56,8 @@ public extension MaterialProperty {
         switch self {
         case let .color(color):
             color.alpha
-        case .texture:
-            // There's not really a good option here but
-            // it works best to treat textures as opaque
-            // even if they have partial transparency
-            1
+        case let .texture(texture):
+            texture.averageOpacity ?? 1
         }
     }
 

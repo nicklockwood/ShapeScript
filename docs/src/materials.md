@@ -322,7 +322,7 @@ sphere {
 
 ![Checkered transparent sphere](../images/checkered-sphere.png)
 
-Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. Only the alpha channel of the texture image is used to compute the transparency.
+Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. If the texture image includes transparent or partially transparent pixels, the alpha channel is used to compute the transparency. If the texture is fully opaque, its luminance is used instead, allowing opaque black and white images to be used as opacity masks.
 
 ## Glow
 

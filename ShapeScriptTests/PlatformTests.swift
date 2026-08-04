@@ -12,6 +12,8 @@ import XCTest
 
 #if canImport(UIKit) || canImport(AppKit)
 
+import CoreGraphics
+import ImageIO
 import SceneKit
 
 final class PlatformTests: XCTestCase {
@@ -50,6 +52,38 @@ final class PlatformTests: XCTestCase {
         XCTAssertTrue(transparent.writesToDepthBuffer)
         XCTAssertTrue(textured.writesToDepthBuffer)
         XCTAssertEqual(transparent.transparencyMode, .dualLayer)
+    }
+
+    func testOpacityTextureUsesAlphaChannelWhenAvailable() throws {
+        let data = try pngData(pixels: [
+            .init(red: 255, green: 255, blue: 255, alpha: 0),
+            .init(red: 0, green: 0, blue: 0, alpha: 255),
+        ])
+        var material = Material.default
+        material.opacity = .texture(.data(data))
+
+        let scnMaterial = SCNMaterial(material, isOpaque: material.isOpaque)
+
+        XCTAssertFalse(material.isOpaque)
+        XCTAssertEqual(scnMaterial.transparent.contents as? Data, data)
+    }
+
+    func testOpacityTextureUsesLuminanceWhenAlphaIsFullyOpaque() throws {
+        let data = try pngData(pixels: [
+            .init(red: 255, green: 255, blue: 255, alpha: 255),
+            .init(red: 0, green: 0, blue: 0, alpha: 255),
+        ])
+        let texture = Texture.data(data)
+        var material = Material.default
+        material.opacity = .texture(texture)
+
+        let scnMaterial = SCNMaterial(material, isOpaque: material.isOpaque)
+        let maskData = try XCTUnwrap(scnMaterial.transparent.contents as? Data)
+
+        XCTAssertFalse(material.isOpaque)
+        XCTAssertEqual(texture.averageOpacity ?? 0, 0.5, accuracy: 0.01)
+        XCTAssertNotEqual(maskData, data)
+        XCTAssertEqual(Texture.data(maskData).averageOpacity ?? 0, 0.5, accuracy: 0.01)
     }
 
     func testSceneBuildDisablesDepthBufferWritesForOverlappingTransparentGeometry() throws {
@@ -144,6 +178,38 @@ final class PlatformTests: XCTestCase {
             children: [],
             sourceLocation: nil
         )
+    }
+
+    private struct Pixel {
+        var red: UInt8
+        var green: UInt8
+        var blue: UInt8
+        var alpha: UInt8
+    }
+
+    private func pngData(pixels: [Pixel]) throws -> Data {
+        var components = pixels.flatMap { [$0.red, $0.green, $0.blue, $0.alpha] }
+        let width = pixels.count
+        let height = 1
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        let context = try XCTUnwrap(CGContext(
+            data: &components,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        let image = try XCTUnwrap(context.makeImage())
+        let data = NSMutableData()
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithData(
+            data, "public.png" as CFString, 1, nil
+        ))
+        CGImageDestinationAddImage(destination, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        return data as Data
     }
 }
 
