@@ -67,6 +67,36 @@ extension Symbols {
     ]
 
     static let colors: Symbols = [
+        "rgb": .function(.list(.number), .color) { value, _ in
+            let values = value.doublesValue
+            guard values.count >= 3 else {
+                throw RuntimeErrorType.missingArgument(for: "", index: values.count, type: .number)
+            }
+            guard values.count <= 4 else {
+                throw RuntimeErrorType.unexpectedArgument(for: "", max: 4)
+            }
+            return .color(Color(
+                red: values[0],
+                green: values[1],
+                blue: values[2],
+                alpha: values.count > 3 ? values[3] : 1
+            ))
+        },
+        "hsb": .function(.list(.number), .color) { value, _ in
+            let values = value.doublesValue
+            guard values.count >= 3 else {
+                throw RuntimeErrorType.missingArgument(for: "", index: values.count, type: .number)
+            }
+            guard values.count <= 4 else {
+                throw RuntimeErrorType.unexpectedArgument(for: "", max: 4)
+            }
+            return .color(Color(
+                hue: values[0],
+                saturation: values[1],
+                brightness: values[2],
+                alpha: values.count > 3 ? values[3] : 1
+            ))
+        },
         "white": .constant(.color(.white)),
         "black": .constant(.color(.black)),
         "gray": .constant(.color(.gray)),

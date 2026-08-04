@@ -24,6 +24,19 @@ extension ValueType {
                 roughness: values["roughness"]?.numberOrTextureValue,
                 glow: values["glow"]?.colorOrTextureValue
             ))
+        case .color where values["hue"] ?? values["saturation"] ?? values["brightness"] != nil:
+            if values["red"] ?? values["green"] ?? values["blue"] == nil {
+                .color(.init(
+                    hue: values["hue"]?.doubleValue ?? 0,
+                    saturation: values["saturation"]?.doubleValue ?? 0,
+                    brightness: values["brightness"]?.doubleValue ?? 0,
+                    alpha: values["alpha"]?.doubleValue ?? 1
+                ))
+            } else {
+                throw RuntimeErrorType.assertionFailure(
+                    "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
+                )
+            }
         case .color:
             .color(.init(
                 red: values["red"]?.doubleValue ?? 0,
@@ -74,7 +87,15 @@ extension ValueType {
                 "glow": .colorOrTexture,
             ]
         case .color:
-            ["red": .number, "green": .number, "blue": .number, "alpha": .number]
+            [
+                "red": .number,
+                "green": .number,
+                "blue": .number,
+                "hue": .number,
+                "saturation": .number,
+                "brightness": .number,
+                "alpha": .number,
+            ]
         case .rotation:
             [
                 "roll": .halfturns,
@@ -138,6 +159,9 @@ extension ValueType {
         "red": .number,
         "green": .number,
         "blue": .number,
+        "hue": .number,
+        "saturation": .number,
+        "brightness": .number,
         "alpha": .number,
         "bounds": .bounds,
         "opacity": .number,
@@ -179,7 +203,7 @@ extension Value {
         case .rotation:
             return ["roll", "yaw", "pitch", "axis", "angle"]
         case .color:
-            return ["red", "green", "blue", "alpha"]
+            return ["red", "green", "blue", "hue", "saturation", "brightness", "alpha"]
         case .texture:
             return ["intensity"]
         case .material:
@@ -302,6 +326,9 @@ extension Value {
             case "red": return .number(color.red)
             case "green": return .number(color.green)
             case "blue": return .number(color.blue)
+            case "hue": return .number(color.hue)
+            case "saturation": return .number(color.saturation)
+            case "brightness": return .number(color.brightness)
             case "alpha": return .number(color.alpha)
             default: return nil
             }

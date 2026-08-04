@@ -7,10 +7,12 @@ Materials in ShapeScript allow you to alter the [color](#color) and [texture](#t
 
 ## Color
 
-You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: RGB tuples, block syntax, hexadecimal, or predefined constants. The following commands all produce a red cube:
+You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: RGB tuples, RGB or HSB functions, block syntax, hexadecimal, or predefined constants. The following commands all produce a red cube:
 
 ```swift
 cube { color 1 0 0 }
+cube { color rgb(1 0 0) }
+cube { color hsb(0 1 1) }
 cube { color { red 1 } }
 cube { color #FF0000 }
 cube { color #F00 }
@@ -71,6 +73,22 @@ color 1 0.5
 color 1 1 1 0.5
 ```
 
+### HSB Colors
+
+You can also use the `hsb` function to create colors using [hue, saturation and brightness](https://en.wikipedia.org/wiki/HSL_and_HSV) values:
+
+```swift
+color hsb(0 1 1) // red
+color hsb(1 / 3 1 1) // green
+color hsb(2 / 3 1 1) // blue
+```
+
+The hue component specifies a position around the color wheel from 0 to 1. The saturation component controls the intensity of the color, and the brightness component controls how light or dark it is. Like RGB colors, HSB colors can include an optional fourth alpha component:
+
+```swift
+color hsb(0 1 1 0.5) // 50% transparent red
+```
+
 ### Color Blocks
 
 You can also specify color components more explicitly by using [block syntax](blocks.md):
@@ -84,7 +102,17 @@ color {
 }
 ```
 
-As with numeric RGB colors, the `alpha` value is optional and defaults to 1; All other components default to 0.
+You can also use block syntax with hue, saturation and brightness:
+
+```swift
+color {
+    hue 0.5
+    saturation 1
+    brightness 0.75
+}
+```
+
+As with numeric RGB colors, the `alpha` value is optional and defaults to 1; all other components default to 0. You can use red, green and blue values or hue, saturation and brightness values, but not both in the same block.
 
 ### Hexadecimal Colors
 

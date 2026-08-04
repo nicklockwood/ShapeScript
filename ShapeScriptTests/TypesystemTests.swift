@@ -299,6 +299,11 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("color.alpha"), .number)
     }
 
+    func testColorFactoryFunctionTypes() {
+        XCTAssertEqual(try expressionType("rgb 0.25 0.5 0.75"), .color)
+        XCTAssertEqual(try expressionType("hsb 0.5 1 0.75"), .color)
+    }
+
     func testRotationPropertyMemberTypes() {
         XCTAssertEqual(ValueType.rotation.memberType("roll"), .halfturns)
         XCTAssertEqual(ValueType.rotation.memberType("yaw"), .halfturns)
@@ -1118,10 +1123,42 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), .color(Color(red: 0.25, green: 0.5, blue: 0.75, alpha: 0.8)))
     }
 
+    func testCastObjectToColorWithHSBComponents() {
+        let type = ValueType.color
+        let value = Value.object([
+            "hue": .number(0.5),
+            "saturation": .number(1),
+            "brightness": .number(0.75),
+            "alpha": .number(0.8),
+        ])
+        XCTAssert(value.isConvertible(to: type))
+        XCTAssertEqual(value.as(type), .color(Color(hue: 0.5, saturation: 1, brightness: 0.75, alpha: 0.8)))
+    }
+
     func testCastInvalidObjectToColor() {
         let type = ValueType.color
         let value = Value.object(["red": .number(0.25), "hue": .number(0.5)])
         XCTAssertFalse(value.isConvertible(to: type))
+    }
+
+    func testCastObjectToColorRejectsMixedRGBAndHSBMembers() {
+        let type = ValueType.color
+        for rgbMember in ["red", "green", "blue"] {
+            let value = Value.object([
+                rgbMember: .number(0.25),
+                "hue": .number(0.5),
+                "saturation": .number(1),
+                "brightness": .number(0.75),
+            ])
+            XCTAssertFalse(value.isConvertible(to: type), """
+            Expected mixed \(rgbMember) and hue/saturation/brightness to be rejected
+            """)
+            XCTAssertThrowsError(try value.as(type, in: nil)) { error in
+                XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
+                    "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
+                ))
+            }
+        }
     }
 
     func testCastNestedTupleArguments() throws {

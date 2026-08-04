@@ -144,6 +144,9 @@ print col.red // prints 1
 print col.green // prints 0
 print col.blue // prints 0
 print col.alpha // prints 1
+print col.hue // prints 0
+print col.saturation // prints 1
+print col.brightness // prints 1
 ```
 
 For more abstract data, you can use the ordinal members (`first`, `second`, `third`, ... `last`) to access members by index:

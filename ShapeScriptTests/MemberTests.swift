@@ -507,11 +507,14 @@ final class MemberTests: XCTestCase {
         print foo.red
         print foo.green
         print foo.blue
+        print foo.hue
+        print foo.saturation
+        print foo.brightness
         print foo.alpha
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [1.0, 0.0, 0.0, 1.0])
+        XCTAssertEqual(delegate.log, [1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0])
     }
 
     func testColorMemberwiseInitializerComponentLookup() {
@@ -547,6 +550,48 @@ final class MemberTests: XCTestCase {
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
         XCTAssertEqual(delegate.log, [0.25, 0.5, 0.75, 1.0])
+    }
+
+    func testColorHSBMemberwiseInitializerComponentLookup() {
+        let program = """
+        color {
+            hue 0.5
+            saturation 1
+            brightness 0.75
+            alpha 0.8
+        }
+        print color.red
+        print color.green
+        print color.blue
+        print color.hue
+        print color.saturation
+        print color.brightness
+        print color.alpha
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [0.0, 0.75, 0.75, 0.5, 1.0, 0.75, 0.8])
+    }
+
+    func testColorMemberwiseInitializerRejectsMixedRGBAndHSBMembers() {
+        let program = """
+        color {
+            red 0.25
+            hue 0.5
+            saturation 1
+            brightness 0.75
+        }
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error?.hint, """
+            Color initializer cannot mix red/green/blue with hue/saturation/brightness.
+            """)
+            XCTAssertEqual(error?.type, .assertionFailure(
+                "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
+            ))
+        }
     }
 
     func testMeshVolumeLookup() throws {
