@@ -568,7 +568,8 @@ public extension Geometry {
             smoothing: smoothing,
             sourceLocation: sourceLocation,
             removingLights: false,
-            removingGroupTransform: false
+            removingGroupTransform: false,
+            withoutDebug: false
         )
     }
 
@@ -581,7 +582,8 @@ public extension Geometry {
             smoothing: nil,
             sourceLocation: nil,
             removingLights: true,
-            removingGroupTransform: false
+            removingGroupTransform: false,
+            withoutDebug: false
         )
     }
 
@@ -594,7 +596,25 @@ public extension Geometry {
             smoothing: nil,
             sourceLocation: nil,
             removingLights: false,
-            removingGroupTransform: true
+            removingGroupTransform: true,
+            withoutDebug: false
+        )
+    }
+
+    /// Returns a copy of the geometry with debug geometry and materials removed
+    func withoutDebug() -> Geometry {
+        guard childDebug else {
+            return self
+        }
+        return _with(
+            name: nil,
+            transform: nil,
+            material: nil,
+            smoothing: nil,
+            sourceLocation: nil,
+            removingLights: false,
+            removingGroupTransform: false,
+            withoutDebug: true
         )
     }
 
@@ -1041,7 +1061,8 @@ private extension Geometry {
         smoothing: Angle?,
         sourceLocation: (@Sendable () -> SourceLocation?)?,
         removingLights: Bool,
-        removingGroupTransform: Bool
+        removingGroupTransform: Bool,
+        withoutDebug: Bool
     ) -> Geometry {
         var type = type
         if removingLights, case .light = type {
@@ -1092,11 +1113,12 @@ private extension Geometry {
                     smoothing: nil,
                     sourceLocation: sourceLocation,
                     removingLights: removingLights,
-                    removingGroupTransform: removingGroupTransform
+                    removingGroupTransform: removingGroupTransform,
+                    withoutDebug: withoutDebug
                 )
             },
             sourceLocation: _sourceLocation ?? sourceLocation,
-            debug: debug
+            debug: withoutDebug ? false : debug
         )
         copy.mesh = mesh
         return copy

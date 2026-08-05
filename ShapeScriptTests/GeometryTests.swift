@@ -59,6 +59,28 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(group.overestimatedBounds, cube.overestimatedBounds)
     }
 
+    func testWithoutDebugClearsDebugState() throws {
+        let scene = try evaluate(parse("""
+        group {
+            cube
+            debug cube {
+                position 10
+            }
+        }
+        """), delegate: nil)
+
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.childDebug)
+        XCTAssertTrue(geometry.children[1].debug)
+
+        let copy = geometry.withoutDebug()
+        XCTAssertFalse(copy.childDebug)
+        XCTAssertFalse(copy.children[0].debug)
+        XCTAssertFalse(copy.children[1].debug)
+        XCTAssertEqual(copy.children.count, 2)
+        XCTAssertEqual(copy.children[1].transform.translation, [10, 0, 0])
+    }
+
     func testLowDetailPrimitiveBounds() {
         let cylinder = GeometryType.cylinder(segments: 3)
         let cone = GeometryType.cone(segments: 3)
