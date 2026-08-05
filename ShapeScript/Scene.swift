@@ -43,7 +43,10 @@ public extension Scene {
 
     /// Returns the approximate (overestimated) bounds of the scene geometry.
     var overestimatedBounds: Bounds {
-        Bounds(children.map(\.overestimatedBounds))
+        let focus = children.contains(where: \.childIsFocused)
+        return Bounds(children.map {
+            $0.overestimatedBoundsForFocus(focus: focus)
+        })
     }
 
     /// Returns the approximate (overestimated) bounds of the scene geometry.
@@ -61,6 +64,18 @@ public extension Scene {
 }
 
 private extension Geometry {
+    func overestimatedBoundsForFocus(focus: Bool) -> Bounds {
+        if focus, !isFocused, !childIsFocused {
+            return .empty
+        }
+        if !focus || isFocused {
+            return overestimatedBounds
+        }
+        return Bounds(children.map {
+            $0.overestimatedBoundsForFocus(focus: focus)
+        }).transformed(by: transform)
+    }
+
     var _cameras: [Geometry] {
         guard case .camera = type else {
             return children.flatMap(\._cameras)

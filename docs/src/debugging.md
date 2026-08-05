@@ -57,6 +57,17 @@ difference {
 }
 ```
 
+If you want to hide the rest of the scene while inspecting one or more shapes, use `focus` instead of `debug`:
+
+```swift
+focus cylinder {
+    position 0.4
+    size 1 0.2
+}
+```
+
+As with the `debug` command, you can focus multiple shapes at once to show them all.
+
 ## Logging
 
 When creating complex scripts, it can sometimes be difficult to understand what's happening in the code. To help you debug your scripts, you can use the `print` command:

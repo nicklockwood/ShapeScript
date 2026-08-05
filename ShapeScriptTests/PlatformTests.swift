@@ -193,6 +193,50 @@ final class PlatformTests: XCTestCase {
         XCTAssertFalse(material.writesToDepthBuffer)
     }
 
+    func testSceneBuildOnlyRendersFocusedGeometry() {
+        let hidden = cube(material: Material(color: .red))
+        let focused = cube(material: Material(color: .blue))
+        let scene = Scene(background: .color(.clear), children: [hidden, focused], cache: nil)
+
+        XCTAssertTrue(scene.build { true })
+        scene.scnBuild(with: .default)
+        XCTAssertGreaterThan(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+
+        focused.isFocused = true
+        scene.scnBuild(with: .default)
+
+        XCTAssertEqual(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+        XCTAssertGreaterThan(focused.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+    }
+
+    func testSceneBuildRendersFocusedGeometryInsideCSGContainers() throws {
+        for container in ["union", "difference"] {
+            let scene = try evaluate(parse("""
+            \(container) {
+                focus cube {
+                    position -1
+                }
+                cube {
+                    position 1
+                }
+            }
+            """), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            let focused = try XCTUnwrap(geometry.children.first)
+            let hidden = try XCTUnwrap(geometry.children.last)
+
+            XCTAssertTrue(scene.build { true })
+            scene.scnBuild(with: .default)
+
+            XCTAssertEqual(geometry.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+            XCTAssertGreaterThan(focused.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+            XCTAssertEqual(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+
+            let node = SCNNode(geometry)
+            XCTAssertEqual(node.childNodes.count, 2)
+        }
+    }
+
     func testSceneBuildRendersSelfIntersectingFilledPath() throws {
         let scene = try evaluate(parse("""
         fill path {

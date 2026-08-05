@@ -60,7 +60,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
               lhs.material == rhs.material,
               lhs.smoothing == rhs.smoothing,
               lhs.children == rhs.children
-        // Exclude isOpaque, sourceLocation and parent
+        // Exclude isOpaque, sourceLocation, parent, debug and focus
         else {
             return false
         }
@@ -86,6 +86,15 @@ public final class Geometry: Hashable, @unchecked Sendable {
         didSet {
             if debug, type == .group {
                 children.forEach { $0.debug = true }
+            }
+        }
+    }
+
+    /// Hide all other geometry
+    var isFocused: Bool {
+        didSet {
+            if isFocused, type == .group {
+                children.forEach { $0.isFocused = true }
             }
         }
     }
@@ -147,7 +156,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
         smoothing: Angle?,
         children: [Geometry],
         sourceLocation: (@Sendable () -> SourceLocation?)?,
-        debug: Bool = false
+        debug: Bool = false,
+        isFocused: Bool = false
     ) {
         var material = material
         var useMaterialForCache = false
@@ -274,6 +284,9 @@ public final class Geometry: Hashable, @unchecked Sendable {
             if debug {
                 children.forEach { $0.debug = true }
             }
+            if isFocused {
+                children.forEach { $0.isFocused = true }
+            }
         case .cone, .cylinder, .icosphere, .sphere, .cube, .camera, .light:
             break
         }
@@ -286,6 +299,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         self.children = children
         self._sourceLocation = sourceLocation
         self.debug = debug
+        self.isFocused = isFocused
 
         var hasVariedMaterials = false
         var isOpaque = material.isOpaque
@@ -374,14 +388,19 @@ public extension Geometry {
         return path
     }
 
-    /// The absolute geometry transform relative to the world/scene
-    var worldTransform: Transform {
-        (parent?.worldTransform ?? .identity) * transform
-    }
-
     /// Returns `true` if the geometry's' children should be rendered in debug mode
     var childDebug: Bool {
         debug || children.contains(where: \.childDebug)
+    }
+
+    /// Returns `true` if the geometry or any of its children are focused
+    var childIsFocused: Bool {
+        isFocused || children.contains(where: \.childIsFocused)
+    }
+
+    /// The absolute geometry transform relative to the world/scene
+    var worldTransform: Transform {
+        (parent?.worldTransform ?? .identity) * transform
     }
 
     /// Return a copy of the geometry with the specified transform applied
@@ -394,7 +413,8 @@ public extension Geometry {
             smoothing: smoothing,
             children: children,
             sourceLocation: _sourceLocation,
-            debug: debug
+            debug: debug,
+            isFocused: isFocused
         )
     }
 
@@ -569,7 +589,8 @@ public extension Geometry {
             sourceLocation: sourceLocation,
             removingLights: false,
             removingGroupTransform: false,
-            withoutDebug: false
+            withoutDebug: false,
+            withoutUnfocusedGeometry: false
         )
     }
 
@@ -583,7 +604,8 @@ public extension Geometry {
             sourceLocation: nil,
             removingLights: true,
             removingGroupTransform: false,
-            withoutDebug: false
+            withoutDebug: false,
+            withoutUnfocusedGeometry: false
         )
     }
 
@@ -597,7 +619,8 @@ public extension Geometry {
             sourceLocation: nil,
             removingLights: false,
             removingGroupTransform: true,
-            withoutDebug: false
+            withoutDebug: false,
+            withoutUnfocusedGeometry: false
         )
     }
 
@@ -614,7 +637,26 @@ public extension Geometry {
             sourceLocation: nil,
             removingLights: false,
             removingGroupTransform: false,
-            withoutDebug: true
+            withoutDebug: true,
+            withoutUnfocusedGeometry: false
+        )
+    }
+
+    /// Returns a copy of the geometry with unfocused siblings removed
+    func withoutUnfocusedGeometry() -> Geometry {
+        guard childIsFocused else {
+            return self
+        }
+        return _with(
+            name: nil,
+            transform: nil,
+            material: nil,
+            smoothing: nil,
+            sourceLocation: nil,
+            removingLights: false,
+            removingGroupTransform: false,
+            withoutDebug: false,
+            withoutUnfocusedGeometry: true
         )
     }
 
@@ -1062,7 +1104,8 @@ private extension Geometry {
         sourceLocation: (@Sendable () -> SourceLocation?)?,
         removingLights: Bool,
         removingGroupTransform: Bool,
-        withoutDebug: Bool
+        withoutDebug: Bool,
+        withoutUnfocusedGeometry: Bool
     ) -> Geometry {
         var type = type
         if removingLights, case .light = type {
@@ -1096,6 +1139,10 @@ private extension Geometry {
             childTransform = transform
             transform = .identity
         }
+        let isRemovingUnfocusedChildren = withoutUnfocusedGeometry && !isFocused
+        if isRemovingUnfocusedChildren {
+            type = .group
+        }
         let copy = Geometry(
             type: type,
             name: name ?? self.name,
@@ -1106,6 +1153,9 @@ private extension Geometry {
                 if case .light = $0.type, removingLights {
                     return nil
                 }
+                if isRemovingUnfocusedChildren, !$0.childIsFocused {
+                    return nil
+                }
                 return $0._with(
                     name: nil,
                     transform: childTransform,
@@ -1114,13 +1164,15 @@ private extension Geometry {
                     sourceLocation: sourceLocation,
                     removingLights: removingLights,
                     removingGroupTransform: removingGroupTransform,
-                    withoutDebug: withoutDebug
+                    withoutDebug: withoutDebug,
+                    withoutUnfocusedGeometry: withoutUnfocusedGeometry
                 )
             },
             sourceLocation: _sourceLocation ?? sourceLocation,
-            debug: withoutDebug ? false : debug
+            debug: withoutDebug ? false : debug,
+            isFocused: isFocused
         )
-        copy.mesh = mesh
+        copy.mesh = isRemovingUnfocusedChildren ? nil : mesh
         return copy
     }
 }

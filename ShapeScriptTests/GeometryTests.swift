@@ -59,6 +59,42 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(group.overestimatedBounds, cube.overestimatedBounds)
     }
 
+    func testSceneBoundsIgnoreHiddenSiblingsWhenGeometryIsFocused() throws {
+        let scene = try evaluate(parse("""
+        group {
+            focus cube {
+                position 10
+            }
+            cube {
+                position 100
+            }
+        }
+        """), delegate: nil)
+
+        XCTAssertEqual(scene.overestimatedBounds.center, [10, 0, 0])
+    }
+
+    func testWithoutUnfocusedGeometryRemovesHiddenSiblings() throws {
+        let scene = try evaluate(parse("""
+        group {
+            focus cube {
+                position 10
+            }
+            cube {
+                position 100
+            }
+        }
+        """), delegate: nil)
+
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.childIsFocused)
+        XCTAssertEqual(geometry.children.count, 2)
+
+        let copy = geometry.withoutUnfocusedGeometry()
+        XCTAssertEqual(copy.children.count, 1)
+        XCTAssertEqual(copy.children[0].transform.translation, [10, 0, 0])
+    }
+
     func testWithoutDebugClearsDebugState() throws {
         let scene = try evaluate(parse("""
         group {

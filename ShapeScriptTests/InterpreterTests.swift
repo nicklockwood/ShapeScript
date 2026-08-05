@@ -5460,6 +5460,84 @@ final class InterpreterTests: XCTestCase {
         XCTAssertTrue(geometry.children.allSatisfy(\.debug))
     }
 
+    // MARK: Focus command
+
+    func testFocusCube() throws {
+        let program = try parse("focus cube")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        XCTAssertTrue(geometry.isFocused)
+        XCTAssertFalse(geometry.debug)
+    }
+
+    func testDebugFocusCube() throws {
+        let program = try parse("debug focus cube")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        XCTAssertTrue(geometry.isFocused)
+        XCTAssertTrue(geometry.debug)
+    }
+
+    func testFocusMultipleGeometry() throws {
+        let scene = try evaluate(parse("""
+        focus cube
+        focus sphere
+        cube
+        """), delegate: nil)
+        XCTAssertEqual(scene.children.count, 3)
+        XCTAssertTrue(scene.children[0].isFocused)
+        XCTAssertTrue(scene.children[1].isFocused)
+        XCTAssertFalse(scene.children[2].isFocused)
+    }
+
+    func testFocusBlockFocusesChildren() throws {
+        let scene = try evaluate(parse("""
+        focus {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+        XCTAssertEqual(scene.children.count, 2)
+        XCTAssertTrue(scene.children.allSatisfy(\.isFocused))
+    }
+
+    func testFocusBlockDoesNotGroupChildren() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            focus {
+                cylinder {
+                    size 1 0.2
+                }
+                cylinder {
+                    position 0.4
+                    size 1 0.2
+                }
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(geometry.children.count, 2)
+        XCTAssertTrue(geometry.children.allSatisfy(\.isFocused))
+    }
+
+    func testFocusColorCommand() throws {
+        let program = "focus color #f00"
+        let range = try XCTUnwrap(program.range(of: "color"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for 'focus' should be a mesh or block, not a color.")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "focus",
+                expected: "mesh or block",
+                got: "color"
+            ), at: range))
+        }
+    }
+
     // MARK: Tuples
 
     func testTupleDeclarationNotFlattened() throws {

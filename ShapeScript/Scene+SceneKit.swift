@@ -63,7 +63,7 @@ public extension SCNNode {
 //            geometry: SCNGeometry($0.polygons.holeEdges)
 //        )) }
 
-        if geometry.renderChildren || geometry.childDebug {
+        if geometry.renderChildren || geometry.childDebug || geometry.childIsFocused {
             geometry.children.forEach { addChildNode(SCNNode($0)) }
         }
     }
@@ -130,10 +130,12 @@ public extension Scene {
     }
 
     func scnBuild(with options: OutputOptions) {
+        let focus = children.contains(where: \.childIsFocused)
         children.scnBuild(
             with: options,
             debug: false,
-            disablingDepthBufferWritesFor: children.geometriesWithOverlappingBounds
+            focus: focus,
+            disablingDepthBufferWritesFor: children.geometriesWithOverlappingBounds(focus: focus)
         )
     }
 }
@@ -174,7 +176,7 @@ public extension Geometry {
     func scnBuild(with options: Scene.OutputOptions) {
         scnBuild(
             with: options,
-            disablingDepthBufferWritesFor: [self].geometriesWithOverlappingBounds
+            disablingDepthBufferWritesFor: [self].geometriesWithOverlappingBounds(focus: false)
         )
     }
 }
@@ -184,10 +186,11 @@ private extension Geometry {
         with options: Scene.OutputOptions,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
-        if renderChildren || childDebug {
+        if renderChildren || childDebug || childIsFocused {
             children.scnBuild(
                 with: options,
                 debug: !renderChildren,
+                focus: false,
                 disablingDepthBufferWritesFor: geometries
             )
         }
@@ -295,8 +298,10 @@ private extension Geometry {
 }
 
 private extension [Geometry] {
-    var geometriesWithOverlappingBounds: Set<Geometry> {
-        let geometries = flatMap(\.renderedGeometriesWithBounds)
+    func geometriesWithOverlappingBounds(focus: Bool) -> Set<Geometry> {
+        let geometries = flatMap {
+            $0.renderedGeometriesWithBounds(focus: focus)
+        }
         var result = Set<Geometry>()
         for (geometry, bounds) in geometries where !geometry.isOpaque {
             if geometries.contains(where: {
@@ -311,13 +316,36 @@ private extension [Geometry] {
     func scnBuild(
         with options: Scene.OutputOptions,
         debug: Bool,
+        focus: Bool,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
         for child in self {
+            if focus {
+                guard !child.isFocused else {
+                    child.scnBuild(
+                        with: options,
+                        disablingDepthBufferWritesFor: geometries
+                    )
+                    continue
+                }
+                guard child.childIsFocused else {
+                    child.clearScnGeometry()
+                    continue
+                }
+                child.scnGeometry = SCNGeometry()
+                child.children.scnBuild(
+                    with: options,
+                    debug: false,
+                    focus: true,
+                    disablingDepthBufferWritesFor: geometries
+                )
+                continue
+            }
             if debug, !child.debug {
                 child.children.scnBuild(
                     with: options,
                     debug: true,
+                    focus: focus,
                     disablingDepthBufferWritesFor: geometries
                 )
             } else {
@@ -331,24 +359,33 @@ private extension [Geometry] {
 }
 
 private extension Geometry {
-    var renderedGeometriesWithBounds: [(geometry: Geometry, bounds: Bounds)] {
-        renderedGeometriesWithBounds(parentTransform: .identity)
+    func clearScnGeometry() {
+        scnGeometry = SCNGeometry()
+        children.forEach { $0.clearScnGeometry() }
+    }
+
+    func renderedGeometriesWithBounds(focus: Bool) -> [(geometry: Geometry, bounds: Bounds)] {
+        renderedGeometriesWithBounds(parentTransform: .identity, focus: focus)
     }
 
     private func renderedGeometriesWithBounds(
-        parentTransform: Transform
+        parentTransform: Transform,
+        focus: Bool
     ) -> [(geometry: Geometry, bounds: Bounds)] {
         let accumulatedTransform = transform * parentTransform
         var result = [(geometry: Geometry, bounds: Bounds)]()
-        if path != nil || mesh != nil || debug && light != nil {
+        if !focus || isFocused, path != nil || mesh != nil || debug && light != nil {
             let bounds = overestimatedBounds.transformed(by: parentTransform)
             if !bounds.isEmpty {
                 result.append((self, bounds))
             }
         }
-        if renderChildren || childDebug {
+        if renderChildren || childDebug || childIsFocused {
             result += children.flatMap {
-                $0.renderedGeometriesWithBounds(parentTransform: accumulatedTransform)
+                $0.renderedGeometriesWithBounds(
+                    parentTransform: accumulatedTransform,
+                    focus: focus
+                )
             }
         }
         return result

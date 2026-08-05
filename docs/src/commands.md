@@ -116,7 +116,7 @@ The default starting value for `seed` is zero, so `seed 0` will cause the `rnd` 
 
 ## Debugging
 
-The `debug`, `print` and `assert` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
+The `debug`, `focus`, `print` and `assert` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
 
 ## Import
 

@@ -450,7 +450,8 @@ final class UserBlock: @unchecked Sendable {
                         smoothing: geometry.smoothing,
                         children: geometry.children,
                         sourceLocation: context.sourceLocation,
-                        debug: geometry.debug
+                        debug: geometry.debug,
+                        isFocused: geometry.isFocused
                     ))
                 case let .polygon(polygon):
                     return .polygon(polygon.transformed(by: context.state.transform))
