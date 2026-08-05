@@ -729,10 +729,8 @@ private extension ArraySlice where Element == Token {
             self = start
             return try readExpressions().map { .expression($0.type) }
         }
-        if case let .function(type, _) = Symbols.all[identifier.name],
-           type.parameterType != .void, type.returnType != .void
-        {
-            // Not a command or read-only property getter
+        if nextToken.type == .call, case .function = Symbols.all[identifier.name] {
+            // Function call syntax, not a command or read-only property getter
             self = start
             return try readExpressions().map { .expression($0.type) }
         }

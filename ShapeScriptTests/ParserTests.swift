@@ -126,8 +126,8 @@ final class ParserTests: XCTestCase {
         let bRange = try XCTUnwrap(input.range(of: "b"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .expression(.tuple([
-                    Expression(type: .identifier("not"), range: notRange),
+                type: .command(
+                    Identifier(name: "not", range: notRange),
                     Expression(
                         type: .infix(
                             Expression(type: .identifier("a"), range: aRange),
@@ -135,8 +135,8 @@ final class ParserTests: XCTestCase {
                             Expression(type: .identifier("b"), range: bRange)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
-                    ),
-                ])),
+                    )
+                ),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -150,8 +150,8 @@ final class ParserTests: XCTestCase {
         let bRange = try XCTUnwrap(input.range(of: "b"))
         XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
             Statement(
-                type: .expression(.tuple([
-                    Expression(type: .identifier("not"), range: notRange),
+                type: .command(
+                    Identifier(name: "not", range: notRange),
                     Expression(
                         type: .infix(
                             Expression(type: .identifier("a"), range: aRange),
@@ -162,8 +162,8 @@ final class ParserTests: XCTestCase {
                             ]), range: notRange2.lowerBound ..< bRange.upperBound)
                         ),
                         range: aRange.lowerBound ..< input.endIndex
-                    ),
-                ])),
+                    )
+                ),
                 range: input.startIndex ..< input.endIndex
             ),
         ]))
@@ -349,9 +349,7 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
-    /// NOTE: this should be treated as a command, but because of parsing
-    /// limitations gets interpreted as a tuple and must be disambiguated later
-    func testLengthOptionTreatedAsTupleExpression() throws {
+    func testLengthOptionTreatedAsCommand() throws {
         let input = "foo { length 40 }"
         let fooRange = try XCTUnwrap(input.range(of: "foo"))
         let lengthRange = try XCTUnwrap(input.range(of: "length"))
@@ -362,10 +360,10 @@ final class ParserTests: XCTestCase {
                 Identifier(name: "foo", range: fooRange),
                 Block(statements: [
                     Statement(
-                        type: .expression(.tuple([
-                            Expression(type: .identifier("length"), range: lengthRange),
-                            Expression(type: .number(40), range: numberRange),
-                        ])),
+                        type: .command(
+                            Identifier(name: "length", range: lengthRange),
+                            Expression(type: .number(40), range: numberRange)
+                        ),
                         range: lengthRange.lowerBound ..< numberRange.upperBound
                     ),
                 ], range: bodyRange)
@@ -415,6 +413,61 @@ final class ParserTests: XCTestCase {
                     Expression(type: .identifier("bar"), range: barRange),
                 ]), range: barRange.lowerBound ..< parensRange.upperBound)
             ), range: printRange.lowerBound ..< parensRange.upperBound),
+        ]))
+    }
+
+    func testKnownCommandWithCallSyntaxAtStatementStart() throws {
+        let input = "print(\"foo\")"
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let stringRange = try XCTUnwrap(input.range(of: "\"foo\""))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(type: .expression(.tuple([
+                Expression(type: .identifier("print"), range: printRange),
+                Expression(type: .string("foo"), range: stringRange),
+            ])), range: input.startIndex ..< input.endIndex),
+        ]))
+    }
+
+    func testZeroArgumentFunctionWithCallSyntaxAtStatementStart() throws {
+        let input = "rnd()"
+        let rndRange = try XCTUnwrap(input.range(of: "rnd"))
+        let parensRange = try XCTUnwrap(input.range(of: "()"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(type: .expression(.tuple([
+                Expression(type: .identifier("rnd"), range: rndRange),
+            ])), range: rndRange.lowerBound ..< parensRange.upperBound),
+        ]))
+    }
+
+    func testCustomFunctionCallSyntaxAtStatementStartParsesAsCommand() throws {
+        let input = "define foo(a) { a }\nfoo(1)"
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let aRange1 = try XCTUnwrap(input.range(of: "a"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ a }"))
+        let aRange2 = try XCTUnwrap(input.range(of: "a", range: bodyRange))
+        let callRange = try XCTUnwrap(input.range(of: "foo(1)"))
+        let callFooRange = try XCTUnwrap(input.range(of: "foo", range: callRange))
+        let oneRange = try XCTUnwrap(input.range(of: "1"))
+        let callParensRange = try XCTUnwrap(input.range(of: "(1)"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(type: .define(
+                Identifier(name: "foo", range: fooRange),
+                Definition(type: .function([
+                    Identifier(name: "a", range: aRange1),
+                ], Block(statements: [
+                    Statement(type: .command(
+                        Identifier(name: "a", range: aRange2),
+                        nil
+                    ), range: aRange2),
+                ], range: bodyRange)))
+            ), range: defineRange.lowerBound ..< bodyRange.upperBound),
+            Statement(type: .command(
+                Identifier(name: "foo", range: callFooRange),
+                Expression(type: .tuple([
+                    Expression(type: .number(1), range: oneRange),
+                ]), range: callParensRange)
+            ), range: callFooRange.lowerBound ..< callParensRange.upperBound),
         ]))
     }
 
