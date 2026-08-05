@@ -18,7 +18,21 @@ path {
 
 ![Line](../images/line.png)
 
-In the above example we used the `point` command, which accepts a [vector](literals.md#vectors-and-tuples) value. Paths can be three-dimensional, so `point` accepts up to three coordinates, but most paths that you create in practice will be 2D (all points will have a Z value of zero).
+In the above example we used the `point` command, which creates a path point. You can specify the point using a [tuple](literals.md#vectors-and-tuples) of up to three coordinates for the X, Y and Z coordinates. Most paths that you create in practice will be 2D, so if you only provide two coordinates the Z value defaults to zero.
+
+You can also create a point using [block syntax](blocks.md), which is useful if you want to set members such as `color` explicitly:
+
+```swift
+define startPoint point {
+    position -1 0
+    color red
+}
+
+path {
+    startPoint
+    point 1 0
+}
+```
 
 Paths can be open or closed (meaning that the points form an unbroken loop). To create a closed path, the first and last point must have the same position. The following path has four points, but it actually describes a triangle rather than a quadrilateral, because the first and last points are the same:
 

@@ -512,14 +512,14 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["hello"])
     }
 
-    func testNoOverridePathFunction() {
+    func testOverrideGlobalPointFunction() {
         let program = """
         define point(foo) { print "hello" }
         path { point 1 0 }
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [])
+        XCTAssertEqual(delegate.log, ["hello"])
     }
 
     // MARK: Option scope
@@ -5034,20 +5034,22 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
-    func testInvalidUseOfPointInCustomFunction() {
+    func testPointCanBeCreatedGlobally() {
         let program = """
         define foo(x y) { point x y }
-        foo(1 0)
-        """
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'point'")
-            XCTAssertEqual(error?.hint, "The 'point' command is not available in this context.")
-            guard case .unknownSymbol("point", options: _)? = error?.type else {
-                XCTFail()
-                return
-            }
+        define bar point {
+            position 0 1
+            color red
+            isCurved true
         }
+        print foo(1 0).position
+        print bar.position
+        print bar.color
+        print bar.isCurved
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Vector(1, 0), Vector(0, 1), Color.red, true])
     }
 
     func testCallFunctionBeforeDeclaration() {

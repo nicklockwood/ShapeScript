@@ -507,10 +507,10 @@ extension Symbols {
     ]
 
     static let points: Symbols = [
-        "point": .command(.point) { parameter, context in
+        "point": .function(.point, .point) { parameter, context in
             var point = parameter.value as! PathPoint
             point.color = point.color ?? context.state.material.color
-            try context.addValue(.point(point))
+            return .point(point)
         },
     ]
 
@@ -771,7 +771,7 @@ extension Symbols {
         }),
     ])
 
-    static let global: Symbols = _merge(functions, colors, textures, meshes, paths)
+    static let global: Symbols = _merge(functions, colors, textures, meshes, paths, points)
     static let node: Symbols = _merge(transform, name, background)
     static let shape: Symbols = _merge(node, detail, smoothing, material)
     static let group: Symbols = _merge(shape, miterLimit, childTransform, font)

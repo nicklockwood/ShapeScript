@@ -21,7 +21,24 @@ mesh {
 
 ![Triangle](../images/triangle-polygon.png)
 
-The `point` command accepts a [vector](literals.md#vectors-and-tuples) value. Polygons can be placed anywhere in three-dimensional space, so `point` accepts up to three values (for the X, Y and Z coordinates respectively). In this case we've just specified two values, so the Z coordinate defaults to zero.
+The `point` command creates a polygon point or [vertex](https://en.wikipedia.org/wiki/Vertex_(geometry)). You can specify the point using a [tuple](literals.md#vectors-and-tuples) of up to three coordinates for the X, Y and Z position. In this case we've just specified two values, so the Z coordinate defaults to zero.
+
+You can also create points using [block syntax](blocks.md), or assign them to symbols and use them later:
+
+```swift
+define top point {
+    position 0 1
+    color red
+}
+
+mesh {
+    polygon {
+        point -1 -1
+        point 1 -1
+        top
+    }
+}
+```
 
 Manually constructed meshes do not currently support textures, but they inherit the current [material color](materials.md#color). Color can also be applied separately to individual vertices within a mesh. When vertices of a given polygon have different colors applied, the color will be smoothly interpolated between them, creating a gradient:
 
@@ -142,4 +159,3 @@ This can be useful for precisely controlling the [exported](export.md) geometry.
 
 ---
 [Index](index.md) | Next: [Paths](paths.md)
-
