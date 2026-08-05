@@ -4449,6 +4449,30 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true])
     }
 
+    func testDebugGeometriesEqual() {
+        let program = """
+        define a cube
+        define b debug cube
+        print a = b
+        print a <> b
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false])
+    }
+
+    func testFocusedGeometriesEqual() {
+        let program = """
+        define a cube
+        define b focus cube
+        print a = b
+        print a <> b
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [true, false])
+    }
+
     // MARK: Math operators
 
     func testNegateNumericExpression() {

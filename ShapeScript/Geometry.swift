@@ -41,6 +41,10 @@ public final class Geometry: Hashable, @unchecked Sendable {
         _overestimatedBounds
     }
 
+    // Note: equality and hashing describe the modeled geometry, not render/editor
+    // state. Debug/focus flags affect how the geometry is presented, while opacity,
+    // source locations, and parent links are derived or contextual metadata.
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(type)
         hasher.combine(name)
@@ -48,6 +52,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         hasher.combine(material)
         hasher.combine(smoothing)
         hasher.combine(children)
+        // Excludes isOpaque, sourceLocation, parent, debug and focus
     }
 
     public static func == (lhs: Geometry, rhs: Geometry) -> Bool {
@@ -60,7 +65,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
               lhs.material == rhs.material,
               lhs.smoothing == rhs.smoothing,
               lhs.children == rhs.children
-        // Exclude isOpaque, sourceLocation, parent, debug and focus
+        // Excludes isOpaque, sourceLocation, parent, debug and focus
         else {
             return false
         }

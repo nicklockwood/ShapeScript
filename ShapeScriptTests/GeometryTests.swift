@@ -219,6 +219,36 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(copy.children[1].transform.translation, [10, 0, 0])
     }
 
+    func testDebugAndFocusDoNotAffectGeometryIdentity() throws {
+        let scene = try evaluate(parse("""
+        cube
+        debug cube
+        focus cube
+        """), delegate: nil)
+
+        guard scene.children.count == 3 else {
+            XCTFail()
+            return
+        }
+        let normal = scene.children[0]
+        let debug = scene.children[1]
+        let focused = scene.children[2]
+
+        XCTAssertFalse(normal.debug)
+        XCTAssertFalse(normal.isFocused)
+        XCTAssertTrue(debug.debug)
+        XCTAssertFalse(debug.isFocused)
+        XCTAssertFalse(focused.debug)
+        XCTAssertTrue(focused.isFocused)
+
+        XCTAssertEqual(normal, debug)
+        XCTAssertEqual(normal, focused)
+        XCTAssertEqual(normal.hashValue, debug.hashValue)
+        XCTAssertEqual(normal.hashValue, focused.hashValue)
+        XCTAssertEqual(normal.cacheKey, debug.cacheKey)
+        XCTAssertEqual(normal.cacheKey, focused.cacheKey)
+    }
+
     func testLowDetailPrimitiveBounds() {
         let cylinder = GeometryType.cylinder(segments: 3)
         let cone = GeometryType.cone(segments: 3)
