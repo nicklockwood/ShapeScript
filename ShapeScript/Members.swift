@@ -656,10 +656,10 @@ extension ValueType {
         switch self {
         case let .object(members):
             members
-        case .material, .color, .rotation, .mesh, .polygon:
+        case .material, .color, .rotation, .mesh, .polygon, .point:
             memberProperties.mapValues(\.type)
         case .texture, .boolean, .font, .number, .radians, .halfturns,
-             .vector, .size, .string, .text, .path, .point,
+             .vector, .size, .string, .text, .path,
              .range, .partialRange, .bounds, .union, .tuple, .list:
             Self.knownMemberTypes
         case .any:

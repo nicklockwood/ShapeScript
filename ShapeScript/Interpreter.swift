@@ -1426,12 +1426,15 @@ extension Expression {
                 return type.isSubtype(of: context.state.childTypes) ? instance : .void
             case .function((.void, _), _):
                 throw RuntimeError(.unexpectedArgument(for: name, max: 0), at: block.range)
-            case let .function((type, _), _):
-                throw RuntimeError(.typeMismatch(
-                    for: name,
-                    expected: type.errorDescription,
-                    got: "block"
-                ), at: block.range)
+            case let .function((type, _), fn):
+                guard let instance = try block.evaluate(as: type, in: context) else {
+                    throw RuntimeError(.typeMismatch(
+                        for: name,
+                        expected: type.errorDescription,
+                        got: "block"
+                    ), at: block.range)
+                }
+                return try RuntimeError.wrap(context.callFunction(fn, with: instance, at: range), at: range)
             case let .placeholder(type) where context.options[EvaluationContext.altNames[name] ?? name] != nil:
                 guard let instance = try block.evaluate(as: type, in: context) else {
                     throw RuntimeError(.typeMismatch(
@@ -1874,7 +1877,8 @@ extension Expression {
             )
         case let (.tuple(expressions), type) where
             (ValueType.vector.isSubtype(of: type) ||
-                ValueType.size.isSubtype(of: type)) && expressions.count > 3:
+                ValueType.size.isSubtype(of: type) ||
+                ValueType.point.isSubtype(of: type)) && expressions.count > 3:
             throw RuntimeError(
                 .unexpectedArgument(for: name, max: 3),
                 at: expressions[3].range

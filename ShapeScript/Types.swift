@@ -572,10 +572,14 @@ extension Value {
             return .vector(Vector(value, 0))
         case let (.number(value), .size):
             return .size(Vector(size: value))
+        case let (.number(value), .point):
+            return .point(.point(Vector(value, 0)))
         case let (.radians(value), .vector):
             return .vector(Vector(value, 0))
         case let (.radians(value), .size):
             return .size(Vector(size: value))
+        case let (.radians(value), .point):
+            return .point(.point(Vector(value, 0)))
         case let (.number(value), .rotation):
             return .rotation(.roll(.halfturns(value)))
         case let (.halfturns(value), .rotation):
@@ -616,6 +620,8 @@ extension Value {
             return numerify(values, range: 1 ... 3).map { .vector(Vector($0)) }
         case let (.tuple(values), .size):
             return numerify(values, range: 1 ... 3).map { .size(Vector(size: $0)) }
+        case let (.tuple(values), .point):
+            return numerify(values, range: 1 ... 3).map { .point(.point(Vector($0))) }
         case let (.tuple(values), .rotation):
             if let rotation = try rotation(fromAxisAngle: values) {
                 return .rotation(rotation)

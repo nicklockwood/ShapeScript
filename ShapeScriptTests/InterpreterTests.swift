@@ -1499,6 +1499,54 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(path.points.last?.color, .blue)
     }
 
+    func testPointWithBlockSyntaxInPath() throws {
+        let program = try parse("""
+        path {
+            point {
+                position 0 1
+                color red
+                isCurved true
+            }
+            curve {
+                position 0 -1
+                color blue
+                isCurved false
+            }
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.points.first?.position, Vector(0, 1))
+        XCTAssertEqual(path.points.first?.color, .red)
+        XCTAssertTrue(path.points.first?.isCurved ?? false)
+        XCTAssertEqual(path.points.last?.position, Vector(0, -1))
+        XCTAssertEqual(path.points.last?.color, .blue)
+        XCTAssertTrue(path.points.last?.isCurved ?? false)
+    }
+
+    func testPointWithTupleSyntaxInPath() throws {
+        let program = try parse("""
+        path {
+            color red
+            point 0 1
+            color blue
+            point 0 -1
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        let path = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(path.points.first?.position, Vector(0, 1))
+        XCTAssertEqual(path.points.first?.color, .red)
+        XCTAssertFalse(path.points.first?.isCurved ?? true)
+        XCTAssertEqual(path.points.last?.position, Vector(0, -1))
+        XCTAssertEqual(path.points.last?.color, .blue)
+        XCTAssertFalse(path.points.last?.isCurved ?? true)
+    }
+
     func testNestedPathColor() throws {
         let program = try parse("""
         path {

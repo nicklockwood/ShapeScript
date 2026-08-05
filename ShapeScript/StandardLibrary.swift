@@ -507,20 +507,19 @@ extension Symbols {
     ]
 
     static let points: Symbols = [
-        "point": .command(.vector) { parameter, context in
-            try context.addValue(.point(.point(
-                parameter.vectorValue,
-                color: context.state.material.color
-            )))
+        "point": .command(.point) { parameter, context in
+            var point = parameter.value as! PathPoint
+            point.color = point.color ?? context.state.material.color
+            try context.addValue(.point(point))
         },
     ]
 
     static let pathPoints: Symbols = _merge(points, [
-        "curve": .command(.vector) { parameter, context in
-            try context.addValue(.point(.curve(
-                parameter.vectorValue,
-                color: context.state.material.color
-            )))
+        "curve": .command(.point) { parameter, context in
+            var point = parameter.value as! PathPoint
+            point.color = point.color ?? context.state.material.color
+            point.isCurved = true
+            try context.addValue(.point(point))
         },
     ])
 
