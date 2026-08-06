@@ -697,6 +697,19 @@ private extension ArraySlice where Element == Token {
 
     mutating func readExpressions(allowLinebreaks: Bool = false) throws -> Expression? {
         var expressions = [Expression]()
+        var lineExpressions = [Expression]()
+        func appendLineExpressions() {
+            switch lineExpressions.count {
+            case 0:
+                break
+            case 1:
+                expressions.append(lineExpressions[0])
+            default:
+                let range = lineExpressions[0].range.lowerBound ..< lineExpressions.last!.range.upperBound
+                expressions.append(Expression(type: .tuple(lineExpressions), range: range))
+            }
+            lineExpressions.removeAll()
+        }
         while var expression = try readExpression() {
             if case let .identifier(name) = expression.type, let block = try readBlock() {
                 let range = expression.range.lowerBound ..< block.range.upperBound
@@ -704,10 +717,17 @@ private extension ArraySlice where Element == Token {
                 expression = Expression(type: .block(identifier, block), range: range)
                 expression = try readMemberOrSubscript(for: expression)
             }
-            expressions.append(expression)
             if allowLinebreaks {
-                _ = readToken(.linebreak)
+                lineExpressions.append(expression)
+                while readToken(.linebreak) {
+                    appendLineExpressions()
+                }
+            } else {
+                expressions.append(expression)
             }
+        }
+        if allowLinebreaks {
+            appendLineExpressions()
         }
         switch expressions.count {
         case 0:

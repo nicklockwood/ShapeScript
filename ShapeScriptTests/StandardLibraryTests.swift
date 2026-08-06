@@ -1580,13 +1580,13 @@ final class StandardLibraryTests: XCTestCase {
     func testInsetMeshList() throws {
         let program = """
         print inset (
-            (fill path {
+            fill path {
                 point -1 -1
                 point -1 1
                 point 1 1
                 point 1 -1
                 point -1 -1
-            })
+            }
             fill square
         ) 0.25
         """

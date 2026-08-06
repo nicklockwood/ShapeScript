@@ -384,6 +384,58 @@ final class ParserTests: XCTestCase {
         XCTAssertNoThrow(try parse(input))
     }
 
+    func testMultilineParenthesesGroupExpressionsByLine() throws {
+        let input = """
+        define values (
+            foo bar {}
+            baz quux
+        )
+        """
+        guard case let .define(_, definition) = try parse(input).statements.first?.type,
+              case let .expression(expression) = definition.type,
+              case let .tuple(expressions) = expression.type
+        else {
+            return XCTFail("Expected tuple definition")
+        }
+        XCTAssertEqual(expressions.count, 2)
+        guard case let .tuple(lineExpressions) = expressions[0].type else {
+            return XCTFail("Expected block expression line to be grouped")
+        }
+        XCTAssertEqual(lineExpressions.count, 2)
+        XCTAssertEqual(lineExpressions[0].type, .identifier("foo"))
+        guard case let .block(identifier, _) = lineExpressions[1].type else {
+            return XCTFail("Expected block expression")
+        }
+        XCTAssertEqual(identifier.name, "bar")
+        guard case let .tuple(nextLineExpressions) = expressions[1].type else {
+            return XCTFail("Expected subsequent command line to be grouped")
+        }
+        XCTAssertEqual(nextLineExpressions.map(\.type), [.identifier("baz"), .identifier("quux")])
+    }
+
+    func testMultilineParenthesesGroupFillBlockExpressionWithLine() throws {
+        let input = """
+        (
+            fill path {
+                point -1 -1
+            }
+            fill square
+        )
+        """
+        guard case let .expression(expression) = try parse(input).statements.first?.type,
+              case let .tuple(expressions) = expression
+        else {
+            return XCTFail("Expected tuple expression")
+        }
+        XCTAssertEqual(expressions.count, 2)
+        for expression in expressions {
+            guard case let .tuple(lineExpressions) = expression.type else {
+                return XCTFail("Expected command line to be grouped")
+            }
+            XCTAssertEqual(lineExpressions.first?.type, .identifier("fill"))
+        }
+    }
+
     func testEmptyTuple() {
         let input = "define void ()"
         XCTAssertNoThrow(try parse(input))

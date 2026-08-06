@@ -5387,6 +5387,48 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [3])
     }
 
+    func testMultilineFillCommandsInTuple() throws {
+        let program = """
+        (
+            fill path {
+                point -1 -1
+                point -1 1
+                point 1 1
+                point 1 -1
+                point -1 -1
+            }
+            fill square
+        )
+        """
+        let parsed = try parse(program)
+        guard case let .expression(expression) = parsed.statements.first?.type,
+              case let .tuple(expressions) = expression
+        else {
+            return XCTFail("Expected tuple expression")
+        }
+        XCTAssertEqual(expressions.count, 2)
+        let scene = try evaluate(parsed, delegate: nil)
+        XCTAssertEqual(scene.children.count, 2)
+    }
+
+    func testMultilineFillCommandsWithoutBlocksInTuple() throws {
+        let program = """
+        (
+            fill circle
+            fill square
+        )
+        """
+        let parsed = try parse(program)
+        guard case let .expression(expression) = parsed.statements.first?.type,
+              case let .tuple(expressions) = expression
+        else {
+            return XCTFail("Expected tuple expression")
+        }
+        XCTAssertEqual(expressions.count, 2)
+        let scene = try evaluate(parsed, delegate: nil)
+        XCTAssertEqual(scene.children.count, 2)
+    }
+
     // MARK: Empty arguments
 
     func testPrintNothing() {
