@@ -138,6 +138,55 @@ final class InterpreterTests: XCTestCase {
         XCTAssert(first.children.isEmpty)
     }
 
+    func testSetPrimitiveNameFromCustomNameOption() throws {
+        let program = try parse("""
+        define custom {
+            option name ""
+            cube {
+                name name
+            }
+        }
+        define foo custom {
+            name "Foo"
+        }
+        print foo.name
+        """)
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(program, delegate: delegate))
+        XCTAssertEqual(delegate.log, ["Foo"])
+    }
+
+    func testSetCustomBlockNameFromCustomNameOption() throws {
+        let program = try parse("""
+        define custom {
+            option name ""
+            name name
+            cube
+        }
+        define foo custom {
+            name "Foo"
+        }
+        print foo.name
+        """)
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(program, delegate: delegate))
+        XCTAssertEqual(delegate.log, ["Foo"])
+    }
+
+    func testCustomBlockPreservesReturnedPrimitiveName() throws {
+        let program = try parse("""
+        define custom {
+            cube {
+                name "Foo"
+            }
+        }
+        print custom.name
+        """)
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(program, delegate: delegate))
+        XCTAssertEqual(delegate.log, ["Foo"])
+    }
+
     func testSetCustomGroupBlockName() throws {
         let program = try parse("""
         define wheels {
@@ -5697,7 +5746,7 @@ final class InterpreterTests: XCTestCase {
         let range = source.startIndex ..< source.endIndex
         let context = EvaluationContext(source: source, delegate: nil)
         let recorder = ActiveCallRecorder()
-        context.define("probe", as: .function((.void, .void)) { _, context in
+        context.define("probe", as: .function(.void, .void) { _, context in
             recorder.calls.append(context.callState.active)
             return .void
         })

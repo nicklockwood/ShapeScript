@@ -57,7 +57,7 @@ extension BlockState {
     init(from context: EvaluationContext) {
         self = context.state
         self.optionValues = context.userSymbols.compactMapValues {
-            if case let .option(value) = $0 { value } else { nil }
+            if case let .option(value) = $0.getter { value } else { nil }
         }
     }
 }
@@ -159,10 +159,14 @@ final class EvaluationContext {
         new.symbols = type.symbols
         new.options = type.options
         for (name, symbol) in type.symbols where Symbols.global[name] == nil {
-            if case .placeholder = symbol {
+            if case .placeholder = symbol.getter {
                 continue
             }
-            new.userSymbols[name] = nil
+            if let userSymbol = new.userSymbols[name], symbol.isCommand {
+                new.userSymbols[name] = SymbolPair(getter: userSymbol.getter, setter: symbol.setter)
+            } else {
+                new.userSymbols[name] = nil
+            }
         }
         return new
     }
@@ -173,7 +177,7 @@ final class EvaluationContext {
         defer {
             sourceIndex = oldSourceIndex
             userSymbols = oldSymbols.merging(userSymbols.filter {
-                if case .option = $0.value, options[$0.key] != nil {
+                if case .option = $0.value.getter, options[$0.key] != nil {
                     return true
                 }
                 return false
@@ -182,14 +186,14 @@ final class EvaluationContext {
         try block(self)
     }
 
-    func pushDefinition() -> EvaluationContext {
+    func pushDefinition(symbols: Symbols = .definition) -> EvaluationContext {
         let new = EvaluationContext(parent: self)
         new.state.name = state.name
         new.namedObjects = namedObjects
         new.state.transform = state.transform
         new.state.opacity = state.opacity
         new.state.childTypes = ValueType.any
-        new.symbols = .definition
+        new.symbols = symbols
         return new
     }
 
@@ -209,7 +213,7 @@ final class EvaluationContext {
 extension EvaluationContext {
     static let altNames = ["colour": "color", "centre": "center", "grey": "gray", "mitreLimit": "miterLimit"]
 
-    func symbol(for name: String) -> Symbol? {
+    func symbol(for name: String) -> SymbolPair? {
         if let symbol = userSymbols[name] ?? symbols[name] ?? Symbols.global[name] {
             return symbol
         }
@@ -219,8 +223,16 @@ extension EvaluationContext {
         return nil
     }
 
-    func define(_ name: String, as symbol: Symbol?) {
-        userSymbols[name] = symbol
+    func define(_ name: String, as symbol: SymbolPair?) {
+        if let symbol,
+           !symbol.isCommand,
+           let setter = symbols[name] ?? Symbols.global[name],
+           setter.isCommand
+        {
+            userSymbols[name] = SymbolPair(getter: symbol.getter, setter: setter.setter)
+        } else {
+            userSymbols[name] = symbol
+        }
     }
 
     var allSymbols: Symbols {
@@ -229,31 +241,17 @@ extension EvaluationContext {
 
     /// Symbols that can be used in an expression (i.e. that return a value)
     var expressionSymbols: [String] {
-        allSymbols.filter {
-            switch $1 {
-            case let .function(type, _) where type.returnType == .void:
-                false
-            case .function, .property, .block, .constant, .option, .placeholder:
-                true
-            }
-        }.keys + ["else"]
+        allSymbols.filter { $1.isExpression }.keys + ["else"]
     }
 
     /// Symbols that can be used as a command (i.e. that accept an argument)
     var commandSymbols: [String] {
-        Array(allSymbols.filter {
-            switch $1 {
-            case .function, .property, .block, .placeholder:
-                true
-            case .constant, .option:
-                false
-            }
-        }.keys) + Keyword.allCases.map(\.rawValue)
+        allSymbols.filter { $1.isCommand }.keys + Keyword.allCases.map(\.rawValue)
     }
 
     /// Return the value of the specified symbol in the current context
     func value(for name: String) -> Value? {
-        switch symbol(for: name) {
+        switch symbol(for: name)?.getter {
         case let .constant(value), let .option(value):
             value
         case .function, .property, .block, .placeholder, nil:

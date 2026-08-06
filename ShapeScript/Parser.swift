@@ -749,7 +749,7 @@ private extension ArraySlice where Element == Token {
             self = start
             return try readExpressions().map { .expression($0.type) }
         }
-        if nextToken.type == .call, case .function = Symbols.all[identifier.name] {
+        if nextToken.type == .call, case .function = Symbols.all[identifier.name]?.getter {
             // Function call syntax, not a command or read-only property getter
             self = start
             return try readExpressions().map { .expression($0.type) }

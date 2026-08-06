@@ -741,11 +741,11 @@ extension Expression {
     ) {
         switch self.type {
         case let .identifier(name):
-            if context.symbol(for: name) == nil {
+            if context.symbol(for: name)?.getter == nil {
                 params[name, default: type].narrow(with: type)
             }
         case let .block(identifier, block):
-            if case let .block(blockType, _) = context.symbol(for: identifier.name) {
+            if case let .block(blockType, _) = context.symbol(for: identifier.name)?.getter {
                 let context = context.push(blockType)
                 block.inferTypes(for: &params, in: context)
             } else {
@@ -844,7 +844,7 @@ extension Expression {
         case .color:
             return .color
         case let .identifier(name):
-            guard let symbol = context.symbol(for: name) else {
+            guard let symbol = context.symbol(for: name)?.getter else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
                     at: range
@@ -853,7 +853,7 @@ extension Expression {
             return symbol.type
         case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
-            guard let symbol = context.symbol(for: name) else {
+            guard let symbol = context.symbol(for: name)?.getter else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
                     at: range
@@ -878,7 +878,7 @@ extension Expression {
                 return try expressions[0].staticType(in: context)
             default:
                 if case let .identifier(name) = expressions[0].type {
-                    guard let symbol = context.symbol(for: name) else {
+                    guard let symbol = context.symbol(for: name)?.getter else {
                         throw RuntimeError(
                             .unknownSymbol(name, options: context.expressionSymbols),
                             at: range
@@ -1100,7 +1100,7 @@ extension Statement {
     func inferTypes(for params: inout Parameters, in context: EvaluationContext) {
         switch type {
         case let .command(identifier, expression):
-            guard let expression, let symbol = context.symbol(for: identifier.name) else {
+            guard let expression, let symbol = context.symbol(for: identifier.name)?.setter else {
                 expression?.inferTypes(for: &params, in: context, with: .any)
                 if identifier.name == "children" {
                     let childTypes = context.state.childTypes == .void ? .any : context.state.childTypes
@@ -1123,7 +1123,7 @@ extension Statement {
         case let .define(identifier, definition):
             definition.inferTypes(for: &params, in: context)
             let symbol = (try? definition.staticSymbol(in: context)) ?? .placeholder(.any)
-            context.define(identifier.name, as: symbol)
+            context.define(identifier.name, as: SymbolPair(getter: symbol))
         case let .option(_, expression):
             expression.inferTypes(for: &params, in: context, with: .any)
         }
@@ -1131,9 +1131,10 @@ extension Statement {
 
     func staticType(in context: EvaluationContext) throws -> ValueType {
         switch type {
-        case let .command(identifier, _):
+        case let .command(identifier, parameter):
             let name = identifier.name
-            guard let symbol = context.symbol(for: name) else {
+            let symbol = context.symbol(for: name).map { parameter == nil ? $0.getter : $0.setter }
+            guard let symbol else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.commandSymbols),
                     at: identifier.range
@@ -1161,7 +1162,7 @@ extension Statement {
                 // In case of recursion
                 let parameterType: ValueType = names.count == 1 ?
                     .any : .tuple(names.map { _ in .any })
-                context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
+                context.define(identifier.name, as: .function(parameterType, .any) { _, _ in .void })
             case .block:
                 // In case of recursion
                 context.define(identifier.name, as: .block(.init([:], [:], .void, .any)) { _ in .void })
@@ -1169,7 +1170,7 @@ extension Statement {
                 break
             }
             let symbol = try definition.staticSymbol(in: context)
-            context.define(identifier.name, as: symbol)
+            context.define(identifier.name, as: SymbolPair(getter: symbol))
             return .void
         }
     }

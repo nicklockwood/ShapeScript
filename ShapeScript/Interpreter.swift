@@ -182,7 +182,7 @@ public extension RuntimeError {
             } else if name.isEmpty {
                 return "Symbol"
             } else if let symbol = Symbols.all[name] {
-                return "The '\(name)' \(symbol.errorDescription)"
+                return "The '\(name)' \(symbol.getter.errorDescription)"
             }
             return "The '\(name)' symbol"
         }
@@ -199,7 +199,7 @@ public extension RuntimeError {
         case let .unknownSymbol(name, _):
             var hint = ""
             if let symbol = Symbols.all[name] {
-                hint = "The '\(name)' \(symbol.errorDescription) is not available in this context."
+                hint = "The '\(name)' \(symbol.getter.errorDescription) is not available in this context."
             } else if Keyword(rawValue: name) != nil || name == "option" {
                 hint = "The '\(name)' command is not available in this context."
             }
@@ -382,6 +382,7 @@ final class UserBlock: @unchecked Sendable {
     let source: String
     let sourceIndex: String.Index?
     let baseURL: URL?
+    let symbols: Symbols
     let declarationContext: EvaluationContext
 
     init(
@@ -389,18 +390,20 @@ final class UserBlock: @unchecked Sendable {
         source: String,
         sourceIndex: String.Index?,
         baseURL: URL?,
+        symbols: Symbols,
         declarationContext: EvaluationContext
     ) {
         self.block = block
         self.source = source
         self.sourceIndex = sourceIndex
         self.baseURL = baseURL
+        self.symbols = symbols
         self.declarationContext = declarationContext
     }
 
     func evaluate(with state: BlockState) throws -> Value {
         do {
-            let context = declarationContext.pushDefinition()
+            let context = declarationContext.pushDefinition(symbols: symbols)
             context.apply(state)
             context.state.baseURL = baseURL
             context.source = source
@@ -408,7 +411,7 @@ final class UserBlock: @unchecked Sendable {
             block.statements.gatherDefinitions(in: context)
             for statement in block.statements {
                 if case let .option(identifier, expression) = statement.type {
-                    if case .option? = context.symbol(for: identifier.name) {
+                    if case .option? = context.symbol(for: identifier.name)?.getter {
                         // Ignore default
                     } else {
                         try context.define(
@@ -441,7 +444,7 @@ final class UserBlock: @unchecked Sendable {
                     // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                     return .mesh(Geometry(
                         type: geometry.type,
-                        name: context.state.name,
+                        name: context.state.name.isEmpty ? geometry.name : context.state.name,
                         transform: geometry.transform * context.state.transform,
                         material: geometry.material,
                         smoothing: geometry.smoothing,
@@ -891,7 +894,7 @@ private func evaluateParameters(
     var values = [(Int, Value)]()
     loop: for (i, param) in parameters.enumerated() {
         guard i < parameters.count - 1, case let .identifier(name) = param.type,
-              let symbol = context.symbol(for: name)
+              let symbol = context.symbol(for: name)?.setter
         else {
             try values.append((i, param.evaluate(in: context)))
             continue
@@ -1091,6 +1094,7 @@ extension Definition {
                 source: source,
                 sourceIndex: sourceIndex,
                 baseURL: baseURL,
+                symbols: .definition + symbols,
                 declarationContext: context
             )
             return .block(.init(symbols, options, childTypes, returnType)) { context in
@@ -1219,7 +1223,8 @@ extension Statement {
                     )
                 ))
             }
-            guard let symbol = context.symbol(for: name) else {
+            let symbol = context.symbol(for: name).map { parameter == nil ? $0.getter : $0.setter }
+            guard let symbol else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.commandSymbols),
                     at: identifier.range
@@ -1300,14 +1305,14 @@ extension Statement {
                 // In case of recursion
                 let parameterType: ValueType = names.count == 1 ?
                     .any : .tuple(names.map { _ in .any })
-                context.define(identifier.name, as: .function((parameterType, .any)) { _, _ in .void })
+                context.define(identifier.name, as: .function(parameterType, .any) { _, _ in .void })
             case .block:
                 // In case of recursion
                 context.define(identifier.name, as: .block(.init([:], [:], .void, .any)) { _ in .void })
             case .expression:
                 break
             }
-            try context.define(identifier.name, as: definition.evaluate(in: context))
+            try context.define(identifier.name, as: SymbolPair(getter: definition.evaluate(in: context)))
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         }
@@ -1324,7 +1329,7 @@ extension Expression {
         case let .color(color):
             return .color(color)
         case let .identifier(name):
-            guard let symbol = context.symbol(for: name) else {
+            guard let symbol = context.symbol(for: name)?.getter else {
                 throw RuntimeError(
                     .unknownSymbol(name, options: context.expressionSymbols),
                     at: range
@@ -1358,7 +1363,7 @@ extension Expression {
             }
         case let .block(identifier, block):
             let (name, range) = (identifier.name, identifier.range)
-            guard let symbol = context.symbol(for: name) else {
+            guard let symbol = context.symbol(for: name)?.getter else {
                 if context.options["*"] != nil,
                    let object = try block.evaluate(as: .anyObject, in: context)
                 {

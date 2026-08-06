@@ -18,7 +18,7 @@ public let stdlibSymbols: Set<String> = {
     var keys = Set<String>()
     for (key, symbol) in Symbols.all {
         keys.insert(key)
-        switch symbol {
+        switch symbol.setter {
         case let .block(type, _):
             keys.formUnion(type.options.keys)
         case .function, .property, .constant, .option, .placeholder:

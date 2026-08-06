@@ -31,12 +31,12 @@ private func symbol(for name: String? = nil, in definition: String) throws -> Sy
     let context = EvaluationContext(source: "", delegate: nil)
     try program.evaluate(in: context)
     if let name {
-        return context.symbol(for: name)
+        return context.symbol(for: name)?.getter
     }
     guard case let .define(identifier, _) = program.statements.last?.type else {
         return nil
     }
-    return context.symbol(for: identifier.name)
+    return context.symbol(for: identifier.name)?.getter
 }
 
 private func functionType(

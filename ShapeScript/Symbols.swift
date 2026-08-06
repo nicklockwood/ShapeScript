@@ -8,7 +8,17 @@
 
 import Euclid
 
-typealias Symbols = [String: Symbol]
+typealias Symbols = [String: SymbolPair]
+
+struct SymbolPair: Sendable {
+    var getter: Symbol
+    var setter: Symbol
+
+    init(getter: Symbol, setter: Symbol? = nil) {
+        self.getter = getter
+        self.setter = setter ?? getter
+    }
+}
 
 enum Symbol: Sendable {
     case function(FunctionType, Function)
@@ -17,6 +27,52 @@ enum Symbol: Sendable {
     case constant(Value)
     case placeholder(ValueType)
     case option(Value)
+}
+
+extension SymbolPair {
+    static func function(
+        _ parameterType: ValueType,
+        _ returnType: ValueType,
+        _ fn: @escaping Function
+    ) -> SymbolPair {
+        .init(getter: .function(parameterType, returnType, fn))
+    }
+
+    static func command(_ parameterType: ValueType, _ fn: @escaping Setter) -> SymbolPair {
+        .init(getter: .command(parameterType, fn))
+    }
+
+    static func getter(_ type: ValueType, _ fn: @escaping Getter) -> SymbolPair {
+        .init(getter: .getter(type, fn))
+    }
+
+    static func property(_ type: ValueType, _ setter: @escaping Setter, _ getter: @escaping Getter) -> SymbolPair {
+        .init(getter: .property(type, setter, getter))
+    }
+
+    static func block(_ type: BlockType, _ getter: @escaping Getter) -> SymbolPair {
+        .init(getter: .block(type, getter))
+    }
+
+    static func constant(_ value: Value) -> SymbolPair {
+        .init(getter: .constant(value))
+    }
+
+    static func placeholder(_ type: ValueType) -> SymbolPair {
+        .init(getter: .placeholder(type))
+    }
+
+    static func option(_ value: Value) -> SymbolPair {
+        .init(getter: .option(value))
+    }
+
+    var isCommand: Bool {
+        setter.isCommand
+    }
+
+    var isExpression: Bool {
+        getter.isExpression
+    }
 }
 
 extension Symbol {
@@ -47,6 +103,24 @@ extension Symbol {
         case .constant: "constant"
         case .option: "option"
         case .placeholder: "placeholder"
+        }
+    }
+
+    var isCommand: Bool {
+        switch self {
+        case .function, .property, .block, .placeholder:
+            true
+        case .constant, .option:
+            false
+        }
+    }
+
+    var isExpression: Bool {
+        switch self {
+        case let .function(type, _) where type.returnType == .void:
+            false
+        case .function, .property, .block, .constant, .option, .placeholder:
+            true
         }
     }
 }
