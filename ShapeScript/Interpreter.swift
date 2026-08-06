@@ -422,7 +422,7 @@ final class UserBlock: @unchecked Sendable {
             }
             let children = context.state.children.unwrapped(recursive: true)
             if children.count == 1 {
-                switch children[0] {
+                switch children[0].unpretransformed() {
                 case let .path(path):
                     guard context.state.name.isEmpty else {
                         return .mesh(Geometry(
@@ -455,13 +455,13 @@ final class UserBlock: @unchecked Sendable {
                     return value
                 }
             } else if context.state.name.isEmpty,
-                      // Manage backwards compatibility for blocks that return
-                      // multiple meshes to be used inside difference block
-                      !children.contains(where: { $0.type == .mesh }) ||
-                      children.contains(where: { ![.mesh, .path].contains($0.type) })
+                      // Preserve tuple semantics for blocks that return paths
+                      // or mix geometry with other values
+                      !children.contains(where: { $0.type.isSubtype(of: .mesh) }) ||
+                      children.contains(where: { !$0.isConvertible(to: .mesh) })
             {
                 return .tuple(children.map {
-                    switch $0 {
+                    switch $0.unwrapped(recursive: true).unpretransformed() {
                     case let .path(path):
                         .path(path.transformed(by: context.state.transform))
                     case let .mesh(geometry):
@@ -480,7 +480,7 @@ final class UserBlock: @unchecked Sendable {
                 material: .default,
                 smoothing: context.state.smoothing,
                 children: children.map {
-                    switch $0 {
+                    switch $0.unpretransformed() {
                     case let .path(path):
                         return Geometry(
                             type: .path(path),
@@ -956,6 +956,15 @@ private func evaluateBlockParameters(
             children = try evaluateParameters(parameters, in: context)
         }
     } else {
+        // Parameters are evaluated as expressions, not as nested child blocks.
+        // A pending child transform belongs to values added to this block, so
+        // helper functions used as parameters must not inherit it before their
+        // result is added below.
+        let oldChildTransform = context.state.childTransform
+        context.state.childTransform = .identity
+        defer {
+            context.state.childTransform = oldChildTransform
+        }
         children = try evaluateParameters(parameters, in: context)
     }
     for (j, child) in children {
@@ -1063,7 +1072,9 @@ extension Definition {
             let sourceIndex = context.sourceIndex
             let baseURL = context.state.baseURL
             var symbols = Symbols.font // TODO: should this be supported?
-            if returnType.contains(where: { $0.isSubtype(of: .union([.mesh, .path, .polygon])) }) {
+            if returnType.contains(where: { $0.isSubtype(of: .union([.mesh, .path, .polygon])) }) ||
+                childTypes == .any
+            {
                 symbols.merge(.shape) { $1 }
             }
             if ValueType.mesh.isSubtype(of: childTypes) ||

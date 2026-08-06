@@ -155,6 +155,143 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(first.children.count, 2)
     }
 
+    func testSetCustomTupleBlockSize() throws {
+        let program = try parse("""
+        define pair {
+            define a cube { position -0.5 }
+            define b cube { position 0.5 }
+            a b
+        }
+        pair { size 2 }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        XCTAssertEqual(scene.overestimatedBounds.size, Vector(4, 2, 2))
+    }
+
+    func testSetCustomTupleBlockPosition() throws {
+        let program = try parse("""
+        define pair {
+            define a cube { position -0.5 }
+            define b cube { position 0.5 }
+            a b
+        }
+        pair { position 3 }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        XCTAssertEqual(scene.overestimatedBounds.center, Vector(3, 0, 0))
+    }
+
+    func testSetCustomPassthroughBlockTransform() throws {
+        let program = try parse("""
+        define wrapper {
+            children
+        }
+        wrapper {
+            position 3
+            size 2
+            cube
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        XCTAssertEqual(scene.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(scene.overestimatedBounds.size, Vector(2, 2, 2))
+    }
+
+    func testSetCustomBlockPropertiesOnLocalMeshConstant() throws {
+        let program = try parse("""
+        define part {
+            define local cube
+            local
+        }
+        part {
+            name "Part"
+            position 3
+            size 2
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.name, "Part")
+        XCTAssertEqual(geometry.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(geometry.overestimatedBounds.size, Vector(2, 2, 2))
+    }
+
+    func testSetCustomBlockPropertiesOnLocalMeshBlock() throws {
+        let program = try parse("""
+        define part {
+            define local {
+                cube
+            }
+            local
+        }
+        part {
+            name "Part"
+            position 3
+            size 2
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.name, "Part")
+        XCTAssertEqual(geometry.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(geometry.overestimatedBounds.size, Vector(2, 2, 2))
+    }
+
+    func testSetCustomBlockPropertiesOnLocalMeshFunction() throws {
+        let program = try parse("""
+        define part {
+            define local() {
+                cube
+            }
+            local()
+        }
+        part {
+            name "Part"
+            position 3
+            size 2
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.name, "Part")
+        XCTAssertEqual(geometry.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(geometry.overestimatedBounds.size, Vector(2, 2, 2))
+    }
+
+    func testSetCustomBlockPropertiesOnMeshMember() throws {
+        let program = try parse("""
+        define part {
+            define parts {
+                cube
+                1
+            }
+            parts.first
+        }
+        part {
+            name "Part"
+            position 3
+            size 2
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.name, "Part")
+        XCTAssertEqual(geometry.overestimatedBounds.center, Vector(3, 0, 0))
+        XCTAssertEqual(geometry.overestimatedBounds.size, Vector(2, 2, 2))
+    }
+
+    func testSetCustomBlockPropertiesOnTransformedLocalMeshConstant() throws {
+        let program = try parse("""
+        define part {
+            define local cube { position 1 }
+            local
+        }
+        part { position 3 }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        XCTAssertEqual(scene.overestimatedBounds.center, Vector(4, 0, 0))
+    }
+
     func testSetPathBlockName() throws {
         let program = try parse("""
         define wheel { circle }
@@ -2438,6 +2575,35 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(context.state.children.count, 1)
     }
 
+    func testBlockReturningMixedMeshTupleIsNotGrouped() throws {
+        let program = try parse("""
+        define foo {
+            cube
+            1
+        }
+        print foo.count
+        print foo.last
+        """)
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(program, delegate: delegate))
+        XCTAssertEqual(delegate.log, [2, 1])
+    }
+
+    func testBlockReturningMixedMeshTupleCannotBeNamed() throws {
+        let program = """
+        define foo {
+            cube
+            1
+        }
+        print foo { name "Foo" }.count
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error?.hint, "Blocks that return a number value cannot be assigned a name.")
+        }
+    }
+
     func testBlockReturningPathInsidePath() throws {
         let program = try parse("""
         define foo {
@@ -2716,6 +2882,22 @@ final class InterpreterTests: XCTestCase {
         }
         """)
         XCTAssertNoThrow(try evaluate(program, delegate: nil))
+    }
+
+    func testBlockArgumentFunctionDoesNotInheritChildTransform() throws {
+        let program = try parse("""
+        define unitSquare() {
+            square
+        }
+        define shape {
+            translate -0.5
+            fill unitSquare()
+        }
+        print shape.bounds.center.x
+        """)
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(program, delegate: delegate))
+        XCTAssertEqual(delegate.log.first as? Double, -0.5)
     }
 
     func testNestedBlockPosition() throws {

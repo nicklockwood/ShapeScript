@@ -88,6 +88,13 @@ private func evaluate(
 }
 
 final class TypesystemTests: XCTestCase {
+    // MARK: Value helpers
+
+    func testUnpretransformedPreservesTupleStructure() {
+        let value = Value.tuple([.pretransformed(1), .pretransformed(2)])
+        XCTAssertEqual(value.unpretransformed(), .tuple([1, 2]))
+    }
+
     // MARK: Static type
 
     func testNumericLiteralType() throws {

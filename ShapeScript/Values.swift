@@ -419,6 +419,21 @@ extension Value {
     func flattened(recursive: Bool) -> [Value] {
         [self].flattened(recursive: recursive)
     }
+
+    /// Recursively remove wrappers that do not affect block geometry matching
+    func unpretransformed() -> Value {
+        switch self {
+        case let .pretransformed(value):
+            value.unpretransformed()
+        case let .tuple(values):
+            .tuple(values.map { $0.unpretransformed() })
+        case .color, .texture, .material, .boolean, .number,
+             .radians, .halfturns, .vector, .size, .rotation,
+             .string, .font, .text, .path, .mesh, .polygon, .point,
+             .range, .bounds, .object:
+            self
+        }
+    }
 }
 
 extension [Value] {
