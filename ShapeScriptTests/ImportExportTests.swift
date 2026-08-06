@@ -191,6 +191,45 @@ final class ImportExportTests: XCTestCase {
         ])
     }
 
+    func testImportObjPackageDirectoryAsMesh() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let packageURL = directory.appendingPathComponent("Sphere.obj", isDirectory: true)
+        try FileManager.default.createDirectory(at: packageURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let objURL = packageURL.appendingPathComponent("Sphere.obj")
+        try """
+        v 0 0 0
+        v 1 0 0
+        v 0 1 0
+        f 1 2 3
+        """.write(to: objURL, atomically: true, encoding: .utf8)
+
+        let source = #"import "Sphere.obj""#
+        let program = try parse(source)
+        guard case let .expression(expressionType) = program.statements.first?.type else {
+            XCTFail("Expression not found")
+            return
+        }
+        let expression = Expression(
+            type: expressionType,
+            range: program.statements.first?.range ?? source.startIndex ..< source.endIndex
+        )
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: source, delegate: delegate)
+        let value = try expression.evaluate(as: .mesh, for: "", in: context)
+        let geometry = try XCTUnwrap(value.value as? Geometry)
+
+        XCTAssertEqual(delegate.imports, ["Sphere.obj"])
+        XCTAssertEqual(geometry.polygons { false }.count, 2)
+        XCTAssertEqual(geometry.polygons { false }.first?.vertices.map(\.position), [
+            Vector(0, 0, 0),
+            Vector(1, 0, 0),
+            Vector(0, 1, 0),
+        ])
+    }
+
     // MARK: Import limits
 
     func testOversizedShapeTextAndJSONImportsAreRejected() throws {

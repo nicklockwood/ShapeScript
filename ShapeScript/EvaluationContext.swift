@@ -413,6 +413,15 @@ extension EvaluationContext {
             // Allow delegate to implement alternative loading mechanism, e.g. hard-coded geometry for testing
             return geometry
         }
+        var url = url
+        var isDirectory: ObjCBool = false
+        _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        if isDirectory.boolValue {
+            let newURL = url.appendingPathComponent(url.lastPathComponent)
+            if FileManager.default.fileExists(atPath: newURL.path) {
+                url = newURL
+            }
+        }
         switch url.pathExtension.lowercased() {
         case "stl", "stla", "obj", "off":
             let mesh = try Mesh(url: url) {
@@ -438,15 +447,6 @@ extension EvaluationContext {
             )
         default:
             break
-        }
-        var isDirectory: ObjCBool = false
-        _ = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        var url = url
-        if isDirectory.boolValue {
-            let newURL = url.appendingPathComponent(url.lastPathComponent)
-            if FileManager.default.fileExists(atPath: newURL.path) {
-                url = newURL
-            }
         }
         #if canImport(SceneKit)
         let scene = try SCNScene(url: url, options: [
