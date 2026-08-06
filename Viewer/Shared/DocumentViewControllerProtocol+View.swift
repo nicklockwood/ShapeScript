@@ -26,6 +26,10 @@ extension DocumentViewControllerProtocol {
         isBrightBackground ? .black : .white
     }
 
+    var geometryBounds: Bounds {
+        document?.scene?.overestimatedBounds ?? .empty
+    }
+
     func checkDocumentVersion() {
         guard !isQuickLook, let document,
               let formatVersion = document.formatVersion,
@@ -76,13 +80,13 @@ extension DocumentViewControllerProtocol {
     }
 
     var axesSize: Double {
-        let bounds = geometry?.overestimatedBounds ?? .empty
+        let bounds = geometryBounds
         let m = max(-bounds.min, bounds.max)
         return max(m.x, m.y, m.z) * 1.1
     }
 
     var viewCenter: Vector {
-        showAxes ? .zero : (geometry?.overestimatedBounds ?? .empty).center
+        showAxes ? .zero : geometryBounds.center
     }
 
     func resetView() {
@@ -178,7 +182,7 @@ extension DocumentViewControllerProtocol {
     }
 
     func updateCamera() {
-        let bounds = geometry?.overestimatedBounds ?? .empty
+        let bounds = geometryBounds
         let axisScale = axesSize * 2.2
         let size = bounds.size
         var distance, scale: Double

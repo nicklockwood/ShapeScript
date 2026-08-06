@@ -72,6 +72,21 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil)
 
         XCTAssertEqual(scene.overestimatedBounds.center, [10, 0, 0])
+        XCTAssertEqual(scene.overestimatedBounds.size, [1, 1, 1])
+    }
+
+    func testSceneBoundsUseOnlyFocusedRootGeometry() throws {
+        let scene = try evaluate(parse("""
+        focus cube {
+            position 10
+        }
+        sphere {
+            position 100
+        }
+        """), delegate: nil)
+
+        XCTAssertEqual(scene.overestimatedBounds.center, [10, 0, 0])
+        XCTAssertEqual(scene.overestimatedBounds.size, [1, 1, 1])
     }
 
     func testWithoutUnfocusedGeometryRemovesHiddenSiblings() throws {
