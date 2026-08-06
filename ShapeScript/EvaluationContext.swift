@@ -47,6 +47,7 @@ struct BlockState: Hashable {
     var name: String = ""
     var detail: Int = 16
     var smoothing: Angle?
+    var miterLimit: MiterLimit?
     var font: String = ""
     var opacity: Double = 1
     var baseURL: URL?

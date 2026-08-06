@@ -706,6 +706,109 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
     }
 
+    // MARK: Miter Limit
+
+    func testMiterLimitInRoot() throws {
+        let program = try parse("""
+        miterLimit 1
+        extrude square
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testMiterLimitInGroup() throws {
+        let program = try parse("""
+        group {
+            miterLimit 1
+            extrude square
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testMiterLimitInMesh() throws {
+        let program = try parse("""
+        mesh {
+            miterLimit 1
+            extrude square
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testMiterLimitInExtrude() throws {
+        let program = try parse("""
+        extrude {
+            miterLimit 1
+            square
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testMiterLimitInShape() throws {
+        let program = try parse("cube { miterLimit 1 }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("miterLimit", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testMiterLimitInPathShape() throws {
+        let program = try parse("circle { miterLimit 1 }")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("miterLimit", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testMiterLimitInPath() throws {
+        let program = try parse("""
+        path {
+            miterLimit 1
+            point 0 1
+            point 0 -1
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("miterLimit", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
+    func testMiterLimitInBuilder() throws {
+        let program = try parse("""
+        lathe {
+            miterLimit 1
+            square
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            guard case .unknownSymbol("miterLimit", _)? = error?.type else {
+                XCTFail()
+                return
+            }
+        }
+    }
+
     // MARK: Font
 
     func testFontInRoot() throws {

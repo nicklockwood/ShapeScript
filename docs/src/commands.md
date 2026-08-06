@@ -53,6 +53,10 @@ The `detail` command can be used anywhere in the ShapeScript file to override th
 
 The `smoothing` command can be used anywhere in the ShapeScript file to override the local smoothing level used for calculating surface normals. It is documented in the [options](options.md#smoothing) section.
 
+## Miter Limit
+
+The `miterLimit` command controls when sharp corners in shapes extruded along a path are beveled instead of mitered. Unlike `detail` and `smoothing`, it is only available in contexts where it can affect an extrusion. It is documented in the [extrude](builders.md#extrude) section.
+
 ## Materials
 
 The `material` command (along with individual material property commands such as `color` and `texture`) are used to specify the appearance of shapes when rendered. These commands are documented in the [materials](materials.md) section.

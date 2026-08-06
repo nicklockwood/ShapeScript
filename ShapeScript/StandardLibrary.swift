@@ -176,14 +176,15 @@ extension Symbols {
             .mesh(Geometry(type: .group, in: context))
         },
         // builders
-        "extrude": .block(.init(.builder, [
+        "extrude": .block(.init(_merge(.builder, miterLimit), [
             "along": .list(.path),
             "twist": .halfturns,
             "axisAligned": .boolean,
             "miterLimit": .number,
         ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
-            let miterLimit = (context.value(for: "miterLimit")?.doubleValue).map(MiterLimit.ratio)
+            let miterLimit = (context.value(for: "miterLimit")?.doubleValue)
+                .map(MiterLimit.ratio) ?? context.state.miterLimit
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
             } ?? .default
@@ -212,7 +213,7 @@ extension Symbols {
                     along: [along],
                     twist: twist,
                     align: align,
-                    miterLimit: miterLimit
+                    miterLimit: nil
                 )), in: context))
             })
         },
@@ -691,7 +692,15 @@ extension Symbols {
         }),
     ]
 
-    static let root: Symbols = _merge(global, font, detail, smoothing, material, childTransform, [
+    static let miterLimit: Symbols = [
+        "miterLimit": .property(.number, { parameter, context in
+            context.state.miterLimit = MiterLimit.ratio(parameter.doubleValue)
+        }, { context in
+            .number(context.state.miterLimit?.ratio ?? .infinity)
+        }),
+    ]
+
+    static let root: Symbols = _merge(global, font, detail, smoothing, miterLimit, material, childTransform, [
         "camera": .block(.init(.node, [
             "position": .vector,
             "orientation": .rotation,
@@ -732,12 +741,12 @@ extension Symbols {
     static let global: Symbols = _merge(functions, colors, meshes, paths)
     static let node: Symbols = _merge(transform, name, background)
     static let shape: Symbols = _merge(node, detail, smoothing, material)
-    static let group: Symbols = _merge(shape, childTransform, font)
-    static let user: Symbols = _merge(shape, font)
-    static let builder: Symbols = group
+    static let group: Symbols = _merge(shape, miterLimit, childTransform, font)
+    static let user: Symbols = _merge(shape, miterLimit, font)
+    static let builder: Symbols = _merge(shape, childTransform, font)
     static let hull: Symbols = _merge(group, points)
     static let polygon: Symbols = _merge(transform, childTransform, points, color)
-    static let mesh: Symbols = _merge(node, smoothing, color, childTransform, polygons)
+    static let mesh: Symbols = _merge(node, smoothing, miterLimit, color, childTransform, polygons)
     static let pathShape: Symbols = _merge(transform, detail, color, background)
     static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
     static let definition: Symbols = _merge(root, pathPoints)

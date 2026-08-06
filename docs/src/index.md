@@ -129,6 +129,7 @@ ShapeScript Help
         - [Background](commands.md#background)
         - [Detail](commands.md#detail)
         - [Smoothing](commands.md#smoothing)
+        - [Miter Limit](commands.md#miter-limit)
         - [Materials](commands.md#materials)
         - [Font](commands.md#font)
         - [Transforms](commands.md#transforms)

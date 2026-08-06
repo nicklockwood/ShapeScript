@@ -179,6 +179,40 @@ extrude {
 
 ![Twisted circle seam](../images/twisted-circle-seam.png)
 
+Sharp corners in the `along` path can introduce a different problem. By default, ShapeScript tries to preserve a crisp corner by extending the adjacent side faces until they meet, but at very tight angles this can produce a long spike at the join:
+
+```swift
+extrude {
+    square { size 0.2 }
+    along path {
+        point 0
+        point 10
+        point 0 1
+    }
+}
+```
+
+![Extreme miter](../images/extreme-miter.png)
+
+The extended corner is called a [miter](https://en.wikipedia.org/wiki/Miter_joint). To prevent extreme miters, you can set `miterLimit`, which specifies the maximum allowed ratio between the miter length and the extrusion wall thickness. If a corner would exceed that limit, ShapeScript bevels the corner instead. This is the same idea as SVG's [`stroke-miterlimit`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-miterlimit):
+
+The default is unlimited, so corners are mitered unless you set a limit. Lower values bevel more corners:
+
+```swift
+extrude {
+    miterLimit 10
+    square { size 0.2 }
+    along path {
+        point 0
+        point 10
+        point 0 1
+    }
+}
+```
+
+![Limited miter](../images/limited-miter.png)
+
+`miterLimit` only applies when extruding along a path, so it has no effect on a simple straight extrusion along the Z axis. You can set it inside an `extrude` block, as above, or set it at the root level and inherit it into later extrusions. The British spelling `mitreLimit` is also accepted.
 
 ## Loft
 
