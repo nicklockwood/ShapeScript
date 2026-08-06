@@ -30,7 +30,8 @@ extension DocumentProtocol {
 
     var modelInfo: String {
         // Geometry info
-        let geometry = selectedGeometry ?? geometry.withoutUnfocusedGeometry()
+        let rootGeometry = geometry
+        let geometry = selectedGeometry ?? rootGeometry.withoutUnfocusedGeometry()
         let polygons: String
         let triangles: String
         let dimensions: String
@@ -80,8 +81,15 @@ extension DocumentProtocol {
         }
 
         let objectCount = geometry.objectCount
+        let hiddenCount = selectedGeometry == nil && rootGeometry.childIsFocused ?
+            max(0, rootGeometry.objectCount - objectCount) : 0
+        var objectCountDescription = "\(objectCount) object\(objectCount == 1 ? "" : "s")"
+        if hiddenCount > 0 {
+            objectCountDescription += " (\(hiddenCount) hidden)"
+        }
+
         return [
-            "Objects: \(objectCount)",
+            "Objects: \(objectCountDescription)",
             triangles == polygons ? nil : "Polygons: \(polygons)",
             hasTriangles ? "Triangles: \(triangles)" : nil,
             geometry.overestimatedBounds.isEmpty ? nil : "Dimensions: \(dimensions)",
