@@ -110,6 +110,14 @@ extension Symbols {
         "purple": .constant(.color(.purple)),
     ]
 
+    static let textures: Symbols = {
+        var symbols = Symbols()
+        #if canImport(CoreGraphics) && canImport(ImageIO)
+        symbols["checkerboard"] = .constant(.texture(.checkerboard))
+        #endif
+        return symbols
+    }()
+
     static let color: Symbols = colors + [
         "color": .property(.color, { parameter, context in
             context.state.material.albedo = parameter.colorOrTextureValue
@@ -118,7 +126,7 @@ extension Symbols {
         }),
     ]
 
-    static let material: Symbols = color + [
+    static let material: Symbols = color + textures + [
         "opacity": .property(.numberOrTexture, { parameter, context in
             switch parameter {
             case let .number(opacity):
@@ -769,7 +777,7 @@ extension Symbols {
         }),
     ])
 
-    static let global: Symbols = _merge(functions, colors, meshes, paths)
+    static let global: Symbols = _merge(functions, colors, textures, meshes, paths)
     static let node: Symbols = _merge(transform, name, background)
     static let shape: Symbols = _merge(node, detail, smoothing, material)
     static let group: Symbols = _merge(shape, miterLimit, childTransform, font)

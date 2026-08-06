@@ -839,6 +839,8 @@ private extension RuntimeError {
         "hsv": ["hsb"],
         "hsl": ["hsb"],
         "hsba": ["hsb"],
+        "checkers": ["checkerboard"],
+        "chessboard": ["checkerboard"],
         "alpha": ["opacity"],
         "opacity": ["alpha", "material"],
         "normals": ["material"],

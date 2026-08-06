@@ -1003,6 +1003,13 @@ final class TypesystemTests: XCTestCase {
         """, as: .string), .string(url.path))
     }
 
+    func testCheckerboardConstantType() throws {
+        #if canImport(CoreGraphics) && canImport(ImageIO)
+        XCTAssertEqual(try expressionType("checkerboard"), .texture)
+        XCTAssertEqual(try evaluate("checkerboard", as: .texture), .texture(.checkerboard))
+        #endif
+    }
+
     func testCastFontToString() throws {
         #if canImport(CoreGraphics)
         XCTAssert(Value.font("times").isConvertible(to: .string))

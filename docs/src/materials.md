@@ -225,6 +225,22 @@ texture ""
 
 **Note:** a given shape can only have either a color or texture, but not both. Setting the texture will clear the color and vice-versa.
 
+ShapeScript includes a built-in `checkerboard` texture that you can use for testing texture mapping without needing an external image file:
+
+```swift
+sphere {
+    texture checkerboard
+}
+```
+
+![Checkered sphere](../images/checkerboard-texture.png)
+
+You can also use `checkerboard` anywhere else a texture is accepted, such as the scene [background](commands.md#background):
+
+```swift
+background checkerboard
+```
+
 ### Access Permission
 
 The first time you try to use an image, you will see an error screen like the one below.
@@ -312,11 +328,11 @@ group {
 }
 ```
 
-The `opacity` property can be set to a texture (image) instead of a simple number by providing the name of an external image file:
+The `opacity` property can also be set to a texture (image) instead of a simple number. Here is an example using the built-in checkerboard texture:
 
 ```swift
 sphere {
-    opacity "checkerboard.png"
+    opacity checkerboard
 }
 ```
 

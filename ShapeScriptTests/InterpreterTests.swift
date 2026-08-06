@@ -938,6 +938,17 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(error.suggestion, "linespacing")
     }
 
+    func testCheckerboardMisspellingAlternative() {
+        #if canImport(CoreGraphics) && canImport(ImageIO)
+        let source = "checkboard"
+        let error = RuntimeError(
+            .unknownSymbol("checkboard", options: ["checkerboard"]),
+            at: source.startIndex ..< source.endIndex
+        )
+        XCTAssertEqual(error.suggestion, "checkerboard")
+        #endif
+    }
+
     func testShadowedColorInheritedByBlock() throws {
         let program = """
         define black 1 0 0
@@ -1539,6 +1550,19 @@ final class InterpreterTests: XCTestCase {
         )])
     }
 
+    #if canImport(CoreGraphics) && canImport(ImageIO)
+    func testSetTextureWithCheckerboardConstant() throws {
+        let program = """
+        texture checkerboard
+        print texture
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.checkerboard])
+        XCTAssertFalse(Texture.checkerboard.data.isEmpty)
+    }
+    #endif
+
     func testSetTextureWithNonExistentImage() throws {
         let program = """
         texture "Nope.jpg"
@@ -1761,6 +1785,18 @@ final class InterpreterTests: XCTestCase {
             name: "Stars1.jpg", url: testsDirectory.appendingPathComponent("Stars1.jpg")
         )])
     }
+
+    #if canImport(CoreGraphics) && canImport(ImageIO)
+    func testSetBackgroundTextureWithCheckerboardConstant() throws {
+        let program = """
+        background checkerboard
+        print background
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Texture.checkerboard])
+    }
+    #endif
 
     func testSetBackgroundTextureWithNonExistentImage() throws {
         let program = """
