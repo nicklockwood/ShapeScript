@@ -2,28 +2,58 @@
 
 detail 32
 
+camera {
+    position -0.3539 0.3167 1.4228
+    orientation 0 0.0776 0.0677
+    width 1400
+    height 1000
+}
+
+define ballMaterial material {
+    color #facc15
+    roughness 0.42
+    metallicity 0.08
+}
+
+define stripeMaterial material {
+    color #2563eb
+    roughness 0.18
+    metallicity 0.35
+}
+
+define starMaterial material {
+    color #ef4444
+    roughness 0.22
+    metallicity 0.2
+    glow #ef4444 * 0.25
+}
+
+define starPath {
+    path {
+        for 1 to 5 {
+            point 0 -0.5
+            rotate 1 / 5
+            point 0 -1
+            rotate 1 / 5
+        }
+        point 0 -0.5
+    }
+}
+
 stencil {
     // ball
     sphere {
-        color 1 1 0
+        material ballMaterial
     }
     // stripe
     cube {
-        color 0 0 1
+        material stripeMaterial
         size 1 1 0.4
     }
     // star
     extrude {
-        color 1 0 0
+        material starMaterial
         size 0.3 0.3 1
-        path {
-            for 1 to 5 {
-                point 0 -0.5
-                rotate 1 / 5
-                point 0 -1
-                rotate 1 / 5
-            }
-            point 0 -0.5
-        }
+        starPath
     }
 }

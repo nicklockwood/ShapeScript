@@ -1,5 +1,12 @@
 // ShapeScript document
 
+camera {
+    position 0 -1.5 1.75
+    orientation 0 0 -0.2
+    width 1400
+    height 1000
+}
+
 define cog {
     option teeth 6
     path {

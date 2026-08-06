@@ -1,0 +1,72 @@
+// ShapeScript document
+
+smoothing 0
+
+camera {
+    position 0.2 0.2629 4.1552
+    orientation 0 -0.0074 0.0373
+    width 1400
+    height 928
+}
+
+define label(name) {
+    text {
+        size 0.18
+        name
+    }
+}
+
+define solid {
+    option name ""
+    children
+    color #111827
+    translate -label(name).bounds.width/2 -1
+    fill label(name)
+}
+
+define spacing 1.25
+
+solid {
+    name "Tetrahedron"
+    position -spacing * 2
+    cone {
+        color #ef4444
+        detail 3
+        size 1 0.7071 1
+    }
+}
+
+solid {
+    name "Cube"
+    position -spacing
+    cube {
+        color #f97316
+        size 0.75 
+    }
+}
+
+solid {
+    name "Octahedron"
+    position 0
+    sphere {
+        color #22c55e
+        size 1.1
+        detail 4
+    }
+}
+
+solid {
+    name "Dodecahedron"
+    position spacing
+    scale 0.7
+    import "Dodecahedron.shape"
+}
+
+solid {
+    name "Icosahedron"
+    position spacing * 2
+    icosphere {
+        color #38bdf8
+        detail 0
+    }
+}

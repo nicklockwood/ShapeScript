@@ -357,5 +357,7 @@ minkowski {
 
 **Note:** Minkowski addition is [commutative](https://en.wikipedia.org/wiki/Commutative_property), meaning that the order of inputs should not affect the result. However, the ShapeScript `minkowski` command can sometimes produce different results when the input includes paths or non-convex meshes due to various optimizations.
 
+For a reusable helper that combines `minkowski` with the [inset](functions.md#geometry) function to create filleted mesh edges, see the [Fillet example](examples.md#fillet).
+
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)

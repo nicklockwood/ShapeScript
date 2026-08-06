@@ -2,14 +2,49 @@
 
 detail 32
 
-define white 1 0.8
-define black 0.1
-define boardEdge 0.25
-define boardWhite 1 0.8
-define boardBlack 0.25
+camera {
+    position 0 6 9
+    orientation 0 0 0.21
+    fov 0.3
+    width 1400
+    height 928
+}
+
+// materials
+
+define lightPiece material {
+    color #fffbeb
+    metallicity 0.05
+    roughness 0.28
+}
+
+define darkPiece material {
+    color #111827
+    metallicity 0.75
+    roughness 0.18
+}
+
+define boardEdge material {
+    color #334155
+    metallicity 0.6
+    roughness 0.35
+}
+
+define boardWhite material {
+    color #e2e8f0
+    opacity 0.85
+    roughness 0.85
+}
+
+define boardBlack material {
+    color #334155
+    metallicity 0.6
+    roughness 0.35
+}
 
 // board
-color boardEdge
+
+material boardEdge
 union {
     translate 0 -0.1
     difference {
@@ -18,17 +53,17 @@ union {
         cube { size 8 0.2 8 }
     }
     translate -3.5 0.025 -3.5
-    color boardWhite
+    material boardWhite
     for 1 to 4 {
         for 1 to 4 {
             cube { size 0.95 0.15 0.95 }
             translate 1 0 0
-            color boardBlack
+            material boardBlack
             cube { size 0.95 0.15 0.95 }
             translate -1 0 1
             cube { size 0.95 0.15 0.95 }
             translate 1 0 0
-            color boardWhite
+            material boardWhite
             cube { size 0.95 0.15 0.95 }
             translate -1 0 1
         }
@@ -36,12 +71,10 @@ union {
     }
 }
 
-// add a small gap between board and pieces to prevent z-fighting
-translate 0 0.01
-
 // pawns
+
 translate 3.5 0 -2.5
-color white
+material lightPiece
 for 1 to 2 {
     for 1 to 8 {
         union {
@@ -60,13 +93,14 @@ for 1 to 2 {
         translate -1
     }
     translate 8 0 5
-    color black
+    material darkPiece
 }
 
 // castles
+
 translate 0 0 -4
 for 1 to 2 {
-    color black
+    material darkPiece
     for 1 to 2 {
         difference {
             lathe path {
@@ -88,15 +122,16 @@ for 1 to 2 {
             cube { size 0.1 0.1 0.4 }
         }
         translate 0 0 -7
-        color white
+        material lightPiece
     }
     translate -7 0 14
 }
 
 // knights
+
 translate 13 0 0
 for 1 to 2 {
-    color black
+    material darkPiece
     for 1 to 2 {
         union {
             lathe path {
@@ -123,15 +158,16 @@ for 1 to 2 {
             }
         }
         translate 0 0 -7
-        color white
+        material lightPiece
     }
     translate -5 0 14
 }
 
 // bishops
+
 translate 9 0 0
 for 1 to 2 {
-    color black
+    material darkPiece
     for 1 to 2 {
         difference {
             lathe path {
@@ -156,14 +192,15 @@ for 1 to 2 {
             rotate 0 0 -0.1
         }
         translate 0 0 -7
-        color white
+        material lightPiece
     }
     translate -3 0 14
 }
 
 // king
+
 translate 4 0 0
-color black
+material darkPiece
 for 1 to 2 {
     union {
         lathe path {
@@ -186,12 +223,13 @@ for 1 to 2 {
         cube { size 0.15 0.075 0.04 }
     }
     translate 0 0 -7
-    color white
+    material lightPiece
 }
 
 // queen
+
 translate 1 0 14
-color black
+material darkPiece
 for 1 to 2 {
     union {
         lathe path {
@@ -225,5 +263,5 @@ for 1 to 2 {
         }
     }
     translate 0 0 -7
-    color white
+    material lightPiece
 }

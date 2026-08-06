@@ -1,0 +1,64 @@
+// ShapeScript document
+
+detail 16
+
+// This reusable function behaves like a small standard library function:
+// pass it a source mesh and a radius, and it returns a new mesh with rounded
+// edges. It composes naturally with other geometry functions, just like
+// inset(mesh radius).
+//
+// A fillet is a rounded internal or external edge. This implementation
+// creates one by combining two operations:
+//
+// 1. inset(source radius)
+//    The source mesh is shrunk inward by the fillet radius. This makes
+//    room for the rounded edge so the final result keeps the original
+//    overall dimensions.
+//
+// 2. minkowski { ... sphere }
+//    Minkowski addition adds the inset mesh to a sphere with the same
+//    radius. The sphere sweeps around every point of the inset mesh,
+//    rounding the edges as it grows back to the original size.
+//
+// Keep the radius small enough that the inset mesh does not collapse.
+// For more complex parts, combine the source geometry first, then pass
+// that combined mesh to fillet.
+define fillet(source radius) {
+    minkowski {
+        inset(source radius)
+        sphere {
+            size radius * 2
+        }
+    }
+}
+
+define radius 0.08
+
+// Filleted cone
+group {
+    position -0.5
+    fillet(cone {
+        color #38bdf8
+    } radius)
+}
+
+// The same function can be reused with a more complex mesh. The union is
+// built first so that the shared edges are rounded as part of one shape.
+define shape union {
+    cube {
+        color #a78bfa
+    }
+    cylinder {
+        color #a78bfa
+        size 0.45 1.2 0.45
+        orientation 0.5
+        position 0.45
+    }
+}
+
+group {
+    position 0.5
+    orientation 0.5
+    size 0.8
+    fillet(shape radius * 0.75)
+}

@@ -21,17 +21,29 @@ The Cog example demonstrates procedural generation of a complex [path](paths.md)
 
 ![Cog](../images/cog.png)
 
+## Dodecahedron
+
+The Dodecahedron example demonstrates how to build a complex [mesh](meshes.md) from structured data and in-script calculations. It starts with a low-detail [icosphere](primitives.md#icosphere), calculates the dodecahedron vertex positions from its polygon centers, then uses face-index and color data to build the final pentagonal polygons.
+
+![Dodecahedron](../images/dodecahedron.png)
+
+## Fillet
+
+The Fillet example demonstrates how to define a reusable geometry function that combines the [inset](functions.md#geometry) function with [Minkowski addition](builders.md#minkowski) to produce rounded mesh edges while preserving the original overall dimensions.
+
+![Fillet shapes](../images/fillet.png)
+
 ## Earth
 
-The Earth example demonstrates use of the [texture](materials.md#texture) command to turn a simple sphere into a model of the globe.
+The Earth example demonstrates use of the [texture](materials.md#texture) command to turn a simple sphere into a model of the globe, along with the [background](commands.md#background) command to add a star field behind it.
 
 ![Earth](../images/earth.png)
 
-## Icosahedron
+## Platonic Solids
 
-The Icosahedron demonstrates the use of the [mesh command](meshes.md) along with [structured data](literals.md#structured-data) and [custom functions](functions.md#custom-functions) to create a complex shape that cannot easily be derived from the built-in primitives.
+The Platonic Solids example demonstrates how low-detail [cone](primitives.md#cone), [cube](primitives.md#cube), [sphere](primitives.md#sphere) and [icosphere](primitives.md#icosphere) primitives can be used to create several regular solids without manually defining mesh polygons. It also demonstrates using the [import](commands.md#import) command to reuse the Dodecahedron example as one of the solids.
 
-![Icosahedron](../images/icosahedron.png)
+![Platonic solids](../images/platonic-solids.png)
 
 ## Spirals
 

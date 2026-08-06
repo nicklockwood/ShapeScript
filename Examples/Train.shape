@@ -2,18 +2,51 @@
 
 detail 32
 
-// colors
-define darkBlue 0.1 0.5 1
-define lightBlue 0.5 0.8 1
-define black 0.2
-define red 1 0 0
-define gray 0.8
+camera {
+    position 2.22 1.6111 1.8919
+    orientation 0 -0.2818 0.1264
+    width 1400
+    height 1000
+}
+
+// materials
+
+define bluePaint material {
+    color 0.4 0.7 1
+    metallicity 0.08
+    roughness 0.18
+}
+
+define redPaint material {
+    color red
+    metallicity 0.05
+    roughness 0.32
+}
+
+define steel material {
+    color 0.8
+    metallicity 1
+    roughness 0.18
+}
+
+define matteBlack material {
+    color black
+    roughness 0.85
+}
+
+define coal material {
+    color black
+    metallicity 0.2
+    roughness 0.65
+}
+
+// wheels
 
 define wheel {
     union {
-        color darkBlue
+        material matteBlack
         cylinder { size 0.6 0.05 }
-        color lightBlue
+        material steel
         cylinder { size 0.56 0.1 }
         translate 0 0.05 0
         difference {
@@ -29,7 +62,6 @@ define wheel {
     }
 }
 
-// wheels
 for i in -1 to 1 {
     group {
         translate 0 0 (0.7 * i)
@@ -37,6 +69,7 @@ for i in -1 to 1 {
         translate 0 0.5 0
         wheel
         translate 0 -0.5 0
+        material steel
         cylinder { size 0.1 1 }
         rotate 1
         translate 0 0.5 0
@@ -45,10 +78,11 @@ for i in -1 to 1 {
 }
 
 // base
+
 union {
     rotate 0 0.5 0
     translate -1 -0.06
-    color black
+    material matteBlack
     extrude {
         size 1 1 0.7
         path {
@@ -61,7 +95,7 @@ union {
             point 0.1
         }
     }
-    color red
+    material redPaint
     extrude path {
         point 1.95 0.5
         point -0.1 0.5
@@ -77,9 +111,10 @@ union {
     }
 }
 
-// face
+// front
+
 lathe {
-    color gray
+    material steel
     position 0 0.8 1
     orientation 0 0 0.5
     path {
@@ -91,8 +126,9 @@ lathe {
 }
 
 // chimney
+
 union {
-    color black
+    material matteBlack
     position 0 0.6 0.8
     cube { size 0.7 0.4 0.4 }
     cylinder {
@@ -120,8 +156,9 @@ union {
 }
 
 // body
+
 union {
-    color lightBlue
+    material bluePaint
     position 0 0.8 0.2
     orientation 0 0 0.5
     cylinder { size 0.7 0.8 }
@@ -133,6 +170,7 @@ union {
     }
     translate 0 0.15 0.05
     // cab
+    material bluePaint
     rotate 0 0 -0.5
     extrude {
         size 1 1 0.6
@@ -147,7 +185,7 @@ union {
     }
     // roof
     extrude {
-        color black
+        material matteBlack
         size 1 1 0.5
         path {
             point -0.35
@@ -161,8 +199,9 @@ union {
 }
 
 // coal
+
 union {
-    color black
+    material coal
     position 0 0.73 -0.84
     orientation 0 0 0.5
     cube { size 0.8 0.325 0.4 }

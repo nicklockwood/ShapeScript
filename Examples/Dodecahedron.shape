@@ -1,0 +1,41 @@
+// ShapeScript document
+
+smoothing 0
+
+define scale 0.75
+
+define ico icosphere { detail 0 }
+
+define dodecahedronVertices for face in ico.polygons {
+    normalize(face.center) * scale
+}
+
+define dodecahedronFaces (
+    (2 3 4 0 1 #ef4444)
+    (4 7 16 6 0 #f97316)
+    (0 6 15 5 1 #f59e0b)
+    (19 9 2 1 5 #eab308)
+    (18 8 3 2 9 #84cc16)
+    (8 17 7 4 3 #22c55e)
+    (10 14 19 5 15 #10b981)
+    (16 11 10 15 6 #14b8a6)
+    (17 12 11 16 7 #06b6d4)
+    (17 8 18 13 12 #3b82f6)
+    (13 18 9 19 14 #8b5cf6)
+    (12 13 14 10 11 #d946ef)
+)
+
+define face(data) {
+    polygon {
+        color data.last
+        for index in data.allButLast {
+            point dodecahedronVertices[index]
+        }
+    }
+}
+
+mesh {
+    for data in dodecahedronFaces {
+        face data
+    }
+}
