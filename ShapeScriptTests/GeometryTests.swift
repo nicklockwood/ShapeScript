@@ -108,6 +108,10 @@ final class GeometryTests: XCTestCase {
         let copy = geometry.withoutUnfocusedGeometry()
         XCTAssertEqual(copy.children.count, 1)
         XCTAssertEqual(copy.children[0].transform.translation, [10, 0, 0])
+        XCTAssertEqual(copy.objectCount, 1)
+        XCTAssertEqual(copy.polygons { false }.count, 6)
+        XCTAssertEqual(copy.overestimatedBounds.center, [10, 0, 0])
+        XCTAssertEqual(copy.exactBounds(with: copy.transform).size, [1, 1, 1])
     }
 
     func testWithoutDebugClearsDebugState() throws {
