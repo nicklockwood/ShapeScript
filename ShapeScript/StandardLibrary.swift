@@ -436,22 +436,37 @@ extension Symbols {
             ).transformed(by: context.transform))
         },
         "inset": .function(
-            .tuple([.union([.path, .mesh]), .number]),
+            .tuple([.list(.union([.path, .mesh])), .number]),
             .union([.path, .mesh])
         ) { value, context in
             guard case let .tuple(values) = value else { preconditionFailure() }
             let inset = values[1].doubleValue
-            switch values[0] {
-            case let .path(path):
-                return .path(path.inset(by: inset).transformed(by: context.transform))
-            case let .mesh(geometry):
-                _ = geometry.build { true }
-                let mesh = geometry.mesh?.inset(by: inset) ?? .empty
-                let geometry = Geometry(type: .mesh(mesh), in: context)
-                return .mesh(geometry)
-            default:
-                preconditionFailure()
+            func process(_ value: ShapeScript.Value) -> [ShapeScript.Value] {
+                switch value {
+                case let .path(path):
+                    return [.path(path.inset(by: inset).transformed(by: context.transform))]
+                case let .mesh(geometry):
+                    _ = geometry.build { true }
+                    let mesh = geometry.mesh?.inset(by: inset) ?? .empty
+                    let geometry = Geometry(
+                        type: .mesh(mesh),
+                        name: geometry.name,
+                        transform: geometry.transform,
+                        material: geometry.material,
+                        smoothing: geometry.smoothing,
+                        children: [],
+                        sourceLocation: context.sourceLocation,
+                        debug: geometry.debug
+                    )
+                    return [.mesh(geometry)]
+                case let .tuple(values):
+                    return values.flatMap(process)
+                default:
+                    return []
+                }
             }
+            let results = process(values[0])
+            return results.count == 1 ? results[0] : .tuple(results)
         },
     ]
 

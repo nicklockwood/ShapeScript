@@ -1402,6 +1402,21 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Path.square(size: 0.5)])
     }
 
+    func testInsetPathList() {
+        let program = """
+        print inset (
+            square { size 2 }
+            square
+        ) 0.25
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [
+            Path.square(size: 1.5),
+            Path.square(size: 0.5),
+        ])
+    }
+
     func testInsetMesh() throws {
         let program = "print (inset cube 0.1).bounds"
         let delegate = TestDelegate()
@@ -1417,6 +1432,43 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(bounds.max.x, expected.max.x, accuracy: epsilon)
         XCTAssertEqual(bounds.max.y, expected.max.y, accuracy: epsilon)
         XCTAssertEqual(bounds.max.z, expected.max.z, accuracy: epsilon)
+    }
+
+    func testInsetMeshList() throws {
+        let program = """
+        print inset (
+            (fill path {
+                point -1 -1
+                point -1 1
+                point 1 1
+                point 1 -1
+                point -1 -1
+            })
+            fill square
+        ) 0.25
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let geometries = delegate.log.compactMap { $0?.base as? Geometry }
+        XCTAssertEqual(geometries.count, 2)
+
+        let bounds = try geometries.map { geometry -> Bounds in
+            XCTAssertTrue(geometry.build { true })
+            return try XCTUnwrap(geometry.mesh?.bounds)
+        }
+        let expected = [
+            Bounds(min: .init(-0.75, -0.75, 0), max: .init(0.75, 0.75, 0)),
+            Bounds(min: .init(-0.25, -0.25, 0), max: .init(0.25, 0.25, 0)),
+        ]
+        XCTAssertEqual(bounds.count, expected.count)
+        for (bounds, expected) in zip(bounds, expected) {
+            XCTAssertEqual(bounds.min.x, expected.min.x, accuracy: epsilon)
+            XCTAssertEqual(bounds.min.y, expected.min.y, accuracy: epsilon)
+            XCTAssertEqual(bounds.min.z, expected.min.z, accuracy: epsilon)
+            XCTAssertEqual(bounds.max.x, expected.max.x, accuracy: epsilon)
+            XCTAssertEqual(bounds.max.y, expected.max.y, accuracy: epsilon)
+            XCTAssertEqual(bounds.max.z, expected.max.z, accuracy: epsilon)
+        }
     }
 
     // MARK: Commands
