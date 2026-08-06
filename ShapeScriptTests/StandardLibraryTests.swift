@@ -1395,6 +1395,30 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0.0, 0.0, 0.0, 0.0])
     }
 
+    func testInsetPath() {
+        let program = "print inset(square 0.25)"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Path.square(size: 0.5)])
+    }
+
+    func testInsetMesh() throws {
+        let program = "print (inset cube 0.1).bounds"
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let bounds = try XCTUnwrap(delegate.log.first as? Bounds)
+        let expected = Bounds(
+            min: .init(-0.4, -0.4, -0.4),
+            max: .init(0.4, 0.4, 0.4)
+        )
+        XCTAssertEqual(bounds.min.x, expected.min.x, accuracy: epsilon)
+        XCTAssertEqual(bounds.min.y, expected.min.y, accuracy: epsilon)
+        XCTAssertEqual(bounds.min.z, expected.min.z, accuracy: epsilon)
+        XCTAssertEqual(bounds.max.x, expected.max.x, accuracy: epsilon)
+        XCTAssertEqual(bounds.max.y, expected.max.y, accuracy: epsilon)
+        XCTAssertEqual(bounds.max.z, expected.max.z, accuracy: epsilon)
+    }
+
     // MARK: Commands
 
     func testSizeCommandWithConfusingParens() throws {

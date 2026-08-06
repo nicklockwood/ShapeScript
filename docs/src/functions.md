@@ -209,6 +209,59 @@ Angle in degrees | Angle in radians | Angle in half-turns
 
 <br>
 
+## Geometry
+
+The `inset` function returns a new path or mesh whose surface has been moved inward by the specified distance. It is equivalent to the `offset` function in some other CAD tools. Mathematically, path inset is an inward [parallel curve](https://en.wikipedia.org/wiki/Parallel_curve), also known in CAD as an offset curve.
+
+For paths, `inset` moves the outline inward in the path's plane. This is useful for creating borders, nested profiles, or clearance around another shape:
+
+```swift
+define outline {
+    roundrect {
+        size 1.5 1
+        radius 0.25
+    }
+}
+
+color red
+outline
+
+color blue
+inset outline 0.1
+```
+
+![Inset path](../images/inset-path.png)
+
+Passing a negative distance reverses the operation, expanding the path or mesh instead of shrinking it:
+
+```swift
+color red
+outline
+
+color blue
+inset outline -0.1
+```
+
+![Negative path inset](../images/outset-path.png)
+
+For meshes, `inset` offsets the shape inward in 3D. This is useful for shrinking a part by a precise clearance or creating an inner surface that follows the original shape:
+
+```swift
+define outer {
+    cube { size 1 }
+}
+
+color red 0.5
+outer
+
+color green
+inset outer 0.1
+```
+
+![Inset cube](../images/inset-mesh.png)
+
+**Note:** Be careful with large inset values. If an inset would collapse the original path or mesh, the result may be empty or misshapen.
+
 ## Strings
 
 ShapeScript includes a number of functions for manipulating strings.

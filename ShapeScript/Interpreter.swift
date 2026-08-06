@@ -524,6 +524,7 @@ private extension RuntimeError {
         "normalmap": ["normals"],
         "bump": ["normals"],
         "bumpmap": ["normals"],
+        "offset": ["inset"],
     ].merging(ParserError.alternatives.mapValues { [$0] }) { $1 }
 
     static let osName: String = {

@@ -120,6 +120,7 @@ ShapeScript Help
         - [Arithmetic](functions.md#arithmetic)
         - [Linear Algebra](functions.md#linear-algebra)
         - [Trigonometry](functions.md#trigonometry)
+        - [Geometry](functions.md#geometry)
         - [Strings](functions.md#strings)
         - [Functions and Expressions](functions.md#functions-and-expressions)
         - [Custom Functions](functions.md#custom-functions)
