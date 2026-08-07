@@ -180,7 +180,7 @@ private extension MemberProperties {
         },
         "bounds": .init(.bounds) { value, isCancelled in
             guard case let .mesh(geometry) = value else { return nil }
-            return .bounds(geometry.exactBounds(with: geometry.transform) { !isCancelled() })
+            return .bounds(geometry.exactBounds(with: geometry.transform, isCancelled))
         },
         "polygons": .init(.list(.polygon), isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }

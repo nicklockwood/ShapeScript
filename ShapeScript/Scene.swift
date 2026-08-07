@@ -79,8 +79,8 @@ public extension Scene {
         visibleBounds
     }
 
-    func build(_ callback: @escaping LegacyCallback) -> Bool {
-        for geometry in children where !geometry.build(callback) {
+    func build(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        for geometry in children where !geometry.build(isCancelled) {
             return false
         }
         return true

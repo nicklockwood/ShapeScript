@@ -68,7 +68,7 @@ struct Axes {
                 material: material
             ),
         ])
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         var options = Scene.OutputOptions.default
         options.lineColor = color
         geometry.scnBuild(with: options)

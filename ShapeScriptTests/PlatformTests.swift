@@ -144,7 +144,7 @@ final class PlatformTests: XCTestCase {
         let opaque = cube(material: Material(color: .blue))
         let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
 
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
         scene.scnBuild(with: .default)
 
         let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
@@ -159,7 +159,7 @@ final class PlatformTests: XCTestCase {
         let opaque = cube(material: Material(color: .blue))
         let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
 
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
         scene.scnBuild(with: .default)
 
         let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
@@ -186,7 +186,7 @@ final class PlatformTests: XCTestCase {
         )
         let scene = Scene(background: .color(.clear), children: [group, opaque], cache: nil)
 
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
         scene.scnBuild(with: .default)
 
         let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
@@ -198,7 +198,7 @@ final class PlatformTests: XCTestCase {
         let focused = cube(material: Material(color: .blue))
         let scene = Scene(background: .color(.clear), children: [hidden, focused], cache: nil)
 
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
         scene.scnBuild(with: .default)
         XCTAssertGreaterThan(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
 
@@ -225,7 +225,7 @@ final class PlatformTests: XCTestCase {
             let focused = try XCTUnwrap(geometry.children.first)
             let hidden = try XCTUnwrap(geometry.children.last)
 
-            XCTAssertTrue(scene.build { true })
+            XCTAssertTrue(scene.build { false })
             scene.scnBuild(with: .default)
 
             XCTAssertEqual(geometry.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
@@ -247,7 +247,7 @@ final class PlatformTests: XCTestCase {
             curve 0
         }
         """), delegate: nil)
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
         scene.scnBuild(with: .default)
 
         let geometry = try XCTUnwrap(scene.children.first)

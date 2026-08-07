@@ -275,7 +275,7 @@ final class GeometryTests: XCTestCase {
             nonisolated(unsafe) var checks = 0
             XCTAssertFalse(shape.build {
                 checks += 1
-                return checks < 4
+                return checks >= 4
             })
             XCTAssertLessThan(checks, 10)
             XCTAssertLessThan(shape.mesh?.polygons.count ?? .max, 256 * 2)
@@ -298,7 +298,7 @@ final class GeometryTests: XCTestCase {
         )
         let shape = Geometry(type: GeometryType.cone(segments: 5), in: context)
         let bounds = shape.exactBounds(with: shape.transform)
-        _ = shape.build { true }
+        _ = shape.build { false }
         let mesh = try XCTUnwrap(shape.mesh)
         let expected = mesh.transformed(by: context.state.transform).bounds
         XCTAssertEqual(bounds.min, expected.min, accuracy: epsilon)
@@ -374,7 +374,7 @@ final class GeometryTests: XCTestCase {
             curve 0
         }
         """), delegate: nil)
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
 
         let geometry = try XCTUnwrap(scene.children.first)
         let mesh = try XCTUnwrap(geometry.mesh)
@@ -392,7 +392,7 @@ final class GeometryTests: XCTestCase {
 
         func generatedMeshFingerprint() throws -> String {
             let scene = try evaluate(parse(program), delegate: TestDelegate())
-            XCTAssertTrue(scene.build { true })
+            XCTAssertTrue(scene.build { false })
             let geometry = Geometry(
                 type: .group,
                 name: nil,
@@ -422,7 +422,7 @@ final class GeometryTests: XCTestCase {
             let scene = try evaluate(parse(program), delegate: TestDelegate())
             XCTAssertEqual(scene.children.count, 1)
             let geometry = try XCTUnwrap(scene.children.first)
-            XCTAssertTrue(geometry.build { true })
+            XCTAssertTrue(geometry.build { false })
             return geometry.flattened()
         }
 
@@ -607,7 +607,7 @@ final class GeometryTests: XCTestCase {
         XCTAssertLessThan(rawExtrusion.duration, 1.5)
 
         let build = timed("detailed extrusion Geometry.build") {
-            geometry.build { true }
+            geometry.build { false }
         }
         let buildSucceeded = build.result
         let mesh = try XCTUnwrap(geometry.mesh)
@@ -628,7 +628,7 @@ final class GeometryTests: XCTestCase {
             in: EvaluationContext(source: "", delegate: nil)
         )
 
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertEqual(mesh.bounds.size, [1, 1, 1])
@@ -689,7 +689,7 @@ final class GeometryTests: XCTestCase {
         let scene = try evaluate(parse("""
         fill text "Hello World"    
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         #if canImport(CoreText)
         // Cache should have only 8 entries as the 'o' and 'l' are repeated
         XCTAssertEqual(cache.count, 8)
@@ -703,7 +703,7 @@ final class GeometryTests: XCTestCase {
         let scene = try evaluate(parse("""
         extrude text "Hello World"    
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         #if canImport(CoreText)
         // Cache should have only 8 entries as the 'o' and 'l' are repeated
         XCTAssertEqual(cache.count, 8)
@@ -728,7 +728,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color blue }    
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have only 2 entries: the extrusion and the hull
         XCTAssertEqual(cache.count, 2)
         let meshes = scene.children.compactMap(\.mesh)
@@ -753,7 +753,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color blue }    
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have 4 entries: cube, extrusion, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
         let meshes = scene.children.compactMap(\.mesh)
@@ -791,7 +791,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color blue }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have 4 entries: extrusion1, extrusion2, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
         let meshes = scene.children.compactMap(\.mesh)
@@ -829,7 +829,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color red }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have only 2 entries: extrusion and hull
         XCTAssertEqual(cache.count, 2)
         let meshes = scene.children.compactMap(\.mesh)
@@ -863,7 +863,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color red }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have 4 entries: extrusion1, extrusion2, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
         let meshes = scene.children.compactMap(\.mesh)
@@ -895,7 +895,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color green }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have only 1 entry: path
         XCTAssertEqual(cache.count, 1)
         let meshes = scene.children.compactMap(\.mesh)
@@ -920,7 +920,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color green }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have only 1 entry: extrude
         XCTAssertEqual(cache.count, 1)
         let meshes = scene.children.compactMap(\.mesh)
@@ -958,7 +958,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color green }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have only 3 entries: sphere, path, minkowski
         XCTAssertEqual(cache.count, 3)
         let meshes = scene.children.compactMap(\.mesh)
@@ -996,7 +996,7 @@ final class GeometryTests: XCTestCase {
         thing { color red }
         thing { color red }
         """), delegate: nil, cache: cache)
-        _ = scene.build { true }
+        _ = scene.build { false }
         // Cache should have 5 entries: sphere, path1, path2, minkowski1, minkowski2
         XCTAssertEqual(cache.count, 5)
         let meshes = scene.children.compactMap(\.mesh)

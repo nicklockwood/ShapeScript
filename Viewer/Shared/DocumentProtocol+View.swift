@@ -181,7 +181,7 @@ extension DocumentProtocol {
             )
             _ = scene.build {
                 if progress.isCancelledOrFailed {
-                    return false
+                    return true
                 }
                 let time = CFAbsoluteTimeGetCurrent()
                 if time - lastUpdate > minUpdatePeriod {
@@ -190,7 +190,7 @@ extension DocumentProtocol {
                     progress.setStatus(.partial(scene))
                     lastUpdate = time
                 }
-                return true
+                return false
             }
 
             if logCancelled() {

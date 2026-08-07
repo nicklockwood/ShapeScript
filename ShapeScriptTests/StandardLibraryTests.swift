@@ -22,7 +22,7 @@ final class StandardLibraryTests: XCTestCase {
             return XCTFail("Expected icosphere geometry, got \(geometry.type)")
         }
         XCTAssertEqual(subdivisions, 2)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh?.polygons.count, Mesh.icosphere(wrapMode: .none).polygons.count)
     }
 
@@ -32,7 +32,7 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
 
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         XCTAssertEqual(geometry.mesh?.polygons.count, Mesh.icosphere().polygons.count)
         XCTAssertEqual(geometry.mesh?.polygons.hasTexcoords, true)
     }
@@ -212,7 +212,7 @@ final class StandardLibraryTests: XCTestCase {
             }
         }
         """), delegate: nil)
-        XCTAssertTrue(scene.build { true })
+        XCTAssertTrue(scene.build { false })
 
         let geometry = try XCTUnwrap(scene.children.first)
         let mesh = geometry.flattened()
@@ -1381,7 +1381,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh?.polygons.count, 2)
     }
 
@@ -1392,7 +1392,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh, .empty)
     }
 
@@ -1407,7 +1407,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh?.polygons.count, 134)
         XCTAssertEqual(geometry.children.count, 2)
     }
@@ -1453,7 +1453,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh?.bounds, Mesh.cube().bounds)
     }
 
@@ -1472,7 +1472,7 @@ final class StandardLibraryTests: XCTestCase {
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
         let expected = Mesh.cube(size: 1.5)
         XCTAssertEqual(geometry.overestimatedBounds, expected.bounds)
-        _ = geometry.build { true }
+        _ = geometry.build { false }
         XCTAssertEqual(geometry.mesh?.bounds, expected.bounds)
     }
 
@@ -1487,7 +1487,7 @@ final class StandardLibraryTests: XCTestCase {
             let context = EvaluationContext(source: program.source, delegate: nil)
             try program.evaluate(in: context)
             let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-            XCTAssertTrue(geometry.build { true })
+            XCTAssertTrue(geometry.build { false })
             return try XCTUnwrap(geometry.mesh)
         }
 
@@ -1640,7 +1640,7 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(geometries.count, 2)
 
         let bounds = try geometries.map { geometry -> Bounds in
-            XCTAssertTrue(geometry.build { true })
+            XCTAssertTrue(geometry.build { false })
             return try XCTUnwrap(geometry.mesh?.bounds)
         }
         let expected = [

@@ -87,7 +87,7 @@ final class CLI {
             print("Running script ...")
             let scene = try evaluate(program, delegate: self, cache: cache) { false }
             print("Building geometry ...")
-            _ = scene.build { true }
+            _ = scene.build { false }
             let geometry = Geometry(
                 type: .group,
                 name: nil,

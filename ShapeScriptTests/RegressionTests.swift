@@ -55,7 +55,7 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         let font = CTFontCreateWithName("comic sans ms" as CFString, 1, nil)
         let shape = try XCTUnwrap(Path.text("3", font: font, detail: 8).first)
@@ -87,7 +87,7 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         let font = CTFontCreateWithName("comic sans ms" as CFString, 1, nil)
         let shape = try XCTUnwrap(Path.text("d", font: font, detail: 8).first)
@@ -119,7 +119,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertGreaterThan(mesh.signedVolume, 0)
@@ -132,7 +132,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertTrue(mesh.isEmpty)
         #endif
@@ -144,7 +144,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertGreaterThan(mesh.signedVolume, 0)
@@ -197,7 +197,7 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(paths.count, 2)
         XCTAssertNil(geometry.mesh)
 
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         let path = Path.square().rotated(by: rotation).inset(by: distance)
         let expected = Mesh.extrude(path, depth: 1 - distance * 2)
@@ -244,7 +244,7 @@ final class RegressionTests: XCTestCase {
         """
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         let expected = Mesh.extrude(
             .square().scaled(by: 0.2),
@@ -544,8 +544,8 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(primitiveBounds.min, meshBounds.min, accuracy: epsilon)
         XCTAssertEqual(primitiveBounds.max, meshBounds.max, accuracy: epsilon)
 
-        _ = primitive.build { true }
-        _ = mesh.build { true }
+        _ = primitive.build { false }
+        _ = mesh.build { false }
         let primitiveMeshBounds = primitive.flattened().bounds
         let meshMeshBounds = mesh.flattened().bounds
 
@@ -637,7 +637,7 @@ final class RegressionTests: XCTestCase {
         let distance = 0.01
         let scene = try evaluate(parse("inset (extrude text \"F\") \(distance)"), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = geometry.merged()
         let shape = try XCTUnwrap(Path.text("F", detail: 2).first)
         let expected = Mesh.extrude(shape.inset(by: distance), depth: 1 - distance * 2)
@@ -661,7 +661,7 @@ final class RegressionTests: XCTestCase {
         guard case .loft = geometry.type else {
             return XCTFail("Expected loft geometry, got \(geometry.type)")
         }
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = geometry.merged()
         let shape = try XCTUnwrap(Path.text("F", detail: 2).first)
         let expected = Mesh.extrude(
@@ -679,7 +679,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertGreaterThan(mesh.polygons.surfaceArea, 0)
@@ -695,8 +695,8 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(scene.children.count, 1)
         let originalGeometry = try XCTUnwrap(originalScene.children.first)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(originalGeometry.build { true })
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(originalGeometry.build { false })
+        XCTAssertTrue(geometry.build { false })
         let original = try XCTUnwrap(originalGeometry.mesh)
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
@@ -710,7 +710,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertEqual(mesh.materials, [nil])
         XCTAssertFalse(mesh.hasVertexColors)
@@ -728,7 +728,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertEqual(geometry.material, Material(color: .red))
         XCTAssertEqual(mesh.materials, [nil])
@@ -742,7 +742,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertEqual(mesh.materials, [nil])
         XCTAssertFalse(mesh.hasVertexColors)
@@ -760,7 +760,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertEqual(mesh.materials, [Material(color: .red)])
         XCTAssertFalse(mesh.hasVertexColors)
@@ -783,7 +783,7 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertEqual(Set(mesh.materials.compactMap { $0 as? Material }), [
             Material(color: .blue),
@@ -807,7 +807,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = try XCTUnwrap(geometry.mesh)
         XCTAssertFalse(mesh.isEmpty)
         let endCapPolygons = mesh.polygons.filter {
@@ -876,7 +876,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertTrue(geometry.build { true })
+        XCTAssertTrue(geometry.build { false })
         let mesh = geometry.flattened()
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertTrue(mesh.isWatertight)

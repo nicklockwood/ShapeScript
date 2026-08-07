@@ -14,9 +14,6 @@ public typealias Polygon = Euclid.Polygon
 /// Cancellation handler - return true to cancel
 public typealias CancellationHandler = @Sendable () -> Bool
 
-/// Legacy callback type - return false to cancel
-public typealias LegacyCallback = @Sendable () -> Bool
-
 public final class Geometry: Hashable, @unchecked Sendable {
     public let type: GeometryType
     public let name: String?
@@ -482,7 +479,7 @@ public extension Geometry {
         }
 
         func insetMesh() -> Geometry {
-            _ = build { true }
+            _ = build { false }
             let sourceMesh = mesh ?? .empty
             var mesh = sourceMesh.inset(by: distance)
             if material != .default {
@@ -559,7 +556,7 @@ public extension Geometry {
             return copy(type: .fill([paths[0].inset(by: distance)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
-                _ = build { true }
+                _ = build { false }
                 if mesh?.inset(by: distance).isEmpty == true {
                     return copy(type: .mesh(.empty))
                 }
@@ -704,31 +701,31 @@ public extension Geometry {
     /// Builds the meshes for the receiver and all its descendents
     /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     /// - Returns: false if cancelled or true when completed
-    func build(_ callback: @escaping LegacyCallback) -> Bool {
-        buildLeaves(callback) && buildPreview(callback) && buildFinal(callback)
+    func build(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        buildLeaves(isCancelled) && buildPreview(isCancelled) && buildFinal(isCancelled)
     }
 
     /// Returns the union mesh of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned.
     /// - Note: Includes both material and transform
-    func flattened(_ callback: @escaping LegacyCallback = { true }) -> Mesh {
-        flattened(with: material, callback)
+    func flattened(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh {
+        flattened(with: material, isCancelled)
     }
 
     /// Returns the meshes of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes both material and transform
-    func meshes(_ callback: @escaping LegacyCallback = { true }) -> [Mesh] {
-        meshes(with: material, callback)
+    func meshes(_ isCancelled: @escaping CancellationHandler = { false }) -> [Mesh] {
+        meshes(with: material, isCancelled)
     }
 
     /// Returns the combined mesh of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes both material and transform
-    func merged(_ callback: @escaping LegacyCallback = { true }) -> Mesh {
+    func merged(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh {
         var result = mesh ?? .empty
         if type.isLeafGeometry {
-            result = result.merge(mergedChildren(callback))
+            result = result.merge(mergedChildren(isCancelled))
         }
         return result
             .replacing(nil, with: material)
@@ -750,24 +747,24 @@ private extension Collection<Geometry> {
     /// Computes the union of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Results include both material (if specified) and transform
-    func flattened(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
-        compactMap { callback() ? $0.flattened(with: material, callback) : nil }
+    func flattened(with material: Material?, _ isCancelled: @escaping Mesh.CancellationHandler) -> [Mesh] {
+        compactMap { isCancelled() ? nil : $0.flattened(with: material, isCancelled) }
     }
 
     /// Returns the meshes of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Results include both material (if specified) and transform
-    func meshes(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
-        flatMap { callback() ? $0.meshes(with: material, callback) : [] }
+    func meshes(with material: Material?, _ isCancelled: @escaping Mesh.CancellationHandler) -> [Mesh] {
+        flatMap { isCancelled() ? [] : $0.meshes(with: material, isCancelled) }
     }
 
     /// Returns a merged mesh for all of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Results include both material and transform
-    func merged(_ callback: @escaping LegacyCallback) -> Mesh {
+    func merged(_ isCancelled: @escaping Mesh.CancellationHandler) -> Mesh {
         var result = Mesh.empty
-        for child in self where callback() {
-            result = result.merge(child.merged(callback))
+        for child in self where !isCancelled() {
+            result = result.merge(child.merged(isCancelled))
         }
         return result
     }
@@ -865,29 +862,29 @@ private extension Geometry {
     /// Computes the union of the meshes of the descendents of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes the receiver's material but not its transform
-    func flattenedChildren(_ callback: @escaping LegacyCallback) -> [Mesh] {
-        children.flattened(with: material, callback)
+    func flattenedChildren(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
+        children.flattened(with: material, isCancelled)
     }
 
     /// Returns a merged mesh for all of the descendents of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Does not include the material or transform of the receiver
-    func mergedChildren(_ callback: @escaping LegacyCallback) -> Mesh {
-        children.merged(callback)
+    func mergedChildren(_ isCancelled: @escaping CancellationHandler) -> Mesh {
+        children.merged(isCancelled)
     }
 
     /// Computes the union of the meshes of the first child of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes the receiver's material but not its transform
-    func flattenedFirstChild(_ callback: @escaping LegacyCallback) -> Mesh {
-        children.first.map { $0.flattened(with: self.material, callback) } ?? .empty
+    func flattenedFirstChild(_ isCancelled: @escaping CancellationHandler) -> Mesh {
+        children.first.map { $0.flattened(with: self.material, isCancelled) } ?? .empty
     }
 
     /// Returns the meshes of the receivers children and their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes the receiver's material but not its transform
-    func childMeshes(_ callback: @escaping LegacyCallback) -> [Mesh] {
-        children.meshes(with: material, callback)
+    func childMeshes(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
+        children.meshes(with: material, isCancelled)
     }
 
     /// Returns hull-compatible meshes for semantic path children such as circles and squares.
@@ -895,7 +892,7 @@ private extension Geometry {
     /// `GeometryType.hull`, so exports can preserve the child semantics without also
     /// emitting duplicate fallback vertex geometry.
     /// - Note: Includes each child's material and transform, but not the receiver's transform.
-    func childPathMeshes(_ callback: @escaping LegacyCallback) -> [Mesh] {
+    func childPathMeshes(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
         children.compactMap { child in
             guard let path = child.path(pretransformed: true) else {
                 return nil
@@ -907,7 +904,7 @@ private extension Geometry {
             return .convexHull(
                 of: vertices,
                 material: child.material,
-                isCancelled: { !callback() }
+                isCancelled: isCancelled
             )
         }
     }
@@ -915,20 +912,20 @@ private extension Geometry {
     /// Computes the union of the meshes of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes material (if specified) and the receiver's transform
-    func flattened(with material: Material?, _ callback: @escaping LegacyCallback) -> Mesh {
-        .union(meshes(with: material, callback), isCancelled: { !callback() })
+    func flattened(with material: Material?, _ isCancelled: @escaping CancellationHandler) -> Mesh {
+        .union(meshes(with: material, isCancelled), isCancelled: isCancelled)
     }
 
     /// Returns the meshes of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes both material (if specified) and transform
-    func meshes(with material: Material?, _ callback: @escaping LegacyCallback) -> [Mesh] {
+    func meshes(with material: Material?, _ isCancelled: @escaping CancellationHandler) -> [Mesh] {
         var meshes = [Mesh]()
         if let mesh, mesh != .empty {
             meshes.append(mesh)
         }
         if type.isLeafGeometry {
-            meshes += childMeshes(callback)
+            meshes += childMeshes(isCancelled)
         }
         return meshes.map {
             let mesh = $0.transformed(by: transform)
@@ -941,15 +938,15 @@ private extension Geometry {
 
     /// Build all geometries that don't have dependencies
     /// - Returns: false if cancelled or true when completed
-    func buildLeaves(_ callback: @escaping LegacyCallback) -> Bool {
-        if type.isLeafGeometry, !buildMesh(callback) {
+    func buildLeaves(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        if type.isLeafGeometry, !buildMesh(isCancelled) {
             return false
         }
         // TODO: improve isLeafGeometry logic to get rid of this special case
         if case .mesh = type, children.isEmpty {
-            return buildMesh(callback)
+            return buildMesh(isCancelled)
         }
-        for child in children where !child.buildLeaves(callback) {
+        for child in children where !child.buildLeaves(isCancelled) {
             return false
         }
         return true
@@ -957,55 +954,52 @@ private extension Geometry {
 
     /// With leaves built, do a rough preview
     /// - Returns: false if cancelled or true when completed
-    func buildPreview(_ callback: @escaping LegacyCallback) -> Bool {
-        for child in children where !child.buildPreview(callback) {
+    func buildPreview(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        for child in children where !child.buildPreview(isCancelled) {
             return false
         }
         if let mesh = cache?[mesh: self] {
             self.mesh = mesh
-            return callback()
+            return !isCancelled()
         }
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
         case .mesh:
-            mesh = children.merged(callback) // TODO: not really sure what to do here
+            mesh = children.merged(isCancelled) // TODO: not really sure what to do here
         case .group, .circle, .square, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
         case .stencil, .difference:
-            mesh = children.first?.merged(callback)
+            mesh = children.first?.merged(isCancelled)
         case .union, .xor, .intersection, .hull, .minkowski, .camera, .light:
             mesh = nil
         }
-        return callback()
+        return !isCancelled()
     }
 
     /// Builds and caches the final mesh for the receiver and all its descendents
     /// - Returns: false if cancelled or true when completed
-    func buildFinal(_ callback: @escaping LegacyCallback) -> Bool {
-        for child in children where !child.buildFinal(callback) {
+    func buildFinal(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        for child in children where !child.buildFinal(isCancelled) {
             return false
         }
         if !type.isLeafGeometry {
-            return buildMesh(callback)
+            return buildMesh(isCancelled)
         }
-        return callback()
+        return !isCancelled()
     }
 
     /// Builds and caches the mesh for the receiver. Already-cached mesh will be re-used if available
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
-    func buildMesh(_ callback: @escaping LegacyCallback) -> Bool {
+    func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
         if let mesh = cache?[mesh: self] {
             self.mesh = mesh
-            return callback()
+            return !isCancelled()
         }
-        let isCancelled = { @Sendable in !callback() }
-        if isCancelled() {
-            return false
-        }
+        guard !isCancelled() else { return false }
         switch type {
         case .group, .circle, .square, .path, .camera, .light:
             mesh = .empty
@@ -1044,7 +1038,7 @@ private extension Geometry {
             }
         case let .hull(vertices):
             let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
-            let meshes = ([base] + childMeshes(callback) + childPathMeshes(callback)).map {
+            let meshes = ([base] + childMeshes(isCancelled) + childPathMeshes(isCancelled)).map {
                 $0.materialToVertexColors(material: material)
             }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled)
@@ -1098,11 +1092,11 @@ private extension Geometry {
                         isCancelled: isCancelled
                     )
                 } else {
-                    sum = next.flattened(callback).materialToVertexColors(material: next.material)
+                    sum = next.flattened(isCancelled).materialToVertexColors(material: next.material)
                         .minkowskiSum(with: shape, isCancelled: isCancelled)
                 }
             } else {
-                sum = first.flattened(callback).materialToVertexColors(material: first.material)
+                sum = first.flattened(isCancelled).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
                 if let path = next.path(pretransformed: true) {
@@ -1112,31 +1106,31 @@ private extension Geometry {
                     )
                 } else {
                     sum = sum.minkowskiSum(
-                        with: next.flattened(callback).materialToVertexColors(material: next.material),
+                        with: next.flattened(isCancelled).materialToVertexColors(material: next.material),
                         isCancelled: isCancelled
                     )
                 }
             }
             mesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil).detessellate()
         case .union, .lathe, .extrude, .fill:
-            mesh = .union(childMeshes(callback), isCancelled: isCancelled)
+            mesh = .union(childMeshes(isCancelled), isCancelled: isCancelled)
         case .xor:
-            mesh = .symmetricDifference(flattenedChildren(callback), isCancelled: isCancelled)
+            mesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
         case .difference:
-            let first = flattenedFirstChild(callback)
-            let meshes = [first] + children.dropFirst().meshes(with: material, callback)
+            let first = flattenedFirstChild(isCancelled)
+            let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
             mesh = .difference(meshes, isCancelled: isCancelled)
         case .intersection:
-            let meshes = flattenedChildren(callback)
+            let meshes = flattenedChildren(isCancelled)
             mesh = .intersection(meshes, isCancelled: isCancelled)
         case .stencil:
-            let first = flattenedFirstChild(callback)
-            let meshes = [first] + children.dropFirst().meshes(with: material, callback)
+            let first = flattenedFirstChild(isCancelled)
+            let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
             mesh = .stencil(meshes, isCancelled: isCancelled)
         case let .mesh(mesh):
-            self.mesh = .merge([mesh] + childMeshes(callback))
+            self.mesh = .merge([mesh] + childMeshes(isCancelled))
         }
-        if callback() {
+        if !isCancelled() {
             let watertightMesh = mesh?.makeWatertight()
             switch type {
             case let .extrude(paths, options):
@@ -1475,7 +1469,7 @@ public extension Geometry {
         case .group:
             return children.reduce(into: []) { $0 += $1.polygons(isCancelled) }
         default:
-            _ = build { !isCancelled() }
+            _ = build(isCancelled)
             return mesh?.polygons ?? []
         }
     }
@@ -1495,7 +1489,7 @@ public extension Geometry {
         case .group:
             return children.allSatisfy { $0.isWatertight(isCancelled) }
         default:
-            _ = build { !isCancelled() }
+            _ = build(isCancelled)
             return mesh?.isWatertight ?? true
         }
     }
@@ -1504,14 +1498,14 @@ public extension Geometry {
     /// Builds and caches the mesh if required. Already-cached meshes will be re-used if available
     func exactBounds(
         with transform: Transform,
-        _ callback: @escaping LegacyCallback = { true }
+        _ isCancelled: @escaping CancellationHandler = { false }
     ) -> Bounds {
         switch type {
         case .camera, .light:
             return .empty
         case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
             return Bounds(children.map {
-                $0.exactBounds(with: $0.transform * transform, callback)
+                $0.exactBounds(with: $0.transform * transform, isCancelled)
             })
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
              .path, .extrude, .lathe:
@@ -1533,21 +1527,21 @@ public extension Geometry {
                 Bounds(type.representativePoints.transformed(by: transform))
             }
             return children.reduce(bounds) {
-                $0.union($1.exactBounds(with: $1.transform * transform, callback))
+                $0.union($1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .minkowski:
             return children.reduce(.empty) {
-                $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, callback))
+                $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .xor, .difference, .intersection:
-            _ = build(callback)
+            _ = build(isCancelled)
             if transform.rotation == .identity {
                 return mesh?.bounds.transformed(by: transform) ?? .empty
             }
             return mesh?.transformed(by: transform).bounds ?? .empty
         case .stencil:
             return children.first.map {
-                $0.exactBounds(with: $0.transform * transform, callback)
+                $0.exactBounds(with: $0.transform * transform, isCancelled)
             } ?? .empty
         }
     }
@@ -1568,7 +1562,7 @@ public extension Geometry {
         case .group:
             return children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
         default:
-            _ = build { !isCancelled() }
+            _ = build(isCancelled)
             return (mesh?.signedVolume ?? 0) * scaleFactor
         }
     }
