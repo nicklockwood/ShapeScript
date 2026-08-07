@@ -1476,6 +1476,33 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssertEqual(geometry.mesh?.bounds, expected.bounds)
     }
 
+    func testMinkowskiSumOrdersMeshesByPolygonCount() throws {
+        func mesh(for body: String) throws -> Mesh {
+            let program = try parse("""
+            detail 8
+            minkowski {
+                \(body)
+            }
+            """)
+            let context = EvaluationContext(source: program.source, delegate: nil)
+            try program.evaluate(in: context)
+            let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+            XCTAssertTrue(geometry.build { true })
+            return try XCTUnwrap(geometry.mesh)
+        }
+
+        let cubeThenSphere = try mesh(for: """
+        cube
+        sphere
+        """)
+        let sphereThenCube = try mesh(for: """
+        sphere
+        cube
+        """)
+
+        XCTAssertEqual(cubeThenSphere, sphereThenCube)
+    }
+
     // MARK: Functions
 
     func testDot() {

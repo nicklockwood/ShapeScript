@@ -1059,18 +1059,25 @@ private extension Geometry {
                     if a.isClosed != b.isClosed {
                         return a.isClosed
                     }
-                    // TODO: put convex paths before concave paths
+                    // Put convex paths before concave paths
+                    let aIsConvex = !a.isClosed || a.facePolygons().allSatisfy(\.isConvex)
+                    let bIsConvex = !b.isClosed || b.facePolygons().allSatisfy(\.isConvex)
+                    if aIsConvex != bIsConvex {
+                        return aIsConvex
+                    }
                     // Put smaller paths before larger paths
-                    return a.bounds.size < b.bounds.size
+                    if a.bounds.size != b.bounds.size {
+                        return a.bounds.size < b.bounds.size
+                    }
+                    // Preserve original order
+                    return $0.0 < $1.0
                 case (_?, nil):
                     // Put meshes before paths
                     return false
                 case (nil, _?):
                     return true
                 case (nil, nil):
-                    // TODO: put convex meshes before concave meshes
-                    // TODO: put smaller meshes before larger meshes
-                    // Preserve original order
+                    // Preserve order (Euclid handles minkowski mesh reordering)
                     return $0.0 < $1.0
                 }
             }.map { $1 })

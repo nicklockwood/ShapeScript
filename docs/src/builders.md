@@ -357,29 +357,5 @@ minkowski {
 
 **Note:** Minkowski addition is [commutative](https://en.wikipedia.org/wiki/Commutative_property), meaning that the order of inputs should not affect the result. However, the ShapeScript `minkowski` command can sometimes produce different results when the input includes paths or non-convex meshes due to various optimizations.
 
-The order of child shapes can also affect how [materials](materials.md), [colors](materials.md#color) and [vertex normals](materials.md#normals) are applied. If we reverse the order of the sphere and cube in the previous example, the actual shape is the same but the vertex normals from the cube are more dominant in the output, making it appear like there are seams:
-
-```swift
-minkowski {
-    cube
-    sphere { size 0.25 }
-}
-```
-
-![Minkowski sum](../images/rounded-cube-seams.png)
-
-You can correct this using the [smoothing](options.md#smoothing) command:
-
-```swift
-minkowski {
-    cube
-    sphere { size 0.25 }
-    smoothing 0.25
-}
-```
-
-![Minkowski sum](../images/rounded-cube.png)
-
-
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)
