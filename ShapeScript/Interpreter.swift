@@ -383,6 +383,7 @@ final class UserBlock: @unchecked Sendable {
     let sourceIndex: String.Index?
     let baseURL: URL?
     let symbols: Symbols
+    let returnType: ValueType
     let declarationContext: EvaluationContext
 
     init(
@@ -391,6 +392,7 @@ final class UserBlock: @unchecked Sendable {
         sourceIndex: String.Index?,
         baseURL: URL?,
         symbols: Symbols,
+        returnType: ValueType,
         declarationContext: EvaluationContext
     ) {
         self.block = block
@@ -398,6 +400,7 @@ final class UserBlock: @unchecked Sendable {
         self.sourceIndex = sourceIndex
         self.baseURL = baseURL
         self.symbols = symbols
+        self.returnType = returnType
         self.declarationContext = declarationContext
     }
 
@@ -440,6 +443,20 @@ final class UserBlock: @unchecked Sendable {
                     }
                     return .path(path.transformed(by: context.state.transform))
                 case let .mesh(geometry):
+                    if returnType.isSubtype(of: .path), let path = geometry.path(pretransformed: true) {
+                        guard context.state.name.isEmpty else {
+                            return .mesh(Geometry(
+                                type: .path(path),
+                                name: context.state.name,
+                                transform: context.state.transform,
+                                material: .default,
+                                smoothing: nil,
+                                children: [],
+                                sourceLocation: context.sourceLocation
+                            ))
+                        }
+                        return .path(path.transformed(by: context.state.transform))
+                    }
                     // TODO: why not just use `geometry.transformed(by: context.state.transform)`?
                     // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                     return .mesh(Geometry(
@@ -1096,6 +1113,7 @@ extension Definition {
                 sourceIndex: sourceIndex,
                 baseURL: baseURL,
                 symbols: .definition + symbols,
+                returnType: returnType,
                 declarationContext: context
             )
             return .block(.init(symbols, options, childTypes, returnType)) { context in
@@ -1299,7 +1317,29 @@ extension Statement {
             }
         case let .expression(type):
             let expression = Expression(type: type, range: range)
-            try RuntimeError.wrap(context.addValue(expression.evaluate(in: context)), at: range)
+            var value = try expression.evaluate(in: context, coerceBlockReturn: false)
+            switch value {
+            case let .mesh(geometry):
+                switch geometry.type {
+                case .circle, .square:
+                    break
+                case .cone, .cylinder, .icosphere, .sphere, .cube,
+                     .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+                     .union, .difference, .intersection, .xor, .stencil,
+                     .group, .mesh, .camera, .light:
+                    value = try value.as(expression.staticType(in: context), in: context) ?? value
+                case .path where geometry.name != nil:
+                    break
+                case .path:
+                    value = try value.as(expression.staticType(in: context), in: context) ?? value
+                }
+            case .color, .texture, .material, .boolean, .number,
+                 .radians, .halfturns, .vector, .size, .rotation,
+                 .string, .font, .text, .path, .polygon, .point,
+                 .tuple, .range, .bounds, .object, .pretransformed:
+                break
+            }
+            try RuntimeError.wrap(context.addValue(value), at: range)
         case let .define(identifier, definition):
             switch definition.type {
             case let .function(names, _):
@@ -1321,7 +1361,10 @@ extension Statement {
 }
 
 extension Expression {
-    func evaluate(in context: EvaluationContext) throws -> Value {
+    func evaluate(
+        in context: EvaluationContext,
+        coerceBlockReturn: Bool = true
+    ) throws -> Value {
         switch type {
         case let .number(number):
             return .number(number)
@@ -1356,7 +1399,11 @@ extension Expression {
                         type: type.childTypes.errorDescriptionOrBlock
                     ), at: range.upperBound ..< range.upperBound)
                 }
-                return try RuntimeError.wrap(context.callBlock(fn, with: context.push(type), at: range), at: range)
+                let value = try RuntimeError.wrap(context.callBlock(fn, with: context.push(type), at: range), at: range)
+                guard coerceBlockReturn else {
+                    return value
+                }
+                return try value.as(type.returnType, in: context) ?? value
             case let .constant(value), let .option(value):
                 return value
             case .placeholder:
@@ -1393,7 +1440,19 @@ extension Expression {
                         try statement.evaluate(in: newContext)
                     }
                 }
-                return try RuntimeError.wrap(context.callBlock(fn, with: newContext, at: range), at: range)
+                let value = try RuntimeError.wrap(context.callBlock(fn, with: newContext, at: range), at: range)
+                guard coerceBlockReturn else {
+                    return value
+                }
+                if case let .tuple(values) = value,
+                   type.returnType == .union([.path, .list(.polygon)]),
+                   values.allSatisfy({
+                       if case .polygon = $0 { true } else { false }
+                   })
+                {
+                    return value
+                }
+                return try value.as(type.returnType, in: context) ?? value
             case let .constant(value), let .option(value):
                 guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),
                       case let .tuple(values) = value

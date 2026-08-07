@@ -313,6 +313,46 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
     }
 
+    func testSquareCommandUsesPathPrimitiveGeometry() throws {
+        let scene = try evaluate(parse("""
+        color red
+        square {
+            position 1 2
+            size 3 4
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(geometry.type, .square)
+        XCTAssertEqual(geometry.material.color, .red)
+        XCTAssertEqual(
+            geometry.path(pretransformed: true),
+            Path.square(color: .red)
+                .scaled(by: [3, 4]).translated(by: [1, 2])
+        )
+        XCTAssertFalse(geometry.hasMesh)
+    }
+
+    func testCircleCommandUsesPathPrimitiveGeometry() throws {
+        let scene = try evaluate(parse("""
+        detail 12
+        color blue
+        circle {
+            position 1 2
+            size 3 4
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(geometry.type, .circle(segments: 12))
+        XCTAssertEqual(geometry.material.color, .blue)
+        XCTAssertEqual(geometry.path(pretransformed: true), Path.circle(
+            segments: 12,
+            color: .blue
+        ).scaled(by: [3, 4]).translated(by: [1, 2]))
+        XCTAssertFalse(geometry.hasMesh)
+    }
+
     func testTransformedFilledSquareBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)

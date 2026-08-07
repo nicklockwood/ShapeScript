@@ -77,6 +77,9 @@ public enum GeometryType: Hashable, Sendable {
     case icosphere(subdivisions: Int)
     case sphere(segments: Int)
     case cube
+    // path primitives
+    case circle(segments: Int)
+    case square
     // builders
     case extrude([Path], ExtrudeOptions)
     case lathe([Path], segments: Int)
@@ -99,13 +102,26 @@ public enum GeometryType: Hashable, Sendable {
 }
 
 public extension GeometryType {
+    var path: Path? {
+        switch self {
+        case let .circle(segments):
+            .circle(segments: segments)
+        case .square:
+            .square()
+        case let .path(path):
+            path
+        default:
+            nil
+        }
+    }
+
     /// Returns `true` if the type is inerently empty, or `false` if it has intrinstic content
     /// - Note: children are not taken into account, so this always returns true for container types like group or union
     var isEmpty: Bool {
         switch self {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
             true
-        case .cone, .cylinder, .icosphere, .sphere, .cube:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square:
             false
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
@@ -128,7 +144,11 @@ public extension GeometryType {
         case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
             return .empty
         case .cube:
-            return .init(min: .init(-0.5, -0.5, -0.5), max: .init(0.5, 0.5, 0.5))
+            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
+        case let .circle(segments):
+            return Path.circle(segments: segments).bounds
+        case .square:
+            return .init(min: [-0.5, -0.5], max: [0.5, 0.5])
         case let .cone(segments), let .cylinder(segments), let .sphere(segments):
             let bounds = Path.circle(segments: segments).bounds
                 .rotated(by: .roll(-.halfPi))
@@ -165,7 +185,8 @@ extension GeometryType {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             !paths.isEmpty
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .loft, .path, .group, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+             .loft, .path, .group, .camera, .light:
             true
         case .mesh, .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
             false
@@ -189,6 +210,10 @@ extension GeometryType {
                 [0.5, 0.5, 0.5],
                 [-0.5, 0.5, 0.5],
             ]
+        case let .circle(segments):
+            return Path.circle(segments: segments).pointPositions
+        case .square:
+            return [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
         case let .cone(segments):
             let points = Path.circle(segments: segments)
                 .rotated(by: .roll(-.halfPi))

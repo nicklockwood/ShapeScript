@@ -1424,6 +1424,23 @@ final class StandardLibraryTests: XCTestCase {
         XCTAssert(context.state.children.first?.value is Geometry)
     }
 
+    func testPathPrimitiveHullChildrenDoNotDuplicateVertices() throws {
+        let program = try parse("""
+        hull { square }
+        """)
+        let delegate = TestDelegate()
+        let context = EvaluationContext(source: program.source, delegate: delegate)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+
+        guard case let .hull(vertices) = geometry.type else {
+            return XCTFail("Expected hull geometry, got \(geometry.type)")
+        }
+        XCTAssertTrue(vertices.isEmpty)
+        XCTAssertEqual(geometry.children.count, 1)
+        XCTAssertEqual(geometry.children.first?.type, .square)
+    }
+
     func testMultiplePathsInHull() throws {
         let program = try parse("""
         hull {

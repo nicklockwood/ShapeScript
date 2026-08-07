@@ -270,8 +270,8 @@ extension Symbols {
                     return [Vertex(point)]
                 case let .path(path):
                     return path.subpaths.flatMap(\.edgeVertices)
-                case let .mesh(geometry):
-                    return geometry.path?.subpaths.flatMap(\.edgeVertices) ?? []
+                case .mesh:
+                    return []
                 default:
                     throw RuntimeErrorType.assertionFailure(
                         "Unexpected child of type \(child.type) in hull"
@@ -424,15 +424,10 @@ extension Symbols {
             ).transformed(by: context.state.transform))
         },
         "circle": .block(.pathShape) { context in
-            .path(Path.circle(
-                segments: context.state.detail,
-                color: context.state.material.color
-            ).transformed(by: context.state.transform))
+            .mesh(Geometry(type: .circle(segments: context.state.detail), in: context))
         },
         "square": .block(.pathShape) { context in
-            .path(Path.square(
-                color: context.state.material.color
-            ).transformed(by: context.state.transform))
+            .mesh(Geometry(type: .square, in: context))
         },
         "polygon": .block(.init(.polygon, [
             "sides": .number,

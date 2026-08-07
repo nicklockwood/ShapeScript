@@ -81,7 +81,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
             false
         case .loft, .union, .xor, .extrude, .fill, .hull:
             mesh == nil
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .path, .mesh, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+             .path, .mesh, .camera, .light:
             false // These don't have children
         }
     }
@@ -292,7 +293,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
             if isFocused {
                 children.forEach { $0.isFocused = true }
             }
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .camera, .light:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+             .camera, .light:
             break
         }
 
@@ -352,7 +354,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             self._overestimatedBounds = children.reduce(.empty) {
                 $0.minkowskiSum(with: $1.overestimatedBounds)
             }
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .path:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .path:
             self._overestimatedBounds = type.bounds
         case .camera, .light:
             self._overestimatedBounds = .empty
@@ -385,12 +387,27 @@ public extension Geometry {
         return light
     }
 
-    /// The path (if geometry is a path)
+    /// The path represented by this geometry, if any, in local coordinates.
+    /// Semantic path primitives include the geometry's material color.
     var path: Path? {
-        guard case let .path(path) = type else {
+        path(pretransformed: false)
+    }
+
+    /// Returns the path represented by this geometry, optionally with the geometry transform baked in.
+    /// Semantic path primitives include the geometry's material color either way.
+    func path(pretransformed: Bool) -> Path? {
+        switch type {
+        case let .circle(segments):
+            let path = Path.circle(segments: segments, color: material.color)
+            return pretransformed ? path.transformed(by: transform) : path
+        case .square:
+            let path = Path.square(color: material.color)
+            return pretransformed ? path.transformed(by: transform) : path
+        case let .path(path):
+            return pretransformed ? path.transformed(by: transform) : path
+        default:
             return nil
         }
-        return path
     }
 
     /// Returns `true` if the geometry's' children should be rendered in debug mode
@@ -536,8 +553,8 @@ public extension Geometry {
             return copy(children: inset)
         case let .loft(paths):
             return copy(type: .loft(paths.map { $0.inset(by: distance) }))
-        case let .path(path):
-            return copy(type: .path(path.inset(by: distance)))
+        case .circle, .square, .path:
+            return copy(type: path.map { .path($0.inset(by: distance)) } ?? type)
         case let .fill(paths) where paths.count == 1:
             return copy(type: .fill([paths[0].inset(by: distance)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
@@ -873,6 +890,28 @@ private extension Geometry {
         children.meshes(with: material, callback)
     }
 
+    /// Returns hull-compatible meshes for semantic path children such as circles and squares.
+    /// Path-child vertices are intentionally generated here instead of being stored in
+    /// `GeometryType.hull`, so exports can preserve the child semantics without also
+    /// emitting duplicate fallback vertex geometry.
+    /// - Note: Includes each child's material and transform, but not the receiver's transform.
+    func childPathMeshes(_ callback: @escaping LegacyCallback) -> [Mesh] {
+        children.compactMap { child in
+            guard let path = child.path(pretransformed: true) else {
+                return nil
+            }
+            let vertices = path
+                .withColor(child.material.color)
+                .subpaths
+                .flatMap(\.edgeVertices)
+            return .convexHull(
+                of: vertices,
+                material: child.material,
+                isCancelled: { !callback() }
+            )
+        }
+    }
+
     /// Computes the union of the meshes of the receiver and all its descendents
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes material (if specified) and the receiver's transform
@@ -931,7 +970,7 @@ private extension Geometry {
             mesh = nil
         case .mesh:
             mesh = children.merged(callback) // TODO: not really sure what to do here
-        case .group, .path,
+        case .group, .circle, .square, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(type.isLeafGeometry) // Leaves
@@ -968,7 +1007,7 @@ private extension Geometry {
             return false
         }
         switch type {
-        case .group, .path, .camera, .light:
+        case .group, .circle, .square, .path, .camera, .light:
             mesh = .empty
         case let .cone(segments):
             mesh = .cone(slices: segments, isCancelled: isCancelled)
@@ -1005,15 +1044,17 @@ private extension Geometry {
             }
         case let .hull(vertices):
             let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
-            let meshes = ([base] + childMeshes(callback)).map { $0.materialToVertexColors(material: material) }
+            let meshes = ([base] + childMeshes(callback) + childPathMeshes(callback)).map {
+                $0.materialToVertexColors(material: material)
+            }
             mesh = .convexHull(of: meshes, isCancelled: isCancelled)
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
                 .detessellate()
         case .minkowski:
             var children = ArraySlice(children.enumerated().sorted {
-                switch ($0.1.type, $1.1.type) {
-                case let (.path(a), .path(b)):
+                switch ($0.1.path, $1.1.path) {
+                case let (a?, b?):
                     // Put closed paths before open paths
                     if a.isClosed != b.isClosed {
                         return a.isClosed
@@ -1021,12 +1062,12 @@ private extension Geometry {
                     // TODO: put convex paths before concave paths
                     // Put smaller paths before larger paths
                     return a.bounds.size < b.bounds.size
-                case (.path, _):
+                case (_?, nil):
                     // Put meshes before paths
                     return false
-                case (_, .path):
+                case (nil, _?):
                     return true
-                case (_, _):
+                case (nil, nil):
                     // TODO: put convex meshes before concave meshes
                     // TODO: put smaller meshes before larger meshes
                     // Preserve original order
@@ -1038,13 +1079,13 @@ private extension Geometry {
                 break
             }
             var sum: Mesh
-            if let shape = first.path?.transformed(by: first.transform) {
+            if let shape = first.path(pretransformed: true) {
                 guard let next = children.popFirst() else {
                     mesh = .empty
                     break
                 }
                 let shape = shape.materialToVertexColors(material: first.material)
-                if let path = next.path?.transformed(by: next.transform) {
+                if let path = next.path(pretransformed: true) {
                     sum = .fill(shape).minkowskiSum(
                         with: path.materialToVertexColors(material: next.material),
                         isCancelled: isCancelled
@@ -1057,7 +1098,7 @@ private extension Geometry {
                 sum = first.flattened(callback).materialToVertexColors(material: first.material)
             }
             while let next = children.popFirst() {
-                if let path = next.path?.transformed(by: next.transform) {
+                if let path = next.path(pretransformed: true) {
                     sum = sum.minkowskiSum(
                         with: path.materialToVertexColors(material: next.material).predividedBy(first.material),
                         isCancelled: isCancelled
@@ -1364,7 +1405,7 @@ public extension Geometry {
     /// - Note: this will return `true` even if mesh is empty has not been built yet
     var hasMesh: Bool {
         switch type {
-        case .camera, .light, .path:
+        case .camera, .light, .circle, .square, .path:
             false
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
@@ -1399,7 +1440,7 @@ public extension Geometry {
             children.reduce(0) { $0 + $1.objectCount }
         case .camera, .light:
             0
-        case .cone, .cylinder, .icosphere, .sphere, .cube,
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
@@ -1411,7 +1452,7 @@ public extension Geometry {
     /// - Note: only child meshes or groups are counted
     var childCount: Int {
         switch type {
-        case .cone, .cylinder, .icosphere, .sphere, .cube,
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             0 // TODO: should paths/points/submeshes be treated as children?
@@ -1465,7 +1506,8 @@ public extension Geometry {
             return Bounds(children.map {
                 $0.exactBounds(with: $0.transform * transform, callback)
             })
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .path, .extrude, .lathe:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+             .path, .extrude, .lathe:
             assert(children.isEmpty)
             if transform.rotation == .identity {
                 return type.bounds.transformed(by: transform)

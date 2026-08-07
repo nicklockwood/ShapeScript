@@ -686,13 +686,7 @@ extension Value {
                 sourceLocation: context?.sourceLocation
             ))
         case let (.mesh(geometry), .path):
-            switch geometry.type {
-            case let .path(path):
-                return .path(path.transformed(by: geometry.transform))
-            case .cone, .cylinder, .icosphere, .sphere, .cube, .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-                 .union, .difference, .intersection, .xor, .stencil, .group, .mesh, .camera, .light:
-                return nil
-            }
+            return geometry.path(pretransformed: true).map { .path($0) }
         case let (.polygon(polygon), .path):
             return .path(Path(polygon))
         case let (.polygon(polygon), .mesh):

@@ -244,6 +244,8 @@ extension GeometryType: Loggable {
         case .icosphere: "icosphere"
         case .sphere: "sphere"
         case .cube: "cube"
+        case .circle: "circle"
+        case .square: "square"
         case .extrude: "extrusion"
         case .lathe: "lathe"
         case .loft: "loft"

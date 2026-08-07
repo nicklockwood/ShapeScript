@@ -509,7 +509,7 @@ extension Geometry {
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
-             .path:
+             .circle, .square, .path:
             true
         case .camera, .light, .group:
             false
@@ -521,7 +521,8 @@ extension Geometry {
         case .group:
             true
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill, .path, .camera, .light:
+             .extrude, .lathe, .loft, .fill, .circle, .square,
+             .path, .camera, .light:
             false
         case .hull, .minkowski, .union, .difference, .intersection, .xor, .stencil:
             childDebug
@@ -539,7 +540,7 @@ extension Geometry {
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
-             .path, .group:
+             .circle, .square, .path, .group:
             true
         }
     }

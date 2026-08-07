@@ -198,12 +198,12 @@ extension Value {
         switch self {
         case let .mesh(geometry):
             switch geometry.type {
-            case .path: "path"
             case .cone: "cone"
             case .cylinder: "cylinder"
             case .icosphere: "icosphere"
             case .sphere: "sphere"
             case .cube: "cube"
+            case .circle, .square, .path: "path"
             case .group, .extrude, .lathe, .loft, .fill, .hull, .minkowski, .union, .difference,
                  .intersection, .xor, .stencil, .mesh:
                 "mesh"
