@@ -32,12 +32,6 @@ public final class Geometry: Hashable, @unchecked Sendable {
         _overestimatedBounds.transformed(by: transform)
     }
 
-    /// The overestimated Geometry bounds *without* the local transform applied
-    @available(*, deprecated, message: "Use overestimatedBounds instead")
-    public var bounds: Bounds {
-        _overestimatedBounds
-    }
-
     // Note: equality and hashing describe the modeled geometry, not render/editor
     // state. Debug/focus flags affect how the geometry is presented, while opacity,
     // source locations, and parent links are derived or contextual metadata.
@@ -608,11 +602,6 @@ public extension Geometry {
         case .camera, .light:
             return copy()
         }
-    }
-
-    @available(*, deprecated, message: "Do not use")
-    func hasUniformMaterial(_: Material? = nil) -> Bool {
-        true
     }
 
     /// Return a copy of the geometry with the specified properties updated
@@ -1574,22 +1563,5 @@ public extension Geometry {
         default:
             (mesh(isCancelled)?.signedVolume ?? 0) * scaleFactor
         }
-    }
-
-    // MARK: Deprecated
-
-    @available(*, deprecated, message: "Use polygons.count instead")
-    var polygonCount: Int {
-        polygons { false }.count
-    }
-
-    @available(*, deprecated, message: "Use triangles().count instead")
-    var triangleCount: Int {
-        triangles { false }.count
-    }
-
-    @available(*, deprecated, message: "Use isWatertight() instead")
-    var isWatertight: Bool {
-        isWatertight { false }
     }
 }
