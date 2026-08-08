@@ -26,7 +26,9 @@ private extension SCNGeometry {
             SCNMaterial(
                 $0 as? Material ?? geometry.material,
                 isOpaque: geometry.isOpaque,
-                writesToDepthBuffer: writesToDepthBuffer
+                writesToDepthBuffer: writesToDepthBuffer && (
+                    geometry.isOpaque || !mesh.isPlanar
+                )
             )
         })
     }
