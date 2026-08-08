@@ -59,17 +59,15 @@ mesh {
 
 ## Watertightness
 
-If you rotate the triangle you will see that the back face is invisible. Most of the mesh-construction commands in ShapeScript produce shapes that are *watertight*, meaning that they do not contain any holes that would allow you to see the back faces of the polygon surface, but when you create a mesh using the `mesh` command it's up to you to ensure that the mesh you create is watertight. You can check this by selecting the mesh in the editor and [getting info](getting-started.md#debugging-and-selection). As you can see, our triangle is not watertight:
+Most of the mesh-construction commands in ShapeScript produce shapes that are *watertight*, meaning that they do not contain any holes that would expose the inside of the polygon surface. Manually-created meshes may contain holes, but ShapeScript now preserves watertightness automatically when it builds the final geometry, so unlike in earlier versions you won't normally need to add extra faces just to make a mesh usable with [CSG](csg.md) operations.
 
-![Not watertight](../images/not-watertight.png)
+The original mesh definition still matters for polygon orientation, colors, and normals, but you generally don't need to duplicate faces by hand just to seal the shape.
 
-Watertightness is an important quality when using [CSG](csg.md) operations, because the "solid" in Constructive Solid Geometry implies that shapes are expected to behave like solid objects (even though they are actually hollow), and holes or exposed back faces will cause glitches as ShapeScript is unable to determine whether a given point lies inside or outside the shape.
-
-To solve this, we can add another triangle with the same vertices but facing the opposite direction. But wait - we never specified the direction of the triangle face in the first place, so how does ShapeScript decide which way a polygon is facing?
+That raises another question: how does ShapeScript decide which way a polygon is facing?
 
 ## Winding order
 
-By convention, polygons in ShapeScript are assumed to be defined with [counterclockwise](https://en.wikipedia.org/wiki/Counterclockwise) (aka *anticlockwise*) winding. What that means is that when looking at the polygon from the front, the vertices will be ordered in counterclockwise direction. To add a back face we'll create a second triangle with the inverse vertex order:
+By convention, polygons in ShapeScript are assumed to be defined with [counterclockwise](https://en.wikipedia.org/wiki/Counterclockwise) (aka *anticlockwise*) winding. What that means is that when looking at the polygon from the front, the vertices will be ordered in counterclockwise direction. If you want to explicitly model both sides of a surface, you can add a second polygon with the inverse vertex order:
 
 ```swift
 mesh {
@@ -91,7 +89,7 @@ mesh {
 }
 ```
 
-(We've left the back face white in this case, so you can tell which side is which). If you get info again you'll see that the triangle is now watertight:
+(We've made the back face white in this case, so you can tell which side is which).
 
 ## Procedural Meshes
 
