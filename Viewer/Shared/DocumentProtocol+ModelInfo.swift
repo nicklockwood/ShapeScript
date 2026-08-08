@@ -32,18 +32,30 @@ extension DocumentProtocol {
         // Geometry info
         let rootGeometry = geometry
         let geometry = selectedGeometry ?? (scene ?? .empty).visibleGeometry
+        let objects: String?
         let polygons: String
         let triangles: String
         let dimensions: String
         let volume: String
         let watertight: String
         if loadingProgress?.inProgress ?? true {
+            objects = "calculating…"
             polygons = "calculating…"
             triangles = "calculating…"
             dimensions = "calculating…"
             volume = "calculating…"
             watertight = "calculating…"
         } else {
+            let objectCount = geometry.objectCount
+            let hiddenCount = selectedGeometry == nil && rootGeometry.childIsFocused ?
+                max(0, rootGeometry.objectCount - objectCount) : 0
+            objects = if hiddenCount > 0 {
+                "\(objectCount) (+\(hiddenCount) hidden)"
+            } else if objectCount > 0 {
+                String(objectCount)
+            } else {
+                nil
+            }
             polygons = String(geometry.polygons { false }.count)
             triangles = String(geometry.triangles { false }.count)
             dimensions = geometry.exactBounds(with: geometry.worldTransform).size.logDescription
@@ -80,16 +92,8 @@ extension DocumentProtocol {
             ].compactMap { $0 }.joined(separator: "\n")
         }
 
-        let objectCount = geometry.objectCount
-        let hiddenCount = selectedGeometry == nil && rootGeometry.childIsFocused ?
-            max(0, rootGeometry.objectCount - objectCount) : 0
-        var objectCountDescription = "\(objectCount) object\(objectCount == 1 ? "" : "s")"
-        if hiddenCount > 0 {
-            objectCountDescription += " (\(hiddenCount) hidden)"
-        }
-
         return [
-            "Objects: \(objectCountDescription)",
+            objects.map { "Objects: \($0)" } ?? "No visible geometry",
             triangles == polygons ? nil : "Polygons: \(polygons)",
             hasTriangles ? "Triangles: \(triangles)" : nil,
             geometry.overestimatedBounds.isEmpty ? nil : "Dimensions: \(dimensions)",
