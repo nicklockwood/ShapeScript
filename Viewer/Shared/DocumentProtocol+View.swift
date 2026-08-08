@@ -54,7 +54,7 @@ extension DocumentProtocol {
             return
         }
         let cameraSettings = camera.settings
-        let backgroundColor = Self.documentBackgroundColor
+        let backgroundColor = Self.backgroundColor
         let showWireframe = showWireframe && viewController?.isQuickLook != true
         rerenderRequired = false
         loadingProgress.dispatch { progress in
@@ -64,7 +64,7 @@ extension DocumentProtocol {
                 progress.setStatus(.partial(scene))
                 scene.scnBuild(with: scene.outputOptions(
                     for: cameraSettings,
-                    backgroundColor: backgroundColor,
+                    backgroundColor: Color(backgroundColor),
                     wireframe: showWireframe
                 ))
                 progress.setStatus(.success(scene))
@@ -90,7 +90,7 @@ extension DocumentProtocol {
             progress.cancel()
         }
         let cameraSettings = camera.settings
-        let backgroundColor = Self.documentBackgroundColor
+        let backgroundColor = Self.backgroundColor
         let showWireframe = showWireframe
         let fileURL = documentFileURL
         let input = sourceString
@@ -184,7 +184,7 @@ extension DocumentProtocol {
             nonisolated(unsafe) var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
                 for: cameraSettings,
-                backgroundColor: backgroundColor,
+                backgroundColor: Color(backgroundColor),
                 wireframe: showWireframe
             )
             _ = scene.build {

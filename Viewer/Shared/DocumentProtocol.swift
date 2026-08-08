@@ -13,7 +13,7 @@ import ShapeScript
 protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
     associatedtype ViewController: DocumentViewControllerProtocol
 
-    static var documentBackgroundColor: Color { get }
+    static var backgroundColor: OSColor { get }
 
     var cache: GeometryCache { get }
     var settings: Settings { get }
@@ -22,11 +22,9 @@ protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
     var viewController: ViewController? { get }
 
     var scene: Scene? { get set }
-    var geometry: Geometry { get }
     var loadingProgress: LoadingProgress? { get set }
     var rerenderRequired: Bool { get set }
     var sourceString: String { get set }
-    var errorMessage: NSAttributedString? { get set }
     var error: ProgramError? { get set }
     var cameras: [Camera] { get set }
 }

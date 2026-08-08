@@ -23,10 +23,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         return .underPageBackgroundColor
     }
 
-    static var documentBackgroundColor: Color {
-        Color(backgroundColor)
-    }
-
     var documentFileURL: URL? {
         fileURL
     }

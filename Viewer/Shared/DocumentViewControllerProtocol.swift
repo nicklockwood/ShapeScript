@@ -15,8 +15,6 @@ import ShapeScript
 protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     associatedtype Document: DocumentProtocol
 
-    static var documentBackgroundColor: Color { get }
-
     var document: Document? { get }
     var scnScene: SCNScene { get }
     var renderTimer: Timer? { get set }

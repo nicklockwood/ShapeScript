@@ -12,6 +12,20 @@ import ShapeScript
 
 @MainActor
 extension DocumentViewControllerProtocol {
+    var backgroundColor: OSColor {
+        Document.backgroundColor
+    }
+
+    var isBrightBackground: Bool {
+        let color = Color(backgroundColor)
+        let brightness = background?.brightness(over: color) ?? color.brightness
+        return brightness > 0.5
+    }
+
+    var interfaceColor: OSColor {
+        isBrightBackground ? .black : .white
+    }
+
     func checkDocumentVersion() {
         guard !isQuickLook, let document,
               let formatVersion = document.formatVersion,
@@ -157,8 +171,7 @@ extension DocumentViewControllerProtocol {
             let axesNode = SCNNode(Axes(
                 scale: axesSize,
                 camera: camera,
-                background: background,
-                backgroundColor: Self.documentBackgroundColor
+                color: Color(interfaceColor)
             ))
             scnScene.rootNode.insertChildNode(axesNode, at: 0)
             self.axesNode = axesNode

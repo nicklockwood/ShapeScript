@@ -12,10 +12,6 @@ import ShapeScript
 
 @MainActor
 final class DocumentViewController: NSViewController, DocumentViewControllerProtocol {
-    static var documentBackgroundColor: Color {
-        Document.documentBackgroundColor
-    }
-
     let scnScene = SCNScene()
     var renderTimer: Timer?
     private(set) var scnView: SCNView = .init()
@@ -334,7 +330,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     override func viewWillLayout() {
         super.viewWillLayout()
         NSAppearance.current = NSApp.effectiveAppearance
-        scnView.layer?.backgroundColor = Document.backgroundColor.cgColor
+        scnView.layer?.backgroundColor = backgroundColor.cgColor
         document?.rerender()
         updateAxesAndCamera()
         if !cameraHasMoved {
@@ -342,13 +338,13 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         }
     }
 
-    @objc func resetCamera(_: Any? = nil) {
-        updateAxesAndCamera()
-        resetView()
+    @objc func resetCamera(_: Any?) {
+        resetCamera()
     }
 
     func resetCamera() {
-        resetCamera(nil)
+        updateAxesAndCamera()
+        resetView()
     }
 
     func copyCamera() {

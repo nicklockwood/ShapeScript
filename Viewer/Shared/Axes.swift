@@ -16,18 +16,13 @@ struct Axes {
     init(
         scale: Double,
         camera: Camera,
-        background: MaterialProperty?,
-        backgroundColor: Color?
+        color: Color
     ) {
         let textScale = 0.1
         let distance = 1 + textScale
-        let color = backgroundColor ?? .gray
-        let background = camera.background ?? background
-        let brightness = background?.brightness(over: color) ?? color.brightness
-        let lineColor = brightness > 0.5 ? Color.black : .white
-        let material = Material(color: lineColor)
+        let material = Material(color: color)
         self.geometry = Geometry(transform: .scale(scale), children: [
-            Geometry(type: .path(.line(-.unitX, .unitX, color: lineColor))),
+            Geometry(type: .path(.line(-.unitX, .unitX, color: color))),
             Geometry(
                 label: "+X",
                 offset: .unitX * distance,
@@ -42,7 +37,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitY, .unitY, color: lineColor))),
+            Geometry(type: .path(.line(-.unitY, .unitY, color: color))),
             Geometry(
                 label: "+Y",
                 offset: .unitY * distance,
@@ -57,7 +52,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitZ, .unitZ, color: lineColor))),
+            Geometry(type: .path(.line(-.unitZ, .unitZ, color: color))),
             Geometry(
                 label: "+Z",
                 offset: .unitZ * distance,
@@ -75,7 +70,7 @@ struct Axes {
         ])
         _ = geometry.build { true }
         var options = Scene.OutputOptions.default
-        options.lineColor = lineColor
+        options.lineColor = color
         geometry.scnBuild(with: options)
     }
 }

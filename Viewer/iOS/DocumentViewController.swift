@@ -21,13 +21,8 @@ protocol ExportMenuProvider {
 final class DocumentViewController: UIViewController, DocumentViewControllerProtocol,
     UIAdaptivePresentationControllerDelegate
 {
-    static var documentBackgroundColor: Color {
-        Document.documentBackgroundColor
-    }
-
     let scnScene = SCNScene()
     var renderTimer: Timer?
-    private(set) var interfaceColor: UIColor = .black
     private(set) var scnView: SCNView = .init()
     private let consoleViewController: ConsoleViewController = .init()
     private var isPreparingModalPresentation = false
@@ -177,18 +172,11 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 
-    var isBrightBackground: Bool {
-        let color = Color(Document.backgroundColor)
-        let brightness = background?.brightness(over: color) ?? color.brightness
-        return brightness > 0.5
-    }
-
     var exportMenuProvider: ExportMenuProvider? {
         self as Any as? ExportMenuProvider
     }
 
     func updateInterfaceColor() {
-        interfaceColor = UIColor(isBrightBackground ? Color.black : .white)
         navigationBar?.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
         loadingIndicator.color = interfaceColor
         grantAccessButton.tintColor = .white
@@ -347,7 +335,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
 
         // configure the view
-        containerView.backgroundColor = Document.backgroundColor
+        containerView.backgroundColor = backgroundColor
         scnView.backgroundColor = .clear // Important!
         scnView.defaultCameraController.delegate = self
         scnView.pointOfView = cameraNode
