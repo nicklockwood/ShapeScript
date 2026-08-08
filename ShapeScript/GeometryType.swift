@@ -180,8 +180,8 @@ public extension GeometryType {
 }
 
 extension GeometryType {
-    /// Returns `true` for objects whose children do not contribute to their mesh
-    var isLeafGeometry: Bool {
+    /// Returns `true` for types whose children do not contribute to their mesh
+    var isLeaf: Bool {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             !paths.isEmpty

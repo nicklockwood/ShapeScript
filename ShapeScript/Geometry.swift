@@ -322,7 +322,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             )
         }
 
-        let childKeys = type.isLeafGeometry ? [] : children.map(flattenedCacheKey)
+        let childKeys = type.isLeaf ? [] : children.map(flattenedCacheKey)
 
         // Must be set after child keys are generated
         self.isOpaque = isOpaque
@@ -730,7 +730,7 @@ public extension Geometry {
     /// - Note: Includes both material and transform
     func merged(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh {
         var result = mesh ?? .empty
-        if type.isLeafGeometry {
+        if type.isLeaf {
             result = result.merge(mergedChildren(isCancelled))
         }
         return result
@@ -740,6 +740,15 @@ public extension Geometry {
 }
 
 extension Geometry {
+    /// Returns `true` when this geometry's mesh can be built without first building
+    /// its children. Child meshes may still need to be built separately for rendering
+    var isLeaf: Bool {
+        if case .mesh = type {
+            return children.isEmpty
+        }
+        return type.isLeaf
+    }
+
     /// Gathers all the named descendents of the receiver (including itself, potentially) into a dictionary
     func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
         if let name {
@@ -930,7 +939,7 @@ private extension Geometry {
         if let mesh, mesh != .empty {
             meshes.append(mesh)
         }
-        if type.isLeafGeometry {
+        if type.isLeaf {
             meshes += childMeshes(isCancelled)
         }
         return meshes.map {
@@ -945,12 +954,8 @@ private extension Geometry {
     /// Build all geometries that don't have dependencies
     /// - Returns: false if cancelled or true when completed
     func buildLeaves(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        if type.isLeafGeometry, !buildMesh(isCancelled) {
+        if isLeaf, !buildMesh(isCancelled) {
             return false
-        }
-        // TODO: improve isLeafGeometry logic to get rid of this special case
-        if case .mesh = type, children.isEmpty {
-            return buildMesh(isCancelled)
         }
         for child in children where !child.buildLeaves(isCancelled) {
             return false
@@ -971,12 +976,14 @@ private extension Geometry {
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
+        case .mesh where children.isEmpty:
+            break
         case .mesh:
             mesh = children.merged(isCancelled) // TODO: not really sure what to do here
         case .group, .circle, .square, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
-            assert(type.isLeafGeometry) // Leaves
+            assert(isLeaf) // Leaves
         case .stencil, .difference:
             mesh = children.first?.merged(isCancelled)
         case .union, .xor, .intersection, .hull, .minkowski, .camera, .light:
@@ -991,7 +998,7 @@ private extension Geometry {
         for child in children where !child.buildFinal(isCancelled) {
             return false
         }
-        if !type.isLeafGeometry {
+        if !isLeaf {
             return buildMesh(isCancelled)
         }
         return !isCancelled()
