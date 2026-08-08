@@ -499,7 +499,8 @@ extension Symbols {
                 case let .mesh(geometry):
                     let geometry = geometry.insetByRewritingPrimitives(
                         by: inset,
-                        sourceLocation: context.sourceLocation
+                        sourceLocation: context.sourceLocation,
+                        isCancelled: context.isCancelled
                     )
                     return [.mesh(geometry.transformed(by: context.state.transform))]
                 case let .tuple(values):

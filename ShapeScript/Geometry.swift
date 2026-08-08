@@ -459,7 +459,8 @@ public extension Geometry {
     /// Returns an inset copy by rewriting path-backed primitives where the operation is equivalent.
     func insetByRewritingPrimitives(
         by distance: Double,
-        sourceLocation: @escaping @Sendable () -> SourceLocation?
+        sourceLocation: @escaping @Sendable () -> SourceLocation?,
+        isCancelled: @escaping CancellationHandler = { false }
     ) -> Geometry {
         func copy(
             type: GeometryType = type,
@@ -479,9 +480,9 @@ public extension Geometry {
         }
 
         func insetMesh() -> Geometry {
-            _ = build { false }
+            _ = build(isCancelled)
             let sourceMesh = mesh ?? .empty
-            var mesh = sourceMesh.inset(by: distance)
+            var mesh = sourceMesh.inset(by: distance, isCancelled: isCancelled)
             if material != .default {
                 if sourceMesh.materials.contains(where: { $0 != nil }) {
                     mesh = mesh.replacing(nil, with: material)
@@ -494,7 +495,11 @@ public extension Geometry {
 
         func insetChildren(by distance: Double = distance) -> [Geometry] {
             children.map {
-                $0.insetByRewritingPrimitives(by: distance, sourceLocation: sourceLocation)
+                $0.insetByRewritingPrimitives(
+                    by: distance,
+                    sourceLocation: sourceLocation,
+                    isCancelled: isCancelled
+                )
             }
         }
 
@@ -544,7 +549,8 @@ public extension Geometry {
             let inset = children.enumerated().map { index, child in
                 child.insetByRewritingPrimitives(
                     by: index == 0 ? distance : -distance,
-                    sourceLocation: sourceLocation
+                    sourceLocation: sourceLocation,
+                    isCancelled: isCancelled
                 )
             }
             return copy(children: inset)
@@ -556,8 +562,8 @@ public extension Geometry {
             return copy(type: .fill([paths[0].inset(by: distance)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
-                _ = build { false }
-                if mesh?.inset(by: distance).isEmpty == true {
+                _ = build(isCancelled)
+                if mesh?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
                     return copy(type: .mesh(.empty))
                 }
             }
