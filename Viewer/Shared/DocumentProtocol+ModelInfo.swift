@@ -38,7 +38,7 @@ extension DocumentProtocol {
         let dimensions: String
         let volume: String
         let watertight: String
-        if loadingProgress?.inProgress ?? true {
+        if !geometry.hasBuiltMeshes {
             objects = "calculating…"
             polygons = "calculating…"
             triangles = "calculating…"

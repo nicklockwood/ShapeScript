@@ -1369,6 +1369,23 @@ public extension Geometry {
         }
     }
 
+    /// Returns `true` if this geometry and all descendants have any required meshes built.
+    /// This can be used to inspect geometry without triggering additional mesh generation.
+    var hasBuiltMeshes: Bool {
+        switch type {
+        case .camera, .light, .circle, .square, .path, .group:
+            break
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .mesh:
+            guard mesh != nil else {
+                return false
+            }
+        }
+        return children.allSatisfy(\.hasBuiltMeshes)
+    }
+
     /// Returns the total number of distinct objects (paths or meshes) in the shape
     /// - Note: for groups this returns the child count, but children are ignored for other types
     var objectCount: Int {
