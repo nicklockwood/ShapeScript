@@ -173,6 +173,27 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, ["Foo"])
     }
 
+    func testCustomOptionNamedLikeFunctionIsValueInTupleArgument() throws {
+        let program = try parse("""
+        define box {
+            option width 120
+            option length 40
+            option thickness 16
+            cube {
+                size width length thickness
+            }
+        }
+        box {
+            length 40
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        let geometry = try XCTUnwrap(scene.children.first)
+        let mesh = geometry.flattened()
+        XCTAssertEqual(mesh.bounds.size, [120, 40, 16])
+    }
+
     func testCustomBlockPreservesReturnedPrimitiveName() throws {
         let program = try parse("""
         define custom {

@@ -223,6 +223,19 @@ extension EvaluationContext {
         return nil
     }
 
+    /// Returns a command setter unless the name is shadowed by a concrete value.
+    func commandSetter(for name: String) -> Symbol? {
+        guard let symbol = symbol(for: name) else {
+            return nil
+        }
+        switch symbol.getter {
+        case .constant, .option:
+            return nil
+        case .function, .property, .block, .placeholder:
+            return symbol.setter
+        }
+    }
+
     func define(_ name: String, as symbol: SymbolPair?) {
         if let symbol,
            !symbol.isCommand,

@@ -912,7 +912,7 @@ private func evaluateParameters(
     var values = [(Int, Value)]()
     loop: for (i, param) in parameters.enumerated() {
         guard i < parameters.count - 1, case let .identifier(name) = param.type,
-              let symbol = context.symbol(for: name)?.setter
+              let symbol = context.commandSetter(for: name)
         else {
             try values.append((i, param.evaluate(in: context)))
             continue
