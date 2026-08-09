@@ -251,15 +251,9 @@ final class PlatformTests: XCTestCase {
         scene.scnBuild(with: .default)
 
         let geometry = try XCTUnwrap(scene.children.first)
-        XCTAssertGreaterThan(try XCTUnwrap(geometry.mesh).polygons.count, 0)
-        XCTAssertGreaterThan(
-            geometry.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0,
-            0
-        )
-        XCTAssertGreaterThan(
-            geometry.scnGeometry.sources(for: .normal).first?.vectorCount ?? 0,
-            0
-        )
+        XCTAssertGreaterThan(try XCTUnwrap(geometry.mesh()).polygons.count, 0)
+        XCTAssertGreaterThan(geometry.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+        XCTAssertGreaterThan(geometry.scnGeometry.sources(for: .normal).first?.vectorCount ?? 0, 0)
     }
 
     private func cube(

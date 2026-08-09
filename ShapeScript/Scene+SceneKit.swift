@@ -72,6 +72,17 @@ public extension SCNNode {
         let mesh = geometry.merged()
         self.init(geometry: SCNGeometry(mesh, for: geometry, writesToDepthBuffer: true))
     }
+
+    convenience init(
+        merged geometry: Geometry,
+        isCancelled: @escaping CancellationHandler
+    ) throws {
+        let mesh = geometry.merged(isCancelled)
+        if isCancelled() {
+            throw CancellationError()
+        }
+        self.init(geometry: SCNGeometry(mesh, for: geometry, writesToDepthBuffer: true))
+    }
 }
 
 private struct DataKey: Hashable {

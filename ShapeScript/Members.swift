@@ -11,12 +11,12 @@ import Euclid
 private struct MemberProperty: Sendable {
     let type: ValueType
     let isAvailable: @Sendable (Value) -> Bool
-    let get: @Sendable (Value, @escaping Mesh.CancellationHandler) -> Value?
+    let get: @Sendable (Value, @escaping CancellationHandler) -> Value?
 
     init(
         _ type: ValueType,
         isAvailable: @escaping @Sendable (Value) -> Bool = { _ in true },
-        get: @escaping @Sendable (Value, @escaping Mesh.CancellationHandler) -> Value?
+        get: @escaping @Sendable (Value, @escaping CancellationHandler) -> Value?
     ) {
         self.type = type
         self.isAvailable = isAvailable
@@ -356,13 +356,13 @@ private struct TupleMemberProperty: Sendable {
     let fallbackType: ValueType?
     let type: @Sendable ([ValueType]) -> ValueType?
     let isAvailable: @Sendable ([Value]) -> Bool
-    let get: @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
+    let get: @Sendable (Value, [Value], @escaping CancellationHandler) -> Value?
 
     init(
         fallbackType: ValueType? = nil,
         type: @escaping @Sendable ([ValueType]) -> ValueType?,
         isAvailable: @escaping @Sendable ([Value]) -> Bool = { _ in true },
-        get: @escaping @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
+        get: @escaping @Sendable (Value, [Value], @escaping CancellationHandler) -> Value?
     ) {
         self.fallbackType = fallbackType
         self.type = type
@@ -373,7 +373,7 @@ private struct TupleMemberProperty: Sendable {
     init(
         _ type: ValueType,
         isAvailable: @escaping @Sendable ([Value]) -> Bool = { _ in true },
-        get: @escaping @Sendable (Value, [Value], @escaping Mesh.CancellationHandler) -> Value?
+        get: @escaping @Sendable (Value, [Value], @escaping CancellationHandler) -> Value?
     ) {
         self.init(
             fallbackType: type,
@@ -808,12 +808,12 @@ extension Value {
         self[name, { false }]
     }
 
-    subscript(name: String, isCancelled: @escaping Mesh.CancellationHandler) -> Value? {
+    subscript(name: String, isCancelled: @escaping CancellationHandler) -> Value? {
         _member(name, isCancelled) ?? EvaluationContext
             .altNames[name].flatMap { _member($0, isCancelled) }
     }
 
-    private func _member(_ name: String, _ isCancelled: @escaping Mesh.CancellationHandler) -> Value? {
+    private func _member(_ name: String, _ isCancelled: @escaping CancellationHandler) -> Value? {
         switch self {
         case let .tuple(values):
             if let value = TupleMemberProperties.all[name]?.get(self, values, isCancelled) {

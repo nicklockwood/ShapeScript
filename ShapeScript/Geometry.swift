@@ -480,8 +480,7 @@ public extension Geometry {
         }
 
         func insetMesh() -> Geometry {
-            _ = build(isCancelled)
-            let sourceMesh = mesh ?? .empty
+            let sourceMesh = mesh(isCancelled) ?? .empty
             var mesh = sourceMesh.inset(by: distance, isCancelled: isCancelled)
             if material != .default {
                 if sourceMesh.materials.contains(where: { $0 != nil }) {
@@ -562,8 +561,7 @@ public extension Geometry {
             return copy(type: .fill([paths[0].inset(by: distance)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
-                _ = build(isCancelled)
-                if mesh?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
+                if mesh(isCancelled)?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
                     return copy(type: .mesh(.empty))
                 }
             }
@@ -755,6 +753,17 @@ extension Geometry {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
+    }
+
+    /// Builds the receiver's mesh if needed and returns the built local mesh.
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available.
+    /// - Note: Does not include the receiver's transform. Use `merged()` or `flattened()`
+    ///         for transform/material-applied output including descendants.
+    func mesh(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh? {
+        if mesh == nil, !build(isCancelled) {
+            return nil
+        }
+        return mesh
     }
 }
 
@@ -1471,10 +1480,9 @@ public extension Geometry {
     func polygons(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
         switch type {
         case .group:
-            return children.reduce(into: []) { $0 += $1.polygons(isCancelled) }
+            children.reduce(into: []) { $0 += $1.polygons(isCancelled) }
         default:
-            _ = build(isCancelled)
-            return mesh?.polygons ?? []
+            mesh(isCancelled)?.polygons ?? []
         }
     }
 
@@ -1489,12 +1497,11 @@ public extension Geometry {
     func isWatertight(_ isCancelled: @escaping CancellationHandler) -> Bool {
         switch type {
         case .cone, .cylinder, .icosphere, .sphere, .cube:
-            return true
+            true
         case .group:
-            return children.allSatisfy { $0.isWatertight(isCancelled) }
+            children.allSatisfy { $0.isWatertight(isCancelled) }
         default:
-            _ = build(isCancelled)
-            return mesh?.isWatertight ?? true
+            mesh(isCancelled)?.isWatertight ?? true
         }
     }
 
@@ -1538,11 +1545,10 @@ public extension Geometry {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .xor, .difference, .intersection:
-            _ = build(isCancelled)
             if transform.rotation == .identity {
-                return mesh?.bounds.transformed(by: transform) ?? .empty
+                return mesh(isCancelled)?.bounds.transformed(by: transform) ?? .empty
             }
-            return mesh?.transformed(by: transform).bounds ?? .empty
+            return mesh(isCancelled)?.transformed(by: transform).bounds ?? .empty
         case .stencil:
             return children.first.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
@@ -1560,14 +1566,13 @@ public extension Geometry {
     /// Builds and caches the mesh if required. Already-cached meshes will be re-used if available
     private func volume(with transform: Transform, _ isCancelled: @escaping CancellationHandler) -> Double {
         let scaleFactor = transform.scale.x * transform.scale.y * transform.scale.z
-        switch type {
+        return switch type {
         case .cube:
-            return scaleFactor
+            scaleFactor
         case .group:
-            return children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
+            children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
         default:
-            _ = build(isCancelled)
-            return (mesh?.signedVolume ?? 0) * scaleFactor
+            (mesh(isCancelled)?.signedVolume ?? 0) * scaleFactor
         }
     }
 

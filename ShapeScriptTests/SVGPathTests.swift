@@ -102,10 +102,9 @@ final class SVGPathTests: XCTestCase {
             }
         }
         """), delegate: nil)
-        XCTAssertTrue(scene.build { false })
 
         let geometry = try XCTUnwrap(scene.children.first)
-        let mesh = try XCTUnwrap(geometry.mesh).transformed(by: geometry.transform)
+        let mesh = try XCTUnwrap(geometry.mesh()).transformed(by: geometry.transform)
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)

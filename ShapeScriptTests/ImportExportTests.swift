@@ -65,8 +65,7 @@ final class ImportExportTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        XCTAssert(geometry.build { false })
-        let mesh = try XCTUnwrap(geometry.mesh)
+        let mesh = try XCTUnwrap(geometry.mesh())
         let polygons = mesh.polygons
         XCTAssertEqual(polygons.count, 96)
         XCTAssert(polygons.areWatertight)
@@ -78,8 +77,7 @@ final class ImportExportTests: XCTestCase {
         geometry.scnBuild(with: .default)
         let node = SCNNode(geometry)
         let geometry2 = try Geometry(node)
-        _ = geometry2.build { false }
-        let mesh2 = try XCTUnwrap(geometry2.mesh)
+        let mesh2 = try XCTUnwrap(geometry2.mesh())
         XCTAssertEqual(mesh2.polygons.count, 256)
         XCTAssert(mesh2.isWatertight)
         #endif

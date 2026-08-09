@@ -282,6 +282,17 @@ final class GeometryTests: XCTestCase {
         }
     }
 
+    func testMeshFunctionBuildsPrimitiveOnDemand() throws {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let shape = Geometry(type: .cube, in: context)
+        XCTAssertNil(shape.mesh)
+
+        let mesh = try XCTUnwrap(shape.mesh())
+
+        XCTAssertEqual(mesh, Mesh.cube())
+        XCTAssertEqual(shape.mesh, mesh)
+    }
+
     func testTransformedCubeBounds() {
         let context = EvaluationContext(source: "", delegate: nil)
         let offset = Vector(1, 2, 3)
@@ -298,8 +309,7 @@ final class GeometryTests: XCTestCase {
         )
         let shape = Geometry(type: GeometryType.cone(segments: 5), in: context)
         let bounds = shape.exactBounds(with: shape.transform)
-        _ = shape.build { false }
-        let mesh = try XCTUnwrap(shape.mesh)
+        let mesh = try XCTUnwrap(shape.mesh())
         let expected = mesh.transformed(by: context.state.transform).bounds
         XCTAssertEqual(bounds.min, expected.min, accuracy: epsilon)
         XCTAssertEqual(bounds.max, expected.max, accuracy: epsilon)
@@ -374,10 +384,9 @@ final class GeometryTests: XCTestCase {
             curve 0
         }
         """), delegate: nil)
-        XCTAssertTrue(scene.build { false })
 
         let geometry = try XCTUnwrap(scene.children.first)
-        let mesh = try XCTUnwrap(geometry.mesh)
+        let mesh = try XCTUnwrap(geometry.mesh())
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertFalse(mesh.bounds.isEmpty)
         XCTAssertEqual(mesh.bounds, Bounds(min: [0.26, 0, 0], max: [0.74, 2, 0]))
@@ -422,7 +431,7 @@ final class GeometryTests: XCTestCase {
             let scene = try evaluate(parse(program), delegate: TestDelegate())
             XCTAssertEqual(scene.children.count, 1)
             let geometry = try XCTUnwrap(scene.children.first)
-            XCTAssertTrue(geometry.build { false })
+            XCTAssertNotNil(geometry.mesh())
             return geometry.flattened()
         }
 
@@ -628,8 +637,7 @@ final class GeometryTests: XCTestCase {
             in: EvaluationContext(source: "", delegate: nil)
         )
 
-        XCTAssertTrue(geometry.build { false })
-        let mesh = try XCTUnwrap(geometry.mesh)
+        let mesh = try XCTUnwrap(geometry.mesh())
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertEqual(mesh.bounds.size, [1, 1, 1])
     }
