@@ -90,8 +90,8 @@ extension DocumentViewControllerProtocol {
     }
 
     func resetView() {
-        scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.pointOfView = cameraNode
+        scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.antialiasingMode = camera.settings.antialiased ? .multisampling4X : .none
         refreshView()
     }
