@@ -446,12 +446,12 @@ final class MetadataTests: XCTestCase {
             let fileNames = [
                 file,
                 file.replacingOccurrences(
-                    of: "-1\\.\\d\\.\\d\\.",
+                    of: "-1\\.\\d+\\.\\d+\\.",
                     with: ".",
                     options: .regularExpression
                 ),
                 file.replacingOccurrences(
-                    of: "-ios(-1\\.\\d\\.\\d)?\\.",
+                    of: "-ios(-1\\.\\d+\\.\\d+)?\\.",
                     with: ".",
                     options: .regularExpression
                 ),

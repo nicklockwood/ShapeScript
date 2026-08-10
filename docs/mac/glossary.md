@@ -22,7 +22,7 @@ Symbol               | A named constant value or function
 Texture              | An image map to be wrapped around a mesh
 Transform            | A combined translation, rotation and scale
 Translation          | A relative or absolute position or offset in 3D space
-Tuple                | A list of values that can be accessed with .first, .second, etc. 
+Tuple                | A list of values that can be accessed with .first, .second, etc.
 Vector               | A position, direction or distance in 3D space
 
 ---

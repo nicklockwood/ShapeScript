@@ -14,7 +14,7 @@ fill path {
     for 0 to 5 {
         point 0 1
         rotate 2 / 5
-    }   
+    }
 }
 ```
 
@@ -179,6 +179,40 @@ extrude {
 
 ![Twisted circle seam](../images/twisted-circle-seam.png)
 
+Sharp corners in the `along` path can introduce a different problem. By default, ShapeScript tries to preserve a crisp corner by extending the adjacent side faces until they meet, but at very tight angles this can produce a long spike at the join:
+
+```swift
+extrude {
+    square { size 0.2 }
+    along path {
+        point 0
+        point 10
+        point 0 1
+    }
+}
+```
+
+![Extreme miter](../images/extreme-miter.png)
+
+The extended corner is called a [miter](https://en.wikipedia.org/wiki/Miter_joint). To prevent extreme miters, you can set `miterLimit`, which specifies the maximum allowed ratio between the miter length and the extrusion wall thickness. If a corner would exceed that limit, ShapeScript bevels the corner instead. This is the same idea as SVG's [`stroke-miterlimit`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-miterlimit):
+
+The default is unlimited, so corners are mitered unless you set a limit. Lower values bevel more corners:
+
+```swift
+extrude {
+    miterLimit 10
+    square { size 0.2 }
+    along path {
+        point 0
+        point 10
+        point 0 1
+    }
+}
+```
+
+![Limited miter](../images/limited-miter.png)
+
+`miterLimit` only applies when extruding along a path, so it has no effect on a simple straight extrusion along the Z axis. You can set it inside an `extrude` block, as above, or set it at the root level and inherit it into later extrusions. The British spelling `mitreLimit` is also accepted.
 
 ## Loft
 
@@ -323,29 +357,7 @@ minkowski {
 
 **Note:** Minkowski addition is [commutative](https://en.wikipedia.org/wiki/Commutative_property), meaning that the order of inputs should not affect the result. However, the ShapeScript `minkowski` command can sometimes produce different results when the input includes paths or non-convex meshes due to various optimizations.
 
-The order of child shapes can also affect how [materials](materials.md), [colors](materials.md#color) and [vertex normals](materials.md#normals) are applied. If we reverse the order of the sphere and cube in the previous example, the actual shape is the same but the vertex normals from the cube are more dominant in the output, making it appear like there are seams:
-
-```swift
-minkowski {
-    cube
-    sphere { size 0.25 }
-}
-```
-
-![Minkowski sum](../images/rounded-cube-seams.png)
-
-You can correct this using the [smoothing](options.md#smoothing) command:
-
-```swift
-minkowski {
-    cube
-    sphere { size 0.25 }
-    smoothing 0.25
-}
-```
-
-![Minkowski sum](../images/rounded-cube.png)
-
+For a reusable helper that combines `minkowski` with the [inset](functions.md#geometry) function to create filleted mesh edges, see the [Fillet example](examples.md#fillet).
 
 ---
 [Index](index.md) | Next: [Constructive Solid Geometry](csg.md)

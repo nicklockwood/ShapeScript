@@ -437,7 +437,7 @@ extension EvaluationContext {
         }
         switch url.pathExtension.lowercased() {
         case "stl", "stla", "obj", "off":
-            let mesh = try Mesh(url: url) {
+            let mesh = try loadMesh(at: url) {
                 switch $0 {
                 case let color as Color:
                     return Material(color: color)
@@ -472,6 +472,27 @@ extension EvaluationContext {
         #else
         return nil
         #endif
+    }
+
+    private func loadMesh(
+        at url: URL,
+        materialLookup: (@Sendable (AnyHashable?) -> Material?)? = nil
+    ) throws -> Mesh {
+        if url.pathExtension.lowercased() == "obj",
+           url.deletingLastPathComponent().pathExtension.lowercased() == "obj",
+           let mesh = try Mesh(objString: String(contentsOf: url))
+        {
+            return mesh
+        }
+        do {
+            return try Mesh(url: url, materialLookup: materialLookup)
+        } catch let error where url.pathExtension.lowercased() == "obj" {
+            let string = try String(contentsOf: url)
+            guard let mesh = Mesh(objString: string) else {
+                throw error
+            }
+            return mesh
+        }
     }
 
     func importFile(at path: String) throws -> Value {

@@ -149,13 +149,13 @@ For example, the `sin` (sine) function takes a radian representation of an angle
 
 ```swift
 sin 0.524 // returns 0.5
-``` 
+```
 
 The `acos` (arc cosine) function takes a ratio representation of an angle and returns a radians value of that angle. In this case 1/2 or 0.5 returns 1.047 radians - equivalent to an angle of 60 degrees:
 
 ```swift
 acos 0.5 // return 1.047
-``` 
+```
 
 The `cos` (cosine), `sin` (sine), and `tan` (tangent) functions all take a radians value and return a ratio value, and the `asin` (arc sine), `acos` (arc cosine), and `atan` (arc tangent) functions all take a ratio value and return a radians value.
 
@@ -198,7 +198,7 @@ Half-turns to radians | radians = halfturns * pi
 
 Common values:
 
-Angle in degrees | Angle in radians | Angle in half-turns 
+Angle in degrees | Angle in radians | Angle in half-turns
 :--------------- | :--------------- | :------------------
 0                | 0                | 0
 30               | pi / 6 (0.524)   | 1 / 6 (0.167)
@@ -208,6 +208,59 @@ Angle in degrees | Angle in radians | Angle in half-turns
 180              | pi     (3.142)   | 1
 
 <br>
+
+## Geometry
+
+The `inset` function returns a new path or mesh whose surface has been moved inward by the specified distance. It is equivalent to the `offset` function in some other CAD tools. Mathematically, path inset is an inward [parallel curve](https://en.wikipedia.org/wiki/Parallel_curve), also known in CAD as an offset curve.
+
+For paths, `inset` moves the outline inward in the path's plane. This is useful for creating borders, nested profiles, or clearance around another shape:
+
+```swift
+define outline {
+    roundrect {
+        size 1.5 1
+        radius 0.25
+    }
+}
+
+color red
+outline
+
+color blue
+inset outline 0.1
+```
+
+![Inset path](../images/inset-path.png)
+
+Passing a negative distance reverses the operation, expanding the path or mesh instead of shrinking it:
+
+```swift
+color red
+outline
+
+color blue
+inset outline -0.1
+```
+
+![Negative path inset](../images/outset-path.png)
+
+For meshes, `inset` offsets the shape inward in 3D. This is useful for shrinking a part by a precise clearance or creating an inner surface that follows the original shape:
+
+```swift
+define outer {
+    cube { size 1 }
+}
+
+color red 0.5
+outer
+
+color green
+inset outer 0.1
+```
+
+![Inset cube](../images/inset-mesh.png)
+
+**Note:** Be careful with large inset values. If an inset would collapse the original path or mesh, the result may be empty or misshapen.
 
 ## Strings
 

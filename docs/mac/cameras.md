@@ -21,7 +21,7 @@ You may add multiple cameras to a scene and they will be named "Custom", "Custom
 
 ```swift
 camera {
-    name "Hello"   
+    name "Hello"
 }
 ```
 
@@ -33,7 +33,7 @@ By default the camera will be positioned just in front of the scene, but you can
 
 ```swift
 camera {
-    position 3 3 3   
+    position 3 3 3
 }
 ```
 
@@ -68,7 +68,7 @@ camera {
 ```
 
 **Note:** the `position 0` and `orientation 0` here are required, because if these are not specified then the camera position and orientation will be set to their default values.
- 
+
 ## Field of View
 
 In addition to position and orientation, you can also adjust the *field of view* using the `fov` property:
@@ -124,7 +124,7 @@ You can add an optional `width` and/or `height` to your camera block to control 
 ```swift
 camera {
     width 1024
-    height 768   
+    height 768
 }
 ```
 

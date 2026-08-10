@@ -19,6 +19,19 @@ cube {
 
 Positions are applied hierarchically. For shapes located at the root of the ShapeScript file, their `position` is relative to the world origin, however you can nests shapes inside [groups](groups.md), in which case the `position` of the child shapes will be measured relative to the `position` of their containing group.
 
+If you prefer, you can set the position using [block syntax](blocks.md):
+
+```swift
+cube {
+    position {
+        y 1
+        z 5
+    }
+}
+```
+
+This lets you specify `x`, `y` and `z` values explicitly rather than positionally. Omitted values default to zero.
+
 ## Orientation
 
 The `orientation` option defines the rotation for the shape using three parameters called `roll`, `yaw` and `pitch`.  The `roll` value represents a rotation around the Z axis, the `yaw` is rotation around the Y axis, and the `pitch` is a rotation around the X axis:
@@ -35,13 +48,83 @@ Angles of rotation are specified as numbers in the range 0 to 2 (or 0 to -2 if y
 
 While it is relatively simple to use the `orientation` property to specify a rotation around a single axis, it can be awkward to apply a rotation around multiple axes at once due to the fixed order. If you need to do that, you may find it simpler to use the `rotate` command instead (described [below](#relative-transforms)), which can be applied multiple times in any order.
 
+Alternatively, you can specify a rotation using an angle followed by an arbitrary axis. The angle is measured in half-turns, and the axis can be specified either using separate X/Y/Z component values, or with a [vector](literals.md#vectors-and-tuples):
+
+```swift
+cube {
+    orientation 0.5 0 1 0 // rotates the cube 90 degrees around the Y axis
+}
+
+cube {
+    orientation 0.5 (1 1 0) // rotates around a diagonal axis
+}
+```
+
+When using a vector/tuple axis value, the axis and angle can also be written in the opposite order:
+
+```swift
+cube {
+    orientation (0 1 0) 0.5
+}
+```
+
+You can also specify a rotation or orientation using [block syntax](blocks.md):
+
+```swift
+cube {
+    orientation { yaw 0.5 } // rotates the cube 90 degrees around the Y axis
+}
+
+cube {
+    orientation { // rotates around a diagonal axis
+        pitch 0.4
+        roll 0.6
+    }
+}
+```
+
+Omitted roll/yaw/pitch values default to zero. The order in which they are specified in the block does not affect the order in which they are applied, which is always `roll`, `yaw`, then `pitch` (Z, Y, X).
+
+Instead of `roll`/`yaw`/`pitch`, you can use `axis` and `angle`:
+
+```swift
+cube {
+    orientation {
+        axis 0 1 0
+        angle 0.5
+    }
+}
+```
+
+If you use `angle` without specifying an `axis`, the axis defaults to `0 0 1`. You can use roll/yaw/pitch values or axis/angle values, but not both in the same block.
+
 ## Size
 
-The `size` option applies a scaling factor to all subsequent geometry. A scale factor of `0.5 0.5 0.5` for example, would halve the size of all subsequent shapes, as well as halving the offset applied by subsequent `translate` commands.
+The `size` option scales the shape it is applied to. A size of `2 1 0.5` makes the shape twice as wide, unchanged in height, and half as deep:
+
+```swift
+cube {
+    size 2 1 0.5
+}
+```
 
 Like the `position` and `orientation` commands, `size` allows you to omit one or two parameters, however unlike the other commands, omitted parameters are assumed to be equal to the first value given. So `size 0.5` is equivalent to `size 0.5 0.5 0.5`.
 
-It it possible to apply a negative scale factor, which has the effect of flipping the geometry. For example, `size 1 -1 1` would flip all subsequent shapes upside-down along the Y axis. This does not always work as intended however, and may produce odd side-effects such as turning shapes inside-out. In general it is better to stick to positive `size` values, and use `orientation` if you need to flip a shape around.
+It is possible to apply a negative size value, which has the effect of flipping or mirroring the shape. For example, `size 1 -1 1` would flip the shape upside-down along the Y axis. This does not always work as intended however, and may produce odd side-effects such as turning shapes inside-out. In general it's better to stick to positive `size` values and use `orientation` if you need to flip a shape around.
+
+You can also set a size using [block syntax](blocks.md):
+
+```swift
+cube {
+    size {
+        width 2
+        height 3
+        depth 4
+    }
+}
+```
+
+With this approach, omitted `width`, `height` and `depth` values will default to 1.
 
 ## Relative Transforms
 
@@ -73,7 +156,7 @@ translate -1 0 0
 sphere // located at 0 0 0
 ```
 
-Just as the `translate` command moves the origin, the `rotate` command rotates it, and the `scale` command increases or decreases the scale factor. These are equivalent:
+Just as the `translate` command moves the origin, the `rotate` command rotates it, and the `scale` command increases or decreases the scale factor for subsequent geometry. A scale factor of `0.5 0.5 0.5` will halve the size of all subsequent shapes, as well as halving the offset applied by subsequent `translate` commands. These are equivalent:
 
 ```swift
 cube {
@@ -98,11 +181,21 @@ rotate -0.25
 scale 0.5
 ```
 
-As mentioned in the [orientation](#orientation) section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be very difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
+As mentioned in the [orientation](#orientation) section above, an advantage of the `rotate` command is that it allows you to apply rotations in any order. For example the following code applies a pitch of 45 degrees followed by a roll of 80 degrees, which would be difficult to express as a single `rotate` or `orientation` instruction due to the fixed roll-yaw-pitch order:
 
 ```swift
 rotate 0 0 0.25 // pitch 45 degrees
-rotate 0.4 0 0 // roll 80 degrees
+rotate { roll 0.4 } // roll 80 degrees
+cube
+```
+
+Like `orientation`, the `rotate` command also supports angle-axis formats, which can be useful when you want to rotate the current scope around an arbitrary axis:
+
+```swift
+rotate {
+    angle 0.5
+    axis 1 0 1
+}
 cube
 ```
 

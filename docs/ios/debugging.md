@@ -8,7 +8,7 @@ difference {
     cylinder {
         size 1 0.2
     }
-    
+
     // cylinder not visible in viewer
     cylinder {
         position 0.4
@@ -26,7 +26,7 @@ difference {
     cylinder {
         size 1 0.2
     }
-    
+
     // debug command makes cylinder visible
     debug cylinder {
         position 0.4
@@ -38,6 +38,35 @@ difference {
 This makes the cylinder visible in the ShapeScript viewer and allows it to be selected like any other shape.
 
 ![Moon debug](../images/moon-debug.png)
+
+You can debug multiple shapes at once by using the `debug` command more than once, or by wrapping several shapes in a `debug` block:
+
+```swift
+difference {
+    // both child objects are now visible
+    debug {
+        cylinder {
+            size 1 0.2
+        }
+
+        cylinder {
+            position 0.4
+            size 1 0.2
+        }
+    }
+}
+```
+
+If you want to hide the rest of the scene while inspecting one or more shapes, use `focus` instead of `debug`:
+
+```swift
+focus cylinder {
+    position 0.4
+    size 1 0.2
+}
+```
+
+As with the `debug` command, you can focus multiple shapes at once to show them all.
 
 ## Logging
 

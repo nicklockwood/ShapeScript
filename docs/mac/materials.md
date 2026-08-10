@@ -7,12 +7,13 @@ Materials in ShapeScript allow you to alter the [color](#color) and [texture](#t
 
 ## Color
 
-You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: Numeric RGB, hexadecimal or predefined:
-
-The following commands all produce a red cube:
+You can alter the color of your shapes using the `color` (or `colour`) command, which accepts a color value in a variety of formats: RGB tuples, RGB or HSB functions, block syntax, hexadecimal, or predefined constants. The following commands all produce a red cube:
 
 ```swift
 cube { color 1 0 0 }
+cube { color rgb(1 0 0) }
+cube { color hsb(0 1 1) }
+cube { color { red 1 } }
 cube { color #FF0000 }
 cube { color #F00 }
 cube { color red }
@@ -72,6 +73,47 @@ color 1 0.5
 color 1 1 1 0.5
 ```
 
+### HSB Colors
+
+You can also use the `hsb` function to create colors using [hue, saturation and brightness](https://en.wikipedia.org/wiki/HSL_and_HSV) values:
+
+```swift
+color hsb(0 1 1) // red
+color hsb(1 / 3 1 1) // green
+color hsb(2 / 3 1 1) // blue
+```
+
+The hue component specifies a position around the color wheel from 0 to 1. The saturation component controls the intensity of the color, and the brightness component controls how light or dark it is. Like RGB colors, HSB colors can include an optional fourth alpha component:
+
+```swift
+color hsb(0 1 1 0.5) // 50% transparent red
+```
+
+### Color Blocks
+
+You can also specify color components more explicitly by using [block syntax](blocks.md):
+
+```swift
+color {
+    red 0.25
+    green 0.5
+    blue 0.75
+    alpha 0.8
+}
+```
+
+You can also use block syntax with hue, saturation and brightness:
+
+```swift
+color {
+    hue 0.5
+    saturation 1
+    brightness 0.75
+}
+```
+
+As with numeric RGB colors, the `alpha` value is optional and defaults to 1; all other components default to 0. You can use red, green and blue values or hue, saturation and brightness values, but not both in the same block.
+
 ### Hexadecimal Colors
 
 Instead of numeric values, you can use web-style hex codes to specify colors. These consist of a hash character (`#`) followed by 3 or 4 pairs of hexadecimal digits to specify color components in the range 0-255. Hex color codes are a popular convention and are supported by many graphics tools. Here are some examples:
@@ -94,7 +136,7 @@ As with [web colors](https://en.wikipedia.org/wiki/Web_colors), you can use a th
 color #F00 // equivalent to #FF0000
 ```
 
-And you can also use a fourth digit to specify alpha:
+And you can add a fourth digit to specify alpha:
 
 ```swift
 color #F006 // equivalent to #FF000066
@@ -112,6 +154,7 @@ green     | 0   1   0   | #00FF00     | #0F0
 cyan      | 0   1   1   | #00FFFF     | #0FF
 red       | 1   0   0   | #FF0000     | #F00
 magenta   | 1   0   1   | #FF00FF     | #F0F
+purple    | 0.5 0   0.5 | #800080     | #808
 yellow    | 1   1   0   | #FFFF00     | #FF0
 white     | 1   1   1   | #FFFFFF     | #FFF
 orange    | 1   0.5 0   | #FF7F00     | -
@@ -142,16 +185,16 @@ This approach also works for user-defined color constants, and with RGB and hexa
 
 ```swift
 define skyBlue 0.5 0.8 1 // opaque blue
-color skyBlue 0.5 // 50% transparent blue 
+color skyBlue 0.5 // 50% transparent blue
 
 color #ff0 0.5 // 50% transparent yellow
 ```
 
 ## Texture
 
-A texture is an image that is wrapped around a 3D shape, either as decoration, or to give the appearance of more surface detail than is actually there. Contrary to what the name implies, textures do not actually affect the smoothness of surface to which they are applied - they only affect its color.
+A texture is an image that is wrapped around a 3D shape, either as a decorative decal, or to give the appearance of more surface detail than is actually there. Contrary to what the name implies, the texture does not actually affect the smoothness of surface to which it is applied - it only alters the color.
 
-You can set the texture for your shapes using the `texture` command:
+You can set a texture for your shapes using the `texture` command:
 
 ```swift
 sphere {
@@ -181,6 +224,22 @@ texture ""
 ```
 
 **Note:** a given shape can only have either a color or texture, but not both. Setting the texture will clear the color and vice-versa.
+
+ShapeScript includes a built-in `checkerboard` texture that you can use for testing texture mapping without needing an external image file:
+
+```swift
+sphere {
+    texture checkerboard
+}
+```
+
+![Checkered sphere](../images/checkerboard-texture.png)
+
+You can also use `checkerboard` anywhere else a texture is accepted, such as the scene [background](commands.md#background):
+
+```swift
+background checkerboard
+```
 
 ### Access Permission
 
@@ -269,17 +328,17 @@ group {
 }
 ```
 
-The `opacity` property can be set to a texture (image) instead of a simple number by providing the name of an external image file:
+The `opacity` property can also be set to a texture (image) instead of a simple number. Here is an example using the built-in checkerboard texture:
 
 ```swift
 sphere {
-    opacity "checkerboard.png"
+    opacity checkerboard
 }
 ```
 
 ![Checkered transparent sphere](../images/checkered-sphere.png)
 
-Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. Only the alpha channel of the texture image is used to compute the transparency.
+Using an opacity texture allows you to create surfaces with variable transparency, such as a window with an opaque frame. If the texture image includes transparent or partially transparent pixels, the alpha channel is used to compute the transparency. If the texture is fully opaque, its luminance is used instead, allowing opaque black and white images to be used as opacity masks.
 
 ## Glow
 
@@ -345,7 +404,7 @@ As with the [metallicity](#metallicity) property, `roughness` is specified in th
 
 ## Material
 
-It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can define a collection of material properties and assign them to a [symbol](symbols.md) by using the `material` command:
+It is sometimes convenient to be able to group a set of related material properties together and set them all at once rather than individually. You can specify a material using [block syntax](blocks.md), and assign it to a [symbol](symbols.md) using `define`:
 
 ```swift
 define redMetal material {

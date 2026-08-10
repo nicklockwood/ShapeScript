@@ -112,7 +112,7 @@ If multiple shapes overlap, right-click in the viewer to open a contextual menu 
 
 You can also use the `Edit > Select Shape` menu to select from a list of shapes in the scene, or cycle between selected shapes using the **Tab** key.
 
-**Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer.
+**Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer, or the `focus` command to hide the rest of the scene.
 
 ---
 [Index](index.md) | Next: [Camera Control](camera-control.md)

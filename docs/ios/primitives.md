@@ -65,9 +65,34 @@ sphere {
 
 ![Spheroid](../images/spheroid.png)
 
+## Icosphere
+
+The `icosphere` primitive creates a spherical shape by subdividing an icosahedron into a [geodesic polyhedron](https://en.wikipedia.org/wiki/Geodesic_polyhedron) and projecting the points onto a sphere. As with `sphere`, the default diameter is 1 unit:
+
+```swift
+icosphere { size 1 }
+```
+
+An icosphere is useful when you need a sphere-like mesh with evenly distributed triangular polygons, such as for low-poly styles, procedural deformation, or geometry operations where regular topology matters.
+
+A regular `sphere` is built from latitude and longitude bands. That makes it smooth around the equator, but its polygons bunch up at the poles. An `icosphere` starts from an icosahedron instead, so it has no latitude/longitude seams and its triangles remain more uniform across the surface.
+
+The `detail` option controls the icosphere's subdivision level:
+
+```swift
+icosphere {
+    detail 16
+    smoothing 0
+}
+```
+
+![Icosphere](../images/icosphere.png)
+
+**Note:** The example disables [vertex normal smoothing](commands.md#smoothing) with the `smoothing 0` command so the individual triangular faces are visible. Without this, the viewer shades the surface smoothly by default, which makes an icosphere hard to distinguish from a regular sphere in appearance.
+
 ## Cylinder
 
-The `cylinder` primitive creates a flat-ended cylinder. 
+The `cylinder` primitive creates a flat-ended cylinder.
 
 ```swift
 cylinder { size 1 }

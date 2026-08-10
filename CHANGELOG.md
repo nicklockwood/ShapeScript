@@ -1,5 +1,28 @@
 # Change Log
 
+## [1.11.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.0) (2026-08-10)
+
+- Added `inset` function for paths and meshes
+- Added `circle`, `square` and `icosphere` geometry types
+- Added `miterLimit` property and support for setting miter limits at the root level
+- Added HSB color support
+- Added angle-axis format for rotation literals
+- Added object syntax for `color`, `rotation`, `size`, `point`, `path`, `polygon` and `mesh`
+- Added `path.color` property and `Geometry.withoutDebug()` helper
+- Added `focus` command for inspecting selected geometry in complex scenes
+- Fixed custom block transforms for tuple geometry returns
+- Fixed parsing of command arguments inside multiline tuples
+- Fixed command/function disambiguation and command property shadowing
+- Fixed casting objects to value lists and typecasting with name shadowing
+- Fixed loading of directory-based model formats
+- Fixed `minkowski` watertightness regression and improved output ordering
+- Improved rendering of translucent planar meshes and opacity textures
+- Improved alternative property-name suggestions
+- Removed deprecated APIs and CocoaPods support
+- Updated examples and documentation for new primitives, inset, miter limits, materials and imports
+- Incorrect polygon winding is now auto-corrected for imported STL and OFF files
+- Bumped Euclid to version 0.9.0
+
 ## [1.10.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.10.6) (2026-07-23)
 
 - Fixed incorrect `count`, `allButFirst`, `allButLast` and indexed member results for geometry tuples

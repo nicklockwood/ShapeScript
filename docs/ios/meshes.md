@@ -15,13 +15,30 @@ mesh {
         point 0 0
         point 1 0
         point 1 1
-    }   
+    }
 }
 ```
 
 ![Triangle](../images/triangle-polygon.png)
 
-The `point` command accepts a [vector](literals.md#vectors-and-tuples) value. Polygons can be placed anywhere in three-dimensional space, so `point` accepts up to three values (for the X, Y and Z coordinates respectively). In this case we've just specified two values, so the Z coordinate defaults to zero.
+The `point` command creates a polygon point or [vertex](https://en.wikipedia.org/wiki/Vertex_(geometry)). You can specify the point using a [tuple](literals.md#vectors-and-tuples) of up to three coordinates for the X, Y and Z position. In this case we've just specified two values, so the Z coordinate defaults to zero.
+
+You can also create points using [block syntax](blocks.md), or assign them to symbols and use them later:
+
+```swift
+define top point {
+    position 0 1
+    color red
+}
+
+mesh {
+    polygon {
+        point -1 -1
+        point 1 -1
+        top
+    }
+}
+```
 
 Manually constructed meshes do not currently support textures, but they inherit the current [material color](materials.md#color). Color can also be applied separately to individual vertices within a mesh. When vertices of a given polygon have different colors applied, the color will be smoothly interpolated between them, creating a gradient:
 
@@ -34,7 +51,7 @@ mesh {
         point 1 0
         color blue
         point 1 1
-    }   
+    }
 }
 ```
 
@@ -42,17 +59,15 @@ mesh {
 
 ## Watertightness
 
-If you rotate the triangle you will see that the back face is invisible. Most of the mesh-construction commands in ShapeScript produce shapes that are *watertight*, meaning that they do not contain any holes that would allow you to see the back faces of the polygon surface, but when you create a mesh using the `mesh` command it's up to you to ensure that the mesh you create is watertight. You can check this by selecting the mesh in the editor and [getting info](getting-started.md#debugging-and-selection). As you can see, our triangle is not watertight:
+Most of the mesh-construction commands in ShapeScript produce shapes that are *watertight*, meaning that they do not contain any holes that would expose the inside of the polygon surface. Manually-created meshes may contain holes, but ShapeScript now preserves watertightness automatically when it builds the final geometry, so unlike in earlier versions you won't normally need to add extra faces just to make a mesh usable with [CSG](csg.md) operations.
 
-![Not watertight](../images/not-watertight.png)
+The original mesh definition still matters for polygon orientation, colors, and normals, but you generally don't need to duplicate faces by hand just to seal the shape.
 
-Watertightness is an important quality when using [CSG](csg.md) operations, because the "solid" in Constructive Solid Geometry implies that shapes are expected to behave like solid objects (even though they are actually hollow), and holes or exposed back faces will cause glitches as ShapeScript is unable to determine whether a given point lies inside or outside the shape.
-
-To solve this, we can add another triangle with the same vertices but facing the opposite direction. But wait - we never specified the direction of the triangle face in the first place, so how does ShapeScript decide which way a polygon is facing?
+That raises another question: how does ShapeScript decide which way a polygon is facing?
 
 ## Winding order
 
-By convention, polygons in ShapeScript are assumed to be defined with [counterclockwise](https://en.wikipedia.org/wiki/Counterclockwise) (aka *anticlockwise*) winding. What that means is that when looking at the polygon from the front, the vertices will be ordered in counterclockwise direction. To add a back face we'll create a second triangle with the inverse vertex order:
+By convention, polygons in ShapeScript are assumed to be defined with [counterclockwise](https://en.wikipedia.org/wiki/Counterclockwise) (aka *anticlockwise*) winding. What that means is that when looking at the polygon from the front, the vertices will be ordered in counterclockwise direction. If you want to explicitly model both sides of a surface, you can add a second polygon with the inverse vertex order:
 
 ```swift
 mesh {
@@ -70,11 +85,11 @@ mesh {
         point 1 1
         point 1 0
         point 0 0
-    } 
+    }
 }
 ```
 
-(We've left the back face white in this case, so you can tell which side is which). If you get info again you'll see that the triangle is now watertight:
+(We've made the back face white in this case, so you can tell which side is which).
 
 ## Procedural Meshes
 
@@ -134,7 +149,7 @@ mesh {
         sphere
         translate 0 1
         cube
-    }   
+    }
 }
 ```
 
@@ -142,4 +157,3 @@ This can be useful for precisely controlling the [exported](export.md) geometry.
 
 ---
 [Index](index.md) | Next: [Paths](paths.md)
-

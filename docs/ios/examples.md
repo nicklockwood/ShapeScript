@@ -7,13 +7,13 @@ ShapeScript includes a number of example files that demonstrate various features
 
 The Ball example demonstrates how to use the [stencil](csg.md#stencil) command to "paint" patterns on a sphere, as well as a [for loop](control-flow.md#loops) to generate a star shape that is then [extruded](builders.md#extrude).
 
-![Ball](../images/ball.png)
+![Ball](../images/ball-1.11.0.png)
 
 ## Chessboard
 
 The Chessboard example demonstrates the use of [for loops](control-flow.md#loops) to duplicate shapes, along with [paths](paths.md), [lathe builders](builders.md#lathe) and [CSG](csg.md) operations.
 
-![Chessboard](../images/chessboard.png)
+![Chessboard](../images/chessboard-1.11.0.png)
 
 ## Cog
 
@@ -21,17 +21,29 @@ The Cog example demonstrates procedural generation of a complex [path](paths.md)
 
 ![Cog](../images/cog.png)
 
+## Dodecahedron
+
+The Dodecahedron example demonstrates how to build a complex [mesh](meshes.md) from structured data and in-script calculations. It starts with a low-detail [icosphere](primitives.md#icosphere), calculates the dodecahedron vertex positions from its polygon centers, then uses face-index and color data to build the final pentagonal polygons.
+
+![Dodecahedron](../images/dodecahedron.png)
+
+## Fillet
+
+The Fillet example demonstrates how to define a reusable geometry function that combines the [inset](functions.md#geometry) function with [Minkowski addition](builders.md#minkowski) to produce rounded mesh edges while preserving the original overall dimensions.
+
+![Fillet shapes](../images/fillet.png)
+
 ## Earth
 
-The Earth example demonstrates use of the [texture](materials.md#texture) command to turn a simple sphere into a model of the globe.
+The Earth example demonstrates use of the [texture](materials.md#texture) command to turn a simple sphere into a model of the globe, along with the [background](commands.md#background) command to add a star field behind it.
 
 ![Earth](../images/earth.png)
 
-## Icosahedron
+## Platonic Solids
 
-The Icosahedron demonstrates the use of the [mesh command](meshes.md) along with [structured data](literals.md#structured-data) and [custom functions](functions.md#custom-functions) to create a complex shape that cannot easily be derived from the built-in primitives.
+The Platonic Solids example demonstrates how low-detail [cone](primitives.md#cone), [cube](primitives.md#cube), [sphere](primitives.md#sphere) and [icosphere](primitives.md#icosphere) primitives can be used to create several regular solids without manually defining mesh polygons. It also demonstrates using the [import](commands.md#import) command to reuse the Dodecahedron example as one of the solids.
 
-![Icosahedron](../images/icosahedron.png)
+![Platonic solids](../images/platonic-solids.png)
 
 ## Spirals
 
@@ -41,7 +53,7 @@ The Spirals example demonstrates using the [extrude](builders.md#extrude) comman
 
 ## Spring
 
-The Spring example demonstrates how to use the [loft](builders.md#loft) command and a [for loop](control-flow.md#loops) to create a coiled spring shape. 
+The Spring example demonstrates how to use the [loft](builders.md#loft) command and a [for loop](control-flow.md#loops) to create a coiled spring shape.
 
 ![Spring](../images/spring.png)
 
@@ -49,7 +61,7 @@ The Spring example demonstrates how to use the [loft](builders.md#loft) command 
 
 The Train demonstrates a combination of modeling techniques, including using the [rnd](commands.md#random-numbers) command to generate pseudo-random coal.
 
-![Train](../images/train.png)
+![Train](../images/train-1.11.0.png)
 
 ---
 [Index](index.md) | Next: [Glossary](glossary.md)

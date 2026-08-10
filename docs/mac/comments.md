@@ -54,7 +54,7 @@ Unlike some other languages, ShapeScript allows block comments to be nested insi
 define foo {
     option bar 3
     /* option baz 5 */
-    
+
     // return bar
     print bar
 }

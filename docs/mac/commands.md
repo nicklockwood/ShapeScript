@@ -53,13 +53,17 @@ The `detail` command can be used anywhere in the ShapeScript file to override th
 
 The `smoothing` command can be used anywhere in the ShapeScript file to override the local smoothing level used for calculating surface normals. It is documented in the [options](options.md#smoothing) section.
 
+## Miter Limit
+
+The `miterLimit` command controls when sharp corners in shapes extruded along a path are beveled instead of mitered. Unlike `detail` and `smoothing`, it is only available in contexts where it can affect an extrusion. It is documented in the [extrude](builders.md#extrude) section.
+
 ## Materials
 
 The `material` command (along with individual material property commands such as `color` and `texture`) are used to specify the appearance of shapes when rendered. These commands are documented in the [materials](materials.md) section.
 
 ## Font
 
-The `font`, command is used to specify the font used to render [text](text.md). 
+The `font`, command is used to specify the font used to render [text](text.md).
 
 ## Transforms
 
@@ -67,7 +71,7 @@ The `rotate`, `translate` and `scale` commands are useful for procedurally gener
 
 ## Primitives
 
-The `cube`, `sphere`, `cone` and `cylinder` commands are used to generate simple 3D shapes that can be composed into more complex forms. They are documented in the [primitives](primitives.md) section.
+The `cube`, `sphere`, `icosphere`, `cone` and `cylinder` commands are used to generate simple 3D shapes that can be composed into more complex forms. They are documented in the [primitives](primitives.md) section.
 
 ## Paths
 
@@ -112,7 +116,7 @@ The default starting value for `seed` is zero, so `seed 0` will cause the `rnd` 
 
 ## Debugging
 
-The `debug`, `print` and `assert` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
+The `debug`, `focus`, `print` and `assert` commands can be used to understand what's happening in your script and help diagnose problems. These are documented in the [debugging](debugging.md) section.
 
 ## Import
 

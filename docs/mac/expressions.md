@@ -159,7 +159,7 @@ Unlike some languages, ShapeScript's boolean operators are implemented as keywor
 
 ```swift
 if a and b {
-    print "both a and b were true"    
+    print "both a and b were true"
 }
 ```
 
@@ -167,7 +167,7 @@ These can be combined into more complex expressions, and used in conjunction wit
 
 ```swift
 if (not a) and (b or c) {
-    print "a was false and either b or c were true"  
+    print "a was false and either b or c were true"
 }
 ```
 
@@ -183,7 +183,7 @@ Ranges are mostly used in [for loops](control-flow.md#loops):
 
 ```swift
 for i in 1 to 5 {
-    print i   
+    print i
 }
 ```
 
@@ -225,7 +225,7 @@ Ranges may also include an optional `step` value to control how the range will b
 
 ```swift
 for i in 1 to 5 step 2 {
-    print i // prints 1, 3, 5 
+    print i // prints 1, 3, 5
 }
 
 for i in 0 to 1 step 0.2 {
@@ -243,7 +243,7 @@ for i in loops {
 }
 
 for i in loops step 2 {
-    print i // prints 1, 3, 5 
+    print i // prints 1, 3, 5
 }
 ```
 
