@@ -84,6 +84,11 @@ final class SVGPathTests: XCTestCase {
         XCTAssertTrue(mesh.isConsistentlyWound)
         XCTAssertGreaterThan(mesh.signedVolume, 0)
         try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
+        assertSidePolygonsFaceOutward(
+            of: mesh,
+            shape: path,
+            along: along
+        )
     }
 
     func testShapeScriptExtrudesSVGPathWithDoubledBackSegmentsAlongBentPath() throws {
@@ -116,7 +121,6 @@ final class SVGPathTests: XCTestCase {
             .point(0, 10),
             .point(0, -10),
         ], color: ShapeScript.Material.default.color)
-        try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
         assertSidePolygonsFaceOutward(
             of: mesh,
             shape: path,

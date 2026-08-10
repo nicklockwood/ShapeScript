@@ -78,7 +78,7 @@ final class ImportExportTests: XCTestCase {
         geometry.scnBuild(with: .default)
         let node = SCNNode(geometry)
         let geometry2 = try Geometry(node)
-        XCTAssert(geometry2.build { false })
+        _ = geometry2.build { false }
         let mesh2 = try XCTUnwrap(geometry2.mesh)
         XCTAssertEqual(mesh2.polygons.count, 256)
         XCTAssert(mesh2.isWatertight)

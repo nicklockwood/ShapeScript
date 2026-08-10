@@ -940,6 +940,31 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testProblematicDetailSphereHull() throws {
+        for detail in [52, 54, 63] {
+            let program = """
+            detail \(detail)
+            hull {
+                sphere {
+                    size 0.0018
+                    position 0.021920310216782973 0.02192031021678297 0.029
+                }
+                sphere {
+                    size 0.0018
+                    position -0.10966680337261942 0.2648919860483299 0
+                }
+            }
+            """
+            let scene = try evaluate(parse(program), delegate: TestDelegate())
+            XCTAssertEqual(scene.children.count, 1)
+            XCTAssertTrue(scene.build { false })
+            let geometry = try XCTUnwrap(scene.children.first)
+            let mesh = try XCTUnwrap(geometry.mesh)
+            XCTAssertTrue(mesh.isWatertight)
+            XCTAssertLessThan(mesh.polygons.count, 5_000)
+        }
+    }
+
     func testOffCenterHullIsWatertight() throws {
         let program = """
         detail 16
