@@ -806,7 +806,7 @@ final class InterpreterTests: XCTestCase {
         }
         """
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.material.color, Color(1, 0, 0))
+        XCTAssertEqual(scene.children.first?.material.color, .red)
     }
 
     // MARK: Position
@@ -1008,7 +1008,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithColorAlphaTuple2() throws {
@@ -1018,7 +1018,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithTupleConstant() throws {
@@ -1029,7 +1029,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithTupleOfConstantAndLiteral() throws {
@@ -1040,7 +1040,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithTupleOfConstantAndLiteral2() throws {
@@ -1051,7 +1051,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithTupleOfConstantAndLiteral3() throws {
@@ -1062,7 +1062,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithTupleWithTooManyElements() throws {
@@ -1123,7 +1123,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 1, 1, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 1, blue: 1, alpha: 0.5)])
     }
 
     func testSetColorWithHexTuple2() throws {
@@ -1133,7 +1133,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 0, 0, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 0, blue: 0, alpha: 0.5)])
     }
 
     func testSetColorWithHexTuple3() throws {
@@ -1144,7 +1144,7 @@ final class InterpreterTests: XCTestCase {
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [Color(1, 1, 1, 0.5)])
+        XCTAssertEqual(delegate.log, [Color(red: 1, green: 1, blue: 1, alpha: 0.5)])
     }
 
     func testSetColorOptionSpecifiedAsTupleWithConstant() throws {
@@ -1204,7 +1204,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.children.first?.value as? Geometry)
-        XCTAssertEqual(geometry.material.color, Color.red.withAlpha(0.5))
+        XCTAssertEqual(geometry.material.color, Color.red.withAlphaComponent(0.5))
     }
 
     func testSetNonColorWithColorConstant() throws {
@@ -1753,7 +1753,7 @@ final class InterpreterTests: XCTestCase {
         """
         let scene = try evaluate(parse(program), delegate: nil)
         let camera = try XCTUnwrap(scene.cameras.first)
-        XCTAssertEqual(camera.camera?.background, .color(Color.red.withAlpha(0.5)))
+        XCTAssertEqual(camera.camera?.background, .color(.red.withAlphaComponent(0.5)))
     }
 
     func testCameraBackgroundNotInherited() throws {

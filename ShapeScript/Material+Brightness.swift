@@ -28,12 +28,8 @@ public extension MaterialProperty {
 }
 
 public extension Color {
-    var brightness: Double {
-        (r + g + b) / 3
-    }
-
     func brightness(over background: Color) -> Double {
-        brightness * a + background.brightness * (1 - a)
+        brightness * alpha + background.brightness * (1 - alpha)
     }
 }
 
@@ -105,10 +101,10 @@ extension CGImage {
         let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
         context.draw(self, in: rect)
         return Color(
-            Double(components[0]) / 255,
-            Double(components[1]) / 255,
-            Double(components[2]) / 255,
-            Double(components[3]) / 255
+            red: Double(components[0]) / 255,
+            green: Double(components[1]) / 255,
+            blue: Double(components[2]) / 255,
+            alpha: Double(components[3]) / 255
         )
     }
 }

@@ -114,7 +114,7 @@ extension Rotation: Loggable {
 extension Color: Loggable {
     public var logDescription: String {
         var components = components
-        if a == 1 {
+        if alpha == 1 {
             components.removeLast()
         }
         return components.map(\.logDescription).joined(separator: " ")

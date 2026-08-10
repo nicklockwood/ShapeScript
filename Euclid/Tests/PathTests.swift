@@ -469,6 +469,38 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(vertices[5].normal, [0, -1])
     }
 
+    func testTubeEdgeVerticesAreDistributedByHeight() {
+        let path = Path([
+            .point(0, 1),
+            .point(-2, 1),
+            .point(-1, 0),
+            .point(-3, -1),
+            .point(0, -1),
+        ])
+        let vertices = path.edgeVertices(for: .tube)
+        XCTAssertEqual(vertices.count, 8)
+        guard vertices.count >= 8 else { return }
+        // texture coords
+        XCTAssertEqual(vertices[0].texcoord, [0, 0])
+        XCTAssertEqual(vertices[1].texcoord, [0, 0])
+        XCTAssertEqual(vertices[2].texcoord, [0, 0])
+        XCTAssertEqual(vertices[3].texcoord, [0, 0.5])
+        XCTAssertEqual(vertices[4].texcoord, [0, 0.5])
+        XCTAssertEqual(vertices[5].texcoord, [0, 1])
+        XCTAssertEqual(vertices[6].texcoord, [0, 1])
+        XCTAssertEqual(vertices[7].texcoord, [0, 1])
+    }
+
+    func testTubeEdgeVerticesWithNoHeightHaveZeroTexcoords() {
+        let path = Path([
+            .point(-1, 1),
+            .point(1, 1),
+        ])
+        let vertices = path.edgeVertices(for: .tube)
+        XCTAssertEqual(vertices.count, 2)
+        XCTAssertEqual(vertices.map(\.texcoord), [.zero, .zero])
+    }
+
     func testEdgeVerticesForCircle() {
         let path = Path.circle(radius: 1, segments: 4)
         let vertices = path.edgeVertices
@@ -609,112 +641,6 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(vertices[3].normal, Vector(1, 1).normalized())
         XCTAssertEqual(vertices[4].normal, [0, -1])
         XCTAssertEqual(vertices[5].normal, [0, -1])
-    }
-
-    // MARK: inset
-
-    func testInsetSquare() {
-        let path = Path.square()
-        let result = path.inset(by: 0.25)
-        XCTAssertEqual(result, .square(size: 0.5))
-    }
-
-    func testInsetCircle() {
-        let path = Path.circle(segments: 4)
-        let result = path.inset(by: 0.25)
-        let adjacent = sqrt(pow(0.5, 2) * 2) / 2
-        let radius = sqrt(pow(adjacent - 0.25, 2) * 2)
-        XCTAssertEqual(result, .circle(radius: radius, segments: 4))
-    }
-
-    func testInsetLShape() {
-        let path = Path([
-            .point(0, 0),
-            .point(0, 2),
-            .point(1, 2),
-            .point(1, 1),
-            .point(2, 1),
-            .point(2, 0),
-            .point(0, 0),
-        ])
-        let result = path.inset(by: 0.25)
-        XCTAssertEqual(result, Path([
-            .point(0.25, 0.25),
-            .point(0.25, 1.75),
-            .point(0.75, 1.75),
-            .point(0.75, 0.75),
-            .point(1.75, 0.75),
-            .point(1.75, 0.25),
-            .point(0.25, 0.25),
-        ]))
-    }
-
-    func testInsetNarrowUShapeRemovesCrossingLines() {
-        let path = Path([
-            .point(0, 0),
-            .point(0, 3),
-            .point(1, 3),
-            .point(1, 1),
-            .point(2, 1),
-            .point(2, 3),
-            .point(3, 3),
-            .point(3, 0),
-            .point(0, 0),
-        ])
-        let result = path.inset(by: 0.6)
-        XCTAssertFalse(result.orderedEdgesContainCrossings)
-    }
-
-    func testInsetCompoundPathExpandsHole() {
-        let path = Path(subpaths: [
-            .square(size: 2),
-            .square(size: 0.5),
-        ])
-        let result = path.inset(by: 0.25)
-        XCTAssertEqual(result, Path(subpaths: [
-            .square(size: 1.5),
-            .square(size: 1),
-        ]))
-    }
-
-    func testInsetCompoundPathAlternatesNestedContours() {
-        let path = Path(subpaths: [
-            .square(size: 4),
-            .square(size: 2),
-            .square(size: 1),
-        ])
-        let result = path.inset(by: 0.25)
-        XCTAssertEqual(result, Path(subpaths: [
-            .square(size: 3.5),
-            .square(size: 2.5),
-            .square(size: 0.5),
-        ]))
-    }
-
-    func testInsetSelfIntersectingPathUsesNonZeroFillBoundary() {
-        let path = Path([
-            .point(0, 0),
-            .point(1, 1),
-            .point(1, 0),
-            .point(0, 1),
-        ])
-        let result = path.inset(by: 0.1)
-        XCTAssertFalse(result.orderedEdgesContainCrossings)
-        XCTAssertTrue(Mesh.fill(result).isWatertight)
-    }
-
-    func testInsetSelfIntersectingCurvedPathUsesNonZeroFillBoundary() {
-        let path = Path([
-            .curve(0, 0),
-            .curve(1, 0),
-            .curve(0, 2),
-            .curve(1, 2),
-            .curve(0, 0),
-        ])
-        let result = path.inset(by: 0.1)
-        XCTAssertGreaterThan(result.subpaths.count, 1)
-        XCTAssertFalse(result.orderedEdgesContainCrossings)
-        XCTAssertTrue(Mesh.fill(result).isWatertight)
     }
 
     func testNonZeroFillBoundaryKeepsCurveIntersectionsSharp() throws {
@@ -948,6 +874,15 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(path.plane, .xy.inverted())
     }
 
+    func testInvertedPathFlipsPlaneNormal() {
+        let path = Path.square()
+        let inverted = path.inverted()
+
+        XCTAssertEqual(path.faceNormal, .unitZ)
+        XCTAssertEqual(inverted.faceNormal, -.unitZ)
+        XCTAssertEqual(inverted.plane, path.plane?.inverted())
+    }
+
     func testPathWithTwoSeparateLoopsHasCorrectSubpaths() {
         let path = Path([
             .point(0, 0),
@@ -1158,6 +1093,93 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(b.subpaths.count, 1)
     }
 
+    // MARK: miter limit
+
+    func testWithInfiniteMiterLimitReturnsOriginalPath() {
+        let path = Path([
+            .curve(0, 0),
+            .curve(1, 0),
+            .curve(1, 1),
+        ])
+
+        XCTAssertEqual(path.withMiterLimit(.infinity, forStrokeWidth: 1), path)
+    }
+
+    func testWithMiterLimitSplitsOverLimitCorner() {
+        let path = Path([
+            .curve(0, 0),
+            .curve(1, 0, texcoord: [1, 0], color: .red),
+            .curve(1, 1, texcoord: [1, 1], color: .blue),
+        ])
+        let limited = path.withMiterLimit(1, forStrokeWidth: 1)
+
+        XCTAssertEqual(limited.points.count, 4)
+        XCTAssertEqual(limited.points[0], .curve(0, 0))
+        XCTAssertEqual(limited.points[1].position, [0.75, 0])
+        XCTAssertEqual(limited.points[2].position, [1, 0.25])
+        XCTAssertEqual(limited.points[3].position, [1, 1])
+        XCTAssertTrue(limited.points[1].isCurved)
+        XCTAssertTrue(limited.points[2].isCurved)
+        XCTAssertEqual(limited.points[1].texcoord, [1, 0])
+        XCTAssertEqual(limited.points[2].texcoord, [1, 0.25])
+        XCTAssertEqual(limited.points[1].color, .red)
+        XCTAssertEqual(limited.points[2].color, Color(red: 0.75, green: 0, blue: 0.25, alpha: 1))
+    }
+
+    func testWithMiterLimitUsesStrokeWidthForBevelDistance() {
+        let path = Path([
+            .curve(0, 0),
+            .curve(1, 0),
+            .curve(1, 1),
+        ])
+        let narrow = path.withMiterLimit(1, forStrokeWidth: 0.5)
+        let wide = path.withMiterLimit(1, forStrokeWidth: 1)
+
+        XCTAssertEqual(narrow.points[1].position, [0.875, 0])
+        XCTAssertEqual(narrow.points[2].position, [1, 0.125])
+        XCTAssertEqual(wide.points[1].position, [0.75, 0])
+        XCTAssertEqual(wide.points[2].position, [1, 0.25])
+    }
+
+    func testWithMiterLimitLeavesUnderLimitCornerUnchanged() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+        ])
+
+        XCTAssertEqual(path.withMiterLimit(2, forStrokeWidth: 1), path)
+    }
+
+    func testWithMiterLimitPreservesClosedPath() {
+        let path = Path([
+            .point(-1, -1),
+            .point(1, -1),
+            .point(1, 1),
+            .point(-1, 1),
+            .point(-1, -1),
+        ])
+        let limited = path.withMiterLimit(1, forStrokeWidth: 1)
+
+        XCTAssertTrue(limited.isClosed)
+        XCTAssertEqual(limited.points.count, 9)
+        XCTAssertEqual(limited.points.first, limited.points.last)
+        XCTAssertEqual(limited.points[0].position, [-1, -0.75])
+        XCTAssertEqual(limited.points[1].position, [-0.75, -1])
+    }
+
+    func testWithMiterLimitProcessesSubpaths() {
+        let path = Path(subpaths: [
+            Path([.point(0, 0), .point(1, 0), .point(1, 1)]),
+            Path([.point(2, 0), .point(3, 0), .point(3, 1)]),
+        ])
+        let limited = path.withMiterLimit(1, forStrokeWidth: 0.5)
+
+        XCTAssertEqual(limited.subpaths.count, 2)
+        XCTAssertEqual(limited.subpaths[0].points.count, 4)
+        XCTAssertEqual(limited.subpaths[1].points.count, 4)
+    }
+
     // MARK: flattening
 
     func testFlattenVerticalPath() {
@@ -1184,9 +1206,9 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(path.undirectedEdges.count, 2)
     }
 
-    func testOrderedEdgesForLetterG() {
+    func testOrderedEdgesForLetterG() throws {
         #if canImport(CoreText)
-        let text = Path.text("G")[0]
+        let text = try XCTUnwrap(Path.text("G").first)
         let edges = text.orderedEdges
         let path = Path(edges)
         XCTAssertEqual(path.subpaths.count, 1)
@@ -1194,9 +1216,9 @@ final class PathTests: XCTestCase {
         #endif
     }
 
-    func testOrderedEdgesForLetterO() {
+    func testOrderedEdgesForLetterO() throws {
         #if canImport(CoreText)
-        let text = Path.text("O")[0]
+        let text = try XCTUnwrap(Path.text("O").first)
         let edges = text.orderedEdges
         XCTAssertEqual(edges.count, 32)
         let path = Path(edges)

@@ -176,25 +176,25 @@ final class LoggingTests: XCTestCase {
     // MARK: Colors
 
     func testOpaqueColor() {
-        let input = Color(1, 0, 0, 1)
+        let input = Color.red
         XCTAssertEqual(input.logDescription, "1 0 0")
         XCTAssertEqual(input.nestedLogDescription, "(1 0 0)")
     }
 
     func testTranslucentColor() {
-        let input = Color(1, 0, 0, 0.5)
+        let input = Color.red.withAlphaComponent(0.5)
         XCTAssertEqual(input.logDescription, "1 0 0 0.5")
         XCTAssertEqual(input.nestedLogDescription, "(1 0 0 0.5)")
     }
 
     func testMonochromeOpaqueColor() {
-        let input = Color(1, 1, 1, 1)
+        let input = Color.white
         XCTAssertEqual(input.logDescription, "1 1 1")
         XCTAssertEqual(input.nestedLogDescription, "(1 1 1)")
     }
 
     func testMonochromeTranslucentColor() {
-        let input = Color(0.5, 0.5, 0.5, 0.5)
+        let input = Color(white: 0.5, alpha: 0.5)
         XCTAssertEqual(input.logDescription, "0.5 0.5 0.5 0.5")
         XCTAssertEqual(input.nestedLogDescription, "(0.5 0.5 0.5 0.5)")
     }

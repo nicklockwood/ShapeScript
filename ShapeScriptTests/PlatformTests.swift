@@ -35,7 +35,7 @@ final class PlatformTests: XCTestCase {
             writesToDepthBuffer: false
         )
         let transparent = SCNMaterial(
-            Material(color: Color.red.withAlpha(0.5)),
+            Material(color: .red.withAlphaComponent(0.5)),
             isOpaque: false
         )
         var texturedMaterial = Material.default
@@ -53,7 +53,7 @@ final class PlatformTests: XCTestCase {
     }
 
     func testSceneBuildDisablesDepthBufferWritesForOverlappingTransparentGeometry() throws {
-        let transparent = cube(material: Material(color: Color.red.withAlpha(0.5)))
+        let transparent = cube(material: Material(color: .red.withAlphaComponent(0.5)))
         let opaque = cube(material: Material(color: .blue))
         let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
 
@@ -67,7 +67,7 @@ final class PlatformTests: XCTestCase {
     func testSceneBuildPreservesDepthBufferWritesForSeparateTransparentGeometry() throws {
         let transparent = cube(
             transform: .translation(.init(2, 0, 0)),
-            material: Material(color: Color.red.withAlpha(0.5))
+            material: Material(color: .red.withAlphaComponent(0.5))
         )
         let opaque = cube(material: Material(color: .blue))
         let scene = Scene(background: .color(.clear), children: [transparent, opaque], cache: nil)
@@ -82,7 +82,7 @@ final class PlatformTests: XCTestCase {
     func testSceneBuildUsesNestedTransformsForTransparentGeometryOverlap() throws {
         let transparent = cube(
             transform: .translation(.init(1, 0, 0)),
-            material: Material(color: Color.red.withAlpha(0.5))
+            material: Material(color: .red.withAlphaComponent(0.5))
         )
         let group = Geometry(
             type: .group,

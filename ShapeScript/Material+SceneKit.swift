@@ -16,7 +16,7 @@ public extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty) {
         switch scnMaterialProperty.contents {
         case let number as NSNumber:
-            self = .color(Color(number.doubleValue, number.doubleValue))
+            self = .color(Color(white: number.doubleValue, alpha: number.doubleValue))
         case let color as OSColor:
             self = .color(Color(color))
         case let image as OSImage:
@@ -68,21 +68,21 @@ public extension SCNMaterial {
         self.init()
         m.normals.flatMap(MaterialProperty.init)?.configureProperty(normal)
         m.opacity?.configureProperty(transparent)
-        if case let .color(albedo)? = m.albedo, albedo.a < 1 {
+        if case let .color(albedo)? = m.albedo, albedo.alpha < 1 {
             // Workaround for SceneKit blending bugs with translucent colors
-            diffuse.contents = OSColor(albedo.withAlpha(1))
+            diffuse.contents = OSColor(albedo.withAlphaComponent(1))
             switch m.opacity {
             case let .texture(texture):
-                let intensity = texture.intensity * albedo.a
+                let intensity = texture.intensity * albedo.alpha
                 if intensity > 0 {
                     transparent.intensity = intensity
                 } else {
                     transparent.contents = 0
                 }
             case let .color(color):
-                transparent.contents = color.a * albedo.a
+                transparent.contents = color.alpha * albedo.alpha
             case nil:
-                transparent.contents = albedo.a
+                transparent.contents = albedo.alpha
             }
         } else {
             m.albedo?.configureProperty(diffuse)
@@ -112,8 +112,8 @@ private extension MaterialProperty {
 public extension Material {
     init?(_ scnMaterial: SCNMaterial) {
         opacity = (MaterialProperty(scnMaterial.transparent) ?? .color(.init(
-            scnMaterial.transparency,
-            scnMaterial.transparency
+            white: scnMaterial.transparency,
+            alpha: scnMaterial.transparency
         )))?.ifNot(.white)
         albedo = MaterialProperty(scnMaterial.diffuse)?.ifNot(.white)
         normals = MaterialProperty(scnMaterial.normal)?.texture

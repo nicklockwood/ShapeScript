@@ -57,6 +57,8 @@ public extension Mesh {
         case shrink
         /// Texture is tube-wrapped.
         case tube
+        /// Texture is box-wrapped.
+        case box
         /// Do not generate texture coordinates.
         case none
     }
@@ -91,10 +93,15 @@ public extension Mesh {
                         i & 2 > 0 ? 0.5 : -0.5,
                         i & 4 > 0 ? 0.5 : -0.5
                     ).scaled(by: size)
-                    let texcoord = wrapMode == .default ? Vector(
-                        (1 ... 2).contains(index) ? 1 : 0,
-                        (0 ... 1).contains(index) ? 1 : 0
-                    ) : .zero
+                    let texcoord: Vector = switch wrapMode {
+                    case .default, .box:
+                        [
+                            (1 ... 2).contains(index) ? 1 : 0,
+                            (0 ... 1).contains(index) ? 1 : 0,
+                        ]
+                    case .shrink, .tube, .none:
+                        .zero
+                    }
                     return Vertex(unchecked: pos, normal, texcoord, nil)
                 },
                 normal: normal,
@@ -116,6 +123,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: true,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         case .back:
@@ -125,6 +133,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         case .frontAndBack:
@@ -134,11 +143,12 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         }
         switch wrapMode {
-        case .default, .none:
+        case .default, .box, .none:
             return mesh
         case .shrink:
             return mesh.sphereMapped()
@@ -243,6 +253,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: true,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         case .back:
@@ -252,6 +263,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         case .frontAndBack:
@@ -261,6 +273,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true,
+                isPlanar: false,
                 submeshes: []
             )
         }
@@ -269,6 +282,8 @@ public extension Mesh {
             return mesh.sphereMapped()
         case .tube:
             return mesh.cylinderMapped()
+        case .box:
+            return mesh.cubeMapped()
         case .none:
             return mesh
         }
@@ -310,6 +325,7 @@ public extension Mesh {
             bsp: nil,
             isConvex: true,
             isWatertight: true,
+            isPlanar: false,
             submeshes: []
         )
         switch wrapMode {
@@ -317,6 +333,8 @@ public extension Mesh {
             return mesh.sphereMapped()
         case .tube:
             return mesh.cylinderMapped()
+        case .box:
+            return mesh.cubeMapped()
         case .none:
             return mesh
         }
@@ -506,7 +524,7 @@ public extension Mesh {
         _ shape: Path,
         depth: Double = 1,
         twist: Angle = .zero,
-        sections: Int = 0,
+        sections: Int? = nil,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -534,7 +552,7 @@ public extension Mesh {
         }
         let faceNormal = shape.faceNormal
         let offset = faceNormal * depth
-        let sections = max(1, sections)
+        let sections = max(1, sections ?? Int(ceil(abs(twist / .twoPi) * 16)))
         let step = offset / Double(sections)
         let rotation = Rotation(unchecked: faceNormal, angle: twist / Double(sections))
         var shape = shape.translated(by: -offset / 2)
@@ -555,7 +573,7 @@ public extension Mesh {
         )
     }
 
-    /// Efficiently extrudes an array of paths along their respective face normals, avoiding duplicate work.
+    /// Efficiently extrudes a collection of paths along their respective face normals, avoiding duplicate work.
     /// - Parameters:
     ///   - shapes: The collection of paths to extrude in order to create the mesh.
     ///   - depth: The depth of the extrusion.
@@ -568,13 +586,24 @@ public extension Mesh {
         _ shapes: some Collection<Path>,
         depth: Double = 1,
         twist: Angle = .zero,
-        sections: Int = 0,
+        sections: Int? = nil,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
+        if shapes.count == 1, let shape = shapes.first {
+            return extrude(
+                shape,
+                depth: depth,
+                twist: twist,
+                sections: sections,
+                faces: faces,
+                material: material,
+                isCancelled: isCancelled
+            )
+        }
         let material = SendableMaterial(material)
-        return .union(build(shapes, using: {
+        return .union(build(shapes, normalizePositions: twist == .zero, using: {
             extrude(
                 $0,
                 depth: depth,
@@ -593,6 +622,7 @@ public extension Mesh {
     ///   - along: The path along which to extrude the shape.
     ///   - twist: Angular twist to apply along the extrusion.
     ///   - align: The alignment mode to use for the extruded shape.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
     ///   - faces: The direction of the generated polygon faces.
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
@@ -601,6 +631,7 @@ public extension Mesh {
         along: Path,
         twist: Angle = .zero,
         align: Alignment = .default,
+        miterLimit: MiterLimit = .infinity,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -614,6 +645,7 @@ public extension Mesh {
                     along: $0,
                     twist: twist,
                     align: align,
+                    miterLimit: miterLimit,
                     faces: faces,
                     material: material.value,
                     isCancelled: isCancelled
@@ -621,11 +653,13 @@ public extension Mesh {
             }, isCancelled: isCancelled))
         }
         if shape.meshableNonZeroFillBoundary != nil {
-            return loft(shape.extrusionContours(
+            let contours = shape.extrusionContours(
                 along: along,
                 twist: twist,
-                align: align
-            ), faces: faces, material: material, isCancelled: isCancelled)
+                align: align,
+                miterLimit: miterLimit
+            )
+            return loft(contours, faces: faces, material: material, isCancelled: isCancelled)
         } else if shape.shouldExtrudeSubpathsWithEvenOddComposition {
             let material = SendableMaterial(material)
             let meshes = batch(shape.subpaths, stride: 1) {
@@ -635,6 +669,7 @@ public extension Mesh {
                         along: along,
                         twist: twist,
                         align: align,
+                        miterLimit: miterLimit,
                         faces: faces,
                         material: material.value,
                         isCancelled: isCancelled
@@ -652,7 +687,8 @@ public extension Mesh {
                         shape.extrusionContours(
                             along: along,
                             twist: twist,
-                            align: align
+                            align: align,
+                            miterLimit: miterLimit
                         ),
                         faces: faces,
                         material: material.value,
@@ -662,11 +698,60 @@ public extension Mesh {
             }
             return .merge(meshes)
         }
-        return loft(shape.extrusionContours(
+        let contours = shape.extrusionContours(
             along: along,
             twist: twist,
-            align: align
-        ), faces: faces, material: material)
+            align: align,
+            miterLimit: miterLimit
+        )
+        return loft(contours, faces: faces, material: material)
+    }
+
+    /// Efficiently extrudes a collection of paths along another path, avoiding duplicate work.
+    /// - Parameters:
+    ///   - shapes: The collection of paths to extrude in order to create the mesh.
+    ///   - along: The path along which to extrude the shape.
+    ///   - twist: Angular twist to apply along the extrusion.
+    ///   - align: The alignment mode to use for the extruded shape.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
+    static func extrude(
+        _ shapes: some Collection<Path>,
+        along: Path,
+        twist: Angle = .zero,
+        align: Alignment = .default,
+        miterLimit: MiterLimit = .infinity,
+        faces: Faces = .default,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        if shapes.count == 1, let shape = shapes.first {
+            return extrude(
+                shape,
+                along: along,
+                twist: twist,
+                align: align,
+                miterLimit: miterLimit,
+                faces: faces,
+                material: material,
+                isCancelled: isCancelled
+            )
+        }
+        let material = SendableMaterial(material)
+        return .union(build(shapes, normalizePositions: false, using: {
+            extrude(
+                $0,
+                along: along,
+                twist: twist,
+                align: align,
+                miterLimit: miterLimit,
+                faces: faces,
+                material: material.value,
+                isCancelled: isCancelled
+            )
+        }, isCancelled: isCancelled), isCancelled: isCancelled)
     }
 
     /// Creates a mesh by connecting a series of 3D paths representing the cross sections.
@@ -705,6 +790,7 @@ public extension Mesh {
     ) -> Mesh {
         let polygons = shape.fillPolygons(material: material, isCancelled: isCancelled)
         let isConvex = polygons.count == 1 && polygons[0].isConvex
+        let isPlanar = shape.isPlanar
         switch faces {
         case .front:
             return Mesh(
@@ -713,6 +799,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: isConvex, // A single polygon counts as convex
                 isWatertight: false,
+                isPlanar: isPlanar,
                 submeshes: []
             )
         case .back:
@@ -722,6 +809,7 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: isConvex, // A single polygon counts as convex
                 isWatertight: false,
+                isPlanar: isPlanar,
                 submeshes: []
             )
         case .frontAndBack, .default:
@@ -731,19 +819,20 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: isConvex,
                 isWatertight: true,
+                isPlanar: isPlanar,
                 submeshes: []
             )
         }
     }
 
-    /// Efficiently fills an array of paths, avoiding unnecessary work if there are duplicates.
+    /// Efficiently fills a collection of paths, avoiding unnecessary work if there are duplicates.
     /// - Parameters:
-    ///   - shapes: The array of paths to be filled.
+    ///   - shapes: The collection of paths to be filled.
     ///   - faces: The direction the polygon faces.
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
     static func fill(
-        _ shapes: [Path],
+        _ shapes: some Collection<Path>,
         faces: Faces = .default,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -761,12 +850,14 @@ public extension Mesh {
     /// - Parameters:
     ///   - shape: The path to stroke.
     ///   - width: The line width of the stroke.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
     ///   - detail: The number of sides to use for the cross-sectional shape of the stroked mesh.
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
     static func stroke(
         _ shape: Path,
         width: Double = 0.01,
+        miterLimit: MiterLimit = 2,
         detail: Int = 2,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -779,26 +870,28 @@ public extension Mesh {
         case let sides:
             path = .circle(radius: radius, segments: sides)
         }
-        let faces: Faces = detail == 2 ? .frontAndBack : .front
         return extrude(
             path,
             along: shape,
-            faces: faces,
+            miterLimit: miterLimit,
+            faces: detail == 2 ? .frontAndBack : .front,
             material: material,
             isCancelled: isCancelled
         )
     }
 
-    /// Efficiently strokes an array of paths, avoiding duplicate work.
+    /// Efficiently strokes a collection of paths, avoiding duplicate work.
     /// - Parameters:
     ///   - shapes: The paths to stroke.
     ///   - width: The line width of the stroke.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
     ///   - detail: The number of sides to use for the cross-sectional shape of each stroked mesh.
     ///   - material: The optional material for the mesh.
     ///   - isCancelled: Callback used to cancel the operation.
     static func stroke(
         _ shapes: some Collection<Path>,
         width: Double = 0.01,
+        miterLimit: MiterLimit = 2,
         detail: Int = 2,
         material: Material? = nil,
         isCancelled: CancellationHandler = { false }
@@ -808,6 +901,7 @@ public extension Mesh {
             stroke(
                 $0,
                 width: width,
+                miterLimit: miterLimit,
                 detail: detail,
                 material: material.value,
                 isCancelled: isCancelled
@@ -859,6 +953,7 @@ public extension Mesh {
             bsp: nil,
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil
         )
     }
@@ -1445,32 +1540,38 @@ private extension Mesh {
         let isConvex = isConvex && !wasCancelled
         let isSealed = isConvex && !pointsAreSelfIntersecting(profile.points.map(\.position))
         let isWatertight = wasCancelled ? nil : isSealed ? true : isWatertight
+        let profileSize = profile.bounds.size
+        let isPlanar = wasCancelled ? nil : profileSize.x > epsilon ? profileSize.y <= epsilon : nil
+        let mesh: Mesh
         switch faces {
         case .default where isSealed, .front:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
                 bsp: nil,
                 isConvex: isConvex,
                 isWatertight: isWatertight,
+                isPlanar: isPlanar,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .back:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
+                isPlanar: isPlanar,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .frontAndBack:
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons + polygons.inverted(),
                 bounds: nil, // TODO: can we calculate this efficiently?
                 bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
+                isPlanar: isPlanar,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .default:
@@ -1482,15 +1583,17 @@ private extension Mesh {
             {
                 polygons += polygons.inverted()
             }
-            return Mesh(
+            mesh = Mesh(
                 unchecked: polygons,
                 bounds: nil, // TODO: can we calculate this efficiently?
                 bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
+                isPlanar: isPlanar,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         }
+        return wrapMode == .box ? mesh.cubeMapped() : mesh
     }
 
     static func directionBetweenShapes(_ s0: Path, _ s1: Path) -> Vector {
@@ -1624,26 +1727,59 @@ private extension Mesh {
                 }
                 return []
             }
+            func sidePolygonsFaceFilledArea(_ sidePolygons: [Polygon], at edge: LineSegment) -> Bool? {
+                let midpoint = (edge.start + edge.end) / 2
+                for sidePolygon in sidePolygons {
+                    let normal = sidePolygon.plane.normal.normalized()
+                    let normalSideIsFilled = firstFacePolygons.contains {
+                        $0.intersects(midpoint + normal * 1e-4)
+                    }
+                    let backSideIsFilled = firstFacePolygons.contains {
+                        $0.intersects(midpoint - normal * 1e-4)
+                    }
+                    if normalSideIsFilled != backSideIsFilled {
+                        return normalSideIsFilled
+                    }
+                }
+                return nil
+            }
+            var accumulatedSidePolygons = [Polygon]()
             for ((shape0, shape1), (transform0, transform1)) in zip(
                 zip(shapes, shapes.dropFirst()),
                 zip(transforms, transforms.dropFirst())
             ) where shape0 != shape1 {
                 let transform0 = transform0!, transform1 = transform1!
                 for (v0, v1) in boundaryEdgeVertices {
-                    let edge = LineSegment(unchecked: v0.position, v1.position)
-                    let sidePolygons = sidePolygons([
+                    let polygons = sidePolygons([
                         transformedVertex(v0, by: transform0),
                         transformedVertex(v1, by: transform0),
                         transformedVertex(v1, by: transform1),
                         transformedVertex(v0, by: transform1),
                     ])
-                    if capUsesBoundaryEdgeForward(edge) == true {
-                        polygons += sidePolygons.map { $0.inverted() }
-                    } else {
-                        polygons += sidePolygons
+                    let edge = LineSegment(unchecked: v0.position, v1.position)
+                    let transformedEdge = LineSegment(
+                        unchecked: transform0(v0.position),
+                        transform0(v1.position)
+                    )
+                    switch capUsesBoundaryEdgeForward(edge) {
+                    case true?:
+                        accumulatedSidePolygons += polygons.map { $0.inverted() }
+                    case false?:
+                        accumulatedSidePolygons += polygons
+                    case nil where sidePolygonsFaceFilledArea(polygons, at: transformedEdge) == true:
+                        accumulatedSidePolygons += polygons.map { $0.inverted() }
+                    case nil:
+                        accumulatedSidePolygons += polygons
                     }
                 }
             }
+            if usesMeshableNonZeroBoundary, first?.hasCurvedPoints == true {
+                let capPoints = firstCapPolygons.flatMap {
+                    $0.vertices.map(\.position)
+                }
+                accumulatedSidePolygons = accumulatedSidePolygons.insertingEdgePoints(capPoints)
+            }
+            polygons += accumulatedSidePolygons
             polygons = polygons.withVertexNormalsFacingPlane()
         } else {
             polygons = []
@@ -1691,7 +1827,10 @@ private extension Mesh {
                 }
             }
         }
-        polygons = polygons.withConsistentWinding(isLocked: { lockedCapPolygons.contains($0) })
+        polygons = polygons.withConsistentWinding(
+            isLocked: { lockedCapPolygons.contains($0) },
+            isCancelled: isCancelled
+        )
         if polygons.signedVolume < 0 {
             polygons = polygons.inverted()
         }
@@ -1704,6 +1843,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: nil,
+                isPlanar: nil,
                 submeshes: nil
             )
         case .back:
@@ -1713,6 +1853,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: nil,
+                isPlanar: nil,
                 submeshes: nil
             )
         case .frontAndBack:
@@ -1722,6 +1863,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true,
+                isPlanar: nil,
                 submeshes: nil
             )
         }
@@ -1854,6 +1996,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: isConvex,
                 isWatertight: isWatertight,
+                isPlanar: nil,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .back:
@@ -1863,6 +2006,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: isWatertight,
+                isPlanar: nil,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         case .frontAndBack, .default:
@@ -1872,6 +2016,7 @@ private extension Mesh {
                 bsp: nil,
                 isConvex: false,
                 isWatertight: true, // double sided shapes are always watertight
+                isPlanar: nil,
                 submeshes: nil // TODO: Can we calculate this efficiently?
             )
         }
@@ -1898,6 +2043,9 @@ private extension Mesh {
             p1 = p1.inverted()
             n1 = -n1
         }
+        let normalizedDirection = direction.direction
+        n0 = n0.direction ?? normalizedDirection ?? .unitZ
+        n1 = n1.direction ?? normalizedDirection ?? n0
         var invert = false
         func makePolygon(_ vertices: [Vertex]) -> Polygon? {
             Polygon(invert ? vertices.reversed() : vertices, material: material)?
@@ -1916,13 +2064,13 @@ private extension Mesh {
         var uvstart = uvstart, uvend = uvend
         func addFace(_ a: Vertex, _ b: Vertex, _ c: Vertex, _ d: Vertex) {
             var vertices = [a, b, c, d]
-            if !curvestart {
-                let r = rotationBetweenNormalizedVectors(n0, direction)
+            if !curvestart, let normalizedDirection {
+                let r = rotationBetweenNormalizedVectors(n0, normalizedDirection)
                 vertices[0].normal.rotate(by: r)
                 vertices[1].normal.rotate(by: r)
             }
-            if !curveend {
-                let r = rotationBetweenNormalizedVectors(n1, direction)
+            if !curveend, let normalizedDirection {
+                let r = rotationBetweenNormalizedVectors(n1, normalizedDirection)
                 vertices[2].normal.rotate(by: r)
                 vertices[3].normal.rotate(by: r)
             }
@@ -2112,12 +2260,13 @@ private extension Mesh {
 
     static func build(
         _ shapes: some Collection<Path>,
+        normalizePositions: Bool = true,
         using fn: @Sendable (Path) -> Mesh,
         isCancelled: CancellationHandler
     ) -> [Mesh] {
         var uniquePaths = [Path]()
         let indexesAndOffsets = shapes.map { path -> (Int, Vector) in
-            let (p, offset) = path.withNormalizedPosition()
+            let (p, offset) = normalizePositions ? path.withNormalizedPosition() : (path, .zero)
             if let index = uniquePaths.firstIndex(where: { p.isApproximatelyEqual(to: $0) }) {
                 return (index, offset)
             }
@@ -2142,6 +2291,16 @@ private struct SendableMaterial: @unchecked Sendable {
 }
 
 private extension Collection<Polygon> {
+    func insertingEdgePoints(_ points: [Vector]) -> [Polygon] {
+        let sortedPoints = Set(points).sorted()
+        return map { polygon in
+            var polygon = polygon
+            let bounds = polygon.bounds.inset(by: -epsilon)
+            polygon.insertEdgePoints(sortedPoints.filter { bounds.intersects($0) })
+            return polygon
+        }
+    }
+
     func withVertexNormalsFacingPlane() -> [Polygon] {
         map { $0.withVertexNormalsFacingPlane() }
     }

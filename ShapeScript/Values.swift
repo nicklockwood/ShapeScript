@@ -159,7 +159,7 @@ extension Value {
     static func numberOrTexture(_ value: MaterialProperty) -> Value {
         switch value {
         case let .color(color):
-            .number(color.r)
+            .number(color.red)
         case let .texture(texture):
             .texture(texture)
         }
@@ -389,7 +389,7 @@ extension Value {
     var numberOrTextureValue: MaterialProperty? {
         switch self {
         case let .number(value):
-            .color(.init(value, value))
+            .color(.init(white: value, alpha: value))
         case let .texture(texture):
             texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .color,

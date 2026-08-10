@@ -10,13 +10,25 @@
 import XCTest
 
 private extension Collection<Euclid.Polygon> {
-    func detessellate() -> [Euclid.Polygon] {
-        detessellate(ensureConvex: false)
+    func detessellate(isCancelled: Euclid.Polygon.CancellationHandler = { false }) -> [Euclid.Polygon] {
+        detessellate(ensureConvex: false, isCancelled: isCancelled)
     }
 }
 
 final class PolygonTests: XCTestCase {
     // MARK: initialization
+
+    func testPolygonIntersectsPointNearBounds() throws {
+        let polygon = try XCTUnwrap(Polygon([
+            Vertex(-1, 1),
+            Vertex(-1, -1),
+            Vertex(1, -1),
+            Vertex(1, 1),
+        ]))
+
+        XCTAssertTrue(polygon.intersects([1 - epsilon / 2, 0]))
+        XCTAssertFalse(polygon.intersects([1 + epsilon * 2, 0]))
+    }
 
     func testConvexPolygonAnticlockwiseWinding() {
         let normal = Vector.unitZ
@@ -820,24 +832,7 @@ final class PolygonTests: XCTestCase {
         }
         let triangles = polygon.triangulate()
         XCTAssertEqual(triangles.count, 3)
-        let points = triangles.map { $0.vertices.map(\.position) }
-        XCTAssertEqual(points, [
-            [
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-                [1.086, 0.0, 0.16999999999999998],
-                [1.086, 0.0, 0.13999999999999999],
-            ],
-            [
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-                [1.086, 0.0, 0.13999999999999999],
-                [0.95, offset, 0.13999999999999999],
-            ],
-            [
-                [0.95, offset, 0.13999999999999999],
-                [0.9349999999999999, 0.0, 0.09999999999999999],
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-            ],
-        ])
+        XCTAssertEqual(Set(triangles.flatMap(\.vertices)), Set(polygon.vertices))
         let merged = triangles.detessellate()
         XCTAssertEqual(merged.count, 1)
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
@@ -859,24 +854,7 @@ final class PolygonTests: XCTestCase {
         }
         let triangles = polygon.triangulate()
         XCTAssertEqual(triangles.count, 3)
-        let points = triangles.map { $0.vertices.map(\.position) }
-        XCTAssertEqual(points, [
-            [
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-                [0.9349999999999999, 0.0, 0.09999999999999999],
-                [0.95, offset, 0.13999999999999999],
-            ],
-            [
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-                [0.95, offset, 0.13999999999999999],
-                [1.086, 0.0, 0.13999999999999999],
-            ],
-            [
-                [0.9349999999999999, 0.0, 0.16999999999999998],
-                [1.086, 0.0, 0.13999999999999999],
-                [1.086, 0.0, 0.16999999999999998],
-            ],
-        ])
+        XCTAssertEqual(Set(triangles.flatMap(\.vertices)), Set(polygon.vertices))
         let merged = triangles.detessellate()
         XCTAssertEqual(merged.count, 1)
         XCTAssertEqual(Set(merged.flatMap(\.vertices)), Set(polygon.vertices))
@@ -914,33 +892,27 @@ final class PolygonTests: XCTestCase {
         XCTAssert(polygons.allSatisfy { $0.id == 5 })
     }
 
-    func testComplexCharacterPathTriangulated() {
+    func testComplexCharacterPathTriangulated() throws {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Courier" as CFString, 2, nil)
-        let paths = Path.text("p", font: font, width: nil, detail: 2)
-        for path in paths.flatMap(\.subpaths) {
-            XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
-        }
+        let path = try XCTUnwrap(Path.text("p", font: font, width: nil, detail: 2).first)
+        XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
         #endif
     }
 
-    func testComplexCharacterPathTriangulated2() {
+    func testComplexCharacterPathTriangulated2() throws {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Courier" as CFString, 2, nil)
-        let paths = Path.text("n", font: font, width: nil, detail: 2)
-        for path in paths.flatMap(\.subpaths) {
-            XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
-        }
+        let path = try XCTUnwrap(Path.text("n", font: font, width: nil, detail: 2).first)
+        XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
         #endif
     }
 
-    func testComplexCharacterPathTriangulated3() {
+    func testComplexCharacterPathTriangulated3() throws {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Times" as CFString, 2, nil)
-        let paths = Path.text("H", font: font, width: nil, detail: 2)
-        for path in paths.flatMap(\.subpaths) {
-            XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
-        }
+        let path = try XCTUnwrap(Path.text("H", font: font, width: nil, detail: 2).first)
+        XCTAssertFalse(path.facePolygons().triangulate().isEmpty)
         #endif
     }
 
@@ -1090,13 +1062,39 @@ final class PolygonTests: XCTestCase {
         XCTAssert(d.polygons.count < c.polygons.count)
     }
 
-    func testDetessellateComplexCharacterPath() {
+    func testMeshDetessellateCanBeCancelledImmediately() {
+        let mesh = Mesh.fill(.square()).detessellate { true }
+        XCTAssert(mesh.isEmpty)
+    }
+
+    func testPolygonDetessellateCanBeCancelled() {
+        let polygons = Self.gridTriangles(width: 30, height: 30)
+        nonisolated(unsafe) var checks = 0
+        let result = polygons.detessellate {
+            checks += 1
+            return checks > 3
+        }
+        XCTAssertGreaterThan(checks, 3)
+        XCTAssertLessThan(result.count, polygons.count)
+    }
+
+    private static func gridTriangles(width: Int, height: Int) -> [Euclid.Polygon] {
+        (0 ..< width).flatMap { x in
+            (0 ..< height).flatMap { y in
+                let x = Double(x), y = Double(y)
+                return [
+                    Polygon(unchecked: [[x, y], [x + 1, y], [x + 1, y + 1]]),
+                    Polygon(unchecked: [[x, y], [x + 1, y + 1], [x, y + 1]]),
+                ]
+            }
+        }
+    }
+
+    func testDetessellateComplexCharacterPath() throws {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Courier" as CFString, 2, nil)
-        let paths = Path.text("p", font: font, width: nil, detail: 2)
-        let polygons = paths.flatMap {
-            $0.subpaths.flatMap { $0.facePolygons() }
-        }
+        let path = try XCTUnwrap(Path.text("p", font: font, width: nil, detail: 2).first)
+        let polygons = path.facePolygons()
         XCTAssertEqual(polygons.count, 2)
         XCTAssertEqual(polygons.detessellate().count, 2)
         #endif
@@ -1106,9 +1104,7 @@ final class PolygonTests: XCTestCase {
         #if canImport(CoreText)
         let font = CTFontCreateWithName("Helvetica" as CFString, 2, nil)
         let paths = Path.text("eo", font: font, width: nil, detail: 2)
-        let polygons = paths.flatMap {
-            $0.subpaths.flatMap { $0.facePolygons() }
-        }
+        let polygons = paths.flatMap { $0.facePolygons() }
         XCTAssertEqual(polygons.count, 4)
         XCTAssertEqual(polygons.detessellate().count, 4)
         #endif
@@ -1247,61 +1243,6 @@ final class PolygonTests: XCTestCase {
             [0.40000000596, 0.898350019175, -0.8676164559389999],
         ])
         XCTAssert(polygon.isConvex)
-    }
-
-    // MARK: inset
-
-    func testInsetSquare() {
-        let polygon = Polygon(unchecked: [
-            [-1, 1],
-            [-1, -1],
-            [1, -1],
-            [1, 1],
-        ])
-        let expected = Polygon(unchecked: [
-            [-0.75, 0.75],
-            [-0.75, -0.75],
-            [0.75, -0.75],
-            [0.75, 0.75],
-        ])
-        let result = polygon.inset(by: 0.25)
-        XCTAssertEqual(result, expected)
-    }
-
-    func testInsetLShape() {
-        let polygon = Polygon(unchecked: [
-            [0, 0],
-            [0, 2],
-            [1, 2],
-            [1, 1],
-            [2, 1],
-            [2, 0],
-        ])
-        let expected = Polygon(unchecked: [
-            [0.25, 0.25],
-            [0.25, 1.75],
-            [0.75, 1.75],
-            [0.75, 0.75],
-            [1.75, 0.75],
-            [1.75, 0.25],
-        ])
-        let result = polygon.inset(by: 0.25)
-        XCTAssertEqual(result, expected)
-    }
-
-    func testInsetNarrowUShapeRemovesCrossingLines() {
-        let polygon = Polygon(unchecked: [
-            [0, 0],
-            [0, 3],
-            [1, 3],
-            [1, 1],
-            [2, 1],
-            [2, 3],
-            [3, 3],
-            [3, 0],
-        ])
-        let result = polygon.inset(by: 0.6)
-        XCTAssertFalse(result?.orderedEdgesContainCrossings ?? false)
     }
 
     // MARK: LineComparable

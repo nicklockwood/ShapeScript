@@ -522,7 +522,7 @@ extension Value {
         case let (.number(value), .halfturns):
             return .halfturns(value)
         case let (.number(value), .color):
-            return .color(Color(value, 1))
+            return .color(Color(white: value, alpha: 1))
         case let (.number(value), .vector):
             return .vector(Vector(value, 0))
         case let (.number(value), .size):
@@ -552,11 +552,11 @@ extension Value {
             else {
                 return nil
             }
-            return .color(color.withAlpha(alpha))
+            return .color(color.withAlphaComponent(alpha))
         case let (.tuple(values), .list(.number)) where
             values.count == 2 && values[0].type == .color:
             if case let (.color(color), .number(alpha)) = (values[0], values[1]) {
-                return .tuple(color.withAlpha(alpha).components.map { .number($0) })
+                return .tuple(color.withAlphaComponent(alpha).components.map { .number($0) })
             }
             return nil
         case let (.tuple(values), .list(type)):

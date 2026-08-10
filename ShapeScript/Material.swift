@@ -55,7 +55,7 @@ public extension MaterialProperty {
     var opacity: Double {
         switch self {
         case let .color(color):
-            color.a
+            color.alpha
         case .texture:
             // There's not really a good option here but
             // it works best to treat textures as opaque

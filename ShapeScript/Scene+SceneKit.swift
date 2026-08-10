@@ -99,7 +99,7 @@ public extension Scene {
 
         /// Material to use for debug geometry
         public var debugMaterial: Material? = Material(
-            color: Color.green.withAlpha(0.5)
+            color: .green.withAlphaComponent(0.5)
         )
 
         /// Should mesh be drawn using wireframe
@@ -378,10 +378,10 @@ public extension Geometry {
             type = .light(Light(
                 position: transform.translation,
                 orientation: transform.rotation,
-                color: Color(scnLight.color).withAlpha(scnLight.intensity / 1000),
+                color: Color(scnLight.color).withAlphaComponent(scnLight.intensity / 1000),
                 spread: .degrees(scnLight.spotOuterAngle),
                 penumbra: 1 - max(0, min(1, Double(scnLight.spotInnerAngle / scnLight.spotOuterAngle))),
-                shadowOpacity: Color(scnLight.shadowColor).a
+                shadowOpacity: Color(scnLight.shadowColor).alpha
             ))
         } else if let scnGeometry = scnNode.geometry {
             guard let mesh = Mesh(
@@ -420,11 +420,11 @@ public extension SCNLight {
             type = .spot
         }
         color = OSColor(light.color)
-        intensity = CGFloat(light.color.a * 1000)
+        intensity = CGFloat(light.color.alpha * 1000)
         spotOuterAngle = CGFloat(light.spread.degrees)
         spotInnerAngle = CGFloat(1 - max(0, min(1, light.penumbra))) * spotOuterAngle
         castsShadow = light.shadowOpacity > 0
-        shadowColor = OSColor(Color.black.withAlpha(light.shadowOpacity))
+        shadowColor = OSColor(.black.withAlphaComponent(light.shadowOpacity))
     }
 }
 

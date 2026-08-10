@@ -52,7 +52,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 130)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 129)
         #endif
     }
 
@@ -72,7 +72,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 663)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 661)
         #endif
     }
 

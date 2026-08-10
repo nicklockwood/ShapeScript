@@ -92,19 +92,19 @@ extension Symbols {
             switch parameter {
             case let .number(opacity):
                 let opacity = opacity * context.opacity
-                context.material.opacity = .color(.init(opacity, opacity))
+                context.material.opacity = .color(.init(white: opacity, alpha: opacity))
             case let .texture(texture):
                 guard let texture else { fallthrough }
                 let opacity = texture.intensity * context.opacity
                 context.material.opacity = .texture(texture.withIntensity(opacity))
             default:
                 let opacity = context.opacity
-                context.material.opacity = .color(.init(opacity, opacity))
+                context.material.opacity = .color(.init(white: opacity, alpha: opacity))
             }
         }, { context in
             switch context.material.opacity ?? .color(.white) {
             case let .color(color):
-                return .number(color.a / context.opacity)
+                return .number(color.alpha / context.opacity)
             case let .texture(texture):
                 // Since user cannot specify texture opacity, this should always be 1
                 let opacity = texture.intensity / context.opacity
@@ -184,7 +184,7 @@ extension Symbols {
             if let along = context.value(for: "along")?.tupleValue as? [Path] {
                 // shapes follow a common path
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
-                    along: along.map { $0.withDetail(context.detail, twist: twist) },
+                    along: along.map { $0.withDetail(context.detail, forTwist: twist) },
                     twist: twist,
                     align: align
                 )), in: context))
@@ -199,7 +199,7 @@ extension Symbols {
             // Slow path, each calculated separately, no reuse
             return .tuple(context.paths.map {
                 let vector = $0.faceNormal / 2
-                let along = Path.line(-vector, vector).withDetail(context.detail, twist: twist)
+                let along = Path.line(-vector, vector).withDetail(context.detail, forTwist: twist)
                 return .mesh(Geometry(type: .extrude([$0], .init(
                     along: [along],
                     twist: twist,

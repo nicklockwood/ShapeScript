@@ -8,14 +8,13 @@ A flat polygonal face in a mesh.
 
 - ``Polygon/init(_:material:)-([Vertex],_)``
 - ``Polygon/init(_:material:)-(Collection<Vector>,_)``
-- ``Polygon/init(shape:material:)``
 
 ### Polygon Properties
 
 - ``Polygon/vertices``
 - ``Polygon/plane``
 - ``Polygon/bounds``
-- ``Polygon/center``
+- ``Polygon/centroid``
 - ``Polygon/material-swift.property``
 - ``Polygon/isConvex``
 - ``Polygon/hasTexcoords``
@@ -26,7 +25,9 @@ A flat polygonal face in a mesh.
 
 ### Comparing Polygons
 
-- ``Polygon/containsPoint(_:)``
+- ``Polygon/intersects(_:)-4f51y``
+- ``Polygon/intersects(_:)-(Plane)``
+- ``Polygon/intersects(_:)-87xk8``
 - ``Polygon/edges(intersecting:)``
 
 ### Transforming Polygons
@@ -42,7 +43,7 @@ A flat polygonal face in a mesh.
 
 ### Splitting Polygons
 
-- ``Polygon/clip(to:)``
+- ``Polygon/clipped(to:)``
 - ``Polygon/split(along:)``
 - ``Polygon/tessellate(maxSides:)``
 - ``Polygon/triangulate()``

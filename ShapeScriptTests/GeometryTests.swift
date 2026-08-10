@@ -149,6 +149,33 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(geometry.overestimatedBounds, mesh.bounds)
     }
 
+    func testGeneratedGeometryIsDeterministic() throws {
+        let program = """
+        detail 16
+        difference cube { size 0.8 } sphere
+        """
+
+        func generatedMeshFingerprint() throws -> String {
+            let scene = try evaluate(parse(program), delegate: TestDelegate())
+            XCTAssertTrue(scene.build { true })
+            let geometry = Geometry(
+                type: .group,
+                name: nil,
+                transform: .identity,
+                material: .default,
+                smoothing: nil,
+                children: scene.children,
+                sourceLocation: nil
+            )
+            return geometry.flattened().orderedFingerprint
+        }
+
+        let expected = try generatedMeshFingerprint()
+        for _ in 0 ..< 20 {
+            XCTAssertEqual(try generatedMeshFingerprint(), expected)
+        }
+    }
+
     func testTextFourCounterUsesOddEvenFillForCaps() throws {
         #if canImport(CoreText)
         func centroid(of path: Path) -> Vector {
@@ -677,6 +704,22 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(meshes.first?.hasVertexColors, true)
         XCTAssertEqual(meshes.last?.hasVertexColors, true)
         XCTAssertNotEqual(meshes.first, meshes.last)
+    }
+}
+
+private extension Mesh {
+    var orderedFingerprint: String {
+        polygons.map { polygon in
+            let vertices = polygon.vertices.map { vertex in
+                [
+                    vertex.position.components,
+                    vertex.normal.components,
+                    vertex.texcoord.components,
+                    vertex.color.components,
+                ].description
+            }.joined(separator: "|")
+            return "\(String(describing: polygon.material)):\(vertices)"
+        }.joined(separator: "\n")
     }
 }
 

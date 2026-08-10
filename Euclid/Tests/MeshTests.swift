@@ -9,6 +9,10 @@
 @testable import Euclid
 import XCTest
 
+#if canImport(CoreText)
+import CoreText
+#endif
+
 final class MeshTests: XCTestCase {
     // MARK: uniqueEdges
 
@@ -22,6 +26,32 @@ final class MeshTests: XCTestCase {
         let mesh = Mesh.sphere(slices: 4)
         let edges = mesh.uniqueEdges
         XCTAssertEqual(edges.count, 12)
+    }
+
+    // MARK: PointComparable
+
+    func testNearestPointOnConvexMesh() {
+        let cube = Mesh.cube()
+        XCTAssertEqual(cube.nearestPoint(to: .zero), .zero)
+        XCTAssertEqual(cube.nearestPoint(to: -.unitX), [-0.5, 0, 0])
+        XCTAssertEqual(cube.nearestPoint(to: .unitZ), [0, 0, 0.5])
+        XCTAssertEqual(cube.nearestPoint(to: [1, 1, 0]), [0.5, 0.5, 0])
+        XCTAssertEqual(cube.nearestPoint(to: .one), [0.5, 0.5, 0.5])
+    }
+
+    func testNearestPointOnConcaveMesh() {
+        let detail = 16
+        let radius = 0.5
+        let torus = Mesh.lathe(
+            .circle(radius: radius).translated(by: -.unitX * radius * 2),
+            slices: detail
+        )
+        let shortest = cos(.pi / Double(detail)) * radius
+        XCTAssertEqual(torus.nearestPoint(to: .zero).length, shortest)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius), .unitX * radius)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 2), .unitX * radius * 2)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 3), .unitX * radius * 3)
+        XCTAssertEqual(torus.nearestPoint(to: .unitX * radius * 4), .unitX * radius * 3)
     }
 
     // MARK: isWatertight/isConvex
@@ -70,74 +100,28 @@ final class MeshTests: XCTestCase {
         }
     }
 
-    func testInsetExtrudedConcaveShapeRemovesCrossingFaces() {
-        let shape = Path([
-            .point(0, 0),
-            .point(0, 3),
-            .point(1, 3),
-            .point(1, 1),
-            .point(2, 1),
-            .point(2, 3),
-            .point(3, 3),
-            .point(3, 0),
-            .point(0, 0),
+    func testWithConsistentWindingRepairsFlippedFace() {
+        let cube = Mesh.cube()
+        var polygons = cube.polygons
+        polygons[0] = polygons[0].inverted()
+
+        let mesh = Mesh(polygons).withConsistentWinding()
+        XCTAssertEqual(mesh, cube)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+    }
+
+    func testWithConsistentWindingRepairsInvertedSubmeshesIndependently() {
+        let cube = Mesh.cube()
+        let mesh = Mesh.merge([
+            cube.inverted(),
+            cube.translated(by: [2, 0, 0]),
         ])
-        let mesh = Mesh.extrude(shape).inset(by: 0.6)
-        XCTAssertFalse(mesh.polygons.contains { $0.orderedEdgesContainCrossings })
-    }
 
-    func testInsetConeDoesNotTurnTipInsideOut() {
-        let cone = Mesh.cone()
-        let mesh = cone.inset(by: 0.1)
-        XCTAssertEqual(mesh.polygons.count, cone.polygons.count)
-        XCTAssertTrue(mesh.isWatertight)
-        XCTAssertTrue(mesh.polygons.areWatertight)
-        XCTAssertFalse(mesh.polygons.contains { $0.orderedEdgesContainCrossings })
-    }
-
-    func testInsetConeKeepsSideEdgesStraight() throws {
-        let mesh = Mesh.cone().inset(by: 0.1)
-        let positions = Set(mesh.polygons.flatMap { $0.vertices.map(\.position) })
-        let side = positions.filter {
-            let radius = Vector($0.x, $0.z).length
-            return radius > epsilon && $0.y > mesh.bounds.min.y + epsilon
-        }
-        let directions = Dictionary(grouping: side) { position in
-            let angle = atan2(position.z, position.x)
-            return Int((angle / (Double.pi * 2) * 16).rounded())
-        }
-        for line in directions.values where line.count > 2 {
-            let sorted = line.sorted { $0.y < $1.y }
-            let edge = try XCTUnwrap(sorted.last) - sorted.first!
-            for position in sorted.dropFirst().dropLast() {
-                XCTAssert(edge.cross(position - sorted.first!).length < 1e-6)
-            }
-        }
-    }
-
-    func testInsetConePreservesAspectRatio() {
-        let cone = Mesh.cone()
-        let mesh = cone.inset(by: 0.1)
-        let coneSize = cone.bounds.size
-        let meshSize = mesh.bounds.size
-        XCTAssertEqual(meshSize.x / coneSize.x, meshSize.y / coneSize.y, accuracy: epsilon)
-        XCTAssertEqual(meshSize.z / coneSize.z, meshSize.y / coneSize.y, accuracy: epsilon)
-    }
-
-    func testInsetConeDisappearsWhenInsetPastRadius() {
-        let mesh = Mesh.cone().inset(by: 0.5)
-        XCTAssertTrue(mesh.isEmpty)
-    }
-
-    func testInsetCubeSubtractingSphereDoesNotDisappear() {
-        let source = Mesh.cube(size: 0.8).subtracting(Mesh.sphere()).makeWatertight()
-        let mesh = source.inset(by: 0.01)
-        XCTAssertTrue(source.isWatertight)
-        XCTAssertFalse(mesh.isEmpty)
-        XCTAssertGreaterThanOrEqual(mesh.polygons.count, source.polygons.count)
-        XCTAssertTrue(mesh.isWatertight)
-        XCTAssertTrue(mesh.polygons.areWatertight)
-        XCTAssertFalse(mesh.polygons.contains { $0.orderedEdgesContainCrossings })
+        let result = mesh.withConsistentWinding()
+        XCTAssertEqual(result.submeshes.count, 2)
+        XCTAssertTrue(result.submeshes.allSatisfy { $0.signedVolume > 0 })
+        XCTAssertEqual(result.signedVolume, cube.signedVolume * 2, accuracy: epsilon)
     }
 
     func testSphereIsWatertightAndConvex() {
@@ -149,48 +133,89 @@ final class MeshTests: XCTestCase {
         XCTAssert(mesh.isActuallyConvex)
     }
 
-    func testPrimitiveGenerationCanBeCancelled() {
-        for build in [
-            { Mesh.cone(slices: 256, isCancelled: $0) },
-            { Mesh.cylinder(slices: 256, isCancelled: $0) },
-            { Mesh.sphere(slices: 256, isCancelled: $0) },
-        ] {
-            nonisolated(unsafe) var checks = 0
-            let mesh = build {
-                checks += 1
-                return checks > 3
-            }
-            XCTAssertGreaterThan(checks, 3)
-            XCTAssertLessThan(checks, 10)
-            XCTAssertLessThan(mesh.polygons.count, 256 * 2)
-        }
+    func testFilledPlanarPathHasPlanarStateSet() {
+        let mesh = Mesh.fill(.square(), faces: .front)
+        XCTAssertEqual(mesh.planarIfSet, true)
+        XCTAssertTrue(mesh.isPlanar)
     }
 
-    func testHighDetailPrimitiveGenerationCanBeCancelledImmediately() {
-        for build in [
-            { Mesh.cone(slices: 20_000_000, isCancelled: $0) },
-            { Mesh.cylinder(slices: 20_000_000, isCancelled: $0) },
-            { Mesh.sphere(slices: 20_000_000, isCancelled: $0) },
-        ] {
-            nonisolated(unsafe) var checks = 0
-            let mesh = build {
-                checks += 1
-                return true
-            }
-            XCTAssertLessThan(checks, 5)
-            XCTAssert(mesh.polygons.isEmpty)
-        }
+    func testFilledPlanarPathWithFrontAndBackFacesHasPlanarStateSet() {
+        let mesh = Mesh.fill(.square())
+        XCTAssertEqual(mesh.planarIfSet, true)
+        XCTAssertTrue(mesh.isPlanar)
     }
 
-    func testHighDetailSphereGenerationCanBeCancelledWhileBuildingProfile() {
-        nonisolated(unsafe) var checks = 0
-        let mesh = Mesh.sphere(slices: 20_000_000) {
-            checks += 1
-            return checks > 2
-        }
-        XCTAssertGreaterThan(checks, 2)
-        XCTAssertLessThan(checks, 10)
-        XCTAssert(mesh.polygons.isEmpty)
+    func testFilledNonPlanarPathHasPlanarStateSet() {
+        let path = Path([
+            .point(0, 0, 0),
+            .point(1, 0, 0),
+            .point(1, 1, 1),
+            .point(0, 1, 0),
+            .point(0, 0, 0),
+        ])
+        let mesh = Mesh.fill(path, faces: .front)
+        XCTAssertEqual(mesh.planarIfSet, false)
+        XCTAssertFalse(mesh.isPlanar)
+    }
+
+    func testTransformingPlanarMeshPreservesPlanarState() {
+        let mesh = Mesh.fill(.square())
+        XCTAssertEqual(mesh.planarIfSet, true)
+        XCTAssertEqual(mesh.translated(by: .one).planarIfSet, true)
+        XCTAssertEqual(mesh.rotated(by: .roll(.pi / 4)).planarIfSet, true)
+        XCTAssertEqual(mesh.scaled(by: [1, 2, 3]).planarIfSet, true)
+        XCTAssertEqual(mesh.scaled(by: 2).planarIfSet, true)
+        XCTAssertEqual(mesh.transformed(by: .translation(.one)).planarIfSet, true)
+    }
+
+    func testIcosphereIsWatertightAndConvex() {
+        let mesh = Mesh.icosphere()
+        XCTAssertEqual(mesh.watertightIfSet, true)
+        XCTAssert(mesh.isWatertight)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssert(mesh.makeWatertight().isWatertight)
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+    }
+
+    func testCubeTubeTexcoordsAreDistributedByHeight() {
+        let mesh = Mesh.cube(wrapMode: .tube)
+        assertTubeTexcoordsDistributedByHeight(in: mesh)
+    }
+
+    func testIcosphereTubeTexcoordsAreDistributedByHeight() {
+        let mesh = Mesh.icosphere(wrapMode: .tube)
+        assertTubeTexcoordsDistributedByHeight(in: mesh)
+    }
+
+    func testCubeMappedMatchesDefaultCubeTexcoords() {
+        let mesh = Mesh.cube(wrapMode: .none).cubeMapped()
+        let expected = Mesh.cube()
+        assertTexcoords(in: mesh, equalTexcoordsIn: expected)
+    }
+
+    func testCubeBoxWrapModeUsesDefaultMapping() {
+        let mesh = Mesh.cube(wrapMode: .box)
+        let expected = Mesh.cube()
+        assertTexcoords(in: mesh, equalTexcoordsIn: expected)
+    }
+
+    func testIcosphereBoxWrapModeUsesCubeMapping() {
+        let mesh = Mesh.icosphere(wrapMode: .box)
+        let expected = Mesh.icosphere(wrapMode: .none).cubeMapped()
+        assertTexcoords(in: mesh, equalTexcoordsIn: expected)
+    }
+
+    func testLatheBoxWrapModeUsesCubeMapping() {
+        let profile = Path([
+            .point(0, 1),
+            .point(-1, 1),
+            .point(-1, -1),
+            .point(0, -1),
+        ])
+        let mesh = Mesh.lathe(profile, wrapMode: .box)
+        let expected = Mesh.lathe(profile, wrapMode: .none).cubeMapped()
+        assertTexcoords(in: mesh, equalTexcoordsIn: expected)
     }
 
     func testLatheCircleIsWatertightAndConvex() {
@@ -344,9 +369,32 @@ final class MeshTests: XCTestCase {
         let d = c.makeWatertight()
         XCTAssertTrue(d.isWatertight)
         XCTAssertTrue(d.polygons.areWatertight)
+        let fingerprint = d.orderedFingerprint
+        for _ in 0 ..< 20 {
+            XCTAssertEqual(c.makeWatertight().orderedFingerprint, fingerprint)
+        }
         #if !arch(wasm32)
         XCTAssertEqual(d.triangulate().polygons.count, 524)
         #endif
+    }
+
+    func testMakeWatertightCanBeCancelledImmediately() {
+        let mesh = Mesh.cube().makeWatertight {
+            true
+        }
+        XCTAssert(mesh.isEmpty)
+    }
+
+    func testMakeWatertightCanBeCancelled() {
+        let mesh = Mesh(Mesh.sphere(slices: 128).polygons)
+        nonisolated(unsafe) var checks = 0
+        let result = mesh.makeWatertight {
+            checks += 1
+            return checks > 1
+        }
+        XCTAssertGreaterThan(checks, 1)
+        XCTAssertFalse(result.isEmpty)
+        XCTAssertEqual(result.polygons, mesh.polygons)
     }
 
     func testMakeExtrudedTextWatertight() {
@@ -391,8 +439,8 @@ final class MeshTests: XCTestCase {
     }
 
     func testMakeWatertightCapUsesSurroundingMaterial() throws {
-        let red = Color(1, 0, 0)
-        let blue = Color(0, 0, 1)
+        let red = Color(red: 1, green: 0, blue: 0)
+        let blue = Color(red: 0, green: 0, blue: 1)
         let mesh = Mesh(openBoxPolygons(topMaterials: [red, red, blue, red]))
 
         let watertight = mesh.makeWatertight()
@@ -405,7 +453,7 @@ final class MeshTests: XCTestCase {
     }
 
     func testMakeWatertightCapUsesInterpolatedNormalsAndTexcoords() throws {
-        let red = Color(1, 0, 0)
+        let red = Color(red: 1, green: 0, blue: 0)
         let mesh = Mesh(openBoxPolygons(topMaterials: [red, red, red, red]))
 
         let watertight = mesh.makeWatertight()
@@ -422,6 +470,28 @@ final class MeshTests: XCTestCase {
             XCTAssert((0 ... 1).contains(vertex.texcoord.y))
         }
         XCTAssertGreaterThan(Set(cap.vertices.map(\.texcoord)).count, 1)
+    }
+
+    func testMakeWatertightCapPreservesBoundaryVertexColors() {
+        let red = Color(red: 1, green: 0, blue: 0)
+        let sidePolygons = Mesh.extrude(
+            .circle(color: red),
+            along: Path([
+                .point(0, 0),
+                .point(1, 0),
+                .point(1, 0, 1),
+            ])
+        ).polygons.filter {
+            abs($0.plane.normal.x) < 0.9 && abs($0.plane.normal.z) < 0.9
+        }
+
+        let watertight = Mesh(sidePolygons).makeWatertight()
+        let vertices = watertight.polygons.flatMap(\.vertices)
+
+        XCTAssertFalse(vertices.isEmpty)
+        XCTAssertTrue(watertight.isWatertight)
+        XCTAssertTrue(watertight.hasVertexColors)
+        XCTAssertTrue(vertices.allSatisfy { $0.color == red })
     }
 
     // MARK: plane intersection
@@ -514,7 +584,8 @@ final class MeshTests: XCTestCase {
                 bounds: mesh.bounds,
                 bsp: nil,
                 isConvex: true,
-                isWatertight: mesh.isWatertight,
+                isWatertight: mesh.watertightIfSet,
+                isPlanar: mesh.planarIfSet,
                 submeshes: mesh.submeshes
             )
             XCTAssertEqual(mesh2.submeshes, [mesh2])
@@ -557,7 +628,7 @@ final class MeshTests: XCTestCase {
         XCTAssertEqual(mesh.signedVolume, -8)
     }
 
-    // MARK: containsPoint
+    // MARK: intersects
 
     func testCubeContainsPoint() {
         let edgePoints: [Vector] = [
@@ -802,6 +873,39 @@ final class MeshTests: XCTestCase {
 }
 
 private extension MeshTests {
+    func assertTexcoords(
+        in mesh: Mesh,
+        equalTexcoordsIn expected: Mesh,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(mesh.polygons.count, expected.polygons.count, file: file, line: line)
+        for (polygon, expectedPolygon) in zip(mesh.polygons, expected.polygons) {
+            XCTAssertEqual(polygon.vertices.count, expectedPolygon.vertices.count, file: file, line: line)
+            for (vertex, expectedVertex) in zip(polygon.vertices, expectedPolygon.vertices) {
+                XCTAssertEqual(vertex.position, expectedVertex.position, file: file, line: line)
+                XCTAssertEqual(vertex.texcoord, expectedVertex.texcoord, file: file, line: line)
+            }
+        }
+    }
+
+    func assertTubeTexcoordsDistributedByHeight(
+        in mesh: Mesh,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let bounds = mesh.bounds
+        let height = bounds.size.y
+        XCTAssertGreaterThan(height, epsilon, file: file, line: line)
+        for polygon in mesh.polygons {
+            for vertex in polygon.vertices {
+                let expectedY = (bounds.max.y - vertex.position.y) / height
+                XCTAssertEqual(vertex.texcoord.y, expectedY, accuracy: epsilon, file: file, line: line)
+                XCTAssert((0 ... 1).contains(vertex.texcoord.y), file: file, line: line)
+            }
+        }
+    }
+
     func openBoxPolygons(topMaterials: [Mesh.Material?]) -> [Euclid.Polygon] {
         precondition(topMaterials.count == 4)
         let bottom = Polygon(unchecked: [

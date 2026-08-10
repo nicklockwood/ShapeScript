@@ -257,10 +257,10 @@ extension Value {
             }
         case let .color(color):
             switch name {
-            case "red": return .number(color.r)
-            case "green": return .number(color.g)
-            case "blue": return .number(color.b)
-            case "alpha": return .number(color.a)
+            case "red": return .number(color.red)
+            case "green": return .number(color.green)
+            case "blue": return .number(color.blue)
+            case "alpha": return .number(color.alpha)
             default: return nil
             }
         case let .texture(texture):
@@ -503,10 +503,10 @@ extension Value {
             }
         case let .color(color):
             switch index {
-            case 0: return .number(color.r)
-            case 1: return .number(color.g)
-            case 2: return .number(color.b)
-            case 3: return .number(color.a)
+            case 0: return .number(color.red)
+            case 1: return .number(color.green)
+            case 2: return .number(color.blue)
+            case 3: return .number(color.alpha)
             default: return nil
             }
         case let .tuple(values):

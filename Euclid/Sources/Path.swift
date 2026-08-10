@@ -219,9 +219,9 @@ public extension Path {
     func inverted() -> Path {
         switch storage {
         case let .points(points):
-            .init(unchecked: .points(sanitizePoints(points.reversed())), plane: plane)
+            .init(unchecked: .points(sanitizePoints(points.reversed())), plane: plane?.inverted())
         case let .subpaths(subpaths):
-            .init(unchecked: .subpaths(subpaths.map { $0.inverted() }), plane: plane)
+            .init(unchecked: .subpaths(subpaths.map { $0.inverted() }), plane: plane?.inverted())
         }
     }
 
@@ -395,6 +395,8 @@ public extension Path {
 
         // get path length
         var totalLength = 0.0
+        var minY = 0.0
+        var maxY = 0.0
         switch wrapMode {
         case .shrink, .default:
             var prev = points[0].position
@@ -403,14 +405,14 @@ public extension Path {
                 return total + point.distance(from: prev)
             }
         case .tube:
-            var min = Double.infinity
-            var max = -Double.infinity
+            minY = Double.infinity
+            maxY = -Double.infinity
             for point in points {
-                min = Swift.min(min, point.position.y)
-                max = Swift.max(max, point.position.y)
+                minY = Swift.min(minY, point.position.y)
+                maxY = Swift.max(maxY, point.position.y)
             }
-            totalLength = max - min
-        case .none:
+            totalLength = maxY - minY
+        case .box, .none:
             break
         }
 
@@ -439,14 +441,15 @@ public extension Path {
             p1p2 = p2.position - p1.position
             let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
             n1 = p1p2.cross(faceNormal).normalized()
-            let uv = Vector(0, v, 0)
+            let uv: Vector
             switch wrapMode {
             case .shrink, .default:
+                uv = [0, v]
                 v += p1p2.length / totalLength
             case .tube:
-                v += abs(p1p2.y) / totalLength
-            case .none:
-                break
+                uv = totalLength > epsilon ? [0, (maxY - p1.position.y) / totalLength] : .zero
+            case .box, .none:
+                uv = .zero
             }
             if p1.isCurved {
                 let v = Vertex(
@@ -464,7 +467,12 @@ public extension Path {
         }
         var first = vertices.removeFirst()
         if isClosed {
-            first.texcoord = [0, v, 0]
+            switch wrapMode {
+            case .shrink, .default:
+                first.texcoord = [0, v]
+            case .tube, .box, .none:
+                break
+            }
             vertices.append(first)
         } else {
             vertices.removeLast()
@@ -488,81 +496,33 @@ public extension Path {
         Set(orderedEdges.map(LineSegment.init(undirected:)))
     }
 
-    /// Applies a uniform inset to the edges of the path.
-    /// - Parameter distance: The distance by which to inset the path edges.
-    /// - Returns: A copy of the path, inset by the specified distance.
-    ///
-    /// > Note: Passing a negative `distance` will expand the path instead of shrinking it.
-    func inset(by distance: Double) -> Path {
-        guard subpaths.count <= 1 else {
-            let subpaths = subpaths
-            let containment = PathContainmentIndex(subpaths)
-            return Path(subpaths: subpaths.enumerated().map { index, subpath in
-                let distance = containment.depth(of: index).isMultiple(of: 2) ? distance : -distance
-                return subpath.inset(by: distance)
-            })
-        }
-        guard points.count >= 2 else {
-            return Path(subpaths: subpaths.map { $0.inset(by: distance) })
-        }
-        if isClosed, !isSimple {
-            return nonZeroFillBoundary.inset(by: distance)
-        }
-        let source = points
-        let count = source.count
-        var p1 = isClosed ? source[count - 2] : (
-            count > 2 ?
-                extrapolate(source[2], source[1], source[0]) :
-                extrapolate(source[1], source[0])
-        )
-        var p2 = source[0]
-        var p1p2 = p2.position - p1.position
-        var n1: Vector!
-        let insetPoints = (0 ..< count).map { i in
-            p1 = p2
-            p2 = i < count - 1 ? source[i + 1] :
-                (isClosed ? source[1] : (
-                    count > 2 ?
-                        extrapolate(source[i - 2], source[i - 1], source[i]) :
-                        extrapolate(source[i - 1], source[i])
-                ))
-            let p0p1 = p1p2
-            p1p2 = p2.position - p1.position
-            let faceNormal = plane?.normal ?? p0p1.cross(p1p2).normalized()
-            let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
-            n1 = p1p2.cross(faceNormal).normalized()
-            // TODO: do we need to inset texcoord as well? If so, by how much?
-            let normal = (n0 + n1).normalized()
-            return p1.translated(by: normal * -(distance / n0.dot(normal)))
-        }
-        let inset = resolveInsetIntersections(
-            in: insetPoints,
-            isClosed: isClosed,
-            normal: isClosed ? faceNormal : nil,
-            position: { (point: PathPoint) in point.position },
-            interpolate: { (a: PathPoint, b: PathPoint, t: Double) in a.lerp(b, t) }
-        )
-        guard !inset.isEmpty else {
-            return .empty
-        }
-        return Path(inset)
-    }
-
     /// Returns the path recentered on the origin.
     func withNormalizedPosition() -> (path: Path, offset: Vector) {
         let offset = points.centroid
         return offset.isZero ? (self, .zero) : (translated(by: -offset), offset)
     }
 
-    /// Increase path detail in proportion to twist angle
+    @available(*, deprecated, renamed: "withDetail(_:forTwist:)")
     func withDetail(_ detail: Int, twist: Angle) -> Path {
+        withDetail(detail, forTwist: twist)
+    }
+
+    /// Returns a copy of the path with added points to support a twist.
+    /// - Parameters:
+    ///   - detail: The target number of segments per full rotation.
+    ///   - twist: The total twist angle to apply along the path.
+    /// - Returns: A path with additional points inserted where needed, or `self` if no extra detail is required.
+    ///
+    /// Use this method to subdivide path segments before extruding a shape with a twist, so the
+    /// extrusion has enough intermediate cross-sections to represent the rotation smoothly.
+    func withDetail(_ detail: Int, forTwist twist: Angle) -> Path {
         guard detail > 2, twist != .zero, var prev = points.first else {
             return self
         }
         let subpaths = subpaths
         guard subpaths.count == 1 else {
             return Path(subpaths: subpaths.map {
-                $0.withDetail(detail, twist: twist)
+                $0.withDetail(detail, forTwist: twist)
             })
         }
         let total = length
@@ -578,11 +538,75 @@ public extension Path {
             }
             return [point]
         })
-        return split ? path.withDetail(detail, twist: twist) : path
+        return split ? path.withDetail(detail, forTwist: twist) : path
+    }
+
+    /// Returns a copy of the path with over-limit corners split into bevels.
+    /// - Parameters:
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
+    ///   - strokeWidth: The stroke width used to calculate bevel point positions.
+    func withMiterLimit(_ miterLimit: MiterLimit, forStrokeWidth strokeWidth: Double) -> Path {
+        guard miterLimit.ratio.isFinite, strokeWidth > 0 else {
+            return self
+        }
+        switch storage {
+        case let .subpaths(subpaths):
+            return .init(unchecked: .subpaths(subpaths.map {
+                $0.withMiterLimit(miterLimit, forStrokeWidth: strokeWidth)
+            }), plane: plane)
+        case let .points(points):
+            let isClosed = pointsAreClosed(unchecked: points)
+            let count = isClosed ? points.count - 1 : points.count
+            guard count > 2 else {
+                return self
+            }
+            let miterAngle = miterLimit.angle
+            var result = [PathPoint]()
+            result.reserveCapacity(points.count)
+            for i in 0 ..< count {
+                let p1 = points[i]
+                guard isClosed || i > 0 && i < count - 1 else {
+                    result.append(p1)
+                    continue
+                }
+                let p0 = points[i > 0 ? i - 1 : count - 1]
+                let p2 = points[i < count - 1 ? i + 1 : 0]
+                let incoming = (p1.position - p0.position).lengthAndDirection
+                let outgoing = (p2.position - p1.position).lengthAndDirection
+                guard let n1 = incoming.direction, let n2 = outgoing.direction else {
+                    result.append(p1)
+                    continue
+                }
+                let angle = angleBetweenNormalizedVectors(n1, n2)
+                guard angle > miterAngle else {
+                    result.append(p1)
+                    continue
+                }
+                let advance = min(
+                    strokeWidth / 2 * tan(angle / 2),
+                    incoming.length,
+                    outgoing.length
+                ) / 2
+                guard advance > scaleLimit else {
+                    result.append(p1)
+                    continue
+                }
+                let incomingPoint = p0.lerp(p1, 1 - advance / incoming.length)
+                    .curved(p1.isCurved)
+                let outgoingPoint = p1.lerp(p2, advance / outgoing.length)
+                    .curved(p1.isCurved)
+                result.append(incomingPoint)
+                result.append(outgoingPoint)
+            }
+            if isClosed, let first = result.first {
+                result.append(first)
+            }
+            return .init(unchecked: .points(sanitizePoints(result)), plane: plane)
+        }
     }
 }
 
-private struct PathContainmentIndex {
+struct PathContainmentIndex {
     private let entries: [(point: Vector?, bounds: Bounds, polygon: Polygon?)]
 
     init(_ paths: [Path]) {
@@ -632,12 +656,6 @@ public extension Polygon {
             material: material
         )
     }
-
-    /// Deprecated
-    @available(*, deprecated, renamed: "init(_:material:)")
-    init?(shape: Path, material: Material? = nil) {
-        self.init(shape, material: material)
-    }
 }
 
 extension Path {
@@ -674,6 +692,7 @@ extension Path {
                 self.storage = .points([])
                 self.plane = nil
             case 1:
+                assert(sanitizePoints(subpaths[0].points) == subpaths[0].points)
                 self = subpaths[0]
             default:
                 assert(subpaths.allSatisfy { sanitizePoints($0.points) == $0.points })
@@ -708,10 +727,10 @@ extension Path {
         FlatteningPlane(normal: faceNormal)
     }
 
-    // TODO: Make this more robust, then make public
-    // TODO: Could this make use of Polygon.area?
+    // TODO: what about subpaths? What about winding rule?
+    /// A Boolean value that indicates whether the path has no enclosed area.
     var hasZeroArea: Bool {
-        points.count < (isClosed ? 4 : 3)
+        points.vectorArea.length < epsilon
     }
 
     /// Returns a copy of the polygon with transformed points, preserving current plane
@@ -1126,7 +1145,7 @@ extension Path {
     }
 }
 
-private extension Collection<Polygon> {
+extension Collection<Polygon> {
     var outlinePaths: [Path] {
         var edges = boundingEdges
         var paths = [Path]()

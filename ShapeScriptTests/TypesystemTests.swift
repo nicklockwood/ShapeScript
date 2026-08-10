@@ -842,7 +842,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value(1, 0.5).isConvertible(to: .color))
         XCTAssertEqual(
             try evaluate("1 0.5", as: .color),
-            .color(Color.white.withAlpha(0.5))
+            .color(.white.withAlphaComponent(0.5))
         )
     }
 
@@ -850,7 +850,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value(1, 0.5, 0.1).isConvertible(to: .color))
         XCTAssertEqual(
             try evaluate("1 0.5 0.1", as: .color),
-            .color(Color(1, 0.5, 0.1))
+            .color(Color(red: 1, green: 0.5, blue: 0.1))
         )
     }
 
@@ -858,7 +858,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value(1, 0.5, 0.1, 0.2).isConvertible(to: .color))
         XCTAssertEqual(
             try evaluate("1 0.5 0.1 0.2", as: .color),
-            .color(Color(1, 0.5, 0.1, 0.2))
+            .color(Color(red: 1, green: 0.5, blue: 0.1, alpha: 0.2))
         )
     }
 
@@ -884,7 +884,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value(.color(.red), 0.5).isConvertible(to: .color))
         XCTAssertEqual(
             try evaluate("red 0.5", as: .color),
-            .color(Color.red.withAlpha(0.5))
+            .color(.red.withAlphaComponent(0.5))
         )
     }
 
@@ -1166,7 +1166,7 @@ final class TypesystemTests: XCTestCase {
             opacity: nil,
             albedo: .color(.red),
             normals: nil,
-            metallicity: .color(.init(0.5, 0.5)),
+            metallicity: .color(.init(white: 0.5, alpha: 0.5)),
             roughness: nil,
             glow: nil
         )))

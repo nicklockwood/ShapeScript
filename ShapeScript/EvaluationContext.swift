@@ -134,7 +134,7 @@ final class EvaluationContext {
         // root-only
         self.background = parent.background
         // opacity is cumulative
-        self.opacity = parent.material.opacity?.color?.a ?? parent.opacity
+        self.opacity = parent.material.opacity?.color?.alpha ?? parent.opacity
         // reset
         self.transform = .identity
         self.childTransform = .identity

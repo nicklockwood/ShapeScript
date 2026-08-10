@@ -16,7 +16,6 @@ A bezier path in three-dimensional space.
 - ``Path/init(_:detail:color:)``
 - ``Path/curve(_:detail:)``
 - ``Path/line(_:_:color:)``
-- ``Path/line(_:color:)``
 - ``Path/arc(angle:radius:segments:color:isCancelled:)``
 
 ### Creating Shape Paths
@@ -50,4 +49,5 @@ A bezier path in three-dimensional space.
 - ``Path/translated(by:)``
 - ``Path/transformed(by:)``
 - ``Path/withColor(_:)``
+- ``Path/withDetail(_:forTwist:)``
 - ``Path/closed()``

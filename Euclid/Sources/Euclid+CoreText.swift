@@ -67,12 +67,43 @@ public extension Path {
             let cgPath = CGMutablePath()
             let transform = CGAffineTransform(translationX: $1.x, y: $1.y)
             cgPath.addPath($0, transform: transform)
-            return Path(cgPath, detail: detail, color: $2)
+            let path = Path(cgPath, detail: detail, color: $2)
+            return path.faceNormal.dot(.unitZ) > 0 ? path.inverted() : path
         }
     }
 }
 
-public extension [Path] {
+public extension RangeReplaceableCollection<Path> {
+    /// Creates a collection of glyph contours from a string and font you provide.
+    /// - Parameters:
+    ///   - text: The text to convert.
+    ///   - font: The font to use for the text.
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - detail: The number line segments used to approximate glyph curves.
+    static func text(
+        _ text: String,
+        font: CTFont? = nil,
+        width: Double? = nil,
+        detail: Int = 2
+    ) -> Self {
+        Self(Path.text(text, font: font, width: width, detail: detail))
+    }
+
+    /// Creates a collection of glyph contours from an attributed string.
+    /// - Parameters:
+    ///   - text: The text to convert.
+    ///   - width: The optional width at which to line-wrap the text.
+    ///   - detail: The number line segments used to approximate glyph curves.
+    static func text(
+        _ text: NSAttributedString,
+        width: Double? = nil,
+        detail: Int = 2
+    ) -> Self {
+        Self(Path.text(text, width: width, detail: detail))
+    }
+}
+
+public extension Collection<Path> where Self == [Path] {
     /// Creates an array of glyph contours from a string and font you provide.
     /// - Parameters:
     ///   - text: The text to convert.
@@ -84,7 +115,7 @@ public extension [Path] {
         font: CTFont? = nil,
         width: Double? = nil,
         detail: Int = 2
-    ) -> [Path] {
+    ) -> Self {
         Path.text(text, font: font, width: width, detail: detail)
     }
 
@@ -97,7 +128,7 @@ public extension [Path] {
         _ text: NSAttributedString,
         width: Double? = nil,
         detail: Int = 2
-    ) -> [Path] {
+    ) -> Self {
         Path.text(text, width: width, detail: detail)
     }
 }

@@ -56,6 +56,7 @@ extension Mesh: CustomDebugStringConvertible {
         Mirror(self, children: [
             "bounds": storage.boundsIfSet.map { "\($0)" } ?? "unset",
             "isWatertight": storage.watertightIfSet.map { "\($0)" } ?? "unset",
+            "isPlanar": storage.planarIfSet.map { "\($0)" } ?? "unset",
             "isKnownConvex": storage.isKnownConvex,
             "bsp": storage.bspIfSet == nil ? "set" : "unset",
         ], displayStyle: .struct)
@@ -161,6 +162,11 @@ public extension Mesh {
         storage.isWatertight
     }
 
+    /// Check if polygons all lie on the same plane (facing either direction).
+    var isPlanar: Bool {
+        storage.isPlanar
+    }
+
     /// The bounds of the mesh.
     var bounds: Bounds { storage.bounds }
 
@@ -175,12 +181,6 @@ public extension Mesh {
         polygons.signedVolume
     }
 
-    /// The volume of a watertight mesh.
-    @available(*, deprecated, renamed: "signedVolume")
-    var volume: Double {
-        polygons.signedVolume
-    }
-
     /// Creates a new mesh from an array of polygons.
     /// - Parameter polygons: The polygons making up the mesh.
     init(_ polygons: [Polygon]) {
@@ -190,6 +190,7 @@ public extension Mesh {
             bsp: nil,
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil
         )
     }
@@ -212,6 +213,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -224,6 +226,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -236,6 +239,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -248,6 +252,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -270,6 +275,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we update this directly?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -290,6 +296,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we merge these directly?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil // TODO: can we preserve this?
         )
     }
@@ -316,6 +323,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we merge these directly?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil // TODO: can we preserve this?
         )
     }
@@ -329,6 +337,7 @@ public extension Mesh {
             bsp: nil, // TODO: Can we invert this directly?
             isConvex: false,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -344,6 +353,7 @@ public extension Mesh {
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -357,23 +367,33 @@ public extension Mesh {
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
 
-    /// Merges any coplanar polygons that share one or more edges.
+    /// Merges any coplanar polygons that share one or more edges. Resultant polygons may be non-convex.
+    /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the merged (possibly non-convex) polygons.
-    func detessellate() -> Mesh {
-        Mesh(
-            unchecked: polygons.detessellate(
-                ensureConvex: false,
-                useQualityMerge: isWatertight,
-                allowDisjointSharedVertices: isPlanar
-            ),
+    ///
+    /// > Note: This method can be very time-consuming. For convex polygons use `triangulate()` instead.
+    func detessellate(isCancelled: CancellationHandler = { false }) -> Mesh {
+        let polygons = polygons.detessellate(
+            ensureConvex: false,
+            useQualityMerge: isWatertight,
+            allowDisjointSharedVertices: isPlanar,
+            // A vertex that is redundant within one coplanar face can still be needed by
+            // adjacent non-coplanar faces to preserve matching edge segmentation.
+            preserveRedundantVertices: watertightIfSet == true && !isPlanar,
+            isCancelled: isCancelled
+        )
+        return Mesh(
+            unchecked: polygons,
             bounds: boundsIfSet,
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
-            isWatertight: nil, // TODO: can this be done without introducing holes?
+            isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -382,40 +402,44 @@ public extension Mesh {
     /// - Returns: A new mesh containing the merged polygons.
     func detriangulate() -> Mesh {
         Mesh(
-            unchecked: polygons.detessellate(ensureConvex: true),
+            unchecked: polygons.detessellate(ensureConvex: true) { false },
             bounds: boundsIfSet,
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
-            isWatertight: nil, // TODO: can this be done without introducing holes?
+            isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
 
     /// Removes holes by inserting additional vertices and capping closed boundary loops.
+    /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh with new vertices and polygons inserted if needed.
     ///
     /// > Note: This method is not always successful. Check ``Mesh/isWatertight`` after to verify.
-    func makeWatertight() -> Mesh {
+    func makeWatertight(isCancelled: CancellationHandler = { false }) -> Mesh {
+        guard !isCancelled() else { return .empty }
         if watertightIfSet == true {
             guard !polygons.areConsistentlyWound else {
                 return self
             }
             return Mesh(
-                unchecked: polygons.withConsistentWinding(),
+                unchecked: polygons.withConsistentWinding(isCancelled: isCancelled),
                 bounds: boundsIfSet,
                 bsp: nil,
                 isConvex: isKnownConvex,
                 isWatertight: true,
+                isPlanar: planarIfSet,
                 submeshes: submeshesIfEmpty
             )
         }
-        var holeEdges = polygons.holeEdges, polygons = polygons
+        var holeEdges = polygons.holeEdges(isCancelled: isCancelled), polygons = polygons
         var precision = epsilon
-        while !holeEdges.isEmpty {
+        while !holeEdges.isEmpty, !isCancelled() {
             let merged = polygons
-                .insertingEdgeVertices(with: holeEdges)
-                .mergingVertices(withPrecision: precision)
-            let newEdges = merged.holeEdges
+                .insertingEdgeVertices(with: holeEdges, isCancelled: isCancelled)
+                .mergingVertices(withPrecision: precision, isCancelled: isCancelled)
+            let newEdges = merged.holeEdges(isCancelled: isCancelled)
             if newEdges.count < holeEdges.count {
                 polygons = merged
                 holeEdges = newEdges
@@ -427,9 +451,15 @@ public extension Mesh {
         }
         if !holeEdges.isEmpty {
             func capMaterial(for path: Path, in polygons: [Polygon]) -> Material? {
+                capMaterial(for: path.undirectedEdges, in: polygons)
+            }
+
+            func capMaterial(for pathEdges: some Collection<LineSegment>, in polygons: [Polygon]) -> Material? {
                 var weights = [(material: Material?, length: Double)]()
-                let pathEdges = path.undirectedEdges
-                for polygon in polygons {
+                for (index, polygon) in polygons.enumerated() {
+                    if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                        return nil
+                    }
                     for edge in polygon.undirectedEdges where pathEdges.contains(edge) {
                         if let index = weights.firstIndex(where: { $0.material == polygon.material }) {
                             weights[index].length += edge.length
@@ -442,6 +472,12 @@ public extension Mesh {
             }
 
             func capPolygons(for path: Path, material: Material?) -> [Polygon] {
+                if path.isClosed {
+                    let vertices = path.points.dropLast().map(Vertex.init)
+                    if vertices.count == 3, let polygon = Polygon(vertices, material: material) {
+                        return [polygon]
+                    }
+                }
                 let polygons = path.closed().facePolygons(material: material)
                 if !polygons.isEmpty {
                     return polygons
@@ -455,6 +491,9 @@ public extension Mesh {
                 }
                 let center = Vertex(vertices.centroid)
                 return vertices.indices.compactMap { i in
+                    if i.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                        return nil
+                    }
                     let j = (i + 1) % vertices.count
                     guard vertices[i].position != vertices[j].position else {
                         return nil
@@ -468,18 +507,43 @@ public extension Mesh {
                     )
                 }
             }
-            while !holeEdges.isEmpty {
-                let paths = Path(holeEdges.sorted()).subpaths
-                let caps = paths.flatMap {
-                    capPolygons(for: $0, material: capMaterial(for: $0, in: polygons))
+            while !holeEdges.isEmpty, !isCancelled() {
+                let loops = holeEdges.closedLoops
+                let caps = loops.enumerated().flatMap { index, points -> [Polygon] in
+                    if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                        return []
+                    }
+                    let material = capMaterial(for: points.undirectedEdges, in: polygons)
+                    let closedVertices = points.map { position in
+                        let vertices = polygons.flatMap { polygon in
+                            polygon.vertices.compactMap {
+                                $0.position == position ? $0 : nil
+                            }
+                        }
+                        if let vertex = vertices.first(where: { $0.color != .white }) {
+                            return vertex
+                        }
+                        return vertices.first ?? Vertex(position)
+                    }
+                    let vertices = Array(closedVertices.dropLast())
+                    if vertices.count == 3, let polygon = Polygon(vertices, material: material) {
+                        return [polygon.flatteningNormals()]
+                    }
+                    guard vertices.count > 3 else {
+                        return []
+                    }
+                    let path = Path(closedVertices.map {
+                        .point($0.position, color: $0.color == .white ? nil : $0.color)
+                    })
+                    return capPolygons(for: path, material: material).flatteningNormals()
                 }
                 guard !caps.isEmpty else {
                     break
                 }
                 let capped = (polygons + caps)
-                    .insertingEdgeVertices(with: holeEdges)
-                    .mergingVertices(withPrecision: epsilon)
-                let newEdges = capped.holeEdges
+                    .insertingEdgeVertices(with: holeEdges, isCancelled: isCancelled)
+                    .mergingVertices(withPrecision: epsilon, isCancelled: isCancelled)
+                let newEdges = capped.holeEdges(isCancelled: isCancelled)
                 guard newEdges.count < holeEdges.count else {
                     break
                 }
@@ -489,12 +553,48 @@ public extension Mesh {
         }
         let isWatertight = holeEdges.isEmpty
         return Mesh(
-            unchecked: isWatertight ? polygons.withConsistentWinding() : polygons,
+            unchecked: isWatertight && !isCancelled() ?
+                polygons.withConsistentWinding(isCancelled: isCancelled) : polygons,
             bounds: boundsIfSet,
             bsp: nil,
             isConvex: false, // TODO: can makeWatertight make this false?
             isWatertight: isWatertight,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
+        )
+    }
+
+    /// Returns a copy of the mesh with winding made consistent across shared edges.
+    ///
+    /// For closed, non-planar submeshes, the result is also oriented so that the signed volume is positive.
+    /// Open or planar surfaces will have locally consistent winding, but their absolute orientation is ambiguous.
+    /// - Parameter isCancelled: Callback used to cancel the operation.
+    /// - Returns: A new mesh with consistently wound polygons.
+    func withConsistentWinding(isCancelled: CancellationHandler = { false }) -> Mesh {
+        guard !isCancelled() else { return .empty }
+        let groups = polygons.groupedSubmeshIndices
+        var result = polygons
+        for (index, indices) in groups.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return self
+            }
+            let group = indices.map { polygons[$0] }
+            var repaired = group.withConsistentWinding(isCancelled: isCancelled)
+            if repaired.areWatertight, !repaired.arePlanar, repaired.signedVolume < 0 {
+                repaired = repaired.inverted()
+            }
+            for (index, polygon) in zip(indices, repaired) {
+                result[index] = polygon
+            }
+        }
+        return Mesh(
+            unchecked: result,
+            bounds: boundsIfSet,
+            bsp: nil,
+            isConvex: isKnownConvex && groups.count <= 1,
+            isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
+            submeshes: nil
         )
     }
 
@@ -506,6 +606,7 @@ public extension Mesh {
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -520,6 +621,7 @@ public extension Mesh {
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -532,23 +634,9 @@ public extension Mesh {
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
             isWatertight: watertightIfSet,
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "intersects(_:)")
-    func containsPoint(_ point: Vector) -> Bool {
-        intersects(point)
-    }
-
-    /// Applies a uniform inset to the faces of the mesh.
-    /// - Parameter distance: The distance by which to inset the polygon faces.
-    /// - Returns: A copy of the mesh, inset by the specified distance.
-    ///
-    /// > Note: Passing a negative `distance` will expand the mesh instead of shrinking it.
-    func inset(by distance: Double) -> Mesh {
-        Mesh(polygons.insetFaces(by: distance))
     }
 }
 
@@ -559,6 +647,7 @@ extension Mesh {
         bsp: BSP?,
         isConvex: Bool,
         isWatertight: Bool?,
+        isPlanar: Bool?,
         submeshes: [Mesh]?
     ) {
         self.storage = polygons.isEmpty ? .empty : Storage(
@@ -567,6 +656,7 @@ extension Mesh {
             bsp: bsp,
             isKnownConvex: isConvex,
             isWatertight: isWatertight,
+            isPlanar: isPlanar,
             submeshes: submeshes
         )
     }
@@ -585,15 +675,6 @@ extension Mesh {
         return polygons.areConsistentlyWound
     }
 
-    /// Check if polygons all lie on the same plane (facing either direction).
-    var isPlanar: Bool {
-        guard let plane = polygons.first?.plane else { return true }
-        return polygons.allSatisfy {
-            $0.plane.w.isApproximatelyEqual(to: plane.w, absoluteTolerance: planeEpsilon) &&
-                $0.plane.isParallel(to: plane) || $0.plane.isAntiparallel(to: plane)
-        }
-    }
-
     var vertexNormalsFaceOutward: Bool {
         polygons.allSatisfy { polygon in
             polygon.vertices.allSatisfy {
@@ -605,6 +686,7 @@ extension Mesh {
     var boundsIfSet: Bounds? { storage.boundsIfSet }
     var bspIfSet: BSP? { storage.bspIfSet }
     var watertightIfSet: Bool? { storage.watertightIfSet }
+    var planarIfSet: Bool? { storage.planarIfSet }
     /// > Note: a mesh can be convex without being watertight
     var isKnownConvex: Bool { storage.isKnownConvex }
     /// > Note: we don't expose submeshesIfSet because it's unsafe to reuse
@@ -618,6 +700,7 @@ private extension Mesh {
         let polygons: [Polygon]
         private let bspLock = NSLock()
         private let watertightLock = NSLock()
+        private let planarLock = NSLock()
         private let submeshesLock = NSLock()
 
         static let empty = Storage(
@@ -626,6 +709,7 @@ private extension Mesh {
             bsp: nil,
             isKnownConvex: true,
             isWatertight: true,
+            isPlanar: true,
             submeshes: []
         )
 
@@ -683,6 +767,16 @@ private extension Mesh {
             return watertightIfSet!
         }
 
+        private(set) var planarIfSet: Bool?
+        var isPlanar: Bool {
+            planarLock.lock()
+            if planarIfSet == nil {
+                planarIfSet = polygons.arePlanar
+            }
+            planarLock.unlock()
+            return planarIfSet!
+        }
+
         private(set) var submeshesIfSet: [Mesh]?
         var submeshes: [Mesh] {
             submeshesLock.lock()
@@ -710,6 +804,7 @@ private extension Mesh {
             bsp: BSP?,
             isKnownConvex: Bool,
             isWatertight: Bool?,
+            isPlanar: Bool?,
             submeshes: [Mesh]?
         ) {
             assert(isWatertight == nil || isWatertight == polygons.areWatertight)
@@ -732,7 +827,84 @@ private extension Mesh {
             self.bspIfSet = bsp
             self.isKnownConvex = polygons.isEmpty || bsp?.isConvex ?? isKnownConvex
             self.watertightIfSet = polygons.isEmpty ? true : isWatertight
+            self.planarIfSet = polygons.isEmpty ? true : isPlanar
             self.submeshesIfSet = submeshes ?? (isKnownConvex ? [] : nil)
+        }
+    }
+}
+
+private extension [Polygon] {
+    /// Group by touching vertices, returning polygon indices in original order.
+    var groupedSubmeshIndices: [[Int]] {
+        var submeshes = [[Int]]()
+        var points = [Set<Vector>]()
+        for (index, poly) in enumerated() {
+            let positions = Set(poly.vertices.map(\.position))
+            var lastMatch: Int?
+            for i in points.indices.reversed() {
+                if !points[i].isDisjoint(with: positions) {
+                    if !submeshes[i].contains(index) {
+                        submeshes[i].append(index)
+                    }
+                    points[i].formUnion(positions)
+                    if let j = lastMatch {
+                        for index in submeshes.remove(at: j) where !submeshes[i].contains(index) {
+                            submeshes[i].append(index)
+                        }
+                        points[i].formUnion(points.remove(at: j))
+                    }
+                    lastMatch = i
+                }
+            }
+            if lastMatch == nil {
+                submeshes.append([index])
+                points.append(positions)
+            }
+        }
+        return submeshes.map { $0.sorted() }
+    }
+}
+
+private extension Set<LineSegment> {
+    var closedLoops: [[Vector]] {
+        var edges = sorted()
+        var loops = [[Vector]]()
+        while !edges.isEmpty {
+            let first = edges.removeFirst()
+            var points = [first.start, first.end]
+            while points.last != points.first {
+                guard let last = points.last,
+                      let index = edges.firstIndex(where: {
+                          $0.start == last || $0.end == last
+                      })
+                else {
+                    break
+                }
+                let edge = edges.remove(at: index)
+                points.append(edge.start == last ? edge.end : edge.start)
+            }
+            guard points.count > 3, points.last == points.first else {
+                continue
+            }
+            loops.append(points)
+        }
+        return loops
+    }
+}
+
+private extension Collection<Vector> {
+    var undirectedEdges: [LineSegment] {
+        let points = Array(self)
+        guard points.count > 1 else {
+            return []
+        }
+        let endIndex = points.last == points.first ? points.index(before: points.endIndex) : points.endIndex
+        return points[..<endIndex].indices.compactMap { i in
+            let j = i == points.index(before: points.endIndex) ? points.startIndex : points.index(after: i)
+            guard points[i] != points[j] else {
+                return nil
+            }
+            return LineSegment(uncheckedUndirected: points[i], points[j])
         }
     }
 }

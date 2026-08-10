@@ -197,12 +197,6 @@ public extension Polygon {
         vertices.reduce(.zero) { $0 + $1.position } / Double(vertices.count)
     }
 
-    /// Deprecated.
-    @available(*, deprecated, renamed: "centroid")
-    var center: Vector {
-        centroid
-    }
-
     /// Returns the ordered array of polygon edges.
     var orderedEdges: [LineSegment] {
         var p0 = vertices.last!.position
@@ -275,12 +269,6 @@ public extension Polygon {
         self.init(vertices.map(Vertex.init), material: material)
     }
 
-    /// Deprecated.
-    @available(*, deprecated, renamed: "intersects(_:)")
-    func containsPoint(_ point: Vector) -> Bool {
-        intersects(point)
-    }
-
     /// Merges this polygon with another, removing redundant vertices where possible.
     /// - Parameters:
     ///   - other: The polygon to merge with.
@@ -293,19 +281,6 @@ public extension Polygon {
             return nil
         }
         return merge(unchecked: other, ensureConvex: ensureConvex)
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, message: "Use array-returning version instead")
-    func mapVertices(_ transform: (Vertex) -> Vertex) -> Polygon {
-        Polygon(
-            unchecked: vertices.map(transform),
-            plane: nil,
-            isConvex: nil,
-            sanitizeNormals: true,
-            material: material,
-            id: id
-        )
     }
 
     /// Return a copy of the polygon with transformed vertices.
@@ -391,50 +366,6 @@ public extension Polygon {
             unchecked: vertices.inverted(),
             plane: plane.inverted(),
             isConvex: isConvex,
-            sanitizeNormals: false,
-            material: material,
-            id: id
-        )
-    }
-
-    /// Applies a uniform inset to the edges of the polygon.
-    /// - Parameter distance: The distance by which to inset the polygon edges.
-    /// - Returns: A copy of the polygon, inset by the specified distance.
-    ///
-    /// > Note: Passing a negative `distance` will expand the polygon instead of shrinking it.
-    func inset(by distance: Double) -> Polygon? {
-        let source = vertices
-        let count = source.count
-        var v1 = source[count - 1]
-        var v2 = source[0]
-        var p1p2 = v2.position - v1.position
-        var n1: Vector!
-        let insetVertices = (0 ..< count).map { i in
-            v1 = v2
-            v2 = i < count - 1 ? source[i + 1] : source[0]
-            let p0p1 = p1p2
-            p1p2 = v2.position - v1.position
-            let faceNormal = plane.normal
-            let n0 = n1 ?? p0p1.cross(faceNormal).normalized()
-            n1 = p1p2.cross(faceNormal).normalized()
-            // TODO: do we need to inset texcoord as well? If so, by how much?
-            let normal = (n0 + n1).normalized()
-            return v1.translated(by: normal * -(distance / n0.dot(normal)))
-        }
-        let inset = resolveInsetIntersections(
-            in: insetVertices,
-            isClosed: true,
-            normal: plane.normal,
-            position: { (vertex: Vertex) in vertex.position },
-            interpolate: { (a: Vertex, b: Vertex, t: Double) in a.lerp(b, t) }
-        ).dropLast()
-        guard inset.count > 2, !verticesAreDegenerate(inset) else {
-            return nil
-        }
-        return Polygon(
-            unchecked: Array(inset),
-            plane: plane,
-            isConvex: nil,
             sanitizeNormals: false,
             material: material,
             id: id
@@ -555,33 +486,6 @@ public extension Polygon {
     }
 }
 
-private extension Polygon {
-    /// Returns inset polygons, splitting into triangles if the moved polygon becomes invalid.
-    func insetPolygons(using positionCache: [Vector: Vector], by distance: Double) -> [Polygon] {
-        func moved(_ polygon: Polygon) -> Polygon? {
-            let vertices = polygon.vertices.map { vertex -> Vertex in
-                let key = vertex.position
-                let position = positionCache[key] ?? key.translated(by: polygon.plane.normal * -distance)
-                return Vertex(unchecked: position, vertex.normal, vertex.texcoord, vertex.color)
-            }
-            guard vertices.count > 2, !verticesAreDegenerate(vertices) else {
-                return nil
-            }
-            return Polygon(
-                unchecked: vertices,
-                normal: polygon.plane.normal,
-                isConvex: nil, // Inset can alter shape
-                sanitizeNormals: false,
-                material: polygon.material
-            )
-        }
-        if let polygon = moved(self) {
-            return [polygon]
-        }
-        return triangulate().compactMap(moved)
-    }
-}
-
 extension Collection<LineSegment> {
     /// Set of all unique start/end points in edge collection.
     var endPoints: Set<Vector> {
@@ -679,10 +583,17 @@ extension [Polygon] {
     ///   inverted to resolve inconsistent winding.
     /// - Returns: A copy of the receiver with polygons inverted as needed to make
     ///   shared-edge winding consistent.
-    func withConsistentWinding(isLocked: (Polygon) -> Bool = { _ in false }) -> [Polygon] {
+    func withConsistentWinding(
+        isLocked: (Polygon) -> Bool = { _ in false },
+        isCancelled: Polygon.CancellationHandler
+    ) -> [Polygon] {
+        guard !isCancelled() else { return self }
         let edgeMap = windingEdgeMap
         var adjacency = [[(index: Int, parity: Int)]](repeating: [], count: count)
-        for matches in edgeMap.values where matches.count == 2 {
+        for (index, matches) in edgeMap.values.enumerated() where matches.count == 2 {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return self
+            }
             let parity = -matches[0].sign * matches[1].sign
             adjacency[matches[0].index].append((matches[1].index, parity))
             adjacency[matches[1].index].append((matches[0].index, parity))
@@ -697,7 +608,7 @@ extension [Polygon] {
             signs[start] = 1
             componentIDs[start] = componentID
             var queue = [start]
-            while let index = queue.popLast() {
+            while let index = queue.popLast(), !isCancelled() {
                 component.append(index)
                 for neighbor in adjacency[index] {
                     let expectedSign = signs[index] * neighbor.parity
@@ -711,14 +622,17 @@ extension [Polygon] {
             components.append(component)
         }
         for start in indices where locked[start] && componentIDs[start] < 0 {
+            if isCancelled() { return self }
             addComponent(from: start)
         }
         for start in indices where componentIDs[start] < 0 {
+            if isCancelled() { return self }
             addComponent(from: start)
         }
         let componentIsLocked = components.map { component in
             component.contains { locked[$0] }
         }
+        let hasLockedComponents = componentIsLocked.contains(true)
         var componentSigns = [Int](repeating: 1, count: components.count)
         let multiEdgeMatches = inconsistentWindingEdges(in: edgeMap).compactMap {
             edgeMap[$0]
@@ -726,7 +640,10 @@ extension [Polygon] {
             $0.count != 2
         }
         let maxPasses = multiEdgeMatches.count
-        for _ in 0 ..< maxPasses {
+        for pass in 0 ..< maxPasses {
+            if pass.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return self
+            }
             var changed = false
             for matches in multiEdgeMatches {
                 let balance = matches.reduce(0) {
@@ -749,10 +666,14 @@ extension [Polygon] {
                 break
             }
         }
-        return enumerated().map { index, polygon in
+        var result = enumerated().map { index, polygon in
             let sign = signs[index] * componentSigns[componentIDs[index]]
             return sign < 0 ? polygon.inverted() : polygon
         }
+        if !hasLockedComponents, signedVolume * result.signedVolume < 0 {
+            result = result.inverted()
+        }
+        return result
     }
 }
 
@@ -792,8 +713,16 @@ extension Collection<Polygon> {
 
     /// Returns all edges that exist at the boundary of a hole.
     var holeEdges: Set<LineSegment> {
+        holeEdges()
+    }
+
+    /// Returns all edges that exist at the boundary of a hole.
+    func holeEdges(isCancelled: Polygon.CancellationHandler = { false }) -> Set<LineSegment> {
         var edges = Set<LineSegment>()
-        for polygon in self {
+        for (index, polygon) in enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return edges
+            }
             for edge in polygon.undirectedEdges {
                 if let index = edges.firstIndex(of: edge) {
                     edges.remove(at: index)
@@ -835,6 +764,15 @@ extension Collection<Polygon> {
         return allSatisfy { $0.plane.isApproximatelyEqual(to: plane) }
     }
 
+    /// Check if polygons all lie on the same plane, regardless of winding direction.
+    var arePlanar: Bool {
+        guard let plane = first?.plane else { return true }
+        return allSatisfy {
+            $0.plane.isApproximatelyEqual(to: plane) ||
+                $0.plane.isApproximatelyEqual(to: plane.inverted())
+        }
+    }
+
     /// Assuming that polygons are coplanar, determines if they form a convex boudary
     var coplanarPolygonsAreConvex: Bool {
         assert(areCoplanar)
@@ -858,17 +796,29 @@ extension Collection<Polygon> {
     }
 
     /// Insert missing vertices needed to prevent hairline cracks.
-    func insertingEdgeVertices(with holeEdges: Set<LineSegment>) -> [Polygon] {
+    func insertingEdgeVertices(
+        with holeEdges: Set<LineSegment>,
+        isCancelled: Polygon.CancellationHandler = { false }
+    ) -> [Polygon] {
         var points = Set<Vector>()
-        for edge in holeEdges {
+        for (index, edge) in holeEdges.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return Array(self)
+            }
             points.insert(edge.start)
             points.insert(edge.end)
         }
         var polygons = Array(self)
         let sortedPoints = points.sorted()
-        for i in polygons.indices {
+        for (index, i) in polygons.indices.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return polygons
+            }
             let bounds = polygons[i].bounds.inset(by: -epsilon)
-            for point in sortedPoints where bounds.intersects(point) {
+            for (index, point) in sortedPoints.enumerated() where bounds.intersects(point) {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return polygons
+                }
                 _ = polygons[i].insertEdgePoint(point)
             }
         }
@@ -877,8 +827,11 @@ extension Collection<Polygon> {
 
     /// Merge vertices with similar positions.
     /// - Parameter precision: The maximum distance between vertices.
-    func mergingVertices(withPrecision precision: Double) -> [Polygon] {
-        mergingVertices(nil, withPrecision: precision)
+    func mergingVertices(
+        withPrecision precision: Double,
+        isCancelled: Polygon.CancellationHandler = { false }
+    ) -> [Polygon] {
+        mergingVertices(nil, withPrecision: precision, isCancelled: isCancelled)
     }
 
     /// Merge vertices with similar positions.
@@ -887,13 +840,21 @@ extension Collection<Polygon> {
     ///   - precision: The distance threshold for merging vertices
     func mergingVertices(
         _ vertices: Set<Vector>?,
-        withPrecision precision: Double
+        withPrecision precision: Double,
+        isCancelled: Polygon.CancellationHandler = { false }
     ) -> [Polygon] {
         var positions = VertexSet(precision: precision)
-        return compactMap {
+        var result = [Polygon]()
+        for (index, polygon) in enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return result.isEmpty ? Array(self) : result
+            }
             var merged = [Vertex]()
             var modified = false
-            for v in $0.vertices {
+            for (index, v) in polygon.vertices.enumerated() {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return result.isEmpty ? Array(self) : result
+                }
                 if let vertices, !vertices.contains(v.position) {
                     merged.append(v)
                     continue
@@ -909,15 +870,19 @@ extension Collection<Polygon> {
                 merged.append(u)
             }
             if !modified {
-                return $0
+                result.append(polygon)
+                continue
             }
             if merged.count > 1, let w = merged.first,
                w.position == merged.last?.position
             {
                 merged[0] = w.lerp(merged.removeLast(), 0.5)
             }
-            return Polygon(merged, material: $0.material)
+            if let polygon = Polygon(merged, material: polygon.material) {
+                result.append(polygon)
+            }
         }
+        return result
     }
 
     /// Flatten vertex normals (set them to match the face normal)
@@ -1030,187 +995,38 @@ extension Collection<Polygon> {
         mapVertexColors { _ in nil }
     }
 
+    /// Merges compatible vertex normals at shared positions.
+    func mergingSmoothVertexNormals() -> [Polygon] {
+        let verticesByPosition = Dictionary(grouping: flatMap(\.vertices), by: \.position)
+        let normalsByPosition = verticesByPosition.mapValues {
+            $0.map(\.normal).filter { $0.length > epsilon }
+        }
+        return map { polygon in
+            let vertices = polygon.vertices.map { vertex in
+                guard let normals = normalsByPosition[vertex.position] else {
+                    return vertex
+                }
+                let compatible = normals.filter { $0.dot(vertex.normal) > epsilon }
+                guard compatible.count > 1 else {
+                    return vertex
+                }
+                let normal = compatible.reduce(.zero, +).normalized()
+                return normal.length > epsilon ? vertex.withNormal(normal) : vertex
+            }
+            return Polygon(
+                unchecked: vertices,
+                plane: polygon.plane,
+                isConvex: polygon.isConvex,
+                sanitizeNormals: false,
+                material: polygon.material,
+                id: polygon.id
+            )
+        }
+    }
+
     /// Return polygons with transformed vertex colors
     func mapVertexColors(_ transform: (Color) -> Color?) -> [Polygon] {
         map { $0.mapVertexColors(transform) }
-    }
-
-    /// Inset along face normals
-    func insetFaces(by distance: Double) -> [Polygon] {
-        let source = Array(self).mergingVertices(withPrecision: epsilon)
-        var vertexInfo = [Vector: (planes: [Plane], neighbors: Set<Vector>)]()
-        for polygon in source {
-            for i in polygon.vertices.indices {
-                let position = polygon.vertices[i].position
-                let previous = polygon.vertices[i == 0 ? polygon.vertices.count - 1 : i - 1].position
-                let next = polygon.vertices[(i + 1) % polygon.vertices.count].position
-                var info = vertexInfo[position] ?? ([], [])
-                if !info.planes.contains(where: { $0.isApproximatelyEqual(to: polygon.plane) }) {
-                    info.planes.append(polygon.plane)
-                }
-                info.neighbors.insert(previous)
-                info.neighbors.insert(next)
-                vertexInfo[position] = info
-            }
-        }
-
-        var positionCache = [Vector: Vector]()
-        for (position, info) in vertexInfo {
-            positionCache[position] = insetPosition(
-                for: position,
-                planes: info.planes,
-                by: distance
-            )
-        }
-        let sourceBounds = Bounds(source.flatMap(\.vertices))
-        let isConvexSurface = source.isConvexSurface
-        if isConvexSurface {
-            for position in positionCache.keys {
-                guard let (a, b, t) = straightChain(for: position, in: vertexInfo),
-                      let a1 = positionCache[a],
-                      let b1 = positionCache[b]
-                else {
-                    continue
-                }
-                positionCache[position] = a1 + (b1 - a1) * t
-            }
-        }
-        let polygons = source.flatMap { polygon in
-            polygon.insetPolygons(using: positionCache, by: distance)
-        }
-        guard distance > 0, isConvexSurface else {
-            return polygons.mergingVertices(withPrecision: epsilon)
-        }
-        let insetBounds = Bounds(polygons.flatMap(\.vertices))
-        return sourceBounds.contains(insetBounds) ? polygons
-            .mergingVertices(withPrecision: epsilon) : []
-    }
-
-    /// Returns true if all polygon vertices lie behind every face plane.
-    private var isConvexSurface: Bool {
-        let points = flatMap { $0.vertices.map(\.position) }
-        return allSatisfy { polygon in
-            points.allSatisfy { $0.signedDistance(from: polygon.plane) < epsilon }
-        }
-    }
-
-    /// Finds the longest straight neighbor chain passing through a vertex.
-    private func straightChain(
-        for position: Vector,
-        in vertexInfo: [Vector: (planes: [Plane], neighbors: Set<Vector>)]
-    ) -> (Vector, Vector, Double)? {
-        guard let info = vertexInfo[position] else {
-            return nil
-        }
-        let neighbors = Array(info.neighbors)
-        var best: (Vector, Vector)?
-        var bestLengthSquared = 0.0
-        for i in neighbors.indices {
-            for j in neighbors.indices.dropFirst(i + 1) {
-                let a = neighbors[i], b = neighbors[j]
-                guard pointsAreCollinear(a, position, b),
-                      (a - position).dot(b - position) < 0
-                else {
-                    continue
-                }
-                let lengthSquared = (b - a).lengthSquared
-                if lengthSquared > bestLengthSquared {
-                    best = (a, b)
-                    bestLengthSquared = lengthSquared
-                }
-            }
-        }
-        guard let best else {
-            return nil
-        }
-        let a = chainEndpoint(from: best.0, through: position, in: vertexInfo)
-        let b = chainEndpoint(from: best.1, through: position, in: vertexInfo)
-        let ab = b - a
-        let lengthSquared = ab.lengthSquared
-        guard lengthSquared > epsilon else {
-            return nil
-        }
-        let t = (position - a).dot(ab) / lengthSquared
-        guard t > epsilon, t < 1 - epsilon else {
-            return nil
-        }
-        return (a, b, t)
-    }
-
-    /// Walks from a vertex to the end of a straight chain.
-    private func chainEndpoint(
-        from neighbor: Vector,
-        through position: Vector,
-        in vertexInfo: [Vector: (planes: [Plane], neighbors: Set<Vector>)]
-    ) -> Vector {
-        var previous = position
-        var current = neighbor
-        while let next = vertexInfo[current]?.neighbors.first(where: {
-            $0 != previous && pointsAreCollinear(previous, current, $0) &&
-                ($0 - current).dot(current - previous) > 0
-        }) {
-            previous = current
-            current = next
-        }
-        return current
-    }
-
-    /// Calculates the inset position produced by offsetting the adjacent planes.
-    private func insetPosition(for position: Vector, planes: [Plane], by distance: Double) -> Vector {
-        let planes = planes.map { $0.translated(by: $0.normal * -distance) }
-        switch planes.count {
-        case 0:
-            return position
-        case 1:
-            return planes[0].nearestPoint(to: position)
-        case 2:
-            return planes[0].intersection(with: planes[1])?.nearestPoint(to: position) ?? position
-        case 3:
-            if let line = planes[0].intersection(with: planes[1]),
-               let point = line.intersection(with: planes[2])
-            {
-                return point
-            }
-            return bestFitIntersection(of: planes) ?? position
-        default:
-            return bestFitIntersection(of: planes) ?? position
-        }
-    }
-
-    /// Finds the least-squares intersection point for a set of planes.
-    private func bestFitIntersection(of planes: [Plane]) -> Vector? {
-        var m00 = 0.0, m01 = 0.0, m02 = 0.0
-        var m11 = 0.0, m12 = 0.0, m22 = 0.0
-        var b0 = 0.0, b1 = 0.0, b2 = 0.0
-        for plane in planes {
-            let n = plane.normal
-            m00 += n.x * n.x
-            m01 += n.x * n.y
-            m02 += n.x * n.z
-            m11 += n.y * n.y
-            m12 += n.y * n.z
-            m22 += n.z * n.z
-            b0 += n.x * plane.w
-            b1 += n.y * plane.w
-            b2 += n.z * plane.w
-        }
-        let determinant = m00 * (m11 * m22 - m12 * m12) -
-            m01 * (m01 * m22 - m12 * m02) +
-            m02 * (m01 * m12 - m11 * m02)
-        guard abs(determinant) > epsilon else {
-            return nil
-        }
-        return Vector(
-            (b0 * (m11 * m22 - m12 * m12) -
-                m01 * (b1 * m22 - m12 * b2) +
-                m02 * (b1 * m12 - m11 * b2)) / determinant,
-            (m00 * (b1 * m22 - m12 * b2) -
-                b0 * (m01 * m22 - m12 * m02) +
-                m02 * (m01 * b2 - b1 * m02)) / determinant,
-            (m00 * (m11 * b2 - b1 * m12) -
-                m01 * (m01 * b2 - b1 * m02) +
-                b0 * (m01 * m12 - m11 * m02)) / determinant
-        )
     }
 
     /// Flip each polygon along its plane
@@ -1241,17 +1057,39 @@ extension Collection<Polygon> {
         ensureConvex: Bool,
         maxSides: Int = .max,
         useQualityMerge: Bool = true,
-        allowDisjointSharedVertices: Bool = true
+        allowDisjointSharedVertices: Bool = true,
+        preserveRedundantVertices: Bool = false,
+        isCancelled: Polygon.CancellationHandler
     ) -> [Polygon] {
-        groupedByMaterial().flatMap {
-            $0.polygons.groupedByPlane().flatMap {
-                $0.polygons.coplanarDetessellate(
+        guard !isCancelled() else { return [] }
+        var planeGroups = [[Polygon]]()
+        for (index, materialGroup) in groupedByMaterial().enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return []
+            }
+            for (index, planeGroup) in materialGroup.polygons.groupedByPlane().enumerated() {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return []
+                }
+                planeGroups.append(planeGroup.polygons)
+            }
+        }
+        return batch(planeGroups, stride: 4) { planeGroups in
+            var detessellated = [Polygon]()
+            for (index, polygons) in planeGroups.enumerated() {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return detessellated
+                }
+                detessellated += polygons.coplanarDetessellate(
                     ensureConvex: ensureConvex,
                     maxSides: maxSides,
                     useQualityMerge: useQualityMerge,
-                    allowDisjointSharedVertices: allowDisjointSharedVertices
+                    allowDisjointSharedVertices: allowDisjointSharedVertices,
+                    preserveRedundantVertices: preserveRedundantVertices,
+                    isCancelled: isCancelled
                 )
             }
+            return detessellated
         }
     }
 
@@ -1268,13 +1106,16 @@ extension Collection<Polygon> {
         ensureConvex: Bool,
         maxSides: Int,
         useQualityMerge: Bool = true,
-        allowDisjointSharedVertices: Bool = true
+        allowDisjointSharedVertices: Bool = true,
+        preserveRedundantVertices: Bool = false,
+        isCancelled: Polygon.CancellationHandler = { false }
     ) -> [Polygon] {
         assert(areCoplanar)
         assert(allSatisfy { $0.material == first?.material })
         assert(allSatisfy { $0.vertices.count <= maxSides })
         assert(!ensureConvex || allSatisfy(\.isConvex))
 
+        guard !isCancelled() else { return [] }
         var polygons = Array(self)
         let shouldUseQualityMerge = useQualityMerge && allowDisjointSharedVertices && maxSides == .max && !ensureConvex
         guard shouldUseQualityMerge else {
@@ -1282,7 +1123,9 @@ extension Collection<Polygon> {
                 ensureConvex: ensureConvex,
                 maxSides: maxSides,
                 allowDisjointSharedVertices: allowDisjointSharedVertices,
-                insertingEdgeVertices: allowDisjointSharedVertices
+                insertingEdgeVertices: allowDisjointSharedVertices,
+                preserveRedundantVertices: preserveRedundantVertices,
+                isCancelled: isCancelled
             )
         }
         let maxQualityDetessellationPolygons = 64
@@ -1290,28 +1133,36 @@ extension Collection<Polygon> {
             polygons = polygons.greedyDetessellate(
                 ensureConvex: ensureConvex,
                 maxSides: maxSides,
-                allowDisjointSharedVertices: allowDisjointSharedVertices
+                allowDisjointSharedVertices: allowDisjointSharedVertices,
+                preserveRedundantVertices: preserveRedundantVertices,
+                isCancelled: isCancelled
             )
-            polygons.alignSharedEdgePoints()
+            polygons.alignSharedEdgePoints(isCancelled: isCancelled)
             return polygons.greedyDetessellate(
                 ensureConvex: ensureConvex,
                 maxSides: maxSides,
-                allowDisjointSharedVertices: allowDisjointSharedVertices
+                allowDisjointSharedVertices: allowDisjointSharedVertices,
+                preserveRedundantVertices: preserveRedundantVertices,
+                isCancelled: isCancelled
             )
         }
         while let candidate = polygons.bestMergeCandidate(
             ensureConvex: ensureConvex,
             maxSides: maxSides,
-            allowDisjointSharedVertices: allowDisjointSharedVertices
+            allowDisjointSharedVertices: allowDisjointSharedVertices,
+            preserveRedundantVertices: preserveRedundantVertices,
+            isCancelled: isCancelled
         ) {
             polygons[candidate.i] = candidate.polygon
             polygons.remove(at: candidate.j)
         }
-        polygons.alignSharedEdgePoints()
+        polygons.alignSharedEdgePoints(isCancelled: isCancelled)
         while let candidate = polygons.bestMergeCandidate(
             ensureConvex: ensureConvex,
             maxSides: maxSides,
-            allowDisjointSharedVertices: allowDisjointSharedVertices
+            allowDisjointSharedVertices: allowDisjointSharedVertices,
+            preserveRedundantVertices: preserveRedundantVertices,
+            isCancelled: isCancelled
         ) {
             polygons[candidate.i] = candidate.polygon
             polygons.remove(at: candidate.j)
@@ -1410,29 +1261,41 @@ private extension [Polygon] {
         ensureConvex: Bool,
         maxSides: Int,
         allowDisjointSharedVertices: Bool = true,
-        insertingEdgeVertices: Bool = false
+        insertingEdgeVertices: Bool = false,
+        preserveRedundantVertices: Bool = false,
+        isCancelled: Polygon.CancellationHandler = { false }
     ) -> [Polygon] {
         let shouldInsertEdgeVertices = insertingEdgeVertices && !ensureConvex && maxSides == .max
         var polygons = self
         var shouldContinue = true
-        while shouldContinue {
+        var steps = 0
+        while shouldContinue, !isCancelled() {
             shouldContinue = false
             if shouldInsertEdgeVertices {
                 polygons = polygons.insertingEdgeVertices(with: polygons.uniqueEdges)
             }
             var i = polygons.count - 1
             while i > 0 {
+                steps += 1
+                if steps.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return polygons
+                }
                 let a = polygons[i]
                 let count = a.vertices.count
                 if count <= maxSides {
                     for j in (0 ..< i).reversed() {
+                        steps += 1
+                        if steps.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                            return polygons
+                        }
                         let b = polygons[j]
                         let combinedCount = b.vertices.count + count - 2
                         if shouldInsertEdgeVertices || combinedCount - 2 <= maxSides,
                            let merged = a.merge(
                                unchecked: b,
                                ensureConvex: ensureConvex,
-                               allowDisjointSharedVertices: allowDisjointSharedVertices
+                               allowDisjointSharedVertices: allowDisjointSharedVertices,
+                               preserveRedundantVertices: preserveRedundantVertices
                            ),
                            merged.vertices.count <= maxSides
                         {
@@ -1450,15 +1313,21 @@ private extension [Polygon] {
     }
 
     /// Insert matching edge points into neighboring polygons
-    mutating func alignSharedEdgePoints() {
+    mutating func alignSharedEdgePoints(isCancelled: Polygon.CancellationHandler = { false }) {
         var points = Set<Vector>()
-        for polygon in self {
+        for (index, polygon) in enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return
+            }
             for vertex in polygon.vertices {
                 points.insert(vertex.position)
             }
         }
         let sortedPoints = points.sorted()
-        for i in indices {
+        for (index, i) in indices.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return
+            }
             let bounds = self[i].bounds.inset(by: -epsilon)
             self[i].insertEdgePoints(sortedPoints.filter { bounds.intersects($0) })
         }
@@ -1472,15 +1341,21 @@ private extension [Polygon] {
     func bestMergeCandidate(
         ensureConvex: Bool,
         maxSides: Int,
-        allowDisjointSharedVertices: Bool
+        allowDisjointSharedVertices: Bool,
+        preserveRedundantVertices: Bool,
+        isCancelled: Polygon.CancellationHandler = { false }
     ) -> MergeCandidate? {
         var best: MergeCandidate?
-        for pair in mergeCandidatePairs {
+        for (index, pair) in mergeCandidatePairs(isCancelled: isCancelled).enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return nil
+            }
             let a = self[pair.i], b = self[pair.j]
             guard let merged = a.merge(
                 unchecked: b,
                 ensureConvex: ensureConvex,
-                allowDisjointSharedVertices: allowDisjointSharedVertices
+                allowDisjointSharedVertices: allowDisjointSharedVertices,
+                preserveRedundantVertices: preserveRedundantVertices
             ),
                 merged.vertices.count <= maxSides
             else {
@@ -1504,16 +1379,22 @@ private extension [Polygon] {
     ///
     /// A valid merge still goes through `merge(unchecked:ensureConvex:)`; this
     /// only avoids trying pairs that cannot share a complete edge.
-    var mergeCandidatePairs: [IndexPair] {
+    func mergeCandidatePairs(isCancelled: Polygon.CancellationHandler = { false }) -> [IndexPair] {
         var indicesByVertex = [Vector: [Int]]()
         for (index, polygon) in enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return []
+            }
             for position in Set(polygon.vertices.map(\.position)) {
                 indicesByVertex[position, default: []].append(index)
             }
         }
 
         var sharedVertexCounts = [IndexPair: Int]()
-        for indices in indicesByVertex.values where indices.count > 1 {
+        for (index, indices) in indicesByVertex.values.enumerated() where indices.count > 1 {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return []
+            }
             for a in indices.indices.dropFirst() {
                 for b in indices.indices[..<a] {
                     sharedVertexCounts[IndexPair(indices[a], indices[b]), default: 0] += 1
@@ -1562,32 +1443,6 @@ private extension Collection<Polygon> {
             let balance = matches.reduce(0) { $0 + $1.sign }
             return balance == 0 ? nil : edge
         }
-    }
-}
-
-private extension Collection<Polygon> where Index == Int {
-    /// Merge coplanar polygons that share one or more edges
-    /// > Note: this method is On^2 - do not use outside of debug mode
-    var areSortedByPlane: Bool {
-        guard !isEmpty else {
-            return true
-        }
-        let count = count
-        for i in 0 ..< count - 1 {
-            let p = self[i]
-            let plane = p.plane
-            var wasSame = true
-            for j in (i + 1) ..< count {
-                if self[j].plane.isApproximatelyEqual(to: plane) {
-                    if !wasSame {
-                        return false
-                    }
-                } else {
-                    wasSame = false
-                }
-            }
-        }
-        return true
     }
 }
 
@@ -1649,7 +1504,8 @@ extension Polygon {
     func merge(
         unchecked other: Polygon,
         ensureConvex: Bool,
-        allowDisjointSharedVertices: Bool = true
+        allowDisjointSharedVertices: Bool = true,
+        preserveRedundantVertices: Bool = false
     ) -> Polygon? {
         assert(material == other.material)
         // TODO: figure out why this can fail while plane.intersects passes
@@ -1783,9 +1639,10 @@ extension Polygon {
         }
 
         // Check if merged points can be removed
-        // TODO: add option to always preserve merged points
-        _ = result.removeIfRedundant(at: max(join1, join2))
-        _ = result.removeIfRedundant(at: min(join1, join2))
+        if !preserveRedundantVertices {
+            _ = result.removeIfRedundant(at: max(join1, join2))
+            _ = result.removeIfRedundant(at: min(join1, join2))
+        }
 
         // Reject non-simple polygons that loop back through an existing vertex.
         for i in result.indices.dropFirst() {

@@ -814,8 +814,8 @@ private extension Geometry {
                 let opacity = material.opacity?.opacity ?? 1
                 switch m.opacity ?? .color(.white) {
                 case let .color(color):
-                    let opacity = color.a * opacity
-                    m.opacity = .color(.init(opacity, opacity))
+                    let opacity = color.alpha * opacity
+                    m.opacity = .color(.init(white: opacity, alpha: opacity))
                 case let .texture(texture):
                     // Since user cannot specify texture opacity, this should always be 1
                     let opacity = texture.intensity * opacity
@@ -866,10 +866,10 @@ private extension Geometry {
 private extension Color {
     func predividedBy(_ other: Color) -> Color {
         .init(
-            other.r > 0 ? r / other.r : r,
-            other.g > 0 ? g / other.g : g,
-            other.b > 0 ? b / other.b : b,
-            other.a > 0 ? a / other.a : a
+            red: other.red > 0 ? red / other.red : red,
+            green: other.green > 0 ? green / other.green : green,
+            blue: other.blue > 0 ? blue / other.blue : blue,
+            alpha: other.alpha > 0 ? alpha / other.alpha : alpha
         )
     }
 }

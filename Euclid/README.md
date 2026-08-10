@@ -28,26 +28,20 @@ If you would like to support the development of Euclid, please consider buying a
 
 # Installation
 
-Euclid is packaged as a dynamic framework that you can import into your Xcode project. You can install this manually, or by using CocoaPods, Carthage, or Swift Package Manager.
+Euclid is packaged as a dynamic framework that you can import into your Xcode project. You can install this manually, or by using Carthage or Swift Package Manager.
 
-**Note:** Euclid requires Xcode 16+ to build, and runs on iOS 12+ or macOS 10.15+.
-
-To install Euclid using CocoaPods, add the following to your Podfile:
-
-```ruby
-pod 'Euclid', '~> 0.8.19'
-```
+**Note:** Euclid requires Xcode 16+ to build, and runs on iOS 14+, macOS 10.15+ or tvOS 14+.
 
 To install using Carthage, add this to your Cartfile:
 
 ```ogdl
-github "nicklockwood/Euclid" ~> 0.8.19
+github "nicklockwood/Euclid" ~> 0.9.0
 ```
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.8.19")),
+.package(url: "https://github.com/nicklockwood/Euclid.git", .upToNextMinor(from: "0.9.0")),
 ```
 
 
@@ -78,4 +72,3 @@ Special thanks go to [Evan Wallace](https://github.com/evanw/), whose [JavaScrip
 Thanks also go to [Joseph Heck](https://github.com/heckj) for implementing the DocC documentation, [Andy Geers](https://github.com/andygeers) for several bug fixes and improvements, and [Patrick Goley](https://twitter.com/bitsbetweenbits) who first suggested "Euclid" for the library name.
 
 ([Full list of contributors](https://github.com/nicklockwood/Euclid/graphs/contributors))
-

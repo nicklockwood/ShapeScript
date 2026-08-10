@@ -63,6 +63,7 @@ public extension Mesh {
                 isWatertight: watertightIfSet.flatMap { isWatertight in
                     mesh.watertightIfSet.map { $0 && isWatertight }
                 },
+                isPlanar: nil,
                 submeshes: submeshesIfEmpty.flatMap { _ in
                     mesh.submeshesIfEmpty.map { _ in [self, mesh] }
                 }
@@ -92,6 +93,7 @@ public extension Mesh {
             bsp: nil, // TODO: Is there a cheap way to calculate this?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil // TODO: can this be preserved?
         )
     }
@@ -152,6 +154,7 @@ public extension Mesh {
             bsp: nil, // TODO: Is there a cheap way to calculate this?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: planarIfSet,
             submeshes: nil // TODO: can this be preserved?
         )
     }
@@ -214,6 +217,7 @@ public extension Mesh {
             bsp: nil, // TODO: Is there a cheap way to calculate this?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: nil,
             submeshes: nil // TODO: can this be preserved?
         )
     }
@@ -271,6 +275,9 @@ public extension Mesh {
             bsp: nil, // TODO: Is there a cheap way to calculate this?
             isConvex: isKnownConvex && mesh.isKnownConvex,
             isWatertight: nil,
+            isPlanar: planarIfSet.flatMap { lhs in
+                mesh.planarIfSet.map { rhs in lhs || rhs }
+            },
             submeshes: nil // TODO: can this be preserved?
         )
     }
@@ -326,6 +333,7 @@ public extension Mesh {
             bsp: nil, // TODO: Would it be safe to keep this?
             isConvex: isKnownConvex,
             isWatertight: nil, // TODO: figure out why stencil creates holes
+            isPlanar: planarIfSet,
             submeshes: submeshesIfEmpty
         )
     }
@@ -373,6 +381,7 @@ public extension Mesh {
     ) -> Mesh {
         var best: Mesh?
         var bestIndex: Int?
+        let meshes = meshes.filter { !$0.isEmpty }
         for (i, mesh) in meshes.enumerated() where mesh.isKnownConvex && mesh.isWatertight {
             if best?.polygons.count ?? 0 > mesh.polygons.count {
                 continue
@@ -380,11 +389,47 @@ public extension Mesh {
             best = mesh
             bestIndex = i
         }
+        if let best, meshes.count == 1 {
+            return best
+        }
         let polygons = meshes.enumerated().flatMap { i, mesh in
             i == bestIndex ? [] : mesh.polygons
         }
         let bounds = Bounds(meshes)
-        return .convexHull(of: polygons, with: best, bounds: bounds, isCancelled)
+        let sourcePolygonCount = polygons.count + (best?.polygons.count ?? 0)
+        // This is a runaway detector for the optimized seeded hull path.
+        // The seeded path should reduce work by reusing an input hull.
+        // If the intermediate hull grows larger than the input boundary, regular coplanar point
+        // sets are likely dominating. In that case retry the same seeded hull with scattered
+        // insertion order, then use the vertex-set hull as the last fallback.
+        // Keep a small floor so low-poly hulls are not diverted prematurely.
+        let polygonLimit = Swift.max(sourcePolygonCount, 2_000)
+        let mesh = convexHull(
+            of: polygons,
+            with: best,
+            bounds: bounds,
+            polygonLimit: polygonLimit,
+            scatterInsertion: false,
+            isCancelled
+        )
+        if !mesh.isEmpty || isCancelled() {
+            return mesh
+        }
+        let scatteredMesh = convexHull(
+            of: polygons,
+            with: best,
+            bounds: bounds,
+            polygonLimit: polygonLimit,
+            scatterInsertion: true,
+            isCancelled
+        )
+        if !scatteredMesh.isEmpty || isCancelled() {
+            return scatteredMesh
+        }
+        return .convexHull(
+            of: meshes.flatMap { $0.polygons.flatMap(\.vertices) },
+            isCancelled: isCancelled
+        )
     }
 
     /// Computes the convex hull of a set of polygons.
@@ -505,6 +550,9 @@ public extension Mesh {
                 // Preserve concavity
                 return mesh.minkowskiSum(with: self)
             }
+            if polygons.count < mesh.polygons.count {
+                return mesh.minkowskiSum(with: self, isCancelled: isCancelled)
+            }
             let vertices = Set(mesh.polygons.flatMap {
                 $0.vertices.map { Vertex($0.position, color: $0.color) }
             }).sorted(by: { $0.position < $1.position })
@@ -526,6 +574,12 @@ public extension Mesh {
         of meshes: some Collection<Mesh>,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
+        let meshes = meshes.sorted {
+            if $0.polygons.count != $1.polygons.count {
+                return $0.polygons.count > $1.polygons.count
+            }
+            return $0.bounds.size < $1.bounds.size
+        }
         guard let first = meshes.first else {
             return .empty
         }
@@ -564,12 +618,6 @@ public extension Mesh {
         })
     }
 
-    /// Deprecated.
-    @available(*, deprecated, renamed: "minkowskiSum(with:isCancelled:)")
-    func minkowskiSum(along path: Path, isCancelled: CancellationHandler = { false }) -> Mesh {
-        minkowskiSum(with: path, isCancelled: isCancelled)
-    }
-
     /// Computes the Minkowski sum of the receiver and a polygon.
     /// - Parameter polygon: The polygon with which to sum the mesh.
     /// - Returns: A new mesh representing the Minkowski sum of the inputs.
@@ -590,12 +638,6 @@ public extension Mesh {
             translated(by: edge.start),
             translated(by: edge.end),
         ])
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "minkowskiSum(with:isCancelled:)")
-    func minkowskiSum(along edge: LineSegment) -> Mesh {
-        minkowskiSum(with: edge)
     }
 
     /// Returns a new mesh representing the Minkowski difference of the
@@ -657,6 +699,7 @@ public extension Mesh {
                     bsp: nil, // TODO: can we compute this cheaply?
                     isConvex: isKnownConvex,
                     isWatertight: nil,
+                    isPlanar: planarIfSet == true ? true : nil,
                     submeshes: nil
                 ),
                 Mesh(
@@ -665,6 +708,7 @@ public extension Mesh {
                     bsp: nil, // TODO: can we compute this cheaply?
                     isConvex: isKnownConvex,
                     isWatertight: nil,
+                    isPlanar: planarIfSet == true ? true : nil,
                     submeshes: nil
                 )
             )
@@ -702,6 +746,7 @@ public extension Mesh {
                 bsp: nil, // TODO: can we compute this cheaply?
                 isConvex: isKnownConvex,
                 isWatertight: nil,
+                isPlanar: planarIfSet == true ? true : nil,
                 submeshes: isKnownConvex ? submeshesIfEmpty : nil
             )
             guard let material = fill else {
@@ -737,15 +782,10 @@ public extension Mesh {
                 bsp: nil,
                 isConvex: isKnownConvex,
                 isWatertight: isWatertight,
+                isPlanar: planarIfSet == true ? true : nil,
                 submeshes: isKnownConvex ? submeshesIfEmpty : nil
             )
         }
-    }
-
-    /// Deprecated.
-    @available(*, deprecated, renamed: "clipped(to:fill:)")
-    func clip(to plane: Plane, fill: Material? = nil) -> Mesh {
-        clipped(to: plane, fill: fill)
     }
 
     /// Computes a set of edges where the mesh intersects a plane.
@@ -783,6 +823,7 @@ public extension Mesh {
             bsp: nil, // TODO: Is there a cheaper way to calculate this?
             isConvex: false,
             isWatertight: nil,
+            isPlanar: planarIfSet == true ? true : nil,
             submeshes: nil
         )
     }
@@ -884,10 +925,16 @@ private extension Mesh {
         return m
     }
 
+    /// Computes a convex hull by seeding from an existing convex mesh and adding candidate polygons.
+    /// - Parameters:
+    ///   - polygonLimit: Optional cap for the intermediate hull size. Returns an empty mesh if limit is exceeded.
+    ///   - scatterInsertion: When true, inserts candidate vertices in a pseudorandom order instead of outside-in.
     static func convexHull(
         of polygonsToAdd: [Polygon],
         with startingMesh: Mesh?,
         bounds: Bounds?,
+        polygonLimit: Int? = nil,
+        scatterInsertion: Bool = false,
         _ isCancelled: CancellationHandler
     ) -> Mesh {
         assert(startingMesh?.isConvex() != false)
@@ -919,17 +966,38 @@ private extension Mesh {
         let verticesByPosition = sourcePolygons.needsHullNormalReconstruction ?
             sourcePolygons.hullVertexMatchesByPosition() :
             sourcePolygons.hullVertexMatchesByPositionWithoutReconstruction()
-        // Add remaining polygons
-        // Note: no need to use a VertexSet here as vertex positions should already
-        // be unique, but perhaps there is an opportunity to merge some things?
+        // Source meshes often enumerate vertices in regular rings. Adding those points in
+        // mesh order can build many temporary coplanar faces before the outer hull is known,
+        // so insert the unique candidate vertices from the outside in instead.
         var pointSet = Set(polygons.flatMap { $0.vertices.map(\.position) })
-        for polygon in polygonsToAdd where !isCancelled() {
+        let center = Bounds(sourcePolygons).center
+        var verticesToAdd = [(vertex: Vertex, material: Polygon.Material?)]()
+        for polygon in polygonsToAdd {
             for vertex in polygon.vertices where pointSet.insert(vertex.position).inserted {
-                polygons.addPoint(
-                    vertex.position,
-                    material: polygon.material,
-                    verticesByPosition: verticesByPosition
+                verticesToAdd.append((vertex, polygon.material))
+            }
+        }
+        if scatterInsertion {
+            verticesToAdd.sort {
+                hullInsertionHash($0.vertex.position) < hullInsertionHash($1.vertex.position)
+            }
+        } else {
+            verticesToAdd.sort {
+                hullInsertionPrecedes(
+                    $0.vertex.position,
+                    $1.vertex.position,
+                    center: center
                 )
+            }
+        }
+        for (vertex, material) in verticesToAdd where !isCancelled() {
+            polygons.addPoint(
+                vertex.position,
+                material: material,
+                verticesByPosition: verticesByPosition
+            )
+            if let polygonLimit, polygons.count > polygonLimit {
+                return .empty
             }
         }
         return Mesh(
@@ -938,6 +1006,7 @@ private extension Mesh {
             bsp: nil,
             isConvex: true,
             isWatertight: true,
+            isPlanar: nil, // TODO: can we compute this cheaply?
             submeshes: []
         )
     }
@@ -1019,10 +1088,14 @@ private extension Mesh {
             return .empty
         }
         polygons += [triangle, inverse]
+        let center = Bounds(points + [a, b, c]).center
+        points.sort {
+            hullInsertionPrecedes($0, $1, center: center)
+        }
 
         // Add remaining points
         for (i, point) in points.enumerated() {
-            if i.isMultiple(of: 100), isCancelled() {
+            if i.isMultiple(of: cancellationCheckInterval), isCancelled() {
                 return .empty
             }
             polygons.addPoint(
@@ -1037,8 +1110,28 @@ private extension Mesh {
             bsp: nil,
             isConvex: true,
             isWatertight: nil,
+            isPlanar: nil, // TODO: can we compute this cheaply?
             submeshes: []
         )
+    }
+
+    // Orders hull points from the outside in, with a deterministic tie-breaker for regular rings.
+    static func hullInsertionPrecedes(_ lhs: Vector, _ rhs: Vector, center: Vector) -> Bool {
+        let lDistance = lhs.distance(from: center)
+        let rDistance = rhs.distance(from: center)
+        if abs(lDistance - rDistance) > planeEpsilon {
+            return lDistance > rDistance
+        }
+        return hullInsertionHash(lhs) < hullInsertionHash(rhs)
+    }
+
+    // Produces a stable coordinate hash used to scatter otherwise adjacent hull points.
+    static func hullInsertionHash(_ point: Vector) -> UInt64 {
+        var hash: UInt64 = 0
+        hash = deterministicHash(hash ^ point.x.bitPattern)
+        hash = deterministicHash(hash ^ point.y.bitPattern)
+        hash = deterministicHash(hash ^ point.z.bitPattern)
+        return hash
     }
 }
 
@@ -1090,9 +1183,10 @@ private extension [Polygon] {
             addTriangles(with: facing.boundingEdges, faceNormal: nil)
             return
         }
-        // Only add coplanar points if the triangle is added to both sides
-        // TODO: make this check more robust, e.g. check each coplanar polygon has a counterpart
-        guard !coplanar.isEmpty, coplanar.count % 2 == 0, abs(signedVolume) < epsilon else {
+        // Coplanar expansion is only valid for genuinely planar hulls. In a 3D hull, a
+        // coplanar hit means the point is already on an existing face and should not grow
+        // side faces; doing so is what lets regular sphere rings explode in polygon count.
+        guard !coplanar.isEmpty, coplanar.count % 2 == 0, arePlanar else {
             return
         }
         for (plane, polygons) in coplanar {

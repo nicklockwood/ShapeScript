@@ -4,6 +4,11 @@ import PackageDescription
 
 let package = Package(
     name: "Euclid",
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v14),
+        .tvOS(.v14),
+    ],
     products: [
         .library(name: "Euclid", targets: ["Euclid"]),
     ],
@@ -15,8 +20,7 @@ let package = Package(
         .testTarget(
             name: "EuclidTests",
             dependencies: ["Euclid"],
-            path: "Tests",
-            exclude: ["Cube.stl"]
+            path: "Tests"
         ),
     ]
 )
