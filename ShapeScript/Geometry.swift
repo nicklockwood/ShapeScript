@@ -1049,16 +1049,15 @@ private extension Geometry {
         }
         var m = self.material
         if let material, case let .mesh(mesh) = type {
-            if m.opacity?.opacity ?? 1 == 1 {
+            if m.opacityPropertyAverageOpacity == 1 {
                 m.opacity = material.opacity
             } else if material.opacity?.color != nil {
-                let opacity = material.opacity?.opacity ?? 1
+                let opacity = material.opacity?.averageOpacity ?? 1
                 switch m.opacity ?? .color(.white) {
                 case let .color(color):
                     let opacity = color.alpha * opacity
                     m.opacity = .color(.init(white: opacity, alpha: opacity))
                 case let .texture(texture):
-                    // Since user cannot specify texture opacity, this should always be 1
                     let opacity = texture.intensity * opacity
                     m.opacity = .texture(texture.withIntensity(opacity))
                 }

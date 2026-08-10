@@ -28,6 +28,11 @@ public extension MaterialProperty {
 }
 
 public extension Color {
+    var luminance: Double {
+        // https://en.wikipedia.org/wiki/Rec._709
+        red * 0.2126 + green * 0.7152 + blue * 0.0722
+    }
+
     func brightness(over background: Color) -> Double {
         brightness * alpha + background.brightness * (1 - alpha)
     }

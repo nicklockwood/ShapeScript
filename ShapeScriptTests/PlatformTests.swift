@@ -81,9 +81,50 @@ final class PlatformTests: XCTestCase {
         let maskData = try XCTUnwrap(scnMaterial.transparent.contents as? Data)
 
         XCTAssertFalse(material.isOpaque)
-        XCTAssertEqual(texture.averageOpacity ?? 0, 0.5, accuracy: 0.01)
+        XCTAssertEqual(material.opacity?.averageOpacity ?? 0, 1, accuracy: 0.01)
+        XCTAssertEqual(material.opacity?.averageLuminance ?? 0, 0.5, accuracy: 0.01)
+        XCTAssertEqual(material.averageOpacity, 0.5, accuracy: 0.01)
+        XCTAssertEqual(texture.averageOpacity, 1, accuracy: 0.01)
+        XCTAssertEqual(texture.averageLuminance, 0.5, accuracy: 0.01)
         XCTAssertNotEqual(maskData, data)
-        XCTAssertEqual(Texture.data(maskData).averageOpacity ?? 0, 0.5, accuracy: 0.01)
+        XCTAssertEqual(Texture.data(maskData).averageOpacity, 0.5, accuracy: 0.01)
+    }
+
+    func testOpaqueAlbedoTextureDoesNotAffectMaterialOpacity() throws {
+        let data = try pngData(pixels: [
+            .init(red: 16, green: 16, blue: 16, alpha: 255),
+        ])
+        var material = Material.default
+        material.albedo = .texture(.data(data))
+
+        XCTAssertTrue(material.isOpaque)
+        XCTAssertTrue(material.isVisible)
+    }
+
+    func testSceneBuildPreservesDepthWritesForOpaquePlanarTexturedGeometry() throws {
+        let data = try pngData(pixels: [
+            .init(red: 16, green: 16, blue: 16, alpha: 255),
+        ])
+        var material = Material.default
+        material.albedo = .texture(.data(data))
+        let textured = Geometry(
+            type: .mesh(Mesh.fill(Path.rectangle(width: 1, height: 1))),
+            name: nil,
+            transform: .identity,
+            material: material,
+            smoothing: nil,
+            children: [],
+            sourceLocation: nil
+        )
+        let opaque = cube(material: Material(color: .blue))
+        let scene = Scene(background: .color(.clear), children: [textured, opaque], cache: nil)
+
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+
+        let scnMaterial: SCNMaterial = try XCTUnwrap(textured.scnGeometry.materials.first)
+        XCTAssertTrue(textured.isOpaque)
+        XCTAssertTrue(scnMaterial.writesToDepthBuffer)
     }
 
     func testTextureAverageColor() throws {

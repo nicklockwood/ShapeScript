@@ -27,15 +27,6 @@ public extension MaterialProperty {
         }
     }
 
-    var opacity: Double {
-        switch self {
-        case let .color(color):
-            color.alpha
-        case let .texture(texture):
-            texture.averageOpacity ?? 1
-        }
-    }
-
     var color: Color? {
         switch self {
         case let .color(color):
@@ -51,6 +42,26 @@ public extension MaterialProperty {
             texture
         case .color:
             nil
+        }
+    }
+}
+
+extension MaterialProperty {
+    var averageOpacity: Double {
+        switch self {
+        case let .color(color):
+            color.alpha
+        case let .texture(texture):
+            texture.averageOpacity
+        }
+    }
+
+    var averageLuminance: Double {
+        switch self {
+        case let .color(color):
+            color.luminance
+        case let .texture(texture):
+            texture.averageLuminance
         }
     }
 }
@@ -79,11 +90,11 @@ public extension Material {
     }
 
     var isOpaque: Bool {
-        (opacity?.opacity ?? 1) * (albedo?.opacity ?? 1) > 0.999
+        averageOpacity > 0.999
     }
 
     var isVisible: Bool {
-        (opacity?.opacity ?? 1) * (albedo?.opacity ?? 1) > 0.001
+        averageOpacity > 0.001
     }
 
     var color: Color? {
@@ -92,5 +103,21 @@ public extension Material {
 
     var texture: Texture? {
         albedo?.texture
+    }
+}
+
+extension Material {
+    var averageOpacity: Double {
+        opacityPropertyAverageOpacity * (albedo?.averageOpacity ?? 1)
+    }
+
+    /// Opacity properties use alpha when present; opaque properties fall back
+    /// to luminance so grayscale opacity masks work without alpha channels.
+    var opacityPropertyAverageOpacity: Double {
+        guard let opacity else {
+            return 1
+        }
+        let alphaOpacity = opacity.averageOpacity
+        return alphaOpacity < 1 ? alphaOpacity : opacity.averageLuminance
     }
 }

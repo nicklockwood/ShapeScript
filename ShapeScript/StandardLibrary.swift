@@ -141,7 +141,6 @@ extension Symbols {
             case let .color(color):
                 return .number(color.alpha / context.state.opacity)
             case let .texture(texture):
-                // Since user cannot specify texture opacity, this should always be 1
                 let opacity = texture.intensity / context.state.opacity
                 return .texture(texture.withIntensity(opacity))
             }

@@ -31,6 +31,7 @@ private extension Texture {
         #if canImport(CoreGraphics) && canImport(ImageIO)
         fileprivate typealias OpacityValues = (
             averageOpacity: Double,
+            averageLuminance: Double,
             luminanceAlphaMaskData: Data?
         )
 
@@ -102,8 +103,12 @@ extension Texture {
         info.averageColor
     }
 
-    var averageOpacity: Double? {
+    var averageOpacity: Double {
         info.averageOpacity
+    }
+
+    var averageLuminance: Double {
+        info.averageLuminance
     }
 
     var opacityMaskData: Data? {
@@ -122,22 +127,34 @@ extension Texture.Info {
         return averageColorIfSet
     }
 
-    var averageOpacity: Double? {
-        opacityValues?.averageOpacity
+    var averageOpacity: Double {
+        opacityValues.averageOpacity
+    }
+
+    var averageLuminance: Double {
+        opacityValues.averageLuminance
     }
 
     var luminanceAlphaMaskData: Data? {
-        opacityValues?.luminanceAlphaMaskData
+        opacityValues.luminanceAlphaMaskData
     }
 
-    private var opacityValues: OpacityValues? {
+    private var opacityValues: OpacityValues {
         opacityLock.lock()
         defer { opacityLock.unlock() }
         if !hasLoadedOpacityValues {
-            opacityValuesIfSet = cgImage?.opacityValues
+            opacityValuesIfSet = cgImage?.opacityValues ?? (
+                averageOpacity: 1,
+                averageLuminance: 1,
+                luminanceAlphaMaskData: nil
+            )
             hasLoadedOpacityValues = true
         }
-        return opacityValuesIfSet
+        return opacityValuesIfSet ?? (
+            averageOpacity: 1,
+            averageLuminance: 1,
+            luminanceAlphaMaskData: nil
+        )
     }
 
     private var cgImage: CGImage? {
@@ -181,7 +198,7 @@ private extension CGImage {
         )
     }
 
-    var opacityValues: Texture.Info.OpacityValues? {
+    var opacityValues: Texture.Info.OpacityValues {
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
         var components = [UInt8](repeating: 0, count: height * bytesPerRow)
@@ -194,7 +211,11 @@ private extension CGImage {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            return nil
+            return (
+                averageOpacity: 1,
+                averageLuminance: 1,
+                luminanceAlphaMaskData: nil
+            )
         }
 
         let rect = CGRect(x: 0, y: 0, width: width, height: height)
@@ -204,11 +225,12 @@ private extension CGImage {
         var luminanceTotal = 0
         var hasTransparentAlpha = false
         for index in stride(from: 0, to: components.count, by: bytesPerPixel) {
-            let red = Int(components[index])
-            let green = Int(components[index + 1])
-            let blue = Int(components[index + 2])
+            let red = Double(components[index]) / 255
+            let green = Double(components[index + 1]) / 255
+            let blue = Double(components[index + 2]) / 255
             let alpha = Int(components[index + 3])
-            let luminance = (red * 54 + green * 183 + blue * 19) / 256
+            let color = Color(red: red, green: green, blue: blue)
+            let luminance = Int(color.luminance * 255)
             alphaTotal += alpha
             luminanceTotal += luminance
             hasTransparentAlpha = hasTransparentAlpha || alpha < 255
@@ -216,19 +238,22 @@ private extension CGImage {
 
         let pixelCount = max(width * height, 1)
         let averageOpacity: Double
+        let averageLuminance = Double(luminanceTotal) / Double(pixelCount * 255)
         if hasTransparentAlpha {
             averageOpacity = Double(alphaTotal) / Double(pixelCount * 255)
             return (
                 averageOpacity: averageOpacity,
+                averageLuminance: averageLuminance,
                 luminanceAlphaMaskData: nil
             )
         }
 
         for index in stride(from: 0, to: components.count, by: bytesPerPixel) {
-            let red = Int(components[index])
-            let green = Int(components[index + 1])
-            let blue = Int(components[index + 2])
-            let luminance = UInt8((red * 54 + green * 183 + blue * 19) / 256)
+            let red = Double(components[index]) / 255
+            let green = Double(components[index + 1]) / 255
+            let blue = Double(components[index + 2]) / 255
+            let color = Color(red: red, green: green, blue: blue)
+            let luminance = UInt8(color.luminance * 255)
             components[index] = luminance
             components[index + 1] = luminance
             components[index + 2] = luminance
@@ -244,23 +269,35 @@ private extension CGImage {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ), let image = context.makeImage() else {
-            return nil
+            return (
+                averageOpacity: 1,
+                averageLuminance: averageLuminance,
+                luminanceAlphaMaskData: nil
+            )
         }
 
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             data, "public.png" as CFString, 1, nil
         ) else {
-            return nil
+            return (
+                averageOpacity: 1,
+                averageLuminance: averageLuminance,
+                luminanceAlphaMaskData: nil
+            )
         }
         CGImageDestinationAddImage(destination, image, nil)
         guard CGImageDestinationFinalize(destination) else {
-            return nil
+            return (
+                averageOpacity: 1,
+                averageLuminance: averageLuminance,
+                luminanceAlphaMaskData: nil
+            )
         }
 
-        averageOpacity = Double(luminanceTotal) / Double(pixelCount * 255)
         return (
-            averageOpacity: averageOpacity,
+            averageOpacity: 1,
+            averageLuminance: averageLuminance,
             luminanceAlphaMaskData: data as Data
         )
     }
@@ -280,8 +317,12 @@ extension Texture {
         Color(0.5, 0.5, 0.5)
     }
 
-    var averageOpacity: Double? {
-        averageColor?.alpha
+    var averageOpacity: Double {
+        averageColor?.alpha ?? 1
+    }
+
+    var averageLuminance: Double {
+        averageColor?.luminance ?? 1
     }
 
     var opacityMaskData: Data? {
