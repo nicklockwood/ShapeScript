@@ -23,11 +23,12 @@ typealias OSImage = NSImage
 private extension SCNGeometry {
     convenience init(_ mesh: Mesh, for geometry: Geometry, writesToDepthBuffer: Bool) {
         self.init(mesh, materialLookup: {
-            SCNMaterial(
-                $0 as? Material ?? geometry.material,
-                isOpaque: geometry.isOpaque,
-                writesToDepthBuffer: writesToDepthBuffer && (
-                    geometry.isOpaque || !mesh.isPlanar
+            let material = $0 as? Material ?? geometry.material
+            return SCNMaterial(
+                material,
+                isOpaque: material.isOpaque,
+                writesToDepthBuffer: material.isOpaque || (
+                    writesToDepthBuffer && !mesh.isPlanar
                 )
             )
         })

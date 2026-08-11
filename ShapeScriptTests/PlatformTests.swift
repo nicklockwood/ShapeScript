@@ -33,7 +33,7 @@ final class PlatformTests: XCTestCase {
         let opaque = SCNMaterial(Material(color: .red), isOpaque: true)
         let opaqueWithinTransparentGeometry = SCNMaterial(
             Material(color: .red),
-            isOpaque: false,
+            isOpaque: true,
             writesToDepthBuffer: false
         )
         let transparent = SCNMaterial(
@@ -48,7 +48,7 @@ final class PlatformTests: XCTestCase {
         )
 
         XCTAssertTrue(opaque.writesToDepthBuffer)
-        XCTAssertFalse(opaqueWithinTransparentGeometry.writesToDepthBuffer)
+        XCTAssertTrue(opaqueWithinTransparentGeometry.writesToDepthBuffer)
         XCTAssertTrue(transparent.writesToDepthBuffer)
         XCTAssertTrue(textured.writesToDepthBuffer)
         XCTAssertEqual(transparent.transparencyMode, .dualLayer)
@@ -149,6 +149,34 @@ final class PlatformTests: XCTestCase {
 
         let material = try XCTUnwrap(transparent.scnGeometry.materials.first)
         XCTAssertFalse(material.writesToDepthBuffer)
+    }
+
+    func testSceneBuildPreservesDepthBufferWritesForOpaqueMaterialsInMixedGeometry() throws {
+        let scene = try evaluate(parse("""
+        union {
+            color red
+            opacity 0.5
+            cube {
+                position -1
+            }
+            color blue
+            opacity 1
+            cube {
+                position 1
+            }
+        }
+        cube
+        """), delegate: nil)
+
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+
+        let mixedGeometry = try XCTUnwrap(scene.children.first)
+        let materials = mixedGeometry.scnGeometry.materials
+
+        XCTAssertEqual(materials.count, 2)
+        XCTAssertEqual(materials.map(\.writesToDepthBuffer).filter { $0 }.count, 1)
+        XCTAssertEqual(materials.map(\.isDoubleSided).filter { $0 }.count, 1)
     }
 
     func testSceneBuildPreservesDepthBufferWritesForSeparateTransparentGeometry() throws {
