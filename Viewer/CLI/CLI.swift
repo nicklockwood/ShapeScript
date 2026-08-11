@@ -88,23 +88,14 @@ final class CLI {
             let scene = try evaluate(program, delegate: self, cache: cache) { false }
             print("Building geometry ...")
             _ = scene.build { false }
-            let geometry = Geometry(
-                type: .group,
-                name: nil,
-                transform: .identity,
-                material: .default,
-                smoothing: nil,
-                children: scene.children,
-                sourceLocation: nil
-            )
             guard let outputURL else {
                 // Show model info
-                print(geometry.modelInfo)
+                print(scene.geometry.modelInfo)
                 return
             }
             // Export model
             print("Exporting to '\(outputURL.lastPathComponent)' ...")
-            try export(geometry, to: outputURL, with: exportOptions)
+            try export(scene, to: outputURL, with: exportOptions)
             print("Export complete")
         } catch let error as CLIError {
             throw error

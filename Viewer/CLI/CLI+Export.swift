@@ -32,7 +32,8 @@ extension ExportOptions {
 extension CLI {
     static let exportTypes: [String] = ["stl", "stla"]
 
-    func export(_ geometry: Geometry, to url: URL, with options: ExportOptions) throws {
+    func export(_ scene: Scene, to url: URL, with options: ExportOptions) throws {
+        let geometry = scene.geometry
         var mesh = geometry.merged()
         if options.convertToZUp {
             mesh.rotate(by: .pitch(.degrees(-90)))
