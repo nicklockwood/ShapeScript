@@ -149,13 +149,13 @@ For example, the `sin` (sine) function takes a radian representation of an angle
 
 ```swift
 sin 0.524 // returns 0.5
-``` 
+```
 
 The `acos` (arc cosine) function takes a ratio representation of an angle and returns a radians value of that angle. In this case 1/2 or 0.5 returns 1.047 radians - equivalent to an angle of 60 degrees:
 
 ```swift
 acos 0.5 // return 1.047
-``` 
+```
 
 The `cos` (cosine), `sin` (sine), and `tan` (tangent) functions all take a radians value and return a ratio value, and the `asin` (arc sine), `acos` (arc cosine), and `atan` (arc tangent) functions all take a ratio value and return a radians value.
 
@@ -198,7 +198,7 @@ Half-turns to radians | radians = halfturns * pi
 
 Common values:
 
-Angle in degrees | Angle in radians | Angle in half-turns 
+Angle in degrees | Angle in radians | Angle in half-turns
 :--------------- | :--------------- | :------------------
 0                | 0                | 0
 30               | pi / 6 (0.524)   | 1 / 6 (0.167)

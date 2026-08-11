@@ -27,7 +27,7 @@ To solve this, you can reduce the intensity of the light by setting its color:
 
 ```swift
 light {
-    color 0.5 // 50% intensity    
+    color 0.5 // 50% intensity
 }
 ```
 
@@ -35,7 +35,7 @@ The `color` parameter of the light behaves just like any other [color](materials
 
 ```swift
 light {
-    color 1 0 1 // purple light   
+    color 1 0 1 // purple light
 }
 
 light {
@@ -47,7 +47,7 @@ Alpha transparency isn't really meaningful in the context of a light source, so 
 
 ```swift
 light {
-    color 1 0.5 // white light with 50% intensity    
+    color 1 0.5 // white light with 50% intensity
 }
 
 light {

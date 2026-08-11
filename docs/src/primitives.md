@@ -92,7 +92,7 @@ icosphere {
 
 ## Cylinder
 
-The `cylinder` primitive creates a flat-ended cylinder. 
+The `cylinder` primitive creates a flat-ended cylinder.
 
 ```swift
 cylinder { size 1 }

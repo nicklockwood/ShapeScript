@@ -75,11 +75,11 @@ cube {
     orientation { yaw 0.5 } // rotates the cube 90 degrees around the Y axis
 }
 
-cube { 
+cube {
     orientation { // rotates around a diagonal axis
         pitch 0.4
         roll 0.6
-    } 
+    }
 }
 ```
 

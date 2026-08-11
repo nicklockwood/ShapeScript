@@ -482,6 +482,7 @@ final class MetadataTests: XCTestCase {
     }
 
     func testExportHelp() throws {
+        try stripTrailingWhitespace(in: helpSourceDirectory)
         guard try !gitTagExists(projectVersion) else {
             return
         }
@@ -489,6 +490,28 @@ final class MetadataTests: XCTestCase {
         try exportIOSHelp()
         try exportMacHelp()
         try exportVersionedHelp()
+    }
+
+    func stripTrailingWhitespace(in directory: URL) throws {
+        let fm = FileManager.default
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: directory.path))
+        for case let file as String in enumerator where file.hasSuffix(".md") {
+            let fileURL = directory.appendingPathComponent(file)
+            let text = try String(contentsOf: fileURL)
+            let stripped = text
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .map { line -> String in
+                    var line = line
+                    while line.last == " " || line.last == "\t" {
+                        line.removeLast()
+                    }
+                    return String(line)
+                }
+                .joined(separator: "\n")
+            if stripped != text {
+                try stripped.write(to: fileURL, atomically: true, encoding: .utf8)
+            }
+        }
     }
 
     func updateHelpIndex() throws {

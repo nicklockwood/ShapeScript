@@ -47,7 +47,7 @@ If you want to loop in increments greater or less than 1, you can use the option
 
 ```swift
 for i in 1 to 5 step 2 {
-    print i // prints 1, 3, 5 
+    print i // prints 1, 3, 5
 }
 
 for i in 0 to 1 step 0.2 {
@@ -107,7 +107,7 @@ To execute code conditionally, you can use an `if` statement:
 define showCube true
 
 if showCube {
-    cube   
+    cube
 }
 ```
 
@@ -117,9 +117,9 @@ To perform an alternative action for when the condition is false, you can add an
 
 ```swift
 if showCube {
-    cube   
+    cube
 } else {
-    sphere   
+    sphere
 }
 ```
 
@@ -127,13 +127,13 @@ You can chain multiple conditional statements using the `else if` construct:
 
 ```swift
 if showCube {
-    cube   
+    cube
 } else if showSphere {
-    sphere   
+    sphere
 } else if showCone {
     cone
 } else {
-    print "Nothing to see here!"   
+    print "Nothing to see here!"
 }
 ```
 
@@ -197,7 +197,7 @@ define highlighted true
 if highlighted {
     define cubeColor red
 } else {
-    define cubeColor white  
+    define cubeColor white
 }
 
 cube cubeColor
@@ -211,7 +211,7 @@ define highlighted true
 define cubeColor if highlighted {
     red
 } else {
-    white  
+    white
 }
 
 cube { color cubeColor }

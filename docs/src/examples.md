@@ -53,7 +53,7 @@ The Spirals example demonstrates using the [extrude](builders.md#extrude) comman
 
 ## Spring
 
-The Spring example demonstrates how to use the [loft](builders.md#loft) command and a [for loop](control-flow.md#loops) to create a coiled spring shape. 
+The Spring example demonstrates how to use the [loft](builders.md#loft) command and a [for loop](control-flow.md#loops) to create a coiled spring shape.
 
 ![Spring](../images/spring.png)
 

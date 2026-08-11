@@ -15,7 +15,7 @@ mesh {
         point 0 0
         point 1 0
         point 1 1
-    }   
+    }
 }
 ```
 
@@ -51,7 +51,7 @@ mesh {
         point 1 0
         color blue
         point 1 1
-    }   
+    }
 }
 ```
 
@@ -85,7 +85,7 @@ mesh {
         point 1 1
         point 1 0
         point 0 0
-    } 
+    }
 }
 ```
 
@@ -149,7 +149,7 @@ mesh {
         sphere
         translate 0 1
         cube
-    }   
+    }
 }
 ```
 

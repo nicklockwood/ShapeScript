@@ -8,7 +8,7 @@ difference {
     cylinder {
         size 1 0.2
     }
-    
+
     // cylinder not visible in viewer
     cylinder {
         position 0.4
@@ -26,7 +26,7 @@ difference {
     cylinder {
         size 1 0.2
     }
-    
+
     // debug command makes cylinder visible
     debug cylinder {
         position 0.4
@@ -42,13 +42,13 @@ This makes the cylinder visible in the ShapeScript viewer and allows it to be se
 You can debug multiple shapes at once by using the `debug` command more than once, or by wrapping several shapes in a `debug` block:
 
 ```swift
-difference {   
+difference {
     // both child objects are now visible
     debug {
         cylinder {
             size 1 0.2
         }
-        
+
         cylinder {
             position 0.4
             size 1 0.2

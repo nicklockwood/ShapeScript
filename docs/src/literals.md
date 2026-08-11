@@ -190,7 +190,7 @@ define positions (
 
 for p in positions {
     cube {
-        position p 
+        position p
     }
 }
 ```

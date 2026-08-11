@@ -185,7 +185,7 @@ This approach also works for user-defined color constants, and with RGB and hexa
 
 ```swift
 define skyBlue 0.5 0.8 1 // opaque blue
-color skyBlue 0.5 // 50% transparent blue 
+color skyBlue 0.5 // 50% transparent blue
 
 color #ff0 0.5 // 50% transparent yellow
 ```

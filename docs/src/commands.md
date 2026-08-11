@@ -63,7 +63,7 @@ The `material` command (along with individual material property commands such as
 
 ## Font
 
-The `font`, command is used to specify the font used to render [text](text.md). 
+The `font`, command is used to specify the font used to render [text](text.md).
 
 ## Transforms
 

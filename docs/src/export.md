@@ -15,18 +15,18 @@ To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-
 
 ShapeScript can export your scene in a variety of formats, selectable from the export window:
 
-Extension             | File Type                                
+Extension             | File Type
 :-------------------- | :-------------------------------
-3mf                   | 3D Manufacturing Format 
-abc                   | Alembic                                          
-csg / scad            | OpenSCAD CSG                   
-dae                   | COLLADA Digital Asset Exchange                     
-obj                   | Wavefront Object                
-off                   | Object File Format    
-ply                   | Polygon File Format                       
-scn / scnz            | SceneKit Scene     
-stl / stla            | Stereolithography                       
-usd / usdz            | Universal Scene Description     
+3mf                   | 3D Manufacturing Format
+abc                   | Alembic
+csg / scad            | OpenSCAD CSG
+dae                   | COLLADA Digital Asset Exchange
+obj                   | Wavefront Object
+off                   | Object File Format
+ply                   | Polygon File Format
+scn / scnz            | SceneKit Scene
+stl / stla            | Stereolithography
+usd / usdz            | Universal Scene Description
 
 <br/>
 
@@ -54,15 +54,15 @@ ShapeScript scenes use the "Y-up" convention, where the Y-axis points up and the
 
 ## Plotters and CNC Machines
 
-Extension             | File Type                                
-:-------------------- | :-------------------------------                    
-svg                   | Scalable Vector Graphics   
+Extension             | File Type
+:-------------------- | :-------------------------------
+svg                   | Scalable Vector Graphics
 
 By selecting the SVG option, you can export your model as a 2D cross-section. Unlike the other model export formats, the SVG export option does not preserve any depth or material information, but simply takes a slice across the XY plane and captures a vector outline suitable for printing or carving by a [plotter](https://en.wikipedia.org/wiki/Plotter) or [CNC machine](https://en.wikipedia.org/wiki/Numerical_control).
 
 ## Image Formats
 
-In addition to 3D models and 2D vector paths, ShapeScript can also export bitmap images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window. 
+In addition to 3D models and 2D vector paths, ShapeScript can also export bitmap images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window.
 
 The following image formats are supported:
 
@@ -72,7 +72,7 @@ gif                   | Graphics Interchange Format                       | Yes
 png                   | Portable Network Graphics                         | Yes
 jpg / jpeg            | Joint Photographic Experts Group                  | No
 jpf / jp2             | JPEG 2000                                         | Yes
-tif / tiff            | Tagged Image File Format                          | Yes 
+tif / tiff            | Tagged Image File Format                          | Yes
 bmp                   | Bitmap                                            | No
 
 <br/>

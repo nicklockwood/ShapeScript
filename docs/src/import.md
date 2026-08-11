@@ -27,16 +27,16 @@ In this way, the loaded shape is bound to a symbol of your choice, and can be us
 
 The `import` command is not limited to loading `.shape` files, it can also load 3D models in a variety of standard formats:
 
-Extension             | File Type                                        
+Extension             | File Type
 :-------------------- | :------------------------------------------------
-abc                   | Alembic                                          
-dae                   | COLLADA Digital Asset Exchange                     
-obj                   | Wavefront Object                
-off                   | Object File Format    
-ply                   | Polygon File Format                       
-scn / scnz            | SceneKit Scene     
-stl / stla            | Stereolithography                       
-usd / usdz            | Universal Scene Description                     
+abc                   | Alembic
+dae                   | COLLADA Digital Asset Exchange
+obj                   | Wavefront Object
+off                   | Object File Format
+ply                   | Polygon File Format
+scn / scnz            | SceneKit Scene
+stl / stla            | Stereolithography
+usd / usdz            | Universal Scene Description
 
 <br/>
 

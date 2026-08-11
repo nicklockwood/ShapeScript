@@ -106,7 +106,7 @@ Arcs created by Bézier curves can approximate a circle, but not perfectly. If y
 
 ```swift
 arc {
-    angle 0.5   
+    angle 0.5
 }
 ```
 
@@ -255,7 +255,7 @@ path {
     for 0 to 8 {
         curve 0 1
         rotate 1 / 8
-    }   
+    }
 }
 ```
 

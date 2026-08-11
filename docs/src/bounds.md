@@ -75,7 +75,7 @@ star
 // draw rectangle around star
 square {
     position star.bounds.center
-    size star.bounds.size   
+    size star.bounds.size
 }
 ```
 
@@ -85,7 +85,7 @@ square {
 
 The `bounds` member property has the following sub-properties that you can use:
 
-* `min` - The position of the corner of the box with the smallest X, Y and Z values relative to the origin. 
+* `min` - The position of the corner of the box with the smallest X, Y and Z values relative to the origin.
 * `max` - The position of the corner of the box with the largest X, Y and Z values relative to the origin.
 * `center` - The position of the center of the box relative to the origin.
 * `size` - The size (width, height and depth) of the box in world units.

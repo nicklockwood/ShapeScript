@@ -14,7 +14,7 @@ fill path {
     for 0 to 5 {
         point 0 1
         rotate 2 / 5
-    }   
+    }
 }
 ```
 
