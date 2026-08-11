@@ -33,10 +33,19 @@ final class CLI {
     let inputURL: URL?
     let outputURL: URL?
     let exportOptions: ExportOptions
+    let shouldPrintVersion: Bool
+
+    private static let arguments = ["version"]
 
     init(in directory: String, with arguments: [String]) throws {
-        let argNames = ExportOptions.arguments.map(\.name)
+        let argNames = Self.arguments + ExportOptions.arguments.map(\.name)
         let args = try preprocessArguments(arguments, argNames)
+        self.shouldPrintVersion = try args["version"].map {
+            guard $0 == "" else {
+                throw CLIError("--version option does not expect a value")
+            }
+            return true
+        } ?? false
         self.inputURL = try args["1"].map {
             let url = expandPath($0, in: directory)
             guard url.pathExtension == "shape" else {
@@ -55,6 +64,11 @@ final class CLI {
     }
 
     func run() throws {
+        if shouldPrintVersion {
+            print(version)
+            return
+        }
+
         let args = ExportOptions.arguments
         let indent = args.map(\.name.count).max() ?? 0
         let help = args.map { name, help -> String in
