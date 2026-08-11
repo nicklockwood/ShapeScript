@@ -125,8 +125,8 @@ jobs:
       - name: Zip app
         run: |
           cd "$(dirname "${{ steps.export-app.outputs.app-path }}")"
-          zip -r --symlinks ShapeScript.Viewer.app.zip "ShapeScript Viewer.app"
-          echo "ZIP_PATH=$(pwd)/ShapeScript.Viewer.app.zip" >> $GITHUB_ENV
+          zip -r --symlinks "ShapeScriptViewer-macos.zip" "ShapeScript Viewer.app"
+          echo "ZIP_PATH=$(pwd)/ShapeScriptViewer-macos.zip" >> $GITHUB_ENV
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -186,24 +186,14 @@ jobs:
       - name: Zip Linux binary
         run: |
           chmod +x downloaded_artifacts/shapescript_linux/shapescript
-          zip -j shapescript_linux.zip downloaded_artifacts/shapescript_linux/shapescript
-
-      - name: Get release ID
-        id: get-release-id
-        run: |
-          if [ -n "${{ github.event.release.id }}" ]; then
-            echo "release-id=${{ github.event.release.id }}" >> $GITHUB_OUTPUT
-          else
-            RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/${{ inputs.tag }} --jq '.id')
-            echo "release-id=$RELEASE_ID" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          zip -j "ShapeScriptCLI-linux-x86_64.zip" downloaded_artifacts/shapescript_linux/shapescript
 
       - name: Upload release assets
-        uses: skx/github-action-publish-binaries@master
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          gh release upload "$TAG" \
+            "downloaded_artifacts/shapescript_viewer_macos/ShapeScriptViewer-macos.zip#ShapeScript Viewer for macOS" \
+            "ShapeScriptCLI-linux-x86_64.zip#ShapeScript CLI for Linux" \
+            --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          releaseId: ${{ steps.get-release-id.outputs.release-id }}
-          args: 'downloaded_artifacts/shapescript_viewer_macos/ShapeScript.Viewer.app.zip shapescript_linux.zip'

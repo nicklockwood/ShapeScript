@@ -20,10 +20,14 @@ jobs:
         run: |
           swift build --configuration release --static-swift-stdlib
           SWIFTFORMAT_BIN_PATH=`swift build --configuration release --show-bin-path`
-          mv $SWIFTFORMAT_BIN_PATH/shapescript "${HOME}/shapescript"
+          mkdir -p "${HOME}/release"
+          cp $SWIFTFORMAT_BIN_PATH/shapescript "${HOME}/release/shapescript"
+          chmod +x "${HOME}/release/shapescript"
+          cd "${HOME}/release"
+          zip -j "ShapeScriptCLI-linux-x86_64.zip" shapescript
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: shapescript_linux
-          path: ~/shapescript
+          name: ShapeScriptCLI-linux-x86_64
+          path: ~/release/ShapeScriptCLI-linux-x86_64.zip
           retention-days: 5
