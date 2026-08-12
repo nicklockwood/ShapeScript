@@ -177,7 +177,6 @@ ShapeScript Help
 - [Command Line Tool](cli.md)
     - [Installation](cli.md#installation)
     - [Usage](cli.md#usage)
-    - [Linux](cli.md#linux)
     - [Building from Source](cli.md#building-from-source)
 - [Examples](examples.md)
     - [Ball](examples.md#ball)
