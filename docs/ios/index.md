@@ -9,8 +9,7 @@ ShapeScript Help
     - [Debugging and Selection](getting-started.md#debugging-and-selection)
 - [Camera Control](camera-control.md)
     - [Camera Selection](camera-control.md#camera-selection)
-    - [Mouse Control](camera-control.md#mouse-control)
-    - [Trackpad Control](camera-control.md#trackpad-control)
+    - [Touch Controls](camera-control.md#touch-controls)
     - [Copy Settings](camera-control.md#copy-settings)
 - Geometry
     - [Primitives](primitives.md)
@@ -173,6 +172,7 @@ ShapeScript Help
     - [Plotters and CNC Machines](export.md#plotters-and-cnc-machines)
     - [Image Formats](export.md#image-formats)
     - [Image Options](export.md#image-options)
+- [Command Line Tool](cli.md)
 - [Examples](examples.md)
     - [Ball](examples.md#ball)
     - [Chessboard](examples.md#chessboard)

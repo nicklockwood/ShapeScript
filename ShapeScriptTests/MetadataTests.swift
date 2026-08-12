@@ -33,9 +33,6 @@ private let helpDirectory: URL = projectDirectory
 private let helpSourceDirectory: URL = helpDirectory
     .appendingPathComponent("src")
 
-private let helpIndexURL: URL = helpSourceDirectory
-    .appendingPathComponent("index.md")
-
 private let imagesDirectory: URL = helpDirectory
     .appendingPathComponent("images")
 
@@ -56,6 +53,8 @@ private let projectVersion: String = {
 
 private let shouldUpdateReleaseDocs =
     ProcessInfo.processInfo.environment["SHAPESCRIPT_UPDATE_RELEASE_DOCS"] == "1"
+
+private let docsVersionPlaceholder = "{{SHAPESCRIPT_DOCS_VERSION}}"
 
 private let changelogTitles: [Substring] = {
     let changelog = try! String(contentsOf: changelogURL, encoding: .utf8)
@@ -112,6 +111,11 @@ private let syntaxLinks: [(String, String)] = [
     ("Scope", "scope.md"),
     ("Debugging", "debugging.md"),
     ("Import", "import.md"),
+]
+
+private let exportLinks: [(String, String)] = [
+    ("Export", "export.md"),
+    ("Command Line Tool", "cli.md"),
 ]
 
 private let footerLinks: [(String, String)] = [
@@ -362,9 +366,7 @@ final class MetadataTests: XCTestCase {
     // MARK: Help
 
     func testHelpFooterLinks() throws {
-        let indexLinks = headerLinks + geometryLinks + syntaxLinks + [
-            ("Export", "export.md"),
-        ] + footerLinks
+        let indexLinks = headerLinks + geometryLinks + syntaxLinks + exportLinks + footerLinks
 
         let urlRegex = try NSRegularExpression(pattern: "Next: \\[([^\\]]+)\\]\\(([^\\)]*)\\)", options: [])
 
@@ -412,9 +414,15 @@ final class MetadataTests: XCTestCase {
                         url = fileURL.path
                     }
                 }
-                let absoluteURL = URL(fileURLWithPath: url, relativeTo: helpSourceDirectory)
+                let absoluteURL = URL(
+                    fileURLWithPath: url,
+                    relativeTo: fileURL.deletingLastPathComponent()
+                ).standardizedFileURL
                 if url.hasSuffix(".png") {
                     referencedImages.insert(absoluteURL.lastPathComponent)
+                }
+                if url == "index.md" {
+                    continue
                 }
                 guard fm.fileExists(atPath: absoluteURL.path) else {
                     XCTFail("\(url) referenced in \(file) does not exist")
@@ -485,12 +493,12 @@ final class MetadataTests: XCTestCase {
 
     func testExportHelp() throws {
         try stripTrailingWhitespace(in: helpSourceDirectory)
+        try exportIOSHelp()
+        try exportMacHelp()
+        try updateHelpIndexes()
         guard try !gitTagExists(projectVersion) else {
             return
         }
-        try updateHelpIndex()
-        try exportIOSHelp()
-        try exportMacHelp()
         try exportVersionedHelp()
     }
 
@@ -516,7 +524,7 @@ final class MetadataTests: XCTestCase {
         }
     }
 
-    func updateHelpIndex() throws {
+    func updateHelpIndexes() throws {
         func findSections(in string: String) -> [(String, String)] {
             findHeadings(in: string).compactMap { heading in
                 let fragment = heading.lowercased()
@@ -529,35 +537,50 @@ final class MetadataTests: XCTestCase {
             }
         }
 
-        func buildLinks(_ links: [(String, String)], indent: Int) throws -> String {
+        func buildLinks(_ links: [(String, String)], indent: Int, for platform: String) throws -> String {
             try links.map { heading, path in
                 let file = helpSourceDirectory.appendingPathComponent(path)
-                let text = try String(contentsOf: file)
+                var sourceFile = file
+                if platform == "ios" {
+                    let iosFile = file.appendingSuffix("-ios")
+                    if FileManager.default.fileExists(atPath: iosFile.path) {
+                        sourceFile = iosFile
+                    }
+                }
+                let text = try String(contentsOf: sourceFile)
+                let sections = findSections(in: text)
                 let indent = String(repeating: " ", count: indent * 4)
-                let links = findSections(in: text).map { subheading, fragment in
+                let links = sections.map { subheading, fragment in
                     "\n\(indent)    - [\(subheading)](\(path)#\(fragment))"
                 }.joined()
                 return "\(indent)- [\(heading)](\(path))" + links
             }.joined(separator: "\n")
         }
 
-        let index = try """
-        ShapeScript Help
-        ---
+        for platform in ["mac", "ios"] {
+            let index = try """
+            ShapeScript Help
+            ---
 
-        \(buildLinks(headerLinks, indent: 0))
-        - Geometry
-        \(buildLinks(geometryLinks, indent: 1))
-        - Syntax
-        \(buildLinks(syntaxLinks, indent: 1))
-        \(buildLinks([("Export", "export.md")], indent: 0))
-        \(buildLinks(footerLinks, indent: 0))
+            \(buildLinks(headerLinks, indent: 0, for: platform))
+            - Geometry
+            \(buildLinks(geometryLinks, indent: 1, for: platform))
+            - Syntax
+            \(buildLinks(syntaxLinks, indent: 1, for: platform))
+            \(buildLinks(exportLinks, indent: 0, for: platform))
+            \(buildLinks(footerLinks, indent: 0, for: platform))
 
-        """
+            """
 
-        let existing = try String(contentsOf: helpIndexURL)
-        XCTAssertEqual(existing, index)
-        try index.write(to: helpIndexURL, atomically: true, encoding: .utf8)
+            let outputURL = helpDirectory
+                .appendingPathComponent(platform)
+                .appendingPathComponent("index.md")
+            if FileManager.default.fileExists(atPath: outputURL.path) {
+                let existing = try String(contentsOf: outputURL)
+                XCTAssertEqual(existing, index)
+            }
+            try index.write(to: outputURL, atomically: true, encoding: .utf8)
+        }
     }
 
     func exportMacHelp() throws {
@@ -574,8 +597,11 @@ final class MetadataTests: XCTestCase {
                 enumerator.skipDescendants()
                 continue
             }
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+                .replacingOccurrences(of: docsVersionPlaceholder, with: projectVersion)
+            XCTAssertFalse(text.contains(docsVersionPlaceholder), "Unresolved docs version in \(file)")
             let outputURL = outputDirectory.appendingPathComponent(file)
-            try fm.copyItem(at: fileURL, to: outputURL)
+            try text.write(to: outputURL, atomically: true, encoding: .utf8)
         }
     }
 
@@ -642,6 +668,16 @@ final class MetadataTests: XCTestCase {
                 }
             }
             let outputURL = outputDirectory.appendingPathComponent(file)
+            nsText.replaceOccurrences(
+                of: docsVersionPlaceholder,
+                with: projectVersion,
+                options: [],
+                range: NSRange(location: 0, length: nsText.length)
+            )
+            XCTAssertFalse(
+                (nsText as String).contains(docsVersionPlaceholder),
+                "Unresolved docs version in \(file)"
+            )
             try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
 
             if file != "export.md" {
@@ -666,7 +702,7 @@ final class MetadataTests: XCTestCase {
         defer {
             try? fm.removeItem(at: tempDirectory)
         }
-        try exportVersionedHelp(to: tempDirectory)
+        try exportVersionedHelp(to: tempDirectory, version: projectVersion)
 
         guard shouldUpdateReleaseDocs else {
             XCTAssertTrue(
@@ -692,7 +728,7 @@ final class MetadataTests: XCTestCase {
         try fm.moveItem(at: tempDirectory, to: outputDirectory)
     }
 
-    private func exportVersionedHelp(to outputDirectory: URL) throws {
+    private func exportVersionedHelp(to outputDirectory: URL, version: String) throws {
         let fm = FileManager.default
 
         for subdir in ["mac", "ios"] {
@@ -718,6 +754,16 @@ final class MetadataTests: XCTestCase {
                     }
                     nsText.replaceCharacters(in: range, with: "../\(url.absoluteString)")
                 }
+                nsText.replaceOccurrences(
+                    of: docsVersionPlaceholder,
+                    with: version,
+                    options: [],
+                    range: NSRange(location: 0, length: nsText.length)
+                )
+                XCTAssertFalse(
+                    (nsText as String).contains(docsVersionPlaceholder),
+                    "Unresolved docs version in \(subdir)/\(file)"
+                )
                 let outputURL = versionedDir.appendingPathComponent(file)
                 try (nsText as String).write(to: outputURL, atomically: true, encoding: .utf8)
             }

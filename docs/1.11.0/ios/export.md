@@ -7,9 +7,7 @@ Once you've finished crafting your 3D scene, you'll probably want to *do somethi
 
 To export your scene, select the export menu in the top-right of the window to unlock the export functionality. Once unlocked, this menu will display the export options.
 
-**Note:** If the `Export Image/Model` menu is grayed-out, it is most likely because your scene is still loading. Wait for the loading spinner in the top-left of the ShapeScript window to finish before trying to export.
-
-![Loading](../../images/loading-ios.png)
+**Note:** The export menu will be greyed out if the scene does not contain any exportable geometry.
 
 ## Model and Scene Formats
 
@@ -92,4 +90,4 @@ When exporting an image (or exporting a model for non-realtime use) you can impr
 **Note:** Although ShapeScript can export images, for best results you should export as a 3D model and then import that into a [ray tracing](https://en.wikipedia.org/wiki/Ray_tracing_(graphics)) program that provides fine-grained control over scene lighting and camera placement.
 
 ---
-[Index](index.md) | Next: [Examples](examples.md)
+[Index](index.md) | Next: [Command Line Tool](cli.md)
