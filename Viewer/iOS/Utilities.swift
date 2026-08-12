@@ -18,6 +18,7 @@ typealias OSTextView = UITextView
 // MARK: General
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
+let editorHelpURL = onlineHelpURL.appendingPathComponent("editor-help")
 
 @MainActor func loadRTF(_ file: String) throws -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!

@@ -15,6 +15,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var undoButton: UIBarButtonItem = .init()
     private var redoButton: UIBarButtonItem = .init()
     private var shareButton: UIBarButtonItem = .init()
+    private var helpButton: UIBarButtonItem = .init()
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
 
@@ -31,6 +32,24 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
     override var undoManager: UndoManager? {
         document?.undoManager
+    }
+
+    override var keyCommands: [UIKeyCommand]? {
+        let helpTitle = "ShapeScript Help"
+        return [
+            UIKeyCommand(
+                title: helpTitle,
+                image: nil,
+                action: #selector(openHelp(_:)),
+                input: "?",
+                modifierFlags: .command,
+                propertyList: nil,
+                alternates: [],
+                discoverabilityTitle: helpTitle,
+                attributes: [],
+                state: .off
+            ),
+        ]
     }
 
     override func loadView() {
@@ -88,10 +107,17 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
                     applicationActivities: nil
                 )
                 sheet.popoverPresentationController?
-                    .barButtonItem = navigationItem.rightBarButtonItem
+                    .barButtonItem = shareButton
                 present(sheet, animated: true)
             }
         )
+        helpButton = UIBarButtonItem(
+            image: UIImage(systemName: "questionmark.circle"),
+            primaryAction: UIAction { [weak self] _ in
+                self?.openHelp(nil)
+            }
+        )
+        helpButton.accessibilityLabel = "ShapeScript Help"
 
         didSetDocument()
         updateUndoButtons()
@@ -114,6 +140,10 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 }
 
 private extension SourceViewController {
+    @objc func openHelp(_: Any?) {
+        UIApplication.shared.open(editorHelpURL)
+    }
+
     func didSetDocument() {
         title = document?.documentFileURL?.lastPathComponent
 
@@ -123,6 +153,7 @@ private extension SourceViewController {
 
         if document?.isEditable ?? false {
             navigationItem.rightBarButtonItems = [
+                helpButton,
                 shareButton,
                 redoButton,
                 undoButton,
@@ -130,6 +161,7 @@ private extension SourceViewController {
             ]
         } else {
             navigationItem.rightBarButtonItems = [
+                helpButton,
                 shareButton,
                 .flexibleSpace(),
             ]
