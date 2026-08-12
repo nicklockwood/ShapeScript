@@ -325,7 +325,9 @@ extension AppDelegate {
 
         let helpMenu = NSMenu(title: "Help")
         mainMenu.addItem(menu("Help", submenu: helpMenu))
-        helpMenu.addItem(item("ShapeScript Help", action: #selector(NSApplication.showHelp(_:)), key: "?"))
+        if Bundle.main.object(forInfoDictionaryKey: "CFBundleHelpBookFolder") != nil {
+            helpMenu.addItem(item("ShapeScript Help", action: #selector(NSApplication.showHelp(_:)), key: "?"))
+        }
         helpMenu.addItem(item(
             "Online Documentation",
             action: #selector(openOnlineDocumentation(_:)),
