@@ -440,6 +440,8 @@ final class MetadataTests: XCTestCase {
             "rounded-cube-seams.png",
             "not-watertight.png",
             "icosahedron.png",
+            "loading.png",
+            "loading-ios.png",
         ]
         let imagesEnumerator = try XCTUnwrap(fm.enumerator(atPath: imagesDirectory.path))
         for case let file as String in imagesEnumerator where file.hasSuffix(".png") {

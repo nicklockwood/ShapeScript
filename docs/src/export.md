@@ -7,9 +7,7 @@ Once you've finished crafting your 3D scene, you'll probably want to *do somethi
 
 To export your scene, select the `File > Unlock Export Feature…`  menu (**Cmd-Shift-E**) to unlock the export functionality. Once unlocked, this menu will change to `Export…`.
 
-**Note:** If the `Export…` menu is grayed-out, it is most likely because your scene is still loading. Wait for the loading spinner in the top-left of the ShapeScript document window to finish before trying to export.
-
-![Loading](../images/loading.png)
+**Note:** The export menu will be greyed out if the scene does not contain any exportable geometry.
 
 ## Model and Scene Formats
 
