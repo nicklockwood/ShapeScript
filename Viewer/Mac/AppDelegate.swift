@@ -48,6 +48,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         title: "ShapeScript Preferences"
     )
 
+    lazy var cliInstallWindowController: NSWindowController = makeWindowController(
+        contentViewController: CLIInstallViewController(),
+        size: NSSize(width: 680, height: 395),
+        title: nil,
+        hidesTitle: true,
+        extendsContentIntoTitleBar: true
+    )
+
     private var exampleURLs = [String: URL]()
 
     private var examplesMenu: NSMenu = .init()
@@ -146,6 +154,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController.showWindow(self)
     }
 
+    @objc func showCLIInstallWindow(_: Any) {
+        cliInstallWindowController.window?.level = .floating
+        cliInstallWindowController.showWindow(self)
+    }
+
     private func composeEmail(subject: String, body: String, error: String) {
         let emailService = NSSharingService(named: .composeEmail)!
         emailService.recipients = ["support@charcoaldesign.co.uk"]
@@ -212,7 +225,10 @@ extension AppDelegate {
         window.center()
         window.title = title ?? ""
         window.titleVisibility = hidesTitle ? .hidden : .visible
-        window.titlebarAppearsTransparent = hidesTitle && !extendsContentIntoTitleBar
+        window.titlebarAppearsTransparent = hidesTitle
+        if #available(macOS 11.0, *) {
+            window.titlebarSeparatorStyle = .none
+        }
         window.isMovableByWindowBackground = true
         window.contentViewController = contentViewController
         return NSWindowController(window: window)
@@ -338,6 +354,11 @@ extension AppDelegate {
         helpMenu.addItem(.separator())
         helpMenu.addItem(item("What's New in ShapeScript", action: #selector(showWhatsNew(_:)), target: self))
         examplesMenu = NSMenu(title: "Examples")
+        helpMenu.addItem(item(
+            "Install Command Line Tool...",
+            action: #selector(showCLIInstallWindow(_:)),
+            target: self
+        ))
         helpMenu.addItem(menu("Examples", submenu: examplesMenu))
         helpMenu.addItem(.separator())
         helpMenu.addItem(item("Report a Bug...", action: #selector(reportBug(_:)), target: self))
