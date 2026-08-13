@@ -18,6 +18,9 @@ private let documentationURLActivityKey = "url"
 final class DocumentationViewController: UIViewController {
     private let initialURL: URL
     private var currentURL: URL
+    private lazy var searchIndex = DocumentationSearchIndex()
+    private let searchResultsViewController = DocumentationSearchResultsViewController()
+    private lazy var searchController = UISearchController(searchResultsController: searchResultsViewController)
     private let webView = WKWebView(frame: .zero)
     private var backButton = UIBarButtonItem()
     private var forwardButton = UIBarButtonItem()
@@ -52,6 +55,14 @@ final class DocumentationViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        searchResultsViewController.delegate = self
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = true
+        searchController.searchBar.placeholder = "Search Help"
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        definesPresentationContext = true
 
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
@@ -177,6 +188,12 @@ final class DocumentationViewController: UIViewController {
         webView.evaluateJavaScript(cssVariablesScript, completionHandler: nil)
     }
 
+    private func load(_ result: DocumentationSearchResult) {
+        searchController.isActive = false
+        searchController.searchBar.text = ""
+        load(result.url)
+    }
+
     private var cssVariablesScript: String {
         let tintColor = view.tintColor.resolvedColor(with: traitCollection).cssColor
         return "document.documentElement.style.setProperty('--tint-color', '\(tintColor)');"
@@ -190,6 +207,324 @@ final class DocumentationViewController: UIViewController {
             return
         }
         updateCSSVariables()
+    }
+}
+
+extension DocumentationViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        searchResultsViewController.results = searchIndex.search(searchController.searchBar.text ?? "")
+    }
+}
+
+extension DocumentationViewController: DocumentationSearchResultsViewControllerDelegate {
+    fileprivate func documentationSearchResultsViewController(
+        _: DocumentationSearchResultsViewController,
+        didSelect result: DocumentationSearchResult
+    ) {
+        load(result)
+    }
+}
+
+private struct DocumentationSearchResult {
+    let title: String
+    let subtitle: String?
+    let snippet: String
+    let url: URL
+    let score: Int
+}
+
+private struct DocumentationSearchEntry {
+    let title: String
+    let heading: String?
+    let body: String
+    let url: URL
+
+    func result(matching query: String, terms: [String]) -> DocumentationSearchResult? {
+        let searchableTitle = title.normalizedForDocumentationSearch
+        let searchableHeading = heading?.normalizedForDocumentationSearch ?? ""
+        let searchableBody = body.normalizedForDocumentationSearch
+        var score = 0
+
+        for term in terms {
+            if searchableTitle == term {
+                score += 60
+            } else if searchableTitle.contains(term) {
+                score += 30
+            }
+            if searchableHeading == term {
+                score += 50
+            } else if searchableHeading.contains(term) {
+                score += 24
+            }
+            if searchableBody.contains(term) {
+                score += 6
+            }
+        }
+
+        if searchableTitle.contains(query) {
+            score += 18
+        }
+        if searchableHeading.contains(query) {
+            score += 14
+        }
+        if searchableBody.contains(query) {
+            score += 10
+        }
+
+        guard score > 0 else {
+            return nil
+        }
+        return DocumentationSearchResult(
+            title: heading ?? title,
+            subtitle: heading == nil ? nil : title,
+            snippet: body.snippet(matching: terms),
+            url: url,
+            score: score
+        )
+    }
+}
+
+private final class DocumentationSearchIndex {
+    private lazy var entries = loadEntries()
+
+    func search(_ text: String) -> [DocumentationSearchResult] {
+        let query = text.normalizedForDocumentationSearch
+        let terms = query.split(separator: " ").map(String.init)
+        guard !terms.isEmpty else {
+            return []
+        }
+        return entries.compactMap { $0.result(matching: query, terms: terms) }
+            .sorted {
+                if $0.score != $1.score {
+                    return $0.score > $1.score
+                }
+                if $0.title != $1.title {
+                    return $0.title < $1.title
+                }
+                return ($0.subtitle ?? "") < ($1.subtitle ?? "")
+            }
+            .prefix(50)
+            .map { $0 }
+    }
+
+    private func loadEntries() -> [DocumentationSearchEntry] {
+        guard let directory = Bundle.main.resourceURL?
+            .appendingPathComponent("Documentation", isDirectory: true),
+            let urls = try? FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: nil
+            )
+        else {
+            return []
+        }
+
+        return urls
+            .filter { $0.pathExtension == "html" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .flatMap(loadEntries)
+    }
+
+    private func loadEntries(from url: URL) -> [DocumentationSearchEntry] {
+        guard let html = try? String(contentsOf: url) else {
+            return []
+        }
+
+        let title = html.firstMatch(for: #"<h1[^>]*>(.*?)</h1>"#)?
+            .plainDocumentationText ?? url.deletingPathExtension().lastPathComponent
+        let sections = html.sectionsForDocumentationSearch
+        if sections.isEmpty {
+            return [
+                DocumentationSearchEntry(
+                    title: title,
+                    heading: nil,
+                    body: html.plainDocumentationText,
+                    url: url
+                ),
+            ]
+        }
+
+        return sections.map { section in
+            let sectionURL: URL
+            if let fragment = section.fragment,
+               var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            {
+                components.fragment = fragment
+                sectionURL = components.url ?? url
+            } else {
+                sectionURL = url
+            }
+            return DocumentationSearchEntry(
+                title: title,
+                heading: section.heading,
+                body: section.body,
+                url: sectionURL
+            )
+        }
+    }
+}
+
+@MainActor
+private protocol DocumentationSearchResultsViewControllerDelegate: AnyObject {
+    func documentationSearchResultsViewController(
+        _ viewController: DocumentationSearchResultsViewController,
+        didSelect result: DocumentationSearchResult
+    )
+}
+
+private final class DocumentationSearchResultsViewController: UITableViewController {
+    weak var delegate: DocumentationSearchResultsViewControllerDelegate?
+    var results: [DocumentationSearchResult] = [] {
+        didSet {
+            tableView.reloadData()
+        }
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Result")
+        tableView.keyboardDismissMode = .onDrag
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 72
+    }
+
+    override func tableView(_: UITableView, numberOfRowsInSection _: Int) -> Int {
+        results.count
+    }
+
+    override func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Result", for: indexPath)
+        let result = results[indexPath.row]
+        var content = UIListContentConfiguration.subtitleCell()
+        content.text = result.title
+        content.secondaryText = [result.subtitle, result.snippet]
+            .compactMap { $0 }
+            .joined(separator: "\n")
+        content.secondaryTextProperties.numberOfLines = 3
+        cell.contentConfiguration = content
+        cell.accessoryType = .disclosureIndicator
+        return cell
+    }
+
+    override func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
+        delegate?.documentationSearchResultsViewController(self, didSelect: results[indexPath.row])
+    }
+}
+
+private struct DocumentationSearchSection {
+    let heading: String?
+    let fragment: String?
+    let body: String
+}
+
+private extension String {
+    var normalizedForDocumentationSearch: String {
+        folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(
+                of: #"[^a-z0-9]+"#,
+                with: " ",
+                options: .regularExpression
+            )
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var plainDocumentationText: String {
+        replacingOccurrences(
+            of: #"<script[\s\S]*?</script>"#,
+            with: " ",
+            options: .regularExpression
+        )
+        .replacingOccurrences(
+            of: #"<style[\s\S]*?</style>"#,
+            with: " ",
+            options: .regularExpression
+        )
+        .replacingOccurrences(of: #"<[^>]+>"#, with: " ", options: .regularExpression)
+        .replacingOccurrences(of: "&nbsp;", with: " ")
+        .replacingOccurrences(of: "&amp;", with: "&")
+        .replacingOccurrences(of: "&lt;", with: "<")
+        .replacingOccurrences(of: "&gt;", with: ">")
+        .replacingOccurrences(of: "&quot;", with: "\"")
+        .replacingOccurrences(of: #"&#39;|&apos;"#, with: "'", options: .regularExpression)
+        .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var sectionsForDocumentationSearch: [DocumentationSearchSection] {
+        let pattern = #"<h([1-6])(?:\s+[^>]*)?>(.*?)</h\1>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return []
+        }
+        let nsString = self as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        let matches = regex.matches(in: self, range: range)
+        guard !matches.isEmpty else {
+            return []
+        }
+
+        return matches.indices.compactMap { index in
+            let match = matches[index]
+            let nextStart = matches.dropFirst(index + 1).first?.range.location ?? nsString.length
+            let bodyRange = NSRange(
+                location: match.range.upperBound,
+                length: max(0, nextStart - match.range.upperBound)
+            )
+            let headingHTML = nsString.substring(with: match.range(at: 2))
+            let heading = headingHTML.plainDocumentationText
+            let body = nsString.substring(with: bodyRange).plainDocumentationText
+            guard !heading.isEmpty || !body.isEmpty else {
+                return nil
+            }
+            return DocumentationSearchSection(
+                heading: heading.isEmpty ? nil : heading,
+                fragment: match.headingFragment(in: self),
+                body: body.isEmpty ? heading : body
+            )
+        }
+    }
+
+    func firstMatch(for pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
+        let nsString = self as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        guard let match = regex.firstMatch(in: self, range: range) else {
+            return nil
+        }
+        return nsString.substring(with: match.range(at: 1))
+    }
+
+    func snippet(matching terms: [String]) -> String {
+        let plainText = plainDocumentationText
+        let normalized = plainText.normalizedForDocumentationSearch
+        guard let term = terms.first(where: { normalized.contains($0) }),
+              let range = normalized.range(of: term)
+        else {
+            return String(plainText.prefix(160))
+        }
+
+        let offset = normalized.distance(from: normalized.startIndex, to: range.lowerBound)
+        let startOffset = max(0, offset - 60)
+        let endOffset = min(plainText.count, offset + term.count + 100)
+        let start = plainText.index(plainText.startIndex, offsetBy: startOffset)
+        let end = plainText.index(plainText.startIndex, offsetBy: endOffset)
+        let prefix = startOffset == 0 ? "" : "... "
+        let suffix = endOffset == plainText.count ? "" : " ..."
+        return prefix + String(plainText[start ..< end]) + suffix
+    }
+}
+
+private extension NSTextCheckingResult {
+    func headingFragment(in html: String) -> String? {
+        guard let headingRange = Range(range, in: html) else {
+            return nil
+        }
+        let tag = String(html[headingRange])
+        return tag.firstMatch(for: #"id="([^"]+)""#) ??
+            tag.firstMatch(for: #"name="([^"]+)""#)
     }
 }
 
