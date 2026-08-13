@@ -1697,6 +1697,11 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.as(type), .rotation(Rotation(roll: .pi, yaw: .halfPi)))
     }
 
+    func testCastParenthesizedTwoNumberTupleToRotationStillUsesEulerOrder() throws {
+        let expected = Rotation(roll: .pi, yaw: .halfturns(2.0 / 21.0))
+        XCTAssertEqual(try evaluate("1 (2 / 21)", as: .rotation), .rotation(expected))
+    }
+
     func testCastHalfturnsInFourPartTupleToRotationIsAcceptedInAnglePosition() {
         let type = ValueType.rotation
         let value = Value.tuple([.halfturns(0.5), 0, 1, 0])

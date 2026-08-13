@@ -442,8 +442,10 @@ extension Value {
             }
             func isVectorLike(_ value: Value) -> Bool {
                 switch value.type {
-                case .vector, .size, .tuple, .list:
+                case .vector, .size:
                     true
+                case .tuple, .list:
+                    value.tupleValue.count > 1
                 default:
                     false
                 }
