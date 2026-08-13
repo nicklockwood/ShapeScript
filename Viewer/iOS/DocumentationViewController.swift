@@ -103,7 +103,7 @@ final class DocumentationViewController: UIViewController {
         )
         safariButton.accessibilityLabel = "Open in Safari"
 
-        navigationItem.rightBarButtonItems = [safariButton, reloadButton]
+        updateNavigationButtons(animated: false)
         if navigationController?.presentingViewController != nil {
             navigationItem.leftBarButtonItem = UIBarButtonItem(
                 systemItem: .close,
@@ -127,6 +127,7 @@ final class DocumentationViewController: UIViewController {
         loadViewIfNeeded()
         currentURL = url
         userActivity = Self.userActivity(for: url)
+        updateNavigationButtons()
         if let localURL = url.bundledDocumentationURL {
             webView.loadFileURL(
                 localURL,
@@ -186,6 +187,26 @@ final class DocumentationViewController: UIViewController {
 
     private func updateCSSVariables() {
         webView.evaluateJavaScript(cssVariablesScript, completionHandler: nil)
+    }
+
+    private func updateNavigationButtons(animated: Bool = true) {
+        let items = shouldShowReloadButton ?
+            [safariButton, reloadButton] :
+            [safariButton]
+        let currentItems = navigationItem.rightBarButtonItems ?? []
+        guard currentItems.count != items.count ||
+            !zip(currentItems, items).allSatisfy({ $0 === $1 })
+        else {
+            return
+        }
+        navigationItem.setRightBarButtonItems(items, animated: animated)
+    }
+
+    private var shouldShowReloadButton: Bool {
+        guard let url = webView.url else {
+            return currentURL.bundledDocumentationURL == nil
+        }
+        return !url.isFileURL && url.bundledDocumentationURL == nil
     }
 
     private func load(_ result: DocumentationSearchResult) {
@@ -554,11 +575,13 @@ extension DocumentationViewController: WKNavigationDelegate {
             currentURL = currentDocumentationURL
         }
         updateCSSVariables()
+        updateNavigationButtons()
         updateButtons()
         userActivity?.needsSave = true
     }
 
     func webView(_: WKWebView, didCommit _: WKNavigation!) {
+        updateNavigationButtons()
         updateButtons()
     }
 
