@@ -104,7 +104,9 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     @objc private func autosaveFromTimer() {
-        autosave()
+        autosave { [weak self] _ in
+            self?.fileMonitor?.markUpdated()
+        }
     }
 
     @MainActor @objc private func settingsUpdated() {
