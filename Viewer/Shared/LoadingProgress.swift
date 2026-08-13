@@ -163,7 +163,7 @@ extension LoadingProgress {
         }
         thread?.name = "shapescript.progress.\(id)"
         thread?.qualityOfService = .userInitiated
-        thread?.stackSize = 4 * 1024 * 1024
+        thread?.stackSize = 16 * 1024 * 1024
         thread?.start()
     }
 }
