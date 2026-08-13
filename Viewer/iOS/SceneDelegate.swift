@@ -109,12 +109,7 @@ extension UIApplication {
             guard !hasMainScene else {
                 return
             }
-            let documentationSessions = self.openSessions.filter {
-                $0.configuration.name == documentationSceneConfigurationName
-            }
-            for session in documentationSessions {
-                self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
-            }
+            self.closeDocumentationScenes()
         }
     }
 }

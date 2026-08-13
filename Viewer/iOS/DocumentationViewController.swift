@@ -920,11 +920,25 @@ final class DocumentationSceneDelegate: UIResponder, UIWindowSceneDelegate {
 extension UIViewController {
     func presentDocumentation(_ url: URL) {
         if traitCollection.userInterfaceIdiom == .pad {
+            if view.window?.windowScene?.appearsFullscreen == true {
+                UIApplication.shared.closeDocumentationScenes()
+                presentDocumentationModally(url)
+                return
+            }
+
             if let sceneDelegate = UIApplication.shared.connectedScenes
                 .compactMap({ $0.delegate as? DocumentationSceneDelegate })
                 .first
             {
                 sceneDelegate.load(url)
+                if let session = sceneDelegate.window?.windowScene?.session {
+                    UIApplication.shared.requestSceneSessionActivation(
+                        session,
+                        userActivity: DocumentationViewController.userActivity(for: url),
+                        options: nil,
+                        errorHandler: nil
+                    )
+                }
                 return
             }
 
@@ -951,5 +965,28 @@ extension UIViewController {
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .pageSheet
         present(navigationController, animated: true)
+    }
+}
+
+extension UIApplication {
+    func closeDocumentationScenes() {
+        DispatchQueue.main.async {
+            let documentationSessions = self.openSessions.filter {
+                $0.configuration.name == documentationSceneConfigurationName
+            }
+            for session in documentationSessions {
+                self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+            }
+        }
+    }
+}
+
+private extension UIWindowScene {
+    var appearsFullscreen: Bool {
+        let sceneSize = coordinateSpace.bounds.standardized.size
+        let screenSize = screen.coordinateSpace.bounds.standardized.size
+        let sceneArea = sceneSize.width * sceneSize.height
+        let screenArea = screenSize.width * screenSize.height
+        return screenArea > 0 && sceneArea / screenArea >= 0.9
     }
 }
