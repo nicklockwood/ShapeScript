@@ -51,6 +51,9 @@ final class DocumentationViewController: UIViewController {
 
     override func loadView() {
         webView.translatesAutoresizingMaskIntoConstraints = false
+        webView.isOpaque = false
+        webView.backgroundColor = .systemBackground
+        webView.scrollView.backgroundColor = .systemBackground
         loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
         loadingOverlay.alpha = 0
         loadingOverlay.isHidden = true
