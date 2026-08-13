@@ -22,6 +22,13 @@ final class DocumentationViewController: UIViewController {
     private let searchResultsViewController = DocumentationSearchResultsViewController()
     private lazy var searchController = UISearchController(searchResultsController: searchResultsViewController)
     private let webView = WKWebView(frame: .zero)
+    private let loadingOverlay = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
+    private let loadingIndicator = UIActivityIndicatorView(style: .large)
+    private let loadingTitleLabel = UILabel()
+    private let loadingMessageLabel = UILabel()
+    private let loadingCancelButton = UIButton(type: .system)
+    private let loadingRetryButton = UIButton(type: .system)
+    private var externalLoadingURL: URL?
     private var backButton = UIBarButtonItem()
     private var forwardButton = UIBarButtonItem()
     private var reloadButton = UIBarButtonItem()
@@ -42,14 +49,22 @@ final class DocumentationViewController: UIViewController {
 
     override func loadView() {
         webView.translatesAutoresizingMaskIntoConstraints = false
+        loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
+        loadingOverlay.alpha = 0
+        loadingOverlay.isHidden = true
         view = UIView()
         view.backgroundColor = .systemBackground
         view.addSubview(webView)
+        view.addSubview(loadingOverlay)
         NSLayoutConstraint.activate([
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            loadingOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            loadingOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            loadingOverlay.topAnchor.constraint(equalTo: view.topAnchor),
+            loadingOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
@@ -63,6 +78,8 @@ final class DocumentationViewController: UIViewController {
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
+
+        configureLoadingOverlay()
 
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
@@ -129,11 +146,14 @@ final class DocumentationViewController: UIViewController {
         userActivity = Self.userActivity(for: url)
         updateNavigationButtons()
         if let localURL = url.bundledDocumentationURL {
+            hideExternalLoadingOverlay()
             webView.loadFileURL(
                 localURL,
                 allowingReadAccessTo: localURL.localReadAccessURL
             )
         } else {
+            showExternalLoadingOverlay(for: url)
+            updateNavigationButtons()
             webView.load(URLRequest(url: url))
         }
     }
@@ -203,10 +223,116 @@ final class DocumentationViewController: UIViewController {
     }
 
     private var shouldShowReloadButton: Bool {
-        guard let url = webView.url else {
-            return currentURL.bundledDocumentationURL == nil
+        if let externalLoadingURL {
+            return shouldShowLoadingOverlay(for: externalLoadingURL)
         }
-        return !url.isFileURL && url.bundledDocumentationURL == nil
+        guard let url = webView.url else {
+            return shouldShowLoadingOverlay(for: currentURL)
+        }
+        return shouldShowLoadingOverlay(for: url)
+    }
+
+    private func configureLoadingOverlay() {
+        let contentView = loadingOverlay.contentView
+        let buttonStack = UIStackView(arrangedSubviews: [
+            loadingCancelButton,
+            loadingRetryButton,
+        ])
+        let stackView = UIStackView(arrangedSubviews: [
+            loadingIndicator,
+            loadingTitleLabel,
+            loadingMessageLabel,
+            buttonStack,
+        ])
+
+        loadingTitleLabel.font = .preferredFont(forTextStyle: .headline)
+        loadingTitleLabel.textAlignment = .center
+        loadingTitleLabel.text = "Loading"
+
+        loadingMessageLabel.font = .preferredFont(forTextStyle: .subheadline)
+        loadingMessageLabel.textAlignment = .center
+        loadingMessageLabel.textColor = .secondaryLabel
+        loadingMessageLabel.numberOfLines = 2
+
+        loadingCancelButton.setTitle("Cancel", for: .normal)
+        loadingCancelButton.addAction(UIAction { [weak self] _ in
+            self?.cancelExternalLoad()
+        }, for: .touchUpInside)
+
+        loadingRetryButton.setTitle("Retry", for: .normal)
+        loadingRetryButton.addAction(UIAction { [weak self] _ in
+            self?.retryExternalLoad()
+        }, for: .touchUpInside)
+
+        buttonStack.axis = .horizontal
+        buttonStack.alignment = .center
+        buttonStack.distribution = .equalSpacing
+        buttonStack.spacing = 24
+
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.axis = .vertical
+        stackView.alignment = .center
+        stackView.spacing = 12
+        contentView.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.layoutMarginsGuide.leadingAnchor),
+            stackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.layoutMarginsGuide.trailingAnchor),
+            stackView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            stackView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            loadingMessageLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 280),
+        ])
+    }
+
+    private func showExternalLoadingOverlay(for url: URL) {
+        externalLoadingURL = url
+        loadingMessageLabel.text = url.host ?? url.absoluteString
+        loadingRetryButton.isHidden = true
+        loadingIndicator.startAnimating()
+        setLoadingOverlayHidden(false)
+    }
+
+    private func showExternalLoadFailure(for url: URL, error: Error) {
+        externalLoadingURL = url
+        loadingTitleLabel.text = "Could Not Load Page"
+        loadingMessageLabel.text = error.localizedDescription
+        loadingRetryButton.isHidden = false
+        loadingIndicator.stopAnimating()
+        setLoadingOverlayHidden(false)
+    }
+
+    private func hideExternalLoadingOverlay() {
+        externalLoadingURL = nil
+        loadingTitleLabel.text = "Loading"
+        loadingIndicator.stopAnimating()
+        setLoadingOverlayHidden(true)
+    }
+
+    private func setLoadingOverlayHidden(_ hidden: Bool) {
+        if !hidden {
+            loadingOverlay.isHidden = false
+        }
+        UIView.animate(withDuration: 0.2) {
+            self.loadingOverlay.alpha = hidden ? 0 : 1
+        } completion: { _ in
+            self.loadingOverlay.isHidden = hidden
+        }
+    }
+
+    private func cancelExternalLoad() {
+        webView.stopLoading()
+        hideExternalLoadingOverlay()
+        updateNavigationButtons()
+    }
+
+    private func retryExternalLoad() {
+        guard let url = externalLoadingURL else {
+            return
+        }
+        loadingTitleLabel.text = "Loading"
+        loadingRetryButton.isHidden = true
+        loadingIndicator.startAnimating()
+        load(url)
     }
 
     private func load(_ result: DocumentationSearchResult) {
@@ -567,6 +693,9 @@ extension DocumentationViewController: WKNavigationDelegate {
             return
         }
 
+        if let url = navigationAction.request.url, shouldShowLoadingOverlay(for: url) {
+            showExternalLoadingOverlay(for: url)
+        }
         decisionHandler(.allow)
     }
 
@@ -574,19 +703,57 @@ extension DocumentationViewController: WKNavigationDelegate {
         if webView.url != nil {
             currentURL = currentDocumentationURL
         }
+        hideExternalLoadingOverlay()
         updateCSSVariables()
         updateNavigationButtons()
         updateButtons()
         userActivity?.needsSave = true
     }
 
-    func webView(_: WKWebView, didCommit _: WKNavigation!) {
+    func webView(_ webView: WKWebView, didCommit _: WKNavigation!) {
+        if let url = webView.url, shouldShowLoadingOverlay(for: url) {
+            showExternalLoadingOverlay(for: url)
+        }
         updateNavigationButtons()
         updateButtons()
     }
 
+    func webView(
+        _: WKWebView,
+        didFailProvisionalNavigation _: WKNavigation!,
+        withError error: Error
+    ) {
+        handleNavigationFailure(error)
+    }
+
+    func webView(
+        _: WKWebView,
+        didFail _: WKNavigation!,
+        withError error: Error
+    ) {
+        handleNavigationFailure(error)
+    }
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         webView.reload()
+    }
+
+    private func handleNavigationFailure(_ error: Error) {
+        let nsError = error as NSError
+        guard nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled,
+              let url = externalLoadingURL ?? webView.url,
+              shouldShowLoadingOverlay(for: url)
+        else {
+            hideExternalLoadingOverlay()
+            updateNavigationButtons()
+            return
+        }
+        showExternalLoadFailure(for: url, error: error)
+        updateNavigationButtons()
+    }
+
+    private func shouldShowLoadingOverlay(for url: URL) -> Bool {
+        !url.isFileURL && url.bundledDocumentationURL == nil
     }
 
     private func updateButtons() {
