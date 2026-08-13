@@ -18,6 +18,7 @@ final class WhatsNewViewController: NSViewController {
             for: textView,
             documentSize: NSSize(width: 630, height: 465)
         )
+        textView.textContainerInset.width += 20
         rootView.addSubview(scrollView)
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),

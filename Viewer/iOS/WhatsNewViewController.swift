@@ -19,6 +19,8 @@ import UIKit
         textView.font = .systemFont(ofSize: 14)
         textView.isEditable = false
         textView.contentInsetAdjustmentBehavior = .always
+        textView.textContainerInset.left = 15
+        textView.textContainerInset.right = 15
 
         view = UIView()
         view.backgroundColor = .systemBackground
