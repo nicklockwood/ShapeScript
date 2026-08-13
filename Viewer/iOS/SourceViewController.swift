@@ -151,21 +151,27 @@ private extension SourceViewController {
         textView.isEditable = document?.isEditable ?? false
         registerUndoManager()
 
-        if document?.isEditable ?? false {
-            navigationItem.rightBarButtonItems = [
-                helpButton,
-                shareButton,
-                redoButton,
-                undoButton,
-                .flexibleSpace(),
-            ]
-        } else {
-            navigationItem.rightBarButtonItems = [
-                helpButton,
-                shareButton,
-                .flexibleSpace(),
-            ]
+        setRightBarButtonItems(document?.isEditable ?? false ? [
+            helpButton,
+            shareButton,
+            redoButton,
+            undoButton,
+            .flexibleSpace(),
+        ] : [
+            helpButton,
+            shareButton,
+            .flexibleSpace(),
+        ], animated: isViewLoaded)
+    }
+
+    func setRightBarButtonItems(_ items: [UIBarButtonItem], animated: Bool) {
+        let currentItems = navigationItem.rightBarButtonItems ?? []
+        guard currentItems.count != items.count ||
+            !zip(currentItems, items).allSatisfy({ $0 === $1 })
+        else {
+            return
         }
+        navigationItem.setRightBarButtonItems(items, animated: animated)
     }
 
     func unregisterUndoManager() {

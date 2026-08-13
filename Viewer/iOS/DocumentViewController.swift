@@ -38,6 +38,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     let grantAccessButton: UIButton = .init(type: .system)
 
     private var closeButton: UIBarButtonItem = .init()
+    private var loadingItem: UIBarButtonItem = .init()
     private var infoButton: UIBarButtonItem = .init()
     private var cameraButton: UIBarButtonItem = .init()
     private var editButton: UIBarButtonItem = .init()
@@ -110,12 +111,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             guard isLoading != oldValue else {
                 return
             }
-            if #available(iOS 16, *) {
-                // Hide the bar item to prevent extended border on iOS 26
-                navigationItem.leftBarButtonItems?.first(where: {
-                    $0.customView === loadingIndicator
-                })?.isHidden = !isLoading
-            }
+            updateLoadingButton()
             if isLoading {
                 loadingIndicator.startAnimating()
             } else {
@@ -194,6 +190,37 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             "square.and.pencil" : "doc.plaintext")
     }
 
+    func updateNavigationButtons(animated: Bool = true) {
+        let items = exportMenuProvider == nil ?
+            [cameraButton, infoButton, editButton] :
+            [exportButton, cameraButton, infoButton, editButton]
+        setRightBarButtonItems(items, animated: animated)
+    }
+
+    func updateLoadingButton(animated: Bool = true) {
+        guard loadingItem.customView != nil else {
+            return
+        }
+        let items = isLoading ? [closeButton, loadingItem] : [closeButton]
+        let currentItems = navigationItem.leftBarButtonItems ?? []
+        guard currentItems.count != items.count ||
+            !zip(currentItems, items).allSatisfy({ $0 === $1 })
+        else {
+            return
+        }
+        navigationItem.setLeftBarButtonItems(items, animated: animated)
+    }
+
+    func setRightBarButtonItems(_ items: [UIBarButtonItem], animated: Bool) {
+        let currentItems = navigationItem.rightBarButtonItems ?? []
+        guard currentItems.count != items.count ||
+            !zip(currentItems, items).allSatisfy({ $0 === $1 })
+        else {
+            return
+        }
+        navigationItem.setRightBarButtonItems(items, animated: animated)
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
         isBrightBackground ? .darkContent : .lightContent
     }
@@ -261,7 +288,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             action: #selector(openSourceEditor)
         )
         navigationItem.leftBarButtonItem = closeButton
-        navigationItem.rightBarButtonItems = [exportButton, cameraButton, infoButton, editButton]
+        updateNavigationButtons(animated: false)
 
         NSLayoutConstraint.activate([
             containerView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
@@ -325,18 +352,13 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         scnView.scene = scnScene
 
         // configure navigation bar
-        let loadingItem = UIBarButtonItem(customView: loadingIndicator)
-        if #available(iOS 16, *) {
-            loadingItem.isHidden = !isLoading
-        }
-        navigationItem.leftBarButtonItems?.append(loadingItem)
+        loadingItem = UIBarButtonItem(customView: loadingIndicator)
+        updateLoadingButton(animated: false)
         navigationBar?.standardAppearance.configureWithTransparentBackground()
         if let exportMenuProvider {
             exportMenuProvider.updateExportMenu()
         } else {
-            navigationItem.rightBarButtonItems?.removeAll(where: {
-                $0 === exportButton
-            })
+            updateNavigationButtons(animated: false)
         }
 
         // configure the view
