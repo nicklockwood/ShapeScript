@@ -7,10 +7,10 @@ On Mac, exporting from the command-line tool requires an unlocked copy of the Sh
 
 ## Installation
 
-You can download the ShapeScript CLI for Mac or Linux from the [release page](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.0), or install it to `$HOME/.local/bin` by running this command in Terminal:
+You can download the latest ShapeScript CLI for Mac or Linux from the [release page](https://github.com/nicklockwood/ShapeScript/releases/latest), or install it to `$HOME/.local/bin` by running this command in Terminal:
 
 ```bash
-VERSION=1.11.0 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicklockwood/ShapeScript/HEAD/Viewer/CLI/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicklockwood/ShapeScript/HEAD/Viewer/CLI/install.sh)"
 ```
 
 The installer downloads the correct prebuilt release for your platform and installs `shapescript` to `$HOME/.local/bin`. The prebuilt Linux binary is for x86_64 Ubuntu. Other Linux distributions may work, but Ubuntu is the supported target for the prebuilt download.
@@ -61,10 +61,10 @@ cd ShapeScript
 swift build -c release
 ```
 
-Alternatively, [Mint](https://github.com/yonaskolb/Mint) users can build and install the release version as follows:
+Alternatively, [Mint](https://github.com/yonaskolb/Mint) users can install the latest version with:
 
 ```bash
-mint install nicklockwood/ShapeScript@1.11.0
+mint install nicklockwood/ShapeScript
 ```
 
 Mint installs command-line tools to `$HOME/.mint/bin`, so make sure that directory is included in your shell path if `shapescript` is not found after installation.

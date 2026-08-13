@@ -10,6 +10,15 @@ fi
 
 NEW_VERSION="$1"
 CURRENT_DATE=$(date +"%Y-%m-%d")
+PATCH_VERSION="${NEW_VERSION##*.}"
+UPDATE_RELEASE_DOCS="${SHAPESCRIPT_UPDATE_RELEASE_DOCS:-}"
+if [ -z "$UPDATE_RELEASE_DOCS" ]; then
+    if [ "$PATCH_VERSION" = "0" ]; then
+        UPDATE_RELEASE_DOCS=1
+    else
+        UPDATE_RELEASE_DOCS=0
+    fi
+fi
 
 echo "Preparing release for version $NEW_VERSION..."
 
@@ -47,8 +56,8 @@ sed -i '' "s/'~> [^\']*'/'~> $NEW_VERSION'/" README.md
 sed -i '' "s/\" ~> [^ \n]*/\" ~> $NEW_VERSION/" README.md
 sed -i '' "s/from: \"[^\"]*\"/from: \"$NEW_VERSION\"/" README.md
 
-# 3. Update version in Sources/ShapeScript.swift
-echo "Updating Sources/ShapeScript.swift..."
+# 3. Update version in ShapeScript/Interpreter.swift
+echo "Updating ShapeScript/Interpreter.swift..."
 sed -i '' "s/public let version: String = \"[^\"]*\"/public let version: String = \"$NEW_VERSION\"/" ShapeScript/Interpreter.swift
 
 # 4. Update version in ShapeScript.xcodeproj
@@ -76,8 +85,11 @@ fi
 
 # 7. Run tests
 echo "Running tests..."
-if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS=1 swift test --parallel --num-workers 10; then
+if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS="$UPDATE_RELEASE_DOCS" swift test --parallel --num-workers 10; then
     echo "Error: Tests failed. Please fix the issues before proceeding."
+    if [ "$UPDATE_RELEASE_DOCS" != "1" ]; then
+        echo "If this patch release intentionally changes docs, rerun with SHAPESCRIPT_UPDATE_RELEASE_DOCS=1."
+    fi
     exit 1
 fi
 

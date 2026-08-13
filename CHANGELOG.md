@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.11.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.1) (2026-08-13)
+
+- Added `--version` option and installation script for the ShapeScript command-line tool
+- Added CLI installation instructions to the README and help documentation
+- Added help button to the iOS source editor
+- Fixed regression with two-component Euler rotations
+- Fixed autosave triggering unnecessary reloads
+- Increased worker thread stack size for complex models
+- Improved toolbar animation and release notes/licenses layout
+
 ## [1.11.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.0) (2026-08-10)
 
 - Added `inset` function for paths and meshes

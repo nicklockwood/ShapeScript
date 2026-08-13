@@ -36,7 +36,7 @@ The easiest way to try ShapeScript is to download the prebuilt ShapeScript Viewe
 To install the command-line tool from Terminal on macOS or Linux:
 
 ```bash
-VERSION=1.11.0 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicklockwood/ShapeScript/HEAD/Viewer/CLI/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicklockwood/ShapeScript/HEAD/Viewer/CLI/install.sh)"
 ```
 
 To run the Viewer app on iOS, or if you prefer to build the Mac app yourself, open the included Xcode project and select the `Viewer (Mac)` or `Viewer (iOS)` scheme.
@@ -46,7 +46,7 @@ To run the Viewer app on iOS, or if you prefer to build the Mac app yourself, op
 To use the ShapeScript code library in your own project, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.11.0")),
+.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.11.1")),
 ```
 
 # Usage (Mac)

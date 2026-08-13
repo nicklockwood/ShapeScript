@@ -180,6 +180,18 @@ private func gitTagExists(_ tag: String) throws -> Bool {
 
 private func directoriesEqual(_ lhs: URL, _ rhs: URL) throws -> Bool {
     let fm = FileManager.default
+    func resolvedDirectoryURL(for url: URL) throws -> URL {
+        let attrs = try fm.attributesOfItem(atPath: url.path)
+        guard attrs[.type] as? FileAttributeType == .typeSymbolicLink else {
+            return url
+        }
+        let target = try fm.destinationOfSymbolicLink(atPath: url.path)
+        return URL(fileURLWithPath: target, relativeTo: url.deletingLastPathComponent())
+            .standardizedFileURL
+    }
+
+    let lhs = try resolvedDirectoryURL(for: lhs)
+    let rhs = try resolvedDirectoryURL(for: rhs)
     var isDir = ObjCBool(false)
     guard fm.fileExists(atPath: lhs.path, isDirectory: &isDir), isDir.boolValue else {
         return false
