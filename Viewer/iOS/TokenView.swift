@@ -42,7 +42,9 @@ protocol TokenViewDelegate: TextViewDelegate {
         textStorage.beginEditing()
 
         let wholeRange = NSRange(location: 0, length: textStorage.length)
-        textStorage.setAttributes(typingAttributes, range: wholeRange)
+        var baseAttributes = typingAttributes
+        baseAttributes[.foregroundColor] = textColor
+        textStorage.setAttributes(baseAttributes, range: wholeRange)
 
         var tokenAttributes = [TokenType: [NSAttributedString.Key: Any]]()
         for token in tokens {
