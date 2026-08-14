@@ -24,6 +24,20 @@ final class ParserTests: XCTestCase {
         }
     }
 
+    // MARK: Error handling
+
+    func testAnnotatedErrorLineDoesNotCrashWhenRangeIsFromStaleLongerSource() {
+        let source = "p"
+        let staleSource = "p stale"
+        let lowerBound = staleSource.index(staleSource.endIndex, offsetBy: -1)
+        let error = ProgramError.runtimeError(RuntimeError(
+            .unknownSymbol("p", options: []),
+            at: lowerBound ..< staleSource.endIndex
+        ))
+
+        XCTAssertNotNil(error.annotatedErrorLine(with: source))
+    }
+
     // MARK: Operators
 
     func testLeftAssociativity() throws {
