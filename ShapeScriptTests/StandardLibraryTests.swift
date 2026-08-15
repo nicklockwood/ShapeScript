@@ -710,6 +710,7 @@ final class StandardLibraryTests: XCTestCase {
     func testMiterLimitInRoot() throws {
         let program = try parse("""
         miterLimit 1
+        miterLimit ()
         extrude square
         """)
         let context = EvaluationContext(source: program.source, delegate: nil)
@@ -742,9 +743,16 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse("""
         extrude {
             miterLimit 1
+            miterLimit ()
             square
         }
         """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testPrintMiterLimit() throws {
+        let program = try parse("print miterLimit")
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
     }

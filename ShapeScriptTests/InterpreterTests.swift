@@ -2489,6 +2489,27 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(options.miterLimit, 2)
     }
 
+    func testInvokeExtrudeResetsInheritedMiterLimit() throws {
+        let program = """
+        miterLimit 1
+        extrude {
+            miterLimit ()
+            square
+            along path {
+                point 0
+                point 1
+                point 1 1
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        guard case let .extrude(paths, options) = scene.children.first?.type else {
+            return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
+        }
+        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(options.miterLimit, .infinity)
+    }
+
     func testInvokeExtrudeWithInheritedMiterLimitAppliesToMultipleExtrusions() throws {
         let program = """
         miterLimit 1
@@ -2526,6 +2547,19 @@ final class InterpreterTests: XCTestCase {
         """
         let scene = try evaluate(parse(program), delegate: nil)
         XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+    }
+
+    func testMiterLimitGetterReturnsEmptyTupleWhenUnlimited() throws {
+        let delegate = TestDelegate()
+        let program = """
+        print miterLimit
+        miterLimit 1
+        print miterLimit
+        miterLimit ()
+        print miterLimit
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1])
     }
 
     func testInvokeExtrudeWithMultipleArguments() throws {

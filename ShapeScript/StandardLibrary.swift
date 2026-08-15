@@ -214,11 +214,14 @@ extension Symbols {
             "along": .list(.path),
             "twist": .halfturns,
             "axisAligned": .boolean,
-            "miterLimit": .number,
+            "miterLimit": .optional(.number),
         ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
-            let miterLimit = (context.value(for: "miterLimit")?.doubleValue)
-                .map(MiterLimit.ratio) ?? context.state.miterLimit
+            let miterLimit: MiterLimit? = if let value = context.value(for: "miterLimit") {
+                value.type == .void ? nil : MiterLimit.ratio(value.doubleValue)
+            } else {
+                context.state.miterLimit
+            }
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
             } ?? .default
@@ -737,10 +740,11 @@ extension Symbols {
     ]
 
     static let miterLimit: Symbols = [
-        "miterLimit": .property(.number, { parameter, context in
-            context.state.miterLimit = MiterLimit.ratio(parameter.doubleValue)
+        "miterLimit": .property(.optional(.number), { parameter, context in
+            context.state.miterLimit = parameter.type == .void ?
+                nil : MiterLimit.ratio(parameter.doubleValue)
         }, { context in
-            .number(context.state.miterLimit?.ratio ?? .infinity)
+            context.state.miterLimit.map { .number($0.ratio) } ?? .void
         }),
     ]
 
