@@ -213,7 +213,21 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         actionSheet.addButton(withTitle: "OK")
         actionSheet.addButton(withTitle: "Open in Editor")
         let fileURL = selectedGeometry?.sourceLocation?.file ?? fileURL
-        showSheet(actionSheet, in: windowForSheet) { [weak self] response in
+        let window = windowForSheet
+        var escapeKeyMonitor: Any?
+        if let window {
+            escapeKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard actionSheet.window.sheetParent === window, event.keyCode == 53 else {
+                    return event
+                }
+                window.endSheet(actionSheet.window, returnCode: .alertFirstButtonReturn)
+                return nil
+            }
+        }
+        showSheet(actionSheet, in: window) { [weak self] response in
+            if let escapeKeyMonitor {
+                NSEvent.removeMonitor(escapeKeyMonitor)
+            }
             switch response {
             case .alertSecondButtonReturn:
                 self?.openFileInEditor(fileURL)
