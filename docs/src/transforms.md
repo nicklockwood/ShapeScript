@@ -98,6 +98,21 @@ cube {
 
 If you use `angle` without specifying an `axis`, the axis defaults to `0 0 1`. You can use roll/yaw/pitch values or axis/angle values, but not both in the same block.
 
+To create a reusable rotation value without immediately applying it to a shape, use the `rotation` function. It accepts the same roll/yaw/pitch, axis-angle, vector-axis, and block formats as `orientation` and `rotate`:
+
+```swift
+define turn rotation 0.5 0 1 0
+
+define diagonalTurn rotation {
+    axis 1 1 0
+    angle 0.25
+}
+
+cube {
+    orientation turn * diagonalTurn
+}
+```
+
 ## Size
 
 The `size` option scales the shape it is applied to. A size of `2 1 0.5` makes the shape twice as wide, unchanged in height, and half as deep:

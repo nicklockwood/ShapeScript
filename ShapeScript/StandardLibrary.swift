@@ -644,6 +644,9 @@ extension Symbols {
             let values = value.tupleValue as! [Vector]
             return .tuple(values[0].cross(values[1]).components.map { .number($0) })
         },
+        "rotation": .function(.rotation, .rotation) { value, _ in
+            value
+        },
         "length": .function(.list(.number), .number) { value, _ in
             let values = value.tupleValue as! [Double]
             return .number(sqrt(values.map { $0 * $0 }.reduce(0, +)))

@@ -115,6 +115,21 @@ define right (1 -2)
 print left * right // prints 1 -4
 ```
 
+Rotations can also be multiplied. Multiplying two rotations composes them in order, which is useful when you want to build an orientation from separate rotation values:
+
+```swift
+define turn (rotation 0.5 1 0 0)
+define tilt (rotation 0.5 0 1 0)
+orientation turn * tilt
+```
+
+Multiplying or dividing a rotation by a number scales the rotation angle instead:
+
+```swift
+define halfTurn (rotation 0.5 0 1 0) / 2
+orientation halfTurn
+```
+
 You can also add or subtract two lists of numbers together:
 
 ```swift

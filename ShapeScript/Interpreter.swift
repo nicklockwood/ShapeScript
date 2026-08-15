@@ -1675,15 +1675,22 @@ extension Expression {
                     return value
                 }
             }
-            func tupleOrTextureApply(_ fn: (Double, Double) -> Double) throws -> Value {
-                let lhs = try evaluate(lhs, as: .union([
+            func scalarArithmeticApply(_ fn: (Double, Double) -> Double) throws -> Value {
+                var lhsType = ValueType.union([
                     .number,
                     .radians,
                     .list(.number),
                     .list(.radians),
                     .texture,
-                ]))
+                ])
+                if try lhs.staticType(in: context).isSubtype(of: .rotation) {
+                    lhsType.formUnion(.rotation)
+                }
+                let lhs = try evaluate(lhs, as: lhsType)
                 switch lhs {
+                case let .rotation(rotation):
+                    let rhs = try doubleValue(for: rhs, at: 1)
+                    return .rotation(rotation * fn(1, rhs))
                 case let .texture(texture):
                     guard let texture else {
                         return .texture(nil)
@@ -1702,9 +1709,17 @@ extension Expression {
             case .plus:
                 return try tupleApply(+, widen: true)
             case .times:
-                return try tupleOrTextureApply(*)
+                if try lhs.staticType(in: context).isSubtype(of: .rotation) {
+                    let lhs = try evaluate(lhs, as: .rotation)
+                    let rhsType = try rhs.staticType(in: context)
+                    if rhsType.isSubtype(of: .rotation) || rhsType.isSubtype(of: .list(.any)) {
+                        let rhs = try evaluate(rhs, as: .rotation, at: 1)
+                        return .rotation(lhs.rotationValue * rhs.rotationValue)
+                    }
+                }
+                return try scalarArithmeticApply(*)
             case .divide:
-                return try tupleOrTextureApply(/)
+                return try scalarArithmeticApply(/)
             case .modulo:
                 return try tupleApply(fmod, widen: false)
             case .lt:

@@ -4783,6 +4783,62 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [2.0, 0, -8.0])
     }
 
+    func testRotationConstructor() throws {
+        let program = """
+        print rotation 0.5 0 1 0
+        """
+        let delegate = TestDelegate()
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotationConstructorWithObject() throws {
+        let program = """
+        print rotation {
+            axis 0 1 0
+            angle 0.5
+        }
+        """
+        let delegate = TestDelegate()
+        let expected = try XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotationMultiply() throws {
+        let program = """
+        print (rotation 0.5 1 0 0) * (rotation 0.5 0 1 0)
+        """
+        let delegate = TestDelegate()
+        let expected = try? XCTUnwrap(Rotation(axis: .unitX, angle: .halfturns(0.5))) *
+            XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotationScalarMultiply() throws {
+        let program = """
+        print (rotation 0.5 0 1 0) * 0.5
+        """
+        let delegate = TestDelegate()
+        let r1 = try? XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let expected = r1.map { $0 * 0.5 }
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
+    func testRotationScalarDivide() throws {
+        let program = """
+        print (rotation 0.5 0 1 0) / 2
+        """
+        let delegate = TestDelegate()
+        let r1 = try? XCTUnwrap(Rotation(axis: .unitY, angle: .halfturns(0.5)))
+        let expected = r1.map { $0 * 0.5 }
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [expected])
+    }
+
     func testNumericTupleMultiplyShorten() {
         let program = "print (1 0 -2) * (2 3)"
         let delegate = TestDelegate()

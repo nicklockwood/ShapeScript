@@ -129,6 +129,14 @@ define v (3 4)
 print normalize(v) // returns 0.6 0.8
 ```
 
+The `rotation` function constructs a rotation value from any of the formats supported by [orientation](transforms.md#orientation), including roll/yaw/pitch tuples and axis-angle blocks:
+
+```swift
+define yaw rotation 0.5 0 1 0
+define pitch rotation { pitch 0.25 }
+orientation yaw * pitch
+```
+
 The `sum` function returns the sum of two or more values. It works with both scalar and vector inputs:
 
 ```swift

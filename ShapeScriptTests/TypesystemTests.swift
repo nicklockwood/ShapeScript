@@ -125,6 +125,22 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("(\"1\" \"2\") * 3"), .list(.number))
     }
 
+    func testRotationMultiplyExpressionType() {
+        XCTAssertEqual(try expressionType("(rotation 0.5 1 0 0) * (rotation 0.5 0 1 0)"), .rotation)
+    }
+
+    func testRotationScalarMultiplyExpressionType() {
+        XCTAssertEqual(try expressionType("(rotation 0.5 0 1 0) * 0.5"), .rotation)
+    }
+
+    func testRotationScalarDivideExpressionType() {
+        XCTAssertEqual(try expressionType("(rotation 0.5 0 1 0) / 2"), .rotation)
+    }
+
+    func testRotationConstructorExpressionType() {
+        XCTAssertEqual(try expressionType("rotation 0.5 0 1 0"), .rotation)
+    }
+
     func testBooleanLiteral() {
         XCTAssertEqual(try expressionType("true"), .boolean)
     }

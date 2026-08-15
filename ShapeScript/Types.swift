@@ -921,9 +921,25 @@ extension Expression {
                 return .list(.number)
             }
             return .number
-        case let .infix(lhs, .times, _),
-             let .infix(lhs, .divide, _),
-             let .infix(lhs, .modulo, _):
+        case let .infix(lhs, .times, rhs):
+            if try lhs.staticType(in: context).isSubtype(of: .rotation) {
+                return .rotation
+            }
+            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) ||
+                rhs.staticType(in: context).isSubtype(of: .list(.any))
+            {
+                return .list(.number)
+            }
+            return .number
+        case let .infix(lhs, .divide, _):
+            if try lhs.staticType(in: context).isSubtype(of: .rotation) {
+                return .rotation
+            }
+            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) {
+                return .list(.number)
+            }
+            return .number
+        case let .infix(lhs, .modulo, _):
             if try lhs.staticType(in: context).isSubtype(of: .list(.any)) {
                 return .list(.number)
             }
