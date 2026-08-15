@@ -95,6 +95,13 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(value.unpretransformed(), .tuple([1, 2]))
     }
 
+    func testOptionalValueTypeIsSubtypeOfWrappedType() {
+        XCTAssertTrue(ValueType.optional(.rotation).isSubtype(of: .rotation))
+        XCTAssertFalse(ValueType.void.isSubtype(of: .rotation))
+        XCTAssertTrue(ValueType.rotation.isSubtype(of: .rotation))
+        XCTAssertFalse(ValueType.optional(.number).isSubtype(of: .rotation))
+    }
+
     // MARK: Static type
 
     func testNumericLiteralType() throws {
@@ -139,6 +146,27 @@ final class TypesystemTests: XCTestCase {
 
     func testRotationConstructorExpressionType() {
         XCTAssertEqual(try expressionType("rotation 0.5 0 1 0"), .rotation)
+    }
+
+    func testOptionalRotationMultiplyExpressionType() throws {
+        let type = try expressionType("""
+        (path {
+            point 0 0
+            point 1 0
+        }).points.first.orientation * (0.5 1 0 0)
+        """)
+        XCTAssertEqual(type, .rotation)
+    }
+
+    func testOptionalColorMemberExpressionType() throws {
+        let type = try expressionType("""
+        (path {
+            color red
+            point 0 0
+            point 1 0
+        }).points.first.color.red
+        """)
+        XCTAssertEqual(type, .number)
     }
 
     func testBooleanLiteral() {

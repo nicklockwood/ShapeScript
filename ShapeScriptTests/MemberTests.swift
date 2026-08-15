@@ -741,6 +741,27 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log, [Color.red, Color.green])
     }
 
+    func testOptionalPointColorComponentLookup() throws {
+        let program = """
+        define foo path {
+            color red
+            point 0 0
+            point 1 0
+        }
+        print foo.points.first.color.red
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [Color.red.red])
+    }
+
+    func testNilPointColorComponentLookupThrows() {
+        let program = """
+        print (point 0 0).color.red
+        """
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil))
+    }
+
     func testPointColourWithBritishSpelling() throws {
         let program = """
         define foo path {

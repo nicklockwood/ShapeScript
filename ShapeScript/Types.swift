@@ -113,6 +113,13 @@ extension ValueType {
         subtypes.contains(.void)
     }
 
+    var nonOptional: ValueType {
+        guard case let .union(types) = self, types.contains(.void) else {
+            return self
+        }
+        return Self.union(types.subtracting([.void])).simplified()
+    }
+
     var subtypes: Set<ValueType> {
         switch self {
         case let .union(types):
@@ -190,7 +197,10 @@ extension ValueType {
     }
 
     func isSubtype(of type: ValueType) -> Bool {
-        switch (self, type) {
+        if self != .void, isOptional, !type.isOptional {
+            return nonOptional.isSubtype(of: type)
+        }
+        return switch (self, type) {
         case (_, .any):
             true
         case let (.union(lhs), rhs):
