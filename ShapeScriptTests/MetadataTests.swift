@@ -503,6 +503,47 @@ final class MetadataTests: XCTestCase {
         }
     }
 
+    func testHelpTypoPatterns() throws {
+        let typoPatterns = [
+            (#"\b[Ss]pacial\b"#, "Use 'spatial' instead of 'spacial'."),
+        ]
+        let regexes = try typoPatterns.map {
+            try (NSRegularExpression(pattern: $0.0), $0.1)
+        }
+        let currentHelpDirectories = [
+            helpSourceDirectory,
+            helpDirectory.appendingPathComponent("ios"),
+            helpDirectory.appendingPathComponent("mac"),
+        ]
+        var failures = [String]()
+
+        for directory in currentHelpDirectories {
+            let fm = FileManager.default
+            let enumerator = try XCTUnwrap(fm.enumerator(atPath: directory.path))
+            for case let file as String in enumerator where file.hasSuffix(".md") {
+                let fileURL = directory.appendingPathComponent(file)
+                let text = try String(contentsOf: fileURL)
+                let nsText = text as NSString
+                let range = NSRange(location: 0, length: nsText.length)
+                for (regex, message) in regexes {
+                    for match in regex.matches(in: text, range: range) {
+                        let line = text[..<String.Index(utf16Offset: match.range.location, in: text)]
+                            .filter { $0 == "\n" }
+                            .count + 1
+                        let path = fileURL.path.replacingOccurrences(
+                            of: projectDirectory.path + "/",
+                            with: ""
+                        )
+                        let matchText = nsText.substring(with: match.range)
+                        failures.append("\(path):\(line): '\(matchText)' found. \(message)")
+                    }
+                }
+            }
+        }
+
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+
     func testExportHelp() throws {
         try stripTrailingWhitespace(in: helpSourceDirectory)
         try exportIOSHelp()

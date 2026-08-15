@@ -1,7 +1,7 @@
 Bounds
 ---
 
-ShapeScript's [size](transforms.md#size) ands [scale](transforms.md#relative-transforms) commands let you control the relative size of a shape, but sometimes it's useful to know the exact dimensions.
+ShapeScript's [size](transforms.md#size) and [scale](transforms.md#relative-transforms) commands let you control the relative size of a shape, but sometimes it's useful to know the exact dimensions.
 
 A cube of size 1 has an easily-predicted size of one world unit square, but what about a more complex shape, such as a 5-pointed star (see the [procedural paths](paths.md#procedural-paths) and [blocks](blocks.md) sections for details):
 
