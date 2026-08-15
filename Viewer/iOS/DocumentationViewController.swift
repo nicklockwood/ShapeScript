@@ -927,13 +927,14 @@ extension UIViewController {
             }
 
             if let sceneDelegate = UIApplication.shared.connectedScenes
-                .compactMap({ $0.delegate as? DocumentationSceneDelegate })
-                .first
+                .compactMap({ $0.delegate as? DocumentationSceneDelegate }).first
             {
                 sceneDelegate.load(url)
-                if let session = sceneDelegate.window?.windowScene?.session {
+                if let windowScene = sceneDelegate.window?.windowScene,
+                   windowScene.activationState != .foregroundActive
+                {
                     UIApplication.shared.requestSceneSessionActivation(
-                        session,
+                        windowScene.session,
                         userActivity: DocumentationViewController.userActivity(for: url),
                         options: nil,
                         errorHandler: nil
