@@ -148,14 +148,26 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try expressionType("rotation 0.5 0 1 0"), .rotation)
     }
 
-    func testOptionalRotationMultiplyExpressionType() throws {
-        let type = try expressionType("""
-        (path {
-            point 0 0
-            point 1 0
-        }).points.first.orientation * (0.5 1 0 0)
-        """)
-        XCTAssertEqual(type, .rotation)
+    func testTextureMultiplyExpressionType() {
+        XCTAssertEqual(try expressionType("texture * 0.5"), .texture)
+    }
+
+    func testColorMultiplyExpressionType() {
+        XCTAssertEqual(try expressionType("red * 0.5"), .list(.number))
+    }
+
+    func testColorOrTextureMultiplyExpressionType() {
+        XCTAssertEqual(
+            try expressionType("background * 0.5"),
+            ValueType.union([.list(.number), .texture]).simplified()
+        )
+    }
+
+    func testNumberOrTextureMultiplyExpressionType() {
+        XCTAssertEqual(
+            try expressionType("opacity * 0.5"),
+            ValueType.union([.number, .texture]).simplified()
+        )
     }
 
     func testOptionalColorMemberExpressionType() throws {

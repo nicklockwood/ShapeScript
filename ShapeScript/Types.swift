@@ -734,6 +734,56 @@ extension Definition {
 }
 
 extension Expression {
+    private func arithmeticType(
+        _ lhs: ValueType,
+        _ rhs: ValueType,
+        using op: InfixOperator
+    ) throws -> ValueType {
+        func variants(of type: ValueType) -> Set<ValueType> {
+            let expandedTypes: Set<ValueType> = [.color, .texture, .rotation]
+            guard !type.nonOptional.subtypes.isDisjoint(with: expandedTypes) else {
+                return [type]
+            }
+            let type = type.nonOptional
+            switch type {
+            case let .union(types):
+                return types
+            default:
+                return [type]
+            }
+        }
+
+        func concreteArithmeticType(_ lhs: ValueType, _ rhs: ValueType) -> ValueType {
+            switch op {
+            case .plus, .minus, .times, .divide, .modulo:
+                if [.times, .divide].contains(op), lhs.isSubtype(of: .rotation) {
+                    return .rotation
+                }
+                if [.times, .divide].contains(op), lhs.isSubtype(of: .texture) {
+                    return .texture
+                }
+                if [.times, .divide].contains(op), lhs.isSubtype(of: .color) {
+                    return .list(.number)
+                }
+                if lhs.isSubtype(of: .list(.any)) || rhs.isSubtype(of: .list(.any)) {
+                    return .list(.number)
+                }
+                return .number
+            case .to, .step:
+                return .range
+            case .equal, .unequal, .lt, .gt, .lte, .gte, .and, .or, .in:
+                return .boolean
+            }
+        }
+
+        let types = variants(of: lhs).flatMap { lhs in
+            variants(of: rhs).map { rhs in
+                concreteArithmeticType(lhs, rhs)
+            }
+        }
+        return ValueType.union(Set(types)).simplified()
+    }
+
     func inferTypes(
         for childTypes: inout ValueType,
         in context: EvaluationContext,
@@ -925,35 +975,29 @@ extension Expression {
             return .number
         case let .infix(lhs, .minus, rhs),
              let .infix(lhs, .plus, rhs):
-            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) ||
-                rhs.staticType(in: context).isSubtype(of: .list(.any))
-            {
-                return .list(.number)
-            }
-            return .number
+            return try arithmeticType(
+                lhs.staticType(in: context),
+                rhs.staticType(in: context),
+                using: .plus
+            )
         case let .infix(lhs, .times, rhs):
-            if try lhs.staticType(in: context).isSubtype(of: .rotation) {
-                return .rotation
-            }
-            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) ||
-                rhs.staticType(in: context).isSubtype(of: .list(.any))
-            {
-                return .list(.number)
-            }
-            return .number
-        case let .infix(lhs, .divide, _):
-            if try lhs.staticType(in: context).isSubtype(of: .rotation) {
-                return .rotation
-            }
-            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) {
-                return .list(.number)
-            }
-            return .number
-        case let .infix(lhs, .modulo, _):
-            if try lhs.staticType(in: context).isSubtype(of: .list(.any)) {
-                return .list(.number)
-            }
-            return .number
+            return try arithmeticType(
+                lhs.staticType(in: context),
+                rhs.staticType(in: context),
+                using: .times
+            )
+        case let .infix(lhs, .divide, rhs):
+            return try arithmeticType(
+                lhs.staticType(in: context),
+                rhs.staticType(in: context),
+                using: .divide
+            )
+        case let .infix(lhs, .modulo, rhs):
+            return try arithmeticType(
+                lhs.staticType(in: context),
+                rhs.staticType(in: context),
+                using: .modulo
+            )
         case .infix(_, .to, _), .infix(_, .step, _):
             return .range
         case .infix(_, .equal, _),
