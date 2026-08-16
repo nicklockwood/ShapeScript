@@ -125,6 +125,7 @@ final class DocumentationViewController: UIViewController {
         searchController.searchBar.placeholder = "Search Help"
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
+        updateSearchBarPlacement()
         definesPresentationContext = true
 
         configureLoadingOverlay()
@@ -197,6 +198,7 @@ final class DocumentationViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        updateSearchBarPlacement()
         updateSidebar(animated: false)
     }
 
@@ -476,6 +478,17 @@ final class DocumentationViewController: UIViewController {
         return min(320, max(240, view.bounds.width * 0.32))
     }
 
+    private func updateSearchBarPlacement() {
+        guard #available(iOS 16.0, *) else {
+            return
+        }
+        navigationItem.preferredSearchBarPlacement = isPhoneLandscape ? .inline : .automatic
+    }
+
+    private var isPhoneLandscape: Bool {
+        traitCollection.userInterfaceIdiom == .phone && view.bounds.width > view.bounds.height
+    }
+
     private func loadIndexItem(_ item: DocumentationIndexItem) {
         guard let url = item.url else {
             return
@@ -502,6 +515,7 @@ final class DocumentationViewController: UIViewController {
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
+        updateSearchBarPlacement()
         guard previousTraitCollection?
             .hasDifferentColorAppearance(comparedTo: traitCollection) != false
         else {
