@@ -46,6 +46,7 @@ struct DocumentationRenderer {
     var footer: String
     var requireFooterLink: Bool = true
     var includeIndexFooterLink: Bool = false
+    var highlightShapeScriptCode: Bool = false
     var rewriteMarkdownLinks: Bool = true
     var rewriteImagePath: ((String) -> String)?
 
@@ -90,6 +91,9 @@ struct DocumentationRenderer {
             }
         }
         body = try processSingleParagraphListItems(in: body)
+        if highlightShapeScriptCode {
+            body = try ShapeScriptSyntaxHighlighter.highlightCodeBlocks(in: body)
+        }
 
         let headingRegex = try NSRegularExpression(pattern: #"<h2>([^<]+)</h2>"#)
         guard let match = headingRegex.firstMatch(

@@ -43,6 +43,7 @@ let package = Package(
         .executableTarget(
             name: "HelpBuilder",
             dependencies: [
+                "ShapeScript",
                 .product(name: "Markdown", package: "swift-markdown"),
             ],
             path: "HelpBuilder"

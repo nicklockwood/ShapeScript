@@ -204,6 +204,32 @@ pre code {
     line-height: 1.25;
 }
 
+.tok-keyword {
+    color: #AF52DE;
+}
+
+.tok-number {
+    color: #FF9500;
+}
+
+.tok-string, .tok-color {
+    color: #FF3B30;
+}
+
+.tok-default {
+    color: #8E8E93;
+}
+
+.tok-stdlib, .tok-member {
+    color: #5856D6;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tok-stdlib, .tok-member {
+        color: #5AC8FA;
+    }
+}
+
 img {
     max-width: 100%;
     height: auto;
@@ -303,6 +329,7 @@ struct HelpBuilder {
             footer: footer,
             requireFooterLink: false,
             includeIndexFooterLink: true,
+            highlightShapeScriptCode: true,
             rewriteImagePath: { path in
                 "images/\(URL(string: path)?.lastPathComponent ?? path)"
             }
