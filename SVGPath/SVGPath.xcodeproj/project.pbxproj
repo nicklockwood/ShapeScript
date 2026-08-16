@@ -55,7 +55,6 @@
 		0148ECA72789C44D00B3F836 /* SVGPath+CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SVGPath+CoreGraphics.swift"; sourceTree = "<group>"; };
 		0148ECA92789CA5B00B3F836 /* CGPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CGPathTests.swift; sourceTree = "<group>"; };
 		016FAB2921BFE78100AF60DC /* SVGPath.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SVGPath.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		016FAB2D21BFE78100AF60DC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		016FAB3221BFE78100AF60DC /* SVGPathTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SVGPathTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0172A95B2EFB47A800EA4685 /* SVGExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SVGExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0172A96B2EFB4A0600EA4685 /* SVGPath+SwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SVGPath+SwiftUI.swift"; sourceTree = "<group>"; };
@@ -129,7 +128,6 @@
 				0A24013E256A671600C1535C /* SVGPath.swift */,
 				0148ECA72789C44D00B3F836 /* SVGPath+CoreGraphics.swift */,
 				0172A96B2EFB4A0600EA4685 /* SVGPath+SwiftUI.swift */,
-				016FAB2D21BFE78100AF60DC /* Info.plist */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -520,7 +518,8 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = Sources/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2021 Nick Lockwood. All rights reserved.";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -557,7 +556,8 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				FRAMEWORK_VERSION = A;
-				INFOPLIST_FILE = Sources/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2021 Nick Lockwood. All rights reserved.";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

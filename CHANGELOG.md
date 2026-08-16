@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.11.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.2) (2026-08-16)
+
+- Added offline iOS help with search, syntax highlighting and index sidebar
+- Added rotation multiplication/scaling and improved optional and union type handling
+- Made `miterLimit` optional to avoid infinite default value error
+- Fixed inconsistent syntax coloring for comments in iOS source editor
+- Fixed error screen crash
+
 ## [1.11.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.1) (2026-08-13)
 
 - Added `--version` option and installation script for the ShapeScript command-line tool

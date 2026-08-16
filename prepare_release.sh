@@ -10,13 +10,14 @@ fi
 
 NEW_VERSION="$1"
 CURRENT_DATE=$(date +"%Y-%m-%d")
+CURRENT_YEAR=$(date +"%Y")
 PATCH_VERSION="${NEW_VERSION##*.}"
 UPDATE_RELEASE_DOCS="${SHAPESCRIPT_UPDATE_RELEASE_DOCS:-}"
 if [ -z "$UPDATE_RELEASE_DOCS" ]; then
     if [ "$PATCH_VERSION" = "0" ]; then
         UPDATE_RELEASE_DOCS=1
     else
-        UPDATE_RELEASE_DOCS=0
+        UPDATE_RELEASE_DOCS=auto
     fi
 fi
 
@@ -59,10 +60,12 @@ sed -i '' "s/from: \"[^\"]*\"/from: \"$NEW_VERSION\"/" README.md
 # 3. Update version in ShapeScript/Interpreter.swift
 echo "Updating ShapeScript/Interpreter.swift..."
 sed -i '' "s/public let version: String = \"[^\"]*\"/public let version: String = \"$NEW_VERSION\"/" ShapeScript/Interpreter.swift
+sed -i '' "s/Copyright (c) 2023\\( *- *[0-9][0-9][0-9][0-9]\\)\\{0,1\\} Nick Lockwood/Copyright (c) 2023-$CURRENT_YEAR Nick Lockwood/" Viewer/CLI/CLI.swift
 
 # 4. Update version in ShapeScript.xcodeproj
 echo "Updating ShapeScript.xcodeproj..."
 sed -i '' "s/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $NEW_VERSION/" ShapeScript.xcodeproj/project.pbxproj
+sed -i '' "s/Copyright © 2018\\( *- *[0-9][0-9][0-9][0-9]\\)\\{0,1\\} Nick Lockwood\\. All rights reserved\\./Copyright © 2018-$CURRENT_YEAR Nick Lockwood. All rights reserved./" ShapeScript.xcodeproj/project.pbxproj
 
 # 5. Ensure docs version folder exists
 echo "Checking docs version folder..."
@@ -81,6 +84,15 @@ else
 
     (cd docs && ln -s "$LATEST_DOCS_VERSION" "$NEW_VERSION")
     echo "Created docs symlink: $DOCS_VERSION_PATH -> $LATEST_DOCS_VERSION"
+fi
+
+if [ "$UPDATE_RELEASE_DOCS" = "auto" ]; then
+    echo "Checking for release documentation changes..."
+    if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS=1 swift test --filter MetadataTests/testExportHelp; then
+        echo "Error: Failed to validate or update release documentation."
+        exit 1
+    fi
+    UPDATE_RELEASE_DOCS=0
 fi
 
 # 7. Run tests

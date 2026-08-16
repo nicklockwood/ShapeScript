@@ -78,7 +78,7 @@ final class CLI {
         guard let inputURL else {
             print("""
             ShapeScript, version \(version)
-            Copyright (c) 2023 Nick Lockwood
+            Copyright (c) 2023-2026 Nick Lockwood
 
             USAGE:
               shapescript <input_path> [<output_path>] [<options>]
