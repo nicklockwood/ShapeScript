@@ -18,6 +18,7 @@ private let documentationURLActivityKey = "url"
 final class DocumentationViewController: UIViewController {
     private let initialURL: URL
     private var currentURL: URL
+    private var lastLoadedDocumentationURL: URL
     private lazy var searchIndex = DocumentationSearchIndex()
     private let searchResultsViewController = DocumentationSearchResultsViewController()
     private lazy var searchController = UISearchController(searchResultsController: searchResultsViewController)
@@ -37,6 +38,7 @@ final class DocumentationViewController: UIViewController {
     init(url: URL = onlineHelpURL) {
         self.initialURL = url
         self.currentURL = url
+        self.lastLoadedDocumentationURL = url
         super.init(nibName: nil, bundle: nil)
         title = documentationSceneTitle
         userActivity = Self.userActivity(for: url)
@@ -142,10 +144,8 @@ final class DocumentationViewController: UIViewController {
 
     func load(_ url: URL) {
         loadViewIfNeeded()
-        currentURL = url
-        userActivity = Self.userActivity(for: url)
-        updateNavigationButtons()
         if let localURL = url.bundledDocumentationURL {
+            setCurrentDocumentationURL(url)
             hideExternalLoadingOverlay()
             webView.loadFileURL(
                 localURL,
@@ -203,6 +203,13 @@ final class DocumentationViewController: UIViewController {
             return components.url ?? documentationURL
         }
         return url
+    }
+
+    private func setCurrentDocumentationURL(_ url: URL) {
+        currentURL = url
+        lastLoadedDocumentationURL = url
+        userActivity = Self.userActivity(for: url)
+        updateNavigationButtons()
     }
 
     private func updateCSSVariables() {
@@ -322,6 +329,7 @@ final class DocumentationViewController: UIViewController {
     private func cancelExternalLoad() {
         webView.stopLoading()
         hideExternalLoadingOverlay()
+        restoreCurrentDocumentationPage()
         updateNavigationButtons()
     }
 
@@ -681,6 +689,12 @@ extension DocumentationViewController: WKNavigationDelegate {
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
     ) {
+        if let url = navigationAction.request.url, shouldOpenExternally(url) {
+            openExternally(url)
+            decisionHandler(.cancel)
+            return
+        }
+
         if let url = navigationAction.request.url,
            !url.isFileURL,
            let localURL = url.bundledDocumentationURL
@@ -701,7 +715,10 @@ extension DocumentationViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
         if webView.url != nil {
-            currentURL = currentDocumentationURL
+            let url = currentDocumentationURL
+            if url.bundledDocumentationURL != nil {
+                setCurrentDocumentationURL(url)
+            }
         }
         hideExternalLoadingOverlay()
         updateCSSVariables()
@@ -740,6 +757,12 @@ extension DocumentationViewController: WKNavigationDelegate {
 
     private func handleNavigationFailure(_ error: Error) {
         let nsError = error as NSError
+        if let url = nsError.userInfo[NSURLErrorFailingURLErrorKey] as? URL,
+           shouldOpenExternally(url)
+        {
+            openExternally(url)
+            return
+        }
         guard nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled,
               let url = externalLoadingURL ?? webView.url,
               shouldShowLoadingOverlay(for: url)
@@ -754,6 +777,42 @@ extension DocumentationViewController: WKNavigationDelegate {
 
     private func shouldShowLoadingOverlay(for url: URL) -> Bool {
         !url.isFileURL && url.bundledDocumentationURL == nil
+    }
+
+    private func shouldOpenExternally(_ url: URL) -> Bool {
+        if shouldOpenAppStoreURLExternally(url) {
+            return true
+        }
+        guard let scheme = url.scheme?.lowercased() else {
+            return false
+        }
+        return !["file", "http", "https", "about"].contains(scheme)
+    }
+
+    private func shouldOpenAppStoreURLExternally(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else {
+            return false
+        }
+        return host == "apps.apple.com" || host == "itunes.apple.com"
+    }
+
+    private func openExternally(_ url: URL) {
+        webView.stopLoading()
+        hideExternalLoadingOverlay()
+        restoreCurrentDocumentationPage()
+        updateNavigationButtons()
+        UIApplication.shared.open(url)
+    }
+
+    private func restoreCurrentDocumentationPage() {
+        if let localURL = lastLoadedDocumentationURL.bundledDocumentationURL {
+            webView.loadFileURL(
+                localURL,
+                allowingReadAccessTo: localURL.localReadAccessURL
+            )
+        } else {
+            webView.load(URLRequest(url: lastLoadedDocumentationURL))
+        }
     }
 
     private func updateButtons() {
@@ -792,8 +851,8 @@ private extension URL {
             return false
         }
         let basePathComponents = onlineHelpURL.pathComponents.filter { $0 != "/" }
-        let pathComponents = pathComponents.filter { $0 != "/" }
-        return pathComponents.starts(with: basePathComponents)
+        let urlPathComponents = pathComponents.filter { $0 != "/" }
+        return urlPathComponents.starts(with: basePathComponents)
     }
 
     var localReadAccessURL: URL {
