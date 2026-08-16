@@ -218,7 +218,7 @@ private extension SourceViewController {
 }
 
 extension TokenView.TokenType {
-    static let `default` = Self(rawValue: "default")
+    static let comment = Self(rawValue: "comment")
     static let `operator` = Self(rawValue: "operator")
     static let identifier = Self(rawValue: "identifier")
     static let keyword = Self(rawValue: "keyword")
@@ -244,8 +244,10 @@ extension TokenType {
             .number
         case .string:
             .string
+        case .comment:
+            .comment
         case .linebreak, .eof:
-            .default
+            .identifier
         }
     }
 }
@@ -265,7 +267,10 @@ extension SourceViewController: TokenViewDelegate {
         var isSwitch = [false]
         var lastKeyword: String?
         var lastToken: ShapeScript.Token?
-        return (try? tokenize(input).flatMap { token -> [TokenView.Token] in
+        return (try? tokenize(input).map { token -> TokenView.Token in
+            if case .comment = token.type {
+                return token.tokenViewToken
+            }
             defer { lastToken = token }
             var viewToken = token.tokenViewToken
             switch token.type {
@@ -315,12 +320,7 @@ extension SourceViewController: TokenViewDelegate {
             default:
                 break
             }
-            let lastBound = lastToken?.range.upperBound ?? "".startIndex
-            let lastRange = lastBound ..< token.range.lowerBound
-            if !lastRange.isEmpty, input[lastRange].contains("/") {
-                return [.init(type: .default, range: lastRange), viewToken]
-            }
-            return [viewToken]
+            return viewToken
         }) ?? []
     }
 
@@ -336,7 +336,7 @@ extension SourceViewController: TokenViewDelegate {
             [.foregroundColor: UIColor {
                 $0.userInterfaceStyle == .dark ? .systemTeal : .systemIndigo
             }]
-        case .default:
+        case .comment:
             [.foregroundColor: UIColor.systemGray]
         case .identifier, .operator, _:
             [:]

@@ -217,7 +217,7 @@ pre code {
     color: #FF3B30;
 }
 
-.tok-default {
+.tok-comment {
     color: #8E8E93;
 }
 

@@ -14,34 +14,38 @@ public func tokenize(_ input: String) throws -> [Token] {
     var tokens: [Token] = []
     var characters = Substring(input)
     var spaceBefore = true
-    _ = try characters.skipWhitespaceAndComments()
+    _ = characters.skipWhitespace()
     while let token = try characters.readToken(spaceBefore: spaceBefore) {
-        switch (tokens.last?.type, token.type) {
+        let lastSignificantTokenType = tokens.last(where: { !$0.type.isComment })?.type
+        switch (lastSignificantTokenType, token.type) {
         case (.linebreak?, .linebreak):
             break // Skip duplicate linebreak
-        case (.identifier?, .lparen) where spaceBefore && tokens.count > 1:
-            switch tokens[tokens.count - 2].type {
+        case (.identifier?, .lparen) where spaceBefore && tokens.filter { !$0.type.isComment }.count > 1:
+            let identifierIndex = tokens.lastIndex(where: { !$0.type.isComment })!
+            switch tokens[..<identifierIndex].last(where: { !$0.type.isComment })?.type {
             case .infix, .prefix:
                 // Insert parens for disambiguation
-                let identifier = tokens.removeLast()
+                let identifier = tokens.remove(at: identifierIndex)
                 let range = identifier.range
                 let lRange = range.lowerBound ..< range.lowerBound
                 let rRange = range.upperBound ..< range.upperBound
-                tokens += [
+                tokens.insert(contentsOf: [
                     Token(type: .lparen, range: lRange),
                     identifier,
                     Token(type: .rparen, range: rRange),
-                    token,
-                ]
+                ], at: identifierIndex)
+                tokens.append(token)
             default:
                 tokens.append(token)
             }
         default:
             tokens.append(token)
         }
-        spaceBefore = try characters.skipWhitespaceAndComments()
+        spaceBefore = characters.skipWhitespace()
         if !spaceBefore, let lastTokenType = tokens.last?.type {
             switch lastTokenType {
+            case .comment:
+                spaceBefore = true
             case .infix, .prefix, .dot, .lparen, .lbrace, .call,
                  .lbracket, .subscript, .linebreak:
                 spaceBefore = true
@@ -96,6 +100,7 @@ public enum InfixOperator: String, CaseIterable, Sendable {
 
 public enum TokenType: Equatable, Sendable {
     case linebreak
+    case comment(String)
     case identifier(String)
     case keyword(Keyword)
     case hexColor(String)
@@ -113,6 +118,15 @@ public enum TokenType: Equatable, Sendable {
     case call
     case `subscript`
     case eof
+}
+
+public extension TokenType {
+    var isComment: Bool {
+        if case .comment = self {
+            return true
+        }
+        return false
+    }
 }
 
 public typealias SourceRange = Range<String.Index>
@@ -336,37 +350,38 @@ private extension Substring {
         throw LexerError(.unterminatedBlockComment, at: start ..< endIndex)
     }
 
-    mutating func skipWhitespaceAndComments() throws -> Bool {
+    mutating func skipWhitespace() -> Bool {
         var wasSpace = false
         while let c = first {
             guard c.isWhitespace else {
-                if c == "/" {
-                    wasSpace = true
-                    let nextIndex = index(after: startIndex)
-                    if nextIndex != endIndex {
-                        switch self[nextIndex] {
-                        case "/":
-                            removeFirst()
-                            removeFirst()
-                            while let c = first, !c.isLinebreak {
-                                removeFirst()
-                            }
-                        case "*":
-                            let start = startIndex
-                            removeFirst()
-                            try skipBlockComment(start: start)
-                            continue
-                        default:
-                            break
-                        }
-                    }
-                }
                 break
             }
             wasSpace = true
             removeFirst()
         }
         return wasSpace
+    }
+
+    mutating func readComment() throws -> TokenType? {
+        guard first == "/" else {
+            return nil
+        }
+        let start = self
+        removeFirst()
+        switch first {
+        case "/":
+            removeFirst()
+            while let c = first, !c.isLinebreak {
+                removeFirst()
+            }
+            return .comment(String(start[start.startIndex ..< startIndex]))
+        case "*":
+            try skipBlockComment(start: start.startIndex)
+            return .comment(String(start[start.startIndex ..< startIndex]))
+        default:
+            self = start
+            return nil
+        }
     }
 
     mutating func readLineBreak() -> TokenType? {
@@ -567,6 +582,7 @@ private extension Substring {
         let startIndex = startIndex
         guard let tokenType = try
             readLineBreak() ??
+            readComment() ??
             readOperator(spaceBefore: spaceBefore) ??
             readNumber() ??
             readString() ??

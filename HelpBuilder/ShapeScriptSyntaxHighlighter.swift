@@ -70,7 +70,10 @@ private func semanticTokens(for input: String) -> [SemanticToken] {
     var isSwitch = [false]
     var lastKeyword: String?
     var lastToken: ShapeScript.Token?
-    return (try? tokenize(input).flatMap { token -> [SemanticToken] in
+    let tokens = (try? tokenize(input).map { token -> SemanticToken in
+        if case .comment = token.type {
+            return SemanticToken(syntaxClass: token.type.syntaxClass, range: token.range)
+        }
         defer { lastToken = token }
         var syntaxClass = token.type.syntaxClass
         switch token.type {
@@ -120,16 +123,11 @@ private func semanticTokens(for input: String) -> [SemanticToken] {
         default:
             break
         }
-        let lastBound = lastToken?.range.upperBound ?? input.startIndex
-        let lastRange = lastBound ..< token.range.lowerBound
-        if !lastRange.isEmpty, input[lastRange].contains("/") {
-            return [
-                SemanticToken(syntaxClass: .default, range: lastRange),
-                SemanticToken(syntaxClass: syntaxClass, range: token.range),
-            ]
-        }
-        return [SemanticToken(syntaxClass: syntaxClass, range: token.range)]
+        return SemanticToken(syntaxClass: syntaxClass, range: token.range)
     }) ?? []
+    return tokens.filter {
+        $0.syntaxClass != nil && !$0.range.isEmpty
+    }
 }
 
 private extension ShapeScript.TokenType {
@@ -143,17 +141,17 @@ private extension ShapeScript.TokenType {
             .number
         case .string:
             .string
-        case .linebreak, .eof:
-            nil
+        case .comment:
+            .comment
         case .dot, .prefix, .infix, .lbrace, .rbrace, .lparen, .rparen, .call,
-             .lbracket, .rbracket, .subscript, .identifier:
+             .lbracket, .rbracket, .subscript, .identifier, .linebreak, .eof:
             nil
         }
     }
 }
 
 private enum SyntaxClass: String {
-    case `default` = "tok-default"
+    case comment = "tok-comment"
     case keyword = "tok-keyword"
     case string = "tok-string"
     case number = "tok-number"

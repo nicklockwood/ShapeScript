@@ -12,7 +12,7 @@ import Foundation
 // MARK: Public interface
 
 public func parse(_ input: String, at url: URL? = nil) throws -> Program {
-    var tokens = try ArraySlice(tokenize(input))
+    var tokens = try ArraySlice(tokenize(input).filter { !$0.type.isComment })
     try tokens.validateNestingDepth()
     let statements = try tokens.readStatements()
     if let token = tokens.first, token.type != .eof {
@@ -188,6 +188,7 @@ private extension TokenType {
     var errorDescription: String {
         switch self {
         case .linebreak: "end of line"
+        case .comment: "comment"
         case let .identifier(name): "token '\(name)'"
         case let .keyword(keyword): "keyword '\(keyword)'"
         case let .hexColor(string): "color \(string)"
@@ -223,7 +224,7 @@ private extension ArraySlice where Element == Token {
                 }
             case .rbrace, .rparen, .rbracket:
                 depth = Swift.max(0, depth - 1)
-            case .linebreak, .identifier, .keyword, .hexColor, .infix, .prefix,
+            case .linebreak, .identifier, .keyword, .hexColor, .comment, .infix, .prefix,
                  .number, .string, .dot, .eof:
                 break
             }
@@ -511,7 +512,7 @@ private extension ArraySlice where Element == Token {
             type = try readIfElse()
         case .keyword(.for):
             type = try readForLoop()
-        case .dot, .linebreak, .keyword, .infix, .lbrace, .lbracket,
+        case .dot, .linebreak, .keyword, .comment, .infix, .lbrace, .lbracket,
              .subscript, .rbrace, .rparen, .rbracket, .eof:
             self = start
             return nil
@@ -774,7 +775,7 @@ private extension ArraySlice where Element == Token {
             default:
                 return .expression(expression.type)
             }
-        case .number, .linebreak, .keyword, .hexColor, .prefix, .string,
+        case .number, .linebreak, .keyword, .hexColor, .comment, .prefix, .string,
              .rbrace, .lparen, .call, .rparen, .lbracket, .rbracket, .eof:
             return try .command(identifier, readExpressions())
         }
