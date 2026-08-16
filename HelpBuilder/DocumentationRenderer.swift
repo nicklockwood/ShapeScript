@@ -48,6 +48,7 @@ struct DocumentationRenderer {
     var includeIndexFooterLink: Bool = false
     var highlightShapeScriptCode: Bool = false
     var rewriteMarkdownLinks: Bool = true
+    var rewriteLinkPath: ((String) -> String)?
     var rewriteImagePath: ((String) -> String)?
 
     func render(markdown: String, fileName: String, description: String = "") throws -> DocumentationPage {
@@ -75,6 +76,21 @@ struct DocumentationRenderer {
         var body = rewriteMarkdownLinks ?
             html.replacingOccurrences(of: ".md", with: ".html") :
             html
+        if let rewriteLinkPath {
+            let linkRegex = try NSRegularExpression(pattern: #"<a href="([^"]+)""#)
+            let nsBody = body as NSString
+            let range = NSRange(location: 0, length: nsBody.length)
+            for match in linkRegex.matches(in: body, range: range).reversed() {
+                let path = nsBody.substring(with: match.range(at: 1))
+                guard let replacementRange = Range(match.range, in: body) else {
+                    continue
+                }
+                body.replaceSubrange(
+                    replacementRange,
+                    with: "<a href=\"\(rewriteLinkPath(path))\""
+                )
+            }
+        }
         if let rewriteImagePath {
             let imageRegex = try NSRegularExpression(pattern: #"<img src="([^"]+)""#)
             let nsBody = body as NSString

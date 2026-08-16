@@ -29,5 +29,7 @@ swift test --filter MetadataTests
 The iOS Viewer bundles offline HTML generated from `docs/ios`. It is regenerated automatically by the iOS app build, or manually with:
 
 ```bash
-swift run helpbuilder
+swift run helpbuilder --ios-viewer --validate-ios-output
 ```
+
+The metadata tests validate the markdown source files and public docs. HelpBuilder validates the generated embedded HTML output that it writes for the iOS Viewer.

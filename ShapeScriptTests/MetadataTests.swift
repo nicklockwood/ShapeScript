@@ -488,6 +488,32 @@ final class MetadataTests: XCTestCase {
         }
     }
 
+    func testExternalHelpLinksUseHTTPS() throws {
+        let fm = FileManager.default
+        let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpDirectory.path))
+
+        for case let file as String in enumerator where file.hasSuffix(".md") {
+            let fileURL = helpDirectory.appendingPathComponent(file)
+            let text = try XCTUnwrap(String(contentsOf: fileURL))
+            let nsText = text as NSString
+            let range = NSRange(location: 0, length: nsText.length)
+            for match in urlRegex.matches(in: text, options: [], range: range) {
+                let url = nsText.substring(with: match.range(at: 1))
+                    .trimmingCharacters(in: .whitespaces)
+                guard let components = URLComponents(string: url),
+                      components.host != nil
+                else {
+                    continue
+                }
+                XCTAssertEqual(
+                    components.scheme,
+                    "https",
+                    "\(url) referenced in docs/\(file) must use https"
+                )
+            }
+        }
+    }
+
     func testHelpMergeConflicts() throws {
         let fm = FileManager.default
         let enumerator = try XCTUnwrap(fm.enumerator(atPath: helpSourceDirectory.path))

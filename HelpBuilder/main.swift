@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import ShapeScript
 
 private let projectDirectory = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
@@ -281,6 +282,8 @@ struct HelpBuilder {
             "--ios-viewer",
             "--mac-helpbook",
             "--validate-ios-output",
+            "--validate-mac-output",
+            "--validate-output",
             "--all",
             "--help",
         ]) else {
@@ -288,11 +291,13 @@ struct HelpBuilder {
         }
         if arguments.contains("--help") {
             print("""
-            Usage: swift run helpbuilder [--ios-viewer] [--mac-helpbook] [--validate-ios-output]
+            Usage: swift run helpbuilder [--ios-viewer] [--mac-helpbook] [--validate-ios-output] [--validate-mac-output] [--validate-output]
 
             With no options, HelpBuilder regenerates the bundled iOS viewer documentation.
             --mac-helpbook also regenerates the app-wrapper Help Book HTML when run from ShapeScriptApp.
-            --validate-ios-output is accepted for release-script compatibility.
+            --validate-ios-output validates the generated iOS viewer documentation output.
+            --validate-mac-output validates the generated Mac Help Book HTML output.
+            --validate-output validates both generated documentation outputs.
             """)
             return
         }
@@ -304,6 +309,13 @@ struct HelpBuilder {
         }
         if arguments.contains("--mac-helpbook") || shouldExportAll {
             try builder.exportMacHelp()
+        }
+        let outputValidator = DocumentationOutputValidator()
+        if arguments.contains("--validate-ios-output") || arguments.contains("--validate-output") || shouldExportAll {
+            try outputValidator.validateIOSViewerDocumentation()
+        }
+        if arguments.contains("--validate-mac-output") || arguments.contains("--validate-output") || shouldExportAll {
+            try outputValidator.validateMacHelpBook()
         }
     }
 
@@ -330,6 +342,9 @@ struct HelpBuilder {
             requireFooterLink: false,
             includeIndexFooterLink: true,
             highlightShapeScriptCode: true,
+            rewriteLinkPath: { path in
+                rewriteEmbeddedDocumentationLink(path)
+            },
             rewriteImagePath: { path in
                 "images/\(URL(string: path)?.lastPathComponent ?? path)"
             }
@@ -429,19 +444,30 @@ struct HelpBuilder {
     }
 }
 
+private func rewriteEmbeddedDocumentationLink(_ path: String) -> String {
+    guard path.hasPrefix("../") else {
+        return path
+    }
+    let baseURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
+    return URL(string: path, relativeTo: baseURL)?.absoluteURL.absoluteString ?? path
+}
+
 enum HelpBuilderError: Error, CustomStringConvertible {
     case invalidArguments
     case missingAppWrapper
     case missingImage(String)
+    case validationFailed([String])
 
     var description: String {
         switch self {
         case .invalidArguments:
-            "Usage: swift run helpbuilder [--ios-viewer] [--mac-helpbook]"
+            "Usage: swift run helpbuilder [--ios-viewer] [--mac-helpbook] [--validate-ios-output] [--validate-mac-output] [--validate-output]"
         case .missingAppWrapper:
             "Cannot export Mac Help Book HTML because the ShapeScriptApp wrapper directories were not found."
         case let .missingImage(image):
             "Image referenced by help docs does not exist: \(image)"
+        case let .validationFailed(issues):
+            "Generated documentation validation failed:\n\(issues.joined(separator: "\n"))"
         }
     }
 }

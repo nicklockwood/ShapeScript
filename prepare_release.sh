@@ -95,9 +95,9 @@ fi
 
 echo "Tests passed successfully."
 
-# 8. Regenerate bundled iOS Viewer documentation
+# 8. Regenerate and validate bundled iOS Viewer documentation
 echo "Regenerating iOS Viewer documentation..."
-swift run helpbuilder
+swift run helpbuilder --ios-viewer --validate-ios-output
 
 echo ""
 echo "✅ Release preparation completed successfully for version $NEW_VERSION!"
