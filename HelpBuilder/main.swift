@@ -132,6 +132,8 @@ private let iosCSS = """
     color-scheme: light dark;
     --tint-color: CanvasText;
     font: -apple-system-body;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
