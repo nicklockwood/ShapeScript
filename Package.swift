@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .library(name: "ShapeScript", targets: ["ShapeScript"]),
         .executable(name: "shapescript", targets: ["CLI"]),
+        .executable(name: "helpbuilder", targets: ["HelpBuilder"]),
     ],
     dependencies: [
         .package(
@@ -25,6 +26,7 @@ let package = Package(
             url: "https://github.com/nicklockwood/SVGPath.git",
             .upToNextMinor(from: "1.3.0")
         ),
+        .package(url: "https://github.com/apple/swift-markdown.git", from: "0.6.0"),
     ],
     targets: [
         .target(
@@ -37,6 +39,13 @@ let package = Package(
             name: "CLI",
             dependencies: ["ShapeScript"],
             path: "Viewer/CLI"
+        ),
+        .executableTarget(
+            name: "HelpBuilder",
+            dependencies: [
+                .product(name: "Markdown", package: "swift-markdown"),
+            ],
+            path: "HelpBuilder"
         ),
         .testTarget(
             name: "ShapeScriptTests",

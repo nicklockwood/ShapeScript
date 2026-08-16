@@ -7,6 +7,8 @@ culprits.txt
 default.profraw
 DerivedData/
 /html
+Viewer/iOS/Documentation/*
+!Viewer/iOS/Documentation/README.md
 
 ## Various settings
 *.pbxuser

@@ -17,6 +17,7 @@ private let documentationURLActivityKey = "url"
 @MainActor
 final class DocumentationViewController: UIViewController {
     private let initialURL: URL
+    private var currentURL: URL
     private let webView = WKWebView(frame: .zero)
     private var backButton = UIBarButtonItem()
     private var forwardButton = UIBarButtonItem()
@@ -25,6 +26,7 @@ final class DocumentationViewController: UIViewController {
 
     init(url: URL = onlineHelpURL) {
         self.initialURL = url
+        self.currentURL = url
         super.init(nibName: nil, bundle: nil)
         title = documentationSceneTitle
         userActivity = Self.userActivity(for: url)
@@ -53,6 +55,13 @@ final class DocumentationViewController: UIViewController {
 
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        webView.configuration.userContentController.addUserScript(
+            WKUserScript(
+                source: cssVariablesScript,
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+        )
 
         backButton = UIBarButtonItem(
             image: UIImage(systemName: "chevron.backward"),
@@ -75,7 +84,7 @@ final class DocumentationViewController: UIViewController {
         safariButton = UIBarButtonItem(
             image: UIImage(systemName: "safari"),
             primaryAction: UIAction { [weak self] _ in
-                guard let url = self?.webView.url ?? self?.initialURL else {
+                guard let url = self?.currentDocumentationURL else {
                     return
                 }
                 UIApplication.shared.open(url)
@@ -100,19 +109,27 @@ final class DocumentationViewController: UIViewController {
         navigationController?.isToolbarHidden = false
 
         updateButtons()
-        webView.load(URLRequest(url: initialURL))
+        load(initialURL)
     }
 
     func load(_ url: URL) {
         loadViewIfNeeded()
+        currentURL = url
         userActivity = Self.userActivity(for: url)
-        webView.load(URLRequest(url: url))
+        if let localURL = Self.localURL(for: url) {
+            webView.loadFileURL(
+                localURL,
+                allowingReadAccessTo: Self.localReadAccessURL(for: localURL)
+            )
+        } else {
+            webView.load(URLRequest(url: url))
+        }
     }
 
     override func updateUserActivityState(_ activity: NSUserActivity) {
         super.updateUserActivityState(activity)
         activity.addUserInfoEntries(from: [
-            documentationURLActivityKey: (webView.url ?? initialURL).absoluteString,
+            documentationURLActivityKey: currentDocumentationURL.absoluteString,
         ])
     }
 
@@ -132,10 +149,117 @@ final class DocumentationViewController: UIViewController {
         }
         return url
     }
+
+    static func localURL(for url: URL) -> URL? {
+        guard url.isFileURL || isBundledDocumentationURL(url) else {
+            return nil
+        }
+        let fileName = url.deletingPathExtension().lastPathComponent
+        let pageName = fileName.isEmpty || fileName == "ios" ? "index" : fileName
+        guard let localURL = Bundle.main.url(
+            forResource: pageName,
+            withExtension: "html",
+            subdirectory: "Documentation"
+        ) else {
+            return nil
+        }
+
+        guard let fragment = url.fragment,
+              var components = URLComponents(url: localURL, resolvingAgainstBaseURL: false)
+        else {
+            return localURL
+        }
+        components.fragment = fragment
+        return components.url
+    }
+
+    private static func isBundledDocumentationURL(_ url: URL) -> Bool {
+        guard url.host == onlineHelpURL.host else {
+            return false
+        }
+        let basePathComponents = onlineHelpURL.pathComponents.filter { $0 != "/" }
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+        return pathComponents.starts(with: basePathComponents)
+    }
+
+    static func localReadAccessURL(for url: URL) -> URL {
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.fragment = nil
+        return (components?.url ?? url).deletingLastPathComponent()
+    }
+
+    private var currentDocumentationURL: URL {
+        guard let url = webView.url else {
+            return currentURL
+        }
+        if url.isFileURL,
+           let fileName = url.deletingPathExtension().lastPathComponent.addingPercentEncoding(
+               withAllowedCharacters: .urlPathAllowed
+           )
+        {
+            let documentationURL = fileName == "index" ?
+                onlineHelpURL :
+                onlineHelpURL.appendingPathComponent(fileName)
+            guard let fragment = url.fragment,
+                  var components = URLComponents(url: documentationURL, resolvingAgainstBaseURL: false)
+            else {
+                return documentationURL
+            }
+            components.fragment = fragment
+            return components.url ?? documentationURL
+        }
+        return url
+    }
+
+    private func updateCSSVariables() {
+        webView.evaluateJavaScript(cssVariablesScript, completionHandler: nil)
+    }
+
+    private var cssVariablesScript: String {
+        """
+        document.documentElement.style.setProperty('--tint-color', '\(
+            view.tintColor.resolvedColor(with: traitCollection).cssColor
+        )');
+        """
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        guard previousTraitCollection?
+            .hasDifferentColorAppearance(comparedTo: traitCollection) != false
+        else {
+            return
+        }
+        updateCSSVariables()
+    }
 }
 
 extension DocumentationViewController: WKNavigationDelegate {
-    func webView(_: WKWebView, didFinish _: WKNavigation!) {
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        if let url = navigationAction.request.url,
+           !url.isFileURL,
+           let localURL = Self.localURL(for: url)
+        {
+            webView.loadFileURL(
+                localURL,
+                allowingReadAccessTo: Self.localReadAccessURL(for: localURL)
+            )
+            decisionHandler(.cancel)
+            return
+        }
+
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
+        if webView.url != nil {
+            currentURL = currentDocumentationURL
+        }
+        updateCSSVariables()
         updateButtons()
         userActivity?.needsSave = true
     }
@@ -152,6 +276,17 @@ extension DocumentationViewController: WKNavigationDelegate {
         backButton.isEnabled = webView.canGoBack
         forwardButton.isEnabled = webView.canGoForward
         reloadButton.isEnabled = webView.url != nil
+    }
+}
+
+private extension UIColor {
+    var cssColor: String {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        return "rgba(\(Int(red * 255)), \(Int(green * 255)), \(Int(blue * 255)), \(alpha))"
     }
 }
 

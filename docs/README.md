@@ -1,6 +1,6 @@
 # ShapeScript Docs
 
-Edit documentation in `docs/src` only. The `docs/mac`, `docs/ios`, and versioned `docs/<version>` outputs are generated from the source docs during the release process, so they should not be updated manually for ordinary documentation changes.
+Edit documentation in `docs/src` only. The `docs/mac`, `docs/ios`, and `docs/<version>` outputs are generated from the source docs during the release process, and the iOS Viewer bundles offline HTML generated into `Viewer/iOS/Documentation` by the iOS app build. These outputs should not be updated manually for ordinary documentation changes.
 
 Images in `docs/images` are shared by current and older documentation releases, so do not delete or replace an existing image file. Add obsolete image filenames to the `obsoleteImages` array in `ShapeScriptTests/MetadataTests.swift`, and use a version-number suffix for updated images instead of reusing the old filename.
 
@@ -24,4 +24,10 @@ The command should print no matches. Then run the metadata tests:
 
 ```bash
 swift test --filter MetadataTests
+```
+
+The iOS Viewer bundles offline HTML generated from `docs/ios`. It is regenerated automatically by the iOS app build, or manually with:
+
+```bash
+swift run helpbuilder
 ```
