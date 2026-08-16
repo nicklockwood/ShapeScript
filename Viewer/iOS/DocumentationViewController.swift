@@ -116,10 +116,10 @@ final class DocumentationViewController: UIViewController {
         loadViewIfNeeded()
         currentURL = url
         userActivity = Self.userActivity(for: url)
-        if let localURL = Self.localURL(for: url) {
+        if let localURL = url.bundledDocumentationURL {
             webView.loadFileURL(
                 localURL,
-                allowingReadAccessTo: Self.localReadAccessURL(for: localURL)
+                allowingReadAccessTo: localURL.localReadAccessURL
             )
         } else {
             webView.load(URLRequest(url: url))
@@ -150,44 +150,6 @@ final class DocumentationViewController: UIViewController {
         return url
     }
 
-    static func localURL(for url: URL) -> URL? {
-        guard url.isFileURL || isBundledDocumentationURL(url) else {
-            return nil
-        }
-        let fileName = url.deletingPathExtension().lastPathComponent
-        let pageName = fileName.isEmpty || fileName == "ios" ? "index" : fileName
-        guard let localURL = Bundle.main.url(
-            forResource: pageName,
-            withExtension: "html",
-            subdirectory: "Documentation"
-        ) else {
-            return nil
-        }
-
-        guard let fragment = url.fragment,
-              var components = URLComponents(url: localURL, resolvingAgainstBaseURL: false)
-        else {
-            return localURL
-        }
-        components.fragment = fragment
-        return components.url
-    }
-
-    private static func isBundledDocumentationURL(_ url: URL) -> Bool {
-        guard url.host == onlineHelpURL.host else {
-            return false
-        }
-        let basePathComponents = onlineHelpURL.pathComponents.filter { $0 != "/" }
-        let pathComponents = url.pathComponents.filter { $0 != "/" }
-        return pathComponents.starts(with: basePathComponents)
-    }
-
-    static func localReadAccessURL(for url: URL) -> URL {
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.fragment = nil
-        return (components?.url ?? url).deletingLastPathComponent()
-    }
-
     private var currentDocumentationURL: URL {
         guard let url = webView.url else {
             return currentURL
@@ -216,11 +178,8 @@ final class DocumentationViewController: UIViewController {
     }
 
     private var cssVariablesScript: String {
-        """
-        document.documentElement.style.setProperty('--tint-color', '\(
-            view.tintColor.resolvedColor(with: traitCollection).cssColor
-        )');
-        """
+        let tintColor = view.tintColor.resolvedColor(with: traitCollection).cssColor
+        return "document.documentElement.style.setProperty('--tint-color', '\(tintColor)');"
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -242,11 +201,11 @@ extension DocumentationViewController: WKNavigationDelegate {
     ) {
         if let url = navigationAction.request.url,
            !url.isFileURL,
-           let localURL = Self.localURL(for: url)
+           let localURL = url.bundledDocumentationURL
         {
             webView.loadFileURL(
                 localURL,
-                allowingReadAccessTo: Self.localReadAccessURL(for: localURL)
+                allowingReadAccessTo: localURL.localReadAccessURL
             )
             decisionHandler(.cancel)
             return
@@ -276,6 +235,46 @@ extension DocumentationViewController: WKNavigationDelegate {
         backButton.isEnabled = webView.canGoBack
         forwardButton.isEnabled = webView.canGoForward
         reloadButton.isEnabled = webView.url != nil
+    }
+}
+
+private extension URL {
+    var bundledDocumentationURL: URL? {
+        guard isFileURL || isBundledDocumentationURL else {
+            return nil
+        }
+        let fileName = deletingPathExtension().lastPathComponent
+        let pageName = fileName.isEmpty || fileName == "ios" ? "index" : fileName
+        guard let localURL = Bundle.main.url(
+            forResource: pageName,
+            withExtension: "html",
+            subdirectory: "Documentation"
+        ) else {
+            return nil
+        }
+
+        guard let fragment,
+              var components = URLComponents(url: localURL, resolvingAgainstBaseURL: false)
+        else {
+            return localURL
+        }
+        components.fragment = fragment
+        return components.url
+    }
+
+    private var isBundledDocumentationURL: Bool {
+        guard host == onlineHelpURL.host else {
+            return false
+        }
+        let basePathComponents = onlineHelpURL.pathComponents.filter { $0 != "/" }
+        let pathComponents = pathComponents.filter { $0 != "/" }
+        return pathComponents.starts(with: basePathComponents)
+    }
+
+    var localReadAccessURL: URL {
+        var components = URLComponents(url: self, resolvingAgainstBaseURL: false)
+        components?.fragment = nil
+        return (components?.url ?? self).deletingLastPathComponent()
     }
 }
 
