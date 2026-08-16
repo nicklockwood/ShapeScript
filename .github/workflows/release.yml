@@ -129,7 +129,7 @@ jobs:
           echo "ZIP_PATH=$(pwd)/ShapeScriptViewer-macos.zip" >> $GITHUB_ENV
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: shapescript_viewer_macos
           path: ${{ env.ZIP_PATH }}
@@ -158,7 +158,7 @@ jobs:
           chmod +x release/shapescript
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: shapescript_linux
           path: release/shapescript

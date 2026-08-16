@@ -13,7 +13,7 @@ jobs:
     name: Build ShapeScript for Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.inputs.ref }}
       - name: Build it
@@ -26,7 +26,7 @@ jobs:
           cd "${HOME}/release"
           zip -j "ShapeScriptCLI-linux-x86_64.zip" shapescript
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ShapeScriptCLI-linux-x86_64
           path: ~/release/ShapeScriptCLI-linux-x86_64.zip
