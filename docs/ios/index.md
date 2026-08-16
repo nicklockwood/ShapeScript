@@ -1,6 +1,3 @@
-ShapeScript Help
----
-
 - [Getting Started](getting-started.md)
     - [Viewing](getting-started.md#viewing)
     - [Editing](getting-started.md#editing)

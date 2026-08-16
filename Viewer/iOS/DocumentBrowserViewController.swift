@@ -88,15 +88,15 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
     @objc func showHelpMenu() {
         let alert = UIAlertController(
-            title: "ShapeScript Help",
+            title: "",
             message: "",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(
-            title: "Online Documentation",
+            title: documentationSceneTitle,
             style: .default
-        ) { _ in
-            UIApplication.shared.open(onlineHelpURL)
+        ) { [weak self] _ in
+            self?.presentDocumentation(onlineHelpURL)
         })
         alert.addAction(UIAlertAction(
             title: "What's New in ShapeScript?",
@@ -234,6 +234,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             presentError("Unable to open file.", onOK: {})
             return
         }
+        view.window?.windowScene?.title = viewController.document?.fileURL.lastPathComponent
         if let navigationController = rootNavigationController {
             navigationController.setViewControllers([viewController], animated: true)
         } else {

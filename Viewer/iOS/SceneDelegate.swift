@@ -9,6 +9,10 @@
 import UIKit
 import UniformTypeIdentifiers
 
+let mainActivityType = "com.charcoaldesign.ShapeScriptViewer.main"
+let mainSceneConfigurationName = "Default Configuration"
+let mainSceneTitle = "ShapeScript"
+
 @MainActor
 @objc(ShapeScriptSceneDelegate)
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
@@ -22,6 +26,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else {
             return
         }
+        windowScene.title = mainSceneTitle
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = DocumentBrowserViewController(
@@ -31,6 +36,17 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
         self.scene(scene, openURLContexts: connectionOptions.urlContexts)
+    }
+
+    func stateRestorationActivity(for _: UIScene) -> NSUserActivity? {
+        let activity = NSUserActivity(activityType: mainActivityType)
+        activity.title = mainSceneTitle
+        activity.targetContentIdentifier = mainActivityType
+        return activity
+    }
+
+    func sceneDidDisconnect(_ scene: UIScene) {
+        UIApplication.shared.closeDocumentationScenesIfNoMainScenesRemain(excluding: scene)
     }
 
     func scene(_: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
@@ -79,6 +95,26 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
             // Present the Document View Controller for the revealed URL
             documentBrowserViewController.presentDocument(at: revealedDocumentURL)
+        }
+    }
+}
+
+extension UIApplication {
+    func closeDocumentationScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
+        DispatchQueue.main.async {
+            let hasMainScene = self.connectedScenes.contains { scene in
+                scene !== disconnectedScene &&
+                    scene.session.configuration.name == mainSceneConfigurationName
+            }
+            guard !hasMainScene else {
+                return
+            }
+            let documentationSessions = self.openSessions.filter {
+                $0.configuration.name == documentationSceneConfigurationName
+            }
+            for session in documentationSessions {
+                self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+            }
         }
     }
 }

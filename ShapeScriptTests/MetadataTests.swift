@@ -612,9 +612,6 @@ final class MetadataTests: XCTestCase {
 
         for platform in ["mac", "ios"] {
             let index = try """
-            ShapeScript Help
-            ---
-
             \(buildLinks(headerLinks, indent: 0, for: platform))
             - Geometry
             \(buildLinks(geometryLinks, indent: 1, for: platform))

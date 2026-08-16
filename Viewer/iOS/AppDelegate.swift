@@ -27,11 +27,39 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(
         _: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
-        options _: UIScene.ConnectionOptions
+        options: UIScene.ConnectionOptions
     ) -> UISceneConfiguration {
-        .init(
-            name: "Default Configuration",
+        let activityType = options.userActivities.first?.activityType ??
+            connectingSceneSession.stateRestorationActivity?.activityType
+
+        if activityType == documentationActivityType ||
+            connectingSceneSession.configuration.name == documentationSceneConfigurationName
+        {
+            let configuration = UISceneConfiguration(
+                name: documentationSceneConfigurationName,
+                sessionRole: connectingSceneSession.role
+            )
+            configuration.delegateClass = DocumentationSceneDelegate.self
+            return configuration
+        }
+
+        let configuration = UISceneConfiguration(
+            name: mainSceneConfigurationName,
             sessionRole: connectingSceneSession.role
         )
+        configuration.delegateClass = SceneDelegate.self
+        return configuration
+    }
+
+    func application(
+        _: UIApplication,
+        didDiscardSceneSessions sceneSessions: Set<UISceneSession>
+    ) {
+        guard sceneSessions.contains(where: {
+            $0.configuration.name == mainSceneConfigurationName
+        }) else {
+            return
+        }
+        UIApplication.shared.closeDocumentationScenesIfNoMainScenesRemain()
     }
 }

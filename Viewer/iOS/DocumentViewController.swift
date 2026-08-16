@@ -956,13 +956,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     @objc func dismissDocumentViewController() {
-        let completion: () -> Void = {
+        let viewController = presentingViewController ?? self
+        viewController.dismiss(animated: true) {
+            viewController.view.window?.windowScene?.title = mainSceneTitle
             self.document?.close(completionHandler: nil)
-        }
-        if let presentingViewController {
-            presentingViewController.dismiss(animated: true, completion: completion)
-        } else {
-            dismiss(animated: true, completion: completion)
         }
     }
 }

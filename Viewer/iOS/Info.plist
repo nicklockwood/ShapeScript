@@ -72,6 +72,11 @@
 	</array>
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.charcoaldesign.ShapeScriptViewer.main</string>
+		<string>com.charcoaldesign.ShapeScriptViewer.documentation</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -116,6 +121,12 @@
 					<string>Default Configuration</string>
 					<key>UISceneDelegateClassName</key>
 					<string>ShapeScriptSceneDelegate</string>
+				</dict>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Documentation Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>DocumentationSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>
