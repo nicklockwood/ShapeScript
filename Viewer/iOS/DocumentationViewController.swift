@@ -23,6 +23,7 @@ final class DocumentationViewController: UIViewController {
     private let searchResultsViewController = DocumentationSearchResultsViewController()
     private lazy var searchController = UISearchController(searchResultsController: searchResultsViewController)
     private let indexViewController = DocumentationIndexViewController()
+    private let sidebarDismissView = UIControl()
     private let separatorView = UIView()
     private let webView = WKWebView(frame: .zero)
     private let loadingOverlay = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
@@ -40,6 +41,7 @@ final class DocumentationViewController: UIViewController {
     private var closeButton: UIBarButtonItem?
     private var sidebarWidthConstraint: NSLayoutConstraint?
     private var separatorWidthConstraint: NSLayoutConstraint?
+    private var webViewLeadingConstraint: NSLayoutConstraint?
     private var isSidebarVisible = false
 
     init(url: URL = onlineHelpURL) {
@@ -59,6 +61,7 @@ final class DocumentationViewController: UIViewController {
     override func loadView() {
         let sidebarView = indexViewController.view!
         sidebarView.translatesAutoresizingMaskIntoConstraints = false
+        sidebarDismissView.translatesAutoresizingMaskIntoConstraints = false
         separatorView.translatesAutoresizingMaskIntoConstraints = false
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.isOpaque = false
@@ -68,18 +71,26 @@ final class DocumentationViewController: UIViewController {
         loadingOverlay.alpha = 0
         loadingOverlay.isHidden = true
         separatorView.backgroundColor = .separator
+        sidebarDismissView.backgroundColor = .clear
+        sidebarDismissView.isHidden = true
+        sidebarDismissView.addAction(UIAction { [weak self] _ in
+            self?.hideSidebar()
+        }, for: .touchUpInside)
         view = UIView()
         view.backgroundColor = .systemBackground
         addChild(indexViewController)
+        view.addSubview(webView)
+        view.addSubview(sidebarDismissView)
         view.addSubview(sidebarView)
         indexViewController.didMove(toParent: self)
         view.addSubview(separatorView)
-        view.addSubview(webView)
         view.addSubview(loadingOverlay)
         let sidebarWidthConstraint = sidebarView.widthAnchor.constraint(equalToConstant: 0)
         let separatorWidthConstraint = separatorView.widthAnchor.constraint(equalToConstant: 0)
+        let webViewLeadingConstraint = webView.leadingAnchor.constraint(equalTo: view.leadingAnchor)
         self.sidebarWidthConstraint = sidebarWidthConstraint
         self.separatorWidthConstraint = separatorWidthConstraint
+        self.webViewLeadingConstraint = webViewLeadingConstraint
         NSLayoutConstraint.activate([
             sidebarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             sidebarView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -89,10 +100,14 @@ final class DocumentationViewController: UIViewController {
             separatorView.topAnchor.constraint(equalTo: view.topAnchor),
             separatorView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             separatorWidthConstraint,
-            webView.leadingAnchor.constraint(equalTo: separatorView.trailingAnchor),
+            webViewLeadingConstraint,
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            sidebarDismissView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            sidebarDismissView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            sidebarDismissView.topAnchor.constraint(equalTo: view.topAnchor),
+            sidebarDismissView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             loadingOverlay.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
             loadingOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             loadingOverlay.topAnchor.constraint(equalTo: view.topAnchor),
@@ -183,6 +198,17 @@ final class DocumentationViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateSidebar(animated: false)
+    }
+
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate { _ in
+            self.updateSearchBarPlacement()
+            self.updateSidebar(animated: false)
+        }
     }
 
     func load(_ url: URL) {
@@ -398,10 +424,22 @@ final class DocumentationViewController: UIViewController {
         updateSidebar()
     }
 
+    private func hideSidebar() {
+        guard isSidebarVisible else {
+            return
+        }
+        isSidebarVisible = false
+        updateSidebar()
+    }
+
     private func updateSidebar(animated: Bool = true) {
-        let width = isSidebarVisible ? min(320, max(240, view.bounds.width * 0.42)) : 0
+        let separatorWidth = isSidebarVisible ? 1 / view.traitCollection.displayScale : 0
+        let width = isSidebarVisible ? sidebarWidth : 0
         sidebarWidthConstraint?.constant = width
-        separatorWidthConstraint?.constant = isSidebarVisible ? 1 / view.traitCollection.displayScale : 0
+        separatorWidthConstraint?.constant = separatorWidth
+        webViewLeadingConstraint?.constant = isSidebarOverlay ? 0 : width + separatorWidth
+        sidebarDismissView.isHidden = !isSidebarVisible || !isSidebarOverlay
+        updateSidebarShadow()
         indexButton.accessibilityLabel = isSidebarVisible ? "Hide Index" : "Show Index"
         let changes = {
             self.view.layoutIfNeeded()
@@ -411,6 +449,31 @@ final class DocumentationViewController: UIViewController {
         } else {
             changes()
         }
+    }
+
+    private func updateSidebarShadow() {
+        let layer = indexViewController.view.layer
+        guard isSidebarVisible, isSidebarOverlay else {
+            layer.shadowOpacity = 0
+            return
+        }
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.18
+        layer.shadowRadius = 12
+        layer.shadowOffset = CGSize(width: 4, height: 0)
+    }
+
+    private var isSidebarOverlay: Bool {
+        !isPhoneLandscape && (
+            traitCollection.horizontalSizeClass == .compact || view.bounds.width < 700
+        )
+    }
+
+    private var sidebarWidth: CGFloat {
+        if isSidebarOverlay {
+            return min(320, max(220, view.bounds.width * 0.86))
+        }
+        return min(320, max(240, view.bounds.width * 0.32))
     }
 
     private func loadIndexItem(_ item: DocumentationIndexItem) {
@@ -644,18 +707,34 @@ private final class DocumentationIndexViewController: UIViewController, UICollec
 
     weak var delegate: DocumentationIndexViewControllerDelegate?
     private let tree = DocumentationIndexTree(items: DocumentationIndex.loadItems())
+    private let backgroundView = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
     private var collectionView: UICollectionView!
     private var dataSource: UICollectionViewDiffableDataSource<Section, DocumentationIndexNode>!
 
     override func loadView() {
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
         collectionView = UICollectionView(
             frame: .zero,
             collectionViewLayout: Self.makeLayout()
         )
-        collectionView.backgroundColor = .secondarySystemBackground
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.backgroundColor = .clear
         collectionView.keyboardDismissMode = .onDrag
         collectionView.delegate = self
-        view = collectionView
+        view = UIView()
+        view.backgroundColor = .clear
+        view.addSubview(backgroundView)
+        view.addSubview(collectionView)
+        NSLayoutConstraint.activate([
+            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
+            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     override func viewDidLoad() {
@@ -756,7 +835,7 @@ private final class DocumentationIndexViewController: UIViewController, UICollec
 
     private static func makeLayout() -> UICollectionViewLayout {
         var configuration = UICollectionLayoutListConfiguration(appearance: .sidebar)
-        configuration.backgroundColor = .secondarySystemBackground
+        configuration.backgroundColor = .clear
         return UICollectionViewCompositionalLayout.list(using: configuration)
     }
 
