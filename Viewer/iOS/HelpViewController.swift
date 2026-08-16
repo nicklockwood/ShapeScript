@@ -1,5 +1,5 @@
 //
-//  DocumentationViewController.swift
+//  HelpViewController.swift
 //  iOS Viewer
 //
 //  Created by Nick Lockwood on 12/08/2026.
@@ -9,20 +9,20 @@
 import UIKit
 import WebKit
 
-let documentationActivityType = "com.charcoaldesign.ShapeScriptViewer.documentation"
-let documentationSceneConfigurationName = "Documentation Configuration"
-let documentationSceneTitle = "ShapeScript Help"
-private let documentationURLActivityKey = "url"
+let helpActivityType = "com.charcoaldesign.ShapeScriptViewer.help"
+let helpSceneConfigurationName = "Help Configuration"
+let helpSceneTitle = "ShapeScript Help"
+private let helpURLActivityKey = "url"
 
 @MainActor
-final class DocumentationViewController: UIViewController {
+final class HelpViewController: UIViewController {
     private let initialURL: URL
     private var currentURL: URL
-    private var lastLoadedDocumentationURL: URL
-    private lazy var searchIndex = DocumentationSearchIndex()
-    private let searchResultsViewController = DocumentationSearchResultsViewController()
+    private var lastLoadedHelpURL: URL
+    private lazy var searchIndex = HelpSearchIndex()
+    private let searchResultsViewController = HelpSearchResultsViewController()
     private lazy var searchController = UISearchController(searchResultsController: searchResultsViewController)
-    private let indexViewController = DocumentationIndexViewController()
+    private let indexViewController = HelpIndexViewController()
     private let sidebarDismissView = UIControl()
     private let separatorView = UIView()
     private let webView = WKWebView(frame: .zero)
@@ -47,9 +47,9 @@ final class DocumentationViewController: UIViewController {
     init(url: URL = onlineHelpURL) {
         self.initialURL = url
         self.currentURL = url
-        self.lastLoadedDocumentationURL = url
+        self.lastLoadedHelpURL = url
         super.init(nibName: nil, bundle: nil)
-        title = documentationSceneTitle
+        title = helpSceneTitle
         userActivity = Self.userActivity(for: url)
     }
 
@@ -168,7 +168,7 @@ final class DocumentationViewController: UIViewController {
         safariButton = UIBarButtonItem(
             image: UIImage(systemName: "safari"),
             primaryAction: UIAction { [weak self] _ in
-                guard let url = self?.currentDocumentationURL else {
+                guard let url = self?.currentHelpURL else {
                     return
                 }
                 UIApplication.shared.open(url)
@@ -215,8 +215,8 @@ final class DocumentationViewController: UIViewController {
 
     func load(_ url: URL) {
         loadViewIfNeeded()
-        if let localURL = url.bundledDocumentationURL {
-            setCurrentDocumentationURL(url)
+        if let localURL = url.bundledHelpURL {
+            setCurrentHelpURL(url)
             hideExternalLoadingOverlay()
             webView.loadFileURL(
                 localURL,
@@ -232,20 +232,20 @@ final class DocumentationViewController: UIViewController {
     override func updateUserActivityState(_ activity: NSUserActivity) {
         super.updateUserActivityState(activity)
         activity.addUserInfoEntries(from: [
-            documentationURLActivityKey: currentDocumentationURL.absoluteString,
+            helpURLActivityKey: currentHelpURL.absoluteString,
         ])
     }
 
     static func userActivity(for url: URL) -> NSUserActivity {
-        let activity = NSUserActivity(activityType: documentationActivityType)
-        activity.title = documentationSceneTitle
-        activity.targetContentIdentifier = documentationActivityType
-        activity.userInfo = [documentationURLActivityKey: url.absoluteString]
+        let activity = NSUserActivity(activityType: helpActivityType)
+        activity.title = helpSceneTitle
+        activity.targetContentIdentifier = helpActivityType
+        activity.userInfo = [helpURLActivityKey: url.absoluteString]
         return activity
     }
 
     static func url(from activity: NSUserActivity?) -> URL {
-        guard let string = activity?.userInfo?[documentationURLActivityKey] as? String,
+        guard let string = activity?.userInfo?[helpURLActivityKey] as? String,
               let url = URL(string: string)
         else {
             return onlineHelpURL
@@ -253,7 +253,7 @@ final class DocumentationViewController: UIViewController {
         return url
     }
 
-    private var currentDocumentationURL: URL {
+    private var currentHelpURL: URL {
         guard let url = webView.url else {
             return currentURL
         }
@@ -262,23 +262,23 @@ final class DocumentationViewController: UIViewController {
                withAllowedCharacters: .urlPathAllowed
            )
         {
-            let documentationURL = fileName == "index" ?
+            let helpURL = fileName == "index" ?
                 onlineHelpURL :
                 onlineHelpURL.appendingPathComponent(fileName)
             guard let fragment = url.fragment,
-                  var components = URLComponents(url: documentationURL, resolvingAgainstBaseURL: false)
+                  var components = URLComponents(url: helpURL, resolvingAgainstBaseURL: false)
             else {
-                return documentationURL
+                return helpURL
             }
             components.fragment = fragment
-            return components.url ?? documentationURL
+            return components.url ?? helpURL
         }
         return url
     }
 
-    private func setCurrentDocumentationURL(_ url: URL) {
+    private func setCurrentHelpURL(_ url: URL) {
         currentURL = url
-        lastLoadedDocumentationURL = url
+        lastLoadedHelpURL = url
         userActivity = Self.userActivity(for: url)
         updateSelectedIndexItem(for: url)
         updateNavigationButtons()
@@ -489,7 +489,7 @@ final class DocumentationViewController: UIViewController {
         traitCollection.userInterfaceIdiom == .phone && view.bounds.width > view.bounds.height
     }
 
-    private func loadIndexItem(_ item: DocumentationIndexItem) {
+    private func loadIndexItem(_ item: HelpIndexItem) {
         guard let url = item.url else {
             return
         }
@@ -498,14 +498,14 @@ final class DocumentationViewController: UIViewController {
         load(url)
     }
 
-    private func load(_ result: DocumentationSearchResult) {
+    private func load(_ result: HelpSearchResult) {
         searchController.isActive = false
         searchController.searchBar.text = ""
         load(result.url)
     }
 
     private func updateSelectedIndexItem(for url: URL) {
-        indexViewController.selectItem(for: url.bundledDocumentationURL ?? url)
+        indexViewController.selectItem(for: url.bundledHelpURL ?? url)
     }
 
     private var cssVariablesScript: String {
@@ -525,31 +525,31 @@ final class DocumentationViewController: UIViewController {
     }
 }
 
-extension DocumentationViewController: UISearchResultsUpdating {
+extension HelpViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         searchResultsViewController.results = searchIndex.search(searchController.searchBar.text ?? "")
     }
 }
 
-extension DocumentationViewController: DocumentationSearchResultsViewControllerDelegate {
-    fileprivate func documentationSearchResultsViewController(
-        _: DocumentationSearchResultsViewController,
-        didSelect result: DocumentationSearchResult
+extension HelpViewController: HelpSearchResultsViewControllerDelegate {
+    fileprivate func helpSearchResultsViewController(
+        _: HelpSearchResultsViewController,
+        didSelect result: HelpSearchResult
     ) {
         load(result)
     }
 }
 
-extension DocumentationViewController: DocumentationIndexViewControllerDelegate {
-    func documentationIndexViewController(
-        _: DocumentationIndexViewController,
-        didSelect item: DocumentationIndexItem
+extension HelpViewController: HelpIndexViewControllerDelegate {
+    func helpIndexViewController(
+        _: HelpIndexViewController,
+        didSelect item: HelpIndexItem
     ) {
         loadIndexItem(item)
     }
 }
 
-private struct DocumentationSearchResult {
+private struct HelpSearchResult {
     let title: String
     let subtitle: String?
     let snippet: String
@@ -557,16 +557,16 @@ private struct DocumentationSearchResult {
     let score: Int
 }
 
-private struct DocumentationSearchEntry {
+private struct HelpSearchEntry {
     let title: String
     let heading: String?
     let body: String
     let url: URL
 
-    func result(matching query: String, terms: [String]) -> DocumentationSearchResult? {
-        let searchableTitle = title.normalizedForDocumentationSearch
-        let searchableHeading = heading?.normalizedForDocumentationSearch ?? ""
-        let searchableBody = body.normalizedForDocumentationSearch
+    func result(matching query: String, terms: [String]) -> HelpSearchResult? {
+        let searchableTitle = title.normalizedForHelpSearch
+        let searchableHeading = heading?.normalizedForHelpSearch ?? ""
+        let searchableBody = body.normalizedForHelpSearch
         var score = 0
 
         for term in terms {
@@ -598,7 +598,7 @@ private struct DocumentationSearchEntry {
         guard score > 0 else {
             return nil
         }
-        return DocumentationSearchResult(
+        return HelpSearchResult(
             title: heading ?? title,
             subtitle: heading == nil ? nil : title,
             snippet: body.snippet(matching: terms),
@@ -608,11 +608,11 @@ private struct DocumentationSearchEntry {
     }
 }
 
-private final class DocumentationSearchIndex {
+private final class HelpSearchIndex {
     private lazy var entries = loadEntries()
 
-    func search(_ text: String) -> [DocumentationSearchResult] {
-        let query = text.normalizedForDocumentationSearch
+    func search(_ text: String) -> [HelpSearchResult] {
+        let query = text.normalizedForHelpSearch
         let terms = query.split(separator: " ").map(String.init)
         guard !terms.isEmpty else {
             return []
@@ -631,9 +631,9 @@ private final class DocumentationSearchIndex {
             .map { $0 }
     }
 
-    private func loadEntries() -> [DocumentationSearchEntry] {
+    private func loadEntries() -> [HelpSearchEntry] {
         guard let directory = Bundle.main.resourceURL?
-            .appendingPathComponent("Documentation", isDirectory: true),
+            .appendingPathComponent("Help", isDirectory: true),
             let urls = try? FileManager.default.contentsOfDirectory(
                 at: directory,
                 includingPropertiesForKeys: nil
@@ -648,17 +648,17 @@ private final class DocumentationSearchIndex {
             .flatMap(loadEntries)
     }
 
-    private func loadEntries(from url: URL) -> [DocumentationSearchEntry] {
+    private func loadEntries(from url: URL) -> [HelpSearchEntry] {
         guard let html = try? String(contentsOf: url) else {
             return []
         }
 
         let title = html.firstMatch(for: #"<h1[^>]*>(.*?)</h1>"#)?
             .plainDocumentationText ?? url.deletingPathExtension().lastPathComponent
-        let sections = html.sectionsForDocumentationSearch
+        let sections = html.sectionsForHelpSearch
         if sections.isEmpty {
             return [
-                DocumentationSearchEntry(
+                HelpSearchEntry(
                     title: title,
                     heading: nil,
                     body: html.plainDocumentationText,
@@ -677,7 +677,7 @@ private final class DocumentationSearchIndex {
             } else {
                 sectionURL = url
             }
-            return DocumentationSearchEntry(
+            return HelpSearchEntry(
                 title: title,
                 heading: section.heading,
                 body: section.body,
@@ -688,16 +688,16 @@ private final class DocumentationSearchIndex {
 }
 
 @MainActor
-private protocol DocumentationSearchResultsViewControllerDelegate: AnyObject {
-    func documentationSearchResultsViewController(
-        _ viewController: DocumentationSearchResultsViewController,
-        didSelect result: DocumentationSearchResult
+private protocol HelpSearchResultsViewControllerDelegate: AnyObject {
+    func helpSearchResultsViewController(
+        _ viewController: HelpSearchResultsViewController,
+        didSelect result: HelpSearchResult
     )
 }
 
-private final class DocumentationSearchResultsViewController: UITableViewController {
-    weak var delegate: DocumentationSearchResultsViewControllerDelegate?
-    var results: [DocumentationSearchResult] = [] {
+private final class HelpSearchResultsViewController: UITableViewController {
+    weak var delegate: HelpSearchResultsViewControllerDelegate?
+    var results: [HelpSearchResult] = [] {
         didSet {
             tableView.reloadData()
         }
@@ -733,18 +733,18 @@ private final class DocumentationSearchResultsViewController: UITableViewControl
     }
 
     override func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
-        delegate?.documentationSearchResultsViewController(self, didSelect: results[indexPath.row])
+        delegate?.helpSearchResultsViewController(self, didSelect: results[indexPath.row])
     }
 }
 
-struct DocumentationSearchSection {
+struct HelpSearchSection {
     let heading: String?
     let fragment: String?
     let body: String
 }
 
 extension String {
-    var normalizedForDocumentationSearch: String {
+    var normalizedForHelpSearch: String {
         folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .replacingOccurrences(
                 of: #"[^a-z0-9]+"#,
@@ -776,7 +776,7 @@ extension String {
         .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    var sectionsForDocumentationSearch: [DocumentationSearchSection] {
+    var sectionsForHelpSearch: [HelpSearchSection] {
         let pattern = #"<h([1-6])(?:\s+[^>]*)?>(.*?)</h\1>"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return []
@@ -801,7 +801,7 @@ extension String {
             guard !heading.isEmpty || !body.isEmpty else {
                 return nil
             }
-            return DocumentationSearchSection(
+            return HelpSearchSection(
                 heading: heading.isEmpty ? nil : heading,
                 fragment: match.headingFragment(in: self),
                 body: body.isEmpty ? heading : body
@@ -823,7 +823,7 @@ extension String {
 
     func snippet(matching terms: [String]) -> String {
         let plainText = plainDocumentationText
-        let normalized = plainText.normalizedForDocumentationSearch
+        let normalized = plainText.normalizedForHelpSearch
         guard let term = terms.first(where: { normalized.contains($0) }),
               let range = normalized.range(of: term)
         else {
@@ -862,7 +862,7 @@ private extension NSTextCheckingResult {
     }
 }
 
-extension DocumentationViewController: WKNavigationDelegate {
+extension HelpViewController: WKNavigationDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
@@ -876,7 +876,7 @@ extension DocumentationViewController: WKNavigationDelegate {
 
         if let url = navigationAction.request.url,
            !url.isFileURL,
-           let localURL = url.bundledDocumentationURL
+           let localURL = url.bundledHelpURL
         {
             webView.loadFileURL(
                 localURL,
@@ -894,9 +894,9 @@ extension DocumentationViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
         if webView.url != nil {
-            let url = currentDocumentationURL
-            if url.bundledDocumentationURL != nil {
-                setCurrentDocumentationURL(url)
+            let url = currentHelpURL
+            if url.bundledHelpURL != nil {
+                setCurrentHelpURL(url)
             }
         }
         hideExternalLoadingOverlay()
@@ -955,7 +955,7 @@ extension DocumentationViewController: WKNavigationDelegate {
     }
 
     private func shouldShowLoadingOverlay(for url: URL) -> Bool {
-        !url.isFileURL && url.bundledDocumentationURL == nil
+        !url.isFileURL && url.bundledHelpURL == nil
     }
 
     private func shouldOpenExternally(_ url: URL) -> Bool {
@@ -984,13 +984,13 @@ extension DocumentationViewController: WKNavigationDelegate {
     }
 
     private func restoreCurrentDocumentationPage() {
-        if let localURL = lastLoadedDocumentationURL.bundledDocumentationURL {
+        if let localURL = lastLoadedHelpURL.bundledHelpURL {
             webView.loadFileURL(
                 localURL,
                 allowingReadAccessTo: localURL.localReadAccessURL
             )
         } else {
-            webView.load(URLRequest(url: lastLoadedDocumentationURL))
+            webView.load(URLRequest(url: lastLoadedHelpURL))
         }
     }
 
@@ -1002,8 +1002,8 @@ extension DocumentationViewController: WKNavigationDelegate {
 }
 
 private extension URL {
-    var bundledDocumentationURL: URL? {
-        guard isFileURL || isBundledDocumentationURL else {
+    var bundledHelpURL: URL? {
+        guard isFileURL || isBundledHelpURL else {
             return nil
         }
         let fileName = deletingPathExtension().lastPathComponent
@@ -1011,7 +1011,7 @@ private extension URL {
         guard let localURL = Bundle.main.url(
             forResource: pageName,
             withExtension: "html",
-            subdirectory: "Documentation"
+            subdirectory: "Help"
         ) else {
             return nil
         }
@@ -1025,7 +1025,7 @@ private extension URL {
         return components.url
     }
 
-    private var isBundledDocumentationURL: Bool {
+    private var isBundledHelpURL: Bool {
         guard host == onlineHelpURL.host else {
             return false
         }
@@ -1053,8 +1053,8 @@ private extension UIColor {
 }
 
 @MainActor
-@objc(DocumentationSceneDelegate)
-final class DocumentationSceneDelegate: UIResponder, UIWindowSceneDelegate {
+@objc(HelpSceneDelegate)
+final class HelpSceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(
@@ -1065,10 +1065,10 @@ final class DocumentationSceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else {
             return
         }
-        windowScene.title = documentationSceneTitle
+        windowScene.title = helpSceneTitle
 
         let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
-        let viewController = DocumentationViewController(url: DocumentationViewController.url(from: activity))
+        let viewController = HelpViewController(url: HelpViewController.url(from: activity))
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.isToolbarHidden = false
 
@@ -1080,30 +1080,30 @@ final class DocumentationSceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func stateRestorationActivity(for _: UIScene) -> NSUserActivity? {
-        documentationViewController?.userActivity
+        helpViewController?.userActivity
     }
 
     func load(_ url: URL) {
-        documentationViewController?.load(url)
+        helpViewController?.load(url)
     }
 
-    private var documentationViewController: DocumentationViewController? {
+    private var helpViewController: HelpViewController? {
         (window?.rootViewController as? UINavigationController)?
-            .viewControllers.first as? DocumentationViewController
+            .viewControllers.first as? HelpViewController
     }
 }
 
 extension UIViewController {
-    func presentDocumentation(_ url: URL) {
+    func presentHelp(_ url: URL) {
         if traitCollection.userInterfaceIdiom == .pad {
             if view.window?.windowScene?.appearsFullscreen == true {
-                UIApplication.shared.closeDocumentationScenes()
-                presentDocumentationModally(url)
+                UIApplication.shared.closeHelpScenes()
+                presentHelpModally(url)
                 return
             }
 
             if let sceneDelegate = UIApplication.shared.connectedScenes
-                .compactMap({ $0.delegate as? DocumentationSceneDelegate }).first
+                .compactMap({ $0.delegate as? HelpSceneDelegate }).first
             {
                 sceneDelegate.load(url)
                 if let windowScene = sceneDelegate.window?.windowScene,
@@ -1111,7 +1111,7 @@ extension UIViewController {
                 {
                     UIApplication.shared.requestSceneSessionActivation(
                         windowScene.session,
-                        userActivity: DocumentationViewController.userActivity(for: url),
+                        userActivity: HelpViewController.userActivity(for: url),
                         options: nil,
                         errorHandler: nil
                     )
@@ -1121,24 +1121,24 @@ extension UIViewController {
 
             let options = UIScene.ActivationRequestOptions()
             let session = UIApplication.shared.openSessions.first {
-                $0.configuration.name == documentationSceneConfigurationName
+                $0.configuration.name == helpSceneConfigurationName
             }
             UIApplication.shared.requestSceneSessionActivation(
                 session,
-                userActivity: DocumentationViewController.userActivity(for: url),
+                userActivity: HelpViewController.userActivity(for: url),
                 options: options
             ) { [weak self] _ in
                 DispatchQueue.main.async {
-                    self?.presentDocumentationModally(url)
+                    self?.presentHelpModally(url)
                 }
             }
         } else {
-            presentDocumentationModally(url)
+            presentHelpModally(url)
         }
     }
 
-    func presentDocumentationModally(_ url: URL) {
-        let viewController = DocumentationViewController(url: url)
+    func presentHelpModally(_ url: URL) {
+        let viewController = HelpViewController(url: url)
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.modalPresentationStyle = .pageSheet
         present(navigationController, animated: true)
@@ -1146,10 +1146,10 @@ extension UIViewController {
 }
 
 extension UIApplication {
-    func closeDocumentationScenes() {
+    func closeHelpScenes() {
         DispatchQueue.main.async {
             let documentationSessions = self.openSessions.filter {
-                $0.configuration.name == documentationSceneConfigurationName
+                $0.configuration.name == helpSceneConfigurationName
             }
             for session in documentationSessions {
                 self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)

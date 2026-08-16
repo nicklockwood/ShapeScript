@@ -28,7 +28,7 @@ private let macHelpHTMLDirectory = appProjectDirectory
     .appendingPathComponent("ShapeScriptHelp/_site/English.lproj")
 
 private let iosHelpHTMLDirectory = projectDirectory
-    .appendingPathComponent("Viewer/iOS/Documentation")
+    .appendingPathComponent("Viewer/iOS/Help")
 
 private let macHelpImageDirectories = [
     appProjectDirectory
@@ -314,7 +314,7 @@ struct HelpBuilder {
         }
         let outputValidator = DocumentationOutputValidator()
         if arguments.contains("--validate-ios-output") || arguments.contains("--validate-output") || shouldExportAll {
-            try outputValidator.validateIOSViewerDocumentation()
+            try outputValidator.validateIOSViewerHelp()
         }
         if arguments.contains("--validate-mac-output") || arguments.contains("--validate-output") || shouldExportAll {
             try outputValidator.validateMacHelpBook()

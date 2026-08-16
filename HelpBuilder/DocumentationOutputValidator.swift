@@ -17,18 +17,18 @@ struct DocumentationOutputValidator {
         projectDirectory.deletingLastPathComponent()
     }
 
-    private var iosViewerDocumentationDirectory: URL {
-        projectDirectory.appendingPathComponent("Viewer/iOS/Documentation")
+    private var iosViewerHelpDirectory: URL {
+        projectDirectory.appendingPathComponent("Viewer/iOS/Help")
     }
 
     private var macHelpBookDirectory: URL {
         appProjectDirectory.appendingPathComponent("ShapeScriptHelp/_site")
     }
 
-    func validateIOSViewerDocumentation() throws {
+    func validateIOSViewerHelp() throws {
         var issues = [String]()
         let fm = FileManager.default
-        let outputDirectory = iosViewerDocumentationDirectory
+        let outputDirectory = iosViewerHelpDirectory
 
         guard fm.fileExists(atPath: outputDirectory.path) else {
             throw HelpBuilderError.validationFailed([
@@ -123,7 +123,7 @@ struct DocumentationOutputValidator {
         at htmlURL: URL,
         issues: inout [String]
     ) {
-        let relativeHTMLPath = relativePath(htmlURL, relativeTo: iosViewerDocumentationDirectory)
+        let relativeHTMLPath = relativePath(htmlURL, relativeTo: iosViewerHelpDirectory)
         if !html.contains(#"<link rel="stylesheet" href="documentation.css"/>"#) {
             issues.append("\(relativeHTMLPath) does not reference documentation.css")
         }

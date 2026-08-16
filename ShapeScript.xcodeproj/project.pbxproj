@@ -18,7 +18,7 @@
 		012B51BC2E8094B000D69BA4 /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BD2E8094B000D69BA4 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		012B51C02E8094B000D69BA4 /* Documentation in Resources */ = {isa = PBXBuildFile; fileRef = 012B51BF2E8094B000D69BA4 /* Documentation */; };
+		012B51C02E8094B000D69BA4 /* Help in Resources */ = {isa = PBXBuildFile; fileRef = 012B51BF2E8094B000D69BA4 /* Help */; };
 		012B51EF2E8098A300D69BA4 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; platformFilters = (ios, maccatalyst, macos, xros, ); };
 		012B51F02E8098A300D69BA4 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
 		012B51F12E8098A300D69BA4 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
@@ -200,7 +200,7 @@
 /* Begin PBXFileReference section */
 		012B51122E80923400D69BA4 /* ShapeScript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShapeScript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		012B51B62FF0000000000001 /* ContextMenu.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ContextMenu.xcodeproj; path = ContextMenu/ContextMenu.xcodeproj; sourceTree = "<group>"; };
-		012B51BF2E8094B000D69BA4 /* Documentation */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Documentation; path = Viewer/iOS/Documentation; sourceTree = SOURCE_ROOT; };
+		012B51BF2E8094B000D69BA4 /* Help */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Help; path = Viewer/iOS/Help; sourceTree = SOURCE_ROOT; };
 		012B51E12E80984A00D69BA4 /* CLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		0158D8362E806BB600C53A29 /* Euclid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Euclid.xcodeproj; path = Euclid/Euclid.xcodeproj; sourceTree = "<group>"; };
 		0158D8452E806BCF00C53A29 /* SVGPath.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = SVGPath.xcodeproj; path = SVGPath/SVGPath.xcodeproj; sourceTree = "<group>"; };
@@ -394,6 +394,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		012B51C22E8094C000D69BA4 /* Generated Resources */ = {
+			isa = PBXGroup;
+			children = (
+				012B51BF2E8094B000D69BA4 /* Help */,
+			);
+			name = "Generated Resources";
+			sourceTree = "<group>";
+		};
 		0158D6BC2E80480900C53A29 = {
 			isa = PBXGroup;
 			children = (
@@ -466,14 +474,6 @@
 				012B51C22E8094C000D69BA4 /* Generated Resources */,
 			);
 			path = Viewer;
-			sourceTree = "<group>";
-		};
-		012B51C22E8094C000D69BA4 /* Generated Resources */ = {
-			isa = PBXGroup;
-			children = (
-				012B51BF2E8094B000D69BA4 /* Documentation */,
-			);
-			name = "Generated Resources";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -751,7 +751,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				012B51B92E80942200D69BA4 /* Examples in Resources */,
-				012B51C02E8094B000D69BA4 /* Documentation in Resources */,
+				012B51C02E8094B000D69BA4 /* Help in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

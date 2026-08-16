@@ -32,14 +32,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         let activityType = options.userActivities.first?.activityType ??
             connectingSceneSession.stateRestorationActivity?.activityType
 
-        if activityType == documentationActivityType ||
-            connectingSceneSession.configuration.name == documentationSceneConfigurationName
+        if activityType == helpActivityType ||
+            connectingSceneSession.configuration.name == helpSceneConfigurationName
         {
             let configuration = UISceneConfiguration(
-                name: documentationSceneConfigurationName,
+                name: helpSceneConfigurationName,
                 sessionRole: connectingSceneSession.role
             )
-            configuration.delegateClass = DocumentationSceneDelegate.self
+            configuration.delegateClass = HelpSceneDelegate.self
             return configuration
         }
 
@@ -60,6 +60,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         }) else {
             return
         }
-        UIApplication.shared.closeDocumentationScenesIfNoMainScenesRemain()
+        UIApplication.shared.closeHelpScenesIfNoMainScenesRemain()
     }
 }

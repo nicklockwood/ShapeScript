@@ -124,9 +124,9 @@
 				</dict>
 				<dict>
 					<key>UISceneConfigurationName</key>
-					<string>Documentation Configuration</string>
+					<string>Help Configuration</string>
 					<key>UISceneDelegateClassName</key>
-					<string>DocumentationSceneDelegate</string>
+					<string>HelpSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

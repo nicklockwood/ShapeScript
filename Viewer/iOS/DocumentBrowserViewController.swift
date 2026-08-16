@@ -93,10 +93,10 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(
-            title: documentationSceneTitle,
+            title: helpSceneTitle,
             style: .default
         ) { [weak self] _ in
-            self?.presentDocumentation(onlineHelpURL)
+            self?.presentHelp(onlineHelpURL)
         })
         alert.addAction(UIAlertAction(
             title: "What's New in ShapeScript?",

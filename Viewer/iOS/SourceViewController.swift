@@ -143,7 +143,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 private extension SourceViewController {
     @objc func openHelp(_: Any?) {
         if traitCollection.userInterfaceIdiom == .pad {
-            presentDocumentation(editorHelpURL)
+            presentHelp(editorHelpURL)
             return
         }
 
@@ -151,7 +151,7 @@ private extension SourceViewController {
         if let helpNavigationController {
             navigationController = helpNavigationController
         } else {
-            let viewController = DocumentationViewController(url: editorHelpURL)
+            let viewController = HelpViewController(url: editorHelpURL)
             navigationController = UINavigationController(rootViewController: viewController)
             navigationController.modalPresentationStyle = .pageSheet
             helpNavigationController = navigationController

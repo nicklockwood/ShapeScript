@@ -1,5 +1,5 @@
 //
-//  DocumentationIndexViewController.swift
+//  HelpIndexViewController.swift
 //  iOS Viewer
 //
 //  Created by Nick Lockwood on 16/08/2026.
@@ -8,17 +8,17 @@
 
 import UIKit
 
-struct DocumentationIndexItem {
+struct HelpIndexItem {
     let title: String
     let indentationLevel: Int
     let url: URL?
 }
 
-private struct DocumentationIndexNode: Hashable {
+private struct HelpIndexNode: Hashable {
     let id: Int
-    let item: DocumentationIndexItem
+    let item: HelpIndexItem
 
-    static func == (lhs: DocumentationIndexNode, rhs: DocumentationIndexNode) -> Bool {
+    static func == (lhs: HelpIndexNode, rhs: HelpIndexNode) -> Bool {
         lhs.id == rhs.id
     }
 
@@ -28,23 +28,23 @@ private struct DocumentationIndexNode: Hashable {
 }
 
 @MainActor
-protocol DocumentationIndexViewControllerDelegate: AnyObject {
-    func documentationIndexViewController(
-        _ viewController: DocumentationIndexViewController,
-        didSelect item: DocumentationIndexItem
+protocol HelpIndexViewControllerDelegate: AnyObject {
+    func helpIndexViewController(
+        _ viewController: HelpIndexViewController,
+        didSelect item: HelpIndexItem
     )
 }
 
-final class DocumentationIndexViewController: UIViewController, UICollectionViewDelegate {
+final class HelpIndexViewController: UIViewController, UICollectionViewDelegate {
     private enum Section {
         case main
     }
 
-    weak var delegate: DocumentationIndexViewControllerDelegate?
-    private let tree = DocumentationIndexTree(items: DocumentationIndex.loadItems())
+    weak var delegate: HelpIndexViewControllerDelegate?
+    private let tree = HelpIndexTree(items: HelpIndex.loadItems())
     private let backgroundView = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
     private var collectionView: UICollectionView!
-    private var dataSource: UICollectionViewDiffableDataSource<Section, DocumentationIndexNode>!
+    private var dataSource: UICollectionViewDiffableDataSource<Section, HelpIndexNode>!
 
     override func loadView() {
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
@@ -87,7 +87,7 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
         select(node, animated: false)
     }
 
-    private func select(_ node: DocumentationIndexNode, animated: Bool) {
+    private func select(_ node: HelpIndexNode, animated: Bool) {
         guard let indexPath = dataSource.indexPath(for: node) else {
             return
         }
@@ -100,7 +100,7 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
         }
     }
 
-    private func expandParents(of node: DocumentationIndexNode) {
+    private func expandParents(of node: HelpIndexNode) {
         let parents = tree.parents(of: node)
         guard !parents.isEmpty else {
             return
@@ -126,7 +126,7 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
         collectionView.indexPathsForSelectedItems?.contains(indexPath) == true
     }
 
-    private func isExpandedAndSelected(_ node: DocumentationIndexNode, at indexPath: IndexPath) -> Bool {
+    private func isExpandedAndSelected(_ node: HelpIndexNode, at indexPath: IndexPath) -> Bool {
         dataSource.snapshot(for: .main).isExpanded(node) && isSelected(at: indexPath)
     }
 
@@ -144,21 +144,21 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
             select(node, animated: true)
         }
         if node.item.url != nil {
-            delegate?.documentationIndexViewController(self, didSelect: node.item)
+            delegate?.helpIndexViewController(self, didSelect: node.item)
         }
     }
 
-    private func hasChildren(_ node: DocumentationIndexNode) -> Bool {
+    private func hasChildren(_ node: HelpIndexNode) -> Bool {
         !tree.children(of: node).isEmpty
     }
 
-    private func expand(_ node: DocumentationIndexNode) {
+    private func expand(_ node: HelpIndexNode) {
         var snapshot = dataSource.snapshot(for: .main)
         snapshot.expand([node])
         dataSource.apply(snapshot, to: .main, animatingDifferences: true)
     }
 
-    private func toggle(_ node: DocumentationIndexNode) {
+    private func toggle(_ node: HelpIndexNode) {
         var snapshot = dataSource.snapshot(for: .main)
         if snapshot.isExpanded(node) {
             snapshot.collapse([node])
@@ -177,7 +177,7 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<
             UICollectionViewListCell,
-            DocumentationIndexNode
+            HelpIndexNode
         > { [weak self] cell, _, node in
             var content = UIListContentConfiguration.sidebarCell()
             content.text = node.item.title
@@ -189,7 +189,7 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
             ] : []
         }
 
-        dataSource = UICollectionViewDiffableDataSource<Section, DocumentationIndexNode>(
+        dataSource = UICollectionViewDiffableDataSource<Section, HelpIndexNode>(
             collectionView: collectionView
         ) { collectionView, indexPath, item in
             collectionView.dequeueConfiguredReusableCell(
@@ -201,11 +201,11 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
     }
 
     private func applySnapshot() {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, DocumentationIndexNode>()
+        var snapshot = NSDiffableDataSourceSnapshot<Section, HelpIndexNode>()
         snapshot.appendSections([.main])
         dataSource.apply(snapshot, animatingDifferences: false)
 
-        var sectionSnapshot = NSDiffableDataSourceSectionSnapshot<DocumentationIndexNode>()
+        var sectionSnapshot = NSDiffableDataSourceSectionSnapshot<HelpIndexNode>()
         sectionSnapshot.append(tree.roots)
         for root in tree.roots {
             appendDescendants(of: root, to: &sectionSnapshot)
@@ -214,8 +214,8 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
     }
 
     private func appendDescendants(
-        of node: DocumentationIndexNode,
-        to snapshot: inout NSDiffableDataSourceSectionSnapshot<DocumentationIndexNode>
+        of node: HelpIndexNode,
+        to snapshot: inout NSDiffableDataSourceSectionSnapshot<HelpIndexNode>
     ) {
         let children = tree.children(of: node)
         guard !children.isEmpty else {
@@ -228,19 +228,19 @@ final class DocumentationIndexViewController: UIViewController, UICollectionView
     }
 }
 
-private struct DocumentationIndexTree {
-    let roots: [DocumentationIndexNode]
-    private let childrenByNode: [DocumentationIndexNode: [DocumentationIndexNode]]
-    private let parentsByNode: [DocumentationIndexNode: DocumentationIndexNode]
-    private let nodesByURL: [URL: DocumentationIndexNode]
+private struct HelpIndexTree {
+    let roots: [HelpIndexNode]
+    private let childrenByNode: [HelpIndexNode: [HelpIndexNode]]
+    private let parentsByNode: [HelpIndexNode: HelpIndexNode]
+    private let nodesByURL: [URL: HelpIndexNode]
 
-    init(items: [DocumentationIndexItem]) {
-        var roots: [DocumentationIndexNode] = []
-        var childrenByNode: [DocumentationIndexNode: [DocumentationIndexNode]] = [:]
-        var parentsByNode: [DocumentationIndexNode: DocumentationIndexNode] = [:]
-        var nodesByURL: [URL: DocumentationIndexNode] = [:]
-        var stack: [DocumentationIndexNode] = []
-        for item in items.enumerated().map({ DocumentationIndexNode(id: $0.offset, item: $0.element) }) {
+    init(items: [HelpIndexItem]) {
+        var roots: [HelpIndexNode] = []
+        var childrenByNode: [HelpIndexNode: [HelpIndexNode]] = [:]
+        var parentsByNode: [HelpIndexNode: HelpIndexNode] = [:]
+        var nodesByURL: [URL: HelpIndexNode] = [:]
+        var stack: [HelpIndexNode] = []
+        for item in items.enumerated().map({ HelpIndexNode(id: $0.offset, item: $0.element) }) {
             while let last = stack.last,
                   last.item.indentationLevel >= item.item.indentationLevel
             {
@@ -263,16 +263,16 @@ private struct DocumentationIndexTree {
         self.nodesByURL = nodesByURL
     }
 
-    func children(of node: DocumentationIndexNode) -> [DocumentationIndexNode] {
+    func children(of node: HelpIndexNode) -> [HelpIndexNode] {
         childrenByNode[node] ?? []
     }
 
-    func node(matching url: URL) -> DocumentationIndexNode? {
+    func node(matching url: URL) -> HelpIndexNode? {
         nodesByURL[url]
     }
 
-    func parents(of node: DocumentationIndexNode) -> [DocumentationIndexNode] {
-        var parents = [DocumentationIndexNode]()
+    func parents(of node: HelpIndexNode) -> [HelpIndexNode] {
+        var parents = [HelpIndexNode]()
         var child = node
         while let parent = parentsByNode[child] {
             parents.insert(parent, at: 0)
@@ -282,12 +282,12 @@ private struct DocumentationIndexTree {
     }
 }
 
-private enum DocumentationIndex {
-    static func loadItems() -> [DocumentationIndexItem] {
+private enum HelpIndex {
+    static func loadItems() -> [HelpIndexItem] {
         guard let url = Bundle.main.url(
             forResource: "index",
             withExtension: "html",
-            subdirectory: "Documentation"
+            subdirectory: "Help"
         ),
             let html = try? String(contentsOf: url)
         else {
@@ -296,12 +296,12 @@ private enum DocumentationIndex {
         return parseItems(in: html, relativeTo: url)
     }
 
-    private static func parseItems(in html: String, relativeTo indexURL: URL) -> [DocumentationIndexItem] {
+    private static func parseItems(in html: String, relativeTo indexURL: URL) -> [HelpIndexItem] {
         var depth = 0
         return html
             .components(separatedBy: .newlines)
-            .flatMap { line -> [DocumentationIndexItem] in
-                var items: [DocumentationIndexItem] = []
+            .flatMap { line -> [HelpIndexItem] in
+                var items: [HelpIndexItem] = []
                 let lineDepth = depth
                 items.append(contentsOf: linkItems(in: line, depth: lineDepth, relativeTo: indexURL))
                 depth += line.matchCount(for: #"<ul\b"#)
@@ -315,7 +315,7 @@ private enum DocumentationIndex {
         in line: String,
         depth: Int,
         relativeTo indexURL: URL
-    ) -> [DocumentationIndexItem] {
+    ) -> [HelpIndexItem] {
         if let heading = headingItem(in: line, depth: depth) {
             return [heading]
         }
@@ -327,10 +327,10 @@ private enum DocumentationIndex {
         return regex.matches(in: line, range: range).compactMap { match in
             let path = nsString.substring(with: match.range(at: 1))
             let title = nsString.substring(with: match.range(at: 2)).plainDocumentationText
-            guard !title.isEmpty, let url = documentationURL(for: path, relativeTo: indexURL) else {
+            guard !title.isEmpty, let url = helpURL(for: path, relativeTo: indexURL) else {
                 return nil
             }
-            return DocumentationIndexItem(
+            return HelpIndexItem(
                 title: title,
                 indentationLevel: max(0, depth - 1),
                 url: url
@@ -338,21 +338,21 @@ private enum DocumentationIndex {
         }
     }
 
-    private static func headingItem(in line: String, depth: Int) -> DocumentationIndexItem? {
+    private static func headingItem(in line: String, depth: Int) -> HelpIndexItem? {
         guard !line.contains("<a "),
               let title = line.firstMatch(for: #"<li><p>(.*?)</p>"#)?.plainDocumentationText,
               !title.isEmpty
         else {
             return nil
         }
-        return DocumentationIndexItem(
+        return HelpIndexItem(
             title: title,
             indentationLevel: max(0, depth - 1),
             url: nil
         )
     }
 
-    private static func documentationURL(for path: String, relativeTo indexURL: URL) -> URL? {
+    private static func helpURL(for path: String, relativeTo indexURL: URL) -> URL? {
         guard let components = URLComponents(string: path) else {
             return nil
         }

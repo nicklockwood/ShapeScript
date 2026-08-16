@@ -46,7 +46,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        UIApplication.shared.closeDocumentationScenesIfNoMainScenesRemain(excluding: scene)
+        UIApplication.shared.closeHelpScenesIfNoMainScenesRemain(excluding: scene)
     }
 
     func scene(_: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
@@ -100,7 +100,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 extension UIApplication {
-    func closeDocumentationScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
+    func closeHelpScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
         DispatchQueue.main.async {
             let hasMainScene = self.connectedScenes.contains { scene in
                 scene !== disconnectedScene &&
@@ -109,7 +109,7 @@ extension UIApplication {
             guard !hasMainScene else {
                 return
             }
-            self.closeDocumentationScenes()
+            self.closeHelpScenes()
         }
     }
 }
