@@ -52,7 +52,7 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
                 attachedView?.removeGestureRecognizer(longPressGesture)
             }
             longPressGesture = nil
-            if #available(iOS 16, *),
+            if #available(iOS 16, visionOS 1.0, *),
                let interaction = editMenuInteraction as? UIEditMenuInteraction
             {
                 attachedView?.removeInteraction(interaction)
@@ -68,7 +68,7 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
         }
         attachedView = view
 
-        if runningOnMac, #available(iOS 16, *) {
+        if runningOnMac, #available(iOS 16, visionOS 1.0, *) {
             _ = editMenuInteraction(for: view)
         }
 
@@ -100,9 +100,9 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
 
         cleanupButton()
 
-        if #available(iOS 17.4, *), !runningOnMac, configuration.presentationStyle == .automatic {
+        if #available(iOS 17.4, visionOS 1.1, *), !runningOnMac, configuration.presentationStyle == .automatic {
             presentContextMenu(configuration.menu, at: location, in: view)
-        } else if #available(iOS 16, *) {
+        } else if #available(iOS 16, visionOS 1.0, *) {
             presentEditMenu(at: location, in: view)
         }
     }
@@ -115,7 +115,7 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
         #endif
     }
 
-    @available(iOS 17.4, *)
+    @available(iOS 17.4, visionOS 1.1, *)
     private func presentContextMenu(_ menu: UIMenu, at location: CGPoint, in view: UIView) {
         let button = ContextMenuButton(type: .custom)
         button.frame = CGRect(origin: location, size: CGSize(width: 1, height: 1))
@@ -132,7 +132,7 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
         }
         view.addSubview(button)
         menuButton = button
-        DispatchQueue.main.async {
+        Task { @MainActor in
             button.performPrimaryAction()
         }
     }
@@ -144,15 +144,15 @@ public final class ContextMenuInteraction: NSObject, UIInteraction {
 }
 
 #if compiler(>=6.2)
-@available(iOS 16, *)
+@available(iOS 16, visionOS 1.0, *)
 extension ContextMenuInteraction: @MainActor UIEditMenuInteractionDelegate {}
 #else
 @MainActor
-@available(iOS 16, *)
+@available(iOS 16, visionOS 1.0, *)
 extension ContextMenuInteraction: UIEditMenuInteractionDelegate {}
 #endif
 
-@available(iOS 16, *)
+@available(iOS 16, visionOS 1.0, *)
 extension ContextMenuInteraction {
     public func editMenuInteraction(
         _: UIEditMenuInteraction,

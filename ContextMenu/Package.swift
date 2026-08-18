@@ -6,6 +6,7 @@ let package = Package(
     platforms: [
         .iOS(.v14),
         .macCatalyst(.v14),
+        .visionOS(.v1),
     ],
     products: [
         .library(name: "ContextMenu", targets: ["ContextMenu"]),

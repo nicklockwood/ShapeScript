@@ -101,7 +101,7 @@ private enum MenuDemoMode: CaseIterable, Identifiable {
             case .editMenu:
                 "Uses UIEditMenuInteraction directly. It presents from a source point, using the edit-menu presentation style."
             case .anchoredMenu:
-                "Uses ContextMenuInteraction. On iOS 17.4 and later it opens a dropdown-style menu at the press location."
+                "Uses ContextMenuInteraction. On iOS 17.4, visionOS 1.1, and later it opens a dropdown-style menu at the press location."
             }
         }
     }
@@ -162,7 +162,7 @@ private struct MenuDemoContent: UIViewRepresentable {
     func updateUIView(_ view: ContentCardView, context: Context) {
         context.coordinator.parent = self
         view.configure(color: color, symbolName: symbolName, detail: copiedText)
-        if mode == .editMenu, #unavailable(iOS 16) {
+        if mode == .editMenu, #unavailable(iOS 16, visionOS 1.0) {
             view.configureUnsupportedMode()
         }
     }

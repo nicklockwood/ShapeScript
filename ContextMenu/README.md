@@ -1,5 +1,5 @@
 [![Build](https://github.com/nicklockwood/ContextMenu/actions/workflows/build.yml/badge.svg)](https://github.com/nicklockwood/ContextMenu/actions/workflows/build.yml)
-[![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Mac%20Catalyst-lightgray.svg)]()
+[![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Mac%20Catalyst%20%7C%20visionOS-lightgray.svg)]()
 [![Swift 5.10](https://img.shields.io/badge/swift-5.10-red.svg?style=flat)](https://developer.apple.com/swift)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 [![Mastodon](https://img.shields.io/badge/mastodon-@nicklockwood@mastodon.social-636dff.svg)](https://mastodon.social/@nicklockwood)
@@ -35,12 +35,12 @@ A drawing canvas, document preview, or 3D scene often needs a contextual menu at
 
 ContextMenu is packaged as a dynamic framework that you can import into your Xcode project. You can install this manually, or by using Swift Package Manager.
 
-**Note:** ContextMenu can be built into apps targeting iOS 14 or later, or Mac Catalyst 14 or later, but menus are only displayed on iOS 16 and later. Full dropdown-style behavior requires iOS 17.4 or later; on iOS 16 through 17.3 the library falls back to `UIEditMenuInteraction`.
+**Note:** ContextMenu can be built into apps targeting iOS 14 or later, Mac Catalyst 14 or later, or visionOS 1.0 or later, but menus are only displayed on iOS 16 and later. Full dropdown-style behavior requires iOS 17.4 or later, or visionOS 1.1 or later; on older supported OS versions the library falls back to `UIEditMenuInteraction`.
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/ContextMenu.git", .upToNextMinor(from: "1.0.0")),
+.package(url: "https://github.com/nicklockwood/ContextMenu.git", .upToNextMinor(from: "1.0.1")),
 ```
 
 
