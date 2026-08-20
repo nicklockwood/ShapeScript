@@ -112,6 +112,10 @@ final class ConsoleViewController: UIViewController {
         min(maximumHeight, textView.contentSize.height)
     }
 
+    func preferredHeight(maximumHeight: CGFloat) -> CGFloat {
+        contentHeight(maximum: maximumHeight)
+    }
+
     func configureSheetPresentation(delegate: UIAdaptivePresentationControllerDelegate?) {
         modalPresentationStyle = .pageSheet
         isModalInPresentation = true
@@ -303,7 +307,6 @@ final class ConsoleViewController: UIViewController {
     }
 
     private func configureViewHierarchy() {
-        containerView.backgroundColor = .systemBackground
         textView.translatesAutoresizingMaskIntoConstraints = false
         topFadeView.translatesAutoresizingMaskIntoConstraints = false
         bottomFadeView.translatesAutoresizingMaskIntoConstraints = false
@@ -334,7 +337,11 @@ final class ConsoleViewController: UIViewController {
         textView.isEditable = false
         textView.isSelectable = true
         textView.alwaysBounceVertical = false
+        #if os(visionOS)
+        textView.backgroundColor = .clear
+        #else
         textView.backgroundColor = .systemBackground
+        #endif
         textView.font = consoleFont
         textView.contentInset = UIEdgeInsets(
             top: sheetTopInset,

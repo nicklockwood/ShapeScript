@@ -10,6 +10,7 @@ import ContextMenu
 import Euclid
 import SceneKit
 import ShapeScript
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -33,6 +34,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
     private var compactWarningConstraints = [NSLayoutConstraint]()
     private var regularWarningConstraints = [NSLayoutConstraint]()
+    #if os(visionOS)
+    private var consoleOrnament: UIHostingOrnament<ConsoleOrnamentContainer>?
+    #endif
 
     let errorTextView: UITextView = .init()
     let grantAccessButton: UIButton = .init(type: .system)
@@ -87,12 +91,16 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         consoleViewController.appendLog(text)
         DispatchQueue.main.async {
             self.presentConsole()
+            #if os(visionOS)
+            self.updateConsoleOrnament()
+            #else
             if self.consoleViewController.consoleView.superview === self.containerView,
                self.containerView.heights.count > 1
             {
                 self.containerView.heights[1] =
                     self.consoleViewController.inlineHeight(maximumHeight: 150)
             }
+            #endif
         }
     }
 
@@ -337,6 +345,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             updateAxesAndCamera()
             resetView()
         }
+        #if os(visionOS)
+        updateConsoleOrnament()
+        #endif
         rebuildMenu()
     }
 
@@ -571,12 +582,35 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     private func presentConsole() {
+        #if os(visionOS)
+        presentOrnamentConsole()
+        #else
         if #available(iOS 16, *) {
             presentSheetConsole()
         } else {
             presentInlineConsole()
         }
+        #endif
     }
+
+    #if os(visionOS)
+
+    private func presentOrnamentConsole() {
+        guard view.window != nil else {
+            return
+        }
+        if consoleOrnament == nil {
+            let ornament = UIHostingOrnament(sceneAnchor: .bottom) {
+                consoleOrnamentView
+            }
+            ornaments.append(ornament)
+            consoleOrnament = ornament
+        } else {
+            updateConsoleOrnament()
+        }
+    }
+
+    #endif
 
     @available(iOS 16, *)
     private func presentSheetConsole() {
@@ -597,13 +631,52 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     private func dismissConsole() {
+        #if os(visionOS)
+        dismissOrnamentConsole()
+        #else
         if #available(iOS 15, *) {
             dismissSheetConsole(restoreIfNeeded: true)
         } else {
             containerView.removeArrangedSubview(consoleViewController.consoleView)
             consoleViewController.removeFromParent()
         }
+        #endif
     }
+
+    #if os(visionOS)
+
+    private func dismissOrnamentConsole() {
+        guard let consoleOrnament else {
+            return
+        }
+        ornaments.removeAll { $0 === consoleOrnament }
+        self.consoleOrnament = nil
+    }
+
+    private func updateConsoleOrnament() {
+        consoleOrnament?.rootView = consoleOrnamentView
+    }
+
+    private var consoleOrnamentView: ConsoleOrnamentContainer {
+        ConsoleOrnamentContainer(
+            viewController: consoleViewController,
+            size: CGSize(
+                width: consoleOrnamentWidth,
+                height: consoleOrnamentHeight
+            )
+        )
+    }
+
+    private var consoleOrnamentWidth: CGFloat {
+        let windowWidth = max(view.bounds.width, 320)
+        return max(windowWidth - 120, 280)
+    }
+
+    private var consoleOrnamentHeight: CGFloat {
+        consoleViewController.preferredHeight(maximumHeight: 150)
+    }
+
+    #endif
 
     @available(iOS 15, *)
     private func dismissSheetConsole(
@@ -659,10 +732,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         presentConsole()
     }
 
-    func restoreConsoleWhenDismissed(
-        _: UIViewController?,
-        remainingAttempts: Int = 40
-    ) {
+    func restoreConsoleWhenDismissed(_: UIViewController?, remainingAttempts: Int = 40) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             if presentedViewController == nil {
@@ -963,6 +1033,34 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 }
+
+#if os(visionOS)
+
+private struct ConsoleOrnamentContainer: View {
+    let viewController: ConsoleViewController
+    let size: CGSize
+
+    var body: some View {
+        ConsoleOrnamentViewController(viewController: viewController)
+            .frame(width: size.width, height: size.height)
+            .glassBackgroundEffect(in: .rect(cornerRadius: 24), displayMode: .always)
+    }
+}
+
+private struct ConsoleOrnamentViewController: UIViewControllerRepresentable {
+    let viewController: ConsoleViewController
+
+    func makeUIViewController(context _: Context) -> ConsoleViewController {
+        viewController
+    }
+
+    func updateUIViewController(
+        _: ConsoleViewController,
+        context _: Context
+    ) {}
+}
+
+#endif
 
 extension DocumentViewController {
     private func selectionMenu(at location: CGPoint) -> UIMenu? {
