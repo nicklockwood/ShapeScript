@@ -131,7 +131,7 @@ public extension RuntimeError {
             if case let .runtimeError(error) = error, case .importError = error.type {
                 return error.message
             }
-            let name = url.map { " '\($0.lastPathComponent)'" } ?? ""
+            let name = url.map { " '\($0.displayName)'" } ?? ""
             let error = error.range.map { _ in ": \(error.message)" } ?? ""
             return "Error in imported file\(name)\(error)"
         }

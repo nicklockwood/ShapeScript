@@ -98,19 +98,16 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     @MainActor func proposedName(for title: String) -> String? {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty,
-              !trimmedTitle.contains("/"),
-              !trimmedTitle.hasPrefix(".")
-        else {
+        let fileName = title.sanitizedFileName
+        guard !fileName.isEmpty, !fileName.contains(":") else {
             return nil
         }
 
-        let newTitle = URL(fileURLWithPath: trimmedTitle).deletingPathExtension().lastPathComponent
-        guard !newTitle.isEmpty else {
+        let baseName = (fileName as NSString).deletingPathExtension
+        guard !baseName.isEmpty, !baseName.hasPrefix(".") else {
             return nil
         }
-        return newTitle
+        return baseName
     }
 
     @available(iOS 16.0, *)
@@ -119,7 +116,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         sourceViewController: SourceViewController?,
         completion: @escaping @MainActor (Result<Void, any Error>) -> Void
     ) {
-        guard proposedName != fileURL.deletingPathExtension().lastPathComponent else {
+        guard proposedName != fileURL.displayBaseName else {
             completion(.success(()))
             return
         }
@@ -220,5 +217,14 @@ extension Document: UIDocumentPickerDelegate {
     func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         urls.forEach(bookmarkURL)
         try? read(from: fileURL)
+    }
+}
+
+private extension String {
+    var sanitizedFileName: String {
+        components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

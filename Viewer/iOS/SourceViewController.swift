@@ -248,7 +248,7 @@ private extension SourceViewController {
     }
 
     var documentTitle: String? {
-        document?.documentFileURL?.lastPathComponent
+        document?.documentFileURL?.displayName
     }
 
     func updateDocumentTitle() {
@@ -340,7 +340,7 @@ extension SourceViewController {
 
     static func userActivity(for fileURL: URL) -> NSUserActivity {
         let activity = NSUserActivity(activityType: sourceActivityType)
-        activity.title = fileURL.lastPathComponent
+        activity.title = fileURL.displayName
         activity.targetContentIdentifier = fileURL.absoluteString
         activity.userInfo = [sourceURLActivityKey: fileURL.absoluteString]
         return activity
@@ -362,14 +362,13 @@ extension SourceViewController: UINavigationItemRenameDelegate {
 
     func navigationItem(
         _: UINavigationItem,
-        willBeginRenamingWith _: String,
+        willBeginRenamingWith suggestedTitle: String,
         selectedRange _: Range<String.Index>
     ) -> (String, Range<String.Index>) {
         guard let fileURL = document?.fileURL else {
-            let title = title ?? ""
-            return (title, title.startIndex ..< title.endIndex)
+            return (suggestedTitle, suggestedTitle.startIndex ..< suggestedTitle.endIndex)
         }
-        let title = fileURL.deletingPathExtension().lastPathComponent
+        let title = fileURL.displayBaseName
         return (title, title.startIndex ..< title.endIndex)
     }
 
@@ -461,7 +460,7 @@ final class SourceSceneDelegate: UIResponder, UIWindowSceneDelegate {
         viewController.onOpenFailure = {
             UIApplication.shared.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
         }
-        windowScene.title = fileURL.lastPathComponent
+        windowScene.title = fileURL.displayName
         viewController.openSourceFile(fileURL)
 
         let navigationController = UINavigationController(rootViewController: viewController)

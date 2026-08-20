@@ -297,10 +297,10 @@ enum FileError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .sizeUnavailable(url):
-            return "Unable to determine size of '\(url.lastPathComponent)'"
+            return "Unable to determine size of '\(url.displayName)'"
         case let .tooLarge(url, maximumSize):
             let limit = ByteCountFormatter.string(fromByteCount: Int64(maximumSize), countStyle: .file)
-            return "File '\(url.lastPathComponent)' exceeds the \(limit) size limit"
+            return "File '\(url.displayName)' exceeds the \(limit) size limit"
         }
     }
 }
@@ -327,6 +327,43 @@ extension URL {
     }
 }
 
+private extension String {
+    var filePathVariants: [String] {
+        let expandedPath = NSString(string: self).expandingTildeInPath
+        guard contains("/") || contains(":") else {
+            return [expandedPath]
+        }
+
+        let swappedPath = String(map {
+            switch $0 {
+            case "/": ":"
+            case ":": "/"
+            default: $0
+            }
+        })
+        let expandedSwappedPath = NSString(string: swappedPath).expandingTildeInPath
+        return expandedSwappedPath == expandedPath ? [expandedPath] : [expandedPath, expandedSwappedPath]
+    }
+}
+
+private extension URL {
+    init?(fileURLWithPath path: String, relativeTo resolvedPath: String, resolvedBy resolvedURL: URL) {
+        guard !NSString(string: path).isAbsolutePath else {
+            self.init(fileURLWithPath: path)
+            return
+        }
+
+        var baseURL = resolvedURL
+        let componentCount = resolvedPath
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .count
+        for _ in 0 ..< componentCount {
+            baseURL.deleteLastPathComponent()
+        }
+        self.init(fileURLWithPath: path, relativeTo: baseURL)
+    }
+}
+
 extension EvaluationContext {
     func resolveURL(for path: String) throws -> URL {
         let path = path.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -334,15 +371,30 @@ extension EvaluationContext {
             // TODO: should this be a different error type, like "empty path not allowed"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
-        let expandedPath = NSString(string: path).expandingTildeInPath
-        let documentRelativePath = state.baseURL.map {
-            URL(fileURLWithPath: expandedPath, relativeTo: $0).path
-        } ?? expandedPath
-        guard let url = delegate?.resolveURL(for: documentRelativePath) else {
+        let fileManager = FileManager.default
+        let paths = path.filePathVariants.map { expandedPath in
+            state.baseURL.map {
+                URL(fileURLWithPath: expandedPath, relativeTo: $0).path
+            } ?? expandedPath
+        }
+        guard let firstPath = paths.first,
+              let firstURL = delegate?.resolveURL(for: firstPath)
+        else {
             // TODO: should this be a different error type, like "delegate not available"?
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
-        let fileManager = FileManager.default
+        let url: URL = if firstURL.isUndownloadedUbiquitousFile || fileManager.fileExists(atPath: firstURL.path) {
+            firstURL
+        } else {
+            paths.dropFirst().first { path in
+                guard let url = URL(fileURLWithPath: path, relativeTo: firstPath, resolvedBy: firstURL) else {
+                    return false
+                }
+                return url.isUndownloadedUbiquitousFile || fileManager.fileExists(atPath: url.path)
+            }.flatMap {
+                delegate?.resolveURL(for: $0)
+            } ?? firstURL
+        }
 //        try? fileManager.evictUbiquitousItem(at: url) // Handy for testing
         // TODO: move this logic out of EvaluationContext into delegate
         // so we can more easily mock the filesystem for testing purposes
@@ -607,7 +659,7 @@ extension EvaluationContext {
                     )
                 }
                 #else
-                let fullName = url.lastPathComponent
+                let fullName = url.displayName
                 #endif
                 let value = Value.font(fullName)
                 importCache.store[url] = .value(value)

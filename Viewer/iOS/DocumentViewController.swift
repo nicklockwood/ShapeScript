@@ -199,8 +199,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     func updateSceneTitle() {
-        view.window?.windowScene?.title = document?.fileURL
-            .deletingPathExtension().lastPathComponent ?? mainSceneTitle
+        view.window?.windowScene?.title = document?.fileURL.displayBaseName ?? mainSceneTitle
     }
 
     func updateNavigationButtons(animated: Bool = true) {

@@ -86,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let files = Bundle.main.urls(forResourcesWithExtension: "shape", subdirectory: "Examples") {
             for url in files.sorted(by: { $0.path < $1.path }) {
-                let name = url.deletingPathExtension().lastPathComponent
+                let name = url.displayBaseName
                 exampleURLs[name] = url
                 examplesMenu.addItem(withTitle: name, action: #selector(openExample), keyEquivalent: "")
             }

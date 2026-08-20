@@ -141,6 +141,43 @@ final class ImportExportTests: XCTestCase {
         }
     }
 
+    func testImportFileWithFinderSlashInName() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let url = directory.appendingPathComponent("foo:bar.txt")
+        try "fallback".write(to: url, atomically: true, encoding: .utf8)
+
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: "", delegate: delegate)
+        XCTAssertEqual(try context.importFile(at: "foo/bar.txt"), "fallback")
+    }
+
+    func testImportFilePrefersRealDirectoryPathOverFinderSlashName() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let subdirectory = directory.appendingPathComponent("foo", isDirectory: true)
+        try FileManager.default.createDirectory(at: subdirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try "normal".write(
+            to: subdirectory.appendingPathComponent("bar.txt"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try "fallback".write(
+            to: directory.appendingPathComponent("foo:bar.txt"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: "", delegate: delegate)
+        XCTAssertEqual(try context.importFile(at: "foo/bar.txt"), "normal")
+    }
+
     func testImportJSONGeometryDescriptionAsMesh() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

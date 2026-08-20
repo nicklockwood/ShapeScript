@@ -28,7 +28,7 @@ public extension MaterialProperty {
             self = .texture(.data(data, intensity: scnMaterialProperty.intensity))
         case let url as URL:
             guard let texture = try? Texture.file(
-                name: url.lastPathComponent,
+                name: url.displayName,
                 url: url,
                 intensity: scnMaterialProperty.intensity
             ) else {
