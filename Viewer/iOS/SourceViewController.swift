@@ -11,7 +11,7 @@ import UIKit
 
 let sourceActivityType = "com.charcoaldesign.ShapeScriptViewer.source"
 let sourceSceneConfigurationName = "Source Configuration"
-let sourceSceneTitle = "ShapeScript"
+let sourceSceneTitle = "Source Editor"
 private let sourceURLActivityKey = "url"
 
 @MainActor
@@ -265,7 +265,7 @@ private extension SourceViewController {
         guard view.window?.windowScene?.session.configuration.name == sourceSceneConfigurationName else {
             return
         }
-        view.window?.windowScene?.title = documentTitle ?? sourceSceneTitle
+        view.window?.windowScene?.title = sourceSceneTitle
     }
 
     func unregisterUndoManager() {
@@ -460,7 +460,6 @@ final class SourceSceneDelegate: UIResponder, UIWindowSceneDelegate {
         viewController.onOpenFailure = {
             UIApplication.shared.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
         }
-        windowScene.title = fileURL.displayName
         viewController.openSourceFile(fileURL)
 
         let navigationController = UINavigationController(rootViewController: viewController)
