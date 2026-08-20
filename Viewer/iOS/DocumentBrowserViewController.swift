@@ -28,10 +28,10 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
         additionalTrailingNavigationBarButtonItems = [UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
-            style: .plain,
-            target: self,
-            action: #selector(showHelpMenu)
-        )]
+            menuTitle: "ShapeScript Help"
+        ) { [weak self] _ in
+            self?.showHelpMenu()
+        }]
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -86,7 +86,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
         present(navigationController, animated: true)
     }
 
-    @objc func showHelpMenu() {
+    func showHelpMenu() {
         let alert = UIAlertController(
             title: "",
             message: "",

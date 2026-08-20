@@ -138,23 +138,23 @@ final class HelpViewController: UIViewController {
 
         backButton = UIBarButtonItem(
             image: UIImage(systemName: "chevron.backward"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.webView.goBack()
-            }
-        )
+            menuTitle: "Back"
+        ) { [weak self] _ in
+            self?.webView.goBack()
+        }
         forwardButton = UIBarButtonItem(
             image: UIImage(systemName: "chevron.forward"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.webView.goForward()
-            }
-        )
+            menuTitle: "Forward"
+        ) { [weak self] _ in
+            self?.webView.goForward()
+        }
         indexButton = UIBarButtonItem(
             image: UIImage(systemName: "sidebar.left") ?? UIImage(systemName: "list.bullet"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.toggleSidebar()
-            }
-        )
-        indexButton.accessibilityLabel = "Show Index"
+            menuTitle: "Show Index"
+        ) { [weak self] _ in
+            self?.toggleSidebar()
+        }
+        updateIndexButtonLabel()
         reloadButton = UIBarButtonItem(
             systemItem: .refresh,
             primaryAction: UIAction { [weak self] _ in
@@ -163,14 +163,13 @@ final class HelpViewController: UIViewController {
         )
         safariButton = UIBarButtonItem(
             image: UIImage(systemName: "safari"),
-            primaryAction: UIAction { [weak self] _ in
-                guard let url = self?.currentHelpURL else {
-                    return
-                }
-                UIApplication.shared.open(url)
+            menuTitle: "Open in Safari"
+        ) { [weak self] _ in
+            guard let url = self?.currentHelpURL else {
+                return
             }
-        )
-        safariButton.accessibilityLabel = "Open in Safari"
+            UIApplication.shared.open(url)
+        }
 
         if showsCloseButton {
             closeButton = UIBarButtonItem(
@@ -475,7 +474,7 @@ final class HelpViewController: UIViewController {
         webViewLeadingConstraint?.constant = isSidebarOverlay ? 0 : width + separatorWidth
         sidebarDismissView.isHidden = !isSidebarVisible || !isSidebarOverlay
         updateSidebarShadow()
-        indexButton.accessibilityLabel = isSidebarVisible ? "Hide Index" : "Show Index"
+        updateIndexButtonLabel()
         let changes = {
             self.view.layoutIfNeeded()
         }
@@ -483,6 +482,19 @@ final class HelpViewController: UIViewController {
             UIView.animate(withDuration: 0.2, animations: changes)
         } else {
             changes()
+        }
+    }
+
+    private func updateIndexButtonLabel() {
+        let title = isSidebarVisible ? "Hide Index" : "Show Index"
+        indexButton.accessibilityLabel = title
+        if #available(iOS 16.0, *) {
+            indexButton.menuRepresentation = UIAction(
+                title: title,
+                image: indexButton.image
+            ) { [weak self] _ in
+                self?.toggleSidebar()
+            }
         }
     }
 

@@ -110,40 +110,29 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
         undoButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.uturn.left"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.document?.undoManager?.undo()
-            }
-        )
+            menuTitle: "Undo"
+        ) { [weak self] _ in
+            self?.document?.undoManager?.undo()
+        }
         redoButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.uturn.right"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.document?.undoManager?.redo()
-            }
-        )
+            menuTitle: "Redo"
+        ) { [weak self] _ in
+            self?.document?.undoManager?.redo()
+        }
         shareButton = UIBarButtonItem(
             systemItem: .action,
             primaryAction: UIAction { [weak self] _ in
-                guard let self, let document else {
-                    return
-                }
-                let sheet = UIActivityViewController(
-                    activityItems: [
-                        UISimpleTextPrintFormatter(text: document.sourceString),
-                        document.documentFileURL as Any,
-                    ],
-                    applicationActivities: nil
-                )
-                sheet.popoverPresentationController?
-                    .barButtonItem = shareButton
-                present(sheet, animated: true)
+                self?.shareSource()
             }
         )
+
         helpButton = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
-            primaryAction: UIAction { [weak self] _ in
-                self?.openHelp(nil)
-            }
-        )
+            menuTitle: "ShapeScript Help"
+        ) { [weak self] _ in
+            self?.openHelp(nil)
+        }
         helpButton.accessibilityLabel = "ShapeScript Help"
 
         if #unavailable(iOS 16.0) {
@@ -182,6 +171,21 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 private extension SourceViewController {
     @objc func openHelp(_: Any?) {
         presentHelp(editorHelpURL)
+    }
+
+    func shareSource() {
+        guard let document else {
+            return
+        }
+        let sheet = UIActivityViewController(
+            activityItems: [
+                UISimpleTextPrintFormatter(text: document.sourceString),
+                document.documentFileURL as Any,
+            ],
+            applicationActivities: nil
+        )
+        sheet.popoverPresentationController?.barButtonItem = shareButton
+        present(sheet, animated: true)
     }
 
     func didSetDocument() {

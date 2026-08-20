@@ -69,3 +69,18 @@ extension UIApplication {
         }.first
     }
 }
+
+extension UIBarButtonItem {
+    convenience init(
+        image: UIImage?,
+        menuTitle: String,
+        handler: @escaping UIActionHandler
+    ) {
+        let action = UIAction(title: menuTitle, image: image, handler: handler)
+        self.init(title: nil, image: image, primaryAction: action)
+        accessibilityLabel = menuTitle
+        if #available(iOS 16.0, *) {
+            menuRepresentation = action
+        }
+    }
+}

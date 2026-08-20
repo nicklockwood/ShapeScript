@@ -194,8 +194,18 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     func updateEditButton() {
-        editButton.image = UIImage(systemName: document?.isEditable ?? false ?
-            "square.and.pencil" : "doc.plaintext")
+        let isEditable = document?.isEditable ?? false
+        editButton.image = UIImage(systemName: isEditable ? "square.and.pencil" : "doc.plaintext")
+        let title = isEditable ? "Open in Editor" : "View Source"
+        editButton.accessibilityLabel = title
+        if #available(iOS 16.0, *) {
+            editButton.menuRepresentation = UIAction(
+                title: title,
+                image: editButton.image
+            ) { [weak self] _ in
+                self?.openSourceEditor()
+            }
+        }
     }
 
     func updateSceneTitle() {
@@ -289,10 +299,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         )
         infoButton = UIBarButtonItem(
             image: UIImage(systemName: "info.circle"),
-            style: .plain,
-            target: self,
-            action: #selector(showModelInfo)
-        )
+            menuTitle: "Scene Info"
+        ) { [weak self] _ in
+            self?.showModelInfo()
+        }
         editButton = UIBarButtonItem(
             image: UIImage(systemName: "square.and.pencil"),
             style: .plain,
@@ -854,7 +864,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             }
             cameraItems.append(item)
         }
-        cameraButton.menu = UIMenu(
+        let cameraMenu = UIMenu(
             title: "",
             image: nil,
             identifier: nil,
@@ -927,6 +937,14 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 ),
             ]
         )
+        cameraButton.menu = cameraMenu
+        if #available(iOS 16.0, *) {
+            cameraButton.menuRepresentation = UIMenu(
+                title: "Camera",
+                image: UIImage(systemName: "camera"),
+                children: cameraMenu.children
+            )
+        }
         // Update export menu
         exportMenuProvider?.updateExportMenu()
     }
