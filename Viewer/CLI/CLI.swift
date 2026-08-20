@@ -33,13 +33,29 @@ final class CLI {
     let inputURL: URL?
     let outputURL: URL?
     let exportOptions: ExportOptions
+    let shouldPrintHelp: Bool
     let shouldPrintVersion: Bool
 
-    private static let arguments = ["version"]
+    private static let arguments: [(name: String, help: String)] = [
+        ("help", "Show this help information"),
+        ("version", "Show the ShapeScript version"),
+    ]
+
+    private static let shortAliases = ["h": "help"]
 
     init(in directory: String, with arguments: [String]) throws {
-        let argNames = Self.arguments + ExportOptions.arguments.map(\.name)
-        let args = try preprocessArguments(arguments, argNames)
+        let optionDefinitions = Self.arguments + ExportOptions.arguments
+        let args = try preprocessArguments(
+            arguments,
+            optionDefinitions.map(\.name),
+            shortAliases: Self.shortAliases
+        )
+        self.shouldPrintHelp = try args["help"].map {
+            guard $0 == "" else {
+                throw CLIError("--help option does not expect a value")
+            }
+            return true
+        } ?? false
         self.shouldPrintVersion = try args["version"].map {
             guard $0 == "" else {
                 throw CLIError("--version option does not expect a value")
@@ -64,28 +80,18 @@ final class CLI {
     }
 
     func run() throws {
+        if shouldPrintHelp {
+            print(Self.help)
+            return
+        }
+
         if shouldPrintVersion {
             print(version)
             return
         }
 
-        let args = ExportOptions.arguments
-        let indent = args.map(\.name.count).max() ?? 0
-        let help = args.map { name, help -> String in
-            let indent = String(repeating: " ", count: indent - name.count)
-            return "  --\(name)\(indent)  \(help)"
-        }
         guard let inputURL else {
-            print("""
-            ShapeScript, version \(version)
-            Copyright (c) 2023-2026 Nick Lockwood
-
-            USAGE:
-              shapescript <input_path> [<output_path>] [<options>]
-
-            OPTIONS:
-            \(help.joined(separator: "\n"))
-            """)
+            print(Self.help)
             return
         }
         let input: String
@@ -117,6 +123,36 @@ final class CLI {
             let error = ProgramError(error)
             throw CLIError(error.message(with: input))
         }
+    }
+
+    private static var help: String {
+        let arguments = Self.arguments + ExportOptions.arguments
+        let aliases = Dictionary(uniqueKeysWithValues: shortAliases.map { ($0.value, $0.key) })
+        let options = arguments.map { name, help -> (label: String, help: String) in
+            let label = if let alias = aliases[name] {
+                "-\(alias), --\(name)"
+            } else {
+                "--\(name)"
+            }
+            return (label, help)
+        }
+        let indent = options.map(\.label.count).max() ?? 0
+        let help = options.map { label, help -> String in
+            let padding = String(repeating: " ", count: indent - label.count)
+            return "  \(label)\(padding)  \(help)"
+        }
+        return """
+        ShapeScript, version \(version)
+        Copyright (c) 2023-2026 Nick Lockwood
+
+        USAGE:
+          shapescript [--help]
+          shapescript [--version]
+          shapescript <input_path> [<output_path>] [<options>]
+
+        OPTIONS:
+        \(help.joined(separator: "\n"))
+        """
     }
 }
 
@@ -153,7 +189,8 @@ private func expandPath(_ path: String, in directory: String) -> URL {
 
 private func preprocessArguments(
     _ args: [String],
-    _ names: [String]
+    _ names: [String],
+    shortAliases: [String: String] = [:]
 ) throws -> [String: String] {
     var anonymousArgs = 0
     var namedArgs: [String: String] = [:]
@@ -174,11 +211,11 @@ private func preprocessArguments(
         } else if arg.hasPrefix("-") {
             // Short argument names
             let flag = String(arg.unicodeScalars.dropFirst())
-            guard let match = names.first(where: { $0.hasPrefix(flag) }) else {
+            guard let match = shortAliases[flag] else {
                 guard let match = flag.bestMatches(in: names).first else {
                     throw CLIError("Unknown flag -\(flag)")
                 }
-                throw CLIError("Unknown flag -\(flag). Did you mean -\(match)?")
+                throw CLIError("Unknown flag -\(flag). Did you mean --\(match)?")
             }
             name = match
             namedArgs[name] = namedArgs[name] ?? ""
