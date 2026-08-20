@@ -92,9 +92,14 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         observer.map(NotificationCenter.default.removeObserver)
     }
 
-    @MainActor func didMove(to url: URL) {
-        presentedItemDidMove(to: url)
-        fileMonitor?.move(to: url)
+    override func presentedItemDidMove(to newURL: URL) {
+        super.presentedItemDidMove(to: newURL)
+        perform(
+            #selector(refreshAfterDocumentURLChange),
+            on: .main,
+            with: nil,
+            waitUntilDone: false
+        )
     }
 
     @MainActor func proposedName(for title: String) -> String? {
@@ -113,7 +118,6 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     @available(iOS 16.0, *)
     @MainActor func renameAndRefresh(
         proposedName: String,
-        sourceViewController: SourceViewController?,
         completion: @escaping @MainActor (Result<Void, any Error>) -> Void
     ) {
         guard proposedName != fileURL.displayBaseName else {
@@ -127,13 +131,12 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
 
         documentBrowser.renameDocument(at: fileURL, proposedName: proposedName) {
-            [weak self, weak sourceViewController] finalURL, error in
+            [weak self] finalURL, error in
             Task { @MainActor in
                 if let error {
                     completion(.failure(error))
                 } else if let finalURL, let self {
-                    self.didMove(to: finalURL)
-                    self.refreshAfterRename(sourceViewController: sourceViewController)
+                    self.presentedItemDidMove(to: finalURL)
                     completion(.success(()))
                 } else {
                     completion(.failure(CocoaError(.fileWriteUnknown)))
@@ -142,16 +145,21 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
-    @MainActor private func refreshAfterRename(sourceViewController: SourceViewController?) {
-        SourceDocumentRegistry.register(self, for: fileURL)
-        viewController?.updateSceneTitle()
-        viewController?.updateModals()
-        sourceViewController?.refreshAfterDocumentRename()
-
-        UIApplication.shared.connectedScenes
-            .compactMap { $0.delegate as? SourceSceneDelegate }
-            .filter { $0.sourceViewController !== sourceViewController }
-            .forEach { $0.load(fileURL, document: self) }
+    @MainActor @objc private func refreshAfterDocumentURLChange() {
+        refreshAfterDocumentURLChange(
+            updateDocumentChrome: { [weak self] in
+                guard let self else { return }
+                SourceDocumentRegistry.register(self, for: fileURL)
+                viewController?.updateSceneTitle()
+                viewController?.updateModals()
+            },
+            updateRelatedSourceViews: { [weak self] fileURL in
+                guard let self else { return }
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0.delegate as? SourceSceneDelegate }
+                    .forEach { $0.load(fileURL, document: self) }
+            }
+        )
     }
 
     @MainActor @objc private func updateCamerasAndViews() {

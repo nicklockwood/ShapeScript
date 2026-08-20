@@ -492,6 +492,18 @@ extension DocumentProtocol {
         }
     }
 
+    @MainActor func refreshAfterDocumentURLChange(
+        updateDocumentChrome: () -> Void = {},
+        updateRelatedSourceViews: (URL) -> Void = { _ in }
+    ) {
+        if let documentFileURL {
+            fileMonitor?.move(to: documentFileURL)
+            updateRelatedSourceViews(documentFileURL)
+        }
+        updateDocumentChrome()
+        updateViews()
+    }
+
     var formatVersion: SemanticVersion? {
         get { settings.value(for: #function, in: self) }
         set { settings.set(newValue, for: #function, in: self) }

@@ -322,12 +322,6 @@ extension SourceViewController {
         present(UIDocumentPickerViewController(forExporting: [fileURL]), animated: true)
     }
 
-    func refreshAfterDocumentRename() {
-        updateDocumentTitle()
-        userActivity = document?.documentFileURL.map(Self.userActivity(for:))
-        updateSceneTitle()
-    }
-
     override func updateUserActivityState(_ activity: NSUserActivity) {
         super.updateUserActivityState(activity)
         guard let fileURL = document?.documentFileURL else {
@@ -384,8 +378,7 @@ extension SourceViewController: UINavigationItemRenameDelegate {
         }
 
         document.renameAndRefresh(
-            proposedName: proposedName,
-            sourceViewController: self
+            proposedName: proposedName
         ) { [weak self] result in
             guard let self else {
                 return

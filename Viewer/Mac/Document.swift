@@ -128,6 +128,13 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         try load(Data(contentsOf: url), fileURL: url)
     }
 
+    override func presentedItemDidMove(to newURL: URL) {
+        super.presentedItemDidMove(to: newURL)
+        Task { @MainActor [weak self] in
+            self?.refreshAfterDocumentURLChange()
+        }
+    }
+
     @objc private func didSelectEditor(_ sender: NSPopUpButton) {
         handleEditorPopupAction(for: sender, in: windowForSheet)
     }
