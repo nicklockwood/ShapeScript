@@ -46,6 +46,8 @@ final class HelpViewController: UIViewController {
     private var webViewLeadingConstraint: NSLayoutConstraint?
     private var isSidebarVisible = false
 
+    var showsCloseButton = true
+
     init(url: URL = onlineHelpURL) {
         self.initialURL = url
         self.currentURL = url
@@ -170,7 +172,7 @@ final class HelpViewController: UIViewController {
         )
         safariButton.accessibilityLabel = "Open in Safari"
 
-        if navigationController?.presentingViewController != nil {
+        if showsCloseButton {
             closeButton = UIBarButtonItem(
                 systemItem: .close,
                 primaryAction: UIAction { [weak self] _ in
@@ -1192,6 +1194,7 @@ final class HelpSceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
         let viewController = HelpViewController(url: HelpViewController.url(from: activity))
+        viewController.showsCloseButton = false
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.view.backgroundColor = helpBackgroundColor
         navigationController.isToolbarHidden = false
@@ -1276,27 +1279,5 @@ extension UIApplication {
                 self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
             }
         }
-    }
-}
-
-private extension UIWindowScene {
-    var shouldRequestSceneActivation: Bool {
-        #if os(visionOS)
-        true
-        #else
-        activationState != .foregroundActive
-        #endif
-    }
-
-    var appearsFullscreen: Bool {
-        #if os(visionOS)
-        return false
-        #else
-        let sceneSize = coordinateSpace.bounds.standardized.size
-        let screenSize = screen.coordinateSpace.bounds.standardized.size
-        let sceneArea = sceneSize.width * sceneSize.height
-        let screenArea = screenSize.width * screenSize.height
-        return screenArea > 0 && sceneArea / screenArea >= 0.9
-        #endif
     }
 }

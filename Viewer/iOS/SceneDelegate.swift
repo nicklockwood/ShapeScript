@@ -46,7 +46,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
-        UIApplication.shared.closeHelpScenesIfNoMainScenesRemain(excluding: scene)
+        UIApplication.shared.closeAuxiliaryScenesIfNoMainScenesRemain(excluding: scene)
     }
 
     func scene(_: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
@@ -100,8 +100,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 extension UIApplication {
-    func closeHelpScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
-        DispatchQueue.main.async {
+    func closeAuxiliaryScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
+        Task { @MainActor in
             let hasMainScene = self.connectedScenes.contains { scene in
                 scene !== disconnectedScene &&
                     scene.session.configuration.name == mainSceneConfigurationName
@@ -110,6 +110,7 @@ extension UIApplication {
                 return
             }
             self.closeHelpScenes()
+            self.closeSourceScenes()
         }
     }
 }
@@ -120,5 +121,27 @@ private extension String {
             return String(dropFirst(string.count))
         }
         return self
+    }
+}
+
+extension UIWindowScene {
+    var shouldRequestSceneActivation: Bool {
+        #if os(visionOS)
+        true
+        #else
+        activationState != .foregroundActive
+        #endif
+    }
+
+    var appearsFullscreen: Bool {
+        #if os(visionOS)
+        return false
+        #else
+        let sceneSize = coordinateSpace.bounds.standardized.size
+        let screenSize = screen.coordinateSpace.bounds.standardized.size
+        let sceneArea = sceneSize.width * sceneSize.height
+        let screenArea = screenSize.width * screenSize.height
+        return screenArea > 0 && sceneArea / screenArea >= 0.9
+        #endif
     }
 }

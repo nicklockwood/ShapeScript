@@ -952,25 +952,52 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     func openSourceFile(_ fileURL: URL, in viewController: SourceViewController) {
-        if fileURL == document?.documentFileURL {
-            viewController.document = document
-        } else {
-            let document = Document(fileURL: fileURL)
-            let sourceViewController = viewController
-            document.open { success in
-                if success {
-                    sourceViewController.perform(
-                        #selector(SourceViewController.setOpenedDocument(_:)),
-                        on: .main,
-                        with: document,
-                        waitUntilDone: false
-                    )
-                }
+        viewController.openSourceFile(fileURL, document: document)
+    }
+
+    func openSourceView(withContentsOf fileURL: URL) {
+        if view.window?.windowScene?.appearsFullscreen == true {
+            UIApplication.shared.closeSourceScenes()
+            presentSourceViewModally(withContentsOf: fileURL)
+            return
+        }
+
+        if let sceneDelegate = UIApplication.shared.connectedScenes
+            .compactMap({ $0.delegate as? SourceSceneDelegate }).first
+        {
+            sceneDelegate.load(fileURL, document: document)
+            if let windowScene = sceneDelegate.window?.windowScene,
+               windowScene.shouldRequestSceneActivation
+            {
+                UIApplication.shared.requestSceneSessionActivation(
+                    windowScene.session,
+                    userActivity: SourceViewController.userActivity(for: fileURL),
+                    options: nil,
+                    errorHandler: nil
+                )
+            }
+            return
+        }
+
+        if fileURL == document?.documentFileURL, let document {
+            SourceDocumentRegistry.register(document, for: fileURL)
+        }
+        let options = UIScene.ActivationRequestOptions()
+        let session = UIApplication.shared.openSessions.first {
+            $0.configuration.name == sourceSceneConfigurationName
+        }
+        UIApplication.shared.requestSceneSessionActivation(
+            session,
+            userActivity: SourceViewController.userActivity(for: fileURL),
+            options: options
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.presentSourceViewModally(withContentsOf: fileURL)
             }
         }
     }
 
-    func openSourceView(withContentsOf fileURL: URL) {
+    private func presentSourceViewModally(withContentsOf fileURL: URL) {
         let viewController = SourceViewController()
         openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet

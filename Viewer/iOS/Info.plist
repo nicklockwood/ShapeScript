@@ -76,6 +76,7 @@
 	<array>
 		<string>com.charcoaldesign.ShapeScriptViewer.main</string>
 		<string>com.charcoaldesign.ShapeScriptViewer.documentation</string>
+		<string>com.charcoaldesign.ShapeScriptViewer.source</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -127,6 +128,12 @@
 					<string>Help Configuration</string>
 					<key>UISceneDelegateClassName</key>
 					<string>HelpSceneDelegate</string>
+				</dict>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Source Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>SourceSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

@@ -43,6 +43,17 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             return configuration
         }
 
+        if activityType == sourceActivityType ||
+            connectingSceneSession.configuration.name == sourceSceneConfigurationName
+        {
+            let configuration = UISceneConfiguration(
+                name: sourceSceneConfigurationName,
+                sessionRole: connectingSceneSession.role
+            )
+            configuration.delegateClass = SourceSceneDelegate.self
+            return configuration
+        }
+
         let configuration = UISceneConfiguration(
             name: mainSceneConfigurationName,
             sessionRole: connectingSceneSession.role
@@ -60,6 +71,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         }) else {
             return
         }
-        UIApplication.shared.closeHelpScenesIfNoMainScenesRemain()
+        UIApplication.shared.closeAuxiliaryScenesIfNoMainScenesRemain()
     }
 }

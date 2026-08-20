@@ -9,6 +9,11 @@
 import ShapeScript
 import UIKit
 
+let sourceActivityType = "com.charcoaldesign.ShapeScriptViewer.source"
+let sourceSceneConfigurationName = "Source Configuration"
+let sourceSceneTitle = "ShapeScript"
+private let sourceURLActivityKey = "url"
+
 @MainActor
 final class SourceViewController: UIViewController, @unchecked Sendable {
     private var undoRegistered = false
@@ -19,6 +24,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
 
+    var showsCloseButton = true
     var onDismiss: (() -> Void)?
 
     var document: Document? {
@@ -28,6 +34,24 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
     @objc func setOpenedDocument(_ document: Document) {
         self.document = document
+    }
+
+    func openSourceFile(_ fileURL: URL, document currentDocument: Document? = nil) {
+        if fileURL == currentDocument?.documentFileURL {
+            document = currentDocument
+        } else if let document = SourceDocumentRegistry.document(for: fileURL) {
+            self.document = document
+        } else {
+            let document = Document(fileURL: fileURL)
+            document.open { [weak self] success in
+                guard success else {
+                    return
+                }
+                Task { @MainActor in
+                    self?.document = document
+                }
+            }
+        }
     }
 
     override var undoManager: UndoManager? {
@@ -74,12 +98,14 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         textView.disableDoubleSpacePeriodShortcut = true
         textView.delegate = self
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            systemItem: .close,
-            primaryAction: UIAction { [weak self] _ in
-                self?.dismiss(animated: true)
-            }
-        )
+        if showsCloseButton {
+            navigationItem.leftBarButtonItem = UIBarButtonItem(
+                systemItem: .close,
+                primaryAction: UIAction { [weak self] _ in
+                    self?.dismiss(animated: true)
+                }
+            )
+        }
 
         undoButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.uturn.left"),
@@ -130,6 +156,11 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        updateSceneTitle()
+    }
+
     private func notifyDismissal() {
         guard !didNotifyDismissal else {
             return
@@ -145,7 +176,9 @@ private extension SourceViewController {
     }
 
     func didSetDocument() {
-        title = document?.documentFileURL?.lastPathComponent
+        title = documentTitle
+        userActivity = document?.documentFileURL.map(Self.userActivity(for:))
+        updateSceneTitle()
 
         textView.text = document?.sourceString ?? ""
         textView.isEditable = document?.isEditable ?? false
@@ -174,6 +207,17 @@ private extension SourceViewController {
         navigationItem.setRightBarButtonItems(items, animated: animated)
     }
 
+    var documentTitle: String? {
+        document?.documentFileURL?.lastPathComponent
+    }
+
+    func updateSceneTitle() {
+        guard view.window?.windowScene?.session.configuration.name == sourceSceneConfigurationName else {
+            return
+        }
+        view.window?.windowScene?.title = documentTitle ?? sourceSceneTitle
+    }
+
     func unregisterUndoManager() {
         undoRegistered = false
         document?.undoManager = nil
@@ -199,6 +243,112 @@ private extension SourceViewController {
     @objc func updateUndoButtons() {
         undoButton.isEnabled = document?.undoManager.canUndo == true
         redoButton.isEnabled = document?.undoManager.canRedo == true
+    }
+}
+
+extension SourceViewController {
+    override func updateUserActivityState(_ activity: NSUserActivity) {
+        super.updateUserActivityState(activity)
+        guard let fileURL = document?.documentFileURL else {
+            return
+        }
+        activity.addUserInfoEntries(from: [
+            sourceURLActivityKey: fileURL.absoluteString,
+        ])
+    }
+
+    static func userActivity(for fileURL: URL) -> NSUserActivity {
+        let activity = NSUserActivity(activityType: sourceActivityType)
+        activity.title = fileURL.lastPathComponent
+        activity.targetContentIdentifier = fileURL.absoluteString
+        activity.userInfo = [sourceURLActivityKey: fileURL.absoluteString]
+        return activity
+    }
+
+    static func fileURL(from activity: NSUserActivity?) -> URL? {
+        guard let string = activity?.userInfo?[sourceURLActivityKey] as? String else {
+            return nil
+        }
+        return URL(string: string)
+    }
+}
+
+@MainActor
+enum SourceDocumentRegistry {
+    private final class Entry {
+        weak var document: Document?
+
+        init(document: Document) {
+            self.document = document
+        }
+    }
+
+    private static var documents = [URL: Entry]()
+
+    static func register(_ document: Document, for fileURL: URL) {
+        documents[fileURL.standardizedFileURL] = Entry(document: document)
+    }
+
+    static func document(for fileURL: URL) -> Document? {
+        documents[fileURL.standardizedFileURL]?.document
+    }
+}
+
+@MainActor
+@objc(SourceSceneDelegate)
+final class SourceSceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = scene as? UIWindowScene else {
+            return
+        }
+        windowScene.title = sourceSceneTitle
+
+        let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
+        let viewController = SourceViewController()
+        viewController.showsCloseButton = false
+        if let fileURL = SourceViewController.fileURL(from: activity) {
+            windowScene.title = fileURL.lastPathComponent
+            viewController.openSourceFile(fileURL)
+        }
+
+        let navigationController = UINavigationController(rootViewController: viewController)
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = navigationController
+        window.backgroundColor = .systemBackground
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+
+    func stateRestorationActivity(for _: UIScene) -> NSUserActivity? {
+        sourceViewController?.userActivity
+    }
+
+    func load(_ fileURL: URL, document currentDocument: Document? = nil) {
+        sourceViewController?.openSourceFile(fileURL, document: currentDocument)
+    }
+
+    private var sourceViewController: SourceViewController? {
+        (window?.rootViewController as? UINavigationController)?
+            .viewControllers.first as? SourceViewController
+    }
+}
+
+extension UIApplication {
+    func closeSourceScenes() {
+        Task { @MainActor in
+            let sourceSessions = self.openSessions.filter {
+                $0.configuration.name == sourceSceneConfigurationName
+            }
+            for session in sourceSessions {
+                self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+            }
+        }
     }
 }
 
