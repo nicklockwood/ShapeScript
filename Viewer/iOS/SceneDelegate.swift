@@ -32,7 +32,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = DocumentBrowserViewController(
             forOpening: [UTType(importedAs: "com.charcoaldesign.shapescript-source")]
         )
-        window.backgroundColor = .black
+        window.backgroundColor = .clear
         window.makeKeyAndVisible()
         self.window = window
         self.scene(scene, openURLContexts: connectionOptions.urlContexts)

@@ -244,7 +244,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     override func loadView() {
         let rootView = UIView()
-        rootView.backgroundColor = .systemBackground
+        rootView.backgroundColor = .clear
 
         containerView.translatesAutoresizingMaskIntoConstraints = false
         rootView.addSubview(containerView)
@@ -375,6 +375,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         // configure the view
         containerView.backgroundColor = backgroundColor
         scnView.backgroundColor = .clear // Important!
+        scnView.isOpaque = false
         scnView.defaultCameraController.delegate = self
         scnView.pointOfView = cameraNode
         updateInterfaceColor()

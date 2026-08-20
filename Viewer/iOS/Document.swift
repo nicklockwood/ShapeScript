@@ -14,7 +14,11 @@ import UniformTypeIdentifiers
 
 final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked Sendable {
     static let backgroundColor: UIColor = UIColor { traits in
+        #if os(visionOS)
+        .clear
+        #else
         .init(white: traits.userInterfaceStyle == .dark ? 0.15 : 0.625, alpha: 1)
+        #endif
     }
 
     var documentFileURL: URL? {
