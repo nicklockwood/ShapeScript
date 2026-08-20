@@ -21,6 +21,7 @@ import UIKit
     private var previousSize: CGSize = .zero
     private var previousSelectedRange: NSRange?
     private var lastInsertedTextAndRange: (text: String, range: NSRange)?
+    private var keyboardFrame: CGRect?
     fileprivate var currentAction: TextAction?
     let textView: UITextView
 
@@ -224,6 +225,7 @@ extension TextView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        updateKeyboardInset()
         updateLineNumbers()
         updateInsets()
         let size = frame.size
@@ -1042,8 +1044,14 @@ private extension TextView {
     func avoidKeyboard() {
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(keyboardWillShow),
+            selector: #selector(keyboardWillChangeFrame),
             name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillChangeFrame),
+            name: UIResponder.keyboardWillChangeFrameNotification,
             object: nil
         )
         NotificationCenter.default.addObserver(
@@ -1054,16 +1062,38 @@ private extension TextView {
         )
     }
 
-    @objc func keyboardWillShow(_ notification: Notification) {
+    @objc func keyboardWillChangeFrame(_ notification: Notification) {
         if let userInfo = notification.userInfo,
            let rect = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
         {
-            _contentInset.bottom = rect.size.height - safeAreaInsets.bottom
+            keyboardFrame = rect
+            updateKeyboardInset()
         }
     }
 
     @objc func keyboardWillHide(_: Notification) {
+        keyboardFrame = nil
         _contentInset.bottom = .zero
+    }
+
+    func updateKeyboardInset() {
+        guard let keyboardFrame, let window else {
+            return
+        }
+
+        #if os(visionOS)
+        let windowFrameInScreen = window.convert(window.bounds, to: nil)
+        #else
+        let windowFrameInScreen = window.windowScene?.coordinateSpace.convert(
+            window.bounds,
+            to: window.screen.coordinateSpace
+        ) ?? window.convert(window.bounds, to: nil)
+        #endif
+        let overlap = windowFrameInScreen.intersection(keyboardFrame).height
+        let bottomInset = max(0, overlap - safeAreaInsets.bottom)
+        if _contentInset.bottom != bottomInset {
+            _contentInset.bottom = bottomInset
+        }
     }
 }
 
