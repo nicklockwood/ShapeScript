@@ -198,6 +198,11 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             "square.and.pencil" : "doc.plaintext")
     }
 
+    func updateSceneTitle() {
+        view.window?.windowScene?.title = document?.fileURL
+            .deletingPathExtension().lastPathComponent ?? mainSceneTitle
+    }
+
     func updateNavigationButtons(animated: Bool = true) {
         let items = exportMenuProvider == nil ?
             [cameraButton, infoButton, editButton] :
@@ -414,6 +419,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        updateSceneTitle()
         checkDocumentVersion()
         if showConsole {
             presentConsole()

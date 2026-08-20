@@ -9,7 +9,7 @@
 import Foundation
 
 final class FileMonitor: @unchecked Sendable {
-    let url: URL
+    private(set) var url: URL
     var linkedResources = Set<URL>()
     var securityScopedResources = Set<URL>()
 
@@ -37,6 +37,11 @@ final class FileMonitor: @unchecked Sendable {
 
     func markUpdated() {
         modified = Date.timeIntervalSinceReferenceDate
+    }
+
+    func move(to url: URL) {
+        self.url = url
+        markUpdated()
     }
 
     private static func getModifiedDate(_ url: URL) -> TimeInterval? {

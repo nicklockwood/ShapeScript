@@ -21,6 +21,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var redoButton: UIBarButtonItem = .init()
     private var shareButton: UIBarButtonItem = .init()
     private var helpButton: UIBarButtonItem = .init()
+    private var menuButton: UIBarButtonItem?
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
 
@@ -145,6 +146,14 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         )
         helpButton.accessibilityLabel = "ShapeScript Help"
 
+        if #unavailable(iOS 16.0) {
+            menuButton = UIBarButtonItem(
+                image: UIImage(systemName: "ellipsis.circle"),
+                menu: UIMenu(children: [])
+            )
+            menuButton?.accessibilityLabel = "Document Actions"
+        }
+
         didSetDocument()
         updateUndoButtons()
     }
@@ -176,25 +185,56 @@ private extension SourceViewController {
     }
 
     func didSetDocument() {
-        title = documentTitle
+        updateDocumentTitle()
         userActivity = document?.documentFileURL.map(Self.userActivity(for:))
         updateSceneTitle()
 
         textView.text = document?.sourceString ?? ""
         textView.isEditable = document?.isEditable ?? false
         registerUndoManager()
+        updateFallbackMenu()
 
-        setRightBarButtonItems(document?.isEditable ?? false ? [
-            helpButton,
-            shareButton,
-            redoButton,
-            undoButton,
-            .flexibleSpace(),
-        ] : [
-            helpButton,
-            shareButton,
-            .flexibleSpace(),
-        ], animated: isViewLoaded)
+        let documentMenuItems = document == nil ? [] : menuButton.map { [$0] } ?? []
+        let items: [UIBarButtonItem] = if document?.isEditable ?? false {
+            documentMenuItems + [
+                helpButton,
+                shareButton,
+                redoButton,
+                undoButton,
+                .flexibleSpace(),
+            ]
+        } else {
+            documentMenuItems + [
+                helpButton,
+                shareButton,
+                .flexibleSpace(),
+            ]
+        }
+        setRightBarButtonItems(items, animated: isViewLoaded)
+    }
+
+    func updateFallbackMenu() {
+        guard let menuButton else {
+            return
+        }
+        menuButton.isEnabled = document != nil
+        var children: [UIMenuElement] = [
+            UIAction(
+                title: "Duplicate",
+                image: UIImage(systemName: "plus.square.on.square")
+            ) { [weak self] _ in
+                self?.duplicate(nil)
+            },
+        ]
+        if document?.isEditable == true {
+            children.append(UIAction(
+                title: "Move",
+                image: UIImage(systemName: "folder")
+            ) { [weak self] _ in
+                self?.move(nil)
+            })
+        }
+        menuButton.menu = UIMenu(children: children)
     }
 
     func setRightBarButtonItems(_ items: [UIBarButtonItem], animated: Bool) {
@@ -209,6 +249,16 @@ private extension SourceViewController {
 
     var documentTitle: String? {
         document?.documentFileURL?.lastPathComponent
+    }
+
+    func updateDocumentTitle() {
+        title = documentTitle
+        if #available(iOS 16.0, *) {
+            navigationItem.configureDocumentTitleMenu(
+                fileURL: document?.documentFileURL,
+                renameDelegate: document == nil ? nil : self
+            )
+        }
     }
 
     func updateSceneTitle() {
@@ -247,6 +297,37 @@ private extension SourceViewController {
 }
 
 extension SourceViewController {
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        switch action {
+        case #selector(duplicate(_:)):
+            document != nil
+        case #selector(move(_:)):
+            document?.isEditable == true
+        default:
+            super.canPerformAction(action, withSender: sender)
+        }
+    }
+
+    override func duplicate(_: Any?) {
+        guard let fileURL = document?.documentFileURL else {
+            return
+        }
+        present(UIDocumentPickerViewController(forExporting: [fileURL], asCopy: true), animated: true)
+    }
+
+    override func move(_: Any?) {
+        guard document?.isEditable == true, let fileURL = document?.documentFileURL else {
+            return
+        }
+        present(UIDocumentPickerViewController(forExporting: [fileURL]), animated: true)
+    }
+
+    func refreshAfterDocumentRename() {
+        updateDocumentTitle()
+        userActivity = document?.documentFileURL.map(Self.userActivity(for:))
+        updateSceneTitle()
+    }
+
     override func updateUserActivityState(_ activity: NSUserActivity) {
         super.updateUserActivityState(activity)
         guard let fileURL = document?.documentFileURL else {
@@ -273,6 +354,65 @@ extension SourceViewController {
     }
 }
 
+@available(iOS 16.0, *)
+extension SourceViewController: UINavigationItemRenameDelegate {
+    func navigationItemShouldBeginRenaming(_: UINavigationItem) -> Bool {
+        document?.isEditable == true
+    }
+
+    func navigationItem(
+        _: UINavigationItem,
+        willBeginRenamingWith _: String,
+        selectedRange _: Range<String.Index>
+    ) -> (String, Range<String.Index>) {
+        guard let fileURL = document?.fileURL else {
+            let title = title ?? ""
+            return (title, title.startIndex ..< title.endIndex)
+        }
+        let title = fileURL.deletingPathExtension().lastPathComponent
+        return (title, title.startIndex ..< title.endIndex)
+    }
+
+    func navigationItem(_: UINavigationItem, shouldEndRenamingWith title: String) -> Bool {
+        document?.proposedName(for: title) != nil
+    }
+
+    func navigationItem(_: UINavigationItem, didEndRenamingWith title: String) {
+        guard let document, let proposedName = document.proposedName(for: title) else {
+            updateDocumentTitle()
+            updateSceneTitle()
+            return
+        }
+
+        document.renameAndRefresh(
+            proposedName: proposedName,
+            sourceViewController: self
+        ) { [weak self] result in
+            guard let self else {
+                return
+            }
+            switch result {
+            case .success:
+                break
+            case let .failure(error):
+                updateDocumentTitle()
+                updateSceneTitle()
+                presentRenameError(error)
+            }
+        }
+    }
+
+    private func presentRenameError(_ error: any Error) {
+        let alert = UIAlertController(
+            title: "Error",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+}
+
 @MainActor
 enum SourceDocumentRegistry {
     private final class Entry {
@@ -286,6 +426,7 @@ enum SourceDocumentRegistry {
     private static var documents = [URL: Entry]()
 
     static func register(_ document: Document, for fileURL: URL) {
+        documents = documents.filter { $0.value.document !== document }
         documents[fileURL.standardizedFileURL] = Entry(document: document)
     }
 
@@ -339,7 +480,7 @@ final class SourceSceneDelegate: UIResponder, UIWindowSceneDelegate {
         sourceViewController?.openSourceFile(fileURL, document: currentDocument)
     }
 
-    private var sourceViewController: SourceViewController? {
+    var sourceViewController: SourceViewController? {
         (window?.rootViewController as? UINavigationController)?
             .viewControllers.first as? SourceViewController
     }

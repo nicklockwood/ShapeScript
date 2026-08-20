@@ -34,3 +34,38 @@ let editorHelpURL = onlineHelpURL.appendingPathComponent("editor-help")
 @MainActor func voiceOver(_: String) {
     // Not implemented
 }
+
+@available(iOS 16.0, *)
+extension UINavigationItem {
+    func configureDocumentTitleMenu(
+        fileURL: URL?,
+        renameDelegate: (any UINavigationItemRenameDelegate)?
+    ) {
+        guard let fileURL else {
+            documentProperties = nil
+            self.renameDelegate = nil
+            titleMenuProvider = nil
+            return
+        }
+
+        documentProperties = UIDocumentProperties(url: fileURL)
+        self.renameDelegate = renameDelegate
+        titleMenuProvider = { suggestedActions in
+            UIMenu(children: suggestedActions)
+        }
+    }
+}
+
+@MainActor
+extension UIApplication {
+    var documentBrowserViewController: DocumentBrowserViewController? {
+        connectedScenes.compactMap { scene -> DocumentBrowserViewController? in
+            guard let windowScene = scene as? UIWindowScene else {
+                return nil
+            }
+            return windowScene.windows.compactMap {
+                $0.rootViewController as? DocumentBrowserViewController
+            }.first
+        }.first
+    }
+}

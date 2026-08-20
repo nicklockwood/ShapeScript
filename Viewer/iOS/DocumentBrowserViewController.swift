@@ -234,7 +234,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             presentError("Unable to open file.", onOK: {})
             return
         }
-        view.window?.windowScene?.title = viewController.document?.fileURL.lastPathComponent
+        viewController.updateSceneTitle()
         if let navigationController = rootNavigationController {
             navigationController.setViewControllers([viewController], animated: true)
         } else {
