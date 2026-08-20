@@ -26,6 +26,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
     var showsCloseButton = true
     var onDismiss: (() -> Void)?
+    var onOpenFailure: (() -> Void)?
 
     var document: Document? {
         willSet { unregisterUndoManager() }
@@ -42,13 +43,12 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         } else if let document = SourceDocumentRegistry.document(for: fileURL) {
             self.document = document
         } else {
-            let document = Document(fileURL: fileURL)
-            document.open { [weak self] success in
-                guard success else {
-                    return
-                }
-                Task { @MainActor in
-                    self?.document = document
+            Task { @MainActor in
+                let document = Document(fileURL: fileURL)
+                if await document.open() {
+                    self.document = document
+                } else {
+                    onOpenFailure?()
                 }
             }
         }
@@ -310,12 +310,18 @@ final class SourceSceneDelegate: UIResponder, UIWindowSceneDelegate {
         windowScene.title = sourceSceneTitle
 
         let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
+        guard let fileURL = SourceViewController.fileURL(from: activity) else {
+            UIApplication.shared.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+            return
+        }
+
         let viewController = SourceViewController()
         viewController.showsCloseButton = false
-        if let fileURL = SourceViewController.fileURL(from: activity) {
-            windowScene.title = fileURL.lastPathComponent
-            viewController.openSourceFile(fileURL)
+        viewController.onOpenFailure = {
+            UIApplication.shared.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
         }
+        windowScene.title = fileURL.lastPathComponent
+        viewController.openSourceFile(fileURL)
 
         let navigationController = UINavigationController(rootViewController: viewController)
         let window = UIWindow(windowScene: windowScene)

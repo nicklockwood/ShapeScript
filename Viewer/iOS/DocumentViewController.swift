@@ -999,12 +999,17 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     private func presentSourceViewModally(withContentsOf fileURL: URL) {
         let viewController = SourceViewController()
-        openSourceFile(fileURL, in: viewController)
         viewController.modalPresentationStyle = .pageSheet
         let navigationController = UINavigationController(rootViewController: viewController)
         viewController.onDismiss = { [weak self, weak navigationController] in
             self?.restoreConsoleWhenDismissed(navigationController)
         }
+        viewController.onOpenFailure = { [weak self, weak navigationController] in
+            navigationController?.dismiss(animated: true) {
+                self?.restoreConsoleWhenDismissed(navigationController)
+            }
+        }
+        openSourceFile(fileURL, in: viewController)
         presentModalHidingConsole(navigationController)
     }
 
