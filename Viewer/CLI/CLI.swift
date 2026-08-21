@@ -167,6 +167,10 @@ extension ShapeScriptCommand {
 final class CLIRunner {
     let inputURL: URL
 
+    var defaultExportURL: URL {
+        inputURL.deletingPathExtension().appendingPathExtension("stl")
+    }
+
     init(directory: String, inputPath: String) throws {
         let inputURL = expandPath(inputPath, in: directory)
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
@@ -240,10 +244,10 @@ extension CLIRunner: EvaluationDelegate {
 
 func expandPath(_ path: String, in directory: String) -> URL {
     if path.hasPrefix("/") {
-        return URL(fileURLWithPath: path).standardized
+        URL(fileURLWithPath: path).standardized
+    } else if path.hasPrefix("~") {
+        URL(fileURLWithPath: NSString(string: path).expandingTildeInPath).standardized
+    } else {
+        URL(fileURLWithPath: directory).appendingPathComponent(path).standardized
     }
-    if path.hasPrefix("~") {
-        return URL(fileURLWithPath: NSString(string: path).expandingTildeInPath).standardized
-    }
-    return URL(fileURLWithPath: directory).appendingPathComponent(path).standardized
 }

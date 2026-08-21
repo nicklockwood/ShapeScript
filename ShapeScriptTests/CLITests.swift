@@ -195,6 +195,35 @@ final class CLITests: XCTestCase {
         }
     }
 
+    func testExportSubcommandDefaultsOutputToInputWithSTLExtension() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let outputURL = directory.appendingPathComponent("model.stl")
+            let result = try runExecutable(["export", inputURL.lastPathComponent], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        }
+    }
+
+    func testDefaultExportURLUsesInputPathWithSTLExtension() throws {
+        try withTemporaryDirectory { directory in
+            let inputURL = directory
+                .appendingPathComponent("nested", isDirectory: true)
+                .appendingPathComponent("model.shape")
+            try FileManager.default.createDirectory(
+                at: inputURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try "cube".write(to: inputURL, atomically: true, encoding: .utf8)
+
+            let result = try runExecutable(["export", "nested/model.shape"], in: directory)
+            let outputURL = directory
+                .appendingPathComponent("nested", isDirectory: true)
+                .appendingPathComponent("model.stl")
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        }
+    }
+
     func testCLIRejectsImageOutput() throws {
         try withTemporaryShapeFile { directory, inputURL in
             let result = try runExecutable([
@@ -293,6 +322,38 @@ final class CLITests: XCTestCase {
     func testRootMissingUnsupportedFileReportsMissingFile() throws {
         try withTemporaryDirectory { directory in
             let result = try runExecutable(["foo.bar"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: File 'foo.bar' not found")
+        }
+    }
+
+    func testExportExistingExtensionlessFileReportsUnsupportedFileTypeBeforeMissingOutput() throws {
+        try withTemporaryFile(named: "foo") { directory, _ in
+            let result = try runExecutable(["export", "foo"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unsupported file type ''")
+        }
+    }
+
+    func testExportMissingExtensionlessFileReportsUnexpectedArgumentBeforeMissingOutput() throws {
+        try withTemporaryDirectory { directory in
+            let result = try runExecutable(["export", "foo"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unexpected argument 'foo'")
+        }
+    }
+
+    func testExportExistingUnsupportedFileReportsExtensionBeforeMissingOutput() throws {
+        try withTemporaryFile(named: "foo.bar") { directory, _ in
+            let result = try runExecutable(["export", "foo.bar"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unsupported file type 'bar'")
+        }
+    }
+
+    func testExportMissingUnsupportedFileReportsMissingFileBeforeMissingOutput() throws {
+        try withTemporaryDirectory { directory in
+            let result = try runExecutable(["export", "foo.bar"], in: directory)
             XCTAssertNotEqual(result.status, 0, result.failureMessage)
             XCTAssertEqual(result.firstOutputLine, "Error: File 'foo.bar' not found")
         }

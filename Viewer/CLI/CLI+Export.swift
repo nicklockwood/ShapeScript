@@ -29,7 +29,7 @@ extension ShapeScriptCommand {
         var inputPath: String
 
         @Option(name: .shortAndLong, help: "Exported model file.")
-        var output: String
+        var output: String?
 
         @Flag(help: "Output model using Z as up axis instead of Y.")
         var zUp = false
@@ -43,7 +43,9 @@ extension ShapeScriptCommand {
                 directory: directory,
                 inputPath: inputPath
             )
-            let outputURL = try CLIRunner.exportURL(for: output, in: directory)
+            let outputURL = try output.map {
+                try CLIRunner.exportURL(for: $0, in: directory)
+            } ?? runner.defaultExportURL
             try runner.export(to: outputURL, options: exportOptions)
         }
     }

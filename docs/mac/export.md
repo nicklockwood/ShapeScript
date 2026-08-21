@@ -97,10 +97,16 @@ On macOS, command-line export requires an unlocked copy of the ShapeScript Mac a
 
 The Linux command-line tool does not require the Mac app or an Export unlock, but it is limited to `.stl` or `.stla` export.
 
-To export a file using the command-line tool, use the `export` subcommand with an input `.shape` file and an `--output` path:
+To export a file using the command-line tool, use the `export` subcommand with an input `.shape` file:
 
 ```bash
-shapescript export myfile.shape --output myfile.stl
+shapescript export myfile.shape
+```
+
+By default, the output path matches the input path with an `.stl` extension. To choose a different path or format, use `--output`:
+
+```bash
+shapescript export myfile.shape --output exports/myfile.obj
 ```
 
 The output file extension selects the export format. On macOS, the command-line tool supports the same [model and scene formats](#model-and-scene-formats), [SVG cross-section export](#plotters-and-cnc-machines), and [image formats](#image-formats) described above.
@@ -108,7 +114,7 @@ The output file extension selects the export format. On macOS, the command-line 
 Use the `--z-up` option when exporting model files for tools that expect Z to be the vertical axis:
 
 ```bash
-shapescript export myfile.shape --output myfile.stl --z-up
+shapescript export myfile.shape --z-up
 ```
 
 This is the command-line equivalent of the "Convert to Z-Up" option described in the [3D Printing](#3d-printing) section.
