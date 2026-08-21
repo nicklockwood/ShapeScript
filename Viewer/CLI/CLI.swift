@@ -37,6 +37,10 @@ struct CLIError: Error, CustomNSError, LocalizedError {
     }
 }
 
+func printStatus(_ string: String) {
+    FileHandle.standardError.write(Data("\(string)\n".utf8))
+}
+
 public struct ShapeScriptCommand: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "shapescript",
@@ -202,13 +206,13 @@ final class CLIRunner {
             throw CLIError("\(error.localizedDescription)")
         }
         do {
-            print("Loading file '\(inputURL.lastPathComponent)' ...")
+            printStatus("Loading file '\(inputURL.lastPathComponent)' ...")
             let program = try parse(input)
             let cache = GeometryCache()
-            print("Running script ...")
+            printStatus("Running script ...")
             let scene = try evaluate(program, delegate: self, cache: cache) { false }
             if buildGeometry {
-                print("Building geometry ...")
+                printStatus("Building geometry ...")
                 _ = scene.build { false }
             }
             return scene

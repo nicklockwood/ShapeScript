@@ -187,6 +187,16 @@ final class CLITests: XCTestCase {
         }
     }
 
+    func testCheckWritesProgressToStandardError() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "")
+            XCTAssertTrue(result.standardError.contains("Loading file 'model.shape' ..."))
+            XCTAssertTrue(result.standardError.contains("Running script ..."))
+        }
+    }
+
     func testInfoBuildsGeometry() throws {
         try withTemporaryShapeFile { directory, inputURL in
             let result = try runExecutable(["info", inputURL.lastPathComponent], in: directory)
@@ -364,22 +374,29 @@ private extension CLITests {
     struct ExecutableResult {
         var executableURL: URL
         var status: Int32
-        var output: String
+        var standardOutput: String
+        var standardError: String
+
+        var output: String {
+            standardError + standardOutput
+        }
 
         var failureMessage: String {
             """
             Executable: \(executableURL.path)
             Status: \(status)
-            Output:
-            \(output)
+            Standard output:
+            \(standardOutput)
+            Standard error:
+            \(standardError)
             """
         }
 
         var firstOutputLine: String {
-            output
+            let lines = output
                 .split(separator: "\n", omittingEmptySubsequences: false)
-                .first
-                .map(String.init) ?? ""
+                .map(String.init)
+            return lines.first { $0.hasPrefix("Error: ") } ?? lines.first ?? ""
         }
     }
 
@@ -411,20 +428,26 @@ private extension CLITests {
         process.currentDirectoryURL = directory
 
         let outputPipe = Pipe()
+        let errorPipe = Pipe()
         process.standardOutput = outputPipe
-        process.standardError = outputPipe
+        process.standardError = errorPipe
 
         try process.run()
         process.waitUntilExit()
 
-        let output = String(
+        let standardOutput = String(
             decoding: outputPipe.fileHandleForReading.readDataToEndOfFile(),
+            as: UTF8.self
+        )
+        let standardError = String(
+            decoding: errorPipe.fileHandleForReading.readDataToEndOfFile(),
             as: UTF8.self
         )
         return ExecutableResult(
             executableURL: executableURL,
             status: process.terminationStatus,
-            output: output
+            standardOutput: standardOutput,
+            standardError: standardError
         )
     }
 
