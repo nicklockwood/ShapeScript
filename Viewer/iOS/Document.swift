@@ -27,6 +27,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     let cache = GeometryCache()
     private(set) var fileMonitor: FileMonitor?
+    private var securityScopedResourceURL: URL
+    private var securityScopedResourceAccessed: Bool
 
     weak var viewController: DocumentViewController?
 
@@ -76,6 +78,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     override init(fileURL url: URL) {
+        self.securityScopedResourceURL = url
+        self.securityScopedResourceAccessed = url.startAccessingSecurityScopedResource()
         super.init(fileURL: url)
         self.fileMonitor = FileMonitor(url) { [weak self] url in
             try self?.read(from: url)
@@ -99,6 +103,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     deinit {
         saveTimer?.invalidate()
         observer.map(NotificationCenter.default.removeObserver)
+        stopAccessingPrimarySecurityScopedResource()
     }
 
     override func presentedItemDidMove(to newURL: URL) {
@@ -106,9 +111,26 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         perform(
             #selector(refreshAfterDocumentURLChange),
             on: .main,
-            with: nil,
+            with: newURL as NSURL,
             waitUntilDone: false
         )
+    }
+
+    private func updatePrimarySecurityScopedResource(to url: URL) {
+        guard url != securityScopedResourceURL else {
+            return
+        }
+        stopAccessingPrimarySecurityScopedResource()
+        securityScopedResourceURL = url
+        securityScopedResourceAccessed = url.startAccessingSecurityScopedResource()
+    }
+
+    private func stopAccessingPrimarySecurityScopedResource() {
+        guard securityScopedResourceAccessed else {
+            return
+        }
+        securityScopedResourceURL.stopAccessingSecurityScopedResource()
+        securityScopedResourceAccessed = false
     }
 
     @MainActor func proposedName(for title: String) -> String? {
@@ -154,7 +176,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
-    @MainActor @objc private func refreshAfterDocumentURLChange() {
+    @MainActor @objc private func refreshAfterDocumentURLChange(_ newURL: NSURL) {
+        updatePrimarySecurityScopedResource(to: newURL as URL)
         refreshAfterDocumentURLChange(
             updateDocumentChrome: { [weak self] in
                 guard let self else { return }
@@ -269,6 +292,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             for resource in self.securityScopedResources {
                 resource.stopAccessingSecurityScopedResource()
             }
+            self.stopAccessingPrimarySecurityScopedResource()
         }
     }
 
