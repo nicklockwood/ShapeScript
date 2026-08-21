@@ -91,8 +91,14 @@ public extension ShapeScriptCommand {
             }
             index += 1
         }
-        guard !positionals.isEmpty || hasOutputOption else {
+        guard !positionals.isEmpty || hasOutputOption, let input = positionals.first else {
             return arguments
+        }
+        guard isLegacyInputPath(input.value) else {
+            guard input.index == arguments.startIndex || hasOutputOption else {
+                return arguments
+            }
+            return [input.value]
         }
         if positionals.count > 1 {
             let output = positionals[1]
@@ -111,6 +117,11 @@ public extension ShapeScriptCommand {
             } + ["help"]
         )
     }
+}
+
+private func isLegacyInputPath(_ path: String) -> Bool {
+    let url = expandPath(path, in: FileManager.default.currentDirectoryPath)
+    return !url.pathExtension.isEmpty || FileManager.default.fileExists(atPath: url.path)
 }
 
 extension ShapeScriptCommand {
@@ -158,6 +169,12 @@ final class CLIRunner {
 
     init(directory: String, inputPath: String) throws {
         let inputURL = expandPath(inputPath, in: directory)
+        guard FileManager.default.fileExists(atPath: inputURL.path) else {
+            guard !inputURL.pathExtension.isEmpty else {
+                throw CLIError("Unexpected argument '\(inputPath)'")
+            }
+            throw CLIError("File '\(inputPath)' not found")
+        }
         guard inputURL.pathExtension == "shape" else {
             throw CLIError("Unsupported file type '\(inputURL.pathExtension)'")
         }

@@ -94,6 +94,14 @@ final class CLITests: XCTestCase {
         }
     }
 
+    func testDoesNotTreatMissingExtensionlessArgumentAsLegacyInput() throws {
+        try withTemporaryDirectory { directory in
+            let result = try runExecutable(["nonexistant"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unexpected argument 'nonexistant'")
+        }
+    }
+
     func testSupportsLegacyExportSyntax() throws {
         try withTemporaryShapeFile { directory, inputURL in
             let outputURL = directory.appendingPathComponent("model.stl")
@@ -193,10 +201,12 @@ final class CLITests: XCTestCase {
                 "export",
                 inputURL.lastPathComponent,
                 "--output",
-                "model.png",
+                "model.stl",
+                "--camera",
+                "Hero",
             ], in: directory)
             XCTAssertNotEqual(result.status, 0, result.failureMessage)
-            XCTAssertEqual(result.firstOutputLine, "Error: Unsupported export file type 'png'")
+            XCTAssertTrue(result.output.contains("Unknown option '--camera'"), result.failureMessage)
         }
     }
 
@@ -212,6 +222,24 @@ final class CLITests: XCTestCase {
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
         }
+    }
+
+    func testExportReportsMissingInputBeforeInvalidOutput() throws {
+        let result = try runExecutable([
+            "export",
+            "nonexistent.shape",
+            "--output",
+            "out",
+        ])
+        XCTAssertNotEqual(result.status, 0, result.failureMessage)
+        XCTAssertTrue(result.firstOutputLine.contains("nonexistent.shape"))
+        XCTAssertFalse(result.firstOutputLine.contains("Unsupported export file type"))
+    }
+
+    func testRunnerReportsMissingInputBeforeUnsupportedInputType() throws {
+        let result = try runExecutable(["info", "nonexistant"])
+        XCTAssertNotEqual(result.status, 0, result.failureMessage)
+        XCTAssertEqual(result.firstOutputLine, "Error: Unexpected argument 'nonexistant'")
     }
 
     func testRunnerReportsUnsupportedInputTypeAfterFileExists() throws {
@@ -230,11 +258,27 @@ final class CLITests: XCTestCase {
         }
     }
 
+    func testRootMissingExtensionlessFileReportsUnexpectedArgument() throws {
+        try withTemporaryDirectory { directory in
+            let result = try runExecutable(["foo"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unexpected argument 'foo'")
+        }
+    }
+
     func testRootExistingExtensionlessFileWithOutputReportsUnsupportedFileType() throws {
         try withTemporaryFile(named: "foo") { directory, _ in
             let result = try runExecutable(["foo", "--output", "foo.png"], in: directory)
             XCTAssertNotEqual(result.status, 0, result.failureMessage)
             XCTAssertEqual(result.firstOutputLine, "Error: Unsupported file type ''")
+        }
+    }
+
+    func testRootMissingExtensionlessFileWithOutputReportsUnexpectedArgument() throws {
+        try withTemporaryDirectory { directory in
+            let result = try runExecutable(["foo", "--output", "foo.png"], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Unexpected argument 'foo'")
         }
     }
 
