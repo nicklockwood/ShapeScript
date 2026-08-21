@@ -64,7 +64,7 @@ extension CLIRunner {
 
     func export(to url: URL, options: ExportOptions) throws {
         let scene = try loadScene()
-        print("Exporting to '\(url.lastPathComponent)' ...")
+        printStatus("Exporting to '\(url.lastPathComponent)' ...")
         let geometry = scene.geometry
         var mesh = geometry.merged()
         if options.convertToZUp {
@@ -81,6 +81,6 @@ extension CLIRunner {
         case let ext:
             throw CLIError("Unsupported export file type '\(ext)'")
         }
-        print("Export complete")
+        printStatus("Export complete")
     }
 }
