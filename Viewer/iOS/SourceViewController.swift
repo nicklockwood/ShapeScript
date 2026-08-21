@@ -19,11 +19,14 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var undoRegistered = false
     private var undoButton: UIBarButtonItem = .init()
     private var redoButton: UIBarButtonItem = .init()
+    private var saveButton: UIBarButtonItem = .init()
+    private var closeButton: UIBarButtonItem?
     private var shareButton: UIBarButtonItem = .init()
     private var helpButton: UIBarButtonItem = .init()
     private var menuButton: UIBarButtonItem?
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
+    private var ownsDocument = false
 
     var showsCloseButton = true
     var onDismiss: (() -> Void)?
@@ -40,13 +43,16 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
     func openSourceFile(_ fileURL: URL, document currentDocument: Document? = nil) {
         if fileURL == currentDocument?.documentFileURL {
+            ownsDocument = false
             document = currentDocument
         } else if let document = SourceDocumentRegistry.document(for: fileURL) {
+            ownsDocument = false
             self.document = document
         } else {
             Task { @MainActor in
                 let document = Document(fileURL: fileURL)
                 if await document.open() {
+                    self.ownsDocument = true
                     self.document = document
                 } else {
                     onOpenFailure?()
@@ -100,12 +106,14 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         textView.delegate = self
 
         if showsCloseButton {
-            navigationItem.leftBarButtonItem = UIBarButtonItem(
+            let closeButton = UIBarButtonItem(
                 systemItem: .close,
                 primaryAction: UIAction { [weak self] _ in
-                    self?.dismiss(animated: true)
+                    self?.closeDocument()
                 }
             )
+            self.closeButton = closeButton
+            navigationItem.leftBarButtonItem = closeButton
         }
 
         undoButton = UIBarButtonItem(
@@ -119,6 +127,12 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
             menuTitle: "Redo"
         ) { [weak self] _ in
             self?.document?.undoManager?.redo()
+        }
+        saveButton = UIBarButtonItem(
+            image: UIImage(systemName: "square.and.arrow.down"),
+            menuTitle: "Save Changes"
+        ) { [weak self] _ in
+            self?.saveDocument()
         }
         shareButton = UIBarButtonItem(
             systemItem: .action,
@@ -166,6 +180,105 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         didNotifyDismissal = true
         onDismiss?()
     }
+
+    func saveDocument(completion: ((Bool) -> Void)? = nil) {
+        guard let document else {
+            completion?(true)
+            return
+        }
+        document.savePendingChanges(allowSilentRecovery: false) { [weak self] success in
+            self?.updateFallbackMenu()
+            self?.updateUndoButtons()
+            if !success, document.viewController == nil {
+                self?.presentSaveFailureAlert()
+            }
+            completion?(success)
+        }
+    }
+
+    private func presentSaveFailureAlert() {
+        let alert = UIAlertController(
+            title: "Error",
+            message: "Failed to save changes.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(
+            title: "Retry",
+            style: .default
+        ) { [weak self] _ in
+            self?.saveDocument()
+        })
+        alert.addAction(UIAlertAction(
+            title: "Continue Without Saving",
+            style: .destructive
+        ) { [weak self] _ in
+            self?.document?.discardPendingChanges()
+            self?.updateFallbackMenu()
+            self?.updateUndoButtons()
+        })
+        present(alert, animated: true)
+    }
+
+    func closeDocument(completion: ((Bool) -> Void)? = nil) {
+        guard let document else {
+            dismiss(animated: true) {
+                completion?(true)
+            }
+            return
+        }
+        guard !document.autosaveEnabled, document.hasUnsavedChanges else {
+            dismiss(animated: true) {
+                if self.ownsDocument {
+                    document.close(completionHandler: nil)
+                }
+                completion?(true)
+            }
+            return
+        }
+
+        let alert = UIAlertController(
+            title: nil,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        alert.addAction(UIAlertAction(
+            title: "Save Changes",
+            style: .default
+        ) { [weak self] _ in
+            self?.saveDocument { success in
+                guard success else {
+                    completion?(false)
+                    return
+                }
+                self?.dismiss(animated: true) {
+                    if self?.ownsDocument == true {
+                        document.close(completionHandler: nil)
+                    }
+                    completion?(true)
+                }
+            }
+        })
+        alert.addAction(UIAlertAction(
+            title: "Discard Changes",
+            style: .destructive
+        ) { [weak self] _ in
+            document.discardPendingChanges()
+            self?.dismiss(animated: true) {
+                if self?.ownsDocument == true {
+                    document.close(completionHandler: nil)
+                }
+                completion?(true)
+            }
+        })
+        alert.addAction(UIAlertAction(
+            title: "Cancel",
+            style: .cancel
+        ) { _ in
+            completion?(false)
+        })
+        alert.popoverPresentationController?.barButtonItem = closeButton
+        present(alert, animated: true)
+    }
 }
 
 private extension SourceViewController {
@@ -200,7 +313,7 @@ private extension SourceViewController {
 
         let documentMenuItems = document == nil ? [] : menuButton.map { [$0] } ?? []
         let items: [UIBarButtonItem] = if document?.isEditable ?? false {
-            documentMenuItems + [
+            documentMenuItems + manualSaveItems() + [
                 helpButton,
                 shareButton,
                 redoButton,
@@ -237,6 +350,9 @@ private extension SourceViewController {
             ) { [weak self] _ in
                 self?.move(nil)
             })
+            if let saveMenu = buildSaveMenu() {
+                children.insert(saveMenu, at: 0)
+            }
         }
         menuButton.menu = UIMenu(children: children)
     }
@@ -295,8 +411,38 @@ private extension SourceViewController {
     }
 
     @objc func updateUndoButtons() {
-        undoButton.isEnabled = document?.undoManager.canUndo == true
-        redoButton.isEnabled = document?.undoManager.canRedo == true
+        undoButton.setEnabled(document?.undoManager.canUndo == true)
+        redoButton.setEnabled(document?.undoManager.canRedo == true)
+        updateSaveButton()
+    }
+
+    func manualSaveItems() -> [UIBarButtonItem] {
+        guard document?.autosaveEnabled == false else {
+            return []
+        }
+        updateSaveButton()
+        return [saveButton]
+    }
+
+    func updateSaveButton() {
+        saveButton.setEnabled(
+            document?.autosaveEnabled == false &&
+                document?.hasUnsavedChanges == true
+        )
+    }
+
+    func buildSaveMenu() -> UIMenu? {
+        guard document?.autosaveEnabled == false else {
+            return nil
+        }
+        let action = UIAction(
+            title: "Save Changes",
+            image: UIImage(systemName: "square.and.arrow.down")
+        ) { [weak self] _ in
+            self?.saveDocument()
+        }
+        action.attributes = document?.hasUnsavedChanges == true ? [] : .disabled
+        return UIMenu(options: .displayInline, children: [action])
     }
 }
 
@@ -631,6 +777,8 @@ extension SourceViewController: TokenViewDelegate {
         } else {
             document?.updateChangeCount(.done)
         }
+        updateSaveButton()
+        updateFallbackMenu()
     }
 }
 

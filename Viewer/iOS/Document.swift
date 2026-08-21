@@ -29,6 +29,19 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     private(set) var fileMonitor: FileMonitor?
     private var securityScopedResourceURL: URL
     private var securityScopedResourceAccessed: Bool
+    var autosaveEnabled = true {
+        didSet {
+            guard autosaveEnabled != oldValue else {
+                return
+            }
+            perform(
+                #selector(autosaveModeDidChange),
+                on: .main,
+                with: nil,
+                waitUntilDone: false
+            )
+        }
+    }
 
     weak var viewController: DocumentViewController?
 
@@ -64,6 +77,9 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     @MainActor func scheduleAutosave() {
         saveTimer?.invalidate()
+        guard autosaveEnabled else {
+            return
+        }
         saveTimer = Timer.scheduledTimer(
             timeInterval: 1,
             target: self,
@@ -81,6 +97,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         self.securityScopedResourceURL = url
         self.securityScopedResourceAccessed = url.startAccessingSecurityScopedResource()
         super.init(fileURL: url)
+        updateAutosaveState(for: url)
         self.fileMonitor = FileMonitor(url) { [weak self] url in
             try self?.read(from: url)
         }
@@ -133,6 +150,22 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         securityScopedResourceAccessed = false
     }
 
+    private func updateAutosaveState(for url: URL) {
+        autosaveEnabled = !url.isOnNetworkVolume
+    }
+
+    @MainActor @objc private func autosaveModeDidChange() {
+        if autosaveEnabled {
+            if hasUnsavedChanges {
+                scheduleAutosave()
+            }
+        } else {
+            saveTimer?.invalidate()
+            saveTimer = nil
+            autosaveQueued = false
+        }
+    }
+
     @MainActor func proposedName(for title: String) -> String? {
         let fileName = title.sanitizedFileName
         guard !fileName.isEmpty, !fileName.contains(":") else {
@@ -177,7 +210,9 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     @MainActor @objc private func refreshAfterDocumentURLChange(_ newURL: NSURL) {
-        updatePrimarySecurityScopedResource(to: newURL as URL)
+        let newURL = newURL as URL
+        updatePrimarySecurityScopedResource(to: newURL)
+        updateAutosaveState(for: newURL)
         refreshAfterDocumentURLChange(
             updateDocumentChrome: { [weak self] in
                 guard let self else { return }
@@ -210,35 +245,45 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     @MainActor @objc private func autosaveFromTimer() {
+        savePendingChanges()
+    }
+
+    @MainActor func savePendingChanges(
+        allowSilentRecovery: Bool = true,
+        completion: (@Sendable @MainActor (Bool) -> Void)? = nil
+    ) {
         guard documentState != .closed, hasUnsavedChanges else {
+            completion?(true)
             return
         }
 
         if isAutosaving {
             autosaveQueued = true
+            completion?(false)
             return
         }
 
         isAutosaving = true
         autosaveQueued = false
         Task { @MainActor in
-            let success = await autosaveDocument()
+            let success = await saveDocument()
             isAutosaving = false
             if success {
                 fileMonitor?.markUpdated()
                 saveErrorAlertIsVisible = false
-            } else {
+            } else if !allowSilentRecovery {
                 showSaveFailureAlert()
             }
+            completion?(success)
             if autosaveQueued || hasUnsavedChanges {
                 scheduleAutosave(after: success ? 1 : 5)
             }
         }
     }
 
-    @MainActor private func autosaveDocument() async -> Bool {
+    @MainActor private func saveDocument() async -> Bool {
         await withCheckedContinuation { continuation in
-            autosave { success in
+            save(to: fileURL, for: .forOverwriting) { success in
                 continuation.resume(returning: success)
             }
         }
@@ -246,6 +291,9 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     @MainActor private func scheduleAutosave(after delay: TimeInterval) {
         saveTimer?.invalidate()
+        guard autosaveEnabled else {
+            return
+        }
         saveTimer = Timer.scheduledTimer(
             timeInterval: delay,
             target: self,
@@ -253,6 +301,13 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             userInfo: nil,
             repeats: false
         )
+    }
+
+    @MainActor func discardPendingChanges() {
+        saveTimer?.invalidate()
+        saveTimer = nil
+        autosaveQueued = false
+        updateChangeCount(.cleared)
     }
 
     @MainActor private func showSaveFailureAlert() {
@@ -280,13 +335,20 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
+    override func autosave(completionHandler: (@Sendable (Bool) -> Void)? = nil) {
+        guard autosaveEnabled else {
+            completionHandler?(true)
+            return
+        }
+        super.autosave(completionHandler: completionHandler)
+    }
+
     override func contents(forType _: String) throws -> Any {
         Data(sourceString.utf8)
     }
 
-    override func close(completionHandler: ((Bool) -> Void)? = nil) {
+    override func close(completionHandler: (@Sendable (Bool) -> Void)? = nil) {
         loadingProgress?.cancel()
-        nonisolated(unsafe) let completionHandler = completionHandler
         super.close { hasChanges in
             completionHandler?(hasChanges)
             for resource in self.securityScopedResources {
@@ -305,6 +367,17 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         picker.delegate = self
         picker.modalPresentationStyle = .fullScreen
         viewController?.present(picker, animated: true)
+    }
+}
+
+private extension URL {
+    var isOnNetworkVolume: Bool {
+        do {
+            return try resourceValues(forKeys: [.volumeIsLocalKey])
+                .volumeIsLocal == false
+        } catch {
+            return false
+        }
     }
 }
 

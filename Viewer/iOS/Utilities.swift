@@ -83,4 +83,13 @@ extension UIBarButtonItem {
             menuRepresentation = action
         }
     }
+
+    func setEnabled(_ isEnabled: Bool) {
+        self.isEnabled = isEnabled
+        if #available(iOS 16.0, *),
+           let action = menuRepresentation as? UIAction
+        {
+            action.attributes = isEnabled ? [] : .disabled
+        }
+    }
 }

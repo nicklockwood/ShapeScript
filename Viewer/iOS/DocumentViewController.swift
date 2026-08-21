@@ -1082,10 +1082,69 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     @objc func dismissDocumentViewController() {
+        closeDocument()
+    }
+
+    func closeDocument(completion: ((Bool) -> Void)? = nil) {
+        guard let document else {
+            dismissDocument()
+            completion?(true)
+            return
+        }
+
+        guard !document.autosaveEnabled, document.hasUnsavedChanges else {
+            dismissDocument {
+                document.close(completionHandler: nil)
+                completion?(true)
+            }
+            return
+        }
+
+        let alert = UIAlertController(
+            title: nil,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        alert.addAction(UIAlertAction(
+            title: "Save Changes",
+            style: .default
+        ) { [weak self] _ in
+            document.savePendingChanges(allowSilentRecovery: false) { success in
+                guard success else {
+                    completion?(false)
+                    return
+                }
+                self?.dismissDocument {
+                    document.close(completionHandler: nil)
+                    completion?(true)
+                }
+            }
+        })
+        alert.addAction(UIAlertAction(
+            title: "Discard Changes",
+            style: .destructive
+        ) { [weak self] _ in
+            document.discardPendingChanges()
+            self?.dismissDocument {
+                document.close(completionHandler: nil)
+                completion?(true)
+            }
+        })
+        alert.addAction(UIAlertAction(
+            title: "Cancel",
+            style: .cancel
+        ) { _ in
+            completion?(false)
+        })
+        alert.popoverPresentationController?.barButtonItem = closeButton
+        presentModalHidingConsole(alert)
+    }
+
+    private func dismissDocument(completion: (() -> Void)? = nil) {
         let viewController = presentingViewController ?? self
         viewController.dismiss(animated: true) {
             viewController.view.window?.windowScene?.title = mainSceneTitle
-            self.document?.close(completionHandler: nil)
+            completion?()
         }
     }
 }

@@ -196,8 +196,10 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             let document = viewController.document
         {
             if document.fileURL != documentURL {
-                viewController.dismiss(animated: true) {
-                    document.close()
+                viewController.closeDocument { closed in
+                    guard closed else {
+                        return
+                    }
                     self.rootNavigationController = nil
                     self.presentDocument(at: documentURL)
                 }
