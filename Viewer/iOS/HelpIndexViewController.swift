@@ -54,7 +54,9 @@ final class HelpIndexViewController: UIViewController, UICollectionViewDelegate 
         )
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .clear
+        #if !os(visionOS)
         collectionView.keyboardDismissMode = .onDrag
+        #endif
         collectionView.delegate = self
         view = UIView()
         view.backgroundColor = .clear

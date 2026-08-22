@@ -130,6 +130,15 @@ final class ConsoleViewController: UIViewController {
         hideDimmingView()
     }
 
+    #if os(visionOS)
+
+    func preserveDetent() {}
+    private func updateSheetDetents(selectInitialDetent _: Bool = false) {}
+    private func updateScrollIndicatorVisibility() {}
+    private func configureSheetAppearance() {}
+
+    #else
+
     func preserveDetent() {
         if #available(iOS 16, *) {
             savedDetentHeight = selectedDetentHeight
@@ -272,6 +281,8 @@ final class ConsoleViewController: UIViewController {
     private var screenHeight: CGFloat {
         view.window?.screen.bounds.height ?? UIScreen.main.bounds.height
     }
+
+    #endif
 
     private func hideDimmingView() {
         guard let containerView = presentationController?.containerView else {

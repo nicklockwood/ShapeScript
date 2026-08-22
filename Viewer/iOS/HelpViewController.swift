@@ -13,6 +13,7 @@ let helpActivityType = "com.charcoaldesign.ShapeScriptViewer.help"
 let helpSceneConfigurationName = "Help Configuration"
 let helpSceneTitle = "ShapeScript Help"
 private let helpURLActivityKey = "url"
+private let helpBackgroundColor: UIColor = .systemBackground
 
 @MainActor
 final class HelpViewController: UIViewController {
@@ -65,8 +66,7 @@ final class HelpViewController: UIViewController {
         separatorView.translatesAutoresizingMaskIntoConstraints = false
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.isOpaque = false
-        webView.backgroundColor = .systemBackground
-        webView.scrollView.backgroundColor = .systemBackground
+        webView.backgroundColor = helpBackgroundColor
         loadingOverlay.translatesAutoresizingMaskIntoConstraints = false
         loadingOverlay.alpha = 0
         loadingOverlay.isHidden = true
@@ -77,7 +77,7 @@ final class HelpViewController: UIViewController {
             self?.hideSidebar()
         }, for: .touchUpInside)
         view = UIView()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = helpBackgroundColor
         addChild(indexViewController)
         view.addSubview(webView)
         view.addSubview(sidebarDismissView)
@@ -132,13 +132,6 @@ final class HelpViewController: UIViewController {
 
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
-        webView.configuration.userContentController.addUserScript(
-            WKUserScript(
-                source: cssVariablesScript,
-                injectionTime: .atDocumentEnd,
-                forMainFrameOnly: true
-            )
-        )
 
         backButton = UIBarButtonItem(
             image: UIImage(systemName: "chevron.backward"),
@@ -185,11 +178,7 @@ final class HelpViewController: UIViewController {
             )
         }
         updateNavigationButtons(animated: false)
-        toolbarItems = [
-            backButton,
-            forwardButton,
-            .flexibleSpace(),
-        ]
+        toolbarItems = helpToolbarItems
         navigationController?.isToolbarHidden = false
 
         updateButtons()
@@ -200,6 +189,7 @@ final class HelpViewController: UIViewController {
         super.viewDidLayoutSubviews()
         updateSearchBarPlacement()
         updateSidebar(animated: false)
+        updateHelpPage()
     }
 
     override func viewWillTransition(
@@ -210,6 +200,7 @@ final class HelpViewController: UIViewController {
         coordinator.animate { _ in
             self.updateSearchBarPlacement()
             self.updateSidebar(animated: false)
+            self.updateHelpPage()
         }
     }
 
@@ -284,8 +275,10 @@ final class HelpViewController: UIViewController {
         updateNavigationButtons()
     }
 
-    private func updateCSSVariables() {
-        webView.evaluateJavaScript(cssVariablesScript, completionHandler: nil)
+    private func updateHelpPage() {
+        if webView.url?.bundledHelpURL != nil {
+            webView.evaluateJavaScript(helpPageScript)
+        }
     }
 
     private func updateNavigationButtons(animated: Bool = true) {
@@ -508,9 +501,86 @@ final class HelpViewController: UIViewController {
         indexViewController.selectItem(for: url.bundledHelpURL ?? url)
     }
 
-    private var cssVariablesScript: String {
+    private var helpPageScript: String {
         let tintColor = view.tintColor.resolvedColor(with: traitCollection).cssColor
-        return "document.documentElement.style.setProperty('--tint-color', '\(tintColor)');"
+        let textColor = UIColor.label.resolvedColor(with: traitCollection).cssColor
+        let backgroundColor = helpBackgroundColor.resolvedColor(with: traitCollection).cssColor
+        let visionOSSizingScript = visionOSSizingScript
+        return """
+        (() => {
+        document.documentElement.style.setProperty('--tint-color', '\(tintColor)');
+        document.documentElement.style.setProperty('--help-text-color', '\(textColor)');
+        document.documentElement.style.setProperty('--help-background-color', '\(backgroundColor)');
+        \(visionOSSizingScript)
+        })();
+        """
+    }
+
+    private var visionOSSizingScript: String {
+        #if os(visionOS)
+        let width = Int(webView.bounds.width.rounded(.down))
+        let hasMeasuredWidth = width >= 320
+        let viewport = hasMeasuredWidth ?
+            "width=\(width), initial-scale=1" :
+            "width=device-width, initial-scale=1"
+        let pageWidth = hasMeasuredWidth ? "\(width)px" : "100vw"
+        return """
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (!viewport) {
+            viewport = document.createElement('meta');
+            viewport.name = 'viewport';
+            document.head.appendChild(viewport);
+        }
+        viewport.setAttribute('content', '\(viewport)');
+        let sizingStyle = document.getElementById('shapescript-help-sizing');
+        if (!sizingStyle) {
+            sizingStyle = document.createElement('style');
+            sizingStyle.id = 'shapescript-help-sizing';
+            document.head.appendChild(sizingStyle);
+        }
+        sizingStyle.textContent = `
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html, body {
+            width: \(pageWidth);
+            max-width: \(pageWidth);
+            overflow-x: hidden;
+            background: var(--help-background-color);
+            touch-action: pan-x pan-y;
+        }
+        main {
+            box-sizing: border-box;
+            width: 100%;
+            max-width: min(840px, \(pageWidth));
+            min-width: 0;
+            overflow-wrap: break-word;
+        }
+        pre, table {
+            box-sizing: border-box;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        pre {
+            background: color-mix(in srgb, var(--help-text-color) 8%, transparent);
+        }
+        thead th,
+        tbody tr + tr,
+        nav#footer-links,
+        hr {
+            border-color: color-mix(in srgb, var(--help-text-color) 18%, transparent);
+        }
+        img, svg, video, canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        :not(pre) > code {
+            overflow-wrap: anywhere;
+        }`;
+        """
+        #else
+        return ""
+        #endif
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -521,7 +591,7 @@ final class HelpViewController: UIViewController {
         else {
             return
         }
-        updateCSSVariables()
+        updateHelpPage()
     }
 }
 
@@ -706,7 +776,9 @@ private final class HelpSearchResultsViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Result")
+        #if !os(visionOS)
         tableView.keyboardDismissMode = .onDrag
+        #endif
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 72
     }
@@ -900,7 +972,7 @@ extension HelpViewController: WKNavigationDelegate {
             }
         }
         hideExternalLoadingOverlay()
-        updateCSSVariables()
+        updateHelpPage()
         updateNavigationButtons()
         updateButtons()
         userActivity?.needsSave = true
@@ -999,6 +1071,16 @@ extension HelpViewController: WKNavigationDelegate {
         forwardButton.isEnabled = webView.canGoForward
         reloadButton.isEnabled = webView.url != nil
     }
+
+    private var helpToolbarItems: [UIBarButtonItem] {
+        #if os(visionOS)
+        let spacer = UIBarButtonItem(systemItem: .fixedSpace)
+        spacer.width = 16
+        return [backButton, spacer, forwardButton, .flexibleSpace()]
+        #else
+        return [backButton, forwardButton, .flexibleSpace()]
+        #endif
+    }
 }
 
 private extension URL {
@@ -1070,11 +1152,12 @@ final class HelpSceneDelegate: UIResponder, UIWindowSceneDelegate {
         let activity = connectionOptions.userActivities.first ?? session.stateRestorationActivity
         let viewController = HelpViewController(url: HelpViewController.url(from: activity))
         let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.view.backgroundColor = helpBackgroundColor
         navigationController.isToolbarHidden = false
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = navigationController
-        window.backgroundColor = .systemBackground
+        window.backgroundColor = helpBackgroundColor
         window.makeKeyAndVisible()
         self.window = window
     }
@@ -1095,51 +1178,48 @@ final class HelpSceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 extension UIViewController {
     func presentHelp(_ url: URL) {
-        if traitCollection.userInterfaceIdiom == .pad {
-            if view.window?.windowScene?.appearsFullscreen == true {
-                UIApplication.shared.closeHelpScenes()
-                presentHelpModally(url)
-                return
-            }
-
-            if let sceneDelegate = UIApplication.shared.connectedScenes
-                .compactMap({ $0.delegate as? HelpSceneDelegate }).first
-            {
-                sceneDelegate.load(url)
-                if let windowScene = sceneDelegate.window?.windowScene,
-                   windowScene.activationState != .foregroundActive
-                {
-                    UIApplication.shared.requestSceneSessionActivation(
-                        windowScene.session,
-                        userActivity: HelpViewController.userActivity(for: url),
-                        options: nil,
-                        errorHandler: nil
-                    )
-                }
-                return
-            }
-
-            let options = UIScene.ActivationRequestOptions()
-            let session = UIApplication.shared.openSessions.first {
-                $0.configuration.name == helpSceneConfigurationName
-            }
-            UIApplication.shared.requestSceneSessionActivation(
-                session,
-                userActivity: HelpViewController.userActivity(for: url),
-                options: options
-            ) { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.presentHelpModally(url)
-                }
-            }
-        } else {
+        if view.window?.windowScene?.appearsFullscreen == true {
+            UIApplication.shared.closeHelpScenes()
             presentHelpModally(url)
+            return
+        }
+
+        if let sceneDelegate = UIApplication.shared.connectedScenes
+            .compactMap({ $0.delegate as? HelpSceneDelegate }).first
+        {
+            sceneDelegate.load(url)
+            if let windowScene = sceneDelegate.window?.windowScene,
+               windowScene.shouldRequestSceneActivation
+            {
+                UIApplication.shared.requestSceneSessionActivation(
+                    windowScene.session,
+                    userActivity: HelpViewController.userActivity(for: url),
+                    options: nil,
+                    errorHandler: nil
+                )
+            }
+            return
+        }
+
+        let options = UIScene.ActivationRequestOptions()
+        let session = UIApplication.shared.openSessions.first {
+            $0.configuration.name == helpSceneConfigurationName
+        }
+        UIApplication.shared.requestSceneSessionActivation(
+            session,
+            userActivity: HelpViewController.userActivity(for: url),
+            options: options
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.presentHelpModally(url)
+            }
         }
     }
 
     func presentHelpModally(_ url: URL) {
         let viewController = HelpViewController(url: url)
         let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.view.backgroundColor = helpBackgroundColor
         navigationController.modalPresentationStyle = .pageSheet
         present(navigationController, animated: true)
     }
@@ -1159,11 +1239,23 @@ extension UIApplication {
 }
 
 private extension UIWindowScene {
+    var shouldRequestSceneActivation: Bool {
+        #if os(visionOS)
+        true
+        #else
+        activationState != .foregroundActive
+        #endif
+    }
+
     var appearsFullscreen: Bool {
+        #if os(visionOS)
+        return false
+        #else
         let sceneSize = coordinateSpace.bounds.standardized.size
         let screenSize = screen.coordinateSpace.bounds.standardized.size
         let sceneArea = sceneSize.width * sceneSize.height
         let screenArea = screenSize.width * screenSize.height
         return screenArea > 0 && sceneArea / screenArea >= 0.9
+        #endif
     }
 }

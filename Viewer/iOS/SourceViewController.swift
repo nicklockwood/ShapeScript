@@ -16,7 +16,6 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var redoButton: UIBarButtonItem = .init()
     private var shareButton: UIBarButtonItem = .init()
     private var helpButton: UIBarButtonItem = .init()
-    private var helpNavigationController: UINavigationController?
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
 
@@ -142,21 +141,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
 private extension SourceViewController {
     @objc func openHelp(_: Any?) {
-        if traitCollection.userInterfaceIdiom == .pad {
-            presentHelp(editorHelpURL)
-            return
-        }
-
-        let navigationController: UINavigationController
-        if let helpNavigationController {
-            navigationController = helpNavigationController
-        } else {
-            let viewController = HelpViewController(url: editorHelpURL)
-            navigationController = UINavigationController(rootViewController: viewController)
-            navigationController.modalPresentationStyle = .pageSheet
-            helpNavigationController = navigationController
-        }
-        present(navigationController, animated: true)
+        presentHelp(editorHelpURL)
     }
 
     func didSetDocument() {

@@ -45,7 +45,7 @@ private let macHeader = """
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width initial-scale=1"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>{title}</title>
     <meta name="description" content="{description}"/>
     <link rel="stylesheet" href="../css/main.css"/>
