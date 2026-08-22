@@ -28,6 +28,7 @@ let package = Package(
             url: "https://github.com/nicklockwood/SVGPath.git",
             .upToNextMinor(from: "1.3.1")
         ),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
         .package(url: "https://github.com/apple/swift-markdown.git", from: "0.6.0"),
     ],
     targets: [
@@ -39,7 +40,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "CLI",
-            dependencies: ["ShapeScript"],
+            dependencies: [
+                "ShapeScript",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
             path: "Viewer/CLI",
             exclude: ["install.sh"]
         ),

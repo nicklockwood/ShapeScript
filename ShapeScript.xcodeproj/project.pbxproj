@@ -19,10 +19,11 @@
 		012B51BD2E8094B000D69BA4 /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51BE2E8094B000D69BA4 /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		012B51C02E8094B000D69BA4 /* Help in Resources */ = {isa = PBXBuildFile; fileRef = 012B51BF2E8094B000D69BA4 /* Help */; };
-		012B51EF2E8098A300D69BA4 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; platformFilters = (ios, maccatalyst, macos, xros, ); };
-		012B51F02E8098A300D69BA4 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
-		012B51F12E8098A300D69BA4 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
-		012B51F22E8098A300D69BA4 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; platformFilters = (ios, maccatalyst, macos, tvos, xros, ); };
+		012C01023034A00000B388D7 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
+		012C01033034A00000B388D7 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
+		012C01043034A00000B388D7 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
+		012C01053034A00000B388D7 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; };
+		012C01063034A00000B388D7 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 012C01143034A00000B388D7 /* ArgumentParser */; };
 		0158D9712E8072C400C53A29 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
 		0158D9EF2E8072EA00C53A29 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
 		0158D9F02E8072EA00C53A29 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
@@ -72,6 +73,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0158D9672E8072C400C53A29;
 			remoteInfo = "ShapeScript Lib";
+		};
+		012C01163034A00000B388D7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 012B51E02E80984A00D69BA4;
+			remoteInfo = CLI;
 		};
 		0158D83D2E806BB600C53A29 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -335,10 +343,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				012B51EF2E8098A300D69BA4 /* ShapeScript.framework in Frameworks */,
-				012B51F02E8098A300D69BA4 /* Euclid.framework in Frameworks */,
-				012B51F12E8098A300D69BA4 /* LRUCache.framework in Frameworks */,
-				012B51F22E8098A300D69BA4 /* SVGPath.framework in Frameworks */,
+				012C01063034A00000B388D7 /* ArgumentParser in Frameworks */,
+				012C01023034A00000B388D7 /* ShapeScript.framework in Frameworks */,
+				012C01033034A00000B388D7 /* Euclid.framework in Frameworks */,
+				012C01043034A00000B388D7 /* LRUCache.framework in Frameworks */,
+				012C01053034A00000B388D7 /* SVGPath.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -579,6 +588,7 @@
 			);
 			dependencies = (
 				0158D9732E8072C400C53A29 /* PBXTargetDependency */,
+				012C01173034A00000B388D7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				0158D9742E8072C400C53A29 /* ShapeScriptTests */,
@@ -681,6 +691,9 @@
 			);
 			mainGroup = 0158D6BC2E80480900C53A29;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				012C01153034A00000B388D7 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0158D6C62E80480900C53A29 /* Products */;
 			projectDirPath = "";
@@ -926,6 +939,14 @@
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
 			targetProxy = 012B51ED2E80989A00D69BA4 /* PBXContainerItemProxy */;
 		};
+		012C01173034A00000B388D7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilters = (
+				macos,
+			);
+			target = 012B51E02E80984A00D69BA4 /* CLI */;
+			targetProxy = 012C01163034A00000B388D7 /* PBXContainerItemProxy */;
+		};
 		0158D9732E8072C400C53A29 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
@@ -1044,8 +1065,13 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -1059,8 +1085,13 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SUPPORTED_PLATFORMS = macosx;
@@ -1571,6 +1602,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		012C01153034A00000B388D7 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		012C01143034A00000B388D7 /* ArgumentParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 012C01153034A00000B388D7 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = ArgumentParser;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0158D6BD2E80480900C53A29 /* Project object */;
 }

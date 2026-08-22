@@ -35,17 +35,19 @@ shapescript --version
 
 ## Usage
 
-Run `shapescript` with a `.shape` file to display [scene info](getting-started.md#debugging-and-selection) and report any errors:
+Run `shapescript info` with a `.shape` file to display [scene info](getting-started.md#debugging-and-selection) and report any errors:
 
 ```bash
-shapescript myfile.shape
+shapescript info myfile.shape
 ```
 
-To export the file, pass an output path:
+To export the file, use `shapescript export` with an output path:
 
 ```bash
-shapescript myfile.shape myfile.stl
+shapescript export myfile.shape --output myfile.stl
 ```
+
+Run `shapescript --help` to see the current command-line usage and available subcommands. For export-specific options, run `shapescript help export`.
 
 See [Command-Line Export](export.md#command-line-export) for more information.
 
