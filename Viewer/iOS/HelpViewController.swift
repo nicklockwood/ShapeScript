@@ -1027,7 +1027,10 @@ extension HelpViewController: WKNavigationDelegate {
     }
 
     private func shouldShowLoadingOverlay(for url: URL) -> Bool {
-        !url.isFileURL && url.bundledHelpURL == nil
+        guard ["http", "https"].contains(url.scheme?.lowercased()) else {
+            return false
+        }
+        return url.bundledHelpURL == nil
     }
 
     private func shouldOpenExternally(_ url: URL) -> Bool {
