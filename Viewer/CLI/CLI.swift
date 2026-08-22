@@ -6,6 +6,7 @@
 //  Copyright © 2023 Nick Lockwood. All rights reserved.
 //
 
+import ArgumentParser
 import Euclid
 import Foundation
 import ShapeScript
@@ -14,7 +15,7 @@ import ShapeScript
 import SceneKit
 #endif
 
-struct CLIError: Error, CustomNSError {
+struct CLIError: Error, CustomNSError, LocalizedError {
     let message: String
 
     init(_ message: String) {
@@ -27,73 +28,152 @@ struct CLIError: Error, CustomNSError {
         }
         return [NSLocalizedDescriptionKey: "Error: \(message)"]
     }
+
+    var errorDescription: String? {
+        if message.hasPrefix("Error: ") {
+            return String(message.dropFirst("Error: ".count))
+        }
+        return message
+    }
 }
 
-final class CLI {
-    let inputURL: URL?
-    let outputURL: URL?
-    let exportOptions: ExportOptions
-    let shouldPrintHelp: Bool
-    let shouldPrintVersion: Bool
+public struct ShapeScriptCommand: ParsableCommand {
+    public static let configuration = CommandConfiguration(
+        commandName: "shapescript",
+        abstract: "Check, inspect, and export ShapeScript documents.",
+        version: version,
+        subcommands: [Check.self, Info.self, Export.self]
+    )
 
-    private static let arguments: [(name: String, help: String)] = [
-        ("help", "Show this help information"),
-        ("version", "Show the ShapeScript version"),
-    ]
+    public init() {}
 
-    private static let shortAliases = ["h": "help"]
+    public mutating func run() throws {
+        print("""
+        ShapeScript, version \(version)
+        Copyright (c) 2023-2026 Nick Lockwood
 
-    init(in directory: String, with arguments: [String]) throws {
-        let optionDefinitions = Self.arguments + ExportOptions.arguments
-        let args = try preprocessArguments(
-            arguments,
-            optionDefinitions.map(\.name),
-            shortAliases: Self.shortAliases
-        )
-        self.shouldPrintHelp = try args["help"].map {
-            guard $0 == "" else {
-                throw CLIError("--help option does not expect a value")
-            }
-            return true
-        } ?? false
-        self.shouldPrintVersion = try args["version"].map {
-            guard $0 == "" else {
-                throw CLIError("--version option does not expect a value")
-            }
-            return true
-        } ?? false
-        self.inputURL = try args["1"].map {
-            let url = expandPath($0, in: directory)
-            guard url.pathExtension == "shape" else {
-                throw CLIError("Unsupported file type '\(url.pathExtension)'")
-            }
-            return url
-        }
-        self.outputURL = try args["2"].map {
-            let url = expandPath($0, in: directory)
-            guard Self.exportTypes.contains(url.pathExtension) else {
-                throw CLIError("Unsupported export file type '\(url.pathExtension)'")
-            }
-            return url
-        }
-        self.exportOptions = try ExportOptions(arguments: args)
+        """)
+        print(Self.helpMessage())
+    }
+}
+
+public extension ShapeScriptCommand {
+    static func runCLI(_ arguments: [String] = Array(CommandLine.arguments.dropFirst())) {
+        main(normalizedArguments(arguments))
     }
 
-    func run() throws {
-        if shouldPrintHelp {
-            print(Self.help)
-            return
+    static func normalizedArguments(_ arguments: [String]) -> [String] {
+        guard let first = arguments.first, !knownCommandNames.contains(first) else {
+            return arguments
         }
+        if arguments.contains("--help") || arguments.contains("-h") || arguments.contains("--version") {
+            return arguments
+        }
+        let valueOptions = exportValueOptions
+        var positionals: [(index: Int, value: String)] = []
+        var hasOutputOption = false
+        var index = arguments.startIndex
+        while index < arguments.endIndex {
+            let argument = arguments[index]
+            if argument == "--output" || argument == "-o" {
+                hasOutputOption = true
+            }
+            if valueOptions.contains(argument) {
+                index += 2
+                continue
+            } else if valueOptions.contains(where: { argument.hasPrefix("\($0)=") }) {
+                hasOutputOption = hasOutputOption || argument.hasPrefix("--output=")
+            } else if argument.hasPrefix("-") {
+                index += 1
+                continue
+            } else {
+                positionals.append((index, argument))
+            }
+            index += 1
+        }
+        guard !positionals.isEmpty || hasOutputOption else {
+            return arguments
+        }
+        if positionals.count > 1 {
+            let output = positionals[1]
+            var normalizedArguments = arguments
+            normalizedArguments.remove(at: output.index)
+            return ["export"] + normalizedArguments + ["--output", output.value]
+        }
+        let subcommand = hasOutputOption ? "export" : "info"
+        return [subcommand] + arguments
+    }
 
-        if shouldPrintVersion {
-            print(version)
-            return
-        }
+    private static var knownCommandNames: Set<String> {
+        Set(
+            configuration.subcommands.flatMap { command in
+                [command._commandName] + command.configuration.aliases
+            } + ["help"]
+        )
+    }
+}
 
-        guard let inputURL else {
-            print(Self.help)
-            return
+extension ShapeScriptCommand {
+    struct Check: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Check a ShapeScript document for errors."
+        )
+
+        @Argument(help: "Input .shape file.")
+        var inputPath: String
+
+        init() {}
+
+        mutating func run() throws {
+            let runner = try CLIRunner(
+                directory: FileManager.default.currentDirectoryPath,
+                inputPath: inputPath
+            )
+            try runner.check()
         }
+    }
+
+    struct Info: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Print scene information for a ShapeScript document."
+        )
+
+        @Argument(help: "Input .shape file.")
+        var inputPath: String
+
+        init() {}
+
+        mutating func run() throws {
+            let runner = try CLIRunner(
+                directory: FileManager.default.currentDirectoryPath,
+                inputPath: inputPath
+            )
+            try runner.info()
+        }
+    }
+}
+
+final class CLIRunner {
+    let inputURL: URL
+
+    init(directory: String, inputPath: String) throws {
+        let inputURL = expandPath(inputPath, in: directory)
+        guard inputURL.pathExtension == "shape" else {
+            throw CLIError("Unsupported file type '\(inputURL.pathExtension)'")
+        }
+        self.inputURL = inputURL
+    }
+
+    func check() throws {
+        _ = try loadScene(buildGeometry: false)
+    }
+
+    func info() throws {
+        let scene = try loadScene()
+        print(scene.geometry.modelInfo)
+    }
+
+    func loadScene(buildGeometry: Bool = true) throws -> Scene {
         let input: String
         do {
             input = try String(contentsOf: inputURL)
@@ -106,17 +186,11 @@ final class CLI {
             let cache = GeometryCache()
             print("Running script ...")
             let scene = try evaluate(program, delegate: self, cache: cache) { false }
-            print("Building geometry ...")
-            _ = scene.build { false }
-            guard let outputURL else {
-                // Show model info
-                print(scene.geometry.modelInfo)
-                return
+            if buildGeometry {
+                print("Building geometry ...")
+                _ = scene.build { false }
             }
-            // Export model
-            print("Exporting to '\(outputURL.lastPathComponent)' ...")
-            try export(scene, to: outputURL, with: exportOptions)
-            print("Export complete")
+            return scene
         } catch let error as CLIError {
             throw error
         } catch {
@@ -124,39 +198,9 @@ final class CLI {
             throw CLIError(error.message(with: input))
         }
     }
-
-    private static var help: String {
-        let arguments = Self.arguments + ExportOptions.arguments
-        let aliases = Dictionary(uniqueKeysWithValues: shortAliases.map { ($0.value, $0.key) })
-        let options = arguments.map { name, help -> (label: String, help: String) in
-            let label = if let alias = aliases[name] {
-                "-\(alias), --\(name)"
-            } else {
-                "--\(name)"
-            }
-            return (label, help)
-        }
-        let indent = options.map(\.label.count).max() ?? 0
-        let help = options.map { label, help -> String in
-            let padding = String(repeating: " ", count: indent - label.count)
-            return "  \(label)\(padding)  \(help)"
-        }
-        return """
-        ShapeScript, version \(version)
-        Copyright (c) 2023-2026 Nick Lockwood
-
-        USAGE:
-          shapescript [--help]
-          shapescript [--version]
-          shapescript <input_path> [<output_path>] [<options>]
-
-        OPTIONS:
-        \(help.joined(separator: "\n"))
-        """
-    }
 }
 
-extension CLI: EvaluationDelegate {
+extension CLIRunner: EvaluationDelegate {
     func resolveURL(for path: String) -> URL {
         URL(fileURLWithPath: path, relativeTo: inputURL)
     }
@@ -177,7 +221,7 @@ extension CLI: EvaluationDelegate {
     }
 }
 
-private func expandPath(_ path: String, in directory: String) -> URL {
+func expandPath(_ path: String, in directory: String) -> URL {
     if path.hasPrefix("/") {
         return URL(fileURLWithPath: path).standardized
     }
@@ -185,51 +229,4 @@ private func expandPath(_ path: String, in directory: String) -> URL {
         return URL(fileURLWithPath: NSString(string: path).expandingTildeInPath).standardized
     }
     return URL(fileURLWithPath: directory).appendingPathComponent(path).standardized
-}
-
-private func preprocessArguments(
-    _ args: [String],
-    _ names: [String],
-    shortAliases: [String: String] = [:]
-) throws -> [String: String] {
-    var anonymousArgs = 0
-    var namedArgs: [String: String] = [:]
-    var name = ""
-    for arg in args {
-        if arg.hasPrefix("--") {
-            // Long argument names
-            let key = String(arg.unicodeScalars.dropFirst(2))
-            guard names.contains(key) else {
-                guard let match = key.bestMatches(in: names).first else {
-                    throw CLIError("Unknown option --\(key)")
-                }
-                throw CLIError("Unknown option --\(key). Did you mean --\(match)?")
-            }
-            name = key
-            namedArgs[name] = namedArgs[name] ?? ""
-            continue
-        } else if arg.hasPrefix("-") {
-            // Short argument names
-            let flag = String(arg.unicodeScalars.dropFirst())
-            guard let match = shortAliases[flag] else {
-                guard let match = flag.bestMatches(in: names).first else {
-                    throw CLIError("Unknown flag -\(flag)")
-                }
-                throw CLIError("Unknown flag -\(flag). Did you mean --\(match)?")
-            }
-            name = match
-            namedArgs[name] = namedArgs[name] ?? ""
-            continue
-        }
-        if name == "" {
-            // Argument is anonymous
-            name = String(anonymousArgs)
-            anonymousArgs += 1
-        } else if namedArgs[name] != "" {
-            throw CLIError("Duplicate option --\(name)")
-        }
-        namedArgs[name] = arg
-        name = ""
-    }
-    return namedArgs
 }

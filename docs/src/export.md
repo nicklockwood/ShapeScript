@@ -97,10 +97,10 @@ On macOS, command-line export requires an unlocked copy of the ShapeScript Mac a
 
 The Linux command-line tool does not require the Mac app or an Export unlock, but it is limited to `.stl` or `.stla` export.
 
-To export a file using the command-line tool, pass the input `.shape` file followed by the output path:
+To export a file using the command-line tool, use the `export` subcommand with an input `.shape` file and an `--output` path:
 
 ```bash
-shapescript myfile.shape myfile.stl
+shapescript export myfile.shape --output myfile.stl
 ```
 
 The output file extension selects the export format. On macOS, the command-line tool supports the same [model and scene formats](#model-and-scene-formats), [SVG cross-section export](#plotters-and-cnc-machines), and [image formats](#image-formats) described above.
@@ -108,7 +108,7 @@ The output file extension selects the export format. On macOS, the command-line 
 Use the `--z-up` option when exporting model files for tools that expect Z to be the vertical axis:
 
 ```bash
-shapescript myfile.shape myfile.stl --z-up
+shapescript export myfile.shape --output myfile.stl --z-up
 ```
 
 This is the command-line equivalent of the "Convert to Z-Up" option described in the [3D Printing](#3d-printing) section.
@@ -116,13 +116,15 @@ This is the command-line equivalent of the "Convert to Z-Up" option described in
 On macOS, the command-line tool can also export the [image formats](#image-formats) listed above. When exporting images, you can choose the camera and output size from Terminal:
 
 ```bash
-shapescript myfile.shape myfile.png --camera "Side View"
-shapescript myfile.shape myfile.png --width 1024 --height 768
+shapescript export myfile.shape --output myfile.png --camera "Side View"
+shapescript export myfile.shape --output myfile.png --width 1024 --height 768
 ```
 
 The `--camera` option accepts the built-in camera names `Front`, `Back`, `Left`, `Right`, `Top`, and `Bottom`, or the `name` of a custom camera defined in the script.
 
 The `--width` and `--height` options set the exported image dimensions; if only one dimension is supplied, the other is derived from the selected camera's aspect ratio. See [Image Options](#image-options) for more about image size, background transparency, antialiasing, and detail level.
+
+Run `shapescript help export` to see the current export options supported by your installed command-line tool.
 
 ---
 [Index](index.md) | Next: [Command Line Tool](cli.md)

@@ -6,6 +6,7 @@
 //  Copyright © 2023 Nick Lockwood. All rights reserved.
 //
 
+import ArgumentParser
 import Euclid
 import Foundation
 import ShapeScript
@@ -14,25 +15,54 @@ struct ExportOptions {
     var convertToZUp: Bool
 }
 
-extension ExportOptions {
-    static let arguments: [(name: String, help: String)] = [
-        ("z-up", "Output model using Z as up axis instead of Y"),
-    ]
+extension ShapeScriptCommand {
+    static var exportValueOptions: [String] {
+        ["--output", "-o"]
+    }
 
-    init(arguments: [String: String]) throws {
-        self.convertToZUp = try arguments["z-up"].map {
-            guard $0 == "" else {
-                throw CLIError("--z-up option does not expect a value")
-            }
-            return true
-        } ?? false
+    struct Export: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Export a ShapeScript document."
+        )
+
+        @Argument(help: "Input .shape file.")
+        var inputPath: String
+
+        @Option(name: .shortAndLong, help: "Exported model file.")
+        var output: String
+
+        @Flag(help: "Output model using Z as up axis instead of Y.")
+        var zUp = false
+
+        init() {}
+
+        mutating func run() throws {
+            let directory = FileManager.default.currentDirectoryPath
+            let exportOptions = ExportOptions(convertToZUp: zUp)
+            let runner = try CLIRunner(
+                directory: directory,
+                inputPath: inputPath
+            )
+            let outputURL = try CLIRunner.exportURL(for: output, in: directory)
+            try runner.export(to: outputURL, options: exportOptions)
+        }
     }
 }
 
-extension CLI {
-    static let exportTypes: [String] = ["stl", "stla"]
+extension CLIRunner {
+    static let exportTypes = ["stl", "stla"]
 
-    func export(_ scene: Scene, to url: URL, with options: ExportOptions) throws {
+    static func exportURL(for outputPath: String, in directory: String) throws -> URL {
+        let url = expandPath(outputPath, in: directory)
+        guard exportTypes.contains(url.pathExtension) else {
+            throw CLIError("Unsupported export file type '\(url.pathExtension)'")
+        }
+        return url
+    }
+
+    func export(to url: URL, options: ExportOptions) throws {
+        let scene = try loadScene()
+        print("Exporting to '\(url.lastPathComponent)' ...")
         let geometry = scene.geometry
         var mesh = geometry.merged()
         if options.convertToZUp {
@@ -49,5 +79,6 @@ extension CLI {
         case let ext:
             throw CLIError("Unsupported export file type '\(ext)'")
         }
+        print("Export complete")
     }
 }
