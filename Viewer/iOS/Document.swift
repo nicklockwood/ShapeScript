@@ -44,7 +44,10 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     var rerenderRequired: Bool = false
     private var observer: Any?
-    private weak var saveTimer: Timer?
+    private var saveTimer: Timer?
+    private var isAutosaving = false
+    private var autosaveQueued = false
+    private var saveErrorAlertIsVisible = false
 
     var sourceString: String = "" {
         didSet {
@@ -57,7 +60,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { errorMessage = error?.message(with: sourceString) }
     }
 
-    func scheduleAutosave() {
+    @MainActor func scheduleAutosave() {
         saveTimer?.invalidate()
         saveTimer = Timer.scheduledTimer(
             timeInterval: 1,
@@ -84,11 +87,17 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.perform(#selector(Document.settingsUpdated), on: .main, with: nil, waitUntilDone: false)
+            self?.perform(
+                #selector(Document.settingsUpdated),
+                on: .main,
+                with: nil,
+                waitUntilDone: false
+            )
         }
     }
 
     deinit {
+        saveTimer?.invalidate()
         observer.map(NotificationCenter.default.removeObserver)
     }
 
@@ -118,7 +127,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     @available(iOS 16.0, *)
     @MainActor func renameAndRefresh(
         proposedName: String,
-        completion: @escaping @MainActor (Result<Void, any Error>) -> Void
+        completion: @escaping @Sendable @MainActor (Result<Void, any Error>) -> Void
     ) {
         guard proposedName != fileURL.displayBaseName else {
             completion(.success(()))
@@ -130,12 +139,12 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             return
         }
 
-        documentBrowser.renameDocument(at: fileURL, proposedName: proposedName) {
-            [weak self] finalURL, error in
+        documentBrowser.renameDocument(at: fileURL, proposedName: proposedName) { finalURL, error in
+            let error = error.map { $0 as NSError }
             Task { @MainActor in
                 if let error {
                     completion(.failure(error))
-                } else if let finalURL, let self {
+                } else if let finalURL {
                     self.presentedItemDidMove(to: finalURL)
                     completion(.success(()))
                 } else {
@@ -177,9 +186,63 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
-    @objc private func autosaveFromTimer() {
-        autosave { [weak self] _ in
-            self?.fileMonitor?.markUpdated()
+    @MainActor @objc private func autosaveFromTimer() {
+        guard documentState != .closed, hasUnsavedChanges else {
+            return
+        }
+
+        if isAutosaving {
+            autosaveQueued = true
+            return
+        }
+
+        isAutosaving = true
+        autosaveQueued = false
+        Task { @MainActor in
+            let success = await autosaveDocument()
+            isAutosaving = false
+            if success {
+                fileMonitor?.markUpdated()
+                saveErrorAlertIsVisible = false
+            } else {
+                showSaveFailureAlert()
+            }
+            if autosaveQueued || hasUnsavedChanges {
+                scheduleAutosave(after: success ? 1 : 5)
+            }
+        }
+    }
+
+    @MainActor private func autosaveDocument() async -> Bool {
+        await withCheckedContinuation { continuation in
+            autosave { success in
+                continuation.resume(returning: success)
+            }
+        }
+    }
+
+    @MainActor private func scheduleAutosave(after delay: TimeInterval) {
+        saveTimer?.invalidate()
+        saveTimer = Timer.scheduledTimer(
+            timeInterval: delay,
+            target: self,
+            selector: #selector(autosaveFromTimer),
+            userInfo: nil,
+            repeats: false
+        )
+    }
+
+    @MainActor private func showSaveFailureAlert() {
+        guard !saveErrorAlertIsVisible else {
+            return
+        }
+        saveErrorAlertIsVisible = true
+        viewController?.presentError(NSError(
+            domain: NSCocoaErrorDomain,
+            code: CocoaError.fileWriteUnknown.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: "Failed to save changes."]
+        )) { [weak self] in
+            self?.saveErrorAlertIsVisible = false
         }
     }
 
