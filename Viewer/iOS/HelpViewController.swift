@@ -34,6 +34,7 @@ final class HelpViewController: UIViewController {
     private let loadingCancelButton = UIButton(type: .system)
     private let loadingRetryButton = UIButton(type: .system)
     private var externalLoadingURL: URL?
+    private var externalOpenURL: URL?
     private var backButton = UIBarButtonItem()
     private var forwardButton = UIBarButtonItem()
     private var indexButton = UIBarButtonItem()
@@ -206,6 +207,10 @@ final class HelpViewController: UIViewController {
 
     func load(_ url: URL) {
         loadViewIfNeeded()
+        if shouldOpenExternally(url) {
+            showExternalOpenConfirmation(for: url)
+            return
+        }
         if let localURL = url.bundledHelpURL {
             setCurrentHelpURL(url)
             hideExternalLoadingOverlay()
@@ -338,7 +343,7 @@ final class HelpViewController: UIViewController {
 
         loadingRetryButton.setTitle("Retry", for: .normal)
         loadingRetryButton.addAction(UIAction { [weak self] _ in
-            self?.retryExternalLoad()
+            self?.performLoadingOverlayPrimaryAction()
         }, for: .touchUpInside)
 
         buttonStack.axis = .horizontal
@@ -362,17 +367,36 @@ final class HelpViewController: UIViewController {
     }
 
     private func showExternalLoadingOverlay(for url: URL) {
+        externalOpenURL = nil
         externalLoadingURL = url
+        loadingTitleLabel.text = "Loading"
         loadingMessageLabel.text = url.host ?? url.absoluteString
+        loadingCancelButton.isHidden = false
+        loadingRetryButton.setTitle("Retry", for: .normal)
         loadingRetryButton.isHidden = true
         loadingIndicator.startAnimating()
         setLoadingOverlayHidden(false)
     }
 
     private func showExternalLoadFailure(for url: URL, error: Error) {
+        externalOpenURL = nil
         externalLoadingURL = url
         loadingTitleLabel.text = "Could Not Load Page"
         loadingMessageLabel.text = error.localizedDescription
+        loadingCancelButton.isHidden = false
+        loadingRetryButton.setTitle("Retry", for: .normal)
+        loadingRetryButton.isHidden = false
+        loadingIndicator.stopAnimating()
+        setLoadingOverlayHidden(false)
+    }
+
+    private func showExternalOpenConfirmation(for url: URL) {
+        externalLoadingURL = nil
+        externalOpenURL = url
+        loadingTitleLabel.text = "Open External Link?"
+        loadingMessageLabel.text = url.host ?? url.absoluteString
+        loadingCancelButton.isHidden = false
+        loadingRetryButton.setTitle("Open", for: .normal)
         loadingRetryButton.isHidden = false
         loadingIndicator.stopAnimating()
         setLoadingOverlayHidden(false)
@@ -380,7 +404,9 @@ final class HelpViewController: UIViewController {
 
     private func hideExternalLoadingOverlay() {
         externalLoadingURL = nil
+        externalOpenURL = nil
         loadingTitleLabel.text = "Loading"
+        loadingRetryButton.setTitle("Retry", for: .normal)
         loadingIndicator.stopAnimating()
         setLoadingOverlayHidden(true)
     }
@@ -397,10 +423,22 @@ final class HelpViewController: UIViewController {
     }
 
     private func cancelExternalLoad() {
+        let wasLoadingExternalPage = externalLoadingURL != nil
         webView.stopLoading()
         hideExternalLoadingOverlay()
-        restoreCurrentDocumentationPage()
+        if wasLoadingExternalPage {
+            restoreCurrentDocumentationPage()
+        }
         updateNavigationButtons()
+    }
+
+    private func performLoadingOverlayPrimaryAction() {
+        if let url = externalOpenURL {
+            hideExternalLoadingOverlay()
+            UIApplication.shared.open(url)
+        } else {
+            retryExternalLoad()
+        }
     }
 
     private func retryExternalLoad() {
@@ -941,7 +979,7 @@ extension HelpViewController: WKNavigationDelegate {
         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
     ) {
         if let url = navigationAction.request.url, shouldOpenExternally(url) {
-            openExternally(url)
+            showExternalOpenConfirmation(for: url)
             decisionHandler(.cancel)
             return
         }
@@ -1011,7 +1049,7 @@ extension HelpViewController: WKNavigationDelegate {
         if let url = nsError.userInfo[NSURLErrorFailingURLErrorKey] as? URL,
            shouldOpenExternally(url)
         {
-            openExternally(url)
+            showExternalOpenConfirmation(for: url)
             return
         }
         guard nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled,
@@ -1037,9 +1075,17 @@ extension HelpViewController: WKNavigationDelegate {
         if shouldOpenAppStoreURLExternally(url) {
             return true
         }
+        if url.bundledHelpURL != nil {
+            return false
+        }
         guard let scheme = url.scheme?.lowercased() else {
             return false
         }
+        #if os(visionOS)
+        if ["http", "https"].contains(scheme) {
+            return true
+        }
+        #endif
         return !["file", "http", "https", "about"].contains(scheme)
     }
 
@@ -1048,14 +1094,6 @@ extension HelpViewController: WKNavigationDelegate {
             return false
         }
         return host == "apps.apple.com" || host == "itunes.apple.com"
-    }
-
-    private func openExternally(_ url: URL) {
-        webView.stopLoading()
-        hideExternalLoadingOverlay()
-        restoreCurrentDocumentationPage()
-        updateNavigationButtons()
-        UIApplication.shared.open(url)
     }
 
     private func restoreCurrentDocumentationPage() {
