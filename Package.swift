@@ -38,7 +38,8 @@ let package = Package(
         .executableTarget(
             name: "CLI",
             dependencies: ["ShapeScript"],
-            path: "Viewer/CLI"
+            path: "Viewer/CLI",
+            exclude: ["install.sh"]
         ),
         .executableTarget(
             name: "HelpBuilder",
