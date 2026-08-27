@@ -1,5 +1,22 @@
 # Change Log
 
+## [1.3.0](https://github.com/nicklockwood/LRUCache/releases/tag/1.3.0) (2026-08-25)
+
+- `LRUCache` now conforms to `Sendable` only when its value type conforms to `Sendable`
+- Removed deprecated `LRUCacheMemoryWarningNotification` and related API surfaces
+- Removed deprecated `removeAllValues()`, `allKeys`, and `allValues` members
+- Added explicit visionOS platform support in Package.swift
+- Bumped required Swift version to 5.10
+
+## [1.2.1](https://github.com/nicklockwood/LRUCache/releases/tag/1.2.1) (2026-01-11)
+
+- Added optional `clearsOnMemoryPressure` parameter to opt-out of automatic cache clearing behavior
+
+## [1.2.0](https://github.com/nicklockwood/LRUCache/releases/tag/1.2.0) (2025-10-17)
+
+- DispatchSourceMemoryPressure is now used to clear cache automatically on all Apple platforms
+- Deprecated `LRUCacheMemoryWarningNotification`
+
 ## [1.1.2](https://github.com/nicklockwood/LRUCache/releases/tag/1.1.2) (2025-08-05)
 
 - Set correct minimum OS versions

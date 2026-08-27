@@ -9,7 +9,7 @@
 import LRUCache
 import XCTest
 
-class LRUPerformanceTests: XCTestCase {
+final class LRUPerformanceTests: XCTestCase {
     let iterations = 10000
 
     private func populateCache(_ cache: LRUCache<Int, Int>) {
@@ -68,7 +68,7 @@ class LRUPerformanceTests: XCTestCase {
         var caches = createCaches(populated: true)
         var values = [Int?](repeating: nil, count: iterations)
         measure {
-            let cache = caches.popLast()!
+            let cache = caches.removeLast()
             for i in 0 ..< iterations {
                 values[i] = cache.removeValue(forKey: i)
             }

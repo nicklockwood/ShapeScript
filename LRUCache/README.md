@@ -1,7 +1,7 @@
 [![Build](https://github.com/nicklockwood/LRUCache/actions/workflows/build.yml/badge.svg)](https://github.com/nicklockwood/LRUCache/actions/workflows/build.yml)
 [![Codecov](https://codecov.io/gh/nicklockwood/LRUCache/graphs/badge.svg)](https://codecov.io/gh/nicklockwood/LRUCache)
-[![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20Mac%20|%20tvOS%20|%20watchOS%20|%20Linux-lightgray.svg)]()
-[![Swift 5.7](https://img.shields.io/badge/swift-5.7-red.svg?style=flat)](https://developer.apple.com/swift)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%20|%20Mac%20|%20tvOS%20|%20visionOS%20|%20watchOS%20|%20Linux-lightgray.svg)]()
+[![Swift 5.10](https://img.shields.io/badge/swift-5.10-red.svg?style=flat)](https://developer.apple.com/swift)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://opensource.org/licenses/MIT)
 [![Mastodon](https://img.shields.io/badge/mastodon-@nicklockwood@mastodon.social-636dff.svg)](https://mastodon.social/@nicklockwood)
 
@@ -20,14 +20,14 @@
 
 # Installation
 
-LRUCache is packaged as a dynamic framework that you can import into your Xcode project. You can install this manually, or by using Swift Package Manager.
+LRUCache is packaged as a framework that you can import into your Xcode project. You can install this manually, or by using Swift Package Manager.
 
-**Note:** LRUCache requires Xcode 14+ to build, and runs on iOS/tvOS 13+, watchOS 6+ or macOS 10.15+.
+**Note:** LRUCache requires Swift 5.10+ / Xcode 16.0+ to build, and runs on iOS/tvOS 13+, visionOS 1+, watchOS 6+ or macOS 10.15+.
 
 To install using Swift Package Manage, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/LRUCache.git", .upToNextMinor(from: "1.1.2")),
+.package(url: "https://github.com/nicklockwood/LRUCache.git", .upToNextMinor(from: "1.3.0")),
 ```
 
 
@@ -95,12 +95,12 @@ You can remove all values from the cache immediately with:
 cache.removeAll()
 ```
 
-On platforms where UIKit is available (iOS, tvOS, and visionOS), the cache will be emptied automatically in the event of a memory warning.
+On Apple platforms (macOS, iOS, iPadOS, visionOS, tvOS, watchOS) the cache will be emptied automatically in the event of a memory warning.
 
 
 # Concurrency
 
-**LRUCache** is `Sendable` and uses `NSLock` internally to ensure mutations are atomic. It is therefore safe to access a single cache instance from multiple threads.
+**LRUCache** is `Sendable` when its value type is `Sendable`, and uses `NSLock` internally to ensure mutations are atomic. It is therefore safe to access a single cache instance from multiple threads when the stored values can also be safely shared across concurrency domains.
 
 
 # Performance
@@ -113,4 +113,3 @@ Reading, writing and removing entries from the cache are performed in constant t
 The LRUCache framework is primarily the work of [Nick Lockwood](https://github.com/nicklockwood).
 
 ([Full list of contributors](https://github.com/nicklockwood/LRUCache/graphs/contributors))
-

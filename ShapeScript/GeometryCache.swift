@@ -9,7 +9,7 @@
 import Euclid
 import LRUCache
 
-public final class GeometryCache: Sendable {
+public final class GeometryCache: @unchecked Sendable {
     private let cache: LRUCache<Key, (mesh: Mesh, associatedData: [Material: Any])>
 
     /// The number of entries currently stored in the cache
