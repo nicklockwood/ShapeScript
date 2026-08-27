@@ -19,6 +19,7 @@ import UIKit
     private(set) var lineCount: Int = 0
     private var lastSpaceIndex: Int?
     private var previousSize: CGSize = .zero
+    private var isUpdatingLayout = false
     private var previousSelectedRange: NSRange?
     private var lastInsertedTextAndRange: (text: String, range: NSRange)?
     private var keyboardFrame: CGRect?
@@ -155,6 +156,13 @@ extension TextView {
         set { textView.selectedRange = newValue }
     }
 
+    var isAllTextSelected: Bool {
+        selectedRange.length > 0 && selectedRange == NSRange(
+            location: 0,
+            length: textView.textStorage.length
+        )
+    }
+
     override var isFirstResponder: Bool {
         textView.isFirstResponder
     }
@@ -225,29 +233,35 @@ extension TextView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        guard !isUpdatingLayout else { return }
+        isUpdatingLayout = true
+        defer { isUpdatingLayout = false }
+
         updateKeyboardInset()
         updateLineNumbers()
         updateInsets()
         let size = frame.size
-        let width = wrapLines ? size.width : .greatestFiniteMagnitude
+        let width = wrapLines ? size.width : textView.unwrappedTextWidth()
         if width != previousSize.width || size.height != previousSize.height {
             previousSize.width = width
             previousSize.height = size.height
             let oldOffset = textView.contentOffset
-            textView.sizeToFitWidth(width, in: size)
+            UIView.performWithoutAnimation {
+                textView.sizeToFitWidth(width, in: size)
+            }
             textView.contentOffset = oldOffset
             if contentSize != textView.frame.size {
                 contentSize = textView.frame.size
             }
-            let textView = textView
+            let resizedTextView = textView
             DispatchQueue.main.async {
                 let maxY = max(
-                    -textView.contentInset.top,
-                    textView.contentSize.height
-                        - textView.frame.height + textView.contentInset.bottom
+                    -resizedTextView.contentInset.top,
+                    resizedTextView.contentSize.height
+                        - resizedTextView.frame.height + resizedTextView.contentInset.bottom
                 )
-                if textView.contentOffset.y > maxY {
-                    textView.contentOffset.y = maxY
+                if resizedTextView.contentOffset.y > maxY {
+                    resizedTextView.contentOffset.y = maxY
                 }
             }
         }
@@ -385,6 +399,10 @@ extension TextView {
     override func selectAll(_ sender: Any?) {
         textView.selectAll(sender)
     }
+
+    @objc func deselect(_: Any?) {
+        selectedRange = NSRange(location: selectedRange.location, length: 0)
+    }
 }
 
 // MARK: UITextViewDelegate
@@ -458,6 +476,25 @@ extension TextView: UITextViewDelegate {
 
         // Track range
         previousSelectedRange = textView.selectedRange
+    }
+
+    @available(iOS 16.0, *)
+    func textView(
+        _: UITextView,
+        editMenuForTextIn _: NSRange,
+        suggestedActions: [UIMenuElement]
+    ) -> UIMenu? {
+        guard isAllTextSelected else {
+            return nil
+        }
+
+        let actions = suggestedActions.replacingSelectAll(with: UIAction(
+            title: "Deselect",
+            image: UIImage(systemName: "xmark.rectangle")
+        ) { [weak self] _ in
+            self?.deselect(nil)
+        })
+        return UIMenu(children: actions)
     }
 
     func textView(
@@ -882,8 +919,8 @@ private final class LayoutManager: NSLayoutManager {
 private extension TextView {
     static func textView(with layoutManager: LayoutManager) -> UITextView {
         let textContainer = NSTextContainer(size: .zero)
-        textContainer.widthTracksTextView = true
-        textContainer.heightTracksTextView = true
+        textContainer.widthTracksTextView = false
+        textContainer.heightTracksTextView = false
         layoutManager.addTextContainer(textContainer)
         let textStorage = NSTextStorage()
         textStorage.addLayoutManager(layoutManager)
@@ -1122,12 +1159,18 @@ private final class _UITextView: UITextView {
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         switch action {
         case #selector(selectAll(_:)):
-            true
+            textView?.isAllTextSelected != true
+        case #selector(deselect(_:)):
+            textView?.isAllTextSelected == true
         case #selector(captureTextFromCamera(_:)):
             false // weird and broken
         default:
             super.canPerformAction(action, withSender: sender)
         }
+    }
+
+    @objc func deselect(_: Any?) {
+        selectedRange = NSRange(location: selectedRange.location, length: 0)
     }
 
     override func captureTextFromCamera(_: Any?) {
@@ -1214,20 +1257,58 @@ private final class _UITextView: UITextView {
 }
 
 private extension UITextView {
+    func unwrappedTextWidth() -> CGFloat {
+        var width: CGFloat = 0
+        let text = textStorage.string as NSString
+        let attributes = typingAttributes
+        text.enumerateSubstrings(
+            in: NSRange(location: 0, length: text.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, range, _, _ in
+            let lineWidth = text.substring(with: range).size(withAttributes: attributes).width
+            width = max(width, ceil(lineWidth))
+        }
+        let textContainerInsets = textContainerInset.left + textContainerInset.right
+        let lineFragmentPadding = textContainer.lineFragmentPadding * 2
+        return width + textContainerInsets + lineFragmentPadding + contentInset.left + contentInset.right
+    }
+
     func sizeToFitWidth(_ width: CGFloat, in bounds: CGSize) {
-        let newWidth = sizeThatFits(CGSize(
-            width: width - contentInset.left - contentInset.right,
-            height: CGFloat.greatestFiniteMagnitude
-        )).width + contentInset.left + contentInset.right
         let newSize = CGSize(
-            width: max(newWidth, bounds.width),
+            width: max(width, bounds.width),
             height: bounds.height
         )
+        let textContainerSize = CGSize(
+            width: max(0, newSize.width - contentInset.left - contentInset.right),
+            height: .greatestFiniteMagnitude
+        )
+        if textContainer.size != textContainerSize {
+            textContainer.size = textContainerSize
+        }
         if newSize != frame.size {
             frame.size = newSize
             DispatchQueue.main.async {
                 self.contentOffset.x = -self.contentInset.left
             }
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+@MainActor private extension [UIMenuElement] {
+    func replacingSelectAll(with replacement: UIAction) -> [UIMenuElement] {
+        flatMap { element -> [UIMenuElement] in
+            if let command = element as? UICommand,
+               command.action == #selector(UIResponderStandardEditActions.selectAll(_:))
+            {
+                return [replacement]
+            }
+            if let menu = element as? UIMenu {
+                return [menu.replacingChildren(menu.children.replacingSelectAll(
+                    with: replacement
+                ))]
+            }
+            return [element]
         }
     }
 }
