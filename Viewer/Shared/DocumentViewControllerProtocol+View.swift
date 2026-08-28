@@ -108,19 +108,27 @@ extension DocumentViewControllerProtocol {
     }
 
     func refreshGeometry() {
-        // clear scene
-        scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
-
         guard let geometry else {
+            scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
             scnView.allowsCameraControl = showAxes
             updateAxesAndCamera()
             resetView()
             return
         }
 
-        // create geometry
-        for child in geometry.children {
-            scnScene.rootNode.addChildNode(SCNNode(child))
+        let oldAxesNode = axesNode
+        let geometryNodes = scnScene.rootNode.childNodes.filter { $0 !== oldAxesNode }
+        if geometryNodes.count == geometry.children.count,
+           zip(geometryNodes, geometry.children).allSatisfy({ $1.scnNode === $0 })
+        {
+            for (node, child) in zip(geometryNodes, geometry.children) {
+                node.update(with: child)
+            }
+        } else {
+            geometryNodes.forEach { $0.removeFromParentNode() }
+            for child in geometry.children {
+                scnScene.rootNode.addChildNode(SCNNode(child))
+            }
         }
 
         // restore selection

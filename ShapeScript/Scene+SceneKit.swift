@@ -71,6 +71,31 @@ public extension SCNNode {
         }
     }
 
+    func update(with geometry: Geometry) {
+        self.geometry = geometry.scnGeometry
+        setTransform(geometry.transform)
+        geometry.scnNode = self
+        name = geometry.name
+        light = geometry.light.map(SCNLight.init(_:))
+
+        let shouldRenderChildren = geometry.renderChildren || geometry.childDebug || geometry.childIsFocused
+        guard shouldRenderChildren else {
+            childNodes.forEach { $0.removeFromParentNode() }
+            return
+        }
+
+        if childNodes.count == geometry.children.count,
+           zip(childNodes, geometry.children).allSatisfy({ $1.scnNode === $0 })
+        {
+            for (node, child) in zip(childNodes, geometry.children) {
+                node.update(with: child)
+            }
+        } else {
+            childNodes.forEach { $0.removeFromParentNode() }
+            geometry.children.forEach { addChildNode(SCNNode($0)) }
+        }
+    }
+
     convenience init(merged geometry: Geometry) {
         let mesh = geometry.merged()
         self.init(geometry: SCNGeometry(mesh, for: geometry, writesToDepthBuffer: true))
