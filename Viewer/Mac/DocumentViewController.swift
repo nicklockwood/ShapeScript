@@ -10,6 +10,26 @@ import Euclid
 import SceneKit
 import ShapeScript
 
+private final class SelectionSubmenu: NSMenu, @unchecked Sendable {
+    let geometry: Geometry
+    let namesByGeometry: [ObjectIdentifier: String]
+
+    init(
+        title: String,
+        geometry: Geometry,
+        namesByGeometry: [ObjectIdentifier: String]
+    ) {
+        self.geometry = geometry
+        self.namesByGeometry = namesByGeometry
+        super.init(title: title)
+    }
+
+    @available(*, unavailable)
+    required init(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
 @MainActor
 final class DocumentViewController: NSViewController, DocumentViewControllerProtocol {
     let scnScene = SCNScene()
@@ -520,17 +540,23 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             return nil
         }
 
-        var geometries = selectableGeometries(at: location)
-        if geometries.isEmpty {
-            geometries = selectionMenuGeometries(for: document)
-        }
+        let geometries = selectableGeometries(at: location)
         let namesByGeometry = selectionMenuNames(for: document)
         let menu = NSMenu()
-        addSelectionMenuItems(
-            to: menu,
-            for: geometries,
-            namesByGeometry: namesByGeometry
-        )
+        if geometries.isEmpty {
+            addSelectionMenuItems(
+                to: menu,
+                forChildrenOf: document.geometry,
+                namesByGeometry: namesByGeometry,
+                lazySubmenus: true
+            )
+        } else {
+            addSelectionMenuItems(
+                to: menu,
+                for: geometries,
+                namesByGeometry: namesByGeometry
+            )
+        }
         return menu.numberOfItems == 0 ? nil : menu
     }
 
@@ -546,6 +572,30 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 for: geometry,
                 in: geometries,
                 namesByGeometry: namesByGeometry
+            ) else {
+                continue
+            }
+            if menuItem.state == .on || menuItem.state == .mixed {
+                containsSelection = true
+            }
+            menu.addItem(menuItem)
+        }
+        return containsSelection
+    }
+
+    @discardableResult
+    private func addSelectionMenuItems(
+        to menu: NSMenu,
+        forChildrenOf geometry: Geometry,
+        namesByGeometry: [ObjectIdentifier: String],
+        lazySubmenus: Bool
+    ) -> Bool {
+        var containsSelection = false
+        for child in geometry.children {
+            guard let menuItem = selectionMenuItem(
+                for: child,
+                namesByGeometry: namesByGeometry,
+                lazySubmenus: lazySubmenus
             ) else {
                 continue
             }
@@ -597,12 +647,60 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         return menuItem
     }
 
-    private func selectionMenuGeometries(for document: Document) -> [Geometry] {
-        var geometries = [Geometry]()
-        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
-            geometries.append(geometry)
+    private func selectionMenuItem(
+        for geometry: Geometry,
+        namesByGeometry: [ObjectIdentifier: String],
+        lazySubmenus: Bool
+    ) -> NSMenuItem? {
+        guard geometry.isVisibleInSelectionMenu else {
+            return nil
         }
-        return geometries
+
+        let focus = document?.geometry.childIsFocused ?? false
+        let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
+        let menuItem = NSMenuItem(
+            title: title,
+            action: isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
+            keyEquivalent: ""
+        )
+        menuItem.target = self
+        menuItem.representedObject = geometry
+        menuItem.state = (selectedGeometry === geometry) ? .on : .off
+        menuItem.isEnabled = isSelectable
+
+        if geometry.hasSelectionMenuChildren {
+            if lazySubmenus {
+                let submenu = SelectionSubmenu(
+                    title: title,
+                    geometry: geometry,
+                    namesByGeometry: namesByGeometry
+                )
+                submenu.delegate = self
+                submenu.addItem(NSMenuItem(title: "", action: nil, keyEquivalent: ""))
+                menuItem.submenu = submenu
+                menuItem.isEnabled = true
+                if selectedGeometry?.isDescendant(of: geometry) == true {
+                    menuItem.state = .mixed
+                }
+            } else {
+                let submenu = NSMenu()
+                if addSelectionMenuItems(
+                    to: submenu,
+                    forChildrenOf: geometry,
+                    namesByGeometry: namesByGeometry,
+                    lazySubmenus: lazySubmenus
+                ) {
+                    menuItem.state = .mixed
+                }
+                if submenu.numberOfItems > 0 {
+                    menuItem.submenu = submenu
+                    menuItem.isEnabled = true
+                }
+            }
+        }
+
+        return menuItem
     }
 
     private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
@@ -642,6 +740,21 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         default:
             super.keyDown(with: event)
         }
+    }
+}
+
+extension DocumentViewController: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard let menu = menu as? SelectionSubmenu else {
+            return
+        }
+        menu.removeAllItems()
+        _ = addSelectionMenuItems(
+            to: menu,
+            forChildrenOf: menu.geometry,
+            namesByGeometry: menu.namesByGeometry,
+            lazySubmenus: true
+        )
     }
 }
 

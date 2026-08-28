@@ -970,16 +970,19 @@ extension DocumentViewController {
             return nil
         }
 
-        var geometries = selectableGeometries(at: location)
-        if geometries.isEmpty {
-            geometries = selectionMenuGeometries(for: document)
-        }
+        let geometries = selectableGeometries(at: location)
         let namesByGeometry = selectionMenuNames(for: document)
-        let children = selectionMenuElements(
-            for: geometries,
-            document: document,
-            namesByGeometry: namesByGeometry
-        )
+        let children = geometries.isEmpty ?
+            selectionMenuElements(
+                forChildrenOf: document.geometry,
+                document: document,
+                namesByGeometry: namesByGeometry
+            ) :
+            selectionMenuElements(
+                for: geometries,
+                document: document,
+                namesByGeometry: namesByGeometry
+            )
         guard !children.isEmpty else {
             return nil
         }
@@ -1003,6 +1006,20 @@ extension DocumentViewController {
             return selectionMenuElement(
                 for: geometry,
                 in: geometries,
+                document: document,
+                namesByGeometry: namesByGeometry
+            )
+        }
+    }
+
+    private func selectionMenuElements(
+        forChildrenOf geometry: Geometry,
+        document: Document,
+        namesByGeometry: [ObjectIdentifier: String]
+    ) -> [UIMenuElement] {
+        geometry.children.compactMap {
+            selectionMenuElement(
+                for: $0,
                 document: document,
                 namesByGeometry: namesByGeometry
             )
@@ -1042,12 +1059,33 @@ extension DocumentViewController {
         return selectionAction(for: geometry, title: title, isEnabled: isSelectable)
     }
 
-    private func selectionMenuGeometries(for document: Document) -> [Geometry] {
-        var geometries = [Geometry]()
-        document.enumerateSelectionMenuGeometries(in: document.geometry) { geometry in
-            geometries.append(geometry)
+    private func selectionMenuElement(
+        for geometry: Geometry,
+        document: Document,
+        namesByGeometry: [ObjectIdentifier: String]
+    ) -> UIMenuElement? {
+        guard geometry.isVisibleInSelectionMenu else {
+            return nil
         }
-        return geometries
+        let focus = document.geometry.childIsFocused
+        let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
+        let childElements = geometry.hasSelectionMenuChildren ? selectionMenuElements(
+            forChildrenOf: geometry,
+            document: document,
+            namesByGeometry: namesByGeometry
+        ) : []
+
+        if !childElements.isEmpty {
+            var children = [UIMenuElement]()
+            if isSelectable {
+                children.append(selectionAction(for: geometry, title: title))
+            }
+            children.append(contentsOf: childElements)
+            return UIMenu(title: title, children: children)
+        }
+
+        return selectionAction(for: geometry, title: title, isEnabled: isSelectable)
     }
 
     private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
