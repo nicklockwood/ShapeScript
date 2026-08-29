@@ -260,16 +260,18 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             let shape = entry.geometry
             let menuItem = menu.addItem(
                 withTitle: geometryName(for: shape, in: &countsByType),
-                action: #selector(selectShape(_:)),
+                action: entry.isSelectable ? #selector(selectShape(_:)) : nil,
                 keyEquivalent: ""
             )
             menuItem.isEnabled = true
-            index += 1
-            menuItem.tag = index
-            menuItem.representedObject = shape
-            menuItem.state = (selectedGeometry === shape) ? .on : .off
-            if !containsSelection {
-                containsSelection = (selectedGeometry === shape)
+            if entry.isSelectable {
+                index += 1
+                menuItem.tag = index
+                menuItem.representedObject = shape
+                menuItem.state = (selectedGeometry === shape) ? .on : .off
+                if !containsSelection {
+                    containsSelection = (selectedGeometry === shape)
+                }
             }
             if !entry.children.isEmpty {
                 let submenu = NSMenu()

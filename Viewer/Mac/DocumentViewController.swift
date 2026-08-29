@@ -587,12 +587,14 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
         let menuItem = NSMenuItem(
             title: title,
-            action: #selector(selectContextMenuItem(_:)),
+            action: entry.isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
             keyEquivalent: ""
         )
         menuItem.target = self
-        menuItem.representedObject = geometry
-        menuItem.state = (selectedGeometry === geometry) ? .on : .off
+        if entry.isSelectable {
+            menuItem.representedObject = geometry
+            menuItem.state = (selectedGeometry === geometry) ? .on : .off
+        }
         menuItem.isEnabled = true
 
         if !entry.children.isEmpty {

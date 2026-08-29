@@ -1210,7 +1210,7 @@ extension DocumentViewController {
         document: Document,
         namesByGeometry: [ObjectIdentifier: String]
     ) -> [UIMenuElement] {
-        entries.map {
+        entries.compactMap {
             selectionMenuElement(
                 for: $0,
                 document: document,
@@ -1223,7 +1223,7 @@ extension DocumentViewController {
         for entry: SelectionMenuEntry,
         document: Document,
         namesByGeometry: [ObjectIdentifier: String]
-    ) -> UIMenuElement {
+    ) -> UIMenuElement? {
         let geometry = entry.geometry
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
         let childElements = selectionMenuElements(
@@ -1233,11 +1233,17 @@ extension DocumentViewController {
         )
 
         if !childElements.isEmpty {
-            var children: [UIMenuElement] = [selectionAction(for: geometry, title: title)]
+            var children = [UIMenuElement]()
+            if entry.isSelectable {
+                children.append(selectionAction(for: geometry, title: title))
+            }
             children.append(contentsOf: childElements)
             return UIMenu(title: title, children: children)
         }
 
+        guard entry.isSelectable else {
+            return nil
+        }
         return selectionAction(for: geometry, title: title)
     }
 
