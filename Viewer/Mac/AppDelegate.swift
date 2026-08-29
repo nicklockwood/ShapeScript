@@ -15,6 +15,9 @@ import ShapeScript
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let selectShapeMenuIdentifier = NSUserInterfaceItemIdentifier("selectShapeMenu")
+    private static let camerasMenuIdentifier = NSUserInterfaceItemIdentifier("camerasMenu")
+
     var window: NSWindow? {
         NSApp.mainWindow
     }
@@ -284,10 +287,13 @@ extension AppDelegate {
         editMenu.addItem(.separator())
         editMenu.addItem(item("Open in Editor", action: #selector(Document.openInEditor(_:)), key: "e"))
         editMenu.addItem(.separator())
+        let selectShapeMenu = NSMenu(title: "Select Shape")
+        selectShapeMenu.identifier = Self.selectShapeMenuIdentifier
+        selectShapeMenu.delegate = self
         editMenu.addItem(item(
             "Select Shape",
-            action: #selector(Document.selectShapes(_:)),
-            submenu: NSMenu(title: "Select Shape")
+            action: nil,
+            submenu: selectShapeMenu
         ))
         editMenu.addItem(item(
             "Clear Selection",
@@ -310,9 +316,11 @@ extension AppDelegate {
         viewMenu.addItem(item("Customize Toolbar...", action: #selector(NSWindow.runToolbarCustomizationPalette(_:))))
         viewMenu.addItem(.separator())
         camerasMenu = NSMenu(title: "Camera")
+        camerasMenu.identifier = Self.camerasMenuIdentifier
+        camerasMenu.delegate = self
         camerasMenu.addItem(.separator())
         camerasMenu.addItem(item("Reset", action: #selector(DocumentViewController.resetCamera(_:)), key: "0"))
-        viewMenu.addItem(item("Camera", action: #selector(selectCameras(_:)), submenu: camerasMenu))
+        viewMenu.addItem(item("Camera", action: nil, submenu: camerasMenu))
         viewMenu.addItem(item("Orthographic", action: #selector(Document.setOrthographic(_:)), key: "O"))
         viewMenu.addItem(item("Show Wireframe", action: #selector(Document.showWireframe(_:)), key: "W"))
         viewMenu.addItem(item("Show Axes", action: #selector(Document.showAxes(_:)), key: "A"))
@@ -393,9 +401,6 @@ extension AppDelegate {
 extension AppDelegate: NSMenuItemValidation {
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
-        case #selector(selectCameras(_:)):
-            menuItem.title = "Camera"
-            return false
         case #selector(AppDelegate.toggleKeepInFront(_:)):
             menuItem.state = Settings.shared.keepWindowInFront ? .on : .off
             return true
@@ -403,8 +408,21 @@ extension AppDelegate: NSMenuItemValidation {
             return true
         }
     }
+}
 
-    @objc func selectCameras(_: NSMenuItem) {
-        // Does nothing
+extension AppDelegate: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard let document = NSDocumentController.shared.currentDocument as? Document else {
+            return
+        }
+        switch menu.identifier {
+        case Self.selectShapeMenuIdentifier:
+            document.configureSelectMenu(menu)
+        case Self.camerasMenuIdentifier:
+            menu.supermenu?.items.first { $0.submenu === menu }?.title = "Camera (\(document.camera.name))"
+            document.configureCameraMenu(menu)
+        default:
+            break
+        }
     }
 }

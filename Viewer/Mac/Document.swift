@@ -248,7 +248,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     private var selectMenu: NSMenu?
 
-    private func configureSelectMenu(
+    private func addSelectMenuItems(
         _ menu: NSMenu,
         for entries: [SelectionMenuEntry],
         with index: inout Int,
@@ -275,7 +275,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             }
             if !entry.children.isEmpty {
                 let submenu = NSMenu()
-                if configureSelectMenu(
+                if addSelectMenuItems(
                     submenu,
                     for: entry.children,
                     with: &index,
@@ -290,8 +290,15 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         return containsSelection
     }
 
-    @objc func selectShapes(_: NSMenuItem) {
-        // Does nothing
+    func configureSelectMenu(_ menu: NSMenu) {
+        selectMenu = menu
+        var index = 0, countsByType = [String: Int]()
+        _ = addSelectMenuItems(
+            menu,
+            for: geometry.selectionMenuEntries(focus: geometry.childIsFocused),
+            with: &index,
+            countsByType: &countsByType
+        )
     }
 
     @objc func selectShape(_ menuItem: NSMenuItem) {
@@ -316,7 +323,8 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     private var camerasMenu: NSMenu?
 
-    private func configureCameraMenu(_ menu: NSMenu) {
+    func configureCameraMenu(_ menu: NSMenu) {
+        camerasMenu = menu
         while menu.item(at: 0)?.isSeparatorItem == false {
             menu.removeItem(at: 0)
         }
@@ -330,10 +338,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             menuItem.tag = i
             menuItem.keyEquivalentModifierMask = .command
         }
-    }
-
-    @objc func selectCameras(_: NSMenuItem) {
-        // Does nothing
     }
 
     @objc func selectCamera(_ menuItem: NSMenuItem) {
@@ -375,22 +379,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             } else {
                 menuItem.state = (camera == cameras[menuItem.tag]) ? .on : .off
             }
-        case #selector(selectShapes(_:)):
-            if let submenu = menuItem.submenu {
-                selectMenu = submenu
-                var index = 0, countsByType = [String: Int]()
-                _ = configureSelectMenu(
-                    submenu,
-                    for: geometry.selectionMenuEntries(focus: geometry.childIsFocused),
-                    with: &index,
-                    countsByType: &countsByType
-                )
-                return submenu.numberOfItems != 0
-            }
-        case #selector(selectCameras(_:)):
-            menuItem.title = "Camera (\(camera.name))"
-            camerasMenu = menuItem.submenu
-            camerasMenu.map(configureCameraMenu)
         case #selector(clearSelection(_:)):
             return selectedGeometry != nil
         case #selector(showModelInfo(_:)):
