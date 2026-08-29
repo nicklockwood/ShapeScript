@@ -1198,7 +1198,7 @@ extension DocumentViewController {
             return nil
         }
 
-        let menu = UIMenu(title: "Select Shape", children: children)
+        let menu = UIMenu(title: "", children: children)
         if #available(iOS 16, *) {
             menu.preferredElementSize = .large
         }
