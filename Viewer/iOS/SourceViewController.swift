@@ -370,6 +370,9 @@ private extension SourceViewController {
         if let document {
             children.insert(buildEditorSettingsMenu(for: document), at: 0)
         }
+        if let findMenu = document.flatMap(buildFindMenu(for:)) {
+            children.insert(findMenu, at: 0)
+        }
         menuButton.menu = UIMenu(children: children)
     }
 
@@ -409,8 +412,9 @@ private extension SourceViewController {
                         }
                         return [
                             buildEditorSettingsMenu(for: document),
+                            buildFindMenu(for: document),
                             UIMenu(options: .displayInline, children: suggestedActions),
-                        ]
+                        ].compactMap { $0 }
                     }
                 }
             )
@@ -479,6 +483,20 @@ private extension SourceViewController {
         }
         action.attributes = document?.hasUnsavedChanges == true ? [] : .disabled
         return UIMenu(options: .displayInline, children: [action])
+    }
+
+    func buildFindMenu(for document: Document) -> UIMenu? {
+        guard #available(iOS 16.0, *) else {
+            return nil
+        }
+        return UIMenu(options: .displayInline, children: [
+            UIAction(
+                title: document.isEditable ? "Find and Replace" : "Find",
+                image: UIImage(systemName: "text.magnifyingglass")
+            ) { [weak self] _ in
+                self?.textView.findInteraction?.presentFindNavigator(showingReplace: true)
+            },
+        ])
     }
 
     func buildEditorSettingsMenu(for document: Document) -> UIMenu {
