@@ -46,7 +46,7 @@ To run the Viewer app on iOS, or if you prefer to build the Mac app yourself, op
 To use the ShapeScript code library in your own project, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.11.2")),
+.package(url: "https://github.com/nicklockwood/ShapeScript.git", .upToNextMinor(from: "1.11.3")),
 ```
 
 # Usage (Mac)

@@ -1,5 +1,19 @@
 # Change Log
 
+## [1.11.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.3) (2026-08-29)
+
+- Added iOS Source Editor title menu actions for moving, duplicating, renaming and sharing files
+- Added iOS Source Editor title menu actions for line numbers, line wrapping and find/replace
+- Source Editor now opens in a separate window on iPad when using multi-window mode
+- Improved iOS source editor window handling, autosaving, keyboard tracking and toolbar menu titles
+- Improved handling of moved or renamed files and display names containing `/` or `:`
+- Improved responsiveness by updating SceneKit nodes in place and throttling partial updates
+- Fixed UI locking up when building selection menus for complex scenes
+- Added manual save support for network documents on iOS
+- Fixed visionOS build and added glass backgrounds and console ornament
+- Fixed SwiftPM package warning and updated release workflows, LRUCache and ContextMenu dependencies
+- Added `--help` option to the ShapeScript command-line tool
+
 ## [1.11.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.2) (2026-08-16)
 
 - Added offline iOS help with search, syntax highlighting and index sidebar
