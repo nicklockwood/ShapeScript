@@ -39,7 +39,8 @@ let editorHelpURL = onlineHelpURL.appendingPathComponent("editor-help")
 extension UINavigationItem {
     func configureDocumentTitleMenu(
         fileURL: URL?,
-        renameDelegate: (any UINavigationItemRenameDelegate)?
+        renameDelegate: (any UINavigationItemRenameDelegate)?,
+        activityViewControllerProvider: (() -> UIActivityViewController)? = nil
     ) {
         guard let fileURL else {
             documentProperties = nil
@@ -48,7 +49,9 @@ extension UINavigationItem {
             return
         }
 
-        documentProperties = UIDocumentProperties(url: fileURL)
+        let documentProperties = UIDocumentProperties(url: fileURL)
+        documentProperties.activityViewControllerProvider = activityViewControllerProvider
+        self.documentProperties = documentProperties
         self.renameDelegate = renameDelegate
         titleMenuProvider = { suggestedActions in
             UIMenu(children: suggestedActions)

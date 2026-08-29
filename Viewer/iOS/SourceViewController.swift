@@ -290,15 +290,19 @@ private extension SourceViewController {
         guard let document else {
             return
         }
-        let sheet = UIActivityViewController(
+        let sheet = makeShareActivityViewController(for: document)
+        sheet.popoverPresentationController?.barButtonItem = shareButton
+        present(sheet, animated: true)
+    }
+
+    func makeShareActivityViewController(for document: Document) -> UIActivityViewController {
+        UIActivityViewController(
             activityItems: [
                 UISimpleTextPrintFormatter(text: document.sourceString),
                 document.documentFileURL as Any,
             ],
             applicationActivities: nil
         )
-        sheet.popoverPresentationController?.barButtonItem = shareButton
-        present(sheet, animated: true)
     }
 
     func didSetDocument() {
@@ -312,10 +316,15 @@ private extension SourceViewController {
         updateFallbackMenu()
 
         let documentMenuItems = document == nil ? [] : menuButton.map { [$0] } ?? []
+        let shareItems: [UIBarButtonItem] = if #available(iOS 16.0, *) {
+            []
+        } else {
+            [shareButton]
+        }
         let items: [UIBarButtonItem] = if document?.isEditable ?? false {
             documentMenuItems + manualSaveItems() + [
                 helpButton,
-                shareButton,
+            ] + shareItems + [
                 redoButton,
                 undoButton,
                 .flexibleSpace(),
@@ -323,7 +332,7 @@ private extension SourceViewController {
         } else {
             documentMenuItems + [
                 helpButton,
-                shareButton,
+            ] + shareItems + [
                 .flexibleSpace(),
             ]
         }
@@ -376,7 +385,16 @@ private extension SourceViewController {
         if #available(iOS 16.0, *) {
             navigationItem.configureDocumentTitleMenu(
                 fileURL: document?.documentFileURL,
-                renameDelegate: document == nil ? nil : self
+                renameDelegate: document == nil ? nil : self,
+                activityViewControllerProvider: document.map { document in
+                    { [weak self] in
+                        self?.makeShareActivityViewController(for: document) ??
+                            UIActivityViewController(
+                                activityItems: [document.documentFileURL as Any],
+                                applicationActivities: nil
+                            )
+                    }
+                }
             )
         }
     }
