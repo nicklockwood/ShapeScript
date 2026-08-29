@@ -1212,8 +1212,11 @@ extension DocumentViewController {
         document: Document,
         namesByGeometry: [ObjectIdentifier: String]
     ) -> [UIMenuElement] {
-        geometries.compactMap { geometry in
-            guard !geometries.contains(where: { geometry.isDescendant(of: $0) }) else {
+        let focus = document.geometry.childIsFocused
+        return geometries.compactMap { geometry -> UIMenuElement? in
+            guard !geometries.contains(where: {
+                geometry.isDescendant(of: $0) && $0.isSelectableInSelectionMenu(focus: focus)
+            }) else {
                 return nil
             }
             return selectionMenuElement(
@@ -1230,9 +1233,20 @@ extension DocumentViewController {
         document: Document,
         namesByGeometry: [ObjectIdentifier: String]
     ) -> [UIMenuElement] {
-        geometry.children.compactMap {
-            selectionMenuElement(
-                for: $0,
+        geometry.children.flatMap { child -> [UIMenuElement] in
+            if let element = selectionMenuElement(
+                for: child,
+                document: document,
+                namesByGeometry: namesByGeometry
+            ) {
+                return [element]
+            }
+            let focus = document.geometry.childIsFocused
+            guard !child.isSelectable(focus: focus), child.hasSelectionMenuChildren else {
+                return []
+            }
+            return selectionMenuElements(
+                forChildrenOf: child,
                 document: document,
                 namesByGeometry: namesByGeometry
             )
@@ -1250,6 +1264,9 @@ extension DocumentViewController {
         }
         let focus = document.geometry.childIsFocused
         let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        guard isSelectable else {
+            return nil
+        }
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
         let childGeometries = geometries.filter {
             $0 !== geometry && $0.isDescendant(of: geometry)
@@ -1269,7 +1286,7 @@ extension DocumentViewController {
             return UIMenu(title: title, children: children)
         }
 
-        return selectionAction(for: geometry, title: title, isEnabled: isSelectable)
+        return selectionAction(for: geometry, title: title)
     }
 
     private func selectionMenuElement(
@@ -1282,6 +1299,9 @@ extension DocumentViewController {
         }
         let focus = document.geometry.childIsFocused
         let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        guard isSelectable else {
+            return nil
+        }
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
         let childElements = geometry.hasSelectionMenuChildren ? selectionMenuElements(
             forChildrenOf: geometry,
@@ -1298,7 +1318,7 @@ extension DocumentViewController {
             return UIMenu(title: title, children: children)
         }
 
-        return selectionAction(for: geometry, title: title, isEnabled: isSelectable)
+        return selectionAction(for: geometry, title: title)
     }
 
     private func selectionMenuNames(for document: Document) -> [ObjectIdentifier: String] {
@@ -1315,20 +1335,16 @@ extension DocumentViewController {
 
     private func selectionAction(
         for geometry: Geometry,
-        title: String,
-        isEnabled: Bool = true
+        title: String
     ) -> UIAction {
         UIAction(
             title: title,
             image: nil,
             identifier: nil,
             discoverabilityTitle: nil,
-            attributes: isEnabled ? [] : [.disabled],
+            attributes: [],
             state: selectedGeometry === geometry ? .on : .off
         ) { [weak self] _ in
-            guard isEnabled else {
-                return
-            }
             self?.selectGeometry(geometry.scnNode)
         }
     }

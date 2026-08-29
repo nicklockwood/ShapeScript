@@ -567,7 +567,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         namesByGeometry: [ObjectIdentifier: String]
     ) -> Bool {
         var containsSelection = false
-        for geometry in geometries where !geometries.contains(where: { geometry.isDescendant(of: $0) }) {
+        let focus = document?.geometry.childIsFocused ?? false
+        for geometry in geometries where !geometries.contains(where: {
+            geometry.isDescendant(of: $0) && $0.isSelectableInSelectionMenu(focus: focus)
+        }) {
             guard let menuItem = selectionMenuItem(
                 for: geometry,
                 in: geometries,
@@ -597,6 +600,18 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 namesByGeometry: namesByGeometry,
                 lazySubmenus: lazySubmenus
             ) else {
+                let focus = document?.geometry.childIsFocused ?? false
+                if !child.isSelectable(focus: focus),
+                   child.hasSelectionMenuChildren,
+                   addSelectionMenuItems(
+                       to: menu,
+                       forChildrenOf: child,
+                       namesByGeometry: namesByGeometry,
+                       lazySubmenus: lazySubmenus
+                   )
+                {
+                    containsSelection = true
+                }
                 continue
             }
             if menuItem.state == .on || menuItem.state == .mixed {
@@ -614,16 +629,19 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     ) -> NSMenuItem? {
         let focus = document?.geometry.childIsFocused ?? false
         let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        guard geometry.isVisibleInSelectionMenu, isSelectable else {
+            return nil
+        }
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
         let menuItem = NSMenuItem(
             title: title,
-            action: isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
+            action: #selector(selectContextMenuItem(_:)),
             keyEquivalent: ""
         )
         menuItem.target = self
         menuItem.representedObject = geometry
         menuItem.state = (selectedGeometry === geometry) ? .on : .off
-        menuItem.isEnabled = isSelectable
+        menuItem.isEnabled = true
 
         let childGeometries = geometries.filter {
             $0 !== geometry && $0.isDescendant(of: geometry)
@@ -637,13 +655,11 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             ) {
                 menuItem.state = .mixed
             }
-            menuItem.submenu = submenu
-            menuItem.isEnabled = isSelectable || geometry.hasSelectableSelectionMenuDescendants(focus: focus)
+            if submenu.numberOfItems > 0 {
+                menuItem.submenu = submenu
+            }
         }
 
-        guard geometry.isVisibleInSelectionMenu else {
-            return nil
-        }
         return menuItem
     }
 
@@ -658,30 +674,34 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
         let focus = document?.geometry.childIsFocused ?? false
         let isSelectable = geometry.isSelectableInSelectionMenu(focus: focus)
+        guard isSelectable else {
+            return nil
+        }
         let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
         let menuItem = NSMenuItem(
             title: title,
-            action: isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
+            action: #selector(selectContextMenuItem(_:)),
             keyEquivalent: ""
         )
         menuItem.target = self
         menuItem.representedObject = geometry
         menuItem.state = (selectedGeometry === geometry) ? .on : .off
-        menuItem.isEnabled = isSelectable
+        menuItem.isEnabled = true
 
         if geometry.hasSelectionMenuChildren {
             if lazySubmenus {
-                let submenu = SelectionSubmenu(
-                    title: title,
-                    geometry: geometry,
-                    namesByGeometry: namesByGeometry
-                )
-                submenu.delegate = self
-                submenu.addItem(NSMenuItem(title: "", action: nil, keyEquivalent: ""))
-                menuItem.submenu = submenu
-                menuItem.isEnabled = true
-                if selectedGeometry?.isDescendant(of: geometry) == true {
-                    menuItem.state = .mixed
+                if geometry.hasSelectableSelectionMenuDescendants(focus: focus) {
+                    let submenu = SelectionSubmenu(
+                        title: title,
+                        geometry: geometry,
+                        namesByGeometry: namesByGeometry
+                    )
+                    submenu.delegate = self
+                    submenu.addItem(NSMenuItem(title: "", action: nil, keyEquivalent: ""))
+                    menuItem.submenu = submenu
+                    if selectedGeometry?.isDescendant(of: geometry) == true {
+                        menuItem.state = .mixed
+                    }
                 }
             } else {
                 let submenu = NSMenu()
@@ -695,7 +715,6 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 }
                 if submenu.numberOfItems > 0 {
                     menuItem.submenu = submenu
-                    menuItem.isEnabled = true
                 }
             }
         }

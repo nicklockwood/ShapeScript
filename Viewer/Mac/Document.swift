@@ -253,30 +253,46 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         for shape: Geometry,
         with index: inout Int,
         countsByType: inout [String: Int],
-        focus: Bool
+        focus: Bool,
+        removeExistingItems: Bool = true
     ) -> Bool {
-        menu.removeAllItems()
+        if removeExistingItems {
+            menu.removeAllItems()
+        }
         var containsSelection = false
         for shape in shape.children {
             guard shape.isVisibleInSelectionMenu else {
                 continue
             }
             let isSelectable = shape.isSelectableInSelectionMenu(focus: focus)
+            guard isSelectable else {
+                if !shape.isSelectable(focus: focus),
+                   shape.hasSelectionMenuChildren,
+                   configureSelectMenu(
+                       menu,
+                       for: shape,
+                       with: &index,
+                       countsByType: &countsByType,
+                       focus: focus,
+                       removeExistingItems: false
+                   )
+                {
+                    containsSelection = true
+                }
+                continue
+            }
             let hasSelectionMenuChildren = shape.hasSelectionMenuChildren
-            let hasSelectableSelectionMenuDescendants = shape.hasSelectableSelectionMenuDescendants(focus: focus)
             let menuItem = menu.addItem(
                 withTitle: geometryName(for: shape, in: &countsByType),
-                action: isSelectable ? #selector(selectShape(_:)) : nil,
+                action: #selector(selectShape(_:)),
                 keyEquivalent: ""
             )
-            menuItem.isEnabled = isSelectable || hasSelectableSelectionMenuDescendants
-            if isSelectable {
-                index += 1
-                menuItem.tag = index
-                menuItem.state = (selectedGeometry === shape) ? .on : .off
-                if !containsSelection {
-                    containsSelection = (selectedGeometry === shape)
-                }
+            menuItem.isEnabled = true
+            index += 1
+            menuItem.tag = index
+            menuItem.state = (selectedGeometry === shape) ? .on : .off
+            if !containsSelection {
+                containsSelection = (selectedGeometry === shape)
             }
             if hasSelectionMenuChildren {
                 let submenu = NSMenu()
@@ -290,7 +306,9 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                     containsSelection = true
                     menuItem.state = .mixed
                 }
-                menuItem.submenu = submenu
+                if submenu.numberOfItems > 0 {
+                    menuItem.submenu = submenu
+                }
             }
         }
         return containsSelection
