@@ -100,8 +100,8 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
         super.viewDidLoad()
 
         textView.font = .monospacedSystemFont(ofSize: 15, weight: .regular)
-        textView.showLineNumbers = true
-        textView.wrapLines = false
+        textView.showLineNumbers = Settings.shared.value(for: "showLineNumbers") ?? true
+        textView.wrapLines = Settings.shared.value(for: "linewrapEnabled") ?? false
         textView.disableDoubleSpacePeriodShortcut = true
         textView.delegate = self
 
@@ -312,6 +312,10 @@ private extension SourceViewController {
 
         textView.text = document?.sourceString ?? ""
         textView.isEditable = document?.isEditable ?? false
+        if let document {
+            textView.showLineNumbers = document.showLineNumbers
+            textView.wrapLines = document.linewrapEnabled
+        }
         registerUndoManager()
         updateFallbackMenu()
 
@@ -363,6 +367,9 @@ private extension SourceViewController {
                 children.insert(saveMenu, at: 0)
             }
         }
+        if let document {
+            children.insert(buildEditorSettingsMenu(for: document), at: 0)
+        }
         menuButton.menu = UIMenu(children: children)
     }
 
@@ -393,6 +400,17 @@ private extension SourceViewController {
                                 activityItems: [document.documentFileURL as Any],
                                 applicationActivities: nil
                             )
+                    }
+                },
+                menuProvider: document.map { document in
+                    { [weak self] suggestedActions in
+                        guard let self else {
+                            return suggestedActions
+                        }
+                        return [
+                            buildEditorSettingsMenu(for: document),
+                            UIMenu(options: .displayInline, children: suggestedActions),
+                        ]
                     }
                 }
             )
@@ -461,6 +479,31 @@ private extension SourceViewController {
         }
         action.attributes = document?.hasUnsavedChanges == true ? [] : .disabled
         return UIMenu(options: .displayInline, children: [action])
+    }
+
+    func buildEditorSettingsMenu(for document: Document) -> UIMenu {
+        UIMenu(options: .displayInline, children: [
+            UIAction(
+                title: "Line Numbers",
+                image: UIImage(systemName: "list.number"),
+                state: document.showLineNumbers ? .on : .off
+            ) { [weak self] _ in
+                document.showLineNumbers.toggle()
+                self?.textView.showLineNumbers = document.showLineNumbers
+                self?.updateDocumentTitle()
+                self?.updateFallbackMenu()
+            },
+            UIAction(
+                title: "Wrap Lines",
+                image: UIImage(systemName: "arrow.turn.down.left"),
+                state: document.linewrapEnabled ? .on : .off
+            ) { [weak self] _ in
+                document.linewrapEnabled.toggle()
+                self?.textView.wrapLines = document.linewrapEnabled
+                self?.updateDocumentTitle()
+                self?.updateFallbackMenu()
+            },
+        ])
     }
 }
 

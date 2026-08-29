@@ -40,7 +40,8 @@ extension UINavigationItem {
     func configureDocumentTitleMenu(
         fileURL: URL?,
         renameDelegate: (any UINavigationItemRenameDelegate)?,
-        activityViewControllerProvider: (() -> UIActivityViewController)? = nil
+        activityViewControllerProvider: (() -> UIActivityViewController)? = nil,
+        menuProvider: (([UIMenuElement]) -> [UIMenuElement])? = nil
     ) {
         guard let fileURL else {
             documentProperties = nil
@@ -54,7 +55,7 @@ extension UINavigationItem {
         self.documentProperties = documentProperties
         self.renameDelegate = renameDelegate
         titleMenuProvider = { suggestedActions in
-            UIMenu(children: suggestedActions)
+            UIMenu(children: menuProvider?(suggestedActions) ?? suggestedActions)
         }
     }
 }

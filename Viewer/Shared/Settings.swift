@@ -27,6 +27,16 @@ final class Settings: @unchecked Sendable {
     let defaults = UserDefaults.standard
     var associatedData: [String: Any] = [:]
 
+    // MARK: Global
+
+    func value<T>(for key: String) -> T? {
+        defaults.object(forKey: key) as? T
+    }
+
+    func set(_ value: (some Any)?, for key: String) {
+        defaults.set(value, forKey: key)
+    }
+
     // MARK: Document
 
     private var documentSettings = [URL: [String: Any]]()

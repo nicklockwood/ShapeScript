@@ -70,6 +70,16 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
+    var showLineNumbers: Bool {
+        get { Settings.shared.value(for: #function) ?? true }
+        set { Settings.shared.set(newValue, for: #function) }
+    }
+
+    var linewrapEnabled: Bool {
+        get { Settings.shared.value(for: #function) ?? false }
+        set { Settings.shared.set(newValue, for: #function) }
+    }
+
     var errorMessage: NSAttributedString?
     var error: ProgramError? {
         didSet { errorMessage = error?.message(with: sourceString) }
