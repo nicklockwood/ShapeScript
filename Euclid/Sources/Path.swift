@@ -680,8 +680,8 @@ extension Path {
     init(unchecked storage: Storage, plane: Plane?) {
         switch storage {
         case let .points(points):
-            let points = sanitizePoints(points)
-            self.storage = .points(points)
+            assert(sanitizePoints(points) == points)
+            self.storage = storage
             if let plane {
                 assert(points.map(\.position).allSatisfy { plane.intersects($0) })
             }
@@ -1059,7 +1059,7 @@ extension Path {
         }
         switch storage {
         case let .points(points):
-            return Path(unchecked: sanitizePoints(pointsWithRestoredCurvature(points)), plane: plane)
+            return Path(unchecked: pointsWithRestoredCurvature(points), plane: plane)
         case let .subpaths(subpaths):
             return Path(unchecked: .subpaths(subpaths.map {
                 $0.restoringCurvature(from: source)

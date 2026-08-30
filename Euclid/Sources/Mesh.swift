@@ -378,13 +378,18 @@ public extension Mesh {
     ///
     /// > Note: This method can be very time-consuming. For convex polygons use `triangulate()` instead.
     func detessellate(isCancelled: CancellationHandler = { false }) -> Mesh {
+        let isPlanar = isPlanar
+        let preserveRedundantVertices = watertightIfSet == true && !isPlanar
+        if preserveRedundantVertices, polygons.count > 2048 {
+            return self
+        }
         let polygons = polygons.detessellate(
             ensureConvex: false,
             useQualityMerge: isWatertight,
             allowDisjointSharedVertices: isPlanar,
             // A vertex that is redundant within one coplanar face can still be needed by
             // adjacent non-coplanar faces to preserve matching edge segmentation.
-            preserveRedundantVertices: watertightIfSet == true && !isPlanar,
+            preserveRedundantVertices: preserveRedundantVertices,
             isCancelled: isCancelled
         )
         return Mesh(
@@ -815,8 +820,8 @@ private extension Mesh {
                 }
                 return submeshes.flatMap { mesh -> [Mesh] in
                     switch mesh.submeshes.count {
-                    case 0, 1: return [mesh]
-                    default: return mesh.submeshes
+                    case 0, 1: [mesh]
+                    default: mesh.submeshes
                     }
                 }
             }
