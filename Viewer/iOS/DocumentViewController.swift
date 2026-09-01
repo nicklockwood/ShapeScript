@@ -249,8 +249,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     var geometry: Geometry? {
         didSet {
-            refreshGeometry()
-            rebuildMenu()
+            if geometry !== oldValue {
+                refreshGeometry()
+                rebuildMenu()
+            }
         }
     }
 

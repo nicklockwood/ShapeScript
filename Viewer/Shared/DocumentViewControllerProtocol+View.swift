@@ -99,12 +99,15 @@ extension DocumentViewControllerProtocol {
     func refreshView() {
         renderTimer?.invalidate()
         scnView.rendersContinuously = true
-        renderTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.1, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.scnView.rendersContinuously = false
                 self?.renderTimer = nil
             }
         }
+        timer.tolerance = 0.05
+        RunLoop.main.add(timer, forMode: .common)
+        renderTimer = timer
     }
 
     func refreshGeometry() {

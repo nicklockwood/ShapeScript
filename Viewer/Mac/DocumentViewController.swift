@@ -46,6 +46,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private let defaultConsoleHeight: CGFloat = 135
     private weak var warningView: NSView?
     private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
+    private var lastLayoutBackgroundColor: NSColor?
 
     weak var document: Document?
 
@@ -181,7 +182,11 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     }
 
     var geometry: Geometry? {
-        didSet { refreshGeometry() }
+        didSet {
+            if geometry !== oldValue {
+                refreshGeometry()
+            }
+        }
     }
 
     weak var selectedGeometry: Geometry?
@@ -332,6 +337,11 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     override func viewDidAppear() {
         super.viewDidAppear()
         checkDocumentVersion()
+    }
+
+    override func viewDidDisappear() {
+        super.viewDidDisappear()
+        scnView.defaultCameraController.stopInertia()
     }
 
     @discardableResult
@@ -487,8 +497,12 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     override func viewWillLayout() {
         super.viewWillLayout()
         NSAppearance.current = NSApp.effectiveAppearance
+        let backgroundColor = backgroundColor
         scnView.layer?.backgroundColor = backgroundColor.cgColor
-        document?.rerender()
+        if lastLayoutBackgroundColor?.isEqual(backgroundColor) != true {
+            lastLayoutBackgroundColor = backgroundColor
+            document?.rerender()
+        }
         updateAxesAndCamera()
         if !cameraHasMoved {
             resetView()
@@ -671,7 +685,18 @@ extension DocumentViewController: NSMenuDelegate {
 }
 
 extension DocumentViewController: NSWindowDelegate {
-    func windowDidChangeOcclusionState(_: Notification) {
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === view.window else {
+            return
+        }
+        guard window.occlusionState.contains(.visible) else {
+            scnView.defaultCameraController.stopInertia()
+            return
+        }
         refreshView()
+    }
+
+    func windowDidResignKey(_: Notification) {
+        scnView.defaultCameraController.stopInertia()
     }
 }
