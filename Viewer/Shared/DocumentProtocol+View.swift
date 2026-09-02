@@ -491,9 +491,7 @@ extension Geometry {
         for geometries: [Geometry],
         focus: Bool
     ) -> [SelectionMenuEntry] {
-        let menuGeometries = geometries.filter {
-            $0.isVisibleInSelectionMenu
-        }
+        let menuGeometries = geometries.filter(\.isVisibleInSelectionMenu)
         return menuGeometries.compactMap { geometry in
             guard !menuGeometries.contains(where: { geometry.isDescendant(of: $0) }) else {
                 return nil

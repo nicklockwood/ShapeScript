@@ -208,7 +208,7 @@ private extension TokenType {
     }
 }
 
-private extension ArraySlice where Element == Token {
+private extension ArraySlice<Token> {
     func validateNestingDepth() throws {
         var depth = 0
         for token in self {
