@@ -23,9 +23,14 @@ public final class GeometryCache: @unchecked Sendable {
 }
 
 extension GeometryCache {
+    enum MaterialKey: Hashable {
+        case value(Material)
+        case index(Int)
+    }
+
     struct Key: Hashable {
         let type: GeometryType
-        let material: Material?
+        let material: MaterialKey?
         let smoothing: Angle?
         let transform: Transform
         let flipped: Bool
@@ -33,14 +38,18 @@ extension GeometryCache {
     }
 
     subscript(mesh geometry: Geometry) -> Mesh? {
-        get { cache.value(forKey: geometry.cacheKey)?.mesh }
+        get {
+            cache.value(forKey: geometry.cacheKey)?.mesh.replacingMaterialIndexes(
+                using: geometry.materialsByIndex
+            )
+        }
         set {
             guard let newValue else {
                 cache.removeValue(forKey: geometry.cacheKey)
                 return
             }
             cache.setValue(
-                (newValue, [:]),
+                (newValue.replacingMaterialsWithIndexes(using: geometry.indexesByMaterial), [:]),
                 forKey: geometry.cacheKey,
                 cost: newValue.memoryUsage
             )
@@ -57,6 +66,36 @@ extension GeometryCache {
                 value.associatedData[geometry.material] = newValue
                 cache.setValue(value, forKey: geometry.cacheKey)
             }
+        }
+    }
+}
+
+private extension Mesh {
+    func replacingMaterialsWithIndexes(using indexesByMaterial: [Material: Int]) -> Mesh {
+        guard !indexesByMaterial.isEmpty else {
+            return self
+        }
+        return mapPolygons { polygon in
+            guard let material = polygon.material as? ShapeScript.Material,
+                  let index = indexesByMaterial[material]
+            else {
+                return polygon
+            }
+            return polygon.withMaterial(index)
+        }
+    }
+
+    func replacingMaterialIndexes(using materialsByIndex: [Material]) -> Mesh {
+        guard !materialsByIndex.isEmpty else {
+            return self
+        }
+        return mapPolygons { polygon in
+            guard let index = polygon.material as? Int,
+                  materialsByIndex.indices.contains(index)
+            else {
+                return polygon
+            }
+            return polygon.withMaterial(materialsByIndex[index])
         }
     }
 }

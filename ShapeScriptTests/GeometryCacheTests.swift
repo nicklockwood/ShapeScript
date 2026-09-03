@@ -266,6 +266,39 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertEqual(scene.children.last?.material, Material(color: .blue))
     }
 
+    func testUnionCachingUsesMaterialIndexes() throws {
+        let cache = GeometryCache()
+        let scene = try evaluate(parse("""
+        define thing(a b) {
+            union {
+                cube {
+                    color a
+                    position -2
+                }
+                sphere {
+                    color b
+                    position 2
+                }
+            }
+        }
+        thing red blue
+        thing green yellow
+        """), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        // Cache should have only 3 entries: cube, sphere and union
+        XCTAssertEqual(cache.count, 3)
+        let meshes = scene.children.compactMap(\.mesh)
+        XCTAssertEqual(meshes.count, 2)
+        XCTAssertEqual(scene.children.first?.material, Material(color: .red))
+        XCTAssertEqual(scene.children.last?.material, Material(color: .green))
+        XCTAssertEqual(Set(meshes[0].materials.compactMap { $0 as? Material }), [
+            Material(color: .blue),
+        ])
+        XCTAssertEqual(Set(meshes[1].materials.compactMap { $0 as? Material }), [
+            Material(color: .yellow),
+        ])
+    }
+
     func testMinkowskiColorCaching() throws {
         let cache = GeometryCache()
         let scene = try evaluate(parse("""

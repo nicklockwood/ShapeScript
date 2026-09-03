@@ -132,6 +132,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
     }
 
     let cacheKey: GeometryCache.Key
+    let indexesByMaterial: [Material: Int]
+    let materialsByIndex: [Material]
 
     /// The cache used for storing computed meshes
     var cache: GeometryCache? {
@@ -336,6 +338,28 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
         var hasVariedMaterials = false
         var isOpaque = material.isOpaque
+        var cacheIndexesByMaterial = [Material: Int]()
+        var cacheMaterialsByIndex = [Material]()
+
+        func materialKey(
+            for geometry: Geometry,
+            inheritedMaterial: Material
+        ) -> GeometryCache.MaterialKey? {
+            guard geometry.material != inheritedMaterial else {
+                return nil
+            }
+            if geometry.type.usesMaterialInMeshGeneration {
+                return .value(geometry.material)
+            }
+            if let index = cacheIndexesByMaterial[geometry.material] {
+                return .index(index)
+            }
+            let index = cacheIndexesByMaterial.count
+            cacheIndexesByMaterial[geometry.material] = index
+            cacheMaterialsByIndex.append(geometry.material)
+            return .index(index)
+        }
+
         func flattenedCacheKey(for geometry: Geometry) -> GeometryCache.Key {
             isOpaque = isOpaque && geometry.material.isOpaque
             if !hasVariedMaterials, geometry.material != material {
@@ -343,7 +367,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             }
             return GeometryCache.Key(
                 type: geometry.type,
-                material: geometry.material == material ? nil : geometry.material,
+                material: materialKey(for: geometry, inheritedMaterial: material),
                 smoothing: geometry.smoothing,
                 transform: geometry.transform,
                 flipped: geometry.transform.isFlipped,
@@ -355,9 +379,11 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
         // Must be set after child keys are generated
         self.isOpaque = isOpaque
+        self.indexesByMaterial = cacheIndexesByMaterial
+        self.materialsByIndex = cacheMaterialsByIndex
         self.cacheKey = .init(
             type: type,
-            material: useMaterialForCache && hasVariedMaterials ? material : nil,
+            material: useMaterialForCache && hasVariedMaterials ? .value(material) : nil,
             smoothing: smoothing,
             transform: .identity,
             flipped: transform.isFlipped,
@@ -788,6 +814,22 @@ extension Geometry {
             return nil
         }
         return mesh
+    }
+}
+
+private extension GeometryType {
+    var usesMaterialInMeshGeneration: Bool {
+        switch self {
+        case let .extrude(_, options) where options.along.count == 1:
+            true
+        case .hull, .minkowski:
+            true
+        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .union, .difference, .intersection, .xor, .stencil,
+             .path, .mesh, .camera, .light:
+            false
+        }
     }
 }
 
