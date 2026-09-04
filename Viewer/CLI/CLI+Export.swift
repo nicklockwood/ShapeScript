@@ -34,6 +34,9 @@ extension ShapeScriptCommand {
         @Flag(help: "Output model using Z as up axis instead of Y.")
         var zUp = false
 
+        @Argument(parsing: .postTerminator, help: "Top-level script options as --name value pairs.")
+        var scriptOptions: [String] = []
+
         init() {}
 
         mutating func run() throws {
@@ -41,7 +44,8 @@ extension ShapeScriptCommand {
             let exportOptions = ExportOptions(convertToZUp: zUp)
             let runner = try CLIRunner(
                 directory: directory,
-                inputPath: inputPath
+                inputPath: inputPath,
+                scriptOptions: scriptOptions
             )
             let outputURL = try output.map {
                 try CLIRunner.exportURL(for: $0, in: directory)

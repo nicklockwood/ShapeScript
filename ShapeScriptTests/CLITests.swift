@@ -47,6 +47,7 @@ final class CLITests: XCTestCase {
         XCTAssertTrue(result.output.contains("USAGE: shapescript check <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("script-options"))
     }
 
     func testInfoHelpDescribesInfoCommand() throws {
@@ -55,6 +56,7 @@ final class CLITests: XCTestCase {
         XCTAssertTrue(result.output.contains("USAGE: shapescript info <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("script-options"))
     }
 
     func testExportHelpDescribesExportCommand() throws {
@@ -62,7 +64,178 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript export <input-path>"))
         XCTAssertTrue(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("script-options"))
         XCTAssertTrue(result.output.contains("--z-up"))
+    }
+
+    func testCheckAcceptsTopLevelScriptOption() throws {
+        try withTemporaryShapeFile("""
+        option radius 1
+        print radius
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--radius",
+                "2",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "2\n")
+        }
+    }
+
+    func testScriptOptionValueFallsBackToString() throws {
+        try withTemporaryShapeFile("""
+        option label ""
+        print label
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--label",
+                "hello",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "hello\n")
+        }
+    }
+
+    func testScriptOptionAcceptsShapeScriptExpression() throws {
+        try withTemporaryShapeFile("""
+        option radius 1
+        print radius
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--radius",
+                "1 + 2",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "3\n")
+        }
+    }
+
+    func testScriptOptionAcceptsStringWithSpaces() throws {
+        try withTemporaryShapeFile("""
+        option label ""
+        print label
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--label",
+                "hello world",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "hello world\n")
+        }
+    }
+
+    func testScriptOptionAcceptsTupleColor() throws {
+        try withTemporaryShapeFile("""
+        option swatch #fff
+        print swatch
+        cube { color swatch }
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--swatch",
+                "1 0 0",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "1 0 0\n")
+        }
+    }
+
+    func testScriptOptionAcceptsParenthesizedTupleColor() throws {
+        try withTemporaryShapeFile("""
+        option swatch #fff
+        print swatch
+        cube { color swatch }
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--swatch",
+                "(1 0 0)",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "1 0 0\n")
+        }
+    }
+
+    func testScriptOptionAcceptsHexColor() throws {
+        try withTemporaryShapeFile("""
+        option swatch #fff
+        print swatch
+        cube { color swatch }
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--swatch",
+                "#ff0000",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "1 0 0\n")
+        }
+    }
+
+    func testRejectsInvalidScriptOptionSyntax() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "radius",
+            ], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.firstOutputLine, "Error: Expected script option values after 'radius'")
+        }
+    }
+
+    func testRejectsUnknownScriptOption() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--radius",
+                "2",
+            ], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(result.firstOutputLine.contains("Unknown option 'radius'"))
+        }
+    }
+
+    func testRejectsScriptOptionTypeMismatch() throws {
+        try withTemporaryShapeFile("""
+        option radius 1
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                inputURL.lastPathComponent,
+                "--",
+                "--radius",
+                "large",
+            ], in: directory)
+            XCTAssertNotEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(result.firstOutputLine.contains("Type mismatch"))
+        }
     }
 
     func testSupportsRootOutputSyntax() throws {
@@ -122,6 +295,24 @@ final class CLITests: XCTestCase {
                 "--z-up",
                 inputURL.lastPathComponent,
                 outputURL.lastPathComponent,
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        }
+    }
+
+    func testSupportsLegacyExportSyntaxWithScriptOption() throws {
+        try withTemporaryShapeFile("""
+        option radius 1
+        cube { size radius }
+        """) { directory, inputURL in
+            let outputURL = directory.appendingPathComponent("model.stl")
+            let result = try runExecutable([
+                inputURL.lastPathComponent,
+                outputURL.lastPathComponent,
+                "--",
+                "--radius",
+                "2",
             ], in: directory)
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
@@ -402,6 +593,14 @@ private extension CLITests {
 
     func withTemporaryShapeFile(_ body: (URL, URL) throws -> Void) throws {
         try withTemporaryFile(named: "model.shape", body)
+    }
+
+    func withTemporaryShapeFile(_ contents: String, _ body: (URL, URL) throws -> Void) throws {
+        try withTemporaryDirectory { directory in
+            let inputURL = directory.appendingPathComponent("model.shape")
+            try contents.write(to: inputURL, atomically: true, encoding: .utf8)
+            try body(directory, inputURL)
+        }
     }
 
     func withTemporaryFile(named name: String, _ body: (URL, URL) throws -> Void) throws {

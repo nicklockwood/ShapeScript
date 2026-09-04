@@ -1411,7 +1411,7 @@ private extension Statement {
         guard case let .option(identifier, expression) = type else {
             preconditionFailure()
         }
-        guard let value = options[identifier.name] else {
+        guard let optionValue = options[identifier.name] else {
             return
         }
         let sourceIndex = context.sourceIndex
@@ -1421,14 +1421,12 @@ private extension Statement {
         }
         let type = try expression.staticType(in: context)
         unusedOptions.remove(identifier.name)
-        guard let value = try RuntimeError.wrap(value.as(type, in: context), at: identifier.range) else {
-            throw RuntimeError(.typeMismatch(
-                for: identifier.name,
-                index: 0,
-                expected: type.errorDescription,
-                got: value.type.errorDescription
-            ), at: identifier.range)
-        }
+        let value = try coerceOptionValue(
+            optionValue,
+            as: type,
+            for: identifier,
+            in: context
+        )
         guard value.isFinite else {
             throw RuntimeError(
                 .assertionFailure("Values must be finite"),
@@ -1437,6 +1435,43 @@ private extension Statement {
         }
         context.define(identifier.name, as: .option(value))
     }
+}
+
+private func coerceOptionValue(
+    _ value: Value,
+    as type: ValueType,
+    for identifier: Identifier,
+    in context: EvaluationContext
+) throws -> Value {
+    if let coercedValue = try RuntimeError.wrap(value.as(type, in: context), at: identifier.range) {
+        return coercedValue
+    }
+    if case let .string(source) = value {
+        do {
+            let program = try parse("define optionValue \(source)")
+            guard program.statements.count == 1,
+                  case let .define(_, definition) = program.statements[0].type,
+                  case let .expression(expression) = definition.type
+            else {
+                throw ParserError(.custom(
+                    "Invalid option value",
+                    hint: nil,
+                    at: nil
+                ))
+            }
+            return try expression.evaluate(as: type, for: identifier.name, in: context)
+        } catch {
+            if error is ParserError {
+                throw error
+            }
+        }
+    }
+    throw RuntimeError(.typeMismatch(
+        for: identifier.name,
+        index: 0,
+        expected: type.errorDescription,
+        got: value.type.errorDescription
+    ), at: identifier.range)
 }
 
 extension Expression {
