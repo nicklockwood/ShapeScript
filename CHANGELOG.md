@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.11.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.4) (2026-09-04)
+
+- Improved partial rendering feedback while geometry is still being generated
+- Improved geometry cache reuse when only material properties change
+- Fixed viewer interaction lockup after switching tabs
+- Fixed extrusion of closed paths containing repeated tail points
+- Improved triangulation, detessellation and path geometry check performance
+- Bumped Euclid to version 0.9.2
+
 ## [1.11.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.3) (2026-08-29)
 
 - Added iOS Source Editor title menu actions for moving, duplicating, renaming and sharing files
