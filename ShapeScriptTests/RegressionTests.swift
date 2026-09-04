@@ -884,44 +884,36 @@ final class RegressionTests: XCTestCase {
         let program = "difference cube { size 0.8 } sphere"
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 188)
-        #endif
     }
 
     func testUnion() throws {
         let program = "union cube { size 0.8 } sphere"
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 236)
-        #endif
     }
 
     func testStencil() throws {
         let program = "stencil cube cylinder { size 0.5 2 0.5 \n color red }"
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 38)
-        #endif
     }
 
     func testHull() throws {
         let program = "hull sphere cube { position 1 }"
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 69)
-        #endif
     }
 
     func testProblematicDetailSphereHull() throws {
@@ -989,11 +981,9 @@ final class RegressionTests: XCTestCase {
         let program = "minkowski sphere { size 0.1 } cube"
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 182)
-        #endif
     }
 
     func testDifference2() throws {
