@@ -66,9 +66,7 @@ public extension SCNNode {
 //            geometry: SCNGeometry($0.polygons.holeEdges)
 //        )) }
 
-        if geometry.renderChildren || geometry.childDebug || geometry.childIsFocused {
-            geometry.children.forEach { addChildNode(SCNNode($0)) }
-        }
+        geometry.renderedChildren.forEach { addChildNode(SCNNode($0)) }
     }
 
     func update(with geometry: Geometry) {
@@ -78,21 +76,16 @@ public extension SCNNode {
         name = geometry.name
         light = geometry.light.map(SCNLight.init(_:))
 
-        let shouldRenderChildren = geometry.renderChildren || geometry.childDebug || geometry.childIsFocused
-        guard shouldRenderChildren else {
-            childNodes.forEach { $0.removeFromParentNode() }
-            return
-        }
-
-        if childNodes.count == geometry.children.count,
-           zip(childNodes, geometry.children).allSatisfy({ $1.scnNode === $0 })
+        let renderedChildren = geometry.renderedChildren
+        if childNodes.count == renderedChildren.count,
+           zip(childNodes, renderedChildren).allSatisfy({ $1.scnNode === $0 })
         {
-            for (node, child) in zip(childNodes, geometry.children) {
+            for (node, child) in zip(childNodes, renderedChildren) {
                 node.update(with: child)
             }
         } else {
             childNodes.forEach { $0.removeFromParentNode() }
-            geometry.children.forEach { addChildNode(SCNNode($0)) }
+            renderedChildren.forEach { addChildNode(SCNNode($0)) }
         }
     }
 
@@ -225,15 +218,12 @@ private extension Geometry {
         with options: Scene.OutputOptions,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
-        if renderChildren || childDebug || childIsFocused {
-            children.scnBuild(
-                with: options,
-                debug: !renderChildren,
-                focus: false,
-                disablingDepthBufferWritesFor: geometries
-            )
-        }
-
+        renderedChildren.scnBuild(
+            with: options,
+            debug: rendersChildrenAsDebugOverlay,
+            focus: false,
+            disablingDepthBufferWritesFor: geometries
+        )
         let writesToDepthBuffer = !geometries.contains(self)
         let key = DataKey(
             debug: debug,
@@ -419,13 +409,11 @@ private extension Geometry {
                 result.append((self, bounds))
             }
         }
-        if renderChildren || childDebug || childIsFocused {
-            result += children.flatMap {
-                $0.renderedGeometriesWithBounds(
-                    parentTransform: accumulatedTransform,
-                    focus: focus
-                )
-            }
+        result += renderedChildren.flatMap {
+            $0.renderedGeometriesWithBounds(
+                parentTransform: accumulatedTransform,
+                focus: focus
+            )
         }
         return result
     }

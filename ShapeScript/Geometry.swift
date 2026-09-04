@@ -63,7 +63,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         return true
     }
 
-    /// Whether children should be rendered separately or are included in mesh
+    @available(*, deprecated, message: "Do not use")
     public var renderChildren: Bool {
         switch type {
         case .group:
@@ -75,6 +75,41 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
              .path, .mesh, .camera, .light:
             false // These don't have children
+        }
+    }
+
+    /// The children currently rendered in place of, or in addition to, this geometry.
+    var renderedChildren: [Geometry] {
+        switch type {
+        case .group:
+            children
+        case .difference, .stencil:
+            if childDebug || childIsFocused {
+                children
+            } else {
+                mesh == nil ? Array(children.prefix(1)) : []
+            }
+        case .loft, .union, .xor, .extrude, .fill, .hull, .mesh:
+            mesh == nil || childDebug || childIsFocused ? children : []
+        case .intersection, .lathe, .minkowski:
+            childDebug || childIsFocused ? children : []
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .path, .camera, .light:
+            []
+        }
+    }
+
+    /// Whether `renderedChildren` should be traversed as debug/focus overlay content.
+    var rendersChildrenAsDebugOverlay: Bool {
+        switch type {
+        case .difference, .stencil, .intersection, .lathe, .minkowski:
+            childDebug || childIsFocused
+        case .loft, .union, .xor, .extrude, .fill, .hull:
+            mesh != nil && (childDebug || childIsFocused)
+        case .group,
+             .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .path, .mesh, .camera, .light:
+            false
         }
     }
 
@@ -419,7 +454,7 @@ public extension Geometry {
         let target = self
         var geometry = self
         while let parent = geometry.parent {
-            guard parent.renderChildren ||
+            guard parent.renderedChildren.contains(where: { $0 === geometry }) ||
                 (geometry === target && (geometry.debug || geometry.isFocused)) ||
                 (geometry !== target && (geometry.childDebug || geometry.childIsFocused))
             else {
@@ -955,10 +990,18 @@ private extension Geometry {
         if isLeaf, !buildMesh(isCancelled) {
             return false
         }
-        for child in children where !child.buildLeaves(isCancelled) {
-            return false
+        switch type {
+        case .difference, .stencil:
+            return children.first?.buildLeaves(isCancelled) ?? true
+        case .group, .union, .xor, .intersection, .hull, .minkowski,
+             .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .path, .mesh, .camera, .light:
+            for child in children where !child.buildLeaves(isCancelled) {
+                return false
+            }
+            return true
         }
-        return true
     }
 
     /// With leaves built, do a rough preview
@@ -975,16 +1018,15 @@ private extension Geometry {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
         case .mesh where children.isEmpty:
-            break
+            assert(mesh != nil) // Already built by buildLeaves
         case .mesh:
-            mesh = children.merged(isCancelled) // TODO: not really sure what to do here
+            break // Children-only or mesh + children
         case .group, .circle, .square, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(isLeaf) // Leaves
-        case .stencil, .difference:
-            mesh = children.first?.merged(isCancelled)
-        case .union, .xor, .intersection, .hull, .minkowski, .camera, .light:
+        case .union, .xor, .intersection, .stencil, .difference,
+             .hull, .minkowski, .camera, .light:
             mesh = nil
         }
         return !isCancelled()
@@ -996,10 +1038,10 @@ private extension Geometry {
         for child in children where !child.buildFinal(isCancelled) {
             return false
         }
-        if !isLeaf {
-            return buildMesh(isCancelled)
+        if isLeaf, mesh != nil {
+            return !isCancelled()
         }
-        return !isCancelled()
+        return buildMesh(isCancelled)
     }
 
     /// Builds and caches the mesh for the receiver. Already-cached mesh will be re-used if available

@@ -147,8 +147,69 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(cube.debug)
         XCTAssertTrue(sphere.debug)
         XCTAssertTrue(difference.isRenderedInScene(focus: false))
-        XCTAssertFalse(cube.isRenderedInScene(focus: false))
+        XCTAssertTrue(cube.isRenderedInScene(focus: false))
         XCTAssertTrue(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testDifferenceRendersFirstChildForPreview() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+
+        let difference = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(difference.children.first)
+        let sphere = try XCTUnwrap(difference.children.last)
+
+        XCTAssertNil(difference.mesh)
+        XCTAssertTrue(cube.isRenderedInScene(focus: false))
+        XCTAssertFalse(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testUnionRendersChildrenForPreview() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+
+        let union = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(union.children.first)
+        let sphere = try XCTUnwrap(union.children.last)
+
+        XCTAssertNil(union.mesh)
+        XCTAssertTrue(cube.isRenderedInScene(focus: false))
+        XCTAssertTrue(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testSceneKitRenderedChildrenMatchRenderChildrenSemanticsForUnionPreview() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+
+        let union = try XCTUnwrap(scene.children.first)
+
+        XCTAssertNil(union.mesh)
+        XCTAssertEqual(union.renderedChildren, union.children)
+    }
+
+    func testDifferenceRenderedChildrenDependOnDebugState() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            cube
+            debug sphere
+        }
+        """), delegate: nil)
+
+        let difference = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(difference.renderedChildren, difference.children)
     }
 
     func testBooleanChildrenAreOnlyRenderedInSceneWhenFocused() throws {

@@ -14,7 +14,7 @@ import XCTest
 
 import CoreGraphics
 import ImageIO
-import SceneKit
+@preconcurrency import SceneKit
 
 final class PlatformTests: XCTestCase {
     // MARK: Texture conversion
@@ -265,6 +265,76 @@ final class PlatformTests: XCTestCase {
         }
     }
 
+    func testProgressiveSceneBuildRendersBuiltUnionChildrenBeforeUnionMeshIsBuilt() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+        let union = try XCTUnwrap(scene.children.first)
+        let node = SCNNode(union)
+        let didObserveUnbuiltUnion = Flag()
+
+        XCTAssertTrue(scene.build {
+            guard union.mesh == nil,
+                  !union.children.isEmpty,
+                  union.children.allSatisfy({ $0.mesh != nil })
+            else {
+                return false
+            }
+            scene.scnBuild(with: .default)
+            node.update(with: union)
+            didObserveUnbuiltUnion.value = true
+
+            XCTAssertEqual(node.childNodes.count, 2)
+            XCTAssertGreaterThan(node.childNodes[0].geometry?.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+            XCTAssertGreaterThan(node.childNodes[1].geometry?.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+            return false
+        })
+        XCTAssertTrue(didObserveUnbuiltUnion.value)
+    }
+
+    func testSceneBuildRendersDebuggedUnionPreviewChildren() throws {
+        let scene = try evaluate(parse("""
+        debug union {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+        let union = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(union.children.first)
+        let sphere = try XCTUnwrap(union.children.last)
+
+        XCTAssertTrue(cube.build { false })
+        XCTAssertTrue(sphere.build { false })
+        XCTAssertNil(union.mesh)
+        scene.scnBuild(with: .default)
+
+        XCTAssertGreaterThan(cube.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+        XCTAssertGreaterThan(sphere.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+    }
+
+    func testSceneBuildRendersUnionPreviewSiblingsWhenChildIsDebugged() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            debug sphere
+        }
+        """), delegate: nil)
+        let union = try XCTUnwrap(scene.children.first)
+        let cube = try XCTUnwrap(union.children.first)
+        let sphere = try XCTUnwrap(union.children.last)
+
+        XCTAssertTrue(cube.build { false })
+        XCTAssertTrue(sphere.build { false })
+        XCTAssertNil(union.mesh)
+        scene.scnBuild(with: .default)
+
+        XCTAssertGreaterThan(cube.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+        XCTAssertGreaterThan(sphere.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+    }
+
     func testSceneBuildRendersSelfIntersectingFilledPath() throws {
         let scene = try evaluate(parse("""
         fill path {
@@ -297,6 +367,10 @@ final class PlatformTests: XCTestCase {
             children: [],
             sourceLocation: nil
         )
+    }
+
+    private final class Flag: @unchecked Sendable {
+        var value = false
     }
 
     private struct Pixel {
