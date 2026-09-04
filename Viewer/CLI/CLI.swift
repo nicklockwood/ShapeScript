@@ -79,6 +79,9 @@ public extension ShapeScriptCommand {
         var index = arguments.startIndex
         while index < arguments.endIndex {
             let argument = arguments[index]
+            if argument == "--" {
+                break
+            }
             if argument == "--output" || argument == "-o" {
                 hasOutputOption = true
             }
@@ -108,7 +111,8 @@ public extension ShapeScriptCommand {
             let output = positionals[1]
             var normalizedArguments = arguments
             normalizedArguments.remove(at: output.index)
-            return ["export"] + normalizedArguments + ["--output", output.value]
+            normalizedArguments.insert(["--output", output.value], beforeTerminator: "--")
+            return ["export"] + normalizedArguments
         }
         let subcommand = hasOutputOption ? "export" : "info"
         return [subcommand] + arguments
@@ -128,6 +132,33 @@ private func isLegacyInputPath(_ path: String) -> Bool {
     return !url.pathExtension.isEmpty || FileManager.default.fileExists(atPath: url.path)
 }
 
+private extension Array where Element: Equatable {
+    mutating func insert(_ elements: [Element], beforeTerminator terminator: Element) {
+        if let index = firstIndex(of: terminator) {
+            insert(contentsOf: elements, at: index)
+        } else {
+            append(contentsOf: elements)
+        }
+    }
+}
+
+private func parseScriptOptions(_ arguments: [String]) throws -> [String: Any] {
+    guard arguments.count.isMultiple(of: 2) else {
+        throw CLIError("Expected script option values after '\(arguments.last ?? "")'")
+    }
+    return try stride(from: 0, to: arguments.count, by: 2).reduce(into: [:]) { options, index in
+        let argument = arguments[index]
+        guard argument.hasPrefix("--"), argument.count > 2 else {
+            throw CLIError("Invalid script option '\(argument)'")
+        }
+        let name = String(argument.dropFirst(2))
+        guard !name.isEmpty else {
+            throw CLIError("Invalid script option '\(argument)'")
+        }
+        options[name] = arguments[index + 1]
+    }
+}
+
 extension ShapeScriptCommand {
     struct Check: ParsableCommand {
         static let configuration = CommandConfiguration(
@@ -137,12 +168,16 @@ extension ShapeScriptCommand {
         @Argument(help: "Input .shape file.")
         var inputPath: String
 
+        @Argument(parsing: .postTerminator, help: "Top-level script options as --name value pairs.")
+        var scriptOptions: [String] = []
+
         init() {}
 
         mutating func run() throws {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
-                inputPath: inputPath
+                inputPath: inputPath,
+                scriptOptions: scriptOptions
             )
             try runner.check()
         }
@@ -156,12 +191,16 @@ extension ShapeScriptCommand {
         @Argument(help: "Input .shape file.")
         var inputPath: String
 
+        @Argument(parsing: .postTerminator, help: "Top-level script options as --name value pairs.")
+        var scriptOptions: [String] = []
+
         init() {}
 
         mutating func run() throws {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
-                inputPath: inputPath
+                inputPath: inputPath,
+                scriptOptions: scriptOptions
             )
             try runner.info()
         }
@@ -170,12 +209,13 @@ extension ShapeScriptCommand {
 
 final class CLIRunner {
     let inputURL: URL
+    let scriptOptions: [String: Any]
 
     var defaultExportURL: URL {
         inputURL.deletingPathExtension().appendingPathExtension("stl")
     }
 
-    init(directory: String, inputPath: String) throws {
+    init(directory: String, inputPath: String, scriptOptions: [String] = []) throws {
         let inputURL = expandPath(inputPath, in: directory)
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
             guard !inputURL.pathExtension.isEmpty else {
@@ -187,6 +227,7 @@ final class CLIRunner {
             throw CLIError("Unsupported file type '\(inputURL.pathExtension)'")
         }
         self.inputURL = inputURL
+        self.scriptOptions = try parseScriptOptions(scriptOptions)
     }
 
     func check() throws {
@@ -210,7 +251,7 @@ final class CLIRunner {
             let program = try parse(input)
             let cache = GeometryCache()
             printStatus("Running script ...")
-            let scene = try evaluate(program, delegate: self, cache: cache) { false }
+            let scene = try evaluate(program, options: scriptOptions, delegate: self, cache: cache) { false }
             if buildGeometry {
                 printStatus("Building geometry ...")
                 _ = scene.build { false }
