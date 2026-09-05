@@ -15,6 +15,24 @@ cube {
 }
 ```
 
+## Script Options
+
+You can also use the `option` command at the top level of a `.shape` file to define script options. These work like [custom block options](blocks.md#options), but apply to the whole script rather than a single block.
+
+```swift
+option radius 1
+option color #ff0000
+
+sphere {
+    size radius
+    color color
+}
+```
+
+Each script option must have a default value. The default value is used when no override is supplied, and it also determines the type of value that the option accepts. For example, `option radius 1` expects a number, while `option color #ff0000` expects a color.
+
+Script options can be overridden when running a file from the [command-line tool](cli.md), or when importing one ShapeScript file from another (see [import options](import.md#import-options)).
+
 ## Name
 
 The `name` option allows you to assign a name to a given shape or group, for example:
