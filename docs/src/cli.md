@@ -51,6 +51,41 @@ Run `shapescript --help` to see the current command-line usage and available sub
 
 See [Command-Line Export](export.md#command-line-export) for more information.
 
+## Script Options
+
+If a `.shape` file declares [script options](options.md#script-options), you can pass values for them after a `--` separator. Options are written as `--name value` pairs:
+
+```bash
+shapescript check myfile.shape -- --radius 2 --color '#ff0000'
+```
+
+The same syntax works with `info` and `export`:
+
+```bash
+shapescript info myfile.shape -- --label "Test Part"
+shapescript export myfile.shape --output myfile.stl -- --radius 2
+```
+
+Values are interpreted using the type implied by the script option's default value. Simple strings can be passed directly:
+
+```bash
+shapescript check myfile.shape -- --label "Left Bracket"
+```
+
+For vector, color, rotation, or calculated values, use ShapeScript expression syntax and quote the value so your shell passes it as a single argument:
+
+```bash
+shapescript check myfile.shape -- --position "1 0 0"
+shapescript check myfile.shape -- --color "(1 0 0)"
+shapescript check myfile.shape -- --radius "1 + 2"
+```
+
+Hex colors should normally be quoted, because `#` begins a comment in many shells:
+
+```bash
+shapescript check myfile.shape -- --color '#ff0000'
+```
+
 ## Building from Source
 
 You can also build the command-line tool from source. This builds the feature-limited open source version used for the Linux build, not the full macOS version described above.
