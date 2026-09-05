@@ -2307,6 +2307,47 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.imports, ["File1.shape"])
     }
 
+    func testImportWithOptionOverrides() throws {
+        try withTemporaryImportFile("""
+        option foo 1
+        option bar 2
+        print foo bar
+        """) { directory in
+            let program = try parse("""
+            import "Imported.shape" {
+                foo 5
+                bar 6
+            }
+            """)
+            let delegate = TestDelegate(directory: directory)
+            let context = EvaluationContext(source: program.source, delegate: delegate)
+            try program.evaluate(in: context)
+            XCTAssertEqual(delegate.imports, ["Imported.shape"])
+            XCTAssertEqual(delegate.log.logDescription, "5 6")
+        }
+    }
+
+    func testImportWithOptionOverrideExpressions() throws {
+        try withTemporaryImportFile("""
+        option foo 1
+        option swatch #fff
+        print foo swatch
+        """) { directory in
+            let program = try parse("""
+            define amount 4
+            import "Imported.shape" {
+                foo amount + 1
+                swatch 1 0 0
+            }
+            """)
+            let delegate = TestDelegate(directory: directory)
+            let context = EvaluationContext(source: program.source, delegate: delegate)
+            try program.evaluate(in: context)
+            XCTAssertEqual(delegate.imports, ["Imported.shape"])
+            XCTAssertEqual(delegate.log.logDescription, "5 (1 0 0)")
+        }
+    }
+
     func testImportExpression() throws {
         let program = try parse("define foo import \"File1.shape\"")
         let delegate = TestDelegate()
@@ -6141,5 +6182,23 @@ final class InterpreterTests: XCTestCase {
         let delegate = TestDelegate()
         _ = try evaluate(parse(program), delegate: delegate)
         XCTAssertEqual(delegate.log, [50])
+    }
+
+    private func withTemporaryImportFile(
+        _ contents: String,
+        _ body: (URL) throws -> Void
+    ) throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+        try contents.write(
+            to: directory.appendingPathComponent("Imported.shape"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try body(directory)
     }
 }

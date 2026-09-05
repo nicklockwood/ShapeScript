@@ -1229,6 +1229,34 @@ extension Block {
     }
 }
 
+private extension Block {
+    func evaluateImportOptions(in context: EvaluationContext) throws -> [String: Value] {
+        var options = [String: Value]()
+        try context.pushScope { context in
+            statements.gatherDefinitions(in: context)
+            for statement in statements {
+                let sourceIndex = context.sourceIndex
+                context.sourceIndex = statement.range.lowerBound
+                do {
+                    defer {
+                        context.sourceIndex = sourceIndex
+                    }
+                    guard case let .command(identifier, expression) = statement.type,
+                          let expression
+                    else {
+                        throw RuntimeError(
+                            .assertionFailure("Import options must be specified as name/value pairs"),
+                            at: statement.range
+                        )
+                    }
+                    options[identifier.name] = try expression.evaluate(in: context)
+                }
+            }
+        }
+        return options
+    }
+}
+
 extension Statement {
     var isOption: Bool {
         if case .option = type {
@@ -1889,7 +1917,7 @@ extension Expression {
                 }
                 throw RuntimeError(.unknownMember(index.logDescription, of: value), at: rhs.range)
             }
-        case let .import(expression):
+        case let .import(expression, optionsBlock):
             let pathValue = try expression.evaluate(
                 as: .string,
                 for: Keyword.import.rawValue,
@@ -1897,7 +1925,8 @@ extension Expression {
             )
             let path = pathValue.stringValue
             context.sourceIndex = expression.range.lowerBound
-            return try RuntimeError.wrap(context.importFile(at: path), at: expression.range)
+            let options = try optionsBlock?.evaluateImportOptions(in: context) ?? [:]
+            return try RuntimeError.wrap(context.importFile(at: path, options: options), at: expression.range)
         case let .ifelse(condition, body, else: elseBody):
             let oldChildren = context.state.children
             defer { context.state.children = oldChildren }
