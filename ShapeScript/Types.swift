@@ -847,7 +847,7 @@ extension Expression {
         case let .member(expression, _):
             // TODO: can we use member name to infer something about the type?
             expression.inferTypes(for: &params, in: context, with: .any)
-        case let .import(expression):
+        case let .import(expression, _):
             expression.inferTypes(for: &params, in: context, with: .string)
         case let .ifelse(expression, body, else: elseBody):
             expression.inferTypes(for: &params, in: context, with: .boolean)
@@ -1023,7 +1023,7 @@ extension Expression {
                 // TODO: other cases
                 return .any
             }
-        case let .import(expression):
+        case let .import(expression, _):
             var file: String?
             switch expression.type {
             case let .string(string):

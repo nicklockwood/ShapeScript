@@ -68,7 +68,7 @@ public enum ExpressionType: Equatable, Sendable {
     indirect case infix(Expression, InfixOperator, Expression)
     indirect case member(Expression, Identifier)
     indirect case `subscript`(Expression, Expression)
-    indirect case `import`(Expression)
+    indirect case `import`(Expression, Block?)
     indirect case ifelse(Expression, Block, else: Block?)
     indirect case forloop(Identifier?, in: Expression, Block)
     indirect case switchcase(Expression, [CaseStatement], else: Block?)
@@ -509,7 +509,8 @@ private extension ArraySlice<Token> {
             type = .tuple(expressions)
             range = range.lowerBound ..< endToken.range.upperBound
         case .keyword(.import):
-            type = try .import(require(readExpressions(), as: "file path"))
+            let expression = try require(readExpressions(), as: "file path")
+            type = try .import(expression, readBlock())
         case .keyword(.if):
             type = try readIfElse()
             let end = start[start.index(before: startIndex)]

@@ -547,7 +547,7 @@ extension EvaluationContext {
         }
     }
 
-    func importFile(at path: String) throws -> Value {
+    func importFile(at path: String, options: [String: Value] = [:]) throws -> Value {
         let url = try resolveURL(for: path)
         if case let .value(value) = importCache.store[url] {
             return value
@@ -589,7 +589,7 @@ extension EvaluationContext {
                 importStack.removeLast()
             }
             do {
-                try program.evaluate(in: self)
+                try program.evaluate(in: self, options: options)
                 return .void
             } catch {
                 throw RuntimeErrorType.importError(
