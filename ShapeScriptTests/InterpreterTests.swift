@@ -15,6 +15,61 @@ private final class ActiveCallRecorder: @unchecked Sendable {
 }
 
 final class InterpreterTests: XCTestCase {
+    // MARK: Top-level options
+
+    func testTopLevelOptionUsesDefaultValue() throws {
+        let program = try parse("""
+        option radius 1
+        print radius
+        """)
+        let delegate = TestDelegate()
+
+        _ = try evaluate(program, delegate: delegate, cache: nil)
+
+        XCTAssertEqual(delegate.log, [1])
+    }
+
+    func testTopLevelOptionUsesPassedValue() throws {
+        let program = try parse("""
+        option radius 1
+        print radius
+        """)
+        let delegate = TestDelegate()
+
+        _ = try evaluate(program, options: ["radius": 2], delegate: delegate, cache: nil)
+
+        XCTAssertEqual(delegate.log, [2])
+    }
+
+    func testTopLevelOptionPassedValueMustMatchDefaultType() throws {
+        let program = try parse("""
+        option radius 1
+        print radius
+        """)
+
+        XCTAssertThrowsError(try evaluate(
+            program,
+            options: ["radius": "large"],
+            delegate: nil,
+            cache: nil
+        )) { error in
+            XCTAssertEqual((error as? RuntimeError)?.message, "Type mismatch")
+        }
+    }
+
+    func testUnknownTopLevelOptionRejected() throws {
+        let program = try parse("print 1")
+
+        XCTAssertThrowsError(try evaluate(
+            program,
+            options: ["radius": 2],
+            delegate: nil,
+            cache: nil
+        )) { error in
+            XCTAssertEqual((error as? ParserError)?.message, "Unknown option 'radius'")
+        }
+    }
+
     // MARK: Random numbers
 
     func testRandomSeedTruncation() {
@@ -620,15 +675,9 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
-    func testOptionInvalidAtRoot() {
+    func testOptionValidAtRoot() {
         let program = "option foo 5"
-        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case .unknownSymbol("option", _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
     }
 
     func testOptionDoesntShadowDefineInCallerScope() {

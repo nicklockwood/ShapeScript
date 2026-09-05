@@ -9,6 +9,31 @@
 import Foundation
 
 extension Value {
+    init(scriptOption value: Any) throws {
+        switch value {
+        case let array as [Any]:
+            self = try .tuple(array.map(Value.init(scriptOption:)))
+        case let object as [String: Any]:
+            self = try .object(object.mapValues(Value.init(scriptOption:)))
+        case let string as String:
+            self = .string(string)
+        case let number as NSNumber:
+            if number.objCType.pointee == 99 { // boolean
+                self = .boolean(number.boolValue)
+            } else {
+                self = .number(number.doubleValue)
+            }
+        case is NSNull:
+            self = .void
+        default:
+            throw ParserError(.custom(
+                "Unsupported option value '\(value)'",
+                hint: "Options must be JSON-compatible values.",
+                at: nil
+            ))
+        }
+    }
+
     init(jsonData: Data) throws {
         do {
             let json = try JSONSerialization.jsonObject(with: jsonData)
