@@ -1118,19 +1118,27 @@ private extension TextView {
             return
         }
 
-        #if os(visionOS)
-        let windowFrameInScreen = window.convert(window.bounds, to: nil)
-        #else
-        let windowFrameInScreen = window.windowScene?.coordinateSpace.convert(
-            window.bounds,
-            to: window.screen.coordinateSpace
-        ) ?? window.convert(window.bounds, to: nil)
-        #endif
-        let overlap = windowFrameInScreen.intersection(keyboardFrame).height
+        let overlap = frameInScreen(using: window).intersection(keyboardFrame).height
         let bottomInset = max(0, overlap - safeAreaInsets.bottom)
         if _contentInset.bottom != bottomInset {
             _contentInset.bottom = bottomInset
         }
+    }
+
+    func frameInScreen(using window: UIWindow) -> CGRect {
+        #if os(visionOS)
+        return convert(bounds, to: nil)
+        #else
+        let frameInWindow = convert(bounds, to: window)
+        let frameInScene = frameInWindow.offsetBy(
+            dx: window.frame.minX,
+            dy: window.frame.minY
+        )
+        return window.windowScene?.coordinateSpace.convert(
+            frameInScene,
+            to: window.screen.coordinateSpace
+        ) ?? convert(bounds, to: nil)
+        #endif
     }
 }
 
