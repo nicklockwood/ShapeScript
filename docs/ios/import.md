@@ -23,6 +23,47 @@ In this way, the loaded shape is bound to a symbol of your choice, and can be us
 
 **Note:** As with textures, the first time you try to import a file you may see an [access permission](materials.md#access-permission) warning.
 
+## Import Options
+
+Imported ShapeScript files can define [script options](options.md#script-options), which can be overridden by adding a block to the `import` command:
+
+```swift
+import "Wheel.shape" {
+    radius 2
+    color #333333
+}
+```
+
+The statements inside the import block are option overrides for the imported script. They are evaluated in the importing script's scope, then passed into the imported file. The imported file's own `option` declarations still provide the default values and determine the expected types.
+
+For example, if `Wheel.shape` contains:
+
+```swift
+option radius 1
+option color #000000
+
+cylinder {
+    size radius radius 0.25
+    color color
+}
+```
+
+Then the following script imports the wheel twice with different option values:
+
+```swift
+import "Wheel.shape" {
+    radius 1
+    color #222222
+}
+
+import "Wheel.shape" {
+    radius 2
+    color #ff0000
+}
+```
+
+If an import block supplies an option that the imported file has not declared, ShapeScript will report an error.
+
 ## Models
 
 The `import` command is not limited to loading `.shape` files, it can also load 3D models in a variety of standard formats:
