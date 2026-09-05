@@ -15,12 +15,14 @@ public let version: String = "1.11.6"
 
 public func evaluate(
     _ program: Program,
+    options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache? = GeometryCache(),
     isCancelled: @escaping CancellationHandler = { false }
 ) throws -> Scene {
     let (scene, error) = evaluate(
         program,
+        options: options,
         delegate: delegate,
         cache: cache,
         isCancelled: isCancelled
@@ -34,16 +36,23 @@ public func evaluate(
 @_disfavoredOverload
 public func evaluate(
     _ program: Program,
+    options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache?,
     isCancelled: @escaping CancellationHandler
 ) -> (Scene, Error?) {
+    let scriptOptions: [String: Value]
+    do {
+        scriptOptions = try options.mapValues(Value.init(scriptOption:))
+    } catch {
+        return (Scene(background: .color(.clear), children: [], cache: cache), error)
+    }
     let context = EvaluationContext(
         source: program.source,
         delegate: delegate,
         isCancelled: isCancelled
     )
-    let result = Result { try program.evaluate(in: context) }
+    let result = Result { try program.evaluate(in: context, options: scriptOptions) }
     let scene = Scene(
         background: context.background ?? .color(.clear),
         children: context.state.children.compactMap { $0.value as? Geometry },
@@ -413,15 +422,8 @@ final class UserBlock: @unchecked Sendable {
             context.sourceIndex = sourceIndex
             block.statements.gatherDefinitions(in: context)
             for statement in block.statements {
-                if case let .option(identifier, expression) = statement.type {
-                    if case .option? = context.symbol(for: identifier.name)?.getter {
-                        // Ignore default
-                    } else {
-                        try context.define(
-                            identifier.name,
-                            as: .constant(expression.evaluate(in: context))
-                        )
-                    }
+                if statement.isOption {
+                    try statement.evaluateOptionDefault(in: context)
                 } else {
                     try statement.evaluate(in: context)
                 }
@@ -885,7 +887,7 @@ private extension RuntimeError {
 }
 
 extension Program {
-    func evaluate(in context: EvaluationContext) throws {
+    func evaluate(in context: EvaluationContext, options: [String: Value] = [:]) throws {
         let oldSource = context.source
         let oldSourceIndex = context.sourceIndex
         let oldBaseURL = context.state.baseURL
@@ -899,7 +901,25 @@ extension Program {
         }
         statements.gatherDefinitions(in: context)
         do {
-            try statements.forEach { try $0.evaluate(in: context) }
+            var unusedOptions = Set(options.keys)
+            for statement in statements where statement.isOption {
+                try statement.applyOptionOverride(
+                    from: options,
+                    unusedOptions: &unusedOptions,
+                    in: context
+                )
+                try statement.evaluateOptionDefault(in: context)
+            }
+            if let name = unusedOptions.sorted().first {
+                throw ParserError(.custom(
+                    "Unknown option '\(name)'",
+                    hint: nil,
+                    at: nil
+                ))
+            }
+            for statement in statements where !statement.isOption {
+                try statement.evaluate(in: context)
+            }
         } catch is EvaluationCancelled {}
     }
 }
@@ -1210,6 +1230,13 @@ extension Block {
 }
 
 extension Statement {
+    var isOption: Bool {
+        if case .option = type {
+            return true
+        }
+        return false
+    }
+
     func evaluate(in context: EvaluationContext) throws {
         let sourceIndex = context.sourceIndex
         context.sourceIndex = range.lowerBound
@@ -1356,6 +1383,59 @@ extension Statement {
         case .option:
             throw RuntimeError(.unknownSymbol("option", options: []), at: range)
         }
+    }
+}
+
+private extension Statement {
+    func evaluateOptionDefault(in context: EvaluationContext) throws {
+        guard case let .option(identifier, expression) = type else {
+            preconditionFailure()
+        }
+        let sourceIndex = context.sourceIndex
+        context.sourceIndex = range.lowerBound
+        defer {
+            context.sourceIndex = sourceIndex
+        }
+        if case .option? = context.symbol(for: identifier.name)?.getter {
+            // Ignore default
+        } else {
+            try context.define(identifier.name, as: .constant(expression.evaluate(in: context)))
+        }
+    }
+
+    func applyOptionOverride(
+        from options: [String: Value],
+        unusedOptions: inout Set<String>,
+        in context: EvaluationContext
+    ) throws {
+        guard case let .option(identifier, expression) = type else {
+            preconditionFailure()
+        }
+        guard let value = options[identifier.name] else {
+            return
+        }
+        let sourceIndex = context.sourceIndex
+        context.sourceIndex = range.lowerBound
+        defer {
+            context.sourceIndex = sourceIndex
+        }
+        let type = try expression.staticType(in: context)
+        unusedOptions.remove(identifier.name)
+        guard let value = try RuntimeError.wrap(value.as(type, in: context), at: identifier.range) else {
+            throw RuntimeError(.typeMismatch(
+                for: identifier.name,
+                index: 0,
+                expected: type.errorDescription,
+                got: value.type.errorDescription
+            ), at: identifier.range)
+        }
+        guard value.isFinite else {
+            throw RuntimeError(
+                .assertionFailure("Values must be finite"),
+                at: identifier.range
+            )
+        }
+        context.define(identifier.name, as: .option(value))
     }
 }
 
