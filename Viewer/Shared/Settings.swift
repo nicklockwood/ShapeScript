@@ -8,6 +8,7 @@
 
 import CoreServices
 import Foundation
+import ShapeScript
 
 #if canImport(UIKit)
 import UIKit
@@ -25,7 +26,14 @@ final class Settings: @unchecked Sendable {
     static let shared = Settings()
 
     let defaults = UserDefaults.standard
+    let diskCache = DiskCache.shared
     var associatedData: [String: Any] = [:]
+
+    private init() {
+        Task {
+            await diskCache.setCapacity(diskCacheCapacity)
+        }
+    }
 
     // MARK: Global
 
@@ -112,6 +120,83 @@ final class Settings: @unchecked Sendable {
     var keepWindowInFront: Bool {
         get { defaults.object(forKey: #function) as? Bool ?? false }
         set { defaults.set(newValue, forKey: #function) }
+    }
+
+    // MARK: Disk cache
+
+    static let kilobytes: Int = 1_000
+    static let megabytes: Int = 1_000_000
+    static let gigabytes: Int = 1_000_000_000
+
+    static let diskCacheSteps: [Int] = [
+        0,
+        100 * megabytes,
+        250 * megabytes,
+        500 * megabytes,
+        1 * gigabytes,
+        2 * gigabytes,
+        4 * gigabytes,
+        8 * gigabytes,
+        16 * gigabytes,
+    ]
+
+    var diskCacheCapacity: Int {
+        get {
+            let value = defaults.object(forKey: #function) as? Int
+            return Self.nearestDiskCacheCapacityStep(to: value)
+        }
+        set {
+            let value = Self.nearestDiskCacheCapacityStep(to: newValue)
+            defaults.set(value, forKey: #function)
+            Task {
+                await diskCache.setCapacity(value)
+                NotificationCenter.default.post(name: .settingsUpdated, object: nil)
+            }
+        }
+    }
+
+    func clearDiskCache() {
+        Task {
+            await diskCache.removeAll()
+            NotificationCenter.default.post(name: .settingsUpdated, object: nil)
+        }
+    }
+
+    var diskCacheUsage: Int {
+        get async { diskCache.currentUsage }
+    }
+
+    private static func nearestDiskCacheCapacityStep(to value: Int?) -> Int {
+        value.flatMap { value in
+            diskCacheSteps.min {
+                abs($0 - value) < abs($1 - value)
+            }
+        } ?? DiskCache.shared.capacity
+    }
+
+    static func formattedCacheSize(_ bytes: Int) -> String {
+        if bytes == 0 {
+            return "Off"
+        }
+        if bytes < Settings.gigabytes {
+            return "\(bytes / Settings.megabytes) MB"
+        }
+        return "\(bytes / Settings.gigabytes) GB"
+    }
+
+    static func formattedCacheUsage(_ bytes: Int) -> String {
+        func roundedUp(_ value: Int, to unit: Int) -> Int {
+            (value + unit - 1) / unit
+        }
+
+        switch bytes {
+        case ..<megabytes:
+            return "\(roundedUp(bytes, to: kilobytes)) KB"
+        case ..<gigabytes:
+            return String(format: "%.1f MB", Double(bytes) / Double(megabytes))
+        default:
+            return String(format: "%.1f GB", Double(bytes) / Double(gigabytes))
+        }
     }
 }
 
