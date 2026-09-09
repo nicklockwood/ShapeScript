@@ -57,7 +57,6 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
-    var rerenderRequired: Bool = false
     private var observer: Any?
     private var saveTimer: Timer?
     private var isAutosaving = false

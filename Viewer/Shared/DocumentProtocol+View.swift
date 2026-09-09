@@ -45,16 +45,13 @@ extension DocumentProtocol {
     }
 
     func rerender() {
-        guard let loadingProgress,
-              loadingProgress.didSucceed
-        else {
-            rerenderRequired = true
+        guard let loadingProgress, loadingProgress.didSucceed else {
+            didUpdateSource()
             return
         }
         let cameraSettings = camera.settings
         let backgroundColor = Self.backgroundColor
         let showWireframe = showWireframe && viewController?.isQuickLook != true
-        rerenderRequired = false
         loadingProgress.dispatch { progress in
             if case let .success(scene) = progress.status,
                !scene.children.isEmpty
@@ -114,9 +111,6 @@ extension DocumentProtocol {
             case let .partial(scene), let .success(scene):
                 error = nil
                 self.scene = scene
-                if case .success = status, rerenderRequired {
-                    rerender()
-                }
             case let .failure(error):
                 self.error = error
                 updateViews()

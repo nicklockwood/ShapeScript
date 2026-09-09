@@ -23,7 +23,6 @@ protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
 
     var scene: Scene? { get set }
     var loadingProgress: LoadingProgress? { get set }
-    var rerenderRequired: Bool { get set }
     var sourceString: String { get set }
     var error: ProgramError? { get set }
     var cameras: [Camera] { get set }

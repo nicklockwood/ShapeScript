@@ -49,7 +49,6 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { updateViews() }
     }
 
-    var rerenderRequired: Bool = false
     private var observer: Any?
 
     var sourceString: String = "" {
