@@ -69,6 +69,22 @@ final class SVGPathTests: XCTestCase {
         XCTAssertEqual(svgPath.string(with: writeOptions), "A50 50 180 1 1 60 0")
     }
 
+    func testArcWithOmittedFlagSeparators() throws {
+        let parseOptions = SVGPath.ParseOptions(invertYAxis: false)
+        let svgPath = try SVGPath(string: "M0 0 A10 10 0 0110 10", with: parseOptions)
+        let expected = SVGPath(commands: [
+            .moveTo(.zero),
+            .arc(.init(
+                radius: .init(x: 10, y: 10),
+                rotation: 0,
+                largeArc: false,
+                sweep: true,
+                end: .init(x: 10, y: 10)
+            )),
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
     func testCross() throws {
         let svgPath = try SVGPath(string: "M2 1 h1 v1 h1 v1 h-1 v1 h-1 v-1 h-1 v-1 h1 z")
         let expected = SVGPath(commands: [
@@ -284,6 +300,17 @@ final class SVGPathTests: XCTestCase {
                 .init(x: 201.34289489999998, y: -179.9833954)
             ),
             .end,
+        ])
+        XCTAssertEqual(svgPath, expected)
+    }
+
+    func testRelativeCommandAfterEndUsesSubpathStart() throws {
+        let svgPath = try SVGPath(string: "M0 0 L10 0 Z l5 5", with: .init(invertYAxis: false))
+        let expected = SVGPath(commands: [
+            .moveTo(.zero),
+            .lineTo(.init(x: 10, y: 0)),
+            .end,
+            .lineTo(.init(x: 5, y: 5)),
         ])
         XCTAssertEqual(svgPath, expected)
     }
@@ -717,6 +744,15 @@ final class SVGPathTests: XCTestCase {
     func testWhitespaceOnlyPath() throws {
         let svgPath = try SVGPath(string: "   \n\t  ")
         XCTAssertTrue(svgPath.commands.isEmpty)
+    }
+
+    func testFormFeedWhitespace() throws {
+        let svgPath = try SVGPath(string: "M0\u{000C}0\u{000C}L10\u{000C}10")
+        let expected = SVGPath(commands: [
+            .moveTo(.zero),
+            .lineTo(.init(x: 10, y: -10)),
+        ])
+        XCTAssertEqual(svgPath, expected)
     }
 
     func testMultipleMoves() throws {

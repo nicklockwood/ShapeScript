@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.3.1](https://github.com/nicklockwood/SVGPath/releases/tag/1.3.1) (2026-09-10)
+
+- Fixed relative moveto commands after line commands
+- Fixed relative commands after closepath to resolve from the subpath start
+- Added support for omitted separators between arc flags
+- Added support for form feed whitespace in SVG path data
+- Increased minimum iOS version to 15 and minimum macOS version to 12
+
 ## [1.3.0](https://github.com/nicklockwood/SVGPath/releases/tag/1.3.0) (2025-12-25)
 
 - Added SwiftUI convenience extensions and example app

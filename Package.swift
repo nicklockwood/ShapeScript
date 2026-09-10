@@ -24,7 +24,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/nicklockwood/SVGPath.git",
-            .upToNextMinor(from: "1.3.0")
+            .upToNextMinor(from: "1.3.1")
         ),
         .package(url: "https://github.com/apple/swift-markdown.git", from: "0.6.0"),
     ],

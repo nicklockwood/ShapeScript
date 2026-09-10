@@ -24,12 +24,12 @@
 
 SVGPath is packaged as a dynamic framework that you can import into your Xcode project. You can install this manually, or by using Swift Package Manager.
 
-**Note:** SVGPath requires Xcode 16+ to build, and runs on iOS 11+ or macOS 10.15+.
+**Note:** SVGPath requires Xcode 16+ to build, and runs on iOS 15+, macOS 12+, or tvOS 11+.
 
 To install using Swift Package Manager, add this to the `dependencies:` section in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/nicklockwood/SVGPath.git", .upToNextMinor(from: "1.3.0")),
+.package(url: "https://github.com/nicklockwood/SVGPath.git", .upToNextMinor(from: "1.3.1")),
 ```
 
 
@@ -173,4 +173,3 @@ let points = svgPath.points(withDetail: detail)
 The SVGPath library is primarily the work of [Nick Lockwood](https://github.com/nicklockwood).
 
 ([Full list of contributors](https://github.com/nicklockwood/SVGPath/graphs/contributors))
-

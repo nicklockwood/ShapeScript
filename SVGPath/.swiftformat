@@ -1,6 +1,6 @@
 # file options
 
---exclude Package.swift
+--exclude Build, Tests/XCTestManifests.swift
 
 # format options
 
@@ -9,23 +9,21 @@
 --decimalgrouping ignore
 --ifdef no-indent
 --self init-only
+--modifier-order nonisolated,convenience
+--shortoptionals except-properties
 --wraparguments before-first
 --wrapcollections before-first
+--wrapconditions after-first
 --maxwidth 120
 
 # rules
 
---lintonly unusedArguments
---lintonly unusedPrivateDeclarations
+--lint-only unusedArguments
+--lint-only unusedPrivateDeclarations
 --enable emptyExtensions
 --enable isEmpty
-# --enable docComments
---enable noForceTryInTests
---enable noForceUnwrapInTests
-# --enable noGuardInTests
 --enable preferFinalClasses
---enable redundantAsync
---enable redundantThrows
---enable redundantEquatable
---enable redundantMemberwiseInit
---enable redundantProperty
+--disable wrapFunctionBodies
+--disable wrapPropertyBodies
+--disable wrapIfStatementBodies
+--disable wrapIfExpressionBodies

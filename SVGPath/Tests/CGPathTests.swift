@@ -107,6 +107,14 @@ final class CGPathTests: XCTestCase {
         XCTAssertEqual(SVGPath(cgPath), svgPath)
     }
 
+    func testRelativeMoveAfterLineUsesCurrentPoint() throws {
+        let svgPath = try SVGPath(
+            string: "M10 10 L20 20 m5 5 l2 2",
+            with: .init(invertYAxis: false)
+        )
+        XCTAssertEqual(CGPath.from(svgPath).currentPoint, CGPoint(x: 27, y: 27))
+    }
+
     func testScientificNotationNumbers() throws {
         let svgPath = try SVGPath(string: "M150 0e0 L75 200e-0 225E+0 200E-0 Z")
         let cgPath = CGMutablePath()

@@ -173,6 +173,15 @@ public struct SVGPath: Hashable, Sendable {
             if number.isEmpty {
                 return
             }
+            while ["a", "A"].contains(token),
+                  [3, 4].contains(numbers.count % 7),
+                  let flag = number.first,
+                  "01".contains(flag),
+                  number.count > 1
+            {
+                numbers.append(flag == "1" ? 1 : 0)
+                number.removeFirst()
+            }
             if let double = Double(number) {
                 numbers.append(double)
                 number = ""
@@ -228,7 +237,7 @@ public struct SVGPath: Hashable, Sendable {
                 index = i
                 token = char
                 isRelative = char > "Z"
-            case " ", "\r", "\n", "\t", ",":
+            case " ", "\r", "\n", "\t", "\u{000C}", ",":
                 try processNumber()
             default:
                 throw SVGError.unexpectedToken(String(char), at: i)
@@ -343,6 +352,8 @@ private extension [SVGCommand] {
         for command in reversed() {
             if let point = command.point {
                 return point
+            } else if command == .end {
+                return lastMove
             }
         }
         return .zero
@@ -522,7 +533,7 @@ public extension SVGCommand {
     fileprivate func relative(to commands: [SVGCommand]) -> SVGCommand {
         switch self {
         case let .moveTo(point):
-            return .moveTo(point + commands.lastMove)
+            return .moveTo(point + commands.lastPoint)
         case let .lineTo(point):
             return .lineTo(point + commands.lastPoint)
         case let .cubic(control1, control2, point):
