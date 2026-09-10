@@ -1,5 +1,5 @@
 //
-//  PreferencesViewController.swift
+//  SettingsViewController.swift
 //  Viewer
 //
 //  Created by Nick Lockwood on 21/12/2018.
@@ -9,7 +9,7 @@
 import Cocoa
 
 @MainActor
-final class PreferencesViewController: NSViewController {
+final class SettingsViewController: NSViewController {
     private let editorPopUp: NSPopUpButton = .init()
 
     override func loadView() {

@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     lazy var preferencesWindowController: NSWindowController = makeWindowController(
-        contentViewController: PreferencesViewController(),
+        contentViewController: SettingsViewController(),
         size: NSSize(width: 480, height: 270),
         title: "ShapeScript Preferences"
     )
