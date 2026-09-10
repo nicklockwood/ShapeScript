@@ -483,6 +483,8 @@ private extension ArraySlice<Token> {
             type = .color(Color(hexString: string) ?? .black)
         case .identifier("switch"):
             type = try readSwitch()
+            let end = start[start.index(before: startIndex)]
+            range = range.lowerBound ..< end.range.upperBound
         case let .identifier(name):
             guard readToken(.call) else {
                 type = .identifier(name)
@@ -510,8 +512,12 @@ private extension ArraySlice<Token> {
             type = try .import(require(readExpressions(), as: "file path"))
         case .keyword(.if):
             type = try readIfElse()
+            let end = start[start.index(before: startIndex)]
+            range = range.lowerBound ..< end.range.upperBound
         case .keyword(.for):
             type = try readForLoop()
+            let end = start[start.index(before: startIndex)]
+            range = range.lowerBound ..< end.range.upperBound
         case .dot, .linebreak, .keyword, .comment, .infix, .lbrace, .lbracket,
              .subscript, .rbrace, .rparen, .rbracket, .eof:
             self = start

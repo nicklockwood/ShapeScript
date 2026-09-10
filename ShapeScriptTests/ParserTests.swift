@@ -988,6 +988,33 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
+    func testIfExpressionRangeInDefinition() throws {
+        let input = "define value if foo {} else { }"
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let valueRange = try XCTUnwrap(input.range(of: "value"))
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{}"))
+        let elseBodyRange = try XCTUnwrap(input.range(of: "{ }"))
+        let expression = Expression(
+            type: .ifelse(
+                Expression(type: .identifier("foo"), range: fooRange),
+                Block(statements: [], range: bodyRange),
+                else: Block(statements: [], range: elseBodyRange)
+            ),
+            range: ifRange.lowerBound ..< elseBodyRange.upperBound
+        )
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "value", range: valueRange),
+                    Definition(type: .expression(expression))
+                ),
+                range: defineRange.lowerBound ..< elseBodyRange.upperBound
+            ),
+        ]))
+    }
+
     func testIfElseIfStatement() throws {
         let input = "if foo {} else if bar { }"
         let ifRange = try XCTUnwrap(input.range(of: "if"))
