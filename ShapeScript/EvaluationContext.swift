@@ -95,7 +95,7 @@ final class EvaluationContext {
     var options: Options = [:]
     private let importCache: ImportCache
     private var importStack: [URL]
-    let isCancelled: Mesh.CancellationHandler
+    let isCancelled: CancellationHandler
 
     var source: String
     var sourceIndex: String.Index?
@@ -520,7 +520,7 @@ extension EvaluationContext {
             .convertToYUp: true,
             .preserveOriginalTopology: true,
         ])
-        return try Geometry(scene.rootNode)
+        return try Geometry(scene.rootNode, isCancelled: isCancelled)
         #else
         return nil
         #endif

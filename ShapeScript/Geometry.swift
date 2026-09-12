@@ -12,7 +12,7 @@ import Foundation
 public typealias Polygon = Euclid.Polygon
 
 /// Cancellation handler - return true to cancel
-public typealias CancellationHandler = @Sendable () -> Bool
+public typealias CancellationHandler = Euclid.CancellationHandler
 
 public final class Geometry: Hashable, @unchecked Sendable {
     public let type: GeometryType
@@ -581,7 +581,11 @@ public extension Geometry {
                 for: [radialApothem, verticalApothem, radialApothem]
             )))
         case let .icosphere(subdivisions):
-            let mesh = Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none)
+            let mesh = Mesh.icosphere(
+                subdivisions: subdivisions,
+                wrapMode: .none,
+                isCancelled: isCancelled
+            )
             let apothem = mesh.polygons.reduce(0.5) { Swift.min($0, abs($1.plane.w)) }
             return copy(transform: transform * .scale(insetScale(for: .init(size: apothem))))
         case let .cylinder(segments):
@@ -644,7 +648,8 @@ public extension Geometry {
                     twist: options.twist,
                     align: options.align,
                     miterLimit: options.miterLimit,
-                    material: material
+                    material: material,
+                    isCancelled: isCancelled
                 )
                 return copy(type: .mesh(mesh))
             }
@@ -837,21 +842,21 @@ private extension Collection<Geometry> {
     /// Computes the union of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Results include both material (if specified) and transform
-    func flattened(with material: Material?, _ isCancelled: @escaping Mesh.CancellationHandler) -> [Mesh] {
+    func flattened(with material: Material?, _ isCancelled: @escaping Euclid.CancellationHandler) -> [Mesh] {
         compactMap { isCancelled() ? nil : $0.flattened(with: material, isCancelled) }
     }
 
     /// Returns the meshes of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Results include both material (if specified) and transform
-    func meshes(with material: Material?, _ isCancelled: @escaping Mesh.CancellationHandler) -> [Mesh] {
+    func meshes(with material: Material?, _ isCancelled: @escaping Euclid.CancellationHandler) -> [Mesh] {
         flatMap { isCancelled() ? [] : $0.meshes(with: material, isCancelled) }
     }
 
     /// Returns a merged mesh for all of the geometries in the collection and all their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Results include both material and transform
-    func merged(_ isCancelled: @escaping Mesh.CancellationHandler) -> Mesh {
+    func merged(_ isCancelled: @escaping Euclid.CancellationHandler) -> Mesh {
         var result = Mesh.empty
         for child in self where !isCancelled() {
             result = result.merge(child.merged(isCancelled))
@@ -1175,7 +1180,7 @@ private extension Geometry {
                 }
                 let shape = shape.materialToVertexColors(material: first.material)
                 if let path = next.path(pretransformed: true) {
-                    sum = .fill(shape).minkowskiSum(
+                    sum = .fill(shape, isCancelled: isCancelled).minkowskiSum(
                         with: path.materialToVertexColors(material: next.material),
                         isCancelled: isCancelled
                     )

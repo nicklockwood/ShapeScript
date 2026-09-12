@@ -420,7 +420,7 @@ private extension Geometry {
 }
 
 public extension Geometry {
-    convenience init(_ scnNode: SCNNode) throws {
+    convenience init(_ scnNode: SCNNode, isCancelled: CancellationHandler = { false }) throws {
         let type: GeometryType
         var transform = Transform.transform(from: scnNode)
         if let scnCamera = scnNode.camera {
@@ -448,13 +448,11 @@ public extension Geometry {
                 shadowOpacity: Color(scnLight.shadowColor).alpha
             ))
         } else if let scnGeometry = scnNode.geometry {
-            guard let mesh = Mesh(
+            type = try .mesh(Mesh(
                 scnGeometry,
-                materialLookup: Material.init(_:)
-            ) else {
-                throw ProgramError.unknownError("Model data was malformed or in an unsupported format")
-            }
-            type = .mesh(mesh)
+                materialLookup: Material.init(_:),
+                isCancelled: isCancelled
+            ))
         } else {
             type = .group
         }
@@ -464,7 +462,9 @@ public extension Geometry {
             transform: transform,
             material: .default,
             smoothing: nil,
-            children: scnNode.childNodes.map(Geometry.init(_:)),
+            children: scnNode.childNodes.map {
+                try Geometry($0, isCancelled: isCancelled)
+            },
             sourceLocation: nil
         )
     }
