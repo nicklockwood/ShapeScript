@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.11.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.5) (2026-09-12)
+
+- Fixed a crash when insetting extruded text with very thin regions
+- Fixed source ranges for `if`, `for` and `switch` expressions
+- Fixed source editor bottom inset on iPad
+- Improved wireframe toggle responsiveness
+- Improved cancellation responsiveness for geometry generation and imported models
+- Improved SVG path import compatibility
+- Improved mesh detessellation, inset and repair behavior
+- Bumped Euclid to version 0.9.4 and SVGPath to version 1.3.1
+
 ## [1.11.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.4) (2026-09-04)
 
 - Improved partial rendering feedback while geometry is still being generated
