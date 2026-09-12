@@ -376,20 +376,17 @@ public extension Mesh {
     /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the merged (possibly non-convex) polygons.
     ///
-    /// > Note: This method can be very time-consuming. For convex polygons use `triangulate()` instead.
+    /// > Note: This method can be very time-consuming. For convex polygons use `detriangulate()` instead.
     func detessellate(isCancelled: CancellationHandler = { false }) -> Mesh {
         let isPlanar = isPlanar
-        let preserveRedundantVertices = watertightIfSet == true && !isPlanar
-        if preserveRedundantVertices, polygons.count > 2048 {
-            return self
-        }
+        let isLargeMesh = polygons.count > 2048
+        let preserveWatertightness = watertightIfSet == true && !isPlanar
         let polygons = polygons.detessellate(
             ensureConvex: false,
-            useQualityMerge: isWatertight,
+            useQualityMerge: watertightIfSet == true && !isLargeMesh,
             allowDisjointSharedVertices: isPlanar,
-            // A vertex that is redundant within one coplanar face can still be needed by
-            // adjacent non-coplanar faces to preserve matching edge segmentation.
-            preserveRedundantVertices: preserveRedundantVertices,
+            preserveWatertightness: preserveWatertightness,
+            removeWatertightSafeRedundantVertices: !isLargeMesh,
             isCancelled: isCancelled
         )
         return Mesh(
@@ -404,10 +401,19 @@ public extension Mesh {
     }
 
     /// Merges coplanar polygons that share one or more edges, provided the result will be convex.
+    /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the merged polygons.
-    func detriangulate() -> Mesh {
-        Mesh(
-            unchecked: polygons.detessellate(ensureConvex: true) { false },
+    func detriangulate(isCancelled: CancellationHandler = { false }) -> Mesh {
+        let isPlanar = isPlanar
+        let preserveWatertightness = watertightIfSet == true && !isPlanar
+        let polygons = polygons.detessellate(
+            ensureConvex: true,
+            allowDisjointSharedVertices: isPlanar,
+            preserveWatertightness: preserveWatertightness,
+            isCancelled: isCancelled
+        )
+        return Mesh(
+            unchecked: polygons,
             bounds: boundsIfSet,
             bsp: nil, // TODO: would it be safe to preserve this?
             isConvex: isKnownConvex,
@@ -534,7 +540,7 @@ public extension Mesh {
                     if vertices.count == 3, let polygon = Polygon(vertices, material: material) {
                         return [polygon.flatteningNormals()]
                     }
-                    guard vertices.count > 3 else {
+                    guard vertices.count > 3, vertices.vectorArea.length > epsilon else {
                         return []
                     }
                     let path = Path(closedVertices.map {
@@ -666,7 +672,7 @@ extension Mesh {
         )
     }
 
-    func bsp(isCancelled: CancellationHandler = { false }) -> BSP {
+    func bsp(isCancelled: CancellationHandler) -> BSP {
         storage.bsp(isCancelled: isCancelled)
     }
 
@@ -742,7 +748,7 @@ private extension Mesh {
         }
 
         private(set) var isKnownConvex: Bool
-        func isConvex(isCancelled: CancellationHandler = { false }) -> Bool {
+        func isConvex(isCancelled: CancellationHandler) -> Bool {
             if !isKnownConvex, bspIfSet == nil {
                 _ = bsp(isCancelled: isCancelled)
             }
@@ -750,7 +756,7 @@ private extension Mesh {
         }
 
         private(set) var bspIfSet: BSP?
-        func bsp(isCancelled: CancellationHandler = { false }) -> BSP {
+        func bsp(isCancelled: CancellationHandler) -> BSP {
             bspLock.lock()
             if bspIfSet == nil {
                 let bsp = BSP(unchecked: polygons, isKnownConvex: isKnownConvex, isCancelled)

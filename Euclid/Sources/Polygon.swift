@@ -585,7 +585,7 @@ extension [Polygon] {
     ///   shared-edge winding consistent.
     func withConsistentWinding(
         isLocked: (Polygon) -> Bool = { _ in false },
-        isCancelled: Polygon.CancellationHandler
+        isCancelled: CancellationHandler
     ) -> [Polygon] {
         guard !isCancelled() else { return self }
         let edgeMap = windingEdgeMap
@@ -713,11 +713,11 @@ extension Collection<Polygon> {
 
     /// Returns all edges that exist at the boundary of a hole.
     var holeEdges: Set<LineSegment> {
-        holeEdges()
+        holeEdges { false }
     }
 
     /// Returns all edges that exist at the boundary of a hole.
-    func holeEdges(isCancelled: Polygon.CancellationHandler = { false }) -> Set<LineSegment> {
+    func holeEdges(isCancelled: Euclid.CancellationHandler) -> Set<LineSegment> {
         var edges = Set<LineSegment>()
         for (index, polygon) in enumerated() {
             if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
@@ -798,7 +798,7 @@ extension Collection<Polygon> {
     /// Insert missing vertices needed to prevent hairline cracks.
     func insertingEdgeVertices(
         with holeEdges: Set<LineSegment>,
-        isCancelled: Polygon.CancellationHandler = { false }
+        isCancelled: Euclid.CancellationHandler = { false }
     ) -> [Polygon] {
         var points = Set<Vector>()
         for (index, edge) in holeEdges.enumerated() {
@@ -826,22 +826,13 @@ extension Collection<Polygon> {
     }
 
     /// Merge vertices with similar positions.
-    /// - Parameter precision: The maximum distance between vertices.
-    func mergingVertices(
-        withPrecision precision: Double,
-        isCancelled: Polygon.CancellationHandler = { false }
-    ) -> [Polygon] {
-        mergingVertices(nil, withPrecision: precision, isCancelled: isCancelled)
-    }
-
-    /// Merge vertices with similar positions.
     /// - Parameters:
     ///   - vertices: The vertices to consider for merging. If `nil`, all vertices will be considered.
     ///   - precision: The distance threshold for merging vertices
     func mergingVertices(
-        _ vertices: Set<Vector>?,
+        _ vertices: Set<Vector>? = nil,
         withPrecision precision: Double,
-        isCancelled: Polygon.CancellationHandler = { false }
+        isCancelled: Euclid.CancellationHandler = { false }
     ) -> [Polygon] {
         var positions = VertexSet(precision: precision)
         var result = [Polygon]()
@@ -914,8 +905,12 @@ extension Collection<Polygon> {
             while let index = queue.popLast() {
                 members.append(index)
                 for edge in polygons[index].undirectedEdges.sorted() {
-                    for neighbor in edgesToPolygons[edge] ?? [] where polygonGroups[neighbor] < 0 {
-                        guard polygons[index].plane.isApproximatelyEqual(to: polygons[neighbor].plane) else {
+                    for neighbor in edgesToPolygons[edge] ?? []
+                        where polygonGroups[neighbor] < 0
+                    {
+                        guard polygons[index].plane.isApproximatelyEqual(
+                            to: polygons[neighbor].plane
+                        ) else {
                             continue
                         }
                         polygonGroups[neighbor] = group
@@ -1053,13 +1048,18 @@ extension Collection<Polygon> {
     ///   - allowDisjointSharedVertices: When `true`, allow polygons to merge across multiple separated
     ///     shared vertex chains. When `false`, only merge polygons whose shared vertices form a single
     ///     contiguous shared boundary.
+    ///   - preserveWatertightness: When `true`, redundant vertices are removed only after all coplanar
+    ///     merges are complete, and only when doing so preserves watertight edge pairing.
+    ///   - removeWatertightSafeRedundantVertices: When `true`, perform the final redundant vertex cleanup
+    ///     pass for removals that preserve watertight edge pairing.
     func detessellate(
         ensureConvex: Bool,
         maxSides: Int = .max,
         useQualityMerge: Bool = true,
         allowDisjointSharedVertices: Bool = true,
-        preserveRedundantVertices: Bool = false,
-        isCancelled: Polygon.CancellationHandler
+        preserveWatertightness: Bool = false,
+        removeWatertightSafeRedundantVertices: Bool = true,
+        isCancelled: Euclid.CancellationHandler
     ) -> [Polygon] {
         guard !isCancelled() else { return [] }
         var planeGroups = [[Polygon]]()
@@ -1074,7 +1074,7 @@ extension Collection<Polygon> {
                 planeGroups.append(planeGroup.polygons)
             }
         }
-        return batch(planeGroups, stride: 4) { planeGroups in
+        let detessellated = batch(planeGroups, stride: 4) { planeGroups in
             var detessellated = [Polygon]()
             for (index, polygons) in planeGroups.enumerated() {
                 if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
@@ -1085,12 +1085,16 @@ extension Collection<Polygon> {
                     maxSides: maxSides,
                     useQualityMerge: useQualityMerge,
                     allowDisjointSharedVertices: allowDisjointSharedVertices,
-                    preserveRedundantVertices: preserveRedundantVertices,
+                    preserveRedundantVertices: preserveWatertightness,
                     isCancelled: isCancelled
                 )
             }
             return detessellated
         }
+        guard preserveWatertightness, removeWatertightSafeRedundantVertices else {
+            return detessellated
+        }
+        return detessellated.removingWatertightSafeRedundantVertices(isCancelled: isCancelled)
     }
 
     /// Merge coplanar polygons that share one or more edges
@@ -1108,7 +1112,7 @@ extension Collection<Polygon> {
         useQualityMerge: Bool = true,
         allowDisjointSharedVertices: Bool = true,
         preserveRedundantVertices: Bool = false,
-        isCancelled: Polygon.CancellationHandler = { false }
+        isCancelled: Euclid.CancellationHandler = { false }
     ) -> [Polygon] {
         assert(areCoplanar)
         assert(allSatisfy { $0.material == first?.material })
@@ -1176,14 +1180,19 @@ extension Collection<Polygon> {
     }
 
     /// Group polygons by plane
-    func groupedByPlane() -> [(plane: Plane, polygons: [Polygon])] {
+    func groupedByPlane(
+        isCancelled: Euclid.CancellationHandler = { false }
+    ) -> [(plane: Plane, polygons: [Polygon])] {
         let polygons = sorted(by: { $0.plane.w < $1.plane.w })
         guard var plane = polygons.first?.plane else {
             return []
         }
         var sorted = [(plane: Plane, polygons: [Polygon])]()
         var groups = [(plane: Plane, polygons: [Polygon])]()
-        for p in polygons {
+        for (index, p) in polygons.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return []
+            }
             if p.plane.w.isApproximatelyEqual(to: plane.w, absoluteTolerance: planeEpsilon) {
                 if let i = groups.lastIndex(where: {
                     $0.plane.isApproximatelyEqual(to: p.plane)
@@ -1263,7 +1272,7 @@ private extension [Polygon] {
         allowDisjointSharedVertices: Bool = true,
         insertingEdgeVertices: Bool = false,
         preserveRedundantVertices: Bool = false,
-        isCancelled: Polygon.CancellationHandler = { false }
+        isCancelled: CancellationHandler
     ) -> [Polygon] {
         let shouldInsertEdgeVertices = insertingEdgeVertices && !ensureConvex && maxSides == .max
         var polygons = self
@@ -1272,7 +1281,10 @@ private extension [Polygon] {
         while shouldContinue, !isCancelled() {
             shouldContinue = false
             if shouldInsertEdgeVertices {
-                polygons = polygons.insertingEdgeVertices(with: polygons.uniqueEdges)
+                polygons = polygons.insertingEdgeVertices(
+                    with: polygons.uniqueEdges,
+                    isCancelled: isCancelled
+                )
             }
             var i = polygons.count - 1
             while i > 0 {
@@ -1313,7 +1325,7 @@ private extension [Polygon] {
     }
 
     /// Insert matching edge points into neighboring polygons
-    mutating func alignSharedEdgePoints(isCancelled: Polygon.CancellationHandler = { false }) {
+    mutating func alignSharedEdgePoints(isCancelled: CancellationHandler) {
         var points = Set<Vector>()
         for (index, polygon) in enumerated() {
             if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
@@ -1343,7 +1355,7 @@ private extension [Polygon] {
         maxSides: Int,
         allowDisjointSharedVertices: Bool,
         preserveRedundantVertices: Bool,
-        isCancelled: Polygon.CancellationHandler = { false }
+        isCancelled: CancellationHandler
     ) -> MergeCandidate? {
         var best: MergeCandidate?
         for (index, pair) in mergeCandidatePairs(isCancelled: isCancelled).enumerated() {
@@ -1379,7 +1391,7 @@ private extension [Polygon] {
     ///
     /// A valid merge still goes through `merge(unchecked:ensureConvex:)`; this
     /// only avoids trying pairs that cannot share a complete edge.
-    func mergeCandidatePairs(isCancelled: Polygon.CancellationHandler = { false }) -> [IndexPair] {
+    func mergeCandidatePairs(isCancelled: CancellationHandler) -> [IndexPair] {
         var indicesByEdge = [LineSegment: [Int]]()
         for (index, polygon) in enumerated() {
             if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
@@ -1405,6 +1417,143 @@ private extension [Polygon] {
         return sharedEdgeCounts.keys.sorted {
             $0.i == $1.i ? $0.j > $1.j : $0.i > $1.i
         }
+    }
+
+    struct RedundantVertexRemovalCandidate {
+        let polygonIndex: Int
+        let vertexIndex: Int
+        let previousEdge: LineSegment
+        let nextEdge: LineSegment
+        let replacementEdge: LineSegment
+
+        var affectedEdges: [LineSegment] {
+            [previousEdge, nextEdge, replacementEdge]
+        }
+    }
+
+    /// Removes redundant vertices in batches that preserve watertight edge parity.
+    ///
+    /// This is used after detessellating known watertight meshes. A redundant vertex may be required
+    /// by a neighboring non-coplanar face; removing it from only one face turns the two shorter
+    /// shared edges into holes. Batched edge parity checks allow removals only when all affected
+    /// polygons can make the matching topology change together.
+    func removingWatertightSafeRedundantVertices(isCancelled: CancellationHandler) -> [Polygon] {
+        var polygons = self
+        while true {
+            let candidates = polygons.redundantVertexRemovalCandidates(isCancelled: isCancelled)
+            guard !candidates.isEmpty, !isCancelled() else {
+                return polygons
+            }
+
+            let edgeCounts = polygons.undirectedEdgeCounts(isCancelled: isCancelled)
+            guard !isCancelled() else {
+                return polygons
+            }
+            var safeCandidates = candidates
+            while true {
+                var edgeDeltas = [LineSegment: Int]()
+                for candidate in safeCandidates {
+                    edgeDeltas[candidate.previousEdge, default: 0] -= 1
+                    edgeDeltas[candidate.nextEdge, default: 0] -= 1
+                    edgeDeltas[candidate.replacementEdge, default: 0] += 1
+                }
+                let filteredCandidates = safeCandidates.filter { candidate in
+                    for edge in candidate.affectedEdges {
+                        let count = (edgeCounts[edge] ?? 0) + (edgeDeltas[edge] ?? 0)
+                        if !count.isMultiple(of: 2) {
+                            return false
+                        }
+                    }
+                    return true
+                }
+                if filteredCandidates.count == safeCandidates.count {
+                    break
+                }
+                safeCandidates = filteredCandidates
+            }
+            guard !safeCandidates.isEmpty else {
+                return polygons
+            }
+
+            let candidatesByPolygon = Dictionary(grouping: safeCandidates, by: \.polygonIndex)
+            for polygonIndex in candidatesByPolygon.keys.sorted(by: >) {
+                var vertices = polygons[polygonIndex].vertices
+                for candidate in candidatesByPolygon[polygonIndex]!.sorted(by: { $0.vertexIndex > $1.vertexIndex }) {
+                    _ = vertices.removeIfRedundant(at: candidate.vertexIndex)
+                }
+                polygons[polygonIndex] = Polygon(
+                    unchecked: vertices,
+                    plane: polygons[polygonIndex].plane,
+                    isConvex: nil,
+                    sanitizeNormals: false,
+                    material: polygons[polygonIndex].material,
+                    id: polygons[polygonIndex].id
+                )
+            }
+        }
+    }
+
+    /// Returns redundant vertex removals that can be considered for the next cleanup batch.
+    ///
+    /// Candidates are limited to non-adjacent vertices within each polygon so that the batch can be
+    /// applied without one removal invalidating the edge endpoints recorded for another.
+    func redundantVertexRemovalCandidates(
+        isCancelled: CancellationHandler
+    ) -> [RedundantVertexRemovalCandidate] {
+        var candidates = [RedundantVertexRemovalCandidate]()
+        for (polygonIndex, polygon) in enumerated() {
+            if polygonIndex.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return candidates
+            }
+            var polygonCandidates = [RedundantVertexRemovalCandidate]()
+            let vertices = polygon.vertices
+            for vertexIndex in vertices.indices where vertices.isRedundant(at: vertexIndex) {
+                guard polygonCandidates.last.map({
+                    !$0.vertexIndex.isAdjacent(to: vertexIndex, inCount: vertices.count)
+                }) ?? true else {
+                    continue
+                }
+                let previousIndex = vertexIndex == 0 ? vertices.count - 1 : vertexIndex - 1
+                let nextIndex = (vertexIndex + 1) % vertices.count
+                let previous = vertices[previousIndex].position
+                let vertex = vertices[vertexIndex].position
+                let next = vertices[nextIndex].position
+                polygonCandidates.append(RedundantVertexRemovalCandidate(
+                    polygonIndex: polygonIndex,
+                    vertexIndex: vertexIndex,
+                    previousEdge: LineSegment(uncheckedUndirected: previous, vertex),
+                    nextEdge: LineSegment(uncheckedUndirected: vertex, next),
+                    replacementEdge: LineSegment(uncheckedUndirected: previous, next)
+                ))
+            }
+            if let first = polygonCandidates.first, let last = polygonCandidates.last,
+               first.vertexIndex.isAdjacent(to: last.vertexIndex, inCount: vertices.count)
+            {
+                polygonCandidates.removeLast()
+            }
+            candidates += polygonCandidates
+        }
+        return candidates
+    }
+
+    /// Counts how many polygons currently share each undirected edge.
+    func undirectedEdgeCounts(isCancelled: CancellationHandler) -> [LineSegment: Int] {
+        var edgeCounts = [LineSegment: Int]()
+        for (index, polygon) in enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return edgeCounts
+            }
+            for edge in polygon.undirectedEdges {
+                edgeCounts[edge, default: 0] += 1
+            }
+        }
+        return edgeCounts
+    }
+}
+
+private extension Int {
+    func isAdjacent(to other: Int, inCount count: Int) -> Bool {
+        abs(self - other) == 1 || abs(self - other) == count - 1
     }
 }
 

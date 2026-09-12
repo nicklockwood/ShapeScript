@@ -31,6 +31,10 @@
 
 import Foundation
 
+/// Callback used to cancel a long-running operation.
+/// - Returns: `true` if operation should be cancelled, or `false` otherwise.
+public typealias CancellationHandler = @Sendable () -> Bool
+
 /// Tolerance used for calculating approximate equality
 let epsilon: Double = 1e-8
 
@@ -97,8 +101,8 @@ extension Collection<Vertex> {
 }
 
 extension [Vertex] {
-    /// Check if vertex is redundant - i.e. that the interpolated values would be the same if it were removed
-    mutating func removeIfRedundant(at index: Int) -> Bool {
+    /// Check if vertex is redundant - i.e. if the interpolated values would be the same if it were removed
+    func isRedundant(at index: Int) -> Bool {
         guard count > 3 else { return false }
         assert(!verticesAreDegenerate(self))
         let a = self[(index == 0) ? count - 1 : index - 1]
@@ -115,7 +119,17 @@ extension [Vertex] {
         guard a.lerp(c, t).isApproximatelyEqual(to: b) else {
             return false
         }
-        // check that removing point won't make vertices degenerate
+        return true
+    }
+
+    /// Removes a redundant vertex if doing so preserves a valid vertex loop.
+    /// - Parameter index: The index of the vertex to test and remove.
+    /// - Returns: `true` if the vertex was removed, otherwise, `false`.
+    mutating func removeIfRedundant(at index: Int) -> Bool {
+        guard isRedundant(at: index) else {
+            return false
+        }
+        // check that removing point didn't make the vertices degenerate
         let removed = remove(at: index)
         if verticesAreDegenerate(self) {
             insert(removed, at: index)
@@ -1100,23 +1114,41 @@ func subpathsFor(_ _points: [PathPoint]) -> [Path] {
     ] : paths
 }
 
+/// Removes a trailing repeat of an already-closed prefix contour
 func removingRepeatedClosedPrefixTail(from points: [PathPoint]) -> [PathPoint] {
     guard points.count > 3 else {
         return points
     }
-    let firstPosition = points[0].position
-    for repeatIndex in 1 ..< points.count - 1 where points[repeatIndex].position == firstPosition {
-        let tailCount = points.count - repeatIndex
-        guard tailCount > 1, tailCount <= 32, tailCount <= repeatIndex + 1 else {
+    let tolerance = max(Bounds(points.map(\.position)).size.length * 1e-9, epsilon)
+    func positionsMatch(_ a: Vector, _ b: Vector) -> Bool {
+        a.isApproximatelyEqual(to: b, absoluteTolerance: tolerance)
+    }
+    func tailRepeatsPrefix(at index: Int, tailCount: Int) -> Bool {
+        for offset in 0 ..< tailCount where !positionsMatch(
+            points[index + offset].position,
+            points[offset].position
+        ) {
+            return false
+        }
+        return true
+    }
+    func tailLiesOnPrefixContour(at index: Int) -> Bool {
+        let contour = points[...index].map(\.position)
+        let tail = points[index...].map(\.position)
+        return tail.allSatisfy { point in
+            contour.contains { positionsMatch(point, $0) }
+        }
+    }
+    let first = points[0].position
+    for index in 1 ..< points.count - 1 where positionsMatch(points[index].position, first) {
+        let tailCount = points.count - index
+        guard tailCount > 1, tailCount <= index + 1 else {
             continue
         }
-        var repeatsPrefix = true
-        for offset in 0 ..< tailCount where points[repeatIndex + offset].position != points[offset].position {
-            repeatsPrefix = false
-            break
-        }
-        if repeatsPrefix {
-            return Array(points[...repeatIndex])
+        if tailRepeatsPrefix(at: index, tailCount: tailCount) ||
+            tailLiesOnPrefixContour(at: index)
+        {
+            return Array(points[...index])
         }
     }
     return points

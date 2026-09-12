@@ -9,6 +9,7 @@
 --decimalgrouping ignore
 --ifdef no-indent
 --self init-only
+--modifier-order nonisolated,convenience
 --shortoptionals except-properties
 --wraparguments before-first
 --wrapcollections before-first
@@ -21,14 +22,9 @@
 --lint-only unusedPrivateDeclarations
 --enable emptyExtensions
 --enable isEmpty
---enable noForceTryInTests
---enable noForceUnwrapInTests
 --enable preferFinalClasses
---enable redundantAsync
---enable redundantThrows
---enable redundantEquatable
---enable redundantMemberwiseInit
---enable redundantVariable
+--disable docComments
 --disable wrapFunctionBodies
 --disable wrapPropertyBodies
---disable docComments
+--disable wrapIfStatementBodies
+--disable wrapIfExpressionBodies
