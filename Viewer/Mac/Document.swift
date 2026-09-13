@@ -210,6 +210,25 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
+    @objc func reloadScene(_: AnyObject) {
+        do {
+            if let fileURL {
+                try read(from: fileURL, ofType: fileURL.pathExtension)
+            } else {
+                didUpdateSource()
+            }
+        } catch {
+            presentError(error)
+        }
+    }
+
+    @objc func clearCacheAndReloadScene(_ sender: AnyObject) {
+        Task { @MainActor in
+            await cache.removeAll()
+            reloadScene(sender)
+        }
+    }
+
     @objc func revealInFinder(_: AnyObject) {
         if let fileURL {
             NSWorkspace.shared.activateFileViewerSelecting([fileURL])
