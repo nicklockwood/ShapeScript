@@ -1090,10 +1090,19 @@ private extension Geometry {
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
     func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        if let mesh = cache?[mesh: self] {
-            self.mesh = mesh
-            return !isCancelled()
-        }
+        cache?.buildMesh(for: self) { mesh in
+            if let mesh {
+                self.mesh = mesh
+                return !isCancelled()
+            }
+            return buildUncachedMesh(isCancelled)
+        } ?? buildUncachedMesh(isCancelled)
+    }
+
+    /// Builds and sets the mesh
+    /// - Note: Child meshes should have already been built before calling (unchecked)
+    /// - Returns: false if cancelled or true when completed
+    func buildUncachedMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
         guard !isCancelled() else { return false }
         switch type {
         case .group, .circle, .square, .path, .camera, .light:
@@ -1230,7 +1239,6 @@ private extension Geometry {
             if let smoothing {
                 mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
-            cache?[mesh: self] = mesh
             return true
         }
         return false

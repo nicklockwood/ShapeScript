@@ -42,3 +42,16 @@ final class TestDelegate: EvaluationDelegate {
         log += values
     }
 }
+
+func evaluate(
+    _ program: Program,
+    delegate: EvaluationDelegate?,
+    isCancelled: @escaping CancellationHandler = { false }
+) throws -> Scene {
+    try ShapeScript.evaluate(
+        program,
+        delegate: delegate,
+        cache: GeometryCache(diskCache: nil),
+        isCancelled: isCancelled
+    )
+}

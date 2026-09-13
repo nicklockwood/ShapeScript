@@ -8,7 +8,7 @@
 
 import Euclid
 
-public struct Camera: Hashable, Sendable {
+public struct Camera: Hashable, Sendable, Codable {
     public var position: Vector?
     public var orientation: Rotation?
     public var scale: Vector?
@@ -27,7 +27,7 @@ public extension Camera {
     var hasScale: Bool { scale != nil }
 }
 
-public struct Light: Hashable, Sendable {
+public struct Light: Hashable, Sendable, Codable {
     public var position: Vector?
     public var orientation: Rotation?
     public var color: Color
@@ -48,7 +48,7 @@ public extension Light {
     var hasOrientation: Bool { orientation != nil }
 }
 
-public struct ExtrudeOptions: Hashable, Sendable {
+public struct ExtrudeOptions: Hashable, Sendable, Codable {
     public var along: [Path]
     public var twist: Angle
     public var align: Path.Alignment
@@ -69,7 +69,7 @@ public struct ExtrudeOptions: Hashable, Sendable {
     }
 }
 
-public enum GeometryType: Hashable, Sendable {
+public enum GeometryType: Hashable, Sendable, Codable {
     case group
     // primitives
     case cone(segments: Int)

@@ -34,6 +34,27 @@ private let testShapesURLs: [URL] = try! FileManager.default
     }
 
 final class RegressionTests: XCTestCase {
+    private var temporaryCacheDirectories: [URL] = []
+
+    override func tearDown() {
+        for temporaryCacheDirectory in temporaryCacheDirectories {
+            try? FileManager.default.removeItem(at: temporaryCacheDirectory)
+        }
+        temporaryCacheDirectories.removeAll()
+        super.tearDown()
+    }
+
+    private func makeGeometryCache() -> GeometryCache {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        temporaryCacheDirectories.append(directory)
+        let diskCache = DiskCache(
+            capacity: DiskCache.defaultCapacity,
+            directory: directory
+        )
+        return GeometryCache(diskCache: diskCache)
+    }
+
     func testFill() throws {
         let program = "fill text \"hello\""
         let delegate = TestDelegate()
@@ -920,7 +941,7 @@ final class RegressionTests: XCTestCase {
     func testUnion() throws {
         let program = "union cube { size 0.8 } sphere"
         let delegate = TestDelegate()
-        let scene = try evaluate(parse(program), delegate: delegate)
+        let scene = try evaluate(parse(program), delegate: delegate, cache: makeGeometryCache())
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 236)
@@ -938,7 +959,7 @@ final class RegressionTests: XCTestCase {
     func testHull() throws {
         let program = "hull sphere cube { position 1 }"
         let delegate = TestDelegate()
-        let scene = try evaluate(parse(program), delegate: delegate)
+        let scene = try evaluate(parse(program), delegate: delegate, cache: makeGeometryCache())
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 65)
