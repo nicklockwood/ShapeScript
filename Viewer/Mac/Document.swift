@@ -13,14 +13,17 @@ import ShapeScript
 
 final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked Sendable {
     static var backgroundColor: NSColor {
-        if Thread.isMainThread {
-            NSAppearance.current = NSApp.effectiveAppearance
-        } else {
-            DispatchQueue.main.sync {
-                NSAppearance.current = NSApp.effectiveAppearance
+        let resolveColor = {
+            var color: NSColor = .underPageBackgroundColor
+            NSApp.effectiveAppearance.performAsCurrentDrawingAppearance {
+                color = color.usingColorSpace(.deviceRGB) ?? color
             }
+            return color
         }
-        return .underPageBackgroundColor
+        guard !Thread.isMainThread else {
+            return resolveColor()
+        }
+        return DispatchQueue.main.sync(execute: resolveColor)
     }
 
     var documentFileURL: URL? {
@@ -170,16 +173,19 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
             return
         }
 
-        do {
-            try NSWorkspace.shared.open(
-                [fileURL],
-                withApplicationAt: editor.url,
-                options: [],
-                configuration: [:]
-            )
-        } catch {
-            settings.userDidChooseEditor = false
-            presentError(error)
+        let configuration = NSWorkspace.OpenConfiguration()
+        NSWorkspace.shared.open(
+            [fileURL],
+            withApplicationAt: editor.url,
+            configuration: configuration
+        ) { [weak self] _, error in
+            guard let error else {
+                return
+            }
+            Task { @MainActor in
+                self?.settings.userDidChooseEditor = false
+                self?.presentError(error)
+            }
         }
     }
 

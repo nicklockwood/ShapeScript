@@ -9,6 +9,7 @@
 import AppKit
 import Euclid
 import ShapeScript
+import UniformTypeIdentifiers
 
 // MARK: Types
 
@@ -20,6 +21,10 @@ typealias OSTextView = NSTextView
 // MARK: General
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!
+
+extension UTType {
+    static let shape: Self = .init(exportedAs: "com.charcoaldesign.shapescript-source", conformingTo: .script)
+}
 
 @MainActor func loadRTF(_ file: String) -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
@@ -96,7 +101,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
     let dialog = NSSavePanel()
     dialog.title = "New Document"
     dialog.showsHiddenFiles = true
-    dialog.allowedFileTypes = ["shape"]
+    dialog.allowedContentTypes = [.shape]
     dialog.nameFieldStringValue = "Untitled.shape"
     dialog.begin { response in
         guard response == .OK, let url = dialog.url else {
@@ -158,7 +163,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
     dialog.title = "Select App"
     dialog.showsHiddenFiles = false
     dialog.directoryURL = appDirectory.map { URL(fileURLWithPath: $0) }
-    dialog.allowedFileTypes = ["app"]
+    dialog.allowedContentTypes = [.applicationBundle]
 
     showSheet(dialog, in: window) { response in
         guard response == .OK, let url = dialog.url else {

@@ -63,21 +63,6 @@ public final class Geometry: Hashable, @unchecked Sendable {
         return true
     }
 
-    @available(*, deprecated, message: "Do not use")
-    public var renderChildren: Bool {
-        switch type {
-        case .group:
-            true
-        case .lathe, .intersection, .difference, .stencil, .minkowski:
-            false
-        case .loft, .union, .xor, .extrude, .fill, .hull:
-            mesh == nil
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
-             .path, .mesh, .camera, .light:
-            false // These don't have children
-        }
-    }
-
     /// The children currently rendered in place of, or in addition to, this geometry.
     var renderedChildren: [Geometry] {
         switch type {

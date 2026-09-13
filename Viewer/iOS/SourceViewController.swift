@@ -865,18 +865,12 @@ extension SourceViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let navigationBar = navigationController?.navigationBar
         let underMenu = scrollView.contentOffset.y > -view.safeAreaInsets.top
-        if #available(iOS 15.0, *) {
-            let appearance = UINavigationBarAppearance()
-            if underMenu {
-                appearance.configureWithDefaultBackground()
-            } else {
-                appearance.configureWithTransparentBackground()
-            }
-            navigationBar?.scrollEdgeAppearance = appearance
-        } else if underMenu {
-            navigationBar?.standardAppearance.configureWithDefaultBackground()
+        let appearance = UINavigationBarAppearance()
+        if underMenu {
+            appearance.configureWithDefaultBackground()
         } else {
-            navigationBar?.standardAppearance.configureWithTransparentBackground()
+            appearance.configureWithTransparentBackground()
         }
+        navigationBar?.scrollEdgeAppearance = appearance
     }
 }

@@ -229,9 +229,7 @@ extension AppDelegate {
         window.title = title ?? ""
         window.titleVisibility = hidesTitle ? .hidden : .visible
         window.titlebarAppearsTransparent = hidesTitle
-        if #available(macOS 11.0, *) {
-            window.titlebarSeparatorStyle = .none
-        }
+        window.titlebarSeparatorStyle = .none
         window.isMovableByWindowBackground = true
         window.contentViewController = contentViewController
         return NSWindowController(window: window)
