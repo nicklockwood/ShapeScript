@@ -10,7 +10,7 @@ import Euclid
 
 public typealias Color = Euclid.Color
 
-public enum MaterialProperty: Hashable, Sendable {
+public enum MaterialProperty: Hashable, Sendable, Codable {
     case color(Color)
     case texture(Texture)
 }
@@ -66,7 +66,7 @@ extension MaterialProperty {
     }
 }
 
-public struct Material: Hashable, Sendable {
+public struct Material: Hashable, Sendable, Codable {
     public var opacity: Optional<MaterialProperty>
     public var albedo: Optional<MaterialProperty>
     public var normals: Optional<Texture>

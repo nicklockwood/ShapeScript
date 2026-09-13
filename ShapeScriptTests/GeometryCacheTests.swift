@@ -12,10 +12,62 @@ import Foundation
 import XCTest
 
 final class GeometryCacheTests: XCTestCase {
+    private var temporaryCacheDirectories: [URL] = []
+    private let alwaysStoreDiskPolicy = GeometryCache.DiskWritePolicy { _ in -.infinity }
+    private let neverStoreDiskPolicy = GeometryCache.DiskWritePolicy { _ in .greatestFiniteMagnitude }
+
+    override func tearDown() {
+        temporaryCacheDirectories.forEach(removeTemporaryCacheDirectory)
+        temporaryCacheDirectories.removeAll()
+        super.tearDown()
+    }
+
+    private func makeCache(
+        directory: URL? = nil,
+        diskWritePolicy: GeometryCache.DiskWritePolicy? = nil
+    ) -> GeometryCache {
+        let diskCache = directory.map(makeDiskCache)
+        return makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: diskWritePolicy ?? neverStoreDiskPolicy
+        )
+    }
+
+    private func makeCache(
+        diskCache: DiskCache?,
+        diskWritePolicy: GeometryCache.DiskWritePolicy? = nil
+    ) -> GeometryCache {
+        .init(
+            diskCache: diskCache,
+            diskWritePolicy: diskWritePolicy ?? neverStoreDiskPolicy
+        )
+    }
+
+    private func makeDiskCache(directory: URL) -> DiskCache {
+        .init(
+            capacity: DiskCache.defaultCapacity,
+            directory: directory
+        )
+    }
+
+    private func makeTemporaryCacheDirectory() -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try! FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        return directory
+    }
+
+    private func removeTemporaryCacheDirectory(_ directory: URL) {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
     // MARK: Sub-object caching
 
     func testFilledCharacterCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         fill text "Hello World"    
         """), delegate: nil, cache: cache)
@@ -29,7 +81,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testExtrudedCharacterCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         extrude text "Hello World"    
         """), delegate: nil, cache: cache)
@@ -42,10 +94,267 @@ final class GeometryCacheTests: XCTestCase {
         #endif
     }
 
+    // MARK: Disk caching
+
+    func testGeometryCachePersistsMeshesBetweenInstances() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("""
+        detail 64
+        sphere
+        """)
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(program, delegate: nil, cache: cache)
+        _ = scene.build { false }
+        cache.flushPendingDiskWrites()
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        XCTAssertGreaterThan(cache.count, 0)
+
+        let restoredCache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        XCTAssertEqual(restoredCache.count, 0)
+        let restoredScene = try evaluate(program, delegate: nil, cache: restoredCache)
+        _ = restoredScene.build { false }
+        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.mesh)
+        XCTAssertEqual(restoredMesh.polygons.count, mesh.polygons.count)
+        XCTAssertGreaterThan(restoredCache.count, 0)
+    }
+
+    func testGeometryCachePersistsGeneratedMeshesBetweenInstances() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("""
+        detail 64
+        difference {
+            sphere
+            cube { size 0.8 }
+        }
+        """)
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(program, delegate: nil, cache: cache)
+        _ = scene.build { false }
+        cache.flushPendingDiskWrites()
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        XCTAssertGreaterThan(cache.count, 0)
+
+        let restoredCache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let restoredScene = try evaluate(program, delegate: nil, cache: restoredCache)
+        _ = restoredScene.build { false }
+        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.mesh)
+        XCTAssertEqual(restoredMesh.polygons.count, mesh.polygons.count)
+        XCTAssertGreaterThan(restoredCache.count, 0)
+    }
+
+    func testGeometryCacheFilenamesAreVersionIndependent() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(parse("""
+        detail 64
+        sphere
+        """), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        cache.flushPendingDiskWrites()
+
+        let cacheFileData = try cacheFileData(at: cacheDataFile(in: directory))
+        let keyObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: cacheFileData.keyData) as? [String: Any]
+        )
+        let versionedDirectory = directory.appendingPathComponent(ShapeScript.version, isDirectory: true)
+        XCTAssertNil(keyObject["version"])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: versionedDirectory.path))
+    }
+
+    func testGeometryCachePayloadsAreVersioned() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(parse("""
+        detail 64
+        sphere
+        """), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        cache.flushPendingDiskWrites()
+
+        let cacheFileData = try cacheFileData(at: cacheDataFile(in: directory))
+        let cachedMesh = try JSONDecoder().decode(CachedMesh.self, from: cacheFileData.payloadData)
+        XCTAssertEqual(cachedMesh.version, ShapeScript.version)
+    }
+
+    func testGeometryCacheRejectsStalePayloadVersion() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("cube")
+        let key = try XCTUnwrap(
+            evaluate(program, delegate: nil, cache: nil).children.first?.cacheKey
+        )
+        let staleMesh = Mesh.sphere(slices: 16)
+        let stalePayload = try JSONEncoder().encode(
+            StaleCachedMesh(version: "0.0.0", mesh: staleMesh)
+        )
+        let rawDiskCache = LRUDiskCache<GeometryCache.Key, Data>(
+            capacity: DiskCache.defaultCapacity,
+            directory: directory
+        )
+        try rawDiskCache.setValue(stalePayload, forKey: key)
+
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(program, delegate: nil, cache: cache)
+        _ = scene.build { false }
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+
+        XCTAssertEqual(mesh.polygons.count, Mesh.cube().polygons.count)
+        XCTAssertNotEqual(mesh.polygons.count, staleMesh.polygons.count)
+    }
+
+    func testGeometryCacheCanRemoveAllPersistedMeshes() async throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("""
+        detail 64
+        hull {
+            cube
+            sphere
+        }
+        """)
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(program, delegate: nil, cache: cache)
+        _ = scene.build { false }
+        await cache.flushPendingDiskWrites()
+        XCTAssertGreaterThan(cache.count, 0)
+
+        let restoredDiskCache = makeDiskCache(directory: directory)
+        XCTAssertGreaterThan(restoredDiskCache.currentUsage, 0)
+        let restoredCache = makeCache(diskCache: restoredDiskCache)
+        await restoredCache.removeAll()
+        XCTAssertEqual(restoredCache.count, 0)
+        XCTAssertEqual(restoredDiskCache.currentUsage, 0)
+    }
+
+    func testGeometryCacheDoesNotPersistEmptyMeshes() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let diskCache = makeDiskCache(directory: directory)
+        let cache = makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(parse("circle"), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        XCTAssertEqual(diskCache.currentUsage, 0)
+    }
+
+    func testGeometryCacheCanStoreMemoryWithoutPersistingToDisk() async throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let diskCache = makeDiskCache(directory: directory)
+        let cache = makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: .init { _ in .greatestFiniteMagnitude }
+        )
+        let scene = try evaluate(parse("cube"), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        XCTAssertGreaterThan(cache.count, 0)
+        XCTAssertEqual(diskCache.currentUsage, 0)
+
+        await cache.removeAll()
+    }
+
+    func testFlushPendingDiskWritesWritesPendingMeshes() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let diskCache = makeDiskCache(directory: directory)
+        let cache = makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(parse("cube"), delegate: nil, cache: cache)
+        _ = scene.build { false }
+
+        cache.flushPendingDiskWrites()
+        XCTAssertGreaterThan(diskCache.currentUsage, 0)
+    }
+
+    func testGeometryCacheAutomaticallyFlushesPendingDiskWrites() async throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let diskCache = makeDiskCache(directory: directory)
+        let cache = makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let geometry = Geometry(
+            type: .cube,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            smoothing: nil,
+            children: [],
+            sourceLocation: nil
+        )
+        geometry.cache = cache
+        XCTAssertEqual(geometry.build { false }, true)
+
+        for _ in 0 ..< 100 where diskCache.currentUsage == 0 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertGreaterThan(diskCache.currentUsage, 0)
+    }
+
+    func testGeometryCacheDiskWritePolicyReceivesBuiltMeshPolygonCount() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let policyRecorder = DiskWritePolicyRecorder()
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: .init {
+                policyRecorder.polygonCount = $0
+                return .greatestFiniteMagnitude
+            }
+        )
+        let scene = try evaluate(parse("cube"), delegate: nil, cache: cache)
+        _ = scene.build { false }
+        XCTAssertEqual(policyRecorder.polygonCount, Mesh.cube().polygons.count)
+    }
+
     // MARK: Material caching
 
     func testHullCacheKeyIncludesChildMaterialColors() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
 
         func hullMesh(sphereColor: String) throws -> Mesh {
             let scene = try evaluate(parse("""
@@ -77,7 +386,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testHullColorCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             hull {
@@ -101,7 +410,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testHullColorCaching2() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             hull {
@@ -129,7 +438,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testHullColorCaching3() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             hull {
@@ -167,7 +476,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testHullColorCaching4() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             hull {
@@ -201,7 +510,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testHullColorCaching5() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             hull {
@@ -239,7 +548,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testExtrusionColorCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             extrude {
@@ -271,7 +580,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testTwistedExtrusionColorCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             extrude {
@@ -299,7 +608,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testUnionCachingUsesMaterialIndexes() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing(a b) {
             union {
@@ -332,7 +641,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testMinkowskiColorCaching() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             minkowski {
@@ -367,7 +676,7 @@ final class GeometryCacheTests: XCTestCase {
     }
 
     func testMinkowskiColorCaching2() throws {
-        let cache = GeometryCache()
+        let cache = makeCache()
         let scene = try evaluate(parse("""
         define thing {
             minkowski {
@@ -403,4 +712,81 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertEqual(meshes.last?.hasVertexColors, true)
         XCTAssertNotEqual(meshes.first, meshes.last)
     }
+}
+
+private final class DiskWritePolicyRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _polygonCount: Int?
+
+    var polygonCount: Int? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _polygonCount
+        }
+        set {
+            lock.lock()
+            _polygonCount = newValue
+            lock.unlock()
+        }
+    }
+}
+
+private func cacheDataFile(in directory: URL) throws -> URL {
+    let urls = try FileManager.default.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: nil
+    )
+    guard let url = urls.first(where: { $0.lastPathComponent.count == 32 }) else {
+        XCTFail("Expected cache data file")
+        throw CocoaError(.fileNoSuchFile)
+    }
+    return url
+}
+
+private func cacheFileData(at url: URL) throws -> (keyData: Data, payloadData: Data) {
+    let data = try Data(contentsOf: url)
+    let compressedDataHeader = Data([0x53, 0x53, 0x44, 0x43, 0x5A, 0x31])
+    let cacheFileHeader = Data([0x53, 0x53, 0x44, 0x43, 0x46, 0x31])
+    let uncompressedData: Data
+    if data.starts(with: compressedDataHeader) {
+        let compressedData = data.dropFirst(compressedDataHeader.count)
+        uncompressedData = try (Data(compressedData) as NSData)
+            .decompressed(using: .zlib) as Data
+    } else {
+        uncompressedData = data
+    }
+    guard uncompressedData.starts(with: cacheFileHeader) else {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+    let cacheFileData = Data(uncompressedData.dropFirst(cacheFileHeader.count))
+    guard cacheFileData.count >= 4 else {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+    let keyLength = cacheFileData.prefix(4).reduce(UInt32.zero) {
+        ($0 << 8) | UInt32($1)
+    }
+    guard cacheFileData.count - 4 >= Int(keyLength) else {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+    let payloadOffset = 4 + Int(keyLength)
+    guard cacheFileData.count - payloadOffset >= 8 else {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+    let payloadLength = cacheFileData[payloadOffset ..< payloadOffset + 8]
+        .reduce(UInt64.zero) { ($0 << 8) | UInt64($1) }
+    guard payloadLength <= UInt64(Int.max),
+          cacheFileData.count - payloadOffset - 8 == Int(payloadLength)
+    else {
+        throw CocoaError(.fileReadCorruptFile)
+    }
+    return (
+        keyData: Data(cacheFileData.dropFirst(4).prefix(Int(keyLength))),
+        payloadData: Data(cacheFileData.suffix(Int(payloadLength)))
+    )
+}
+
+private struct StaleCachedMesh: Encodable {
+    var version: String
+    var mesh: Mesh
 }

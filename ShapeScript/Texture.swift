@@ -24,6 +24,28 @@ public struct Texture: Hashable, Sendable {
     public var data: Data { info.data }
 }
 
+/// Encodes only the script-facing texture identity, not the resolved image payload.
+/// Used for preserving unique material identity in `GeometryCache` keys.
+/// Decoded textures cannot be rendered directly.
+extension Texture: Codable {
+    private enum CodingKeys: CodingKey {
+        case name, intensity
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let name = try container.decodeIfPresent(String.self, forKey: .name)
+        let intensity = try container.decode(Double.self, forKey: .intensity)
+        self.init(name: name, url: nil, data: Data(), intensity: intensity)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encode(intensity, forKey: .intensity)
+    }
+}
+
 private extension Texture {
     final class Info: Hashable, @unchecked Sendable {
         let url: URL?

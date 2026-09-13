@@ -519,7 +519,7 @@ final class GeometryTests: XCTestCase {
         """
 
         func generatedMeshFingerprint() throws -> String {
-            let scene = try evaluate(parse(program), delegate: TestDelegate())
+            let scene = try evaluate(parse(program), delegate: TestDelegate(), cache: nil)
             XCTAssertTrue(scene.build { false })
             let geometry = Geometry(
                 type: .group,
