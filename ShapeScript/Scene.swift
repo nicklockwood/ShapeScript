@@ -67,12 +67,6 @@ public extension Scene {
         })
     }
 
-    /// Returns the approximate (overestimated) bounds of the scene geometry.
-    @available(*, deprecated, renamed: "visibleBounds")
-    var overestimatedBounds: Bounds {
-        visibleBounds
-    }
-
     func build(_ isCancelled: @escaping CancellationHandler) -> Bool {
         for geometry in children where !geometry.build(isCancelled) {
             return false

@@ -652,12 +652,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         #if os(visionOS)
         dismissOrnamentConsole()
         #else
-        if #available(iOS 15, *) {
-            dismissSheetConsole(restoreIfNeeded: true)
-        } else {
-            containerView.removeArrangedSubview(consoleViewController.consoleView)
-            consoleViewController.removeFromParent()
-        }
+        dismissSheetConsole(restoreIfNeeded: true)
         #endif
     }
 
@@ -696,7 +691,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     #endif
 
-    @available(iOS 15, *)
     private func dismissSheetConsole(
         animated: Bool = true,
         restoreIfNeeded: Bool = false,
@@ -792,7 +786,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             return
         }
 
-        if #available(iOS 15, *), presentedViewController === consoleViewController {
+        if presentedViewController === consoleViewController {
             dismissSheetConsole(animated: animated, completion: presentModal)
         } else if let sourceViewController = presentedSourceViewController() {
             sourceViewController.present(viewController, animated: animated) { [weak self] in

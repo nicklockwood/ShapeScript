@@ -12,6 +12,7 @@ import Foundation
 #if canImport(CoreGraphics) && canImport(ImageIO)
 import CoreGraphics
 import ImageIO
+import UniformTypeIdentifiers
 #endif
 
 public struct Texture: Hashable, Sendable {
@@ -90,8 +91,7 @@ extension Texture {
     static let checkerboard: Texture = {
         let data = NSMutableData()
         if let destination = CGImageDestinationCreateWithData(
-            // TODO: use UTType.png once we drop macOS 10.15
-            data, "public.png" as CFString, 1, nil
+            data, UTType.png.identifier as CFString, 1, nil
         ) {
             CGImageDestinationAddImage(destination, .checkerboard(), nil)
             CGImageDestinationFinalize(destination)
@@ -278,7 +278,7 @@ private extension CGImage {
 
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
-            data, "public.png" as CFString, 1, nil
+            data, UTType.png.identifier as CFString, 1, nil
         ) else {
             return (
                 averageOpacity: 1,
@@ -314,7 +314,7 @@ extension Texture {
     )
 
     var averageColor: Color? {
-        Color(0.5, 0.5, 0.5)
+        Color(white: 0.5)
     }
 
     var averageOpacity: Double {

@@ -747,13 +747,12 @@ extension RuntimeErrorType {
                 // Not a recognized model file format
                 break
             }
-            var underlyingError: Error?
             #if !os(Linux)
-            if #available(macOS 11.3, iOS 14.5, tvOS 14.5, *) {
-                underlyingError = nsError.underlyingErrors.first
-            }
+            let underlyingError = nsError.underlyingErrors.first
+                ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
+            #else
+            let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error
             #endif
-            underlyingError = underlyingError ?? nsError.userInfo[NSUnderlyingErrorKey] as? Error
             if let underlyingError {
                 error = underlyingError
             } else {

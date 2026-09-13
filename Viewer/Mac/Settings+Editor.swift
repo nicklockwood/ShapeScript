@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import UniformTypeIdentifiers
 
 struct EditorApp: Comparable {
     var name: String
@@ -29,30 +30,16 @@ extension Settings {
         if let apps = associatedData[#function] as? [EditorApp] {
             return apps
         }
-        var appIDs = [
-            "com.github.atom", "com.microsoft.VSCode",
-            "com.sublimetext", "com.sublimetext.2", "com.sublimetext.3",
-            "com.panic.Coda", "com.panic.Coda2",
-            // Fallback option
-            "com.apple.TextEdit",
-        ]
+        var appURLs = Settings.preferredEditorBundleIDs.flatMap {
+            NSWorkspace.shared.urlsForApplications(withBundleIdentifier: $0)
+        }
         for type in Settings.fileTypes {
-            guard let handlers = LSCopyAllRoleHandlersForContentType(type as CFString, .editor)?
-                .takeRetainedValue() as? [String]
-            else {
-                continue
-            }
-            appIDs += handlers.filter { id in
-                !Settings.blacklist.contains(where: {
-                    id.compare($0, options: .caseInsensitive) == .orderedSame
-                })
+            appURLs += NSWorkspace.shared.urlsForApplications(toOpen: type).filter {
+                !Settings.isBlacklisted($0)
             }
         }
         var apps = [EditorApp]()
-        for url in appIDs.flatMap({ id -> [URL] in
-            LSCopyApplicationURLsForBundleIdentifier(id as CFString, nil)?
-                .takeRetainedValue() as? [URL] ?? []
-        }) + editorAppBookmarks.compactMap(url(forBookmark:)) {
+        for url in appURLs + editorAppBookmarks.compactMap(url(forBookmark:)) {
             let app = EditorApp(url)
             if !apps.contains(where: { $0.name == app.name }) {
                 apps.append(app)
@@ -80,10 +67,8 @@ extension Settings {
         }
         // find best match for applicable file types
         for type in Settings.fileTypes {
-            if let appID = LSCopyDefaultRoleHandlerForContentType(type as CFString, .editor)?
-                .takeRetainedValue() as String?, !Settings.blacklist.contains(where: {
-                    appID.compare($0, options: .caseInsensitive) == .orderedSame
-                }), let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: appID)
+            if let url = NSWorkspace.shared.urlForApplication(toOpen: type),
+               !Settings.isBlacklisted(url)
             {
                 return EditorApp(url)
             }
@@ -134,10 +119,18 @@ extension Settings {
         )
     }
 
-    private static let fileTypes = [
-        "com.charcoaldesign.shapescript-source",
-        "public.source-code",
-        "public.plain-text",
+    private static let fileTypes: [UTType] = [
+        .shape,
+        .sourceCode,
+        .plainText,
+    ]
+
+    private static let preferredEditorBundleIDs = [
+        "com.github.atom", "com.microsoft.VSCode",
+        "com.sublimetext", "com.sublimetext.2", "com.sublimetext.3",
+        "com.panic.Coda", "com.panic.Coda2",
+        // Fallback option
+        "com.apple.TextEdit",
     ]
 
     private static let blacklist = [
@@ -148,4 +141,13 @@ extension Settings {
         "com.charcoaldesign.ShapeScriptViewer",
         "com.charcoaldesign.ShapeScript",
     ]
+
+    private static func isBlacklisted(_ url: URL) -> Bool {
+        guard let bundleID = Bundle(url: url)?.bundleIdentifier else {
+            return false
+        }
+        return blacklist.contains {
+            bundleID.compare($0, options: .caseInsensitive) == .orderedSame
+        }
+    }
 }

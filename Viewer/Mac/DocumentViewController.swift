@@ -379,20 +379,17 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         tintView.layer?.backgroundColor = NSColor.systemYellow.withAlphaComponent(0.22).cgColor
         banner.addSubview(tintView, positioned: .below, relativeTo: nil)
 
-        let symbol: NSImage? = if #available(macOS 11, *) {
-            NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: "Warning")
-        } else {
-            NSImage(named: NSImage.cautionName)
-        }
+        let symbol = NSImage(
+            systemSymbolName: "exclamationmark.triangle.fill",
+            accessibilityDescription: "Warning"
+        )
         let imageView = NSImageView(image: symbol ?? NSImage())
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentTintColor = .secondaryLabelColor
-        if #available(macOS 11, *) {
-            imageView.symbolConfiguration = NSImage.SymbolConfiguration(
-                pointSize: 17,
-                weight: .semibold
-            )
-        }
+        imageView.symbolConfiguration = NSImage.SymbolConfiguration(
+            pointSize: 17,
+            weight: .semibold
+        )
 
         let label = NSTextField(labelWithString: message)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -410,18 +407,14 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         closeButton.isBordered = false
         closeButton.imagePosition = .imageOnly
         closeButton.toolTip = "Dismiss"
-        if #available(macOS 11, *) {
-            closeButton.image = NSImage(
-                systemSymbolName: "xmark.circle.fill",
-                accessibilityDescription: "Dismiss"
-            )
-            closeButton.symbolConfiguration = NSImage.SymbolConfiguration(
-                pointSize: 15,
-                weight: .medium
-            )
-        } else {
-            closeButton.title = "x"
-        }
+        closeButton.image = NSImage(
+            systemSymbolName: "xmark.circle.fill",
+            accessibilityDescription: "Dismiss"
+        )
+        closeButton.symbolConfiguration = NSImage.SymbolConfiguration(
+            pointSize: 15,
+            weight: .medium
+        )
         closeButton.contentTintColor = .secondaryLabelColor
 
         banner.addSubview(imageView)
@@ -496,7 +489,6 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     override func viewWillLayout() {
         super.viewWillLayout()
-        NSAppearance.current = NSApp.effectiveAppearance
         let backgroundColor = backgroundColor
         scnView.layer?.backgroundColor = backgroundColor.cgColor
         if lastLayoutBackgroundColor?.isEqual(backgroundColor) != true {

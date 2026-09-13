@@ -14,13 +14,11 @@ import UniformTypeIdentifiers
 public extension URL {
     var isImageFile: Bool {
         #if canImport(UniformTypeIdentifiers)
-        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *),
-           let contentType = try? resourceValues(
-               forKeys: [.contentTypeKey]
-           ).contentType ?? UTType(
-               filenameExtension: pathExtension
-           )
-        {
+        if let contentType = try? resourceValues(
+            forKeys: [.contentTypeKey]
+        ).contentType ?? UTType(
+            filenameExtension: pathExtension
+        ) {
             return contentType.conforms(to: .image)
         }
         #endif
@@ -40,13 +38,11 @@ public extension URL {
 
     var isFontFile: Bool {
         #if canImport(UniformTypeIdentifiers)
-        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *),
-           let contentType = try? resourceValues(
-               forKeys: [.contentTypeKey]
-           ).contentType ?? UTType(
-               filenameExtension: pathExtension
-           )
-        {
+        if let contentType = try? resourceValues(
+            forKeys: [.contentTypeKey]
+        ).contentType ?? UTType(
+            filenameExtension: pathExtension
+        ) {
             return contentType.conforms(to: .font)
         }
         #endif
