@@ -70,9 +70,13 @@ extension DocumentViewControllerProtocol {
         cameraNode.position = SCNVector3(0, 0, 1)
         cameraNode.camera?.zNear = 0.01
         cameraNode.camera?.automaticallyAdjustsZRange = true
-        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
+        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         return cameraNode
+    }
+
+    var usesOrthographicProjection: Bool {
+        camera.isOrthographic ?? (isOrthographic && !isQuickLook)
     }
 
     var cameraHasMoved: Bool {
@@ -181,9 +185,8 @@ extension DocumentViewControllerProtocol {
     }
 
     func refreshOrthographic() {
-        let ortho = camera.isOrthographic ?? (isOrthographic && !isQuickLook)
-        cameraNode.camera?.usesOrthographicProjection = ortho
-        scnView.pointOfView?.camera?.usesOrthographicProjection = ortho
+        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
+        scnView.pointOfView?.camera?.usesOrthographicProjection = usesOrthographicProjection
         refreshView()
     }
 
@@ -248,7 +251,7 @@ extension DocumentViewControllerProtocol {
             cameraNode.look(at: SCNVector3(viewCenter))
         }
         cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
-        cameraNode.camera?.usesOrthographicProjection = camera.isOrthographic ?? isOrthographic
+        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
     }
 
     func updateAxesAndCamera() {

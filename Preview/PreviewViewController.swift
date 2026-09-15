@@ -10,6 +10,7 @@ import Quartz
 import SceneKit
 
 final class PreviewViewController: NSViewController, QLPreviewingController {
+    private var document: Document?
     private var documentViewController: DocumentViewController!
 
     override func viewDidLoad() {
@@ -22,11 +23,12 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     ) {
         do {
             let document = try Document(contentsOf: url, ofType: "shape")
+            self.document = document
             document.makeWindowControllers()
             documentViewController = document.viewController
+            documentViewController.isQuickLook = true
             addChild(documentViewController)
             documentViewController.view.frame = view.bounds
-            documentViewController.isQuickLook = true
             view.addSubview(documentViewController.view)
             documentViewController.view.autoresizingMask = [.width, .height]
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
