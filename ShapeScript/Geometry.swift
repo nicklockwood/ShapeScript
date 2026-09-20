@@ -1143,13 +1143,33 @@ private extension Geometry {
     /// Builds and caches the final mesh for the receiver and all its descendents
     /// - Returns: false if cancelled or true when completed
     func buildFinal(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        for child in visibleChildren where !child.buildFinal(isCancelled) {
-            return false
+        let distributedUnion = distributableMinkowskiUnion
+        for child in visibleChildren {
+            if child === distributedUnion {
+                for component in child.visibleChildren where !component.buildFinal(isCancelled) {
+                    return false
+                }
+            } else if !child.buildFinal(isCancelled) {
+                return false
+            }
         }
         if isLeaf, mesh != nil {
             return !isCancelled()
         }
         return buildMesh(isCancelled)
+    }
+
+    /// A direct union operand over which the Minkowski sum can be distributed.
+    var distributableMinkowskiUnion: Geometry? {
+        guard case .minkowski = type else {
+            return nil
+        }
+        return visibleChildren.first { child in
+            if case .union = child.type {
+                return !child.visibleChildren.isEmpty
+            }
+            return false
+        }
     }
 
     /// Builds and caches the mesh for the receiver. Already-cached mesh will be re-used if available
@@ -1209,74 +1229,93 @@ private extension Geometry {
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
         case .minkowski:
-            var children = ArraySlice(children.enumerated().sorted {
-                switch ($0.1.path, $1.1.path) {
-                case let (a?, b?):
-                    // Put closed paths before open paths
-                    if a.isClosed != b.isClosed {
-                        return a.isClosed
+            func minkowskiSum(replacing union: Geometry? = nil, with replacement: Mesh? = nil) -> Mesh {
+                var children = ArraySlice(children.enumerated().sorted {
+                    switch ($0.1.path, $1.1.path) {
+                    case let (a?, b?):
+                        // Put closed paths before open paths
+                        if a.isClosed != b.isClosed {
+                            return a.isClosed
+                        }
+                        // Put convex paths before concave paths
+                        let aIsConvex = !a.isClosed || a.facePolygons(
+                            isCancelled: isCancelled
+                        ).allSatisfy(\.isConvex)
+                        let bIsConvex = !b.isClosed || b.facePolygons(
+                            isCancelled: isCancelled
+                        ).allSatisfy(\.isConvex)
+                        if aIsConvex != bIsConvex {
+                            return aIsConvex
+                        }
+                        // Put smaller paths before larger paths
+                        if a.bounds.size != b.bounds.size {
+                            return a.bounds.size < b.bounds.size
+                        }
+                        // Preserve original order
+                        return $0.0 < $1.0
+                    case (_?, nil):
+                        // Put meshes before paths
+                        return false
+                    case (nil, _?):
+                        return true
+                    case (nil, nil):
+                        // Preserve original order (Euclid handles minkowski mesh reordering)
+                        return $0.0 < $1.0
                     }
-                    // Put convex paths before concave paths
-                    let aIsConvex = !a.isClosed || a.facePolygons(
-                        isCancelled: isCancelled
-                    ).allSatisfy(\.isConvex)
-                    let bIsConvex = !b.isClosed || b.facePolygons(
-                        isCancelled: isCancelled
-                    ).allSatisfy(\.isConvex)
-                    if aIsConvex != bIsConvex {
-                        return aIsConvex
-                    }
-                    // Put smaller paths before larger paths
-                    if a.bounds.size != b.bounds.size {
-                        return a.bounds.size < b.bounds.size
-                    }
-                    // Preserve original order
-                    return $0.0 < $1.0
-                case (_?, nil):
-                    // Put meshes before paths
-                    return false
-                case (nil, _?):
-                    return true
-                case (nil, nil):
-                    // Preserve order (Euclid handles minkowski mesh reordering)
-                    return $0.0 < $1.0
+                }.map { $1 })
+                guard let first = children.popFirst() else {
+                    return .empty
                 }
-            }.map { $1 })
-            guard let first = children.popFirst() else {
-                mesh = .empty
-                break
-            }
-            var sum: Mesh
-            if let shape = first.path(pretransformed: true) {
-                guard let next = children.popFirst() else {
-                    mesh = .empty
-                    break
+                func mesh(for child: Geometry) -> Mesh {
+                    if child === union, let replacement {
+                        return replacement
+                    }
+                    return child.flattened(isCancelled)
                 }
-                let shape = shape.materialToVertexColors(material: first.material)
-                if let path = next.path(pretransformed: true) {
-                    sum = .fill(shape, isCancelled: isCancelled).minkowskiSum(
-                        with: path.materialToVertexColors(material: next.material),
-                        isCancelled: isCancelled
-                    )
+                var sum: Mesh
+                if let shape = first.path(pretransformed: true) {
+                    guard let next = children.popFirst() else {
+                        return .empty
+                    }
+                    let shape = shape.materialToVertexColors(material: first.material)
+                    if let path = next.path(pretransformed: true) {
+                        sum = .fill(shape, isCancelled: isCancelled).minkowskiSum(
+                            with: path.materialToVertexColors(material: next.material),
+                            isCancelled: isCancelled
+                        )
+                    } else {
+                        sum = mesh(for: next).materialToVertexColors(material: next.material)
+                            .minkowskiSum(with: shape, isCancelled: isCancelled)
+                    }
                 } else {
-                    sum = next.flattened(isCancelled).materialToVertexColors(material: next.material)
-                        .minkowskiSum(with: shape, isCancelled: isCancelled)
+                    sum = mesh(for: first).materialToVertexColors(material: first.material)
                 }
+                while let next = children.popFirst() {
+                    if let path = next.path(pretransformed: true) {
+                        sum = sum.minkowskiSum(
+                            with: path.materialToVertexColors(material: next.material)
+                                .predividedBy(first.material),
+                            isCancelled: isCancelled
+                        )
+                    } else {
+                        sum = sum.minkowskiSum(
+                            with: mesh(for: next).materialToVertexColors(material: next.material),
+                            isCancelled: isCancelled
+                        )
+                    }
+                }
+                return sum
+            }
+            let sum: Mesh
+            if let union = distributableMinkowskiUnion {
+                let components = union.childMeshes(isCancelled).map {
+                    $0.transformed(by: union.transform)
+                }
+                sum = components.isEmpty ? minkowskiSum() : .union(components.map {
+                    minkowskiSum(replacing: union, with: $0)
+                }, isCancelled: isCancelled)
             } else {
-                sum = first.flattened(isCancelled).materialToVertexColors(material: first.material)
-            }
-            while let next = children.popFirst() {
-                if let path = next.path(pretransformed: true) {
-                    sum = sum.minkowskiSum(
-                        with: path.materialToVertexColors(material: next.material).predividedBy(first.material),
-                        isCancelled: isCancelled
-                    )
-                } else {
-                    sum = sum.minkowskiSum(
-                        with: next.flattened(isCancelled).materialToVertexColors(material: next.material),
-                        isCancelled: isCancelled
-                    )
-                }
+                sum = minkowskiSum()
             }
             mesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case .union, .lathe, .extrude, .fill:
@@ -1593,6 +1632,8 @@ public extension Geometry {
     var hasBuiltMeshes: Bool {
         switch type {
         case .camera, .light, .circle, .square, .path, .group:
+            break
+        case .union where parent?.distributableMinkowskiUnion === self && parent?.mesh != nil:
             break
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,

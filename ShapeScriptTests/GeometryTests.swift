@@ -336,6 +336,80 @@ final class GeometryTests: XCTestCase {
         XCTAssertTrue(texturedPolygons.flatMap(\.vertices).contains { $0.texcoord != .zero })
     }
 
+    func testMinkowskiDistributesOverUnion() throws {
+        let scene = try evaluate(parse("""
+        detail 8
+        minkowski {
+            union {
+                position 0.25 0 0
+                cube { position -0.75 0 0 }
+                cube { position 0.75 0 0 }
+            }
+            sphere { size 0.2 }
+        }
+        """), delegate: nil)
+        let minkowski = try XCTUnwrap(scene.children.first)
+        let union = try XCTUnwrap(minkowski.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertNil(union.mesh)
+        XCTAssertTrue(minkowski.hasBuiltMeshes)
+
+        let kernel = minkowski.children[1].flattened()
+        let components = union.children.map {
+            $0.flattened().transformed(by: union.transform)
+        }
+        let expected = Mesh.union(components.map {
+            $0.minkowskiSum(with: kernel)
+        }).makeWatertight().detessellate()
+        XCTAssertEqual(minkowski.mesh, expected)
+    }
+
+    func testMinkowskiDistributesOverOverlappingUnion() throws {
+        let scene = try evaluate(parse("""
+        detail 8
+        define fillet(source radius) {
+            minkowski {
+                inset(source radius)
+                sphere { size radius * 2 }
+            }
+        }
+        fillet(union {
+            cube
+            cylinder {
+                size 0.45 1.2 0.45
+                orientation 0.5
+                position 0.45
+            }
+        } 0.06)
+        """), delegate: nil)
+        let minkowski = try XCTUnwrap(scene.children.first)
+        let union = try XCTUnwrap(minkowski.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertNil(union.mesh)
+        XCTAssertNotNil(minkowski.mesh)
+    }
+
+    func testMinkowskiDoesNotDistributeOverDifference() throws {
+        let scene = try evaluate(parse("""
+        detail 8
+        minkowski {
+            difference {
+                cube
+                sphere { size 0.5 }
+            }
+            sphere { size 0.2 }
+        }
+        """), delegate: nil)
+        let minkowski = try XCTUnwrap(scene.children.first)
+        let difference = try XCTUnwrap(minkowski.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertNotNil(difference.mesh)
+        XCTAssertNotNil(minkowski.mesh)
+    }
+
     func testDifferenceRenderedChildrenDependOnDebugState() throws {
         let scene = try evaluate(parse("""
         difference {
