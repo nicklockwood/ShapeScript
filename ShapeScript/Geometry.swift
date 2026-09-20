@@ -1334,12 +1334,6 @@ private extension Geometry {
     /// Determine heuristically whether it's worth detessellating the mesh output
     var shouldDetessellate: Bool {
         switch type {
-        case let .extrude(paths, options) where paths.count == 1 && options.along.count <= 1:
-            paths[0].subpaths.count > 1 && options.along.allSatisfy { !$0.isClosed }
-        case let .fill(paths) where paths.count == 1:
-            paths[0].subpaths.count > 1
-        case let .loft(paths) where paths.first != paths.last:
-            paths[0].subpaths.count > 1 || paths.last!.subpaths.count > 1
         case .hull, .minkowski:
             true
         default:
