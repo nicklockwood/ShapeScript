@@ -125,6 +125,11 @@ public extension Path {
                 points.append(.point(Vector(point), color: color))
             case let .quadratic(p1, p2):
                 updateLastPoint(nextCommand: command)
+                let p0 = points.last?.position ?? startingPoint
+                if bezierIsLinear(from: p0, controls: [Vector(p1)], to: Vector(p2)) {
+                    points.append(.point(Vector(p2), color: color))
+                    break
+                }
                 guard detail > 0 else {
                     points.append(.curve(Vector(p1), color: color))
                     points.append(.point(Vector(p2), color: color))
@@ -133,7 +138,6 @@ public extension Path {
                 let detail = max(detail, 2)
                 var t = 0.0
                 let step = 1 / Double(detail)
-                let p0 = points.last?.position ?? startingPoint
                 for _ in 1 ..< detail {
                     t += step
                     points.append(.curve(
@@ -145,6 +149,11 @@ public extension Path {
                 points.append(.point(Vector(p2), color: color))
             case let .cubic(p1, p2, p3):
                 updateLastPoint(nextCommand: command)
+                let p0 = points.last?.position ?? startingPoint
+                if bezierIsLinear(from: p0, controls: [Vector(p1), Vector(p2)], to: Vector(p3)) {
+                    points.append(.point(Vector(p3), color: color))
+                    break
+                }
                 guard detail > 0 else {
                     points.append(.curve(Vector(p1), color: color))
                     points.append(.curve(Vector(p2), color: color))
@@ -154,7 +163,6 @@ public extension Path {
                 let detail = max(detail * 2, 3)
                 var t = 0.0
                 let step = 1 / Double(detail)
-                let p0 = points.last?.position ?? startingPoint
                 for _ in 1 ..< detail {
                     t += step
                     points.append(.curve(
@@ -187,6 +195,30 @@ public extension Path {
         endPath()
         self.init(subpaths: paths)
     }
+}
+
+/// Returns true when a Bezier follows a straight line from start to end without doubling back.
+/// Such curves need no intermediate samples when converted to a Euclid path.
+private func bezierIsLinear(from start: Vector, controls: [Vector], to end: Vector) -> Bool {
+    let linearityTolerance = 1e-8
+    let direction = end - start
+    let lengthSquared = direction.lengthSquared
+    guard lengthSquared > 0 else {
+        return false
+    }
+    var previousT = 0.0
+    for control in controls {
+        let offset = control - start
+        let t = offset.dot(direction) / lengthSquared
+        guard t >= previousT, t <= 1,
+              offset.cross(direction).lengthSquared <=
+              linearityTolerance * linearityTolerance * lengthSquared
+        else {
+            return false
+        }
+        previousT = t
+    }
+    return true
 }
 
 private func quadraticBezier(_ p0: Double, _ p1: Double, _ p2: Double, _ t: Double) -> Double {

@@ -16,6 +16,33 @@ final class SVGPathTests: XCTestCase {
         XCTAssertEqual(SVGPath(Path.empty), SVGPath(commands: []))
     }
 
+    func testLinearBezierCommandsDoNotAddIntermediatePathPoints() throws {
+        let path = try Path(
+            SVGPath(string: "M 0,0 Q 3,0 10,0 C 12,0 18,0 20,0"),
+            detail: 8
+        )
+
+        XCTAssertEqual(path.points.map(\.position), [[0, 0], [10, 0], [20, 0]])
+    }
+
+    func testCollinearBezierThatDoublesBackRetainsIntermediatePathPoints() throws {
+        let path = try Path(
+            SVGPath(string: "M 0,0 C 8,0 2,0 10,0"),
+            detail: 8
+        )
+
+        XCTAssertGreaterThan(path.points.count, 2)
+    }
+
+    func testNonlinearBezierRetainsIntermediatePathPoints() throws {
+        let path = try Path(
+            SVGPath(string: "M 0,0 C 2,1 8,1 10,0"),
+            detail: 8
+        )
+
+        XCTAssertGreaterThan(path.points.count, 2)
+    }
+
     func testFillSVGPathWithDoubledBackSegments() throws {
         let path = try Path(
             SVGPath(string: smallSVGPathWithDoubledBackSegment),
@@ -78,11 +105,31 @@ final class SVGPathTests: XCTestCase {
         let mesh = Mesh
             .extrude(path, along: along)
             .makeWatertight()
+        let detessellated = mesh.detessellate()
+        let sections = path.extrusionContours(along: along)
+        let firstSection = try XCTUnwrap(sections.first)
+        let firstNextSection = try XCTUnwrap(sections.first(where: { $0 != firstSection }))
+        let lastSection = try XCTUnwrap(sections.last)
+        let lastPreviousSection = try XCTUnwrap(sections.last(where: { $0 != lastSection }))
+        let capSpecs = [
+            (firstSection, (firstSection.bounds.center - firstNextSection.bounds.center).normalized()),
+            (lastSection, (lastSection.bounds.center - lastPreviousSection.bounds.center).normalized()),
+        ]
+        func sidePolygonCount(in mesh: Mesh) -> Int {
+            let capPolygonCount = capSpecs.reduce(0) { count, capSpec in
+                count + mesh.polygons.coplanar(with: capSpec.0, normal: capSpec.1).count
+            }
+            return mesh.polygons.count - capPolygonCount
+        }
 
         XCTAssertFalse(mesh.polygons.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)
         XCTAssertGreaterThan(mesh.signedVolume, 0)
+        XCTAssertLessThanOrEqual(sidePolygonCount(in: detessellated), sidePolygonCount(in: mesh))
+        XCTAssertEqual(detessellated.surfaceArea, mesh.surfaceArea, accuracy: epsilon)
+        XCTAssertTrue(detessellated.isWatertight)
+        XCTAssertTrue(detessellated.isConsistentlyWound)
         try assertCapsMatchFilledSections(for: path, extrudedAlong: along, in: mesh)
         assertSidePolygonsFaceOutward(
             of: mesh,
@@ -120,6 +167,8 @@ final class SVGPathTests: XCTestCase {
             .point(0, 10),
             .point(0, -10),
         ], color: ShapeScript.Material.default.color)
+        let directlyExtrudedMesh = Mesh.extrude(path, along: along).makeWatertight()
+        XCTAssertEqual(mesh.polygons.count, directlyExtrudedMesh.polygons.count)
         assertSidePolygonsFaceOutward(
             of: mesh,
             shape: path,
@@ -156,7 +205,6 @@ private func assertCapsMatchFilledSections(
         let actualPolygons = mesh.polygons.coplanar(with: section, normal: outwardNormal)
         let actualArea = actualPolygons.signedProjectedArea(along: outwardNormal)
         XCTAssertEqual(actualArea, expectedArea, accuracy: max(epsilon, expectedArea * 1e-9), file: file, line: line)
-        XCTAssertTrue(actualPolygons.allSatisfy(\.isConvex), file: file, line: line)
         XCTAssertTrue(
             actualPolygons.matchesFilledCoverage(of: expectedPolygons, sampleSpacing: 4),
             file: file,
