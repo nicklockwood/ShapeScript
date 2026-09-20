@@ -218,6 +218,45 @@ final class GeometryTests: XCTestCase {
         XCTAssertTrue(minkowski.renderedChildren.isEmpty)
     }
 
+    func testHullPreservesTextureOnOneChild() throws {
+        let scene = try evaluate(parse("""
+        detail 8
+        hull {
+            cube { position -1.5 }
+            sphere { texture checkerboard }
+        }
+        """), delegate: nil)
+
+        XCTAssertTrue(scene.build { false })
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let texturedPolygons = mesh.polygons.filter {
+            ($0.material as? Material)?.texture == .checkerboard
+        }
+        XCTAssertFalse(texturedPolygons.isEmpty)
+        XCTAssertTrue(texturedPolygons.flatMap(\.vertices).contains { $0.texcoord != .zero })
+    }
+
+    func testHullPreservesTextureOnBothChildren() throws {
+        let scene = try evaluate(parse("""
+        detail 8
+        hull {
+            cube {
+                position -1.5
+                texture checkerboard
+            }
+            sphere { texture checkerboard }
+        }
+        """), delegate: nil)
+
+        XCTAssertTrue(scene.build { false })
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let texturedPolygons = mesh.polygons.filter {
+            ($0.material as? Material)?.texture == .checkerboard
+        }
+        XCTAssertEqual(texturedPolygons.count, mesh.polygons.count)
+        XCTAssertTrue(texturedPolygons.flatMap(\.vertices).contains { $0.texcoord != .zero })
+    }
+
     func testDifferenceRenderedChildrenDependOnDebugState() throws {
         let scene = try evaluate(parse("""
         difference {

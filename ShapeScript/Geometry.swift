@@ -1485,6 +1485,15 @@ extension Mesh {
         guard material.texture == nil else {
             return withMaterial(material)
         }
+        var vertexColorMaterial = material
+        vertexColorMaterial.albedo = .color(.white)
+        guard materials.allSatisfy({ value in
+            guard let value else { return true }
+            guard let value = value as? ShapeScript.Material else { return false }
+            return value == material || value == vertexColorMaterial
+        }) else {
+            return self
+        }
         if let uniformVertexColor {
             if uniformVertexColor == .white {
                 return withMaterial(material)
