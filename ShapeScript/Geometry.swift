@@ -348,7 +348,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             guard geometry.material != inheritedMaterial else {
                 return nil
             }
-            if geometry.type.usesMaterialInMeshGeneration {
+            if useMaterialForCache || geometry.type.usesMaterialInMeshGeneration {
                 return .value(geometry.material)
             }
             if let index = cacheIndexesByMaterial[geometry.material] {

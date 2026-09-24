@@ -44,6 +44,38 @@ final class GeometryCacheTests: XCTestCase {
 
     // MARK: Material caching
 
+    func testHullCacheKeyIncludesChildMaterialColors() throws {
+        let cache = GeometryCache()
+
+        func hullMesh(sphereColor: String) throws -> Mesh {
+            let scene = try evaluate(parse("""
+            detail 8
+            hull {
+                cube {
+                    position -1.5
+                    color red
+                }
+                sphere {
+                    color \(sphereColor)
+                }
+            }
+            """), delegate: nil, cache: cache)
+            _ = scene.build { false }
+            return try XCTUnwrap(scene.children.first?.mesh)
+        }
+
+        let greenHull = try hullMesh(sphereColor: "green")
+        let blueHull = try hullMesh(sphereColor: "blue")
+        let greenColors = Set(greenHull.polygons.flatMap { $0.vertices.map(\.color) })
+        let blueColors = Set(blueHull.polygons.flatMap { $0.vertices.map(\.color) })
+
+        XCTAssertTrue(greenColors.contains(.green))
+        XCTAssertFalse(greenColors.contains(.blue))
+        XCTAssertTrue(blueColors.contains(.blue))
+        XCTAssertFalse(blueColors.contains(.green))
+        XCTAssertNotEqual(greenHull, blueHull)
+    }
+
     func testHullColorCaching() throws {
         let cache = GeometryCache()
         let scene = try evaluate(parse("""
