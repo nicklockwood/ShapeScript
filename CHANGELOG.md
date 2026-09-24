@@ -1,5 +1,19 @@
 # Change Log
 
+## [1.11.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.6) (2026-09-26)
+
+- Fixed Quick Look preview framing
+- Fixed expected type propagation for `if`, `for` and `switch` expressions
+- Fixed redundant path points for straight SVG Bézier segments
+- Fixed `hull` material and texture preservation and cache invalidation
+- Improved partial previews while `minkowski` geometry is being generated
+- Improved convex hull generation by replacing the seeded implementation with Quickhull
+- Fixed multi-mesh unions clipping against intermediate results
+- Fixed watertightness repair for complex meshes and triangulation of shallow convex turns
+- Fixed artifacts, lost vertex attributes and watertightness issues in compound path fills and extrusions
+- Improved cancellation responsiveness for `minkowski` and `text` commands and mesh repair
+- Bumped Euclid to version 0.9.6
+
 ## [1.11.5](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.5) (2026-09-12)
 
 - Fixed a crash when insetting extruded text with very thin regions
