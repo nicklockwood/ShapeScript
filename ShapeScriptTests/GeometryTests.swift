@@ -199,6 +199,25 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(union.renderedChildren, union.children)
     }
 
+    func testMinkowskiRendersLargestChildUntilBuilt() throws {
+        let scene = try evaluate(parse("""
+        minkowski {
+            cube { size 0.5 }
+            cube { size 3 }
+            cube { size 2 }
+        }
+        """), delegate: nil)
+
+        let minkowski = try XCTUnwrap(scene.children.first)
+
+        XCTAssertNil(minkowski.mesh)
+        XCTAssertEqual(minkowski.renderedChildren, [minkowski.children[1]])
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertNotNil(minkowski.mesh)
+        XCTAssertTrue(minkowski.renderedChildren.isEmpty)
+    }
+
     func testDifferenceRenderedChildrenDependOnDebugState() throws {
         let scene = try evaluate(parse("""
         difference {

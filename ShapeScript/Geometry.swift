@@ -91,7 +91,17 @@ public final class Geometry: Hashable, @unchecked Sendable {
             }
         case .loft, .union, .xor, .extrude, .fill, .hull, .mesh:
             mesh == nil || childDebug || childIsFocused ? children : []
-        case .intersection, .lathe, .minkowski:
+        case .minkowski:
+            if childDebug || childIsFocused {
+                children
+            } else if mesh == nil {
+                children.max {
+                    $0.overestimatedBounds.size < $1.overestimatedBounds.size
+                }.map { [$0] } ?? []
+            } else {
+                []
+            }
+        case .intersection, .lathe:
             childDebug || childIsFocused ? children : []
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .path, .camera, .light:
