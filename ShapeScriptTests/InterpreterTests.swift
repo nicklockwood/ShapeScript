@@ -5895,6 +5895,30 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [5])
     }
 
+    func testCallNumberReturningFunctionInValidContext() throws {
+        let program = try parse("""
+        detail if true { 32 } else { 64 }
+        sphere
+        """)
+
+        let scene = try evaluate(program, delegate: nil, cache: nil)
+        XCTAssertEqual(scene.children.map(\.type), [.sphere(segments: 32)])
+    }
+
+    func testCallNumberReturningFunctionAtRootIsUnusedValue() throws {
+        let program = """
+        define foo() { 2 + 3 }
+        foo()
+        """
+        let range = try XCTUnwrap(program.range(of: "foo()", options: .backwards))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(
+                .unusedValue(type: "number"),
+                at: range
+            ))
+        }
+    }
+
     func testCallCustomFunctionWithEmptyBlock() throws {
         let program = """
         define foo() { 2 + 3 }

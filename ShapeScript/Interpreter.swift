@@ -1888,6 +1888,16 @@ extension Expression {
         index: Int = -1,
         in context: EvaluationContext
     ) throws -> Value {
+        let oldChildTypes = context.state.childTypes
+        defer { context.state.childTypes = oldChildTypes }
+        switch self.type {
+        case .ifelse, .forloop, .switchcase:
+            // Control-flow bodies are blocks, so evaluate their values in the
+            // context supplied by the expression's consumer
+            context.state.childTypes = type
+        default:
+            break
+        }
         let value: Value, values: [(index: Int, value: Value)]
         do {
             if case let .tuple(expressions) = self.type {
