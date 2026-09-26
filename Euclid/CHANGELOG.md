@@ -1,7 +1,28 @@
 # Change Log
 
+## [0.9.6](https://github.com/nicklockwood/Euclid/releases/tag/0.9.6) (2026-09-26)
+
+- Fixed non-zero fill normalization for detailed self-intersecting paths
+- Fixed watertight extrusion of overlapping compound paths
+- Fixed lofting of parallel transformed curved compound paths
+- Fixed nondeterministic cap material selection
+- Added additional cancellation callbacks for long-running operations
+
+## [0.9.5](https://github.com/nicklockwood/Euclid/releases/tag/0.9.5) (2026-09-22)
+
+- Replaced the seeded convex hull implementation with Quickhull
+- Fixed multi-mesh union clipping against intermediate results instead of the original meshes
+- Fixed watertightness repair for complex meshes with large non-planar boundaries and branching edge graphs
+- Fixed polygon triangulation for shapes with shallow convex turns
+- Removed scanline artifacts and redundant cap fragments when filling or extruding compound paths
+- Compound path fills and extrusions now preserve vertex normals, colors, texcoords and material
+- Fixed compound path extrusion watertightness
+- Improved cancellation responsiveness for Minkowski operations and mesh repair
+- Updated `Color.debugDescription` to include component labels
+
 ## [0.9.4](https://github.com/nicklockwood/Euclid/releases/tag/0.9.4) (2026-09-12)
 
+- Fixed inset watertight capping for zero-area hole loops
 - Fixed extrusion of high-detail closed paths with repeated tail contours
 - Improved cancellation responsiveness for CSG, clipping, inset, fill and mesh repair operations
 - `Mesh.detessellate()` now works on large watertight meshes while preserving watertightness

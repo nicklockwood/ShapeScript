@@ -107,7 +107,97 @@ public extension Mesh {
         _ meshes: some Collection<Mesh>,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
-        merge(meshes, using: { $0.union($1, isCancelled: $2) }, isCancelled)
+        let meshes = meshes.filter { !$0.isEmpty }
+        guard !meshes.isEmpty, !isCancelled() else {
+            return .empty
+        }
+
+        // Divide the inputs into groups whose bounds overlap, so disjoint meshes
+        // can be preserved without building BSPs or clipping their polygons.
+        var remaining = Array(meshes.indices)
+        var groups = [[Mesh]]()
+        while !remaining.isEmpty {
+            var group = [remaining.removeFirst()]
+            var i = 0
+            while i < remaining.count {
+                if isCancelled() {
+                    return .empty
+                }
+                if group.contains(where: {
+                    meshes[$0].bounds.intersects(meshes[remaining[i]].bounds)
+                }) {
+                    group.append(remaining.remove(at: i))
+                    // The new mesh may overlap one that was previously skipped.
+                    i = 0
+                } else {
+                    i += 1
+                }
+            }
+            groups.append(group.sorted().map { meshes[$0] })
+        }
+
+        let unions = groups.map { meshes -> Mesh in
+            switch meshes.count {
+            case 1:
+                return meshes[0]
+            case 2:
+                return meshes[0].union(meshes[1], isCancelled: isCancelled)
+            default:
+                break
+            }
+
+            // Clip every original operand against every other original operand.
+            // Using a partially unioned, potentially non-watertight intermediate
+            // mesh as a BSP here can leave internal fragments behind.
+            let bsps = meshes.map { BSP($0, isCancelled) }
+            guard !isCancelled() else {
+                return .empty
+            }
+            var polygons = [Polygon]()
+            for i in meshes.indices {
+                var outside = meshes[i].polygons
+                for j in meshes.indices where i != j {
+                    if isCancelled() {
+                        return .empty
+                    }
+                    let intersection = meshes[i].bounds.intersection(meshes[j].bounds)
+                    guard !intersection.isEmpty else {
+                        continue
+                    }
+                    var nonintersecting = [Polygon]()
+                    let intersecting = boundsTest(
+                        intersection,
+                        outside,
+                        &nonintersecting,
+                        isCancelled
+                    )
+                    outside = nonintersecting + bsps[j].clip(
+                        intersecting,
+                        i < j ? .greaterThan : .greaterThanEqual,
+                        isCancelled
+                    )
+                    if outside.isEmpty {
+                        break
+                    }
+                }
+                polygons += outside
+            }
+            guard !isCancelled() else {
+                return .empty
+            }
+            return Mesh(
+                unchecked: polygons,
+                bounds: meshes.dropFirst().reduce(into: meshes[0].bounds) {
+                    $0.formUnion($1.bounds)
+                },
+                bsp: nil,
+                isConvex: false,
+                isWatertight: nil,
+                isPlanar: nil,
+                submeshes: nil
+            )
+        }
+        return isCancelled() ? .empty : .merge(unions)
     }
 
     /// Returns a new mesh created by subtracting the volume of the
@@ -380,57 +470,29 @@ public extension Mesh {
         of meshes: some Collection<Mesh>,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
-        var best: Mesh?
-        var bestIndex: Int?
         let meshes = meshes.filter { !$0.isEmpty }
-        for (i, mesh) in meshes.enumerated() where mesh.isKnownConvex && mesh.isWatertight {
-            if best?.polygons.count ?? 0 > mesh.polygons.count {
-                continue
-            }
-            best = mesh
-            bestIndex = i
-        }
-        if let best, meshes.count == 1 {
-            return best
-        }
-        let polygons = meshes.enumerated().flatMap { i, mesh in
-            i == bestIndex ? [] : mesh.polygons
-        }
-        let bounds = Bounds(meshes)
-        let sourcePolygonCount = polygons.count + (best?.polygons.count ?? 0)
-        // This is a runaway detector for the optimized seeded hull path.
-        // The seeded path should reduce work by reusing an input hull.
-        // If the intermediate hull grows larger than the input boundary, regular coplanar point
-        // sets are likely dominating. In that case retry the same seeded hull with scattered
-        // insertion order, then use the vertex-set hull as the last fallback.
-        // Keep a small floor so low-poly hulls are not diverted prematurely.
-        let polygonLimit = Swift.max(sourcePolygonCount, 2_000)
-        let mesh = convexHull(
-            of: polygons,
-            with: best,
-            bounds: bounds,
-            polygonLimit: polygonLimit,
-            scatterInsertion: false,
-            isCancelled
-        )
-        if !mesh.isEmpty || isCancelled() {
+        if meshes.count == 1, let mesh = meshes.first,
+           mesh.isKnownConvex, mesh.isWatertight
+        {
             return mesh
         }
-        let scatteredMesh = convexHull(
-            of: polygons,
-            with: best,
-            bounds: bounds,
-            polygonLimit: polygonLimit,
-            scatterInsertion: true,
-            isCancelled
-        )
-        if !scatteredMesh.isEmpty || isCancelled() {
-            return scatteredMesh
+        var verticesByPosition = [Vector: [HullVertexMatch]]()
+        for mesh in meshes {
+            for (index, polygon) in mesh.polygons.enumerated() {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return .empty
+                }
+                for vertex in polygon.vertices {
+                    verticesByPosition[vertex.position, default: []].append(HullVertexMatch(
+                        faceNormal: vertex.normal,
+                        material: polygon.material,
+                        vertex: vertex,
+                        weight: 1
+                    ))
+                }
+            }
         }
-        return .convexHull(
-            of: meshes.flatMap { $0.polygons.flatMap(\.vertices) },
-            isCancelled: isCancelled
-        )
+        return convexHull(of: verticesByPosition, material: nil, isCancelled)
     }
 
     /// Computes the convex hull of a set of polygons.
@@ -442,7 +504,11 @@ public extension Mesh {
         of polygons: some Collection<Polygon>,
         isCancelled: CancellationHandler = { false }
     ) -> Mesh {
-        convexHull(of: Array(polygons), with: nil, bounds: nil, isCancelled)
+        let polygons = Array(polygons)
+        let verticesByPosition = polygons.needsHullNormalReconstruction ?
+            polygons.hullVertexMatchesByPosition() :
+            polygons.hullVertexMatchesByPositionWithoutReconstruction()
+        return convexHull(of: verticesByPosition, material: nil, isCancelled)
     }
 
     /// Computes the convex hull of a set of paths.
@@ -487,6 +553,7 @@ public extension Mesh {
         for v in vertices {
             verticesByPosition[v.position, default: []].append(HullVertexMatch(
                 faceNormal: v.normal,
+                material: material,
                 vertex: v,
                 weight: 1
             ))
@@ -549,7 +616,7 @@ public extension Mesh {
         if mesh.isConvex(isCancelled: isCancelled) {
             guard isConvex(isCancelled: isCancelled) else {
                 // Preserve concavity
-                return mesh.minkowskiSum(with: self)
+                return mesh.minkowskiSum(with: self, isCancelled: isCancelled)
             }
             if polygons.count < mesh.polygons.count {
                 return mesh.minkowskiSum(with: self, isCancelled: isCancelled)
@@ -557,12 +624,14 @@ public extension Mesh {
             let vertices = Set(mesh.polygons.flatMap {
                 $0.vertices.map { Vertex($0.position, color: $0.color) }
             }).sorted(by: { $0.position < $1.position })
-            return .convexHull(of: vertices.map { vertex in
-                translated(by: vertex.position).mapVertexColors { $0 * vertex.color }
-            })
+            let meshes = vertices.compactMap { vertex -> Mesh? in
+                guard !isCancelled() else { return nil }
+                return translated(by: vertex.position).mapVertexColors { $0 * vertex.color }
+            }
+            return .convexHull(of: meshes, isCancelled: isCancelled)
         }
         return .union([mesh.translated(by: bounds.center)] + mesh.polygons.map {
-            isCancelled() ? .empty : minkowskiSum(with: $0)
+            isCancelled() ? .empty : minkowskiSum(with: $0, isCancelled: isCancelled)
         }, isCancelled: isCancelled)
     }
 
@@ -616,29 +685,44 @@ public extension Mesh {
             let b = translated(by: point.position).mapVertexColors { $0 * color }
             defer { a = b }
             return .convexHull(of: [a, b], isCancelled: isCancelled)
-        })
+        }, isCancelled: isCancelled)
     }
 
     /// Computes the Minkowski sum of the receiver and a polygon.
-    /// - Parameter polygon: The polygon with which to sum the mesh.
+    /// - Parameters:
+    ///   - polygon: The polygon with which to sum the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the Minkowski sum of the inputs.
-    func minkowskiSum(with polygon: Polygon) -> Mesh {
+    func minkowskiSum(
+        with polygon: Polygon,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        guard !isCancelled() else {
+            return .empty
+        }
         guard polygon.isConvex else {
-            return .union(polygon.tessellate().map(minkowskiSum(with:)))
+            return .union(polygon.tessellate(isCancelled: isCancelled).map {
+                minkowskiSum(with: $0, isCancelled: isCancelled)
+            }, isCancelled: isCancelled)
         }
         return .convexHull(of: polygon.vertices.map { vertex in
             translated(by: vertex.position).mapVertexColors { $0 * vertex.color }
-        })
+        }, isCancelled: isCancelled)
     }
 
     /// Computes the minkowskiSum sum of the receiver with the specified edge.
-    /// - Parameter edge: A ``LineSegment`` with which to sum the mesh.
+    /// - Parameters:
+    ///   - edge: A ``LineSegment`` with which to sum the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh representing the Minkowski sum of the inputs.
-    func minkowskiSum(with edge: LineSegment) -> Mesh {
+    func minkowskiSum(
+        with edge: LineSegment,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
         .convexHull(of: [
             translated(by: edge.start),
             translated(by: edge.end),
-        ])
+        ], isCancelled: isCancelled)
     }
 
     /// Returns a new mesh representing the Minkowski difference of the
@@ -663,7 +747,7 @@ public extension Mesh {
             return .empty
         }
         return .difference([mesh.translated(by: -bounds.center)] + mesh.polygons.map {
-            isCancelled() ? .empty : minkowskiSum(with: $0)
+            isCancelled() ? .empty : minkowskiSum(with: $0, isCancelled: isCancelled)
         }, isCancelled: isCancelled)
     }
 
@@ -742,25 +826,30 @@ public extension Mesh {
         case .back:
             return .empty
         case .spanning, .coplanar:
+            guard !isCancelled() else { return .empty }
             // TODO: can we use BSP to improve perf here at all?
             var id = 0
             var coplanar = [Polygon](), front = [Polygon](), back = [Polygon]()
-            for polygon in polygons {
+            for (index, polygon) in polygons.enumerated() {
+                if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return .empty
+                }
                 polygon.split(along: plane, &coplanar, &front, &back, &id, isCancelled)
             }
             for polygon in coplanar where plane.normal.dot(polygon.plane.normal) > 0 {
                 front.append(polygon)
             }
+            let wasCancelled = isCancelled()
             let mesh = Mesh(
                 unchecked: front,
                 bounds: nil,
                 bsp: nil, // TODO: can we compute this cheaply?
-                isConvex: isKnownConvex,
+                isConvex: wasCancelled ? false : isKnownConvex,
                 isWatertight: nil,
                 isPlanar: planarIfSet == true ? true : nil,
-                submeshes: isKnownConvex ? submeshesIfEmpty : nil
+                submeshes: !wasCancelled && isKnownConvex ? submeshesIfEmpty : nil
             )
-            guard let material = fill else {
+            guard let material = fill, !wasCancelled else {
                 return mesh
             }
             // Project each corner of mesh bounds onto plane to find radius
@@ -786,7 +875,6 @@ public extension Mesh {
             .rotated(by: rotationBetweenNormalizedVectors(.unitZ, -plane.normal))
             .translated(by: plane.normal * plane.w)
             // Clip rect
-            let isCancelled: CancellationHandler = { false }
             return Mesh(
                 unchecked: mesh.polygons + BSP(self, isCancelled).clip([rect], .lessThanEqual, isCancelled),
                 bounds: nil,
@@ -858,7 +946,7 @@ public extension Mesh {
         }
         let bsp = BSP(a, isCancelled)
         let polygons = boundsTest(intersection, b.polygons, isCancelled)
-        return bsp.clip(polygons, .lessThan, isCancelled).holeEdges
+        return bsp.clip(polygons, .lessThan, isCancelled).holeEdges(isCancelled: isCancelled)
     }
 
     /// Reflects each polygon of the mesh along a plane.
@@ -872,7 +960,7 @@ public extension Mesh {
 private func boundsTest(
     _ bounds: Bounds,
     _ polygons: [Polygon],
-    _ isCancelled: CancellationHandler = { false }
+    _ isCancelled: CancellationHandler
 ) -> [Polygon] {
     var result = [Polygon]()
     for (index, polygon) in polygons.enumerated() {
@@ -890,7 +978,7 @@ private func boundsTest(
     _ bounds: Bounds,
     _ polygons: [Polygon],
     _ out: inout [Polygon],
-    _ isCancelled: CancellationHandler = { false }
+    _ isCancelled: CancellationHandler
 ) -> [Polygon] {
     var result = [Polygon]()
     for (index, polygon) in polygons.enumerated() {
@@ -955,98 +1043,24 @@ private extension Mesh {
         return m
     }
 
-    /// Computes a convex hull by seeding from an existing convex mesh and adding candidate polygons.
-    /// - Parameters:
-    ///   - polygonLimit: Optional cap for the intermediate hull size. Returns an empty mesh if limit is exceeded.
-    ///   - scatterInsertion: When true, inserts candidate vertices in a pseudorandom order instead of outside-in.
-    static func convexHull(
-        of polygonsToAdd: [Polygon],
-        with startingMesh: Mesh?,
-        bounds: Bounds?,
-        polygonLimit: Int? = nil,
-        scatterInsertion: Bool = false,
-        _ isCancelled: CancellationHandler
-    ) -> Mesh {
-        assert(startingMesh?.isConvex(isCancelled: isCancelled) != false)
-        assert(startingMesh?.isWatertight != false)
-        var polygons = startingMesh?.polygons ?? []
-        var polygonsToAdd = polygonsToAdd
-        if let bounds = startingMesh?.bounds ?? bounds, !bounds.isEmpty {
-            let center = bounds.center
-            polygonsToAdd = polygonsToAdd.filter {
-                center.compare(with: $0.plane) != .front
-            }
-        }
-        if polygons.isEmpty {
-            let polygon: Polygon
-            if let index = polygonsToAdd.lastIndex(where: { $0.isConvex }) {
-                polygon = polygonsToAdd.remove(at: index)
-            } else if !polygonsToAdd.isEmpty {
-                let potentiallyNonConvexPolygon = polygonsToAdd.removeLast()
-                var convexPolygons = potentiallyNonConvexPolygon.tessellate()
-                polygon = convexPolygons.popLast() ?? potentiallyNonConvexPolygon
-                polygonsToAdd += convexPolygons
-                assert(polygon.isConvex)
-            } else {
-                return .empty
-            }
-            polygons = [polygon, polygon.inverted()]
-        }
-        let sourcePolygons = polygonsToAdd + polygons
-        let verticesByPosition = sourcePolygons.needsHullNormalReconstruction ?
-            sourcePolygons.hullVertexMatchesByPosition() :
-            sourcePolygons.hullVertexMatchesByPositionWithoutReconstruction()
-        // Source meshes often enumerate vertices in regular rings. Adding those points in
-        // mesh order can build many temporary coplanar faces before the outer hull is known,
-        // so insert the unique candidate vertices from the outside in instead.
-        var pointSet = Set(polygons.flatMap { $0.vertices.map(\.position) })
-        let center = Bounds(sourcePolygons).center
-        var verticesToAdd = [(vertex: Vertex, material: Polygon.Material?)]()
-        for polygon in polygonsToAdd {
-            for vertex in polygon.vertices where pointSet.insert(vertex.position).inserted {
-                verticesToAdd.append((vertex, polygon.material))
-            }
-        }
-        if scatterInsertion {
-            verticesToAdd.sort {
-                hullInsertionHash($0.vertex.position) < hullInsertionHash($1.vertex.position)
-            }
-        } else {
-            verticesToAdd.sort {
-                hullInsertionPrecedes(
-                    $0.vertex.position,
-                    $1.vertex.position,
-                    center: center
-                )
-            }
-        }
-        for (vertex, material) in verticesToAdd where !isCancelled() {
-            polygons.addPoint(
-                vertex.position,
-                material: material,
-                verticesByPosition: verticesByPosition
-            )
-            if let polygonLimit, polygons.count > polygonLimit {
-                return .empty
-            }
-        }
-        return Mesh(
-            unchecked: polygons,
-            bounds: bounds,
-            bsp: nil,
-            isConvex: true,
-            isWatertight: true,
-            isPlanar: nil, // TODO: can we compute this cheaply?
-            submeshes: []
-        )
-    }
-
     static func convexHull(
         of verticesByPosition: [Vector: [HullVertexMatch]],
         material: Material?,
         _ isCancelled: CancellationHandler
     ) -> Mesh {
         if verticesByPosition.isEmpty { return .empty }
+        let result = quickHull(
+            of: verticesByPosition,
+            material: material,
+            isCancelled
+        )
+        if result.wasCancelled { return .empty }
+        let mesh = result.mesh
+        let isValidHull = !mesh.isEmpty &&
+            Mesh(mesh.polygons).isConvex(isCancelled: isCancelled)
+        if isValidHull || isCancelled() {
+            return mesh
+        }
         var points = verticesByPosition.keys.sorted()
         var polygons = [Polygon]()
 
@@ -1128,7 +1142,7 @@ private extension Mesh {
             if i.isMultiple(of: cancellationCheckInterval), isCancelled() {
                 return .empty
             }
-            polygons.addPoint(
+            _ = polygons.addPoint(
                 point,
                 material: material,
                 verticesByPosition: verticesByPosition
@@ -1143,6 +1157,175 @@ private extension Mesh {
             isPlanar: nil, // TODO: can we compute this cheaply?
             submeshes: []
         )
+    }
+
+    /// Computes a convex hull using per-face outside sets, avoiding a scan of every
+    /// existing hull face for every candidate point.
+    static func quickHull(
+        of verticesByPosition: [Vector: [HullVertexMatch]],
+        material: Material?,
+        _ isCancelled: CancellationHandler
+    ) -> (mesh: Mesh, wasCancelled: Bool) {
+        var points = verticesByPosition.keys.sorted()
+        guard points.count > 3 else {
+            return (.empty, false)
+        }
+
+        // Find an initial line spanning the greatest axis-aligned extent.
+        let a, b: Vector
+        let bounds = Bounds(points)
+        if bounds.size.x > bounds.size.y, bounds.size.x > bounds.size.z {
+            a = points.min { $0.x < $1.x }!
+            b = points.max { $0.x < $1.x }!
+        } else if bounds.size.y > bounds.size.z {
+            a = points.min { $0.y < $1.y }!
+            b = points.max { $0.y < $1.y }!
+        } else {
+            a = points.min { $0.z < $1.z }!
+            b = points.max { $0.z < $1.z }!
+        }
+        guard let baseline = LineSegment(start: a, end: b) else {
+            return (.empty, false)
+        }
+        guard let c = points.max(by: {
+            baseline.distance(from: $0) < baseline.distance(from: $1)
+        }), baseline.distance(from: c) > epsilon,
+        let basePlane = Plane(points: [a, b, c])
+        else {
+            return (.empty, false)
+        }
+        guard let d = points.max(by: {
+            basePlane.distance(from: $0) < basePlane.distance(from: $1)
+        }), basePlane.distance(from: d) > epsilon
+        else {
+            return (.empty, false) // Planar input; use the existing hull implementation
+        }
+
+        let initialPoints: Set<Vector> = [a, b, c, d]
+        points.removeAll { initialPoints.contains($0) }
+        let interior = [a, b, c, d].centroid
+
+        func face(_ points: [Vector]) -> Polygon? {
+            guard let polygon = Polygon(
+                points: points,
+                verticesByPosition: verticesByPosition,
+                faceNormal: nil,
+                material: material
+            ) else {
+                return nil
+            }
+            guard interior.compare(with: polygon.plane) == .front else {
+                return polygon
+            }
+            return Polygon(
+                points: points.reversed(),
+                verticesByPosition: verticesByPosition,
+                faceNormal: nil,
+                material: material
+            )
+        }
+
+        guard let abc = face([a, b, c]),
+              let adb = face([a, d, b]),
+              let bdc = face([b, d, c]),
+              let cda = face([c, d, a])
+        else {
+            return (.empty, false)
+        }
+        var faces = [
+            QuickHullFace(polygon: abc),
+            QuickHullFace(polygon: adb),
+            QuickHullFace(polygon: bdc),
+            QuickHullFace(polygon: cda),
+        ]
+
+        func assign(_ point: Vector, to indices: Range<Int>) {
+            var best: (index: Int, distance: Double)?
+            for index in indices {
+                let distance = point.signedDistance(from: faces[index].polygon.plane)
+                if distance > planeEpsilon, distance > best?.distance ?? -.infinity {
+                    best = (index, distance)
+                }
+            }
+            if let best {
+                faces[best.index].outside.append(point)
+            }
+        }
+        for (index, point) in points.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return (.empty, true)
+            }
+            assign(point, to: faces.indices)
+        }
+
+        while let sourceIndex = faces.firstIndex(where: { !$0.outside.isEmpty }) {
+            if isCancelled() {
+                return (.empty, true)
+            }
+            let sourcePlane = faces[sourceIndex].polygon.plane
+            let point = faces[sourceIndex].outside.max {
+                let lhs = $0.signedDistance(from: sourcePlane)
+                let rhs = $1.signedDistance(from: sourcePlane)
+                return lhs == rhs ? $0 < $1 : lhs < rhs
+            }!
+            let horizonCandidates = faces.indices.filter {
+                point.signedDistance(from: faces[$0].polygon.plane) > -planeEpsilon
+            }
+            // Include numerically coplanar faces so rounding cannot split the visible
+            // region, then keep the component containing the source face as the horizon.
+            var visibleFacesByEdge = [LineSegment: [Int]]()
+            for index in horizonCandidates {
+                for edge in faces[index].polygon.undirectedEdges {
+                    visibleFacesByEdge[edge, default: []].append(index)
+                }
+            }
+            var visibleSet: Set<Int> = [sourceIndex]
+            var pending = [sourceIndex]
+            while let index = pending.popLast() {
+                for edge in faces[index].polygon.undirectedEdges {
+                    for neighbor in visibleFacesByEdge[edge] ?? []
+                        where visibleSet.insert(neighbor).inserted
+                    {
+                        pending.append(neighbor)
+                    }
+                }
+            }
+            let visible = visibleSet.sorted()
+            let horizon = visible.map { faces[$0].polygon }.boundingEdges
+            var candidates = visible.flatMap { faces[$0].outside }
+            candidates.removeAll { $0 == point }
+            for index in visible.reversed() {
+                faces.remove(at: index)
+            }
+            let firstNewFace = faces.count
+            for edge in horizon {
+                guard let polygon = Polygon(
+                    points: [point, edge.start, edge.end],
+                    verticesByPosition: verticesByPosition,
+                    faceNormal: nil,
+                    material: material
+                ) else {
+                    return (.empty, false)
+                }
+                faces.append(QuickHullFace(polygon: polygon))
+            }
+            guard firstNewFace < faces.count else {
+                return (.empty, false)
+            }
+            for candidate in candidates {
+                assign(candidate, to: firstNewFace ..< faces.count)
+            }
+        }
+
+        return (Mesh(
+            unchecked: faces.map(\.polygon),
+            bounds: bounds,
+            bsp: nil,
+            isConvex: true,
+            isWatertight: true,
+            isPlanar: false,
+            submeshes: []
+        ), false)
     }
 
     /// Orders hull points from the outside in, with a deterministic tie-breaker for regular rings.
@@ -1166,11 +1349,13 @@ private extension Mesh {
 }
 
 private extension [Polygon] {
+    /// Adds a point to a convex hull, returning false if the current hull cannot
+    /// be expanded safely to include it.
     mutating func addPoint(
         _ point: Vector,
         material: Polygon.Material?,
         verticesByPosition: [Vector: [HullVertexMatch]]
-    ) {
+    ) -> Bool {
         var facing = [Polygon](), coplanar = [(plane: Plane, polygons: [Polygon])]()
         loop: for (i, polygon) in enumerated().reversed() {
             switch point.compare(with: polygon.plane) {
@@ -1181,7 +1366,7 @@ private extension [Polygon] {
                 // TODO: improve intersects implementation so both checks aren't needed
                 if polygon.vertices.contains(where: { $0.position == point }) || polygon.intersects(point) {
                     // if point is inside an existing polygon we can skip it
-                    return
+                    return true
                 }
                 // TODO: improve this part
                 if let index = coplanar.firstIndex(where: { $0.plane.isApproximatelyEqual(to: polygon.plane) }) {
@@ -1194,7 +1379,7 @@ private extension [Polygon] {
             }
         }
         // Create triangles from point to edges
-        func addTriangles(with edges: [LineSegment], faceNormal: Vector?) {
+        func addTriangles(with edges: [LineSegment], faceNormal: Vector?) -> Bool {
             for edge in edges {
                 guard let triangle = Polygon(
                     points: [point, edge.start, edge.end],
@@ -1203,21 +1388,25 @@ private extension [Polygon] {
                     material: material
                 ) else {
                     assertionFailure()
-                    continue
+                    return false
                 }
                 append(triangle)
             }
+            return true
         }
         // Extend polygons to include point
         guard facing.isEmpty else {
-            addTriangles(with: facing.boundingEdges, faceNormal: nil)
-            return
+            return addTriangles(with: facing.boundingEdges, faceNormal: nil)
         }
-        // Coplanar expansion is only valid for genuinely planar hulls. In a 3D hull, a
-        // coplanar hit means the point is already on an existing face and should not grow
-        // side faces; doing so is what lets regular sphere rings explode in polygon count.
+        // This coplanar expansion only works for planar hulls. A coplanar point outside
+        // a face of a 3D hull also requires new side faces, so the seeded implementation
+        // cannot safely incorporate it here.
         guard !coplanar.isEmpty, coplanar.count % 2 == 0, arePlanar else {
-            return
+            // A point behind every face is already inside the hull. A coplanar
+            // point outside the matching face is not: silently skipping it
+            // leaves that face inside the eventual hull. Let the caller retry
+            // using the unseeded vertex-set implementation instead.
+            return coplanar.isEmpty
         }
         for (plane, polygons) in coplanar {
             guard let polygon = polygons.first else { continue }
@@ -1228,9 +1417,12 @@ private extension [Polygon] {
                 }
                 return nil
             }
-            addTriangles(with: edges, faceNormal: plane.normal)
+            guard addTriangles(with: edges, faceNormal: plane.normal) else {
+                return false
+            }
         }
-        assert(groupedByPlane().allSatisfy(\.polygons.coplanarPolygonsAreConvex))
+        assert(groupedByPlane { false }.allSatisfy(\.polygons.coplanarPolygonsAreConvex))
+        return true
     }
 }
 
@@ -1243,6 +1435,7 @@ private extension Polygon {
         material: Polygon.Material?
     ) {
         let faceNormal = faceNormal ?? faceNormalForPoints(Array(points))
+        var bestMaterial: (dot: Double, value: Polygon.Material?)?
         let vertices = points.map { p -> Vertex in
             let matches = verticesByPosition[p] ?? []
             guard !matches.isEmpty else {
@@ -1252,6 +1445,9 @@ private extension Polygon {
             var best = matches[0].vertex
             for match in matches {
                 let dot = match.faceNormal.dot(faceNormal)
+                if dot > bestMaterial?.dot ?? -.infinity {
+                    bestMaterial = (dot, match.material)
+                }
                 if dot > bestDot {
                     bestDot = dot
                     best = match.vertex
@@ -1266,14 +1462,21 @@ private extension Polygon {
             }
             return normal == .zero ? best : best.withNormal(normal)
         }
-        self.init(vertices, material: material)
+        let faceMaterial = bestMaterial.map(\.value) ?? material
+        self.init(vertices, material: faceMaterial)
     }
 }
 
 private struct HullVertexMatch {
     let faceNormal: Vector
+    let material: Polygon.Material?
     let vertex: Vertex
     let weight: Double
+}
+
+private struct QuickHullFace {
+    let polygon: Polygon
+    var outside = [Vector]()
 }
 
 private extension Collection<Polygon> {
@@ -1291,6 +1494,7 @@ private extension Collection<Polygon> {
             for vertex in polygon.vertices {
                 result[vertex.position, default: []].append(HullVertexMatch(
                     faceNormal: polygon.plane.normal,
+                    material: polygon.material,
                     vertex: vertex,
                     weight: 1
                 ))
@@ -1319,7 +1523,9 @@ private extension Collection<Polygon> {
                 members.append(index)
                 for edge in polygons[index].undirectedEdges.sorted() {
                     for neighbor in edgesToPolygons[edge] ?? [] where polygonGroups[neighbor] < 0 {
-                        guard polygons[index].plane.isApproximatelyEqual(to: polygons[neighbor].plane) else {
+                        guard polygons[index].material == polygons[neighbor].material,
+                              polygons[index].plane.isApproximatelyEqual(to: polygons[neighbor].plane)
+                        else {
                             continue
                         }
                         polygonGroups[neighbor] = group
@@ -1347,6 +1553,7 @@ private extension Collection<Polygon> {
                 let vertex = normal == .zero ? first : first.withNormal(normal)
                 result[position, default: []].append(HullVertexMatch(
                     faceNormal: faceNormal,
+                    material: polygons[group[0]].material,
                     vertex: vertex,
                     weight: weight
                 ))

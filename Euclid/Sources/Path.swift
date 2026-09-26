@@ -304,18 +304,30 @@ public extension Path {
     }
 
     /// Returns one or more polygons needed to fill the path.
-    /// - Parameter material: An optional ``Polygon/Material-swift.typealias`` to apply to the polygons.
+    /// - Parameters:
+    ///   - material: An optional ``Polygon/Material-swift.typealias`` to apply to the polygons.
+    ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: An array of polygons needed to fill the path, or an empty array if path is not closed.
     ///
     /// > Note: Polygon normals are calculated automatically based on the curvature of the path points.
     /// If the path points do not include textcoords, they will be calculated automatically based on the
     /// path point positions relative to the bounding rectangle of the path.
-    func facePolygons(material: Mesh.Material? = nil) -> [Polygon] {
+    func facePolygons(
+        material: Mesh.Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> [Polygon] {
         if usesNonZeroFill {
-            return nonZeroFillPolygons(material: material)
+            return nonZeroFillPolygons(material: material, isCancelled: isCancelled)
         }
         guard subpaths.count <= 1 else {
-            return subpaths.flatMap { $0.facePolygons(material: material) }
+            var polygons = [Polygon]()
+            for subpath in subpaths {
+                guard !isCancelled() else {
+                    return []
+                }
+                polygons += subpath.facePolygons(material: material, isCancelled: isCancelled)
+            }
+            return polygons
         }
         guard let vertices = faceVertices else {
             return []
@@ -643,7 +655,7 @@ public extension Polygon {
     ///   - material: An optional ``Material-swift.typealias`` to apply to the polygon.
     ///
     /// Path may be convex or concave, but must be closed, planar and non-degenerate, and must not
-    /// include subpaths. For a non-planar path, or one with subpaths, use ``Path/facePolygons(material:)``.
+    /// include subpaths. For a non-planar path, or one with subpaths, use ``Path/facePolygons(material:isCancelled:)``.
     init?(_ shape: Path, material: Material? = nil) {
         guard let vertices = shape.faceVertices, let plane = shape.plane else {
             return nil
@@ -799,17 +811,17 @@ extension Path {
         }
     }
 
-    /// Returns if path should use non-zero fill algorithm
-    var usesNonZeroFill: Bool {
-        isClosed && subpaths.count <= 1 && plane != nil && !isSimple
-    }
-
-    /// Returns polygons for the area covered by this path using the non-zero winding fill rule.
-    ///
-    /// The path must be closed and planar. Compound paths are evaluated as contours in the same
-    /// filled region, so overlapping or self-intersecting contours are resolved by winding direction.
-    func nonZeroFillPolygons(material: Mesh.Material?) -> [Polygon] {
-        guard isClosed, let plane else {
+    /// Decomposes the filled area of a closed planar path into coplanar polygons.
+    /// - Parameters:
+    ///   - material: The material assigned to every returned polygon.
+    ///   - usingEvenOddRule: Whether to use even-odd instead of nonzero winding.
+    ///   - isCancelled: Callback used to cancel the operation.
+    func filledPolygons(
+        material: Mesh.Material?,
+        usingEvenOddRule: Bool,
+        isCancelled: CancellationHandler
+    ) -> [Polygon] {
+        guard isClosed, let plane, !isCancelled() else {
             return []
         }
         let flatteningPlane = FlatteningPlane(normal: plane.normal)
@@ -818,6 +830,7 @@ extension Path {
         }.filter { $0.count > 2 }
 
         struct ScanlineEdge {
+            let id: Int
             let start: Vector
             let end: Vector
             let segment: LineSegment
@@ -826,12 +839,13 @@ extension Path {
             let yMax: Double
             let winding: Int
 
-            init?(_ start: Vector, _ end: Vector) {
+            init?(_ start: Vector, _ end: Vector, id: Int) {
                 guard !start.y.isApproximatelyEqual(to: end.y),
                       let segment = LineSegment(start: start, end: end)
                 else {
                     return nil
                 }
+                self.id = id
                 self.start = start
                 self.end = end
                 self.segment = segment
@@ -851,12 +865,29 @@ extension Path {
             }
         }
 
+        struct ScanlineSpan: Hashable {
+            let leftEdgeID: Int
+            let rightEdgeID: Int
+        }
+
+        struct PolygonPair: Hashable {
+            let first: Int
+            let second: Int
+
+            init(_ first: Int, _ second: Int) {
+                self.first = min(first, second)
+                self.second = max(first, second)
+            }
+        }
+
+        var nextEdgeID = 0
         let edges = contours.flatMap { contour -> [ScanlineEdge] in
             var edges = [ScanlineEdge]()
             var p0 = contour.last!
             for p1 in contour {
-                if let edge = ScanlineEdge(p0, p1) {
+                if let edge = ScanlineEdge(p0, p1, id: nextEdgeID) {
                     edges.append(edge)
+                    nextEdgeID += 1
                 }
                 p0 = p1
             }
@@ -867,8 +898,13 @@ extension Path {
         }
 
         var yValues = edges.flatMap { [$0.yMin, $0.yMax] }
+        var intersectionChecks = 0
         for i in edges.indices {
             for j in edges.indices.dropFirst(i + 1) {
+                if intersectionChecks.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                    return []
+                }
+                intersectionChecks += 1
                 guard edges[i].bounds.intersects(edges[j].bounds),
                       let intersection = edges[i].segment.intersection(with: edges[j].segment),
                       edges[i].yMin < intersection.y,
@@ -888,9 +924,21 @@ extension Path {
             }
             values.append(y)
         }
+        guard !isCancelled() else {
+            return []
+        }
 
         var polygons = [Polygon]()
-        for (y0, y1) in zip(yValues, yValues.dropFirst()) where y1 - y0 > epsilon {
+        var scanlineLevelsByPolygon = [(Double, Double)]()
+        var pointsByScanline = [Double: Set<Vector>]()
+        var previousPolygonIndexBySpan = [ScanlineSpan: Int]()
+        for (index, levels) in zip(yValues, yValues.dropFirst()).enumerated()
+            where levels.1 - levels.0 > epsilon
+        {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                return []
+            }
+            let (y0, y1) = levels
             let y = (y0 + y1) / 2
             let activeEdges = edges.filter { $0.contains(y) }.sorted {
                 let x0 = $0.x(at: y), x1 = $1.x(at: y)
@@ -902,12 +950,15 @@ extension Path {
 
             var winding = 0
             var startEdge: ScanlineEdge?
+            var polygonIndexBySpan = [ScanlineSpan: Int]()
             for edge in activeEdges {
                 let previousWinding = winding
                 winding += edge.winding
-                if previousWinding == 0, winding != 0 {
+                let wasFilled = usingEvenOddRule ? !previousWinding.isMultiple(of: 2) : previousWinding != 0
+                let isFilled = usingEvenOddRule ? !winding.isMultiple(of: 2) : winding != 0
+                if !wasFilled, isFilled {
                     startEdge = edge
-                } else if previousWinding != 0, winding == 0, let leftEdge = startEdge {
+                } else if wasFilled, !isFilled, let leftEdge = startEdge {
                     let x0Left = leftEdge.x(at: y0)
                     let x0Right = edge.x(at: y0)
                     let x1Right = edge.x(at: y1)
@@ -921,42 +972,280 @@ extension Path {
                         flatteningPlane.unflattenPoint([x1Right, y1], onto: plane),
                         flatteningPlane.unflattenPoint([x1Left, y1], onto: plane),
                     ].removingAdjacentDuplicates()
-                    if vertices.count > 2,
-                       let polygon = Polygon(vertices, material: material)
-                    {
-                        polygons.append(polygon.plane.normal.dot(plane.normal) < 0 ? polygon.inverted() : polygon)
+                    if vertices.count > 2, let polygon = Polygon(vertices, material: material) {
+                        let polygon = polygon.plane.normal.dot(plane.normal) < 0 ? polygon.inverted() : polygon
+                        let span = ScanlineSpan(leftEdgeID: leftEdge.id, rightEdgeID: edge.id)
+                        if let index = previousPolygonIndexBySpan[span],
+                           let merged = polygons[index].merge(polygon)
+                        {
+                            polygons[index] = merged
+                            scanlineLevelsByPolygon[index].1 = y1
+                            polygonIndexBySpan[span] = index
+                        } else {
+                            polygonIndexBySpan[span] = polygons.count
+                            polygons.append(polygon)
+                            scanlineLevelsByPolygon.append((y0, y1))
+                        }
+                        for point in vertices {
+                            let flattenedY = flatteningPlane.flattenPoint(point).y
+                            if flattenedY.isApproximatelyEqual(to: y0) {
+                                pointsByScanline[y0, default: []].insert(point)
+                            } else if flattenedY.isApproximatelyEqual(to: y1) {
+                                pointsByScanline[y1, default: []].insert(point)
+                            }
+                        }
                     }
                     startEdge = nil
                 }
             }
+            previousPolygonIndexBySpan = polygonIndexBySpan
         }
 
-        return polygons
+        guard polygons.count > 1 else {
+            return polygons
+        }
+
+        // A contour vertex anywhere in the path adds a global scanline, which can subdivide otherwise
+        // unrelated spans. Align T-junctions between bands, then merge exclusively across horizontal
+        // scanline boundaries. This removes scanline artifacts without generally detessellating the fill.
+        for (index, levels) in scanlineLevelsByPolygon.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() { return [] }
+            let bounds = polygons[index].bounds.inset(by: -epsilon)
+            let points = pointsByScanline[levels.0, default: []]
+                .union(pointsByScanline[levels.1, default: []])
+                .filter { bounds.intersects($0) }
+            polygons[index].insertEdgePoints(Array(points), isCancelled: isCancelled)
+        }
+        var polygonIndicesByScanlineEdge = [LineSegment: [Int]]()
+        for (index, polygon) in polygons.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() { return [] }
+            for edge in polygon.undirectedEdges {
+                let start = flatteningPlane.flattenPoint(edge.start)
+                let end = flatteningPlane.flattenPoint(edge.end)
+                if start.y.isApproximatelyEqual(to: end.y) {
+                    polygonIndicesByScanlineEdge[edge, default: []].append(index)
+                }
+            }
+        }
+
+        var visitedPairs = Set<PolygonPair>()
+        let pairs = polygonIndicesByScanlineEdge.keys.sorted().compactMap { edge -> PolygonPair? in
+            guard let indices = polygonIndicesByScanlineEdge[edge], indices.count == 2 else {
+                return nil
+            }
+            let pair = PolygonPair(indices[0], indices[1])
+            return visitedPairs.insert(pair).inserted ? pair : nil
+        }
+        guard !isCancelled() else {
+            return []
+        }
+        var parents = Array(polygons.indices)
+        var mergedPolygons = polygons.map(Optional.some)
+        func root(of index: Int) -> Int {
+            var index = index
+            while parents[index] != index {
+                index = parents[index]
+            }
+            return index
+        }
+        for (index, pair) in pairs.enumerated() {
+            if index.isMultiple(of: cancellationCheckInterval), isCancelled() { return [] }
+            let first = root(of: pair.first)
+            let second = root(of: pair.second)
+            guard first != second else {
+                continue
+            }
+            let kept = min(first, second)
+            let removed = max(first, second)
+            guard let a = mergedPolygons[kept],
+                  let b = mergedPolygons[removed],
+                  a.material == b.material,
+                  a.plane.isApproximatelyEqual(to: b.plane),
+                  let merged = a.merge(
+                      unchecked: b,
+                      ensureConvex: false,
+                      allowDisjointSharedVertices: true,
+                      allowRepeatedVertexPositions: true
+                  )
+            else {
+                continue
+            }
+            mergedPolygons[kept] = merged
+            mergedPolygons[removed] = nil
+            parents[removed] = kept
+        }
+        var result = mergedPolygons.compactMap { $0 }
+        // The adjacency pass above is bounded by the original scanline graph. Orthogonal paths can be
+        // exhaustively merged without producing costly high-vertex curved polygons.
+        guard edges.allSatisfy({ $0.start.x.isApproximatelyEqual(to: $0.end.x) }) else {
+            return result
+        }
+        while true {
+            if isCancelled() {
+                return []
+            }
+            var indicesByEdge = [LineSegment: [Int]]()
+            for (index, polygon) in result.enumerated() {
+                for edge in polygon.undirectedEdges {
+                    let start = flatteningPlane.flattenPoint(edge.start)
+                    let end = flatteningPlane.flattenPoint(edge.end)
+                    if start.y.isApproximatelyEqual(to: end.y) {
+                        indicesByEdge[edge, default: []].append(index)
+                    }
+                }
+            }
+            var didMerge = false
+            for edge in indicesByEdge.keys.sorted() {
+                guard let indices = indicesByEdge[edge], indices.count == 2,
+                      let merged = result[indices[0]].merge(result[indices[1]])
+                else {
+                    continue
+                }
+                result[indices[0]] = merged
+                result.remove(at: indices[1])
+                didMerge = true
+                break
+            }
+            if !didMerge {
+                return result
+            }
+        }
     }
 
-    /// Returns outline paths for the area covered by this path using the non-zero winding fill rule.
-    var nonZeroFillBoundary: Path {
-        nonZeroFillBoundary(from: nonZeroFillPolygons(material: nil))
+    /// Returns if path should use non-zero fill algorithm
+    var usesNonZeroFill: Bool {
+        isClosed && subpaths.count <= 1 && plane != nil && !isSimple
     }
 
-    func nonZeroFillBoundary(from polygons: [Polygon]) -> Path {
+    /// Returns polygons for the area covered by this path using the non-zero winding fill rule.
+    ///
+    /// The path must be closed and planar. Compound paths are evaluated as contours in the same
+    /// filled region, so overlapping or self-intersecting contours are resolved by winding direction.
+    func nonZeroFillPolygons(material: Mesh.Material?, isCancelled: CancellationHandler) -> [Polygon] {
+        filledPolygons(material: material, usingEvenOddRule: false, isCancelled: isCancelled)
+    }
+
+    /// Builds cap polygons for the area covered by this path using the even-odd fill rule.
+    func oddEvenFillPolygons(material: Mesh.Material?, isCancelled: CancellationHandler) -> [Polygon] {
+        filledPolygons(material: material, usingEvenOddRule: true, isCancelled: isCancelled)
+    }
+
+    /// Reconstructs the path around the filled area represented by `polygons`.
+    func filledAreaBoundary(from polygons: [Polygon]) -> Path {
         Path(
             unchecked: .subpaths(polygons.outlinePaths),
             plane: plane
         ).restoringCurvature(from: self)
     }
 
-    /// Returns a non-zero fill boundary after aligning split edges between adjacent fill polygons.
-    /// This is useful for mesh side-wall generation, but caps should use `nonZeroFillBoundary`
-    /// or `nonZeroFillPolygons` so real holes are not converted into filled subpaths.
-    var nonZeroFillBoundaryWithAlignedEdges: Path? {
-        let polygons = nonZeroFillPolygons(material: nil)
-        let precision = max(bounds.size.length * 1e-9, epsilon)
-        let outlinePolygons = polygons.count > 1 ? polygons
-            .insertingEdgeVertices(with: polygons.holeEdges) { false }
-            .mergingVertices(withPrecision: precision) { false } : polygons
-        return Path(unchecked: .subpaths(outlinePolygons.outlinePaths), plane: plane)
-            .restoringCurvature(from: self)
+    /// Returns true when any path point is reused or any subpath edge intersects an earlier subpath edge.
+    var subpathsTouchOrIntersect: Bool {
+        var previousEdges = [LineSegment]()
+        var vertices = Set<Vector>()
+        for subpath in subpaths {
+            let positions = subpath.points.dropLast(subpath.isClosed ? 1 : 0).map(\.position)
+            for position in positions {
+                guard vertices.insert(position).inserted else {
+                    return true
+                }
+            }
+            for edge in subpath.orderedEdges {
+                if previousEdges.contains(where: {
+                    lineIntersection(edge.start, edge.end, true, $0.start, $0.end, true) != nil
+                }) {
+                    return true
+                }
+            }
+            previousEdges += subpath.orderedEdges
+        }
+        return false
+    }
+
+    /// Returns true when subpath interiors partially overlap. Boundary-only contact and full
+    /// containment do not count because those cases can still preserve contour correspondence.
+    var subpathsHavePartiallyOverlappingInteriors: Bool {
+        for (polygon, other, _) in subpathPolygonPairs {
+            guard polygon.bounds.intersects(other.bounds),
+                  polygon.hasPartialInteriorOverlap(with: other)
+            else {
+                continue
+            }
+            return true
+        }
+        return false
+    }
+
+    /// Returns every unique pair of subpaths that can each be represented by a polygon.
+    ///
+    /// Each tuple contains the polygons for two distinct subpaths and a Boolean indicating whether
+    /// their source subpaths share a vertex position. Duplicate closing points are excluded from
+    /// that comparison. Pairs involving an open, degenerate, or otherwise non-polygonal subpath
+    /// are omitted.
+    var subpathPolygonPairs: [(Polygon, Polygon, Bool)] {
+        let polygons = subpaths.map { Polygon($0) }
+        var result = [(Polygon, Polygon, Bool)]()
+        for i in subpaths.indices {
+            guard let polygon = polygons[i] else {
+                continue
+            }
+            for j in subpaths.indices.dropFirst(i + 1) {
+                guard let other = polygons[j] else {
+                    continue
+                }
+                result.append((polygon, other, subpaths[i].hasCoincidentPoints(with: subpaths[j])))
+            }
+        }
+        return result
+    }
+
+    /// Returns whether the paths share a vertex position, ignoring duplicate closing points.
+    func hasCoincidentPoints(with other: Path) -> Bool {
+        let vertices = Set(points.dropLast(isClosed ? 1 : 0).map(\.position))
+        return other.points.dropLast(other.isClosed ? 1 : 0).contains {
+            vertices.contains($0.position)
+        }
+    }
+
+    /// Returns original subpaths with every odd-depth contour flipped so non-zero winding
+    /// produces the same filled area as even-odd composition.
+    var oddEvenOrientedSubpaths: [Path] {
+        let subpaths = subpaths.filter { !$0.isEmpty }
+        let entries = subpaths.map {
+            (
+                points: Array($0.points.dropLast($0.isClosed ? 1 : 0).map(\.position)),
+                bounds: $0.bounds,
+                polygon: Polygon($0)
+            )
+        }
+        let flatteningPlane = flatteningPlane
+        return subpaths.enumerated().map { index, subpath -> Path in
+            let depth = entries.indices.filter { otherIndex in
+                guard otherIndex != index,
+                      let polygon = entries[otherIndex].polygon
+                else {
+                    return false
+                }
+                let insideCount = entries[index].points.filter {
+                    entries[otherIndex].bounds.intersects($0) && polygon.intersects($0)
+                }.count
+                return insideCount > entries[index].points.count / 2
+            }.count
+            let isClockwise = flattenedPointsAreClockwise(subpath.points.map {
+                flatteningPlane.flattenPoint($0.position)
+            })
+            let shouldBeClockwise = depth.isMultiple(of: 2)
+            return isClockwise == shouldBeClockwise ? subpath : subpath.inverted()
+        }
+    }
+
+    /// Returns outline paths for the area covered by this path using the non-zero winding fill rule.
+    var nonZeroFillBoundary: Path {
+        nonZeroFillBoundary { false }
+    }
+
+    /// Returns the non-zero fill boundary while polling for cancellation.
+    func nonZeroFillBoundary(isCancelled: CancellationHandler) -> Path {
+        filledAreaBoundary(from: nonZeroFillPolygons(material: nil, isCancelled: isCancelled))
     }
 
     func restoringCurvature(from source: Path) -> Path {

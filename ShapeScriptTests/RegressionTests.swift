@@ -41,7 +41,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 14)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 10)
         #endif
     }
 
@@ -106,7 +106,7 @@ final class RegressionTests: XCTestCase {
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 129)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 117)
         #endif
     }
 
@@ -880,6 +880,34 @@ final class RegressionTests: XCTestCase {
         #endif
     }
 
+    func testCircularlyExtrudedTextPreservesCounters() throws {
+        #if canImport(CoreText)
+        let program = """
+        extrude {
+            text { "Hello\\nWorld" }
+            along circle { size 1 }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: TestDelegate())
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { false })
+        let compoundGlyphs = geometry.children.compactMap { child -> Mesh? in
+            guard case let .extrude(paths, _) = child.type,
+                  paths.first?.subpaths.count ?? 0 > 1
+            else {
+                return nil
+            }
+            return child.mesh
+        }
+
+        XCTAssertEqual(compoundGlyphs.count, 4)
+        for mesh in compoundGlyphs {
+            XCTAssertTrue(mesh.isWatertight)
+            XCTAssertEqual(mesh.submeshes.filter { $0.signedVolume < 0 }.count, 1)
+        }
+        #endif
+    }
+
     func testDifference() throws {
         let program = "difference cube { size 0.8 } sphere"
         let delegate = TestDelegate()
@@ -913,7 +941,7 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: delegate)
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
-        XCTAssertEqual(scene.children.first?.polygons { false }.count, 69)
+        XCTAssertEqual(scene.children.first?.polygons { false }.count, 65)
     }
 
     func testProblematicDetailSphereHull() throws {

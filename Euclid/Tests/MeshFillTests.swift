@@ -41,6 +41,28 @@ final class MeshFillTests: XCTestCase {
         XCTAssertEqual(Mesh.fill([shape]), Mesh.fill(shape))
     }
 
+    func testFillQRCodeLikeCompoundPathPreservesColorsAndUsesSharedTexcoordBounds() {
+        let shape = Path.qrCodeLikeCompoundPath.withColor(.red)
+        let vertices = Mesh.fill(shape, faces: .front).polygons.flatMap(\.vertices)
+        let flatteningPlane = shape.flatteningPlane
+        let bounds = Bounds(shape.points.map {
+            flatteningPlane.flattenPoint($0.position)
+        })
+
+        XCTAssertFalse(vertices.isEmpty)
+        XCTAssertTrue(vertices.allSatisfy { vertex in
+            let point = flatteningPlane.flattenPoint(vertex.position)
+            let expectedTexcoord = Vector(
+                (point.x - bounds.min.x) / bounds.size.x,
+                1 - (point.y - bounds.min.y) / bounds.size.y
+            )
+            return vertex.color == .red && vertex.texcoord.isApproximatelyEqual(
+                to: expectedTexcoord,
+                absoluteTolerance: 1e-9
+            )
+        })
+    }
+
     func testFillSelfIntersectingPath() {
         let path = Path([
             .point(0, 0),
@@ -70,7 +92,7 @@ final class MeshFillTests: XCTestCase {
 
         let front = Mesh.fill(path, faces: .front)
         XCTAssertFalse(front.polygons.isEmpty)
-        XCTAssertFalse(front.polygons.triangulate().isEmpty)
+        XCTAssertFalse(front.polygons.triangulate { false }.isEmpty)
         XCTAssertTrue(front.polygons.allSatisfy { $0.plane.normal == .unitZ })
         XCTAssertGreaterThan(front.polygons.surfaceArea, 0)
     }
@@ -114,6 +136,19 @@ final class MeshFillTests: XCTestCase {
         let mesh = Mesh.fill(Path(subpaths: [first, second]), faces: .front)
         XCTAssertEqual(mesh.polygons.surfaceArea, 150)
         XCTAssertFalse(mesh.isWatertight)
+    }
+
+    func testCompoundFillPollsForCancellation() {
+        let first = Path.square()
+        let second = Path.square().translated(by: [0.5, 0.5])
+        nonisolated(unsafe) var cancellationChecks = 0
+        let mesh = Mesh.fill(Path(subpaths: [first, second])) {
+            cancellationChecks += 1
+            return cancellationChecks > 2
+        }
+
+        XCTAssertTrue(mesh.isEmpty)
+        XCTAssertGreaterThanOrEqual(cancellationChecks, 3)
     }
 
     func testFillOverlappingCurvedCompoundPathUsesEvenOddRule() {

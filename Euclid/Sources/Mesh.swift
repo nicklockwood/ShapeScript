@@ -344,31 +344,41 @@ public extension Mesh {
 
     /// Splits all polygons in the mesh that are concave or have more than the specified number of
     /// sides into two or more convex polygons.
-    /// - Parameter maxSides: The maximum number of sides each polygon may have.
+    /// - Parameters:
+    ///   - maxSides: The maximum number of sides each polygon may have.
+    ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the convex polygons.
-    func tessellate(maxSides: Int = .max) -> Mesh {
-        Mesh(
-            unchecked: polygons.tessellate(maxSides: maxSides),
-            bounds: boundsIfSet,
+    func tessellate(
+        maxSides: Int = .max,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        let polygons = polygons.tessellate(maxSides: maxSides, isCancelled: isCancelled)
+        let wasCancelled = isCancelled()
+        return Mesh(
+            unchecked: polygons,
+            bounds: wasCancelled ? nil : boundsIfSet,
             bsp: nil, // TODO: would it be safe to preserve this?
-            isConvex: isKnownConvex,
-            isWatertight: watertightIfSet,
+            isConvex: wasCancelled ? false : isKnownConvex,
+            isWatertight: wasCancelled ? nil : watertightIfSet,
             isPlanar: planarIfSet,
-            submeshes: submeshesIfEmpty
+            submeshes: wasCancelled ? nil : submeshesIfEmpty
         )
     }
 
     /// Splits all polygons in the mesh into triangles.
+    /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the triangles.
-    func triangulate() -> Mesh {
-        Mesh(
-            unchecked: polygons.triangulate(),
-            bounds: boundsIfSet,
+    func triangulate(isCancelled: CancellationHandler = { false }) -> Mesh {
+        let polygons = polygons.triangulate(isCancelled: isCancelled)
+        let wasCancelled = isCancelled()
+        return Mesh(
+            unchecked: polygons,
+            bounds: wasCancelled ? nil : boundsIfSet,
             bsp: nil, // TODO: would it be safe to preserve this?
-            isConvex: isKnownConvex,
-            isWatertight: watertightIfSet,
+            isConvex: wasCancelled ? false : isKnownConvex,
+            isWatertight: wasCancelled ? nil : watertightIfSet,
             isPlanar: planarIfSet,
-            submeshes: submeshesIfEmpty
+            submeshes: wasCancelled ? nil : submeshesIfEmpty
         )
     }
 
@@ -378,15 +388,13 @@ public extension Mesh {
     ///
     /// > Note: This method can be very time-consuming. For convex polygons use `detriangulate()` instead.
     func detessellate(isCancelled: CancellationHandler = { false }) -> Mesh {
-        let isPlanar = isPlanar
         let isLargeMesh = polygons.count > 2048
-        let preserveWatertightness = watertightIfSet == true && !isPlanar
         let polygons = polygons.detessellate(
             ensureConvex: false,
             useQualityMerge: watertightIfSet == true && !isLargeMesh,
             allowDisjointSharedVertices: isPlanar,
-            preserveWatertightness: preserveWatertightness,
-            removeWatertightSafeRedundantVertices: !isLargeMesh,
+            preserveWatertightness: !isPlanar,
+            removeWatertightSafeRedundantVertices: watertightIfSet == true && !isLargeMesh,
             isCancelled: isCancelled
         )
         return Mesh(
@@ -404,12 +412,11 @@ public extension Mesh {
     /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh containing the merged polygons.
     func detriangulate(isCancelled: CancellationHandler = { false }) -> Mesh {
-        let isPlanar = isPlanar
-        let preserveWatertightness = watertightIfSet == true && !isPlanar
         let polygons = polygons.detessellate(
             ensureConvex: true,
             allowDisjointSharedVertices: isPlanar,
-            preserveWatertightness: preserveWatertightness,
+            preserveWatertightness: !isPlanar,
+            removeWatertightSafeRedundantVertices: watertightIfSet == true,
             isCancelled: isCancelled
         )
         return Mesh(
@@ -461,27 +468,6 @@ public extension Mesh {
             break
         }
         if !holeEdges.isEmpty {
-            func capMaterial(for path: Path, in polygons: [Polygon]) -> Material? {
-                capMaterial(for: path.undirectedEdges, in: polygons)
-            }
-
-            func capMaterial(for pathEdges: some Collection<LineSegment>, in polygons: [Polygon]) -> Material? {
-                var weights = [(material: Material?, length: Double)]()
-                for (index, polygon) in polygons.enumerated() {
-                    if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
-                        return nil
-                    }
-                    for edge in polygon.undirectedEdges where pathEdges.contains(edge) {
-                        if let index = weights.firstIndex(where: { $0.material == polygon.material }) {
-                            weights[index].length += edge.length
-                        } else {
-                            weights.append((polygon.material, edge.length))
-                        }
-                    }
-                }
-                return weights.max(by: { $0.length < $1.length })?.material
-            }
-
             func capPolygons(for path: Path, material: Material?) -> [Polygon] {
                 if path.isClosed {
                     let vertices = path.points.dropLast().map(Vertex.init)
@@ -489,9 +475,18 @@ public extension Mesh {
                         return [polygon]
                     }
                 }
-                let polygons = path.closed().facePolygons(material: material)
-                if !polygons.isEmpty {
-                    return polygons
+                // Complex non-planar boundaries can make polygon triangulation pathologically
+                // expensive. For large loops, skip directly to the linear-time triangle fan
+                // fallback below.
+                let maximumPolygonizedCapVertexCount = 256
+                if path.points.count <= maximumPolygonizedCapVertexCount {
+                    let polygons = path.closed().facePolygons(
+                        material: material,
+                        isCancelled: isCancelled
+                    )
+                    if !polygons.isEmpty {
+                        return polygons
+                    }
                 }
                 guard path.isClosed else {
                     return []
@@ -520,17 +515,44 @@ public extension Mesh {
             }
             while !holeEdges.isEmpty, !isCancelled() {
                 let loops = holeEdges.closedLoops
+                var materialsByEdge = [LineSegment: [Material?]]()
+                // Preserve polygon order so equal-weight materials have a stable winner.
+                var materialOrder = [Material?]()
+                var verticesByPosition = [Vector: [Vertex]]()
+                for (index, polygon) in polygons.enumerated() {
+                    if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
+                        break
+                    }
+                    for vertex in polygon.vertices {
+                        verticesByPosition[vertex.position, default: []].append(vertex)
+                    }
+                    for edge in polygon.undirectedEdges where holeEdges.contains(edge) {
+                        materialsByEdge[edge, default: []].append(polygon.material)
+                        if !materialOrder.contains(polygon.material) {
+                            materialOrder.append(polygon.material)
+                        }
+                    }
+                }
+                guard !isCancelled() else {
+                    break
+                }
                 let caps = loops.enumerated().flatMap { index, points -> [Polygon] in
                     if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
                         return []
                     }
-                    let material = capMaterial(for: points.undirectedEdges, in: polygons)
-                    let closedVertices = points.map { position in
-                        let vertices = polygons.flatMap { polygon in
-                            polygon.vertices.compactMap {
-                                $0.position == position ? $0 : nil
+                    var materialWeights = Array(repeating: 0.0, count: materialOrder.count)
+                    for edge in points.undirectedEdges {
+                        for material in materialsByEdge[edge] ?? [] {
+                            if let index = materialOrder.firstIndex(of: material) {
+                                materialWeights[index] += edge.length
                             }
                         }
+                    }
+                    let material = materialWeights.indices.max(by: {
+                        materialWeights[$0] < materialWeights[$1]
+                    }).map { materialOrder[$0] } ?? nil
+                    let closedVertices = points.map { position in
+                        let vertices = verticesByPosition[position] ?? []
                         if let vertex = vertices.first(where: { $0.color != .white }) {
                             return vertex
                         }
@@ -676,7 +698,7 @@ extension Mesh {
         storage.bsp(isCancelled: isCancelled)
     }
 
-    func isConvex(isCancelled: CancellationHandler = { false }) -> Bool {
+    func isConvex(isCancelled: CancellationHandler) -> Bool {
         storage.isConvex(isCancelled: isCancelled)
     }
 
@@ -758,13 +780,13 @@ private extension Mesh {
         private(set) var bspIfSet: BSP?
         func bsp(isCancelled: CancellationHandler) -> BSP {
             bspLock.lock()
+            defer { bspLock.unlock() }
             if bspIfSet == nil {
                 let bsp = BSP(unchecked: polygons, isKnownConvex: isKnownConvex, isCancelled)
                 if isCancelled() { return bsp }
                 bspIfSet = bsp
                 isKnownConvex = bsp.isConvex
             }
-            bspLock.unlock()
             return bspIfSet!
         }
 
@@ -844,7 +866,7 @@ private extension Mesh {
     }
 }
 
-private extension [Polygon] {
+extension [Polygon] {
     /// Group by touching vertices, returning polygon indices in original order.
     var groupedSubmeshIndices: [[Int]] {
         var submeshes = [[Int]]()
@@ -878,26 +900,50 @@ private extension [Polygon] {
 
 private extension Set<LineSegment> {
     var closedLoops: [[Vector]] {
-        var edges = sorted()
+        var remainingEdges = self
+        let sortedEdges = sorted()
+        var edgesByVertex = [Vector: [LineSegment]]()
+        for edge in sortedEdges {
+            edgesByVertex[edge.start, default: []].append(edge)
+            edgesByVertex[edge.end, default: []].append(edge)
+        }
         var loops = [[Vector]]()
-        while !edges.isEmpty {
-            let first = edges.removeFirst()
-            var points = [first.start, first.end]
-            while points.last != points.first {
-                guard let last = points.last,
-                      let index = edges.firstIndex(where: {
-                          $0.start == last || $0.end == last
-                      })
-                else {
-                    break
-                }
-                let edge = edges.remove(at: index)
-                points.append(edge.start == last ? edge.end : edge.start)
+        var firstIndex = 0
+        while !remainingEdges.isEmpty {
+            while firstIndex < sortedEdges.count, !remainingEdges.contains(sortedEdges[firstIndex]) {
+                firstIndex += 1
             }
-            guard points.count > 3, points.last == points.first else {
+            guard firstIndex < sortedEdges.count else {
+                break
+            }
+            let first = sortedEdges[firstIndex]
+            remainingEdges.remove(first)
+
+            var stack = [first.end]
+            var visited = Set<Vector>(stack)
+            var parentByVertex = [Vector: (Vector, LineSegment)]()
+            while let vertex = stack.popLast(), parentByVertex[first.start] == nil {
+                for edge in edgesByVertex[vertex] ?? [] where remainingEdges.contains(edge) {
+                    let next = edge.start == vertex ? edge.end : edge.start
+                    guard visited.insert(next).inserted else {
+                        continue
+                    }
+                    parentByVertex[next] = (vertex, edge)
+                    stack.append(next)
+                }
+            }
+            guard parentByVertex[first.start] != nil else {
                 continue
             }
-            loops.append(points)
+
+            var path = [first.start]
+            var vertex = first.start
+            while vertex != first.end, let (parent, edge) = parentByVertex[vertex] {
+                remainingEdges.remove(edge)
+                path.append(parent)
+                vertex = parent
+            }
+            loops.append([first.start] + path.reversed())
         }
         return loops
     }

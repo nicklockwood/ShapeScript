@@ -182,7 +182,10 @@ extension Symbols {
             let path = Path(context.state.children.compactMap {
                 $0.value as? PathPoint
             }).transformed(by: context.state.transform)
-            let polygons = path.closed().facePolygons(material: context.state.material)
+            let polygons = path.closed().facePolygons(
+                material: context.state.material,
+                isCancelled: context.isCancelled
+            )
             return .tuple(polygons.map { .polygon($0) })
         },
     ]
@@ -442,7 +445,10 @@ extension Symbols {
                     throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
                 }
                 let path = Path(points).transformed(by: context.state.transform)
-                let polygons = path.closed().facePolygons(material: context.state.material)
+                let polygons = path.closed().facePolygons(
+                    material: context.state.material,
+                    isCancelled: context.isCancelled
+                )
                 return .tuple(polygons.map { .polygon($0) })
             }
             return .path(Path.polygon(
@@ -472,7 +478,12 @@ extension Symbols {
         ], .text, .list(.path))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.state.children.compactMap { $0.value as? TextValue }
-            let paths = Path.text(text, width: width, detail: context.state.detail / 8)
+            let paths = Path.text(
+                text,
+                width: width,
+                detail: context.state.detail / 8,
+                isCancelled: context.isCancelled
+            )
             return .tuple(paths.map { .path($0.transformed(by: context.state.transform)) })
         },
         "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
@@ -498,7 +509,10 @@ extension Symbols {
             func process(_ value: ShapeScript.Value) -> [ShapeScript.Value] {
                 switch value {
                 case let .path(path):
-                    return [.path(path.inset(by: inset).transformed(by: context.state.transform))]
+                    return [.path(path.inset(
+                        by: inset,
+                        isCancelled: context.isCancelled
+                    ).transformed(by: context.state.transform))]
                 case let .mesh(geometry):
                     let geometry = geometry.insetByRewritingPrimitives(
                         by: inset,

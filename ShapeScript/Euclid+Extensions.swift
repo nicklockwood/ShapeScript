@@ -149,7 +149,8 @@ extension Path {
     static func text(
         _ text: [TextValue],
         width: Double? = nil,
-        detail: Int = 2
+        detail: Int = 2,
+        isCancelled: CancellationHandler
     ) -> [Path] {
         #if canImport(CoreText)
         let attributedString = NSMutableAttributedString()
@@ -165,7 +166,12 @@ extension Path {
                 linespacing: text.linespacing
             ))
         }
-        return Path.text(attributedString, width: width, detail: detail)
+        return [Path].text(
+            attributedString,
+            width: width,
+            detail: detail,
+            isCancelled: isCancelled
+        )
         #else
         // TODO: throw error when CoreText not available
         return []

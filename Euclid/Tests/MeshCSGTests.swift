@@ -269,6 +269,19 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
     }
 
+    func testConvexHullOfCubesPreservesMaterials() {
+        let red = AnyHashable("red")
+        let blue = AnyHashable("blue")
+        let mesh1 = Mesh.cube(material: red).translated(by: [-1, 0.5, 0.7])
+        let mesh2 = Mesh.cube(material: blue).translated(by: [1, 0])
+        let mesh = Mesh.convexHull(of: [mesh1, mesh2])
+
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.isWatertight)
+        XCTAssertEqual(Set(mesh.polygons.compactMap(\.material)), [red, blue])
+    }
+
     func testConvexHullOfSpheres() {
         let mesh1 = Mesh.sphere().translated(by: [-1, 0.2, -0.1])
         let mesh2 = Mesh.sphere().translated(by: [1, 0])
@@ -365,6 +378,18 @@ final class MeshCSGTests: XCTestCase {
         XCTAssert(mesh.detessellate().isWatertight)
     }
 
+    func testMinkowskiSumOfDetail51CylinderAndSphere() {
+        let cylinder = Mesh.cylinder(radius: 0.165, height: 1.08, slices: 51)
+        let sphere = Mesh.sphere(radius: 0.06, slices: 51)
+        let mesh = cylinder.minkowskiSum(with: sphere)
+
+        XCTAssert(mesh.isKnownConvex)
+        XCTAssert(mesh.isActuallyConvex)
+        XCTAssert(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.bounds, cylinder.bounds.minkowskiSum(with: sphere.bounds))
+        XCTAssertEqual(mesh.bounds, Bounds(mesh.polygons))
+    }
+
     func testMinkowskiSumRepairBeforeDetessellateIsWatertight() {
         let cube = Mesh.cube()
         let cylinder = Mesh.cylinder(radius: 0.225, height: 1.2, slices: 16)
@@ -379,6 +404,51 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertTrue(source.isWatertight)
         XCTAssertTrue(mesh.isWatertight, "hole edges: \(mesh.polygons.holeEdges.count)")
         XCTAssertTrue(mesh.polygons.areWatertight)
+    }
+
+    func testUnionOfMinkowskiComponentsDoesNotUseIntermediateResultAsBSP() {
+        let cube = Mesh.cube()
+        let cylinder = Mesh.cylinder(radius: 0.225, height: 1.2, slices: 8)
+            .rotated(by: Rotation(roll: .halfPi))
+            .translated(by: [0.45, 0, 0])
+        let source = Mesh.union([cube, cylinder]).makeWatertight().inset(by: 0.06)
+        let sphere = Mesh.sphere(radius: 0.06, slices: 8)
+        let components = [source.translated(by: sphere.bounds.center)] + source.polygons.map {
+            sphere.minkowskiSum(with: $0)
+        }
+
+        let expected = Mesh.union(components)
+        let progressive = components.dropFirst().reduce(components[0]) {
+            $0.union($1)
+        }
+        let result = source.minkowskiSum(with: sphere)
+
+        XCTAssertNotEqual(expected, progressive)
+        XCTAssertEqual(result, expected)
+    }
+
+    func testMinkowskiHullDoesNotRetainInternalSeedFaces() {
+        let polygon = Polygon(unchecked: [
+            Vector(-0.44, -0.44, -0.44),
+            Vector(0.44, -0.44, -0.44),
+            Vector(0.44, -0.44, -0.061911096256999996),
+            Vector(0.44, -0.44, 0.44),
+            Vector(-0.44, -0.44, 0.44),
+        ])
+        let sphere = Mesh.sphere(radius: 0.06, slices: 51)
+        let spherePoints = Set(sphere.polygons.flatMap { $0.vertices.map(\.position) })
+        let points = polygon.vertices.flatMap { vertex in
+            spherePoints.map { $0 + vertex.position }
+        }
+        let hull = sphere.minkowskiSum(with: polygon)
+
+        XCTAssertTrue(hull.polygons.areWatertight)
+        XCTAssertTrue(hull.isActuallyConvex)
+        XCTAssertTrue(hull.polygons.allSatisfy { hullPolygon in
+            points.allSatisfy {
+                $0.signedDistance(from: hullPolygon.plane) <= planeEpsilon
+            }
+        })
     }
 
     func testConvexHullOfCubeIsItself() {
@@ -644,6 +714,28 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertEqual(Mesh.minkowskiSum(of: [cube, sphere]), Mesh.minkowskiSum(of: [sphere, cube]))
     }
 
+    func testMinkowskiSumOfConvexMeshesPollsForCancellation() {
+        nonisolated(unsafe) var cancellationChecks = 0
+        let mesh = Mesh.cube().minkowskiSum(with: .sphere(slices: 128)) {
+            cancellationChecks += 1
+            return true
+        }
+        XCTAssertTrue(mesh.isEmpty)
+        XCTAssertGreaterThanOrEqual(cancellationChecks, 8)
+    }
+
+    func testMinkowskiSumWithPolygonCanBeCancelled() {
+        let polygon = Path.square().facePolygons().first!
+        nonisolated(unsafe) var cancellationChecks = 0
+        let mesh = Mesh.cube().minkowskiSum(with: polygon) {
+            cancellationChecks += 1
+            return true
+        }
+
+        XCTAssertEqual(mesh, .empty)
+        XCTAssertEqual(cancellationChecks, 1)
+    }
+
     func testMinkowskiSumOfTranslatedShapes() {
         let mesh1 = Mesh.cube().translated(by: .random())
         let mesh2 = Mesh.sphere().translated(by: .random())
@@ -682,8 +774,8 @@ final class MeshCSGTests: XCTestCase {
         let b = Mesh.text("G")
         let ab = a.minkowskiSum(with: b)
         let ba = b.minkowskiSum(with: a)
-        XCTAssertFalse(ab.isConvex())
-        XCTAssertFalse(ba.isConvex())
+        XCTAssertFalse(ab.isConvex { false })
+        XCTAssertFalse(ba.isConvex { false })
         XCTAssertEqual(ab, ba)
         #endif
     }
@@ -912,6 +1004,16 @@ final class MeshCSGTests: XCTestCase {
         let plane = Plane(unchecked: .unitX, pointOnPlane: .zero)
         let b = a.clipped(to: plane)
         XCTAssertEqual(b.bounds, .init([0, -0.5], [0.5, 0.5]))
+    }
+
+    func testClipToPlaneWithFillPollsForCancellation() {
+        nonisolated(unsafe) var cancellationChecks = 0
+        _ = Mesh.cube().clipped(to: .yz, fill: Color.white) {
+            cancellationChecks += 1
+            return true
+        }
+
+        XCTAssertGreaterThan(cancellationChecks, 0)
     }
 
     func testSquareClippedToItsOwnPlane() {

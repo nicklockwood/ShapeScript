@@ -613,11 +613,11 @@ public extension Geometry {
             }
             return copy(children: inset)
         case let .loft(paths):
-            return copy(type: .loft(paths.map { $0.inset(by: distance) }))
+            return copy(type: .loft(paths.map { $0.inset(by: distance, isCancelled: isCancelled) }))
         case .circle, .square, .path:
-            return copy(type: path.map { .path($0.inset(by: distance)) } ?? type)
+            return copy(type: path.map { .path($0.inset(by: distance, isCancelled: isCancelled)) } ?? type)
         case let .fill(paths) where paths.count == 1:
-            return copy(type: .fill([paths[0].inset(by: distance)]))
+            return copy(type: .fill([paths[0].inset(by: distance, isCancelled: isCancelled)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
                 if mesh(isCancelled)?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
@@ -625,7 +625,7 @@ public extension Geometry {
                 }
             }
             let depth = max(0, 1 - distance * 2)
-            let path = paths[0].inset(by: distance)
+            let path = paths[0].inset(by: distance, isCancelled: isCancelled)
             guard !path.isEmpty, depth > 0 else {
                 return copy(type: .mesh(.empty))
             }
@@ -635,7 +635,7 @@ public extension Geometry {
                 path.translated(by: offset / 2),
             ]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
-            let path = paths[0].inset(by: distance)
+            let path = paths[0].inset(by: distance, isCancelled: isCancelled)
             guard !path.isEmpty, let along = options.along[0].trimmingEnds(by: distance) else {
                 return copy(type: .mesh(.empty))
             }
@@ -1147,8 +1147,12 @@ private extension Geometry {
                         return a.isClosed
                     }
                     // Put convex paths before concave paths
-                    let aIsConvex = !a.isClosed || a.facePolygons().allSatisfy(\.isConvex)
-                    let bIsConvex = !b.isClosed || b.facePolygons().allSatisfy(\.isConvex)
+                    let aIsConvex = !a.isClosed || a.facePolygons(
+                        isCancelled: isCancelled
+                    ).allSatisfy(\.isConvex)
+                    let bIsConvex = !b.isClosed || b.facePolygons(
+                        isCancelled: isCancelled
+                    ).allSatisfy(\.isConvex)
                     if aIsConvex != bIsConvex {
                         return aIsConvex
                     }
@@ -1567,7 +1571,7 @@ public extension Geometry {
     /// Builds the mesh (if needed) and returns the triangle count
     /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     func triangles(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
-        polygons(isCancelled).flatMap { $0.triangulate() }
+        polygons(isCancelled).flatMap { $0.triangulate(isCancelled: isCancelled) }
     }
 
     /// Returns if the geometry is watertight

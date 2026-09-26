@@ -240,9 +240,9 @@ private extension MemberProperties {
             guard case let .polygon(polygon) = value else { return nil }
             return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
         },
-        "triangles": .init(.list(.polygon)) { value, _ in
+        "triangles": .init(.list(.polygon)) { value, isCancelled in
             guard case let .polygon(polygon) = value else { return nil }
-            return .tuple(polygon.triangulate().map { .polygon($0) })
+            return .tuple(polygon.triangulate(isCancelled: isCancelled).map { .polygon($0) })
         },
         "material": .init(.material) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
@@ -469,7 +469,9 @@ private extension TupleMemberProperties {
                         .transformed(by: geometry.transform)
                     return triangles.map { ShapeScript.Value.polygon($0) }
                 case let .polygon(polygon):
-                    return polygon.triangulate().map { ShapeScript.Value.polygon($0) }
+                    return polygon.triangulate(isCancelled: isCancelled).map {
+                        ShapeScript.Value.polygon($0)
+                    }
                 default:
                     return []
                 }

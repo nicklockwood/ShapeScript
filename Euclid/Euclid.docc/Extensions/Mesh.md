@@ -67,8 +67,8 @@ A three-dimensional surface made from polygons.
 
 ### Creating Meshes from Text
 
-- ``Mesh/text(_:font:width:depth:detail:material:)``
-- ``Mesh/text(_:width:depth:detail:material:)``
+- ``Mesh/text(_:font:width:depth:detail:material:isCancelled:)``
+- ``Mesh/text(_:width:depth:detail:material:isCancelled:)``
 
 ### Creating Meshes from SceneKit Models
 
@@ -136,16 +136,16 @@ A three-dimensional surface made from polygons.
 
 ### Splitting Meshes
 
-- ``Mesh/clipped(to:fill:)``
-- ``Mesh/split(along:)``
+- ``Mesh/clipped(to:fill:isCancelled:)``
+- ``Mesh/split(along:isCancelled:)``
 - ``Mesh/submeshes``
 
 ### Adjusting Mesh Topology
 
-- ``Mesh/tessellate(maxSides:)``
-- ``Mesh/triangulate()``
+- ``Mesh/tessellate(maxSides:isCancelled:)``
+- ``Mesh/triangulate(isCancelled:)``
 - ``Mesh/detessellate(isCancelled:)``
-- ``Mesh/detriangulate()``
+- ``Mesh/detriangulate(isCancelled:)``
 - ``Mesh/makeWatertight(isCancelled:)``
 - ``Mesh/withConsistentWinding(isCancelled:)``
 - ``Mesh/smoothingNormals(forAnglesGreaterThan:)``

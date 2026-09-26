@@ -561,11 +561,37 @@ final class MeshLoftTests: XCTestCase {
             .point(2, 2),
         ])
         let compound = Path(subpaths: [outer, inner])
-        var mesh = Mesh.loft([compound, compound.translated(by: .unitZ)])
+        let mesh = Mesh.loft([compound, compound.translated(by: .unitZ)])
         XCTAssertEqual(mesh.bounds, Bounds([0, 0, 0], [10, 10, 1]))
         XCTAssertEqual(mesh.polygons.surfaceArea, 192)
-        XCTAssertFalse(mesh.isWatertight)
-        mesh = mesh.makeWatertight()
         XCTAssertTrue(mesh.isWatertight)
+    }
+
+    func testLoftCompoundPathPropagatesCancellationDuringNormalization() {
+        let first = Path.square(size: 2)
+        let second = Path.square(size: 2).translated(by: [1, 0])
+        let compound = Path(subpaths: [first, second])
+        nonisolated(unsafe) var cancellationChecks = 0
+        let mesh = Mesh.loft([compound, compound.translated(by: .unitZ)]) {
+            cancellationChecks += 1
+            return cancellationChecks > 1
+        }
+
+        XCTAssertEqual(mesh, .empty)
+        XCTAssertGreaterThanOrEqual(cancellationChecks, 2)
+    }
+
+    func testLoftParallelTransformedCurvedCompoundPath() {
+        let compound = Path(subpaths: [
+            .circle(segments: 16).translated(by: [-1, 0, 0]),
+            .circle(segments: 16).translated(by: [1, 0, 0]),
+        ])
+        let mesh = Mesh.loft([compound, compound.translated(by: .unitZ)])
+        let fill = Mesh.fill(compound, faces: .front)
+        let boundaryLength = fill.polygons.outlinePaths.reduce(0) { $0 + $1.length }
+        let expectedSurfaceArea = fill.surfaceArea * 2 + boundaryLength
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.surfaceArea, expectedSurfaceArea, accuracy: epsilon)
     }
 }

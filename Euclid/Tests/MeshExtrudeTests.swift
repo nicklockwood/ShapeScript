@@ -111,7 +111,23 @@ final class MeshExtrudeTests: XCTestCase {
     }
 
     func testSelfIntersectingExtrudedPathAlignsNonZeroFillBoundaryEdges() {
-        let points: [PathPoint] = [
+        assertSelfIntersectingExtrusionAlignsNonZeroFillBoundaryEdges(Path(unchecked: [
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 4),
+            .point(3, 4),
+            .point(3, 3),
+            .point(0.5, 3),
+            .point(0.5, 2),
+            .point(4, 2),
+            .point(4, 5),
+            .point(0, 5),
+            .point(0, 0),
+        ], plane: .xy))
+    }
+
+    func testDetailedSelfIntersectingExtrudedPathAlignsNonZeroFillBoundaryEdges() throws {
+        let controlPoints: [PathPoint] = [
             .point(0, 0),
             .point(1, 0),
             .point(1, 4),
@@ -124,11 +140,23 @@ final class MeshExtrudeTests: XCTestCase {
             .point(0, 5),
             .point(0, 0),
         ]
+        let points = try zip(controlPoints, controlPoints.dropFirst()).flatMap { start, end in
+            (0 ..< 32).map { start.lerp(end, Double($0) / 32) }
+        } + [XCTUnwrap(controlPoints.last)]
         let path = Path(unchecked: points, plane: .xy)
-        let fillPolygons = path.nonZeroFillPolygons(material: nil)
+
+        XCTAssertGreaterThan(path.points.count, 256)
+        assertSelfIntersectingExtrusionAlignsNonZeroFillBoundaryEdges(path)
+    }
+
+    private func assertSelfIntersectingExtrusionAlignsNonZeroFillBoundaryEdges(_ path: Path) {
+        let fillPolygons = path.nonZeroFillPolygons(material: nil) { false }
         let rawBoundaryEdges = fillPolygons.boundingEdges
         let alignedBoundaryEdges = fillPolygons
-            .insertingEdgeVertices(with: fillPolygons.holeEdges)
+            .insertingEdgeVertices(
+                with: fillPolygons.holeEdges,
+                isCancelled: { false }
+            )
             .boundingEdges
 
         func signature(for polygon: Euclid.Polygon) -> [Vector] {
@@ -183,8 +211,7 @@ final class MeshExtrudeTests: XCTestCase {
         let expectedSideEdges = Set(alignedBoundaryEdges.map(signature))
 
         XCTAssertTrue(path.usesNonZeroFill)
-        XCTAssertLessThan(alignedBoundaryEdges.count, rawBoundaryEdges.count)
-        XCTAssertEqual(path.nonZeroFillBoundaryWithAlignedEdges?.subpaths.count, 2)
+        XCTAssertEqual(Set(rawBoundaryEdges.map(signature)), expectedSideEdges)
         XCTAssertEqual(boundaryEdgeSignatures(for: extrudedCapPolygons), expectedSideEdges)
         XCTAssertEqual(boundaryEdgeSignatures(for: extrudedAlongCapPolygons), expectedSideEdges)
         XCTAssertEqual(totalArea(of: extrudedCapPolygons), totalArea(of: filledPolygons) * 2)
@@ -220,10 +247,8 @@ final class MeshExtrudeTests: XCTestCase {
             .point(2, 8),
             .point(2, 2),
         ])
-        var mesh = Mesh.extrude(Path(subpaths: [outer, inner]), depth: 1)
+        let mesh = Mesh.extrude(Path(subpaths: [outer, inner]), depth: 1)
         XCTAssertEqual(mesh.polygons.surfaceArea, 192)
-        XCTAssertFalse(mesh.isWatertight)
-        mesh = mesh.makeWatertight()
         XCTAssertTrue(mesh.isWatertight)
     }
 
@@ -297,10 +322,8 @@ final class MeshExtrudeTests: XCTestCase {
             .point(5, 15),
             .point(5, 5),
         ])
-        var mesh = Mesh.extrude(Path(subpaths: [first, second]), depth: 1)
+        let mesh = Mesh.extrude(Path(subpaths: [first, second]), depth: 1)
         XCTAssertEqual(mesh.polygons.surfaceArea, 380)
-        XCTAssertFalse(mesh.isWatertight)
-        mesh = mesh.makeWatertight()
         XCTAssertTrue(mesh.isWatertight)
     }
 
@@ -310,12 +333,13 @@ final class MeshExtrudeTests: XCTestCase {
             .square().translated(by: [0.5, 0.5, 0]),
             .square().translated(by: [0.5, -0.5, 0]),
         ])
-        let mesh = Mesh.extrude(path, depth: 8).makeWatertight()
-        let expected = Mesh.symmetricDifference(path.subpaths.map {
-            Mesh.extrude($0, depth: 8)
-        }).makeWatertight()
+        let mesh = Mesh.extrude(path, depth: 8)
+        let fill = Mesh.fill(path, faces: .front)
+        let boundaryLength = fill.polygons.outlinePaths.reduce(0) { $0 + $1.length }
+        let expectedSurfaceArea = fill.surfaceArea * 2 + boundaryLength * 8
 
-        XCTAssertEqual(mesh.surfaceArea, expected.surfaceArea, accuracy: epsilon)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.surfaceArea, expectedSurfaceArea, accuracy: epsilon)
     }
 
     func testExtrudeOverlappingCurvedCompoundPathCapUsesEvenOddRule() {
@@ -350,12 +374,13 @@ final class MeshExtrudeTests: XCTestCase {
             .square().translated(by: [0.5, 0.5, 0]),
             .square().translated(by: [0.5, -0.5, 0]),
         ])
-        let mesh = Mesh.extrude(path, depth: 8).makeWatertight()
-        let expected = Mesh.symmetricDifference(path.subpaths.map {
-            Mesh.extrude($0, depth: 8)
-        }).makeWatertight()
+        let mesh = Mesh.extrude(path, depth: 8)
+        let fill = Mesh.fill(path, faces: .front)
+        let boundaryLength = fill.polygons.outlinePaths.reduce(0) { $0 + $1.length }
+        let expectedSurfaceArea = fill.surfaceArea * 2 + boundaryLength * 8
 
-        XCTAssertEqual(mesh.surfaceArea, expected.surfaceArea, accuracy: epsilon)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.surfaceArea, expectedSurfaceArea, accuracy: epsilon)
     }
 
     func testExtrudeQRCodeLikeCompoundPath() {
@@ -366,6 +391,32 @@ final class MeshExtrudeTests: XCTestCase {
         XCTAssertTrue(mesh.isConsistentlyWound)
         XCTAssertTrue(mesh.vertexNormalsFaceOutward)
         XCTAssertFalse(mesh.hasSmoothSideVertexNormals)
+        XCTAssertEqual(mesh.polygons.filter { abs($0.plane.normal.z) > 0.5 }.count, 80)
+    }
+
+    func testCompoundPathCapDoesNotRetainScanlineSplits() {
+        func rectangle(_ min: Vector, _ max: Vector, clockwise: Bool = false) -> Path {
+            let points: [PathPoint] = [
+                .point(min.x, min.y),
+                .point(max.x, min.y),
+                .point(max.x, max.y),
+                .point(min.x, max.y),
+                .point(min.x, min.y),
+            ]
+            return Path(clockwise ? points.reversed() : points)
+        }
+        let path = Path(subpaths: [
+            rectangle([0, 0], [10, 10]),
+            rectangle([3, 3], [7, 7], clockwise: true),
+            rectangle([12, 1], [14, 2]),
+        ])
+
+        let polygons = Mesh.fill(path, faces: .front).polygons
+
+        // The ring is represented by one weakly-simple polygon and the separate rectangle by another.
+        // Neither the hole nor the separate rectangle should leave horizontal scanline seams.
+        XCTAssertEqual(polygons.count, 2)
+        XCTAssertEqual(polygons.surfaceArea, 86, accuracy: epsilon)
     }
 
     func testExtrudeQRCodeLikeCompoundPathCapAreaMatchesFilledArea() {
@@ -407,6 +458,131 @@ final class MeshExtrudeTests: XCTestCase {
         XCTAssertTrue(mesh.polygons.areWatertight)
         XCTAssertTrue(mesh.isConsistentlyWound)
         XCTAssertTrue(mesh.vertexNormalsFaceOutward)
+        XCTAssertFalse(mesh.polygons.contains { $0.hasVertexNormals })
+    }
+
+    func testExtrudeQRCodeLikeCompoundPathAlongCurvePreservesSmoothNormalsAndColors() {
+        let path = Path.qrCodeLikeCompoundPath
+        let along = Path.curve([
+            .curve(10, 20, color: .red),
+            .curve(0, 10, color: .green),
+            .curve(0, -10, color: .blue),
+        ], detail: 8)
+        let mesh = Mesh.extrude(path, along: along).makeWatertight()
+        let contours = path.extrusionContours(along: along)
+        let capPlanes = [contours.first, contours.last].compactMap { contour in
+            contour.flatMap { path in
+                path.points.first.map {
+                    Plane(unchecked: path.faceNormal, pointOnPlane: $0.position)
+                }
+            }
+        }
+        let capPolygons = mesh.polygons.filter { polygon in
+            capPlanes.contains { plane in
+                abs(polygon.plane.normal.dot(plane.normal)) > 1 - epsilon &&
+                    abs(plane.distance(from: polygon)) < epsilon
+            }
+        }
+        let sidePolygons = mesh.polygons.filter { !capPolygons.contains($0) }
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.vertexNormalsFaceOutward)
+        XCTAssertTrue(mesh.polygons.contains { $0.hasVertexNormals })
+        XCTAssertFalse(capPolygons.isEmpty)
+        XCTAssertFalse(capPolygons.flatMap(\.vertices).contains { $0.color == .white })
+        XCTAssertFalse(sidePolygons.flatMap(\.vertices).contains { $0.color == .white })
+    }
+
+    func testExtrudeCompoundPathAlongCurvePreservesVertexAttributes() {
+        func square(center: Vector, colors: [Color]) -> Path {
+            let positions = [
+                center + [-1, -1],
+                center + [1, -1],
+                center + [1, 1],
+                center + [-1, 1],
+            ]
+            return Path(positions.indices.map {
+                .point(positions[$0], color: colors[$0])
+            } + [.point(positions[0], color: colors[0])])
+        }
+        let subpaths = [
+            square(center: [-3, 0], colors: [.red, .green, .blue, .white]),
+            square(center: [3, 0], colors: [.blue, .red, .white, .green]),
+        ]
+        let shape = Path(subpaths: subpaths)
+        let along = Path.curve([
+            .curve(10, 20, color: .red),
+            .curve(0, 10, color: .green),
+            .curve(0, -10, color: .blue),
+        ], detail: 8)
+        let contours = shape.extrusionContours(along: along)
+        let capPlanes = [contours.first, contours.last].compactMap { contour in
+            contour.flatMap { path in
+                path.points.first.map {
+                    Plane(unchecked: path.faceNormal, pointOnPlane: $0.position)
+                }
+            }
+        }
+        func sideVertices(in mesh: Mesh) -> [Vertex] {
+            mesh.polygons.filter { polygon in
+                !capPlanes.contains { plane in
+                    abs(polygon.plane.normal.dot(plane.normal)) > 1 - epsilon &&
+                        abs(plane.distance(from: polygon)) < epsilon
+                }
+            }.flatMap(\.vertices)
+        }
+
+        let mesh = Mesh.extrude(shape, along: along)
+        let expected = Mesh.merge(subpaths.map { Mesh.extrude($0, along: along) })
+        let vertices = sideVertices(in: mesh)
+        let expectedVertices = sideVertices(in: expected)
+
+        for contour in [contours.first, contours.last].compactMap({ $0 }) {
+            let flatteningPlane = contour.flatteningPlane
+            let flattenedPoints = contour.points.map {
+                flatteningPlane.flattenPoint($0.position)
+            }
+            let bounds = Bounds(flattenedPoints)
+            let plane = Plane(
+                unchecked: contour.faceNormal.normalized(),
+                pointOnPlane: contour.points[0].position
+            )
+            let capVertices = mesh.polygons.filter {
+                abs($0.plane.normal.dot(plane.normal)) > 1 - epsilon &&
+                    abs(plane.distance(from: $0)) < epsilon
+            }.flatMap(\.vertices)
+            XCTAssertFalse(capVertices.isEmpty)
+            XCTAssertTrue(capVertices.allSatisfy { vertex in
+                let point = flatteningPlane.flattenPoint(vertex.position)
+                let expected = Vector(
+                    (point.x - bounds.min.x) / bounds.size.x,
+                    1 - (point.y - bounds.min.y) / bounds.size.y
+                )
+                return vertex.texcoord.isApproximatelyEqual(
+                    to: expected,
+                    absoluteTolerance: 1e-9
+                )
+            })
+        }
+
+        XCTAssertEqual(vertices.count, expectedVertices.count)
+        func attributesMatch(_ lhs: Vertex, _ rhs: Vertex) -> Bool {
+            lhs.position.isApproximatelyEqual(to: rhs.position, absoluteTolerance: 1e-9) &&
+                lhs.normal.isApproximatelyEqual(to: rhs.normal, absoluteTolerance: 1e-9) &&
+                lhs.texcoord.isApproximatelyEqual(to: rhs.texcoord, absoluteTolerance: 1e-3) &&
+                lhs.color.isApproximatelyEqual(to: rhs.color, absoluteTolerance: 1e-9)
+        }
+        let unmatchedVertex = vertices.first { vertex in
+            !expectedVertices.contains { attributesMatch(vertex, $0) }
+        }
+        let unmatchedExpectedVertex = expectedVertices.first { vertex in
+            !vertices.contains { attributesMatch(vertex, $0) }
+        }
+        XCTAssertNil(unmatchedVertex, "Unmatched compound vertex: \(String(describing: unmatchedVertex))")
+        XCTAssertNil(
+            unmatchedExpectedVertex,
+            "Unmatched non-compound vertex: \(String(describing: unmatchedExpectedVertex))"
+        )
     }
 
     func testExtrudeQRCodeLikeCompoundPathAlongBentPathCapAreaMatchesFilledArea() {
@@ -465,10 +641,20 @@ final class MeshExtrudeTests: XCTestCase {
         let shape = try XCTUnwrap(Path.text("8").first)
         let along = Path([.point([0]), .point([1]), .point([1, 0, 1])])
         let mesh = Mesh.extrude(shape, along: along).makeWatertight()
+        let contours = shape.extrusionContours(along: along)
+        let capPlanes = try [XCTUnwrap(contours.first), XCTUnwrap(contours.last)].map {
+            Plane(unchecked: $0.faceNormal.normalized(), pointOnPlane: $0.points[0].position)
+        }
+        let sidePolygons = mesh.polygons.filter { polygon in
+            !capPlanes.contains { plane in
+                abs(plane.normal.dot(polygon.plane.normal)) > 1 - epsilon &&
+                    abs(plane.distance(from: polygon)) < epsilon
+            }
+        }
 
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
-        XCTAssertGreaterThan(mesh.polygons.count, 350)
+        XCTAssertGreaterThanOrEqual(sidePolygons.count, shape.orderedEdges.count * 2)
         #endif
     }
 

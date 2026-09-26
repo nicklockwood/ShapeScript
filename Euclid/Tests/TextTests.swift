@@ -14,6 +14,22 @@ import Foundation
 import XCTest
 
 final class TextTests: XCTestCase {
+    func testHelloWorldCircularExtrusionPreservesCounters() {
+        let rail = Path.circle(radius: 1, segments: 16)
+        XCTAssertTrue(rail.isClosed)
+        for path in Path.text("Hello\nWorld") where path.subpaths.count > 1 {
+            let mesh = Mesh.extrude(path, along: rail)
+            let submeshes = mesh.submeshes
+            let expectedPolygonCount = path.subpaths.reduce(0) {
+                $0 + Mesh.extrude($1, along: rail).polygons.count
+            }
+            XCTAssertEqual(mesh.polygons.count, expectedPolygonCount)
+            XCTAssertEqual(submeshes.count, path.subpaths.count)
+            XCTAssertEqual(submeshes.filter { $0.signedVolume < 0 }.count, 1)
+            XCTAssertTrue(mesh.isWatertight)
+        }
+    }
+
     private let textInsetDetails = [1, 2, 4, 8]
     private let positiveTextInsetDistances = [0.005, 0.01, 0.015, 0.02, 0.022, 0.024, 0.026, 0.027, 0.0275, 0.028]
     private let collapsedTextInsetDistances = [0.032, 0.035]
@@ -41,14 +57,32 @@ final class TextTests: XCTestCase {
         XCTAssertEqual(paths.count, 5)
     }
 
-    func testLowercaseTextFillIsDetessellated() {
+    func testLowercaseTextFillDoesNotNeedDetessellation() {
         let filledMesh = Mesh.fill(.text("hello"))
         let detessellatedMesh = filledMesh.detessellate()
-        XCTAssertLessThanOrEqual(detessellatedMesh.polygons.count, filledMesh.polygons.count)
+        XCTAssertEqual(detessellatedMesh.polygons.count, filledMesh.polygons.count)
         XCTAssertEqual(detessellatedMesh.surfaceArea, filledMesh.surfaceArea, accuracy: epsilon)
         let polygons = detessellatedMesh.polygons
-        XCTAssertEqual(polygons.count, 14)
-        XCTAssertEqual(polygons.flatMap { $0.triangulate() }.count, 212)
+        XCTAssertEqual(polygons.count, 10)
+        XCTAssertEqual(polygons.flatMap { $0.triangulate() }.count, 206)
+    }
+
+    func testLowercaseEFillHasNoScanlineArtifacts() {
+        let mesh = Mesh.fill(.text("e"))
+
+        XCTAssertEqual(mesh.polygons.count, 2)
+        XCTAssertEqual(mesh.polygons.flatMap { $0.triangulate() }.count, 88)
+    }
+
+    func testLowercaseEExtrusionHasNoBooleanFragments() throws {
+        let path = try XCTUnwrap(Path.text("e").first)
+        let mesh = Mesh.extrude(path)
+        let caps = mesh.polygons.filter { abs($0.plane.normal.z) > 0.5 }
+
+        XCTAssertEqual(caps.count, 2)
+        XCTAssertEqual(caps.filter { $0.plane.normal.z > 0.5 }.count, 1)
+        XCTAssertEqual(caps.filter { $0.plane.normal.z < -0.5 }.count, 1)
+        XCTAssertTrue(mesh.isWatertight)
     }
 
     func testTextMeshWithAttributedString() {
@@ -58,8 +92,8 @@ final class TextTests: XCTestCase {
         let mesh = Mesh.text(string, depth: 1.0)
         XCTAssertEqual(mesh.bounds.min.z, -0.5)
         XCTAssertEqual(mesh.bounds.max.z, 0.5)
-        XCTAssert(mesh.bounds.max.x > 20)
-        XCTAssert(mesh.polygons.count > 150)
+        XCTAssertGreaterThan(mesh.bounds.max.x, 20)
+        XCTAssertGreaterThan(mesh.polygons.count, 100)
     }
 
     func testTextMeshWithString() {
@@ -67,8 +101,8 @@ final class TextTests: XCTestCase {
         let mesh = Mesh.text("Hello", font: font, depth: 1.0)
         XCTAssertEqual(mesh.bounds.min.z, -0.5)
         XCTAssertEqual(mesh.bounds.max.z, 0.5)
-        XCTAssert(mesh.bounds.max.x > 20)
-        XCTAssert(mesh.polygons.count > 150)
+        XCTAssertGreaterThan(mesh.bounds.max.x, 20)
+        XCTAssertGreaterThan(mesh.polygons.count, 100)
     }
 
     func testTwistedExtrudedTextArrayMatchesCompoundPathBounds() {
@@ -305,6 +339,24 @@ final class TextTests: XCTestCase {
         XCTAssertFalse(inset.orderedEdgesContainCrossings)
         XCTAssertTrue(inset.isContained(in: shape))
         XCTAssertTrue(Mesh.fill(inset).isWatertight)
+    }
+
+    func testTextGenerationCanBeCancelled() {
+        nonisolated(unsafe) var pathChecks = 0
+        let paths = Path.text("Hello") {
+            pathChecks += 1
+            return true
+        }
+        nonisolated(unsafe) var meshChecks = 0
+        let mesh = Mesh.text("Hello") {
+            meshChecks += 1
+            return true
+        }
+
+        XCTAssertTrue(paths.isEmpty)
+        XCTAssertEqual(pathChecks, 1)
+        XCTAssertEqual(mesh, .empty)
+        XCTAssertEqual(meshChecks, 1)
     }
 }
 
