@@ -785,11 +785,6 @@ public extension Geometry {
         )
     }
 
-    @available(*, deprecated, renamed: "withoutHiddenOrUnfocused()")
-    func withoutUnfocusedGeometry() -> Geometry {
-        withoutHiddenOrUnfocused()
-    }
-
     /// Builds the meshes for the receiver and all its descendents
     /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     /// - Returns: false if cancelled or true when completed
