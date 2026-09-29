@@ -160,7 +160,16 @@ final class SettingsViewController: NSViewController {
     }
 
     @objc func didClickClearCache(_: NSButton) {
-        Settings.shared.clearDiskCache()
+        clearCacheButton.title = "Clearing…"
+        clearCacheButton.isEnabled = false
+        Task { @MainActor [weak self] in
+            await Settings.shared.clearDiskCache()
+            guard let self else {
+                return
+            }
+            clearCacheButton.isEnabled = true
+            updateCacheControls()
+        }
     }
 
     private func updateCacheControls(refreshUsage: Bool = true) {

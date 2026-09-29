@@ -223,6 +223,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     @objc func clearCacheAndReloadScene(_ sender: AnyObject) {
+        loadingProgress?.cancel()
         Task { @MainActor in
             await cache.removeAll()
             reloadScene(sender)

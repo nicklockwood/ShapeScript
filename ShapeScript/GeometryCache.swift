@@ -22,7 +22,6 @@ public final class GeometryCache: @unchecked Sendable {
     private let associatedDataCache: LRUCache<Key, [Material: Any]>
     private let diskWritePolicy: DiskWritePolicy
     private let pendingDiskWriteLock = NSLock()
-    private let diskWriteGroup = DispatchGroup()
     private var pendingDiskWrites: [Key: Mesh?] = [:]
     private var pendingDiskFlushScheduled = false
 
@@ -67,17 +66,14 @@ public extension GeometryCache {
         associatedDataCache.removeAll()
         _ = removePendingDiskWrites()
         await performDiskOperation {
-            self.diskWriteGroup.wait()
             self.diskCache?.removeAllSynchronously()
         }
     }
 
     /// Synchronously writes pending meshes to disk after any already-scheduled writes finish.
     func flushPendingDiskWrites() {
-        let writes = removePendingDiskWrites()
         diskCache?.sync {
-            diskWriteGroup.wait()
-            applyDiskWrites(writes)
+            applyDiskWrites(removePendingDiskWrites())
         }
     }
 
@@ -357,7 +353,6 @@ private extension GeometryCache {
         pendingDiskWrites[key] = mesh
         if !pendingDiskFlushScheduled {
             pendingDiskFlushScheduled = true
-            diskWriteGroup.enter()
             shouldScheduleFlush = true
         }
         pendingDiskWriteLock.unlock()
@@ -381,7 +376,6 @@ private extension GeometryCache {
     func applyScheduledDiskWrites() {
         let writes = removePendingDiskWrites()
         applyDiskWrites(writes)
-        diskWriteGroup.leave()
     }
 
     func postDiskUsageDidChange() {
