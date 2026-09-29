@@ -155,11 +155,9 @@ final class Settings: @unchecked Sendable {
         }
     }
 
-    func clearDiskCache() {
-        Task {
-            await diskCache.removeAll()
-            NotificationCenter.default.post(name: .settingsUpdated, object: nil)
-        }
+    func clearDiskCache() async {
+        await diskCache.removeAll()
+        NotificationCenter.default.post(name: .settingsUpdated, object: nil)
     }
 
     var diskCacheUsage: Int {
