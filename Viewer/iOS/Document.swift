@@ -57,6 +57,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         }
     }
 
+    var exportProgress: LoadingProgress?
+
     private var observer: Any?
     private var saveTimer: Timer?
     private var isAutosaving = false
@@ -358,6 +360,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     override func close(completionHandler: (@Sendable (Bool) -> Void)? = nil) {
         loadingProgress?.cancel()
+        exportProgress?.cancel()
         super.close { hasChanges in
             completionHandler?(hasChanges)
             for resource in self.securityScopedResources {

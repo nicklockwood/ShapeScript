@@ -761,6 +761,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     func presentModalHidingConsole(
         _ viewController: UIViewController,
         animated: Bool = true,
+        preparation: (() -> Void)? = nil,
         completion: (() -> Void)? = nil
     ) {
         isPreparingModalPresentation = true
@@ -779,6 +780,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 self?.isPreparingModalPresentation = false
                 completion?()
             }
+            preparation?()
         }
 
         guard let presentedViewController else {
@@ -793,6 +795,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 self?.isPreparingModalPresentation = false
                 completion?()
             }
+            preparation?()
         } else {
             presentedViewController.dismiss(animated: animated, completion: presentModal)
         }
