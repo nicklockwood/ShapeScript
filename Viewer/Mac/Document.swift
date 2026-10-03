@@ -52,6 +52,8 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { updateViews() }
     }
 
+    var exportProgress: LoadingProgress?
+
     private var observer: Any?
 
     var sourceString: String = "" {
@@ -123,6 +125,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         super.close()
         observer.map(NotificationCenter.default.removeObserver)
         loadingProgress?.cancel()
+        exportProgress?.cancel()
         fileMonitor = nil
     }
 
