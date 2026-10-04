@@ -27,7 +27,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private(set) var scnView: SCNView = .init()
     private let consoleViewController: ConsoleViewController = .init()
     private var isPreparingModalPresentation = false
-    private let loadingIndicator: UIActivityIndicatorView = .init()
+    private let renderProgressView: ProgressView = .init()
     private let containerView: SplitView = .init()
     private(set) var exportButton: UIBarButtonItem = .init()
     private weak var warningView: UIView?
@@ -119,14 +119,23 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             guard isLoading != oldValue else {
                 return
             }
-            updateLoadingButton()
-            if isLoading {
-                loadingIndicator.startAnimating()
-            } else {
-                loadingIndicator.stopAnimating()
+            if !isLoading {
                 refreshView()
             }
+            updateRenderProgressView()
         }
+    }
+
+    var renderProgress: Double? {
+        didSet {
+            updateRenderProgressView()
+        }
+    }
+
+    private func updateRenderProgressView() {
+        renderProgressView.progress = renderProgress
+        renderProgressView.isActive = isLoading || renderProgress != nil
+        updateLoadingButton()
     }
 
     var showConsole = false {
@@ -186,7 +195,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     func updateInterfaceColor() {
         navigationBar?.tintColor = errorMessage.map { _ in .white } ?? interfaceColor
-        loadingIndicator.color = interfaceColor
+        renderProgressView.color = interfaceColor
         grantAccessButton.tintColor = .white
         #if os(iOS)
         setNeedsStatusBarAppearanceUpdate()
@@ -223,7 +232,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         guard loadingItem.customView != nil else {
             return
         }
-        let items = isLoading ? [closeButton, loadingItem] : [closeButton]
+        let items = isLoading || renderProgress != nil ? [closeButton, loadingItem] : [closeButton]
         let currentItems = navigationItem.leftBarButtonItems ?? []
         guard currentItems.count != items.count ||
             !zip(currentItems, items).allSatisfy({ $0 === $1 })
@@ -379,7 +388,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         scnView.scene = scnScene
 
         // configure navigation bar
-        loadingItem = UIBarButtonItem(customView: loadingIndicator)
+        renderProgressView.frame = CGRect(origin: .zero, size: renderProgressView.intrinsicContentSize)
+        loadingItem = UIBarButtonItem(customView: renderProgressView)
         updateLoadingButton(animated: false)
         navigationBar?.standardAppearance.configureWithTransparentBackground()
         if let exportMenuProvider {
@@ -545,8 +555,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             closeButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
             closeButton.trailingAnchor.constraint(equalTo: banner.contentView.trailingAnchor, constant: -10),
             closeButton.centerYAnchor.constraint(equalTo: banner.contentView.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 32),
-            closeButton.heightAnchor.constraint(equalToConstant: 32),
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24),
         ])
         updateWarningLayoutConstraints()
     }

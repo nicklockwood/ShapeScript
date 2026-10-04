@@ -27,6 +27,18 @@ struct SelectionMenuContext {
 extension DocumentProtocol {
     var settings: Settings { .shared }
 
+    private var loadingIndicatorProgress: Double? {
+        guard let loadingProgress else {
+            return nil
+        }
+        switch loadingProgress.status {
+        case let .partial(_, progress):
+            return progress
+        case .waiting, .success, .cancelled, .failure:
+            return nil
+        }
+    }
+
     var fileName: String {
         documentFileURL?.lastPathComponent ?? "File"
     }
@@ -62,7 +74,7 @@ extension DocumentProtocol {
             if case let .success(scene) = progress.status,
                !scene.children.isEmpty
             {
-                progress.setStatus(.partial(scene))
+                progress.setStatus(.partial(scene, nil))
                 scene.scnBuild(with: scene.outputOptions(
                     for: cameraSettings,
                     backgroundColor: Color(backgroundColor),
@@ -75,7 +87,12 @@ extension DocumentProtocol {
 
     func updateViews() {
         guard let viewController else { return }
-        viewController.isLoading = (loadingProgress?.inProgress == true)
+        let isLoading = loadingProgress?.inProgress == true
+        viewController.isLoading = isLoading
+        // Writing the success status's nil progress would hide immediately on iOS
+        if loadingProgress?.didSucceed != true {
+            viewController.renderProgress = loadingIndicatorProgress
+        }
         viewController.background = camera.background ?? scene?.background
         viewController.geometry = geometry
         viewController.setError(error, message: errorMessage)
@@ -108,20 +125,42 @@ extension DocumentProtocol {
             switch status {
             case .waiting:
                 if let viewController {
+                    viewController.renderProgress = loadingIndicatorProgress
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
                 if !wasEvaluationError {
                     updateViews()
                 }
-            case let .partial(scene), let .success(scene):
+            case let .partial(scene, _):
                 error = nil
                 self.scene = scene
+                viewController?.renderProgress = loadingIndicatorProgress
+            case let .success(scene):
+                error = nil
+                self.scene = scene
+                viewController?.renderProgress = 1
+                // Flush progress animation before indicator is hidden
+                CATransaction.flush()
+                viewController?.isLoading = false
+                let loadingProgress = loadingProgress
+                Task { @MainActor [weak self, weak loadingProgress] in
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    guard let self,
+                          self.loadingProgress === loadingProgress,
+                          self.loadingProgress?.didSucceed == true
+                    else {
+                        return
+                    }
+                    viewController?.renderProgress = nil
+                }
             case let .failure(error):
+                viewController?.renderProgress = nil
                 self.error = error
                 updateViews()
             case .cancelled:
-                break
+                viewController?.renderProgress = nil
+                viewController?.isLoading = false
             }
         }
 
@@ -176,29 +215,41 @@ extension DocumentProtocol {
                 )
             }
 
-            // Clear errors and previous geometry
-            progress.setStatus(.partial(.empty))
-
+            let renderProgress = RenderProgress()
             let minUpdatePeriod: TimeInterval = 0.1
-            nonisolated(unsafe) var lastUpdate = CFAbsoluteTimeGetCurrent() - minUpdatePeriod
             let options = scene.outputOptions(
                 for: cameraSettings,
                 backgroundColor: Color(backgroundColor),
                 wireframe: showWireframe
             )
-            _ = scene.build {
-                if progress.isCancelledOrFailed {
-                    return true
-                }
-                let time = CFAbsoluteTimeGetCurrent()
-                if time - lastUpdate > minUpdatePeriod {
+
+            // Clear errors and previous geometry
+            progress.setStatus(.partial(.empty, renderProgress.fractionCompleted))
+
+            @Sendable func scheduleRenderProgressUpdate() {
+                progress.schedule(after: minUpdatePeriod) {
+                    guard progress.inProgress, !renderProgress.isFinished else {
+                        return
+                    }
+                    guard !progress.isCancelledOrFailed else {
+                        renderProgress.cancel()
+                        return
+                    }
                     Swift.print(String(format: "[\(progress.id)] rendering..."))
                     scene.scnBuild(with: options)
-                    progress.setStatus(.partial(scene))
-                    lastUpdate = time
+                    guard !renderProgress.isFinished else {
+                        return
+                    }
+                    guard progress.inProgress, !progress.isCancelledOrFailed else {
+                        renderProgress.cancel()
+                        return
+                    }
+                    progress.setStatus(.partial(scene, renderProgress.fractionCompleted))
+                    scheduleRenderProgressUpdate()
                 }
-                return false
             }
+            scheduleRenderProgressUpdate()
+            _ = scene.build(progress: renderProgress)
 
             if logCancelled() {
                 return
@@ -206,11 +257,12 @@ extension DocumentProtocol {
 
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
+            progress.setStatus(.partial(scene, nil))
             scene.scnBuild(with: options)
 
             // Show error
             if let error {
-                progress.setStatus(.partial(scene))
+                progress.setStatus(.partial(scene, renderProgress.fractionCompleted))
                 throw error
             }
 
