@@ -15,6 +15,50 @@ private final class ActiveCallRecorder: @unchecked Sendable {
 }
 
 final class InterpreterTests: XCTestCase {
+    func testEvaluationProgressRevisesEstimateForNestedImports() throws {
+        let program = try parse("import \"A.shape\"")
+        let importedProgram = try parse("import \"B.shape\"")
+        let progress = EvaluationProgress()
+
+        XCTAssertNil(progress.fractionCompleted)
+        progress.beginTracking(program: program, isCancelled: { false })
+        XCTAssertEqual(progress.fractionCompleted, 0)
+        progress.beginImport()
+        progress.discoveredImports(in: importedProgram)
+        progress.beginImport()
+        progress.completeUnit()
+        XCTAssertEqual(progress.fractionCompleted, 1.0 / 3)
+        progress.completeUnit()
+        XCTAssertEqual(progress.fractionCompleted, 2.0 / 3)
+        progress.completeUnit()
+        XCTAssertEqual(progress.fractionCompleted, 0.98)
+        progress.finish()
+        XCTAssertEqual(progress.fractionCompleted, 1)
+        XCTAssertTrue(progress.isFinished)
+    }
+
+    func testEvaluationProgressCanBeCancelled() {
+        let progress = EvaluationProgress()
+
+        XCTAssertFalse(progress.isCancelled)
+        progress.cancel()
+        XCTAssertTrue(progress.isCancelled)
+    }
+
+    func testEvaluateWithProgress() throws {
+        let progress = EvaluationProgress()
+
+        let _: Scene = try evaluate(
+            parse("cube"),
+            delegate: nil,
+            cache: nil,
+            progress: progress
+        )
+
+        XCTAssertEqual(progress.fractionCompleted, 1)
+        XCTAssertTrue(progress.isFinished)
+    }
+
     // MARK: Preview
 
     func testPreviewDefaultsToFalse() throws {

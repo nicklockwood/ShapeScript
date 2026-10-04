@@ -145,16 +145,7 @@ private extension ProgressView {
         }
 
         setVisible(true)
-
-        guard let progress else {
-            stallTask?.cancel()
-            stallTask = nil
-            let showProgress = lastProgress != nil
-            isShowingStalledSpinner = showProgress
-            loadingIndicator.startAnimating()
-            transitionIndicators(showProgress: showProgress, showSpinner: true)
-            return
-        }
+        let progress = progress ?? progressIndicator.minValue
 
         updateStallState(for: progress)
         if isShowingStalledSpinner {
@@ -185,7 +176,7 @@ private extension ProgressView {
         setIndicatorVisibility(showProgress: showProgress, showSpinner: showSpinner)
         guard !showSpinner else { return }
         transitionTask = delayedTask(after: animationDuration) { view in
-            guard view.progress != nil else { return }
+            guard view.isActive, !view.isShowingStalledSpinner else { return }
             view.loadingIndicator.stopAnimating()
         }
     }
