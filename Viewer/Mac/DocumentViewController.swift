@@ -36,7 +36,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private var splitView: NSSplitView = .init()
     private var errorScrollView: NSScrollView = .init()
     private(set) var errorTextView: NSTextView = .init()
-    private let loadingIndicator: NSProgressIndicator = .init()
+    private let renderProgressView: ProgressView = .init()
     private(set) var grantAccessButton: NSButton = .init()
     private let consoleScrollView: NSScrollView = .init()
     private let consoleTextView: NSTextView = .init()
@@ -118,13 +118,22 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             guard isLoading != oldValue else {
                 return
             }
-            if isLoading {
-                loadingIndicator.startAnimation(nil)
-            } else {
-                loadingIndicator.stopAnimation(nil)
+            if !isLoading {
                 refreshView()
             }
+            updateRenderProgressView()
         }
+    }
+
+    var renderProgress: Double? {
+        didSet {
+            updateRenderProgressView()
+        }
+    }
+
+    private func updateRenderProgressView() {
+        renderProgressView.progress = renderProgress
+        renderProgressView.isActive = isLoading || renderProgress != nil
     }
 
     var showConsole = false {
@@ -175,7 +184,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     var background: MaterialProperty? {
         get { MaterialProperty(scnScene.background) }
-        set { newValue?.configureProperty(scnScene.background) }
+        set {
+            newValue?.configureProperty(scnScene.background)
+            renderProgressView.color = interfaceColor
+        }
     }
 
     var geometry: Geometry? {
@@ -221,11 +233,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         errorScrollView.documentView = errorTextView
         rootView.addSubview(errorScrollView)
 
-        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
-        loadingIndicator.style = .spinning
-        loadingIndicator.controlSize = .small
-        loadingIndicator.isDisplayedWhenStopped = false
-        rootView.addSubview(loadingIndicator)
+        renderProgressView.color = interfaceColor
+        rootView.addSubview(renderProgressView)
 
         grantAccessButton = NSButton(
             title: "Grant Access",
@@ -270,8 +279,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             errorScrollView.topAnchor.constraint(equalTo: rootView.topAnchor),
             errorScrollView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
 
-            loadingIndicator.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 20),
-            loadingIndicator.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 20),
+            renderProgressView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 20),
+            renderProgressView.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 20),
 
             grantAccessButton.centerXAnchor.constraint(equalTo: rootView.centerXAnchor),
             grantAccessButton.bottomAnchor.constraint(equalTo: rootView.bottomAnchor, constant: -20),
@@ -488,6 +497,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         super.viewWillLayout()
         let backgroundColor = backgroundColor
         scnView.layer?.backgroundColor = backgroundColor.cgColor
+        renderProgressView.color = interfaceColor
         if lastLayoutBackgroundColor?.isEqual(backgroundColor) != true {
             lastLayoutBackgroundColor = backgroundColor
             document?.rerender()

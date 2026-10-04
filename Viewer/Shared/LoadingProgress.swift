@@ -24,6 +24,7 @@ final class LoadingProgress: Sendable {
     // Only accessed from internal thread
 
     private let lock = NSLock()
+    private let progressQueue: DispatchQueue
     private let partialObserverUpdateInterval: TimeInterval = 0.5
     private nonisolated(unsafe) var _status: Status = .waiting
     private nonisolated(unsafe) var pendingPartialStatus: Status?
@@ -47,6 +48,10 @@ final class LoadingProgress: Sendable {
         assert(Thread.isMainThread)
         Self._processID += 1
         self.id = Self._processID
+        self.progressQueue = DispatchQueue(
+            label: "shapescript.progress.\(id).updates",
+            qos: .userInitiated
+        )
         self.observer = observer
         // Defer initial update for one cycle
         DispatchQueue.main.async {
@@ -70,7 +75,7 @@ final class LoadingProgress: Sendable {
 extension LoadingProgress {
     enum Status {
         case waiting
-        case partial(Scene)
+        case partial(Scene, Double?)
         case success(Scene)
         case failure(ProgramError)
         case cancelled
@@ -81,6 +86,15 @@ extension LoadingProgress {
                 false
             case .cancelled, .failure:
                 true
+            }
+        }
+
+        nonisolated var renderProgress: Double? {
+            switch self {
+            case let .partial(_, progress):
+                progress
+            case .waiting, .success, .failure, .cancelled:
+                nil
             }
         }
     }
@@ -111,6 +125,13 @@ extension LoadingProgress {
 
     nonisolated func cancel() {
         setStatus(.cancelled)
+    }
+
+    nonisolated func schedule(
+        after delay: TimeInterval,
+        _ block: @escaping @Sendable () -> Void
+    ) {
+        progressQueue.asyncAfter(deadline: .now() + delay, execute: block)
     }
 
     nonisolated func setStatus(_ status: Status) {

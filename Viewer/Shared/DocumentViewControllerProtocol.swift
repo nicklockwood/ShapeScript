@@ -26,6 +26,7 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     var axesNode: SCNNode? { get set }
     var errorMessage: NSAttributedString? { get set }
     var isLoading: Bool { get set }
+    var renderProgress: Double? { get set }
     var showConsole: Bool { get set }
     var showAxes: Bool { get set }
     var isOrthographic: Bool { get set }
