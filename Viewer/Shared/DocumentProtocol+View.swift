@@ -23,6 +23,12 @@ struct SelectionMenuContext {
     let lazySubmenus: Bool
 }
 
+private extension Double {
+    static let parsed = 0.1
+    static let evaluated = 0.2
+    static let geometryBuilt = 0.9
+}
+
 @MainActor
 extension DocumentProtocol {
     var settings: Settings { .shared }
@@ -34,7 +40,9 @@ extension DocumentProtocol {
         switch loadingProgress.status {
         case let .partial(_, progress):
             return progress
-        case .waiting, .success, .cancelled, .failure:
+        case .waiting:
+            return 0
+        case .success, .cancelled, .failure:
             return nil
         }
     }
@@ -74,7 +82,7 @@ extension DocumentProtocol {
             if case let .success(scene) = progress.status,
                !scene.children.isEmpty
             {
-                progress.setStatus(.partial(scene, nil))
+                progress.setStatus(.partial(scene, .geometryBuilt))
                 scene.scnBuild(with: scene.outputOptions(
                     for: cameraSettings,
                     backgroundColor: Color(backgroundColor),
@@ -112,6 +120,7 @@ extension DocumentProtocol {
         let showWireframe = showWireframe
         let fileURL = documentFileURL
         let input = sourceString
+        let previousScene = scene ?? .empty
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self else {
                 return
@@ -178,6 +187,7 @@ extension DocumentProtocol {
             if logCancelled() {
                 return
             }
+            progress.setStatus(.partial(previousScene, 0))
 
             let program = try parse(input, at: fileURL)
             let parsed = CFAbsoluteTimeGetCurrent()
@@ -185,19 +195,39 @@ extension DocumentProtocol {
             if logCancelled() {
                 return
             }
+            progress.setStatus(.partial(previousScene, .parsed))
 
+            let minUpdatePeriod: TimeInterval = 0.1
+            let evaluationProgress = EvaluationProgress()
+            @Sendable func scheduleEvaluationProgressUpdate() {
+                progress.schedule(after: minUpdatePeriod) {
+                    guard !evaluationProgress.isFinished else {
+                        return
+                    }
+                    guard progress.inProgress, !progress.isCancelledOrFailed else {
+                        evaluationProgress.cancel()
+                        return
+                    }
+                    let evaluationFraction = evaluationProgress.fractionCompleted ?? 0
+                    let progressFraction = .parsed + evaluationFraction * (.evaluated - .parsed)
+                    progress.setStatus(.partial(previousScene, progressFraction))
+                    scheduleEvaluationProgressUpdate()
+                }
+            }
+            scheduleEvaluationProgressUpdate()
             let (scene, error) = evaluate(
                 program,
                 preview: true,
                 delegate: self,
                 cache: cache,
-                isCancelled: { progress.isCancelledOrFailed }
+                progress: evaluationProgress
             )
             let evaluated = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
             if logCancelled() {
                 return
             }
+            progress.setStatus(.partial(previousScene, .evaluated))
 
             // Check for too many lights
             let maxLights = 8
@@ -216,7 +246,6 @@ extension DocumentProtocol {
             }
 
             let renderProgress = RenderProgress()
-            let minUpdatePeriod: TimeInterval = 0.1
             let options = scene.outputOptions(
                 for: cameraSettings,
                 backgroundColor: Color(backgroundColor),
@@ -224,7 +253,7 @@ extension DocumentProtocol {
             )
 
             // Clear errors and previous geometry
-            progress.setStatus(.partial(.empty, renderProgress.fractionCompleted))
+            progress.setStatus(.partial(.empty, .evaluated))
 
             @Sendable func scheduleRenderProgressUpdate() {
                 progress.schedule(after: minUpdatePeriod) {
@@ -244,7 +273,9 @@ extension DocumentProtocol {
                         renderProgress.cancel()
                         return
                     }
-                    progress.setStatus(.partial(scene, renderProgress.fractionCompleted))
+                    let geometryFraction = renderProgress.fractionCompleted ?? 0
+                    let progressFraction = .evaluated + geometryFraction * (.geometryBuilt - .evaluated)
+                    progress.setStatus(.partial(scene, progressFraction))
                     scheduleRenderProgressUpdate()
                 }
             }
@@ -257,12 +288,12 @@ extension DocumentProtocol {
 
             let done = CFAbsoluteTimeGetCurrent()
             Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
-            progress.setStatus(.partial(scene, nil))
+            progress.setStatus(.partial(scene, .geometryBuilt))
             scene.scnBuild(with: options)
 
             // Show error
             if let error {
-                progress.setStatus(.partial(scene, renderProgress.fractionCompleted))
+                progress.setStatus(.partial(scene, .geometryBuilt))
                 throw error
             }
 

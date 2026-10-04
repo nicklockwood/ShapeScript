@@ -19,14 +19,38 @@ public func evaluate(
     options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache? = GeometryCache(),
-    isCancelled: @escaping CancellationHandler = { false }
+    progress: EvaluationProgress? = nil
 ) throws -> Scene {
-    let (scene, error) = evaluate(
+    let (scene, error) = _evaluate(
         program,
         preview: preview,
         options: options,
         delegate: delegate,
         cache: cache,
+        progress: progress,
+        isCancelled: { false }
+    )
+    if let error {
+        throw error
+    }
+    return scene
+}
+
+public func evaluate(
+    _ program: Program,
+    preview: Bool = false,
+    options: [String: Any] = [:],
+    delegate: EvaluationDelegate?,
+    cache: GeometryCache? = GeometryCache(),
+    isCancelled: @escaping CancellationHandler
+) throws -> Scene {
+    let (scene, error) = _evaluate(
+        program,
+        preview: preview,
+        options: options,
+        delegate: delegate,
+        cache: cache,
+        progress: nil,
         isCancelled: isCancelled
     )
     if let error {
@@ -42,32 +66,37 @@ public func evaluate(
     options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache?,
+    progress: EvaluationProgress
+) -> (Scene, Error?) {
+    _evaluate(
+        program,
+        preview: preview,
+        options: options,
+        delegate: delegate,
+        cache: cache,
+        progress: progress,
+        isCancelled: { false }
+    )
+}
+
+@_disfavoredOverload
+public func evaluate(
+    _ program: Program,
+    preview: Bool = false,
+    options: [String: Any] = [:],
+    delegate: EvaluationDelegate?,
+    cache: GeometryCache?,
     isCancelled: @escaping CancellationHandler
 ) -> (Scene, Error?) {
-    let scriptOptions: [String: Value]
-    do {
-        scriptOptions = try options.mapValues(Value.init(scriptOption:))
-    } catch {
-        return (Scene(background: .color(.clear), children: [], cache: cache), error)
-    }
-    let context = EvaluationContext(
-        source: program.source,
+    _evaluate(
+        program,
         preview: preview,
+        options: options,
         delegate: delegate,
+        cache: cache,
+        progress: nil,
         isCancelled: isCancelled
     )
-    let result = Result { try program.evaluate(in: context, options: scriptOptions) }
-    let scene = Scene(
-        background: context.background ?? .color(.clear),
-        children: context.state.children.compactMap { $0.value as? Geometry },
-        cache: cache
-    )
-    switch result {
-    case .success:
-        return (scene, nil)
-    case let .failure(error):
-        return (scene, error)
-    }
 }
 
 public enum RuntimeErrorType: Error, Equatable {
@@ -335,6 +364,54 @@ public extension RuntimeError {
 // MARK: Implementation
 
 private struct EvaluationCancelled: Error {}
+
+private func _evaluate(
+    _ program: Program,
+    preview: Bool,
+    options: [String: Any],
+    delegate: EvaluationDelegate?,
+    cache: GeometryCache?,
+    progress: EvaluationProgress?,
+    isCancelled: @escaping CancellationHandler
+) -> (Scene, Error?) {
+    progress?.beginTracking(program: program, isCancelled: isCancelled)
+    defer { progress?.endTracking() }
+    let scriptOptions: [String: Value]
+    do {
+        scriptOptions = try options.mapValues(Value.init(scriptOption:))
+    } catch {
+        if progress?.isCancelled == false {
+            progress?.finish()
+        }
+        return (Scene(background: .color(.clear), children: [], cache: cache), error)
+    }
+    let isCancelled = progress.map { progress in
+        { @Sendable in progress.isCancelled }
+    } ?? isCancelled
+    let context = EvaluationContext(
+        source: program.source,
+        preview: preview,
+        delegate: delegate,
+        evaluationProgress: progress,
+        isCancelled: isCancelled
+    )
+    let result = Result { try program.evaluate(in: context, options: scriptOptions) }
+    progress?.completeUnit()
+    if progress?.isCancelled == false {
+        progress?.finish()
+    }
+    let scene = Scene(
+        background: context.background ?? .color(.clear),
+        children: context.state.children.compactMap { $0.value as? Geometry },
+        cache: cache
+    )
+    switch result {
+    case .success:
+        return (scene, nil)
+    case let .failure(error):
+        return (scene, error)
+    }
+}
 
 final class UserFunction: @unchecked Sendable {
     let names: [Identifier]
@@ -927,6 +1004,10 @@ extension Program {
             }
         } catch is EvaluationCancelled {}
     }
+
+    var importCount: Int {
+        statements.reduce(0) { $0 + $1.importCount }
+    }
 }
 
 private func evaluateParameters(
@@ -1147,6 +1228,17 @@ extension Definition {
     }
 }
 
+private extension Definition {
+    var importCount: Int {
+        switch type {
+        case let .block(block), let .function(_, block):
+            block.importCount
+        case let .expression(expression):
+            expression.importCount
+        }
+    }
+}
+
 extension EvaluationContext {
     func callFunction(_ fn: Function, with value: Value, at range: SourceRange) throws -> Value {
         let oldRange = callState.range
@@ -1259,6 +1351,10 @@ private extension Block {
             }
         }
         return options
+    }
+
+    var importCount: Int {
+        statements.reduce(0) { $0 + $1.importCount }
     }
 }
 
@@ -1467,6 +1563,19 @@ private extension Statement {
             )
         }
         context.define(identifier.name, as: .option(value))
+    }
+
+    var importCount: Int {
+        switch type {
+        case let .command(_, expression):
+            expression?.importCount ?? 0
+        case let .define(_, definition):
+            definition.importCount
+        case let .option(_, expression):
+            expression.importCount
+        case let .expression(expression):
+            expression.importCount
+        }
     }
 }
 
@@ -2216,6 +2325,37 @@ extension Expression {
                 expected: type,
                 got: value.type
             ), at: range)
+        }
+    }
+}
+
+private extension Expression {
+    var importCount: Int { type.importCount }
+}
+
+private extension ExpressionType {
+    var importCount: Int {
+        switch self {
+        case .number, .string, .color, .identifier:
+            0
+        case let .block(_, block):
+            block.importCount
+        case let .tuple(expressions):
+            expressions.reduce(0) { $0 + $1.importCount }
+        case let .prefix(_, expression), let .member(expression, _):
+            expression.importCount
+        case let .infix(lhs, _, rhs), let .subscript(lhs, rhs):
+            lhs.importCount + rhs.importCount
+        case let .import(expression, options):
+            1 + expression.importCount + (options?.importCount ?? 0)
+        case let .ifelse(condition, body, else: elseBody):
+            condition.importCount + body.importCount + (elseBody?.importCount ?? 0)
+        case let .forloop(_, in: expression, block):
+            expression.importCount + block.importCount
+        case let .switchcase(expression, cases, else: elseBody):
+            expression.importCount + cases.reduce(0) {
+                $0 + $1.pattern.importCount + $1.body.importCount
+            } + (elseBody?.importCount ?? 0)
         }
     }
 }

@@ -75,7 +75,7 @@ final class LoadingProgress: Sendable {
 extension LoadingProgress {
     enum Status {
         case waiting
-        case partial(Scene, Double?)
+        case partial(Scene, Double)
         case success(Scene)
         case failure(ProgramError)
         case cancelled
