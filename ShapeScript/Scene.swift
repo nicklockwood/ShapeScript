@@ -67,11 +67,20 @@ public extension Scene {
         })
     }
 
+    func build(progress: RenderProgress? = nil) -> Bool {
+        defer { flushPendingCacheWrites() }
+        return geometry.build(progress: progress)
+    }
+
     func build(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        for geometry in children where !geometry.build(isCancelled) {
-            return false
+        defer { flushPendingCacheWrites() }
+        return geometry.build(isCancelled)
+    }
+
+    private func flushPendingCacheWrites() {
+        Task { [cache] in
+            await cache?.flushPendingDiskWrites()
         }
-        return true
     }
 }
 

@@ -12,6 +12,50 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    // MARK: Render progress
+
+    func testRenderProgressDoesNotReportCompleteUntilFinished() {
+        let progress = RenderProgress(
+            phase: .buildingLeaves,
+            completedUnitCount: 10,
+            totalUnitCount: 10,
+            isFinished: false,
+            isCancelled: false
+        )
+
+        XCTAssertEqual(progress.fractionCompleted, 0.98)
+
+        progress.finish()
+
+        XCTAssertEqual(progress.fractionCompleted, 1)
+    }
+
+    func testRenderProgressCancellationPersistsAcrossTracking() {
+        let progress = RenderProgress()
+        progress.cancel()
+
+        progress.beginTracking(totalUnitCount: 1, isCancelled: { false })
+        XCTAssertTrue(progress.isCancelled)
+
+        progress.endTracking()
+        XCTAssertTrue(progress.isCancelled)
+    }
+
+    func testRenderProgressDoesNotCountCheckpointsTwice() {
+        let progress = RenderProgress()
+        progress.beginTracking(totalUnitCount: 100, isCancelled: { false })
+        _ = progress.completeUnit(.buildingLeaves, by: 10)
+        _ = progress.beginUnit(.buildingFinal, unitCount: 20)
+
+        for _ in 0 ..< 5 {
+            _ = progress.checkpoint(.buildingFinal)
+        }
+        XCTAssertEqual(progress.fractionCompleted, 0.15)
+
+        _ = progress.completeUnit(.buildingFinal, by: 20)
+        XCTAssertEqual(progress.fractionCompleted, 0.3)
+    }
+
     // MARK: Bounds
 
     func testGroupOfShapeCameraBoundsNotEmpty() {
@@ -595,7 +639,7 @@ final class GeometryTests: XCTestCase {
                 checks += 1
                 return checks >= 4
             })
-            XCTAssertLessThan(checks, 10)
+            XCTAssertLessThan(checks, 10, "\(type)")
             XCTAssertLessThan(shape.mesh?.polygons.count ?? .max, 256 * 2)
         }
     }

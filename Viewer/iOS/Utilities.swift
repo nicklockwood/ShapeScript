@@ -12,6 +12,7 @@ import UIKit
 
 typealias OSColor = UIColor
 typealias OSFont = UIFont
+typealias OSView = UIView
 typealias OSButton = UIButton
 typealias OSTextView = UITextView
 

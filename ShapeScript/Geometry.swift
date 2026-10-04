@@ -787,9 +787,18 @@ public extension Geometry {
 
     /// Builds the meshes for the receiver and all its descendents
     /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
+    /// - Parameter progress: An optional object for monitoring or cancelling the build
+    /// - Returns: false if cancelled or true when completed
+    func build(progress: RenderProgress? = nil) -> Bool {
+        _build(progress: progress, isCancelled: { false })
+    }
+
+    /// Builds the meshes for the receiver and all its descendents
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
+    /// - Parameter isCancelled: A closure that returns true when the build should be cancelled
     /// - Returns: false if cancelled or true when completed
     func build(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        buildLeaves(isCancelled) && buildPreview(isCancelled) && buildFinal(isCancelled)
+        _build(progress: nil, isCancelled: isCancelled)
     }
 
     /// Returns the union mesh of the receiver and all its descendents
@@ -1007,6 +1016,183 @@ private extension Path {
 }
 
 private extension Geometry {
+    /// The estimated progress units needed to build this geometry's leaf meshes
+    var leafProgressUnitCount: Int {
+        let childUnitCount = switch type {
+        case .difference, .stencil:
+            visibleChildren.first?.leafProgressUnitCount ?? 0
+        case .group, .union, .xor, .intersection, .hull, .minkowski,
+             .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .path, .mesh, .camera, .light:
+            visibleChildren.reduce(0) { $0 + $1.leafProgressUnitCount }
+        }
+        return (isLeaf ? ownBuildProgressUnitCount : 1) + childUnitCount
+    }
+
+    /// The estimated progress units needed to build this geometry's preview meshes
+    var previewProgressUnitCount: Int {
+        1 + visibleChildren.reduce(0) { $0 + $1.previewProgressUnitCount }
+    }
+
+    /// The estimated progress units needed to build this geometry's final meshes
+    var finalProgressUnitCount: Int {
+        (isLeaf ? 1 : ownBuildProgressUnitCount) +
+            finalBuildChildren.reduce(0) { $0 + $1.finalProgressUnitCount }
+    }
+
+    /// The estimated total progress units needed to build this geometry
+    var buildProgressUnitCount: Int {
+        leafProgressUnitCount + previewProgressUnitCount + finalProgressUnitCount
+    }
+
+    /// The estimated progress units needed to build this geometry's own mesh
+    var ownBuildProgressUnitCount: Int {
+        func bounded(_ count: Int) -> Int {
+            min(max(1, count), 5000)
+        }
+
+        func pathPointCount(_ paths: [Path]) -> Int {
+            max(1, paths.reduce(0) { $0 + $1.points.count })
+        }
+
+        switch type {
+        case .group, .circle, .square, .path, .camera, .light, .cube:
+            return 1
+        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
+            return bounded(segments)
+        case let .icosphere(subdivisions):
+            return bounded(20 << min(max(0, subdivisions), 8))
+        case let .extrude(paths, options):
+            let profileCount = pathPointCount(paths)
+            let alongCount = pathPointCount(options.along)
+            return bounded(profileCount * max(1, alongCount))
+        case let .lathe(paths, segments):
+            return bounded(pathPointCount(paths) * max(1, segments))
+        case let .loft(paths), let .fill(paths):
+            return bounded(pathPointCount(paths))
+        case let .hull(vertices):
+            return bounded(vertices.count)
+        case let .mesh(mesh):
+            return bounded(mesh.polygons.count)
+        case .union, .xor, .difference, .intersection, .stencil:
+            return csgProgressUnitCount
+        case .minkowski:
+            return min(csgProgressUnitCount * 2, 1_000_000)
+        }
+    }
+
+    /// An estimate of the polygon count produced by this geometry, without building its mesh.
+    /// Container estimates deliberately include descendants so nested CSG operations retain
+    /// the complexity of the meshes they consume.
+    var estimatedPolygonCount: Int {
+        func bounded(_ count: Int) -> Int {
+            min(max(0, count), 5000)
+        }
+
+        func product(_ lhs: Int, _ rhs: Int) -> Int {
+            guard lhs > 0, rhs > 0 else {
+                return 0
+            }
+            return lhs > 5000 / rhs ? 5000 : lhs * rhs
+        }
+
+        func childPolygonCount() -> Int {
+            visibleChildren.reduce(0) {
+                bounded($0 + $1.estimatedPolygonCount)
+            }
+        }
+
+        if let mesh {
+            return bounded(mesh.polygons.count)
+        }
+        switch type {
+        case .group, .union, .xor, .difference, .intersection, .stencil:
+            return childPolygonCount()
+        case let .mesh(mesh):
+            return bounded(mesh.polygons.count + childPolygonCount())
+        case .hull:
+            return bounded(ownBuildProgressUnitCount + childPolygonCount())
+        case .minkowski:
+            return min(csgProgressUnitCount, 5000)
+        case .circle, .square, .path, .camera, .light:
+            return 0
+        case let .cone(segments):
+            return product(segments, 2)
+        case let .cylinder(segments):
+            return product(segments, 3)
+        case let .sphere(segments):
+            return product(segments, max(2, segments / 2))
+        case let .icosphere(subdivisions):
+            return bounded(20 << (min(max(0, subdivisions), 8) * 2))
+        case .cube:
+            return 6
+        case .extrude, .lathe, .loft, .fill:
+            return bounded(ownBuildProgressUnitCount)
+        }
+    }
+
+    /// The estimated progress units needed for this geometry's CSG operation
+    var csgProgressUnitCount: Int {
+        let children = visibleChildren
+        let counts = children.map(\.estimatedPolygonCount)
+        let maximum = 1_000_000
+        var result = max(1, counts.reduce(0) { min($0 + $1, maximum) })
+
+        func addProduct(_ lhs: Int, _ rhs: Int) {
+            guard lhs > 0, rhs > 0, result < maximum else {
+                return
+            }
+            let product = lhs > maximum / rhs ? maximum : lhs * rhs
+            result = min(result + product, maximum)
+        }
+
+        switch type {
+        case .difference, .stencil:
+            guard let first = children.first else {
+                return result
+            }
+            for index in children.indices.dropFirst()
+                where first.overestimatedBounds.intersects(children[index].overestimatedBounds)
+            {
+                addProduct(counts[0], counts[index])
+            }
+        case .union, .xor, .intersection:
+            for lhs in children.indices {
+                for rhs in children.indices where rhs > lhs &&
+                    children[lhs].overestimatedBounds.intersects(children[rhs].overestimatedBounds)
+                {
+                    addProduct(counts[lhs], counts[rhs])
+                }
+            }
+        case .minkowski:
+            for lhs in counts.indices {
+                for rhs in counts.indices where rhs > lhs {
+                    addProduct(counts[lhs], counts[rhs])
+                }
+            }
+        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .hull, .path, .mesh, .camera, .light:
+            break
+        }
+        return result
+    }
+
+    func _build(progress: RenderProgress?, isCancelled: @escaping CancellationHandler) -> Bool {
+        let progress = progress ?? RenderProgress()
+        progress.beginTracking(
+            totalUnitCount: buildProgressUnitCount,
+            isCancelled: isCancelled
+        )
+        defer { progress.endTracking() }
+        let didBuild = buildLeaves(progress) && buildPreview(progress) && buildFinal(progress)
+        if didBuild {
+            progress.finish()
+        }
+        return didBuild
+    }
+
     /// Computes the union of the meshes of the descendents of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes the receiver's material but not its transform
@@ -1089,18 +1275,31 @@ private extension Geometry {
 
     /// Build all geometries that don't have dependencies
     /// - Returns: false if cancelled or true when completed
-    func buildLeaves(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        if isLeaf, !buildMesh(isCancelled) {
+    func buildLeaves(_ progress: RenderProgress) -> Bool {
+        guard progress.enter(.buildingLeaves) else {
+            return false
+        }
+        let unitCount = isLeaf ? ownBuildProgressUnitCount : 1
+        guard progress.beginUnit(.buildingLeaves, unitCount: unitCount) else {
+            return false
+        }
+        if isLeaf {
+            let isCancelled = progress.cancellationHandler(for: .buildingLeaves)
+            if !buildMesh(isCancelled) {
+                return false
+            }
+        }
+        guard progress.completeUnit(.buildingLeaves, by: unitCount) else {
             return false
         }
         switch type {
         case .difference, .stencil:
-            return visibleChildren.first?.buildLeaves(isCancelled) ?? true
+            return visibleChildren.first?.buildLeaves(progress) ?? true
         case .group, .union, .xor, .intersection, .hull, .minkowski,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .extrude, .lathe, .loft, .fill,
              .path, .mesh, .camera, .light:
-            for child in visibleChildren where !child.buildLeaves(isCancelled) {
+            for child in visibleChildren where !child.buildLeaves(progress) {
                 return false
             }
             return true
@@ -1109,13 +1308,19 @@ private extension Geometry {
 
     /// With leaves built, do a rough preview
     /// - Returns: false if cancelled or true when completed
-    func buildPreview(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        for child in visibleChildren where !child.buildPreview(isCancelled) {
+    func buildPreview(_ progress: RenderProgress) -> Bool {
+        guard progress.enter(.buildingPreview) else {
+            return false
+        }
+        for child in visibleChildren where !child.buildPreview(progress) {
             return false
         }
         if let mesh = cache?[mesh: self] {
             self.mesh = mesh
-            return !isCancelled()
+            return progress.completeUnit(.buildingPreview)
+        }
+        guard progress.beginUnit(.buildingPreview, unitCount: 1) else {
+            return false
         }
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
@@ -1132,26 +1337,31 @@ private extension Geometry {
              .hull, .minkowski, .camera, .light:
             mesh = nil
         }
-        return !isCancelled()
+        return progress.completeUnit(.buildingPreview)
     }
 
     /// Builds and caches the final mesh for the receiver and all its descendents
     /// - Returns: false if cancelled or true when completed
-    func buildFinal(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        let distributedUnion = distributableMinkowskiUnion
-        for child in visibleChildren {
-            if child === distributedUnion {
-                for component in child.visibleChildren where !component.buildFinal(isCancelled) {
-                    return false
-                }
-            } else if !child.buildFinal(isCancelled) {
+    func buildFinal(_ progress: RenderProgress) -> Bool {
+        guard progress.enter(.buildingFinal) else {
+            return false
+        }
+        for child in finalBuildChildren {
+            if !child.buildFinal(progress) {
                 return false
             }
         }
-        if isLeaf, mesh != nil {
-            return !isCancelled()
+        let unitCount = isLeaf ? 1 : ownBuildProgressUnitCount
+        guard progress.beginUnit(.buildingFinal, unitCount: unitCount) else {
+            return false
         }
-        return buildMesh(isCancelled)
+        if !isLeaf || mesh == nil {
+            let isCancelled = progress.cancellationHandler(for: .buildingFinal)
+            if !buildMesh(isCancelled) {
+                return false
+            }
+        }
+        return progress.completeUnit(.buildingFinal, by: unitCount)
     }
 
     /// A direct union operand over which the Minkowski sum can be distributed.
@@ -1164,6 +1374,16 @@ private extension Geometry {
                 return !child.visibleChildren.isEmpty
             }
             return false
+        }
+    }
+
+    /// Children whose final meshes are needed to build this geometry.
+    var finalBuildChildren: [Geometry] {
+        guard let distributedUnion = distributableMinkowskiUnion else {
+            return visibleChildren
+        }
+        return visibleChildren.flatMap { child in
+            child === distributedUnion ? child.visibleChildren : [child]
         }
     }
 

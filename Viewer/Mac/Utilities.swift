@@ -15,6 +15,7 @@ import UniformTypeIdentifiers
 
 typealias OSColor = NSColor
 typealias OSFont = NSFont
+typealias OSView = NSView
 typealias OSButton = NSButton
 typealias OSTextView = NSTextView
 
