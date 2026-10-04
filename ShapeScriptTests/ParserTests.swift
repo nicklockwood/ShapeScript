@@ -10,6 +10,18 @@
 import XCTest
 
 final class ParserTests: XCTestCase {
+    func testImportCountIncludesNestedExpressions() throws {
+        let program = try parse("""
+        import "A.shape"
+        define importedShape import "B.shape"
+        define importedBlock {
+            import "C.shape"
+        }
+        """)
+
+        XCTAssertEqual(program.importCount, 3)
+    }
+
     func testDeeplyNestedParentheses() {
         let input = String(repeating: "(", count: 20_000) + "1" +
             String(repeating: ")", count: 20_000)

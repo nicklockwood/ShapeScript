@@ -90,6 +90,7 @@ final class EvaluationContext {
     }
 
     private weak var delegate: EvaluationDelegate?
+    private let evaluationProgress: EvaluationProgress?
     private var symbols: Symbols = .root
     var userSymbols: Symbols = [:]
     var options: Options = [:]
@@ -119,11 +120,13 @@ final class EvaluationContext {
         source: String,
         preview: Bool = false,
         delegate: EvaluationDelegate?,
+        evaluationProgress: EvaluationProgress? = nil,
         isCancelled: @escaping CancellationHandler = { false }
     ) {
         self.source = source
         self.preview = preview
         self.delegate = delegate
+        self.evaluationProgress = evaluationProgress
         self.isCancelled = isCancelled
         self.importCache = ImportCache()
         self.importStack = []
@@ -138,6 +141,7 @@ final class EvaluationContext {
         self.preview = parent.preview
         self.state = parent.state
         self.delegate = parent.delegate
+        self.evaluationProgress = parent.evaluationProgress
         self.isCancelled = parent.isCancelled
         self.symbols = parent.symbols
         self.userSymbols = parent.userSymbols
@@ -553,6 +557,8 @@ extension EvaluationContext {
 
     func importFile(at path: String, options: [String: Value] = [:]) throws -> Value {
         let url = try resolveURL(for: path)
+        evaluationProgress?.beginImport()
+        defer { evaluationProgress?.completeUnit() }
         if case let .value(value) = importCache.store[url] {
             return value
         }
@@ -588,6 +594,7 @@ extension EvaluationContext {
                     )
                 }
             }
+            evaluationProgress?.discoveredImports(in: program)
             importStack.append(url)
             defer {
                 importStack.removeLast()
