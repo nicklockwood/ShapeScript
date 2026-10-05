@@ -126,10 +126,6 @@ extension RenderProgress {
         return !isCancelled
     }
 
-    func cancellationHandler(for phase: Phase) -> CancellationHandler {
-        { self.checkpoint(phase) == false }
-    }
-
     func completeUnit(_ phase: Phase, by unitCount: Int = 1) -> Bool {
         lock.lock()
         self.phase = phase

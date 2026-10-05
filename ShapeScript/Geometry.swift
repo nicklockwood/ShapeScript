@@ -14,6 +14,15 @@ public typealias Polygon = Euclid.Polygon
 /// Cancellation handler - return true to cancel
 public typealias CancellationHandler = Euclid.CancellationHandler
 
+private struct GeometryBuildProgressPlan {
+    let totalUnitCount: Int
+    let unitCounts: [ObjectIdentifier: Int]
+
+    func unitCount(for geometry: Geometry) -> Int {
+        unitCounts[ObjectIdentifier(geometry)] ?? 1
+    }
+}
+
 public final class Geometry: Hashable, @unchecked Sendable {
     public let type: GeometryType
     public let name: String?
@@ -1016,6 +1025,12 @@ private extension Path {
 }
 
 private extension Geometry {
+    static let maximumEstimatedPolygonCount = 100_000
+    static let maximumCSGProgressUnitCount = 10_000_000
+    // Union estimates are especially noisy because Euclid groups disjoint meshes before clipping.
+    // Keep enclosing unions from outweighing the complex child operations they contain.
+    static let maximumUnionProgressUnitCount = 1_000_000
+
     /// The estimated progress units needed to build this geometry's leaf meshes
     var leafProgressUnitCount: Int {
         let childUnitCount = switch type {
@@ -1075,10 +1090,18 @@ private extension Geometry {
             return bounded(vertices.count)
         case let .mesh(mesh):
             return bounded(mesh.polygons.count)
-        case .union, .xor, .difference, .intersection, .stencil:
-            return csgProgressUnitCount
+        case .union:
+            return min(
+                csgProgressUnitCount + estimatedPolygonCount * 2,
+                Self.maximumUnionProgressUnitCount
+            )
+        case .xor, .difference, .intersection, .stencil:
+            return min(
+                csgProgressUnitCount + estimatedPolygonCount * 2,
+                Self.maximumCSGProgressUnitCount
+            )
         case .minkowski:
-            return min(csgProgressUnitCount * 2, 1_000_000)
+            return min(csgProgressUnitCount * 2, Self.maximumCSGProgressUnitCount)
         }
     }
 
@@ -1087,14 +1110,15 @@ private extension Geometry {
     /// the complexity of the meshes they consume.
     var estimatedPolygonCount: Int {
         func bounded(_ count: Int) -> Int {
-            min(max(0, count), 5000)
+            min(max(0, count), Self.maximumEstimatedPolygonCount)
         }
 
         func product(_ lhs: Int, _ rhs: Int) -> Int {
             guard lhs > 0, rhs > 0 else {
                 return 0
             }
-            return lhs > 5000 / rhs ? 5000 : lhs * rhs
+            return lhs > Self.maximumEstimatedPolygonCount / rhs ?
+                Self.maximumEstimatedPolygonCount : lhs * rhs
         }
 
         func childPolygonCount() -> Int {
@@ -1107,14 +1131,14 @@ private extension Geometry {
             return bounded(mesh.polygons.count)
         }
         switch type {
-        case .group, .union, .xor, .difference, .intersection, .stencil:
+        case .group:
             return childPolygonCount()
+        case .union, .xor, .difference, .intersection, .stencil, .minkowski:
+            return csgProgressEstimate.polygonCount
         case let .mesh(mesh):
             return bounded(mesh.polygons.count + childPolygonCount())
         case .hull:
             return bounded(ownBuildProgressUnitCount + childPolygonCount())
-        case .minkowski:
-            return min(csgProgressUnitCount, 5000)
         case .circle, .square, .path, .camera, .light:
             return 0
         case let .cone(segments):
@@ -1134,41 +1158,130 @@ private extension Geometry {
 
     /// The estimated progress units needed for this geometry's CSG operation
     var csgProgressUnitCount: Int {
+        csgProgressEstimate.unitCount
+    }
+
+    /// Estimates both the work and intermediate polygon growth for this CSG operation.
+    var csgProgressEstimate: (unitCount: Int, polygonCount: Int) {
         let children = visibleChildren
         let counts = children.map(\.estimatedPolygonCount)
-        let maximum = 1_000_000
-        var result = max(1, counts.reduce(0) { min($0 + $1, maximum) })
+        let maximumUnits = Self.maximumCSGProgressUnitCount
+        let maximumPolygons = Self.maximumEstimatedPolygonCount
 
-        func addProduct(_ lhs: Int, _ rhs: Int) {
-            guard lhs > 0, rhs > 0, result < maximum else {
-                return
+        func adding(_ lhs: Int, _ rhs: Int, maximum: Int) -> Int {
+            let rhs = min(max(0, rhs), maximum)
+            return min(lhs, maximum - rhs) + rhs
+        }
+
+        func sum(_ values: some Sequence<Int>, maximum: Int) -> Int {
+            values.reduce(0) { adding($0, $1, maximum: maximum) }
+        }
+
+        func product(_ lhs: Int, _ rhs: Int, maximum: Int) -> Int {
+            guard lhs > 0, rhs > 0 else { return 0 }
+            return lhs > maximum / rhs ? maximum : lhs * rhs
+        }
+
+        func scaledProduct(_ lhs: Int, _ rhs: Int, by scale: Double, maximum: Int) -> Int {
+            guard lhs > 0, rhs > 0, scale > 0 else { return 0 }
+            return min(
+                Int((Double(lhs) * Double(rhs) * min(scale, 1)).rounded(.up)),
+                maximum
+            )
+        }
+
+        func overlapFraction(_ lhs: Bounds, _ rhs: Bounds) -> Double {
+            func volume(of bounds: Bounds) -> Double {
+                let size = bounds.size
+                return size.x * size.y * size.z
             }
-            let product = lhs > maximum / rhs ? maximum : lhs * rhs
-            result = min(result + product, maximum)
+
+            let intersectionVolume = volume(of: lhs.intersection(rhs))
+            let smallerVolume = min(volume(of: lhs), volume(of: rhs))
+            guard smallerVolume > 0 else { return lhs.intersects(rhs) ? 1 : 0 }
+            return min(intersectionVolume / smallerVolume, 1)
+        }
+
+        var unitCount = max(1, sum(counts, maximum: maximumUnits))
+        var polygonCount = sum(counts, maximum: maximumPolygons)
+
+        func addWork(_ lhs: Int, _ rhs: Int, scale: Double = 1) {
+            unitCount = adding(
+                unitCount,
+                scaledProduct(
+                    lhs,
+                    rhs,
+                    by: scale,
+                    maximum: maximumUnits
+                ),
+                maximum: maximumUnits
+            )
+        }
+
+        func estimateSequentialBoolean() {
+            polygonCount = counts[0]
+            for index in counts.indices.dropFirst() {
+                let inputPolygonCount = polygonCount
+                addWork(inputPolygonCount, counts[index])
+                // Boolean clipping can add fragments from the next operand, but treating
+                // the result size as a product would compound exponentially. The work for
+                // the next operation still grows because it uses this larger result.
+                polygonCount = adding(
+                    polygonCount,
+                    counts[index],
+                    maximum: maximumPolygons
+                )
+            }
         }
 
         switch type {
         case .difference, .stencil:
             guard let first = children.first else {
-                return result
+                return (unitCount, polygonCount)
             }
+            polygonCount = counts[0]
             for index in children.indices.dropFirst()
                 where first.overestimatedBounds.intersects(children[index].overestimatedBounds)
             {
-                addProduct(counts[0], counts[index])
+                let inputPolygonCount = polygonCount
+                addWork(inputPolygonCount, counts[index])
+                polygonCount = adding(
+                    polygonCount,
+                    counts[index],
+                    maximum: maximumPolygons
+                )
             }
-        case .union, .xor, .intersection:
+        case .intersection:
+            if !counts.isEmpty {
+                estimateSequentialBoolean()
+            }
+        case .union:
+            for lhs in children.indices {
+                for rhs in children.indices where rhs > lhs {
+                    addWork(
+                        counts[lhs],
+                        counts[rhs],
+                        scale: overlapFraction(
+                            children[lhs].overestimatedBounds,
+                            children[rhs].overestimatedBounds
+                        )
+                    )
+                }
+            }
+        case .xor:
             for lhs in children.indices {
                 for rhs in children.indices where rhs > lhs &&
                     children[lhs].overestimatedBounds.intersects(children[rhs].overestimatedBounds)
                 {
-                    addProduct(counts[lhs], counts[rhs])
+                    addWork(counts[lhs], counts[rhs])
                 }
             }
         case .minkowski:
-            for lhs in counts.indices {
-                for rhs in counts.indices where rhs > lhs {
-                    addProduct(counts[lhs], counts[rhs])
+            if let first = counts.first {
+                polygonCount = first
+                for count in counts.dropFirst() {
+                    addWork(polygonCount, count)
+                    polygonCount = product(polygonCount, count, maximum: maximumPolygons)
                 }
             }
         case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
@@ -1176,21 +1289,40 @@ private extension Geometry {
              .hull, .path, .mesh, .camera, .light:
             break
         }
-        return result
+        return (unitCount, max(1, polygonCount))
     }
 
     func _build(progress: RenderProgress?, isCancelled: @escaping CancellationHandler) -> Bool {
         let progress = progress ?? RenderProgress()
+        let plan = buildProgressPlan
         progress.beginTracking(
-            totalUnitCount: buildProgressUnitCount,
+            totalUnitCount: plan.totalUnitCount,
             isCancelled: isCancelled
         )
         defer { progress.endTracking() }
-        let didBuild = buildLeaves(progress) && buildPreview(progress) && buildFinal(progress)
+        let didBuild = buildLeaves(progress, plan: plan) &&
+            buildPreview(progress) &&
+            buildFinal(progress, plan: plan)
         if didBuild {
             progress.finish()
         }
         return didBuild
+    }
+
+    var buildProgressPlan: GeometryBuildProgressPlan {
+        var result = [ObjectIdentifier: Int]()
+        collectBuildUnitCounts(into: &result)
+        return GeometryBuildProgressPlan(
+            totalUnitCount: buildProgressUnitCount,
+            unitCounts: result
+        )
+    }
+
+    func collectBuildUnitCounts(into result: inout [ObjectIdentifier: Int]) {
+        result[ObjectIdentifier(self)] = ownBuildProgressUnitCount
+        for child in visibleChildren {
+            child.collectBuildUnitCounts(into: &result)
+        }
     }
 
     /// Computes the union of the meshes of the descendents of the receiver
@@ -1275,16 +1407,16 @@ private extension Geometry {
 
     /// Build all geometries that don't have dependencies
     /// - Returns: false if cancelled or true when completed
-    func buildLeaves(_ progress: RenderProgress) -> Bool {
+    func buildLeaves(_ progress: RenderProgress, plan: GeometryBuildProgressPlan) -> Bool {
         guard progress.enter(.buildingLeaves) else {
             return false
         }
-        let unitCount = isLeaf ? ownBuildProgressUnitCount : 1
+        let unitCount = isLeaf ? plan.unitCount(for: self) : 1
         guard progress.beginUnit(.buildingLeaves, unitCount: unitCount) else {
             return false
         }
         if isLeaf {
-            let isCancelled = progress.cancellationHandler(for: .buildingLeaves)
+            let isCancelled: CancellationHandler = { progress.isCancelled }
             if !buildMesh(isCancelled) {
                 return false
             }
@@ -1294,12 +1426,12 @@ private extension Geometry {
         }
         switch type {
         case .difference, .stencil:
-            return visibleChildren.first?.buildLeaves(progress) ?? true
+            return visibleChildren.first?.buildLeaves(progress, plan: plan) ?? true
         case .group, .union, .xor, .intersection, .hull, .minkowski,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .extrude, .lathe, .loft, .fill,
              .path, .mesh, .camera, .light:
-            for child in visibleChildren where !child.buildLeaves(progress) {
+            for child in visibleChildren where !child.buildLeaves(progress, plan: plan) {
                 return false
             }
             return true
@@ -1342,21 +1474,21 @@ private extension Geometry {
 
     /// Builds and caches the final mesh for the receiver and all its descendents
     /// - Returns: false if cancelled or true when completed
-    func buildFinal(_ progress: RenderProgress) -> Bool {
+    func buildFinal(_ progress: RenderProgress, plan: GeometryBuildProgressPlan) -> Bool {
         guard progress.enter(.buildingFinal) else {
             return false
         }
         for child in finalBuildChildren {
-            if !child.buildFinal(progress) {
+            if !child.buildFinal(progress, plan: plan) {
                 return false
             }
         }
-        let unitCount = isLeaf ? 1 : ownBuildProgressUnitCount
+        let unitCount = isLeaf ? 1 : plan.unitCount(for: self)
         guard progress.beginUnit(.buildingFinal, unitCount: unitCount) else {
             return false
         }
         if !isLeaf || mesh == nil {
-            let isCancelled = progress.cancellationHandler(for: .buildingFinal)
+            let isCancelled: CancellationHandler = { progress.isCancelled }
             if !buildMesh(isCancelled) {
                 return false
             }
