@@ -137,6 +137,18 @@ if showCube {
 }
 ```
 
+For single-line `if` statements, you can omit the braces:
+
+```swift
+if showCube cube else sphere
+```
+
+This single-line form also works for commands with arguments:
+
+```swift
+if showText print "Visible"
+```
+
 ## Switch-Case
 
 To select between multiple mutually-exclusive cases based on some value, you can use an `else if` chain, but it can be a bit cumbersome:
