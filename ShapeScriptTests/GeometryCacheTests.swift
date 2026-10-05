@@ -177,7 +177,7 @@ final class GeometryCacheTests: XCTestCase {
         let keyObject = try XCTUnwrap(
             JSONSerialization.jsonObject(with: cacheFileData.keyData) as? [String: Any]
         )
-        let versionedDirectory = directory.appendingPathComponent(ShapeScript.version, isDirectory: true)
+        let versionedDirectory = directory.appendingPathComponent("\(ShapeScript.version)", isDirectory: true)
         XCTAssertNil(keyObject["version"])
         XCTAssertFalse(FileManager.default.fileExists(atPath: versionedDirectory.path))
     }

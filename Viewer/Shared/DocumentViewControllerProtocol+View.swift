@@ -33,13 +33,11 @@ extension DocumentViewControllerProtocol {
     func checkDocumentVersion() {
         guard !isQuickLook, let document,
               let formatVersion = document.formatVersion,
-              formatVersion > SemanticVersion(ShapeScript.version)
+              formatVersion > ShapeScript.version
         else {
             return
         }
-        if let clientVersion = document.clientVersion,
-           clientVersion == SemanticVersion(appVersion)
-        {
+        if let clientVersion = document.clientVersion, clientVersion == appVersion {
             return
         }
         let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
@@ -48,7 +46,7 @@ extension DocumentViewControllerProtocol {
             ShapeScript\(clientVersion) and may not be fully compatible with this version.
             """
         ) {
-            document.clientVersion = SemanticVersion(appVersion)
+            document.clientVersion = appVersion
         }
     }
 

@@ -397,7 +397,7 @@ private extension GeometryCache {
 }
 
 struct CachedMesh: Codable {
-    var version: String = ShapeScript.version
+    var version: SemanticVersion = ShapeScript.version
     var mesh: Mesh
 
     init(_ mesh: Mesh) {
@@ -406,7 +406,7 @@ struct CachedMesh: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.version = try container.decode(String.self, forKey: .version)
+        self.version = try container.decode(SemanticVersion.self, forKey: .version)
         guard version == ShapeScript.version else {
             throw DecodingError.dataCorruptedError(
                 forKey: .version,

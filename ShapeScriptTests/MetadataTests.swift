@@ -44,11 +44,11 @@ private let exampleURLs: [URL] = try! FileManager.default
     .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
     .filter { $0.pathExtension == "shape" }
 
-private let projectVersion: String = {
+private let projectVersion: SemanticVersion = {
     let string = try! String(contentsOf: projectURL)
     let start = string.range(of: "MARKETING_VERSION = ")!.upperBound
     let end = string.range(of: ";", range: start ..< string.endIndex)!.lowerBound
-    return String(string[start ..< end])
+    return SemanticVersion(string[start ..< end])!
 }()
 
 private let shouldUpdateReleaseDocs =
@@ -123,16 +123,14 @@ private let footerLinks: [(String, String)] = [
     ("Glossary", "glossary.md"),
 ]
 
-private let versions: [String] = {
+private let versions: [SemanticVersion] = {
     let fm = FileManager.default
     var versions = Set([projectVersion])
     let files = try! fm.contentsOfDirectory(atPath: helpDirectory.path)
     for file in files where file.hasPrefix("1.") {
-        versions.insert(file)
+        versions.insert(SemanticVersion(file)!)
     }
-    return versions.sorted(by: {
-        $0.localizedStandardCompare($1) == .orderedAscending
-    })
+    return versions.sorted()
 }()
 
 private extension URL {
@@ -239,7 +237,7 @@ final class MetadataTests: XCTestCase {
         let changelog = try String(contentsOf: changelogURL, encoding: .utf8)
         let range = try XCTUnwrap(changelog.range(of: "releases/tag/"))
         XCTAssertTrue(
-            changelog[range.upperBound...].hasPrefix(projectVersion),
+            changelog[range.upperBound...].hasPrefix(projectVersion.rawValue),
             "Project version \(projectVersion) does not match most recent tag in CHANGELOG.md"
         )
     }
@@ -575,7 +573,7 @@ final class MetadataTests: XCTestCase {
         try exportIOSHelp()
         try exportMacHelp()
         try updateHelpIndexes()
-        guard try !gitTagExists(projectVersion) else {
+        guard try !gitTagExists(projectVersion.rawValue) else {
             return
         }
         try exportVersionedHelp()
@@ -674,7 +672,7 @@ final class MetadataTests: XCTestCase {
                 continue
             }
             let text = try XCTUnwrap(String(contentsOf: fileURL))
-                .replacingOccurrences(of: docsVersionPlaceholder, with: projectVersion)
+                .replacingOccurrences(of: docsVersionPlaceholder, with: projectVersion.rawValue)
             XCTAssertFalse(text.contains(docsVersionPlaceholder), "Unresolved docs version in \(file)")
             let outputURL = outputDirectory.appendingPathComponent(file)
             try text.write(to: outputURL, atomically: true, encoding: .utf8)
@@ -746,7 +744,7 @@ final class MetadataTests: XCTestCase {
             let outputURL = outputDirectory.appendingPathComponent(file)
             nsText.replaceOccurrences(
                 of: docsVersionPlaceholder,
-                with: projectVersion,
+                with: projectVersion.rawValue,
                 options: [],
                 range: NSRange(location: 0, length: nsText.length)
             )
@@ -766,7 +764,7 @@ final class MetadataTests: XCTestCase {
 
     func exportVersionedHelp() throws {
         let fm = FileManager.default
-        let outputDirectory = helpDirectory.appendingPathComponent(projectVersion)
+        let outputDirectory = helpDirectory.appendingPathComponent(projectVersion.rawValue)
 
         guard fm.fileExists(atPath: outputDirectory.path) else {
             XCTFail("Help directory for \(projectVersion) not found")
@@ -804,7 +802,7 @@ final class MetadataTests: XCTestCase {
         try fm.moveItem(at: tempDirectory, to: outputDirectory)
     }
 
-    private func exportVersionedHelp(to outputDirectory: URL, version: String) throws {
+    private func exportVersionedHelp(to outputDirectory: URL, version: SemanticVersion) throws {
         let fm = FileManager.default
 
         for subdir in ["mac", "ios"] {
@@ -832,7 +830,7 @@ final class MetadataTests: XCTestCase {
                 }
                 nsText.replaceOccurrences(
                     of: docsVersionPlaceholder,
-                    with: version,
+                    with: version.rawValue,
                     options: [],
                     range: NSRange(location: 0, length: nsText.length)
                 )

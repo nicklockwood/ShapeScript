@@ -631,8 +631,8 @@ extension DocumentProtocol {
         if input != sourceString {
             if !sourceString.isEmpty {
                 // Treat as edit
-                formatVersion = SemanticVersion(ShapeScript.version)
-                clientVersion = SemanticVersion(appVersion)
+                formatVersion = ShapeScript.version
+                clientVersion = appVersion
             }
             sourceString = input
             DispatchQueue.main.async { [weak self] in

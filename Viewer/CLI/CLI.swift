@@ -45,7 +45,7 @@ public struct ShapeScriptCommand: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "shapescript",
         abstract: "Check, inspect, and export ShapeScript documents.",
-        version: version,
+        version: version.rawValue,
         subcommands: [Check.self, Info.self, Export.self]
     )
 
