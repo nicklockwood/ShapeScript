@@ -149,6 +149,7 @@ extension DocumentProtocol {
 
             let (scene, error) = evaluate(
                 program,
+                preview: true,
                 delegate: self,
                 cache: cache,
                 isCancelled: { progress.isCancelledOrFailed }

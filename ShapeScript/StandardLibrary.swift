@@ -775,6 +775,9 @@ extension Symbols {
     ]
 
     static let root: Symbols = _merge(global, font, detail, smoothing, miterLimit, material, childTransform, [
+        "preview": .getter(.boolean) { context in
+            .boolean(context.preview)
+        },
         "camera": .block(.init(.node, [
             "position": .vector,
             "orientation": .rotation,

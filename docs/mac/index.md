@@ -156,6 +156,7 @@
         - [Function Scope](scope.md#function-scope)
         - [Conditional Scope](scope.md#conditional-scope)
     - [Debugging](debugging.md)
+        - [Preview](debugging.md#preview)
         - [Logging](debugging.md#logging)
         - [Assertions](debugging.md#assertions)
     - [Import](import.md)

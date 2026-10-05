@@ -15,6 +15,49 @@ private final class ActiveCallRecorder: @unchecked Sendable {
 }
 
 final class InterpreterTests: XCTestCase {
+    // MARK: Preview
+
+    func testPreviewDefaultsToFalse() throws {
+        let program = try parse("print preview")
+        let delegate = TestDelegate()
+
+        _ = try evaluate(program, delegate: delegate, cache: nil)
+
+        XCTAssertEqual(delegate.log, [false])
+    }
+
+    func testPreviewCanBeInjected() throws {
+        let program = try parse("print preview")
+        let delegate = TestDelegate()
+
+        _ = try evaluate(program, preview: true, delegate: delegate, cache: nil)
+
+        XCTAssertEqual(delegate.log, [true])
+    }
+
+    func testPreviewCanControlGeometry() throws {
+        let program = try parse("if preview cube else sphere")
+
+        let previewScene = try evaluate(program, preview: true, delegate: nil, cache: nil)
+        let exportScene = try evaluate(program, preview: false, delegate: nil, cache: nil)
+
+        XCTAssertEqual(previewScene.children.map(\.type), [.cube])
+        XCTAssertEqual(exportScene.children.map(\.type), [.sphere(segments: 16)])
+    }
+
+    func testPreviewCanControlDetail() throws {
+        let program = try parse("""
+        detail if preview 33 else 35
+        sphere
+        """)
+
+        let previewScene = try evaluate(program, preview: true, delegate: nil, cache: nil)
+        let exportScene = try evaluate(program, preview: false, delegate: nil, cache: nil)
+
+        XCTAssertEqual(previewScene.children.map(\.type), [.sphere(segments: 33)])
+        XCTAssertEqual(exportScene.children.map(\.type), [.sphere(segments: 35)])
+    }
+
     // MARK: Top-level options
 
     func testTopLevelOptionUsesDefaultValue() throws {

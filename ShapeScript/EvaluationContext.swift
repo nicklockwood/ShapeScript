@@ -95,6 +95,7 @@ final class EvaluationContext {
     var options: Options = [:]
     private let importCache: ImportCache
     private var importStack: [URL]
+    let preview: Bool
     let isCancelled: CancellationHandler
 
     var source: String
@@ -116,10 +117,12 @@ final class EvaluationContext {
 
     init(
         source: String,
+        preview: Bool = false,
         delegate: EvaluationDelegate?,
         isCancelled: @escaping CancellationHandler = { false }
     ) {
         self.source = source
+        self.preview = preview
         self.delegate = delegate
         self.isCancelled = isCancelled
         self.importCache = ImportCache()
@@ -132,6 +135,7 @@ final class EvaluationContext {
         // preserve
         self.source = parent.source
         self.sourceIndex = parent.sourceIndex
+        self.preview = parent.preview
         self.state = parent.state
         self.delegate = parent.delegate
         self.isCancelled = parent.isCancelled
