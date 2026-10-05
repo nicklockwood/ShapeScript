@@ -50,6 +50,19 @@ final class ParserTests: XCTestCase {
         XCTAssertNotNil(error.annotatedErrorLine(with: source))
     }
 
+    func testProgramErrorLocalizedDescription() {
+        let error = ProgramError.parserError(ParserError(.custom(
+            "Export failed",
+            hint: "Check the export-only commands.",
+            at: nil
+        )))
+        XCTAssertEqual(error.localizedDescription, "Error: Export failed")
+        XCTAssertEqual(error.recoverySuggestion, "Check the export-only commands.")
+        let nsError = error as NSError
+        XCTAssertEqual(nsError.localizedDescription, "Error: Export failed")
+        XCTAssertEqual(nsError.localizedRecoverySuggestion, "Check the export-only commands.")
+    }
+
     // MARK: Operators
 
     func testLeftAssociativity() throws {

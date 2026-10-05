@@ -15,6 +15,11 @@ public enum ProgramError: Error, Equatable {
     case unknownError(String?)
 }
 
+extension ProgramError: LocalizedError {
+    public var errorDescription: String? { "\(title): \(message)" }
+    public var recoverySuggestion: String? { hint }
+}
+
 public enum ErrorType: Equatable {
     case evaluation
     case fileAccess
