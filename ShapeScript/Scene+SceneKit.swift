@@ -163,12 +163,17 @@ public extension Scene {
 
     func scnBuild(with options: OutputOptions) {
         let focus = children.contains(where: \.childIsFocused)
-        children.scnBuild(
-            with: options,
-            debug: false,
-            focus: focus,
-            disablingDepthBufferWritesFor: children.geometriesWithOverlappingBounds(focus: focus)
-        )
+        let geometries = children.geometriesWithOverlappingBounds(focus: focus)
+        for child in children {
+            guard !child.isHidden, !focus || child.isFocused || child.childIsFocused else {
+                child.clearScnGeometry()
+                continue
+            }
+            child.scnBuild(
+                with: options,
+                disablingDepthBufferWritesFor: geometries
+            )
+        }
     }
 }
 
@@ -218,12 +223,16 @@ private extension Geometry {
         with options: Scene.OutputOptions,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
-        renderedChildren.scnBuild(
+        let focus = childIsFocused
+        renderedChildren(focus: focus).scnBuild(
             with: options,
-            debug: rendersChildrenAsDebugOverlay,
-            focus: false,
+            debug: focus ? false : rendersChildrenAsDebugOverlay,
             disablingDepthBufferWritesFor: geometries
         )
+        if focus, !isFocused {
+            scnGeometry = SCNGeometry()
+            return
+        }
         let writesToDepthBuffer = !geometries.contains(self)
         let key = DataKey(
             debug: debug,
@@ -345,7 +354,6 @@ private extension [Geometry] {
     func scnBuild(
         with options: Scene.OutputOptions,
         debug: Bool,
-        focus: Bool,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
         for child in self {
@@ -353,32 +361,10 @@ private extension [Geometry] {
                 child.clearScnGeometry()
                 continue
             }
-            if focus {
-                guard !child.isFocused else {
-                    child.scnBuild(
-                        with: options,
-                        disablingDepthBufferWritesFor: geometries
-                    )
-                    continue
-                }
-                guard child.childIsFocused else {
-                    child.clearScnGeometry()
-                    continue
-                }
-                child.scnGeometry = SCNGeometry()
-                child.children.scnBuild(
-                    with: options,
-                    debug: false,
-                    focus: true,
-                    disablingDepthBufferWritesFor: geometries
-                )
-                continue
-            }
             if debug, !child.debug {
-                child.children.scnBuild(
+                child.renderedChildren.scnBuild(
                     with: options,
                     debug: true,
-                    focus: focus,
                     disablingDepthBufferWritesFor: geometries
                 )
             } else {
@@ -416,7 +402,7 @@ private extension Geometry {
                 result.append((self, bounds))
             }
         }
-        result += renderedChildren.flatMap {
+        result += renderedChildren(focus: focus).flatMap {
             $0.renderedGeometriesWithBounds(
                 parentTransform: accumulatedTransform,
                 focus: focus

@@ -11,16 +11,13 @@ import SceneKit
 import ShapeScript
 
 private final class SelectionSubmenu: NSMenu, @unchecked Sendable {
-    let geometry: Geometry
-    let namesByGeometry: [ObjectIdentifier: String]
+    let entries: [SelectionMenuEntry]
 
     init(
         title: String,
-        geometry: Geometry,
-        namesByGeometry: [ObjectIdentifier: String]
+        entries: [SelectionMenuEntry]
     ) {
-        self.geometry = geometry
-        self.namesByGeometry = namesByGeometry
+        self.entries = entries
         super.init(title: title)
     }
 
@@ -528,7 +525,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     @objc private func handleContextClick(_ gestureRecognizer: NSGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
-        guard let menu = selectionContextMenu(at: location) else {
+        guard let menu = selectionMenu(at: location) else {
             return
         }
         menu.popUp(positioning: nil, at: location, in: scnView)
@@ -541,23 +538,15 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         selectGeometry(geometry.scnNode)
     }
 
-    private func selectionContextMenu(at location: CGPoint) -> NSMenu? {
-        guard let document else {
+    private func selectionMenu(at location: CGPoint) -> NSMenu? {
+        guard let context = selectionMenuContext(at: location) else {
             return nil
         }
-
-        let geometries = selectableGeometries(at: location)
-        let namesByGeometry = document.selectionMenuNames()
-        let focus = document.geometry.childIsFocused
-        let entries = geometries.isEmpty ?
-            document.geometry.selectionMenuEntries(focus: focus) :
-            Geometry.selectionMenuEntries(for: geometries, focus: focus)
         let menu = NSMenu()
         addSelectionMenuItems(
             to: menu,
-            for: entries,
-            namesByGeometry: namesByGeometry,
-            lazySubmenus: geometries.isEmpty
+            for: context.entries,
+            lazySubmenus: context.lazySubmenus
         )
         return menu.numberOfItems == 0 ? nil : menu
     }
@@ -566,14 +555,12 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private func addSelectionMenuItems(
         to menu: NSMenu,
         for entries: [SelectionMenuEntry],
-        namesByGeometry: [ObjectIdentifier: String],
         lazySubmenus: Bool
     ) -> Bool {
         var containsSelection = false
         for entry in entries {
             let menuItem = selectionMenuItem(
                 for: entry,
-                namesByGeometry: namesByGeometry,
                 lazySubmenus: lazySubmenus
             )
             if menuItem.state == .on || menuItem.state == .mixed {
@@ -586,11 +573,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     private func selectionMenuItem(
         for entry: SelectionMenuEntry,
-        namesByGeometry: [ObjectIdentifier: String],
         lazySubmenus: Bool
     ) -> NSMenuItem {
         let geometry = entry.geometry
-        let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document?.geometryName(for: geometry) ?? ""
+        let title = entry.title
         let menuItem = NSMenuItem(
             title: title,
             action: entry.isSelectable ? #selector(selectContextMenuItem(_:)) : nil,
@@ -607,8 +593,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             if lazySubmenus {
                 let submenu = SelectionSubmenu(
                     title: title,
-                    geometry: geometry,
-                    namesByGeometry: namesByGeometry
+                    entries: entry.children
                 )
                 submenu.delegate = self
                 submenu.addItem(NSMenuItem(title: "", action: nil, keyEquivalent: ""))
@@ -621,7 +606,6 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 if addSelectionMenuItems(
                     to: submenu,
                     for: entry.children,
-                    namesByGeometry: namesByGeometry,
                     lazySubmenus: lazySubmenus
                 ) {
                     menuItem.state = .mixed
@@ -669,8 +653,7 @@ extension DocumentViewController: NSMenuDelegate {
         menu.removeAllItems()
         _ = addSelectionMenuItems(
             to: menu,
-            for: menu.geometry.selectionMenuEntries(focus: document?.geometry.childIsFocused ?? false),
-            namesByGeometry: menu.namesByGeometry,
+            for: menu.entries,
             lazySubmenus: true
         )
     }

@@ -1175,21 +1175,10 @@ private struct ConsoleOrnamentViewController: UIViewControllerRepresentable {
 
 extension DocumentViewController {
     private func selectionMenu(at location: CGPoint) -> UIMenu? {
-        guard let document else {
+        guard let context = selectionMenuContext(at: location) else {
             return nil
         }
-
-        let geometries = selectableGeometries(at: location)
-        let namesByGeometry = document.selectionMenuNames()
-        let focus = document.geometry.childIsFocused
-        let entries = geometries.isEmpty ?
-            document.geometry.selectionMenuEntries(focus: focus) :
-            Geometry.selectionMenuEntries(for: geometries, focus: focus)
-        let children = selectionMenuElements(
-            for: entries,
-            document: document,
-            namesByGeometry: namesByGeometry
-        )
+        let children = selectionMenuElements(for: context.entries)
         guard !children.isEmpty else {
             return nil
         }
@@ -1201,32 +1190,16 @@ extension DocumentViewController {
         return menu
     }
 
-    private func selectionMenuElements(
-        for entries: [SelectionMenuEntry],
-        document: Document,
-        namesByGeometry: [ObjectIdentifier: String]
-    ) -> [UIMenuElement] {
+    private func selectionMenuElements(for entries: [SelectionMenuEntry]) -> [UIMenuElement] {
         entries.compactMap {
-            selectionMenuElement(
-                for: $0,
-                document: document,
-                namesByGeometry: namesByGeometry
-            )
+            selectionMenuElement(for: $0)
         }
     }
 
-    private func selectionMenuElement(
-        for entry: SelectionMenuEntry,
-        document: Document,
-        namesByGeometry: [ObjectIdentifier: String]
-    ) -> UIMenuElement? {
+    private func selectionMenuElement(for entry: SelectionMenuEntry) -> UIMenuElement? {
         let geometry = entry.geometry
-        let title = namesByGeometry[ObjectIdentifier(geometry)] ?? document.geometryName(for: geometry)
-        let childElements = selectionMenuElements(
-            for: entry.children,
-            document: document,
-            namesByGeometry: namesByGeometry
-        )
+        let title = entry.title
+        let childElements = selectionMenuElements(for: entry.children)
 
         if !childElements.isEmpty {
             var children = [UIMenuElement]()
