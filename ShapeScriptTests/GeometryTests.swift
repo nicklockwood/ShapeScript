@@ -370,6 +370,20 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(sphere.isRenderedInScene(focus: true))
     }
 
+    func testRenderedChildrenCanBeFilteredByFocus() throws {
+        let scene = try evaluate(parse("""
+        group {
+            cube
+            focus sphere
+        }
+        """), delegate: nil)
+        let group = try XCTUnwrap(scene.children.first)
+
+        XCTAssertEqual(group.renderedChildren(focus: false).count, 2)
+        XCTAssertEqual(group.renderedChildren, [group.children[1]])
+        XCTAssertEqual(group.renderedChildren(focus: true), [group.children[1]])
+    }
+
     func testWithoutUnfocusedGeometryRemovesHiddenSiblings() throws {
         let scene = try evaluate(parse("""
         group {

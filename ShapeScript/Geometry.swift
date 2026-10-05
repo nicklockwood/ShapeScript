@@ -65,6 +65,11 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
     /// The children currently rendered in place of, or in addition to, this geometry.
     var renderedChildren: [Geometry] {
+        renderedChildren(focus: childIsFocused)
+    }
+
+    /// The children currently rendered in place of, or in addition to, this geometry.
+    func renderedChildren(focus: Bool) -> [Geometry] {
         let rendered: [Geometry] = switch type {
         case .group:
             children
@@ -92,7 +97,12 @@ public final class Geometry: Hashable, @unchecked Sendable {
              .circle, .square, .path, .camera, .light:
             []
         }
-        return rendered.filter { !$0.isHidden }
+        guard focus, !isFocused else {
+            return rendered.filter { !$0.isHidden }
+        }
+        return rendered.filter {
+            !$0.isHidden && ($0.isFocused || $0.childIsFocused)
+        }
     }
 
     /// Whether `renderedChildren` should be traversed as debug/focus overlay content.
@@ -497,7 +507,7 @@ public extension Geometry {
         let target = self
         var geometry = self
         while let parent = geometry.parent {
-            guard parent.renderedChildren.contains(where: { $0 === geometry }) ||
+            guard parent.renderedChildren(focus: focus).contains(where: { $0 === geometry }) ||
                 (geometry === target && (geometry.debug || geometry.isFocused)) ||
                 (geometry !== target && (geometry.childDebug || geometry.childIsFocused))
             else {
