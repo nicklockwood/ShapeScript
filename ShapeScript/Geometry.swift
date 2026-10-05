@@ -33,7 +33,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
     }
 
     // Note: equality and hashing describe the modeled geometry, not render/editor
-    // state. Debug/focus flags affect how the geometry is presented, while opacity,
+    // state. Debug/focus/hide flags affect how the geometry is presented, while opacity,
     // source locations, and parent links are derived or contextual metadata.
 
     public func hash(into hasher: inout Hasher) {
@@ -43,7 +43,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         hasher.combine(material)
         hasher.combine(smoothing)
         hasher.combine(children)
-        // Excludes isOpaque, sourceLocation, parent, debug and focus
+        // Excludes isOpaque, sourceLocation, parent, debug, focus and hide
     }
 
     public static func == (lhs: Geometry, rhs: Geometry) -> Bool {
@@ -56,7 +56,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
               lhs.material == rhs.material,
               lhs.smoothing == rhs.smoothing,
               lhs.children == rhs.children
-        // Excludes isOpaque, sourceLocation, parent, debug and focus
+        // Excludes isOpaque, sourceLocation, parent, debug, focus and hide
         else {
             return false
         }
@@ -65,7 +65,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
     /// The children currently rendered in place of, or in addition to, this geometry.
     var renderedChildren: [Geometry] {
-        switch type {
+        let rendered: [Geometry] = switch type {
         case .group:
             children
         case .difference, .stencil:
@@ -80,7 +80,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             if childDebug || childIsFocused {
                 children
             } else if mesh == nil {
-                children.max {
+                children.filter { !$0.isHidden }.max {
                     $0.overestimatedBounds.size < $1.overestimatedBounds.size
                 }.map { [$0] } ?? []
             } else {
@@ -92,6 +92,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
              .circle, .square, .path, .camera, .light:
             []
         }
+        return rendered.filter { !$0.isHidden }
     }
 
     /// Whether `renderedChildren` should be traversed as debug/focus overlay content.
@@ -122,6 +123,15 @@ public final class Geometry: Hashable, @unchecked Sendable {
         didSet {
             if isFocused, type == .group {
                 children.forEach { $0.isFocused = true }
+            }
+        }
+    }
+
+    /// Prevent geometry from being rendered
+    public internal(set) var isHidden: Bool {
+        didSet {
+            if isHidden, type == .group {
+                children.forEach { $0.isHidden = true }
             }
         }
     }
@@ -186,7 +196,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
         children: [Geometry],
         sourceLocation: (@Sendable () -> SourceLocation?)?,
         debug: Bool = false,
-        isFocused: Bool = false
+        isFocused: Bool = false,
+        isHidden: Bool = false
     ) {
         var material = material
         var useMaterialForCache = false
@@ -316,6 +327,9 @@ public final class Geometry: Hashable, @unchecked Sendable {
             if isFocused {
                 children.forEach { $0.isFocused = true }
             }
+            if isHidden {
+                children.forEach { $0.isHidden = true }
+            }
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
              .camera, .light:
             break
@@ -330,6 +344,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         self._sourceLocation = sourceLocation
         self.debug = debug
         self.isFocused = isFocused
+        self.isHidden = isHidden
 
         var hasVariedMaterials = false
         var isOpaque = material.isOpaque
@@ -366,11 +381,12 @@ public final class Geometry: Hashable, @unchecked Sendable {
                 smoothing: geometry.smoothing,
                 transform: geometry.transform,
                 flipped: geometry.transform.isFlipped,
-                children: geometry.children.map(flattenedCacheKey)
+                children: geometry.visibleChildren.map(flattenedCacheKey)
             )
         }
 
-        let childKeys = type.isLeaf ? [] : children.map(flattenedCacheKey)
+        let visibleChildren = type.visibleChildren(in: children)
+        let childKeys = type.isLeaf ? [] : visibleChildren.map(flattenedCacheKey)
 
         // Must be set after child keys are generated
         self.isOpaque = isOpaque
@@ -388,17 +404,18 @@ public final class Geometry: Hashable, @unchecked Sendable {
         // Compute the overestimated, non-transformed bounds
         switch type {
         case .difference, .stencil:
-            self._overestimatedBounds = children.first.map(\.overestimatedBounds) ?? .empty
+            self._overestimatedBounds = visibleChildren.first.map(\.overestimatedBounds) ?? .empty
         case .intersection:
-            self._overestimatedBounds = children.dropFirst().reduce(children.first?.overestimatedBounds ?? .empty) {
-                $0.intersection($1.overestimatedBounds)
-            }
+            self._overestimatedBounds = visibleChildren.dropFirst()
+                .reduce(visibleChildren.first?.overestimatedBounds ?? .empty) {
+                    $0.intersection($1.overestimatedBounds)
+                }
         case .union, .xor, .group:
-            self._overestimatedBounds = Bounds(children.map(\.overestimatedBounds))
+            self._overestimatedBounds = Bounds(visibleChildren.map(\.overestimatedBounds))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
-            self._overestimatedBounds = type.bounds.union(Bounds(children.map(\.overestimatedBounds)))
+            self._overestimatedBounds = type.bounds.union(Bounds(visibleChildren.map(\.overestimatedBounds)))
         case .minkowski:
-            self._overestimatedBounds = children.reduce(.empty) {
+            self._overestimatedBounds = visibleChildren.reduce(.empty) {
                 $0.minkowskiSum(with: $1.overestimatedBounds)
             }
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .path:
@@ -413,6 +430,11 @@ public final class Geometry: Hashable, @unchecked Sendable {
 }
 
 public extension Geometry {
+    /// Non-hidden children
+    var visibleChildren: [Geometry] {
+        type.visibleChildren(in: children)
+    }
+
     /// Geometry and its children produce no output
     var isEmpty: Bool {
         type.isEmpty && children.allSatisfy(\.isEmpty)
@@ -459,17 +481,17 @@ public extension Geometry {
 
     /// Returns `true` if the geometry's' children should be rendered in debug mode
     var childDebug: Bool {
-        debug || children.contains(where: \.childDebug)
+        !isHidden && (debug || children.contains(where: \.childDebug))
     }
 
     /// Returns `true` if the geometry or any of its children are focused
     var childIsFocused: Bool {
-        isFocused || children.contains(where: \.childIsFocused)
+        !isHidden && (isFocused || children.contains(where: \.childIsFocused))
     }
 
     /// Returns `true` if this geometry is rendered as part of the scene
     func isRenderedInScene(focus: Bool) -> Bool {
-        guard !focus || isFocused else {
+        guard !isHidden, !focus || isFocused else {
             return false
         }
         let target = self
@@ -502,7 +524,8 @@ public extension Geometry {
             children: children,
             sourceLocation: _sourceLocation,
             debug: debug,
-            isFocused: isFocused
+            isFocused: isFocused,
+            isHidden: isHidden
         )
     }
 
@@ -682,7 +705,7 @@ public extension Geometry {
             removingLights: false,
             removingGroupTransform: false,
             withoutDebug: false,
-            withoutUnfocusedGeometry: false
+            withoutHiddenOrUnfocused: false
         )
     }
 
@@ -697,7 +720,7 @@ public extension Geometry {
             removingLights: true,
             removingGroupTransform: false,
             withoutDebug: false,
-            withoutUnfocusedGeometry: false
+            withoutHiddenOrUnfocused: false
         )
     }
 
@@ -712,7 +735,7 @@ public extension Geometry {
             removingLights: false,
             removingGroupTransform: true,
             withoutDebug: false,
-            withoutUnfocusedGeometry: false
+            withoutHiddenOrUnfocused: false
         )
     }
 
@@ -730,13 +753,13 @@ public extension Geometry {
             removingLights: false,
             removingGroupTransform: false,
             withoutDebug: true,
-            withoutUnfocusedGeometry: false
+            withoutHiddenOrUnfocused: false
         )
     }
 
-    /// Returns a copy of the geometry with unfocused siblings removed
-    func withoutUnfocusedGeometry() -> Geometry {
-        guard childIsFocused else {
+    /// Returns a copy of the geometry with hidden or unfocussed children removed
+    func withoutHiddenOrUnfocused() -> Geometry {
+        guard childIsFocused || childIsHidden else {
             return self
         }
         return _with(
@@ -748,8 +771,13 @@ public extension Geometry {
             removingLights: false,
             removingGroupTransform: false,
             withoutDebug: false,
-            withoutUnfocusedGeometry: true
+            withoutHiddenOrUnfocused: true
         )
+    }
+
+    @available(*, deprecated, renamed: "withoutHiddenOrUnfocused()")
+    func withoutUnfocusedGeometry() -> Geometry {
+        withoutHiddenOrUnfocused()
     }
 
     /// Builds the meshes for the receiver and all its descendents
@@ -777,6 +805,9 @@ public extension Geometry {
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes both material and transform
     func merged(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh {
+        guard !isHidden else {
+            return .empty
+        }
         var result = mesh ?? .empty
         if type.isLeaf {
             result = result.merge(mergedChildren(isCancelled))
@@ -795,6 +826,11 @@ extension Geometry {
             return children.isEmpty
         }
         return type.isLeaf
+    }
+
+    /// Returns `true` if the geometry or any of its children are hidden
+    var childIsHidden: Bool {
+        isHidden || children.contains(where: \.childIsHidden)
     }
 
     /// Gathers all the named descendents of the receiver (including itself, potentially) into a dictionary
@@ -829,6 +865,23 @@ private extension GeometryType {
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh, .camera, .light:
             false
+        }
+    }
+
+    func visibleChildren(in children: [Geometry]) -> [Geometry] {
+        switch self {
+        case .difference, .stencil:
+            guard let first = children.first, !first.isHidden else {
+                return []
+            }
+            return [first] + children.dropFirst().filter { !$0.isHidden }
+        case .camera, .light,
+             .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .path:
+            return []
+        case .group, .union, .xor, .intersection, .lathe, .extrude, .loft, .fill,
+             .hull, .minkowski, .mesh:
+            return children.filter { !$0.isHidden }
         }
     }
 }
@@ -953,28 +1006,28 @@ private extension Geometry {
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes the receiver's material but not its transform
     func flattenedChildren(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
-        children.flattened(with: material, isCancelled)
+        visibleChildren.flattened(with: material, isCancelled)
     }
 
     /// Returns a merged mesh for all of the descendents of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Does not include the material or transform of the receiver
     func mergedChildren(_ isCancelled: @escaping CancellationHandler) -> Mesh {
-        children.merged(isCancelled)
+        visibleChildren.merged(isCancelled)
     }
 
     /// Computes the union of the meshes of the first child of the receiver
     /// The cache is neither checked nor updated. Only already-built meshes are included in the union result
     /// - Note: Includes the receiver's material but not its transform
     func flattenedFirstChild(_ isCancelled: @escaping CancellationHandler) -> Mesh {
-        children.first.map { $0.flattened(with: self.material, isCancelled) } ?? .empty
+        visibleChildren.first.map { $0.flattened(with: self.material, isCancelled) } ?? .empty
     }
 
     /// Returns the meshes of the receivers children and their descendents
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes the receiver's material but not its transform
     func childMeshes(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
-        children.meshes(with: material, isCancelled)
+        visibleChildren.meshes(with: material, isCancelled)
     }
 
     /// Returns hull-compatible meshes for semantic path children such as circles and squares.
@@ -983,7 +1036,7 @@ private extension Geometry {
     /// emitting duplicate fallback vertex geometry.
     /// - Note: Includes each child's material and transform, but not the receiver's transform.
     func childPathMeshes(_ isCancelled: @escaping CancellationHandler) -> [Mesh] {
-        children.compactMap { child in
+        visibleChildren.compactMap { child in
             guard let path = child.path(pretransformed: true) else {
                 return nil
             }
@@ -1010,6 +1063,9 @@ private extension Geometry {
     /// The cache is neither checked nor updated. Only already-built meshes are returned
     /// - Note: Includes both material (if specified) and transform
     func meshes(with material: Material?, _ isCancelled: @escaping CancellationHandler) -> [Mesh] {
+        guard !isHidden else {
+            return []
+        }
         var meshes = [Mesh]()
         if let mesh, mesh != .empty {
             meshes.append(mesh)
@@ -1034,12 +1090,12 @@ private extension Geometry {
         }
         switch type {
         case .difference, .stencil:
-            return children.first?.buildLeaves(isCancelled) ?? true
+            return visibleChildren.first?.buildLeaves(isCancelled) ?? true
         case .group, .union, .xor, .intersection, .hull, .minkowski,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .extrude, .lathe, .loft, .fill,
              .path, .mesh, .camera, .light:
-            for child in children where !child.buildLeaves(isCancelled) {
+            for child in visibleChildren where !child.buildLeaves(isCancelled) {
                 return false
             }
             return true
@@ -1049,7 +1105,7 @@ private extension Geometry {
     /// With leaves built, do a rough preview
     /// - Returns: false if cancelled or true when completed
     func buildPreview(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        for child in children where !child.buildPreview(isCancelled) {
+        for child in visibleChildren where !child.buildPreview(isCancelled) {
             return false
         }
         if let mesh = cache?[mesh: self] {
@@ -1077,7 +1133,7 @@ private extension Geometry {
     /// Builds and caches the final mesh for the receiver and all its descendents
     /// - Returns: false if cancelled or true when completed
     func buildFinal(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        for child in children where !child.buildFinal(isCancelled) {
+        for child in visibleChildren where !child.buildFinal(isCancelled) {
             return false
         }
         if isLeaf, mesh != nil {
@@ -1253,7 +1309,7 @@ private extension Geometry {
         removingLights: Bool,
         removingGroupTransform: Bool,
         withoutDebug: Bool,
-        withoutUnfocusedGeometry: Bool
+        withoutHiddenOrUnfocused: Bool
     ) -> Geometry {
         var type = type
         if removingLights, case .light = type {
@@ -1287,8 +1343,9 @@ private extension Geometry {
             childTransform = transform
             transform = .identity
         }
-        let isRemovingUnfocusedChildren = withoutUnfocusedGeometry && !isFocused
-        if isRemovingUnfocusedChildren {
+        let isRemovingUnfocusedChildren = withoutHiddenOrUnfocused && childIsFocused && !isFocused
+        let isRemovingHiddenGeometry = withoutHiddenOrUnfocused && isHidden
+        if isRemovingUnfocusedChildren || isRemovingHiddenGeometry {
             type = .group
         }
         let copy = Geometry(
@@ -1299,6 +1356,9 @@ private extension Geometry {
             smoothing: smoothing ?? self.smoothing,
             children: children.compactMap {
                 if case .light = $0.type, removingLights {
+                    return nil
+                }
+                if withoutHiddenOrUnfocused, $0.isHidden {
                     return nil
                 }
                 if isRemovingUnfocusedChildren, !$0.childIsFocused {
@@ -1313,14 +1373,15 @@ private extension Geometry {
                     removingLights: removingLights,
                     removingGroupTransform: removingGroupTransform,
                     withoutDebug: withoutDebug,
-                    withoutUnfocusedGeometry: withoutUnfocusedGeometry
+                    withoutHiddenOrUnfocused: withoutHiddenOrUnfocused
                 )
             },
             sourceLocation: _sourceLocation ?? sourceLocation,
             debug: withoutDebug ? false : debug,
-            isFocused: isFocused
+            isFocused: isFocused,
+            isHidden: isHidden
         )
-        copy.mesh = isRemovingUnfocusedChildren ? nil : mesh
+        copy.mesh = isRemovingUnfocusedChildren || isRemovingHiddenGeometry ? nil : mesh
         return copy
     }
 
@@ -1566,11 +1627,14 @@ public extension Geometry {
     /// Builds the mesh (if needed) and returns the polygon count
     /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available
     func polygons(_ isCancelled: @escaping CancellationHandler) -> [Polygon] {
+        guard !isHidden else {
+            return []
+        }
         switch type {
         case .group:
-            children.reduce(into: []) { $0 += $1.polygons(isCancelled) }
+            return visibleChildren.reduce(into: []) { $0 += $1.polygons(isCancelled) }
         default:
-            mesh(isCancelled)?.polygons ?? []
+            return mesh(isCancelled)?.polygons ?? []
         }
     }
 
@@ -1583,13 +1647,16 @@ public extension Geometry {
     /// Returns if the geometry is watertight
     /// Builds and caches the mesh (if required). Already-cached meshes will be re-used if available
     func isWatertight(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        guard !isHidden else {
+            return true
+        }
         switch type {
         case .cone, .cylinder, .icosphere, .sphere, .cube:
-            true
+            return true
         case .group:
-            children.allSatisfy { $0.isWatertight(isCancelled) }
+            return visibleChildren.allSatisfy { $0.isWatertight(isCancelled) }
         default:
-            mesh(isCancelled)?.isWatertight ?? true
+            return mesh(isCancelled)?.isWatertight ?? true
         }
     }
 
@@ -1603,7 +1670,7 @@ public extension Geometry {
         case .camera, .light:
             return .empty
         case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
-            return Bounds(children.map {
+            return Bounds(visibleChildren.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
             })
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
@@ -1625,11 +1692,11 @@ public extension Geometry {
             } else {
                 Bounds(type.representativePoints.transformed(by: transform))
             }
-            return children.reduce(bounds) {
+            return visibleChildren.reduce(bounds) {
                 $0.union($1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .minkowski:
-            return children.reduce(.empty) {
+            return visibleChildren.reduce(.empty) {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .xor, .difference, .intersection:
@@ -1638,7 +1705,7 @@ public extension Geometry {
             }
             return mesh(isCancelled)?.transformed(by: transform).bounds ?? .empty
         case .stencil:
-            return children.first.map {
+            return visibleChildren.first.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
             } ?? .empty
         }
