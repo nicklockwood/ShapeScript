@@ -237,6 +237,19 @@ final class PlatformTests: XCTestCase {
         XCTAssertGreaterThan(focused.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
     }
 
+    func testSceneBuildDoesNotRenderHiddenGeometry() {
+        let hidden = cube(material: Material(color: .red))
+        let visible = cube(material: Material(color: .blue))
+        let scene = Scene(background: .color(.clear), children: [hidden, visible], cache: nil)
+
+        hidden.isHidden = true
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+
+        XCTAssertEqual(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+        XCTAssertGreaterThan(visible.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
+    }
+
     func testSceneBuildRendersFocusedGeometryInsideCSGContainers() throws {
         for container in ["union", "difference"] {
             let scene = try evaluate(parse("""

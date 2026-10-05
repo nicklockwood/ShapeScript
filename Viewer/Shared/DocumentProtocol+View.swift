@@ -617,14 +617,14 @@ extension Geometry {
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .circle, .square, .path:
-            true
+            !isHidden
         case .camera, .light, .group:
             false
         }
     }
 
     func isVisibleForSelection(focus: Bool) -> Bool {
-        !focus || isFocused || childIsFocused
+        !isHidden && (!focus || isFocused || childIsFocused)
     }
 
     var isVisibleInSelectionMenu: Bool {

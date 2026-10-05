@@ -68,6 +68,39 @@ focus cylinder {
 
 As with the `debug` command, you can focus multiple shapes at once to show them all.
 
+```swift
+focus cube {
+    position -1.5
+    color 1 0 0
+}
+
+sphere {
+    color 0 1 0
+}
+
+focus cone {
+    position 1.5
+    color 0 0 1
+}
+```
+
+To temporarily remove one or more shapes from the rendered model, use `hide`:
+
+```swift
+difference {
+    cylinder {
+        size 1 0.2
+    }
+
+    hide cylinder {
+        position 0.4
+        size 1 0.2
+    }
+}
+```
+
+Hidden shapes are omitted before the model is generated, so a hidden child of a `difference`, `union`, `intersection`, `xor` or `stencil` block does not contribute to the result.
+
 ## Logging
 
 When creating complex scripts, it can sometimes be difficult to understand what's happening in the code. To help you debug your scripts, you can use the `print` command:

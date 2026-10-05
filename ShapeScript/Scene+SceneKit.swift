@@ -349,6 +349,10 @@ private extension [Geometry] {
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
         for child in self {
+            guard !child.isHidden else {
+                child.clearScnGeometry()
+                continue
+            }
             if focus {
                 guard !child.isFocused else {
                     child.scnBuild(
@@ -401,6 +405,9 @@ private extension Geometry {
         parentTransform: Transform,
         focus: Bool
     ) -> [(geometry: Geometry, bounds: Bounds)] {
+        guard !isHidden else {
+            return []
+        }
         let accumulatedTransform = transform * parentTransform
         var result = [(geometry: Geometry, bounds: Bounds)]()
         if !focus || isFocused, path != nil || mesh != nil || debug && light != nil {
