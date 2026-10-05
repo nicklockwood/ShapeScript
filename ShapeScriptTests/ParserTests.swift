@@ -1015,6 +1015,281 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
+    func testIfStatementWithoutBraces() throws {
+        let input = "if foo cube"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "cube", range: cubeRange), nil),
+                            range: cubeRange
+                        ),
+                    ], range: cubeRange),
+                    else: nil
+                )),
+                range: ifRange.lowerBound ..< cubeRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfElseStatementWithoutBraces() throws {
+        let input = "if foo cube else sphere"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        let sphereRange = try XCTUnwrap(input.range(of: "sphere"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "cube", range: cubeRange), nil),
+                            range: cubeRange
+                        ),
+                    ], range: cubeRange),
+                    else: Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "sphere", range: sphereRange), nil),
+                            range: sphereRange
+                        ),
+                    ], range: sphereRange)
+                )),
+                range: ifRange.lowerBound ..< sphereRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfStatementWithoutBracesSupportsCommandBody() throws {
+        let input = "if foo print bar"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let printRange = try XCTUnwrap(input.range(of: "print"))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(
+                                Identifier(name: "print", range: printRange),
+                                Expression(type: .identifier("bar"), range: barRange)
+                            ),
+                            range: printRange.lowerBound ..< barRange.upperBound
+                        ),
+                    ], range: printRange.lowerBound ..< barRange.upperBound),
+                    else: nil
+                )),
+                range: ifRange.lowerBound ..< barRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfNotStatementWithoutBraces() throws {
+        let input = "if not foo bar else baz"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let notRange = try XCTUnwrap(input.range(of: "not"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let bazRange = try XCTUnwrap(input.range(of: "baz"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(
+                        type: .tuple([
+                            Expression(type: .identifier("not"), range: notRange),
+                            Expression(type: .identifier("foo"), range: fooRange),
+                        ]),
+                        range: notRange.lowerBound ..< fooRange.upperBound
+                    ),
+                    Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "bar", range: barRange), nil),
+                            range: barRange
+                        ),
+                    ], range: barRange),
+                    else: Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "baz", range: bazRange), nil),
+                            range: bazRange
+                        ),
+                    ], range: bazRange)
+                )),
+                range: ifRange.lowerBound ..< bazRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfExpressionWithoutBracesInTuple() throws {
+        let input = "define tuple (1 if true 2 else 3)"
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let tupleRange = try XCTUnwrap(input.range(of: "tuple"))
+        let parensRange = try XCTUnwrap(input.range(of: "(1 if true 2 else 3)"))
+        let oneRange = try XCTUnwrap(input.range(of: "1"))
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let trueRange = try XCTUnwrap(input.range(of: "true"))
+        let twoRange = try XCTUnwrap(input.range(of: "2"))
+        let threeRange = try XCTUnwrap(input.range(of: "3"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "tuple", range: tupleRange),
+                    Definition(type: .expression(Expression(
+                        type: .tuple([
+                            Expression(type: .number(1), range: oneRange),
+                            Expression(
+                                type: .ifelse(
+                                    Expression(type: .identifier("true"), range: trueRange),
+                                    Block(statements: [
+                                        Statement(type: .expression(.number(2)), range: twoRange),
+                                    ], range: twoRange),
+                                    else: Block(statements: [
+                                        Statement(type: .expression(.number(3)), range: threeRange),
+                                    ], range: threeRange)
+                                ),
+                                range: ifRange.lowerBound ..< threeRange.upperBound
+                            ),
+                        ]),
+                        range: parensRange
+                    )))
+                ),
+                range: defineRange.lowerBound ..< parensRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfExpressionWithoutBracesInSubscript() throws {
+        let input = "define value tuple[if true 1 else 2]"
+        let defineRange = try XCTUnwrap(input.range(of: "define"))
+        let valueRange = try XCTUnwrap(input.range(of: "value"))
+        let tupleRange = try XCTUnwrap(input.range(of: "tuple"))
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let trueRange = try XCTUnwrap(input.range(of: "true"))
+        let oneRange = try XCTUnwrap(input.range(of: "1"))
+        let twoRange = try XCTUnwrap(input.range(of: "2"))
+        let bracketRange = try XCTUnwrap(input.range(of: "]"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .define(
+                    Identifier(name: "value", range: valueRange),
+                    Definition(type: .expression(Expression(
+                        type: .subscript(
+                            Expression(type: .identifier("tuple"), range: tupleRange),
+                            Expression(
+                                type: .ifelse(
+                                    Expression(type: .identifier("true"), range: trueRange),
+                                    Block(statements: [
+                                        Statement(type: .expression(.number(1)), range: oneRange),
+                                    ], range: oneRange),
+                                    else: Block(statements: [
+                                        Statement(type: .expression(.number(2)), range: twoRange),
+                                    ], range: twoRange)
+                                ),
+                                range: ifRange.lowerBound ..< twoRange.upperBound
+                            )
+                        ),
+                        range: tupleRange.lowerBound ..< twoRange.upperBound
+                    )))
+                ),
+                range: defineRange.lowerBound ..< bracketRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfElseIfStatementWithoutBraces() throws {
+        let input = "if foo cube else if bar sphere else cone"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        let elseBodyRange = try XCTUnwrap(input.range(of: "if bar sphere else cone"))
+        let if2Range = try XCTUnwrap(input.range(of: "if", range: elseBodyRange))
+        let barRange = try XCTUnwrap(input.range(of: "bar"))
+        let sphereRange = try XCTUnwrap(input.range(of: "sphere"))
+        let coneRange = try XCTUnwrap(input.range(of: "cone"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "cube", range: cubeRange), nil),
+                            range: cubeRange
+                        ),
+                    ], range: cubeRange),
+                    else: Block(statements: [
+                        Statement(
+                            type: .expression(.ifelse(
+                                Expression(type: .identifier("bar"), range: barRange),
+                                Block(statements: [
+                                    Statement(
+                                        type: .command(Identifier(name: "sphere", range: sphereRange), nil),
+                                        range: sphereRange
+                                    ),
+                                ], range: sphereRange),
+                                else: Block(statements: [
+                                    Statement(
+                                        type: .command(Identifier(name: "cone", range: coneRange), nil),
+                                        range: coneRange
+                                    ),
+                                ], range: coneRange)
+                            )),
+                            range: if2Range.lowerBound ..< coneRange.upperBound
+                        ),
+                    ], range: elseBodyRange)
+                )),
+                range: ifRange.lowerBound ..< coneRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfStatementWithoutBracesSupportsBlockExpressionBody() throws {
+        let input = "if foo cube { size 2 } else sphere"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        let bodyRange = try XCTUnwrap(input.range(of: "{ size 2 }"))
+        let sizeRange = try XCTUnwrap(input.range(of: "size"))
+        let numberRange = try XCTUnwrap(input.range(of: "2"))
+        let sphereRange = try XCTUnwrap(input.range(of: "sphere"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .expression(.block(
+                                Identifier(name: "cube", range: cubeRange),
+                                Block(statements: [
+                                    Statement(
+                                        type: .command(
+                                            Identifier(name: "size", range: sizeRange),
+                                            Expression(type: .number(2), range: numberRange)
+                                        ),
+                                        range: sizeRange.lowerBound ..< numberRange.upperBound
+                                    ),
+                                ], range: bodyRange)
+                            )),
+                            range: cubeRange.lowerBound ..< bodyRange.upperBound
+                        ),
+                    ], range: cubeRange.lowerBound ..< bodyRange.upperBound),
+                    else: Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "sphere", range: sphereRange), nil),
+                            range: sphereRange
+                        ),
+                    ], range: sphereRange)
+                )),
+                range: ifRange.lowerBound ..< sphereRange.upperBound
+            ),
+        ]))
+    }
+
     func testIfElseIfStatement() throws {
         let input = "if foo {} else if bar { }"
         let ifRange = try XCTUnwrap(input.range(of: "if"))
@@ -1093,30 +1368,90 @@ final class ParserTests: XCTestCase {
         }
     }
 
-    func testIfStatementWithMisspelledOrOperator() throws {
-        let input = "if foo nor bar {}"
-        let norRange = try XCTUnwrap(input.range(of: "nor"))
-        XCTAssertThrowsError(try parse(input)) { error in
-            let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected token 'nor'")
-            XCTAssertEqual(error?.hint, "Did you mean 'or'?")
-            XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .identifier("nor"), range: norRange),
-                expected: "if body"
-            )))
-        }
+    func testIfStatementWithoutBracesSupportsCommandBodyWithParameter() throws {
+        let input = "if foo cube size 1 else sphere"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        let sizeRange = try XCTUnwrap(input.range(of: "size"))
+        let oneRange = try XCTUnwrap(input.range(of: "1"))
+        let sphereRange = try XCTUnwrap(input.range(of: "sphere"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(
+                                Identifier(name: "cube", range: cubeRange),
+                                Expression(type: .tuple([
+                                    Expression(type: .identifier("size"), range: sizeRange),
+                                    Expression(type: .number(1), range: oneRange),
+                                ]), range: sizeRange.lowerBound ..< oneRange.upperBound)
+                            ),
+                            range: cubeRange.lowerBound ..< oneRange.upperBound
+                        ),
+                    ], range: cubeRange.lowerBound ..< oneRange.upperBound),
+                    else: Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "sphere", range: sphereRange), nil),
+                            range: sphereRange
+                        ),
+                    ], range: sphereRange)
+                )),
+                range: ifRange.lowerBound ..< sphereRange.upperBound
+            ),
+        ]))
     }
 
-    func testIfStatementWithMisspelledAndOperator() throws {
-        let input = "if foo AND bar {}"
-        let norRange = try XCTUnwrap(input.range(of: "AND"))
+    func testIfStatementWithoutBracesSupportsElseCommandBodyWithParameter() throws {
+        let input = "if foo cube else sphere size 1"
+        let ifRange = try XCTUnwrap(input.range(of: "if"))
+        let fooRange = try XCTUnwrap(input.range(of: "foo"))
+        let cubeRange = try XCTUnwrap(input.range(of: "cube"))
+        let sphereRange = try XCTUnwrap(input.range(of: "sphere"))
+        let sizeRange = try XCTUnwrap(input.range(of: "size"))
+        let oneRange = try XCTUnwrap(input.range(of: "1"))
+        XCTAssertEqual(try parse(input), Program(source: input, fileURL: nil, statements: [
+            Statement(
+                type: .expression(.ifelse(
+                    Expression(type: .identifier("foo"), range: fooRange),
+                    Block(statements: [
+                        Statement(
+                            type: .command(Identifier(name: "cube", range: cubeRange), nil),
+                            range: cubeRange
+                        ),
+                    ], range: cubeRange),
+                    else: Block(statements: [
+                        Statement(
+                            type: .command(
+                                Identifier(name: "sphere", range: sphereRange),
+                                Expression(type: .tuple([
+                                    Expression(type: .identifier("size"), range: sizeRange),
+                                    Expression(type: .number(1), range: oneRange),
+                                ]), range: sizeRange.lowerBound ..< oneRange.upperBound)
+                            ),
+                            range: sphereRange.lowerBound ..< oneRange.upperBound
+                        ),
+                    ], range: sphereRange.lowerBound ..< oneRange.upperBound)
+                )),
+                range: ifRange.lowerBound ..< oneRange.upperBound
+            ),
+        ]))
+    }
+
+    func testIfStatementWithoutBracesRejectsDuplicateElse() throws {
+        let input = "if foo cube else sphere else cone"
+        let secondElseRange = try XCTUnwrap(input.range(
+            of: "else",
+            range: XCTUnwrap(input.range(of: "else cone"))
+        ))
         XCTAssertThrowsError(try parse(input)) { error in
             let error = try? XCTUnwrap(error as? ParserError)
-            XCTAssertEqual(error?.message, "Unexpected token 'AND'")
-            XCTAssertEqual(error?.hint, "Did you mean 'and'?")
+            XCTAssertEqual(error?.message, "Unexpected keyword 'else'")
             XCTAssertEqual(error, ParserError(.unexpectedToken(
-                Token(type: .identifier("AND"), range: norRange),
-                expected: "if body"
+                Token(type: .keyword(.else), range: secondElseRange),
+                expected: nil
             )))
         }
     }
@@ -1328,7 +1663,7 @@ final class ParserTests: XCTestCase {
         /*
             a comment
         */
-        if foo AND bar {
+        if foo + {
             print foo
         }
         """
@@ -1338,7 +1673,7 @@ final class ParserTests: XCTestCase {
             else {
                 return
             }
-            XCTAssertEqual(error.message, "Unexpected token 'AND'")
+            XCTAssertEqual(error.message, "Unexpected opening brace")
             XCTAssertEqual(input.line(at: range), 4)
         }
     }
