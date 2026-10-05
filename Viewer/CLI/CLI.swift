@@ -159,11 +159,19 @@ private func parseScriptOptions(_ arguments: [String]) throws -> [String: Any] {
     }
 }
 
+struct CacheOptions: ParsableArguments {
+    @Flag(help: "Run without reading or writing cached geometry from disk.")
+    var noCache = false
+}
+
 extension ShapeScriptCommand {
     struct Check: ParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Check a ShapeScript document for errors."
         )
+
+        @OptionGroup
+        var cacheOptions: CacheOptions
 
         @Argument(help: "Input .shape file.")
         var inputPath: String
@@ -177,7 +185,8 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
                 inputPath: inputPath,
-                scriptOptions: scriptOptions
+                scriptOptions: scriptOptions,
+                cacheOptions: cacheOptions
             )
             try runner.check()
         }
@@ -188,6 +197,9 @@ extension ShapeScriptCommand {
             abstract: "Print scene information for a ShapeScript document."
         )
 
+        @OptionGroup
+        var cacheOptions: CacheOptions
+
         @Argument(help: "Input .shape file.")
         var inputPath: String
 
@@ -200,7 +212,8 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
                 inputPath: inputPath,
-                scriptOptions: scriptOptions
+                scriptOptions: scriptOptions,
+                cacheOptions: cacheOptions
             )
             try runner.info()
         }
@@ -210,12 +223,18 @@ extension ShapeScriptCommand {
 final class CLIRunner {
     let inputURL: URL
     let scriptOptions: [String: Any]
+    let cacheOptions: CacheOptions
 
     var defaultExportURL: URL {
         inputURL.deletingPathExtension().appendingPathExtension("stl")
     }
 
-    init(directory: String, inputPath: String, scriptOptions: [String] = []) throws {
+    init(
+        directory: String,
+        inputPath: String,
+        scriptOptions: [String] = [],
+        cacheOptions: CacheOptions = .init()
+    ) throws {
         let inputURL = expandPath(inputPath, in: directory)
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
             guard !inputURL.pathExtension.isEmpty else {
@@ -228,6 +247,7 @@ final class CLIRunner {
         }
         self.inputURL = inputURL
         self.scriptOptions = try parseScriptOptions(scriptOptions)
+        self.cacheOptions = cacheOptions
     }
 
     func check() throws {
@@ -249,7 +269,7 @@ final class CLIRunner {
         do {
             printStatus("Loading file '\(inputURL.lastPathComponent)' ...")
             let program = try parse(input)
-            let cache = GeometryCache()
+            let cache = GeometryCache(diskCache: cacheOptions.noCache ? nil : .shared)
             printStatus("Running script ...")
             let scene = try evaluate(program, options: scriptOptions, delegate: self, cache: cache)
             if buildGeometry {
