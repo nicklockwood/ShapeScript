@@ -325,14 +325,14 @@ extension AppDelegate {
         viewMenu.addItem(item("Copy Camera Settings", action: #selector(Document.copyCamera(_:)), key: "C"))
         viewMenu.addItem(.separator())
         viewMenu.addItem(item("Reload Scene", action: #selector(Document.reloadScene(_:)), key: "r"))
-        let clearCacheReloadItem = item(
-            "Clear Cache and Reload Scene",
-            action: #selector(Document.clearCacheAndReloadScene(_:)),
+        let reloadIgnoringCacheItem = item(
+            "Reload Scene Ignoring Cache",
+            action: #selector(Document.reloadSceneIgnoringCache(_:)),
             key: "r",
             modifiers: [.command, .option]
         )
-        clearCacheReloadItem.isAlternate = true
-        viewMenu.addItem(clearCacheReloadItem)
+        reloadIgnoringCacheItem.isAlternate = true
+        viewMenu.addItem(reloadIgnoringCacheItem)
         viewMenu.addItem(.separator())
         viewMenu
             .addItem(item("Model Info", action: #selector(Document.showModelInfo(_:)), key: "i"))
