@@ -59,7 +59,7 @@ sed -i '' "s/from: \"[^\"]*\"/from: \"$NEW_VERSION\"/" README.md
 
 # 3. Update version in ShapeScript/Interpreter.swift
 echo "Updating ShapeScript/Interpreter.swift..."
-sed -i '' "s/public let version: String = \"[^\"]*\"/public let version: String = \"$NEW_VERSION\"/" ShapeScript/Interpreter.swift
+sed -i '' "s/public let version: SemanticVersion = \"[^\"]*\"/public let version: SemanticVersion = \"$NEW_VERSION\"/" ShapeScript/Interpreter.swift
 sed -i '' "s/Copyright (c) 2023\\( *- *[0-9][0-9][0-9][0-9]\\)\\{0,1\\} Nick Lockwood/Copyright (c) 2023-$CURRENT_YEAR Nick Lockwood/" Viewer/CLI/CLI.swift
 
 # 4. Update version in ShapeScript.xcodeproj
@@ -96,14 +96,21 @@ if [ "$UPDATE_RELEASE_DOCS" = "auto" ]; then
 fi
 
 # 7. Run tests
-echo "Running tests..."
-if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS="$UPDATE_RELEASE_DOCS" swift test --parallel --num-workers 10; then
+echo "Checking extrusion performance without parallel workers..."
+SHAPESCRIPT_CHECK_TIMING=1 swift test --filter GeometryTests/testDetailedExtrusionBuildTiming
+
+# Metadata tests regenerate documentation and must not overlap with readers.
+echo "Running metadata tests serially..."
+if ! SHAPESCRIPT_UPDATE_RELEASE_DOCS="$UPDATE_RELEASE_DOCS" swift test --no-parallel --filter MetadataTests; then
     echo "Error: Tests failed. Please fix the issues before proceeding."
     if [ "$UPDATE_RELEASE_DOCS" != "1" ]; then
         echo "If this patch release intentionally changes docs, rerun with SHAPESCRIPT_UPDATE_RELEASE_DOCS=1."
     fi
     exit 1
 fi
+
+echo "Running remaining tests in parallel..."
+swift test --parallel --num-workers 10 --skip MetadataTests
 
 echo "Tests passed successfully."
 

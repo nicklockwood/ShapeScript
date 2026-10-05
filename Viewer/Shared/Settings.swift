@@ -14,9 +14,9 @@ import ShapeScript
 import UIKit
 #endif
 
-let appVersion: String = Bundle.main.object(
+let appVersion: SemanticVersion = .init(Bundle.main.object(
     forInfoDictionaryKey: "CFBundleShortVersionString"
-) as! String
+) as! String)!
 
 extension Notification.Name {
     static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
@@ -98,14 +98,14 @@ final class Settings: @unchecked Sendable {
 
     // MARK: App version
 
-    var appVersion: String? {
-        get { defaults.object(forKey: #function) as? String }
-        set { defaults.set(newValue, forKey: #function) }
+    var appVersion: SemanticVersion? {
+        get { (defaults.object(forKey: #function) as? String).flatMap(SemanticVersion.init(_:)) }
+        set { defaults.set(newValue?.rawValue, forKey: #function) }
     }
 
-    var previousAppVersion: String? {
-        get { defaults.object(forKey: #function) as? String }
-        set { defaults.set(newValue, forKey: #function) }
+    var previousAppVersion: SemanticVersion? {
+        get { (defaults.object(forKey: #function) as? String).flatMap(SemanticVersion.init(_:)) }
+        set { defaults.set(newValue?.rawValue, forKey: #function) }
     }
 
     // MARK: Welcome screen

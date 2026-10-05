@@ -8,10 +8,14 @@
 
 import Foundation
 
-public struct SemanticVersion: Hashable, RawRepresentable {
+public struct SemanticVersion: Hashable, Codable, Sendable, RawRepresentable {
     public let rawValue: String
 
-    public init(rawValue: String) {
+    public init?(rawValue: some StringProtocol) {
+        let rawValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard CharacterSet.decimalDigits.contains(rawValue.unicodeScalars.first ?? " ") else {
+            return nil
+        }
         self.rawValue = rawValue
     }
 }
@@ -28,10 +32,10 @@ extension SemanticVersion: Comparable, ExpressibleByStringLiteral, LosslessStrin
     }
 
     public init(stringLiteral version: String) {
-        self.rawValue = version
+        self.init(version)!
     }
 
-    public init(_ version: some StringProtocol) {
-        self.rawValue = "\(version)"
+    public init?(_ version: some StringProtocol) {
+        self.init(rawValue: version)
     }
 }
