@@ -56,6 +56,21 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(progress.fractionCompleted, 0.3)
     }
 
+    func testRenderProgressCancellationChecksDoNotAdvanceProgress() {
+        let progress = RenderProgress()
+        progress.beginTracking(totalUnitCount: 100, isCancelled: { false })
+        _ = progress.beginUnit(.buildingFinal, unitCount: 50)
+        let isCancelled: CancellationHandler = { progress.isCancelled }
+
+        for _ in 0 ..< 10 {
+            XCTAssertFalse(isCancelled())
+        }
+        XCTAssertEqual(progress.fractionCompleted, 0)
+
+        _ = progress.completeUnit(.buildingFinal, by: 50)
+        XCTAssertEqual(progress.fractionCompleted, 0.5)
+    }
+
     // MARK: Bounds
 
     func testGroupOfShapeCameraBoundsNotEmpty() {
