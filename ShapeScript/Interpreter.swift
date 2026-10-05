@@ -363,6 +363,21 @@ public extension RuntimeError {
 
 // MARK: Implementation
 
+private func validateLightCount(in scene: Scene, source: String) throws {
+    let maxLights = 8
+    let nonAmbientLights = scene.lights.filter { $0.light?.isAmbient == false }
+    if nonAmbientLights.count > maxLights {
+        throw RuntimeError(
+            .assertionFailure("""
+            There is a maximum of \(maxLights) non-ambient lights per scene. \
+            This scene has \(nonAmbientLights.count) lights
+            """),
+            at: nonAmbientLights[maxLights].sourceLocation?
+                .range(in: source) ?? source.startIndex ..< source.startIndex
+        )
+    }
+}
+
 private struct EvaluationCancelled: Error {}
 
 private func _evaluate(
@@ -407,7 +422,12 @@ private func _evaluate(
     )
     switch result {
     case .success:
-        return (scene, nil)
+        do {
+            try validateLightCount(in: scene, source: program.source)
+            return (scene, nil)
+        } catch {
+            return (scene, error)
+        }
     case let .failure(error):
         return (scene, error)
     }

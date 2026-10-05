@@ -232,22 +232,6 @@ extension DocumentProtocol {
                 }
                 progress.setStatus(.partial(previousScene, .evaluated))
 
-                // Check for too many lights
-                let maxLights = 8
-                let nonAmbientLights = scene.lights.filter {
-                    $0.light.map { SCNLight($0).type != .ambient } ?? false
-                }
-                if nonAmbientLights.count > maxLights {
-                    throw RuntimeError(
-                        .assertionFailure("""
-                        There is a maximum of \(maxLights) non-ambient lights per scene. \
-                        This scene has \(nonAmbientLights.count) lights
-                        """),
-                        at: nonAmbientLights[maxLights].sourceLocation?
-                            .range(in: input) ?? input.startIndex ..< input.startIndex
-                    )
-                }
-
                 let renderProgress = RenderProgress()
                 let options = scene.outputOptions(
                     for: cameraSettings,
