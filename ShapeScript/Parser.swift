@@ -285,6 +285,23 @@ private extension ArraySlice<Token> {
         return Block(statements: statements, range: range)
     }
 
+    mutating func readInlineStatementBlock(as expected: String) throws -> Block? {
+        if let block = try readBlock() {
+            return block
+        }
+        let startToken = nextToken
+        guard let statement = try readStatement() else {
+            return nil
+        }
+        switch nextToken.type {
+        case .linebreak, .rbrace, .rparen, .rbracket, .eof, .keyword(.else):
+            break
+        default:
+            throw ParserError(.unexpectedToken(startToken, expected: expected))
+        }
+        return Block(statements: [statement], range: statement.range)
+    }
+
     mutating func readOption() throws -> StatementType? {
         guard readToken(.identifier("option")) else {
             return nil
@@ -344,23 +361,15 @@ private extension ArraySlice<Token> {
 
     mutating func readIfElse() throws -> ExpressionType {
         let condition = try require(readExpression(), as: "condition")
-        let body = try require(readBlock(), as: "if body")
+        let body = try require(readInlineStatementBlock(as: "if body"), as: "if body")
         let start = self
         _ = readToken(.linebreak)
         guard readToken(.keyword(.else)) else {
             self = start
             return .ifelse(condition, body, else: nil)
         }
-        let lowerBound = nextToken.range.lowerBound
-        if let elseBody = try readBlock() {
+        if let elseBody = try readInlineStatementBlock(as: "else body") {
             return .ifelse(condition, body, else: elseBody)
-        } else if readToken(.keyword(.if)) {
-            let expressionType = try readIfElse()
-            let end = start[start.index(before: startIndex)]
-            let range = lowerBound ..< end.range.upperBound
-            return .ifelse(condition, body, else: Block(statements: [
-                Statement(type: .expression(expressionType), range: range),
-            ], range: range))
         }
         throw ParserError(.unexpectedToken(nextToken, expected: "else body"))
     }
