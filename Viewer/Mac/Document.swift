@@ -31,6 +31,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     let cache = GeometryCache()
+    var refreshCacheOnReload = false
     private(set) var fileMonitor: FileMonitor?
 
     var viewController: DocumentViewController? {
@@ -221,16 +222,15 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                 didUpdateSource()
             }
         } catch {
+            refreshCacheOnReload = false
             presentError(error)
         }
     }
 
-    @objc func clearCacheAndReloadScene(_ sender: AnyObject) {
+    @objc func reloadSceneIgnoringCache(_ sender: AnyObject) {
         loadingProgress?.cancel()
-        Task { @MainActor in
-            await cache.removeAll()
-            reloadScene(sender)
-        }
+        refreshCacheOnReload = true
+        reloadScene(sender)
     }
 
     @objc func revealInFinder(_: AnyObject) {

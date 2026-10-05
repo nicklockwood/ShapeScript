@@ -26,6 +26,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     let cache = GeometryCache()
+    var refreshCacheOnReload = false
     private(set) var fileMonitor: FileMonitor?
     private var securityScopedResourceURL: URL
     private var securityScopedResourceAccessed: Bool

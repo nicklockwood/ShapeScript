@@ -16,6 +16,7 @@ protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
     static var backgroundColor: OSColor { get }
 
     var cache: GeometryCache { get }
+    var refreshCacheOnReload: Bool { get set }
     var settings: Settings { get }
     var documentFileURL: URL? { get }
     var fileMonitor: FileMonitor? { get }
