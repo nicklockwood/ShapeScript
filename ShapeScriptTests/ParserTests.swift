@@ -22,6 +22,18 @@ final class ParserTests: XCTestCase {
         XCTAssertEqual(program.importCount, 3)
     }
 
+    func testProgramUsesSymbol() throws {
+        XCTAssertFalse(try parse("cube").usesSymbol("preview"))
+        XCTAssertFalse(try parse("print \"preview\"").usesSymbol("preview"))
+        XCTAssertTrue(try parse("if preview cube else sphere").usesSymbol("preview"))
+        XCTAssertTrue(try parse("define foo { if preview cube }").usesSymbol("preview"))
+        XCTAssertTrue(try parse("print foo").usesSymbol("foo"))
+        XCTAssertFalse(try parse("print foo").usesSymbol("preview"))
+        XCTAssertTrue(try parse("color red").usesSymbol("color"))
+        XCTAssertTrue(try parse("cube { position 1 }").usesSymbol("cube"))
+        XCTAssertTrue(try parse("import \"part.shape\"").usesSymbol("preview"))
+    }
+
     func testDeeplyNestedParentheses() {
         let input = String(repeating: "(", count: 20_000) + "1" +
             String(repeating: ")", count: 20_000)
