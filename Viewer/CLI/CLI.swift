@@ -170,6 +170,9 @@ extension ShapeScriptCommand {
             abstract: "Check a ShapeScript document for errors."
         )
 
+        @Flag(help: "Evaluate the document in preview mode.")
+        var preview = false
+
         @OptionGroup
         var cacheOptions: CacheOptions
 
@@ -185,6 +188,7 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
                 inputPath: inputPath,
+                preview: preview,
                 scriptOptions: scriptOptions,
                 cacheOptions: cacheOptions
             )
@@ -197,6 +201,9 @@ extension ShapeScriptCommand {
             abstract: "Print scene information for a ShapeScript document."
         )
 
+        @Flag(help: "Evaluate the document in preview mode.")
+        var preview = false
+
         @OptionGroup
         var cacheOptions: CacheOptions
 
@@ -212,6 +219,7 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: FileManager.default.currentDirectoryPath,
                 inputPath: inputPath,
+                preview: preview,
                 scriptOptions: scriptOptions,
                 cacheOptions: cacheOptions
             )
@@ -222,6 +230,7 @@ extension ShapeScriptCommand {
 
 final class CLIRunner {
     let inputURL: URL
+    let preview: Bool
     let scriptOptions: [String: Any]
     let cacheOptions: CacheOptions
 
@@ -232,6 +241,7 @@ final class CLIRunner {
     init(
         directory: String,
         inputPath: String,
+        preview: Bool = false,
         scriptOptions: [String] = [],
         cacheOptions: CacheOptions = .init()
     ) throws {
@@ -248,6 +258,7 @@ final class CLIRunner {
         self.inputURL = inputURL
         self.scriptOptions = try parseScriptOptions(scriptOptions)
         self.cacheOptions = cacheOptions
+        self.preview = preview
     }
 
     func check() throws {
@@ -271,7 +282,13 @@ final class CLIRunner {
             let program = try parse(input)
             let cache = GeometryCache(diskCache: cacheOptions.noCache ? nil : .shared)
             printStatus("Running script ...")
-            let scene = try evaluate(program, options: scriptOptions, delegate: self, cache: cache)
+            let scene = try evaluate(
+                program,
+                preview: preview,
+                options: scriptOptions,
+                delegate: self,
+                cache: cache
+            )
             if buildGeometry {
                 printStatus("Building geometry ...")
                 _ = scene.build { false }

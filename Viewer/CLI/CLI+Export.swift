@@ -28,6 +28,9 @@ extension ShapeScriptCommand {
         @Argument(help: "Input .shape file.")
         var inputPath: String
 
+        @Flag(help: "Evaluate the document in preview mode.")
+        var preview = false
+
         @OptionGroup
         var cacheOptions: CacheOptions
 
@@ -48,6 +51,7 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: directory,
                 inputPath: inputPath,
+                preview: preview,
                 scriptOptions: scriptOptions,
                 cacheOptions: cacheOptions
             )

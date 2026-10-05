@@ -44,9 +44,10 @@ final class CLITests: XCTestCase {
     func testCheckHelpDescribesCheckCommand() throws {
         let result = try runExecutable(["check", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
-        XCTAssertTrue(result.output.contains("USAGE: shapescript check [--no-cache] <input-path>"))
+        XCTAssertTrue(result.output.contains("USAGE: shapescript check [--preview] [--no-cache] <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
     }
@@ -54,9 +55,10 @@ final class CLITests: XCTestCase {
     func testInfoHelpDescribesInfoCommand() throws {
         let result = try runExecutable(["info", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
-        XCTAssertTrue(result.output.contains("USAGE: shapescript info [--no-cache] <input-path>"))
+        XCTAssertTrue(result.output.contains("USAGE: shapescript info [--preview] [--no-cache] <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
     }
@@ -66,6 +68,7 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript export <input-path>"))
         XCTAssertTrue(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
         XCTAssertTrue(result.output.contains("--z-up"))
@@ -86,6 +89,67 @@ final class CLITests: XCTestCase {
             ], in: directory)
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertEqual(result.standardOutput, "2\n")
+        }
+    }
+
+    func testCheckAcceptsPreviewFlag() throws {
+        try withTemporaryShapeFile("""
+        print preview
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "check",
+                "--preview",
+                inputURL.lastPathComponent,
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "true\n")
+        }
+    }
+
+    func testInfoAcceptsPreviewFlag() throws {
+        try withTemporaryShapeFile("""
+        print preview
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "info",
+                "--preview",
+                inputURL.lastPathComponent,
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(result.standardOutput.hasPrefix("true\n"), result.failureMessage)
+        }
+    }
+
+    func testExportAcceptsPreviewFlag() throws {
+        try withTemporaryShapeFile("""
+        print preview
+        cube
+        """) { directory, inputURL in
+            let outputURL = directory.appendingPathComponent("model.stl")
+            let result = try runExecutable([
+                "export",
+                "--preview",
+                inputURL.lastPathComponent,
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertEqual(result.standardOutput, "true\n")
+            XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        }
+    }
+
+    func testLegacyRootCommandAcceptsPreviewFlag() throws {
+        try withTemporaryShapeFile("""
+        print preview
+        cube
+        """) { directory, inputURL in
+            let result = try runExecutable([
+                "--preview",
+                inputURL.lastPathComponent,
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(result.standardOutput.hasPrefix("true\n"), result.failureMessage)
         }
     }
 
