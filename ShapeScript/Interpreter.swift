@@ -363,6 +363,24 @@ public extension RuntimeError {
 
 // MARK: Implementation
 
+private final class SilentDelegate: EvaluationDelegate {
+    private let delegate: EvaluationDelegate
+
+    init(_ delegate: EvaluationDelegate) {
+        self.delegate = delegate
+    }
+
+    func resolveURL(for path: String) -> URL {
+        delegate.resolveURL(for: path)
+    }
+
+    func importGeometry(for url: URL) throws -> Geometry? {
+        try delegate.importGeometry(for: url)
+    }
+
+    func debugLog(_: [AnyHashable]) {}
+}
+
 private func validateLightCount(in scene: Scene, source: String) throws {
     let maxLights = 8
     let nonAmbientLights = scene.lights.filter { $0.light?.isAmbient == false }
@@ -424,6 +442,21 @@ private func _evaluate(
     case .success:
         do {
             try validateLightCount(in: scene, source: program.source)
+            if preview {
+                let silentDelegate = delegate.map(SilentDelegate.init)
+                let (_, exportError) = _evaluate(
+                    program,
+                    preview: false,
+                    options: options,
+                    delegate: silentDelegate,
+                    cache: cache,
+                    progress: nil,
+                    isCancelled: isCancelled
+                )
+                if let exportError {
+                    return (scene, exportError)
+                }
+            }
             return (scene, nil)
         } catch {
             return (scene, error)
