@@ -44,18 +44,20 @@ final class CLITests: XCTestCase {
     func testCheckHelpDescribesCheckCommand() throws {
         let result = try runExecutable(["check", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
-        XCTAssertTrue(result.output.contains("USAGE: shapescript check <input-path>"))
+        XCTAssertTrue(result.output.contains("USAGE: shapescript check [--no-cache] <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
     }
 
     func testInfoHelpDescribesInfoCommand() throws {
         let result = try runExecutable(["info", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
-        XCTAssertTrue(result.output.contains("USAGE: shapescript info <input-path>"))
+        XCTAssertTrue(result.output.contains("USAGE: shapescript info [--no-cache] <input-path>"))
         XCTAssertTrue(result.output.contains("Input .shape file."))
         XCTAssertFalse(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
     }
 
@@ -64,6 +66,7 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript export <input-path>"))
         XCTAssertTrue(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
         XCTAssertTrue(result.output.contains("--z-up"))
     }
@@ -619,11 +622,15 @@ private extension CLITests {
         try body(directory)
     }
 
-    func runExecutable(_ arguments: [String], in directory: URL? = nil) throws -> ExecutableResult {
+    func runExecutable(
+        _ arguments: [String],
+        in directory: URL? = nil,
+        disableCache: Bool = true
+    ) throws -> ExecutableResult {
         let executableURL = try shapeScriptExecutableURL
         let process = Process()
         process.executableURL = executableURL
-        process.arguments = arguments
+        process.arguments = disableCache ? argumentsByDisablingCache(arguments) : arguments
         process.currentDirectoryURL = directory
 
         let outputPipe = Pipe()
@@ -650,6 +657,22 @@ private extension CLITests {
         )
     }
 
+    func argumentsByDisablingCache(_ arguments: [String]) -> [String] {
+        guard !arguments.isEmpty,
+              !arguments.contains("--no-cache"),
+              !arguments.contains("--help"),
+              !arguments.contains("-h"),
+              !arguments.contains("--version"),
+              arguments.first != "help",
+              arguments.first != "-v" // Preserve the unknown-option test.
+        else {
+            return arguments
+        }
+        var arguments = arguments
+        arguments.insert(["--no-cache"], beforeTerminator: "--")
+        return arguments
+    }
+
     var shapeScriptExecutableURL: URL {
         get throws {
             let bundleURL = Bundle(for: type(of: self)).bundleURL
@@ -672,6 +695,16 @@ private extension CLITests {
             return try XCTUnwrap(candidates.first { url in
                 FileManager.default.isExecutableFile(atPath: url.path)
             })
+        }
+    }
+}
+
+private extension Array where Element: Equatable {
+    mutating func insert(_ elements: [Element], beforeTerminator terminator: Element) {
+        if let index = firstIndex(of: terminator) {
+            insert(contentsOf: elements, at: index)
+        } else {
+            append(contentsOf: elements)
         }
     }
 }
