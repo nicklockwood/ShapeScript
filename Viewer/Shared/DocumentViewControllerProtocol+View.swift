@@ -169,19 +169,35 @@ extension DocumentViewControllerProtocol {
         guard let root = geometry else {
             return []
         }
-        let focus = root.childIsFocused
         var geometries = [Geometry]()
         for hit in hits where hit.isVisible {
             guard let geometry = root.geometry(for: hit.node) else {
                 continue
             }
-            for geometry in geometry.selectionMenuPath(focus: focus, root: root) {
+            for geometry in geometry.selectionMenuPath(root: root) {
                 if !geometries.contains(where: { $0 === geometry }) {
                     geometries.append(geometry)
                 }
             }
         }
         return geometries
+    }
+
+    func selectionMenuContext(at location: CGPoint) -> SelectionMenuContext? {
+        guard let document else {
+            return nil
+        }
+        let geometries = selectableGeometries(at: location)
+        let entries = geometries.isEmpty ?
+            document.selectionMenuEntries :
+            document.selectionMenuEntries(for: geometries)
+        guard !entries.isEmpty else {
+            return nil
+        }
+        return SelectionMenuContext(
+            entries: entries,
+            lazySubmenus: geometries.isEmpty
+        )
     }
 
     func refreshOrthographic() {

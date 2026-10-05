@@ -276,15 +276,14 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     private func addSelectMenuItems(
         _ menu: NSMenu,
         for entries: [SelectionMenuEntry],
-        with index: inout Int,
-        countsByType: inout [String: Int]
+        with index: inout Int
     ) -> Bool {
         menu.removeAllItems()
         var containsSelection = false
         for entry in entries {
             let shape = entry.geometry
             let menuItem = menu.addItem(
-                withTitle: geometryName(for: shape, in: &countsByType),
+                withTitle: entry.title,
                 action: entry.isSelectable ? #selector(selectShape(_:)) : nil,
                 keyEquivalent: ""
             )
@@ -303,8 +302,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                 if addSelectMenuItems(
                     submenu,
                     for: entry.children,
-                    with: &index,
-                    countsByType: &countsByType
+                    with: &index
                 ) {
                     containsSelection = true
                     menuItem.state = .mixed
@@ -317,12 +315,11 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     func configureSelectMenu(_ menu: NSMenu) {
         selectMenu = menu
-        var index = 0, countsByType = [String: Int]()
+        var index = 0
         _ = addSelectMenuItems(
             menu,
-            for: geometry.selectionMenuEntries(focus: geometry.childIsFocused),
-            with: &index,
-            countsByType: &countsByType
+            for: selectionMenuEntries,
+            with: &index
         )
     }
 

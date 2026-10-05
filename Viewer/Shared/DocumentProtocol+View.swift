@@ -13,8 +13,14 @@ import ShapeScript
 
 struct SelectionMenuEntry {
     let geometry: Geometry
+    let title: String
     let isSelectable: Bool
     let children: [SelectionMenuEntry]
+}
+
+struct SelectionMenuContext {
+    let entries: [SelectionMenuEntry]
+    let lazySubmenus: Bool
 }
 
 @MainActor
@@ -372,19 +378,11 @@ extension DocumentProtocol {
         }
     }
 
-    func geometryName(for geometry: Geometry) -> String {
-        var countsByType = [String: Int]()
-        let selectableGeometries = selectableGeometries
-        for shape in selectableGeometries {
-            let name = geometryName(for: shape, in: &countsByType)
-            if shape === geometry {
-                return name
-            }
-        }
-        return ""
+    private func geometryName(for geometry: Geometry) -> String {
+        geometryNames(for: [ObjectIdentifier(geometry)])[ObjectIdentifier(geometry)] ?? ""
     }
 
-    func geometryName(
+    private func geometryName(
         for geometry: Geometry,
         in countsByType: inout [String: Int]
     ) -> String {
@@ -398,93 +396,115 @@ extension DocumentProtocol {
         return "\(typeName.capitalized) \(count)"
     }
 
-    func selectionMenuNames() -> [ObjectIdentifier: String] {
-        var countsByType = [String: Int]()
-        var namesByGeometry = [ObjectIdentifier: String]()
-        enumerateSelectionMenuEntries(in: geometry.selectionMenuEntries(focus: geometry.childIsFocused)) { entry in
-            namesByGeometry[ObjectIdentifier(entry.geometry)] = geometryName(
-                for: entry.geometry,
-                in: &countsByType
+    private func titledSelectionMenuEntries(
+        _ entries: [SelectionMenuEntry]
+    ) -> [SelectionMenuEntry] {
+        var menuGeometries = Set<ObjectIdentifier>()
+
+        func enumerateSelectionMenuEntries(in entries: [SelectionMenuEntry]) {
+            for entry in entries {
+                menuGeometries.insert(ObjectIdentifier(entry.geometry))
+                enumerateSelectionMenuEntries(in: entry.children)
+            }
+        }
+
+        enumerateSelectionMenuEntries(in: entries)
+        let namesByGeometry = geometryNames(for: menuGeometries)
+
+        func titled(_ entry: SelectionMenuEntry) -> SelectionMenuEntry {
+            SelectionMenuEntry(
+                geometry: entry.geometry,
+                title: namesByGeometry[ObjectIdentifier(entry.geometry)] ?? "",
+                isSelectable: entry.isSelectable,
+                children: entry.children.map(titled)
             )
         }
+
+        return entries.map(titled)
+    }
+
+    var selectionMenuEntries: [SelectionMenuEntry] {
+        titledSelectionMenuEntries(geometry.rawSelectionMenuEntries)
+    }
+
+    func selectionMenuEntries(for geometries: [Geometry]) -> [SelectionMenuEntry] {
+        titledSelectionMenuEntries(geometry.rawSelectionMenuEntries(for: geometries))
+    }
+
+    private func geometryNames(for geometries: Set<ObjectIdentifier>) -> [ObjectIdentifier: String] {
+        var countsByType = [String: Int]()
+        var namesByGeometry = [ObjectIdentifier: String]()
+
+        func enumerateGeometryNames(in geometry: Geometry) {
+            for child in geometry.children {
+                if child.isVisibleInSelectionMenu {
+                    let id = ObjectIdentifier(child)
+                    let name = geometryName(for: child, in: &countsByType)
+                    if geometries.contains(id) {
+                        namesByGeometry[id] = name
+                    }
+                }
+                enumerateGeometryNames(in: child)
+            }
+        }
+
+        enumerateGeometryNames(in: geometry)
         return namesByGeometry
     }
 
     var selectableGeometries: [Geometry] {
         var geometries = [Geometry]()
-        let root = geometry
-        let focus = root.childIsFocused
-        enumerateGeometries(in: root) { geometry in
-            if geometry.isSelectable(focus: focus) {
-                geometries.append(geometry)
+        let focus = geometry.childIsFocused
+
+        func enumerateSelectableGeometries(in shape: Geometry) {
+            for shape in shape.children {
+                guard shape.isVisibleForSelection(focus: focus) else {
+                    continue
+                }
+                if shape.hasSelectableDescendants(focus: focus) {
+                    geometries.append(shape)
+                    enumerateSelectableGeometries(in: shape)
+                } else if shape.isSelectable(focus: focus) {
+                    geometries.append(shape)
+                }
             }
         }
+
+        enumerateSelectableGeometries(in: geometry)
         return geometries
-    }
-
-    func enumerateGeometries(
-        in shape: Geometry,
-        with fn: (Geometry) -> Void
-    ) {
-        let focus = shape.childIsFocused
-        enumerateGeometries(in: shape, focus: focus, with: fn)
-    }
-
-    private func enumerateGeometries(
-        in shape: Geometry,
-        focus: Bool,
-        with fn: (Geometry) -> Void
-    ) {
-        for shape in shape.children {
-            guard shape.isVisibleForSelection(focus: focus) else {
-                continue
-            }
-            if shape.hasVisibleSelectableDescendants(focus: focus) {
-                fn(shape)
-                enumerateGeometries(in: shape, focus: focus, with: fn)
-            } else if shape.isSelectable(focus: focus) {
-                fn(shape)
-            }
-        }
-    }
-
-    func enumerateSelectionMenuGeometries(
-        in shape: Geometry,
-        with fn: (Geometry) -> Void
-    ) {
-        for shape in shape.children {
-            guard shape.isVisibleInSelectionMenu else {
-                continue
-            }
-            fn(shape)
-            if shape.hasSelectionMenuChildren {
-                enumerateSelectionMenuGeometries(in: shape, with: fn)
-            }
-        }
-    }
-
-    private func enumerateSelectionMenuEntries(
-        in entries: [SelectionMenuEntry],
-        with fn: (SelectionMenuEntry) -> Void
-    ) {
-        for entry in entries {
-            fn(entry)
-            enumerateSelectionMenuEntries(in: entry.children, with: fn)
-        }
     }
 }
 
-extension Geometry {
-    func selectionMenuEntries(focus: Bool) -> [SelectionMenuEntry] {
-        children.flatMap {
-            $0.selectionMenuEntriesFromTree(focus: focus)
+private extension Geometry {
+    var rawSelectionMenuEntries: [SelectionMenuEntry] {
+        rawSelectionMenuEntries(focus: childIsFocused)
+    }
+
+    func rawSelectionMenuEntries(focus: Bool) -> [SelectionMenuEntry] {
+        children.flatMap { child -> [SelectionMenuEntry] in
+            guard child.isVisibleInSelectionMenu else {
+                return []
+            }
+            let childEntries = child.rawSelectionMenuEntries(focus: focus)
+            if child.isSelectableInSelectionMenu(focus: focus) {
+                return [SelectionMenuEntry(
+                    geometry: child,
+                    title: "",
+                    isSelectable: true,
+                    children: childEntries
+                )]
+            }
+            return [SelectionMenuEntry(
+                geometry: child,
+                title: "",
+                isSelectable: false,
+                children: childEntries
+            )]
         }
     }
 
-    static func selectionMenuEntries(
-        for geometries: [Geometry],
-        focus: Bool
-    ) -> [SelectionMenuEntry] {
+    func rawSelectionMenuEntries(for geometries: [Geometry]) -> [SelectionMenuEntry] {
+        let focus = childIsFocused
         let menuGeometries = geometries.filter(\.isVisibleInSelectionMenu)
         return menuGeometries.compactMap { geometry in
             guard !menuGeometries.contains(where: { geometry.isDescendant(of: $0) }) else {
@@ -492,28 +512,6 @@ extension Geometry {
             }
             return geometry.selectionMenuEntry(in: menuGeometries, focus: focus)
         }
-    }
-
-    private func selectionMenuEntriesFromTree(focus: Bool) -> [SelectionMenuEntry] {
-        guard isVisibleInSelectionMenu else {
-            return []
-        }
-        let childEntries = selectionMenuEntries(focus: focus)
-        if isSelectableInSelectionMenu(focus: focus) {
-            return [SelectionMenuEntry(
-                geometry: self,
-                isSelectable: true,
-                children: childEntries
-            )]
-        }
-        guard !isSelectable(focus: focus), !childEntries.isEmpty else {
-            return []
-        }
-        return [SelectionMenuEntry(
-            geometry: self,
-            isSelectable: false,
-            children: childEntries
-        )]
     }
 
     private func selectionMenuEntry(
@@ -532,6 +530,7 @@ extension Geometry {
         if isVisibleInSelectionMenu, isSelectableInSelectionMenu(focus: focus) {
             return SelectionMenuEntry(
                 geometry: self,
+                title: "",
                 isSelectable: true,
                 children: childEntries
             )
@@ -541,9 +540,68 @@ extension Geometry {
         }
         return SelectionMenuEntry(
             geometry: self,
+            title: "",
             isSelectable: false,
             children: childEntries
         )
+    }
+}
+
+extension Geometry {
+    func isSelectableInSelectionMenu(focus: Bool) -> Bool {
+        isSelectable(focus: focus) && isRenderedInScene(focus: focus)
+    }
+
+    func selectionMenuPath(root: Geometry) -> [Geometry] {
+        var path = [Geometry]()
+        var geometry: Geometry? = self
+        while let current = geometry, current !== root {
+            if current.isVisibleInSelectionMenu {
+                path.append(current)
+            }
+            geometry = current.parent
+        }
+        return path.reversed()
+    }
+}
+
+private extension Geometry {
+    func isSelectable(focus: Bool) -> Bool {
+        switch type {
+        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .circle, .square, .path:
+            !isHidden && (!focus || isFocused)
+        case .camera, .light, .group:
+            false
+        }
+    }
+
+    func isVisibleForSelection(focus: Bool) -> Bool {
+        !isHidden && (!focus || isFocused || childIsFocused)
+    }
+
+    var isVisibleInSelectionMenu: Bool {
+        guard !isHidden else {
+            return false
+        }
+        return switch type {
+        case .camera, .light:
+            false
+        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .circle, .square, .path, .group:
+            true
+        }
+    }
+
+    func hasSelectableDescendants(focus: Bool) -> Bool {
+        children.contains {
+            $0.isVisibleForSelection(focus: focus) &&
+                ($0.isSelectable(focus: focus) || $0.hasSelectableDescendants(focus: focus))
+        }
     }
 }
 
@@ -607,68 +665,5 @@ extension DocumentProtocol {
     var clientVersion: SemanticVersion? {
         get { settings.value(for: #function, in: self) }
         set { settings.set(newValue, for: #function, in: self) }
-    }
-}
-
-extension Geometry {
-    var isSelectable: Bool {
-        switch type {
-        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
-             .circle, .square, .path:
-            !isHidden
-        case .camera, .light, .group:
-            false
-        }
-    }
-
-    func isVisibleForSelection(focus: Bool) -> Bool {
-        !isHidden && (!focus || isFocused || childIsFocused)
-    }
-
-    var isVisibleInSelectionMenu: Bool {
-        switch type {
-        case .camera, .light:
-            false
-        case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
-             .circle, .square, .path, .group:
-            true
-        }
-    }
-
-    func isSelectable(focus: Bool) -> Bool {
-        isSelectable && (!focus || isFocused)
-    }
-
-    func isSelectableInSelectionMenu(focus: Bool) -> Bool {
-        isSelectable(focus: focus) && isRenderedInScene(focus: focus)
-    }
-
-    func hasVisibleSelectableDescendants(focus: Bool) -> Bool {
-        children.contains {
-            $0.isVisibleForSelection(focus: focus) &&
-                ($0.isSelectable(focus: focus) || $0.hasVisibleSelectableDescendants(focus: focus))
-        }
-    }
-
-    var hasSelectionMenuChildren: Bool {
-        children.contains {
-            $0.isVisibleInSelectionMenu
-        }
-    }
-
-    func selectionMenuPath(focus _: Bool, root: Geometry) -> [Geometry] {
-        var path = [Geometry]()
-        var geometry: Geometry? = self
-        while let current = geometry, current !== root {
-            if current.isVisibleInSelectionMenu {
-                path.append(current)
-            }
-            geometry = current.parent
-        }
-        return path.reversed()
     }
 }

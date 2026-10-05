@@ -274,7 +274,8 @@ final class PlatformTests: XCTestCase {
             XCTAssertEqual(hidden.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
 
             let node = SCNNode(geometry)
-            XCTAssertEqual(node.childNodes.count, 2)
+            XCTAssertEqual(node.childNodes.count, 1)
+            XCTAssertTrue(focused.scnNode === node.childNodes.first)
         }
     }
 
