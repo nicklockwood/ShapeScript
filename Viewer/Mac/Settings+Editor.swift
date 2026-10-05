@@ -138,9 +138,10 @@ private extension Settings {
         "com.apple.iWork.Numbers",
         "com.microsoft.Word",
         "com.microsoft.Excel",
-        "com.charcoaldesign.ShapeScriptMac",
-        "com.charcoaldesign.ShapeScriptViewer",
         "com.charcoaldesign.ShapeScript",
+        "com.charcoaldesign.ShapeScriptMac",
+        "com.charcoaldesign.ShapeScriptMacViewer",
+        "com.charcoaldesign.ShapeScriptViewer",
     ]
 
     static func isExcludedApp(_ url: URL) -> Bool {
