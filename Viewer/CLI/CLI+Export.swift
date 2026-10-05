@@ -28,6 +28,9 @@ extension ShapeScriptCommand {
         @Argument(help: "Input .shape file.")
         var inputPath: String
 
+        @OptionGroup
+        var cacheOptions: CacheOptions
+
         @Option(name: .shortAndLong, help: "Exported model file.")
         var output: String?
 
@@ -45,7 +48,8 @@ extension ShapeScriptCommand {
             let runner = try CLIRunner(
                 directory: directory,
                 inputPath: inputPath,
-                scriptOptions: scriptOptions
+                scriptOptions: scriptOptions,
+                cacheOptions: cacheOptions
             )
             let outputURL = try output.map {
                 try CLIRunner.exportURL(for: $0, in: directory)
