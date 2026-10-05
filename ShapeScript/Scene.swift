@@ -56,7 +56,7 @@ public extension Scene {
 
     /// Returns the visible scene geometry, excluding unfocused geometry if any child is focused.
     var visibleGeometry: Geometry {
-        geometry.withoutUnfocusedGeometry()
+        geometry.withoutHiddenOrUnfocused()
     }
 
     /// Returns the approximate bounds of the visible scene geometry.
@@ -77,10 +77,16 @@ public extension Scene {
 
 private extension Geometry {
     func overestimatedBoundsForFocus(focus: Bool) -> Bounds {
-        if focus, !isFocused, !childIsFocused {
+        if isHidden || (focus && !isFocused && !childIsFocused) {
             return .empty
         }
         if !focus || isFocused {
+            let children = visibleChildren
+            if mesh == nil, children.count != self.children.count {
+                return Bounds(children.map {
+                    $0.overestimatedBoundsForFocus(focus: focus)
+                }).transformed(by: transform)
+            }
             return overestimatedBounds
         }
         return Bounds(children.map {

@@ -359,6 +359,18 @@ extension Symbols {
             }
             return .tuple(context.state.children)
         },
+        // hide
+        "hide": .block(.group) { context in
+            for case let .mesh(geometry) in context.state.children {
+                geometry.isHidden = true
+            }
+            if context.state.children.count == 1,
+               case let .mesh(child) = context.state.children[0]
+            {
+                return .mesh(child)
+            }
+            return .tuple(context.state.children)
+        },
     ]
 
     static let paths: Symbols = [

@@ -5763,6 +5763,44 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
+    // MARK: Hide command
+
+    func testHideCube() throws {
+        let program = try parse("hide cube")
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+        let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        XCTAssertTrue(geometry.isHidden)
+        XCTAssertFalse(geometry.isFocused)
+        XCTAssertFalse(geometry.debug)
+    }
+
+    func testHideBlockHidesChildren() throws {
+        let scene = try evaluate(parse("""
+        hide {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+        XCTAssertEqual(scene.children.count, 2)
+        XCTAssertTrue(scene.children.allSatisfy(\.isHidden))
+    }
+
+    func testHideColorCommand() throws {
+        let program = "hide color #f00"
+        let range = try XCTUnwrap(program.range(of: "color"))
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            let error = try? XCTUnwrap(error as? RuntimeError)
+            XCTAssertEqual(error?.message, "Type mismatch")
+            XCTAssertEqual(error?.hint, "The argument for 'hide' should be a mesh or block, not a color.")
+            XCTAssertEqual(error, RuntimeError(.typeMismatch(
+                for: "hide",
+                expected: "mesh or block",
+                got: "color"
+            ), at: range))
+        }
+    }
+
     // MARK: Tuples
 
     func testTupleDeclarationNotFlattened() throws {

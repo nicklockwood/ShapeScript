@@ -185,6 +185,85 @@ final class GeometryTests: XCTestCase {
         XCTAssertTrue(sphere.isRenderedInScene(focus: false))
     }
 
+    func testHiddenGeometryIsNotRenderedInScene() throws {
+        let scene = try evaluate(parse("""
+        cube
+        hide sphere
+        """), delegate: nil)
+
+        let cube = try XCTUnwrap(scene.children.first)
+        let sphere = try XCTUnwrap(scene.children.last)
+
+        XCTAssertFalse(cube.isHidden)
+        XCTAssertTrue(sphere.isHidden)
+        XCTAssertTrue(cube.isRenderedInScene(focus: false))
+        XCTAssertFalse(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testHiddenFocusedGeometryIsNotRenderedInScene() throws {
+        let scene = try evaluate(parse("""
+        hide focus cube
+        sphere
+        """), delegate: nil)
+
+        let cube = try XCTUnwrap(scene.children.first)
+        let sphere = try XCTUnwrap(scene.children.last)
+
+        XCTAssertTrue(cube.isHidden)
+        XCTAssertTrue(cube.isFocused)
+        XCTAssertFalse(scene.geometry.childIsFocused)
+        XCTAssertFalse(cube.isRenderedInScene(focus: false))
+        XCTAssertTrue(sphere.isRenderedInScene(focus: false))
+    }
+
+    func testHiddenUnionChildIsRemovedFromResult() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube {
+                position -10
+            }
+            hide cube {
+                position 10
+            }
+        }
+        """), delegate: nil)
+        let union = try XCTUnwrap(scene.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(union.polygons { false }.count, 6)
+        XCTAssertEqual(union.exactBounds(with: union.transform).center, [-10, 0, 0])
+    }
+
+    func testHiddenDifferenceSubtractorIsRemovedFromResult() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            cube
+            hide cube {
+                position 0.5
+            }
+        }
+        """), delegate: nil)
+        let difference = try XCTUnwrap(scene.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(difference.polygons { false }.count, 6)
+        XCTAssertEqual(difference.volume { false }, 1, accuracy: 1e-12)
+    }
+
+    func testHiddenDifferenceBaseProducesEmptyResult() throws {
+        let scene = try evaluate(parse("""
+        difference {
+            hide cube
+            sphere
+        }
+        """), delegate: nil)
+        let difference = try XCTUnwrap(scene.children.first)
+
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(difference.polygons { false }.count, 0)
+        XCTAssertEqual(difference.volume { false }, 0)
+    }
+
     func testSceneKitRenderedChildrenMatchRenderChildrenSemanticsForUnionPreview() throws {
         let scene = try evaluate(parse("""
         union {
@@ -199,11 +278,11 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(union.renderedChildren, union.children)
     }
 
-    func testMinkowskiRendersLargestChildUntilBuilt() throws {
+    func testMinkowskiRendersLargestVisibleChildUntilBuilt() throws {
         let scene = try evaluate(parse("""
         minkowski {
             cube { size 0.5 }
-            cube { size 3 }
+            hide cube { size 3 }
             cube { size 2 }
         }
         """), delegate: nil)
@@ -211,7 +290,7 @@ final class GeometryTests: XCTestCase {
         let minkowski = try XCTUnwrap(scene.children.first)
 
         XCTAssertNil(minkowski.mesh)
-        XCTAssertEqual(minkowski.renderedChildren, [minkowski.children[1]])
+        XCTAssertEqual(minkowski.renderedChildren, [minkowski.children[2]])
 
         XCTAssertTrue(scene.build { false })
         XCTAssertNotNil(minkowski.mesh)
@@ -307,13 +386,34 @@ final class GeometryTests: XCTestCase {
         XCTAssertTrue(geometry.childIsFocused)
         XCTAssertEqual(geometry.children.count, 2)
 
-        let copy = geometry.withoutUnfocusedGeometry()
+        let copy = geometry.withoutHiddenOrUnfocused()
         XCTAssertEqual(copy.children.count, 1)
         XCTAssertEqual(copy.children[0].transform.translation, [10, 0, 0])
         XCTAssertEqual(copy.objectCount, 1)
         XCTAssertEqual(copy.polygons { false }.count, 6)
         XCTAssertEqual(copy.overestimatedBounds.center, [10, 0, 0])
         XCTAssertEqual(copy.exactBounds(with: copy.transform).size, [1, 1, 1])
+    }
+
+    func testVisibleGeometryRemovesHiddenChildren() throws {
+        let scene = try evaluate(parse("""
+        group {
+            cube {
+                position 10
+            }
+            hide cube {
+                position 100
+            }
+        }
+        """), delegate: nil)
+
+        let copy = scene.visibleGeometry
+        let group = try XCTUnwrap(copy.children.first)
+
+        XCTAssertEqual(group.children.count, 1)
+        XCTAssertEqual(group.children[0].transform.translation, [10, 0, 0])
+        XCTAssertEqual(copy.objectCount, 1)
+        XCTAssertEqual(scene.visibleBounds.center, [10, 0, 0])
     }
 
     func testWithoutDebugClearsDebugState() throws {
@@ -338,34 +438,45 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(copy.children[1].transform.translation, [10, 0, 0])
     }
 
-    func testDebugAndFocusDoNotAffectGeometryIdentity() throws {
+    func testDebugFocusAndHideDoNotAffectGeometryIdentity() throws {
         let scene = try evaluate(parse("""
         cube
         debug cube
         focus cube
+        hide cube
         """), delegate: nil)
 
-        guard scene.children.count == 3 else {
+        guard scene.children.count == 4 else {
             XCTFail()
             return
         }
         let normal = scene.children[0]
         let debug = scene.children[1]
         let focused = scene.children[2]
+        let hidden = scene.children[3]
 
         XCTAssertFalse(normal.debug)
         XCTAssertFalse(normal.isFocused)
+        XCTAssertFalse(normal.isHidden)
         XCTAssertTrue(debug.debug)
         XCTAssertFalse(debug.isFocused)
+        XCTAssertFalse(debug.isHidden)
         XCTAssertFalse(focused.debug)
         XCTAssertTrue(focused.isFocused)
+        XCTAssertFalse(focused.isHidden)
+        XCTAssertFalse(hidden.debug)
+        XCTAssertFalse(hidden.isFocused)
+        XCTAssertTrue(hidden.isHidden)
 
         XCTAssertEqual(normal, debug)
         XCTAssertEqual(normal, focused)
+        XCTAssertEqual(normal, hidden)
         XCTAssertEqual(normal.hashValue, debug.hashValue)
         XCTAssertEqual(normal.hashValue, focused.hashValue)
+        XCTAssertEqual(normal.hashValue, hidden.hashValue)
         XCTAssertEqual(normal.cacheKey, debug.cacheKey)
         XCTAssertEqual(normal.cacheKey, focused.cacheKey)
+        XCTAssertEqual(normal.cacheKey, hidden.cacheKey)
     }
 
     func testLowDetailPrimitiveBounds() {
