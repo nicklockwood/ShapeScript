@@ -102,6 +102,28 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(exportScene.children.map(\.type), [.sphere(segments: 35)])
     }
 
+    func testTooManyNonAmbientLightsRejectedDuringEvaluation() throws {
+        let input = Array(repeating: "light { position 1 }", count: 9)
+            .joined(separator: "\n")
+
+        XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
+            guard let error = error as? RuntimeError,
+                  case let .assertionFailure(message) = error.type
+            else {
+                return XCTFail("Expected an assertion failure")
+            }
+            XCTAssertEqual(
+                message,
+                "There is a maximum of 8 non-ambient lights per scene. This scene has 9 lights"
+            )
+        }
+    }
+
+    func testAmbientLightsDoNotCountTowardsLimit() throws {
+        let input = Array(repeating: "light", count: 9).joined(separator: "\n")
+        XCTAssertNoThrow(try evaluate(parse(input), delegate: nil))
+    }
+
     // MARK: Top-level options
 
     func testTopLevelOptionUsesDefaultValue() throws {

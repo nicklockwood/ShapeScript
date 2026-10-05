@@ -46,6 +46,7 @@ public struct Light: Hashable, Sendable, Codable {
 public extension Light {
     var hasPosition: Bool { position != nil }
     var hasOrientation: Bool { orientation != nil }
+    var isAmbient: Bool { !hasPosition && !hasOrientation }
 }
 
 public struct ExtrudeOptions: Hashable, Sendable, Codable {
