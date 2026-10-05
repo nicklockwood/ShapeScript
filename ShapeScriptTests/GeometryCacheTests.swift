@@ -290,6 +290,45 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertEqual(restoredDiskCache.currentUsage, 0)
     }
 
+    func testGeometryCacheCanReloadWithoutReadingOrDeletingDiskCache() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("cube")
+        let key = try XCTUnwrap(
+            evaluate(program, delegate: nil, cache: nil).children.first?.cacheKey
+        )
+        let staleMesh = Mesh.sphere(slices: 16)
+        let diskCache = makeDiskCache(directory: directory)
+        try diskCache.setValue(CachedMesh(staleMesh), forKey: key)
+
+        let cache = makeCache(
+            diskCache: diskCache,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let staleScene = try evaluate(program, delegate: nil, cache: cache)
+        _ = staleScene.build { false }
+        XCTAssertEqual(staleScene.children.first?.mesh?.polygons.count, staleMesh.polygons.count)
+
+        XCTAssertGreaterThan(diskCache.currentUsage, 0)
+        let reloadedScene = try cache.withRefresh {
+            let scene = try evaluate(program, delegate: nil, cache: cache)
+            _ = scene.build { false }
+            return scene
+        }
+        let cubePolygonCount = Mesh.cube().polygons.count
+        XCTAssertEqual(reloadedScene.children.first?.mesh?.polygons.count, cubePolygonCount)
+        XCTAssertNotEqual(cubePolygonCount, staleMesh.polygons.count)
+
+        cache.flushPendingDiskWrites()
+        cache.removeAllFromMemory()
+        XCTAssertEqual(cache.count, 0)
+        XCTAssertGreaterThan(diskCache.currentUsage, 0)
+        let restoredScene = try evaluate(program, delegate: nil, cache: cache)
+        _ = restoredScene.build { false }
+        XCTAssertEqual(restoredScene.children.first?.mesh?.polygons.count, cubePolygonCount)
+    }
+
     func testGeometryCacheDoesNotPersistEmptyMeshes() throws {
         let directory = makeTemporaryCacheDirectory()
         defer { removeTemporaryCacheDirectory(directory) }

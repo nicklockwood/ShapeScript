@@ -173,133 +173,137 @@ extension DocumentProtocol {
             }
         }
 
+        let refreshCache = refreshCacheOnReload
+        refreshCacheOnReload = false
         loadingProgress?.dispatch { [cache] progress in
-            func logCancelled() -> Bool {
-                if progress.isCancelledOrFailed {
-                    Swift.print("[\(progress.id)] cancelled")
-                    return true
-                }
-                return false
-            }
-
-            let start = CFAbsoluteTimeGetCurrent()
-            Swift.print("[\(progress.id)] starting...")
-            if logCancelled() {
-                return
-            }
-            progress.setStatus(.partial(previousScene, 0))
-
-            let program = try parse(input, at: fileURL)
-            let parsed = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
-            if logCancelled() {
-                return
-            }
-            progress.setStatus(.partial(previousScene, .parsed))
-
-            let minUpdatePeriod: TimeInterval = 0.1
-            let evaluationProgress = EvaluationProgress()
-            @Sendable func scheduleEvaluationProgressUpdate() {
-                progress.schedule(after: minUpdatePeriod) {
-                    guard !evaluationProgress.isFinished else {
-                        return
+            try cache.withRefresh(refreshCache) {
+                func logCancelled() -> Bool {
+                    if progress.isCancelledOrFailed {
+                        Swift.print("[\(progress.id)] cancelled")
+                        return true
                     }
-                    guard progress.inProgress, !progress.isCancelledOrFailed else {
-                        evaluationProgress.cancel()
-                        return
-                    }
-                    let evaluationFraction = evaluationProgress.fractionCompleted ?? 0
-                    let progressFraction = .parsed + evaluationFraction * (.evaluated - .parsed)
-                    progress.setStatus(.partial(previousScene, progressFraction))
-                    scheduleEvaluationProgressUpdate()
+                    return false
                 }
-            }
-            scheduleEvaluationProgressUpdate()
-            let (scene, error) = evaluate(
-                program,
-                preview: true,
-                delegate: self,
-                cache: cache,
-                progress: evaluationProgress
-            )
-            let evaluated = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
-            if logCancelled() {
-                return
-            }
-            progress.setStatus(.partial(previousScene, .evaluated))
 
-            // Check for too many lights
-            let maxLights = 8
-            let nonAmbientLights = scene.lights.filter {
-                $0.light.map { SCNLight($0).type != .ambient } ?? false
-            }
-            if nonAmbientLights.count > maxLights {
-                throw RuntimeError(
-                    .assertionFailure("""
-                    There is a maximum of \(maxLights) non-ambient lights per scene. \
-                    This scene has \(nonAmbientLights.count) lights
-                    """),
-                    at: nonAmbientLights[maxLights].sourceLocation?
-                        .range(in: input) ?? input.startIndex ..< input.startIndex
+                let start = CFAbsoluteTimeGetCurrent()
+                Swift.print("[\(progress.id)] starting...")
+                if logCancelled() {
+                    return
+                }
+                progress.setStatus(.partial(previousScene, 0))
+
+                let program = try parse(input, at: fileURL)
+                let parsed = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
+                if logCancelled() {
+                    return
+                }
+                progress.setStatus(.partial(previousScene, .parsed))
+
+                let minUpdatePeriod: TimeInterval = 0.1
+                let evaluationProgress = EvaluationProgress()
+                @Sendable func scheduleEvaluationProgressUpdate() {
+                    progress.schedule(after: minUpdatePeriod) {
+                        guard !evaluationProgress.isFinished else {
+                            return
+                        }
+                        guard progress.inProgress, !progress.isCancelledOrFailed else {
+                            evaluationProgress.cancel()
+                            return
+                        }
+                        let evaluationFraction = evaluationProgress.fractionCompleted ?? 0
+                        let progressFraction = .parsed + evaluationFraction * (.evaluated - .parsed)
+                        progress.setStatus(.partial(previousScene, progressFraction))
+                        scheduleEvaluationProgressUpdate()
+                    }
+                }
+                scheduleEvaluationProgressUpdate()
+                let (scene, error) = evaluate(
+                    program,
+                    preview: true,
+                    delegate: self,
+                    cache: cache,
+                    progress: evaluationProgress
                 )
-            }
-
-            let renderProgress = RenderProgress()
-            let options = scene.outputOptions(
-                for: cameraSettings,
-                backgroundColor: Color(backgroundColor),
-                wireframe: showWireframe
-            )
-
-            // Clear errors and previous geometry
-            progress.setStatus(.partial(.empty, .evaluated))
-
-            @Sendable func scheduleRenderProgressUpdate() {
-                progress.schedule(after: minUpdatePeriod) {
-                    guard progress.inProgress, !renderProgress.isFinished else {
-                        return
-                    }
-                    guard !progress.isCancelledOrFailed else {
-                        renderProgress.cancel()
-                        return
-                    }
-                    Swift.print(String(format: "[\(progress.id)] rendering..."))
-                    scene.scnBuild(with: options)
-                    guard !renderProgress.isFinished else {
-                        return
-                    }
-                    guard progress.inProgress, !progress.isCancelledOrFailed else {
-                        renderProgress.cancel()
-                        return
-                    }
-                    let geometryFraction = renderProgress.fractionCompleted ?? 0
-                    let progressFraction = .evaluated + geometryFraction * (.geometryBuilt - .evaluated)
-                    progress.setStatus(.partial(scene, progressFraction))
-                    scheduleRenderProgressUpdate()
+                let evaluated = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
+                if logCancelled() {
+                    return
                 }
-            }
-            scheduleRenderProgressUpdate()
-            _ = scene.build(progress: renderProgress)
+                progress.setStatus(.partial(previousScene, .evaluated))
 
-            if logCancelled() {
-                return
-            }
+                // Check for too many lights
+                let maxLights = 8
+                let nonAmbientLights = scene.lights.filter {
+                    $0.light.map { SCNLight($0).type != .ambient } ?? false
+                }
+                if nonAmbientLights.count > maxLights {
+                    throw RuntimeError(
+                        .assertionFailure("""
+                        There is a maximum of \(maxLights) non-ambient lights per scene. \
+                        This scene has \(nonAmbientLights.count) lights
+                        """),
+                        at: nonAmbientLights[maxLights].sourceLocation?
+                            .range(in: input) ?? input.startIndex ..< input.startIndex
+                    )
+                }
 
-            let done = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
-            progress.setStatus(.partial(scene, .geometryBuilt))
-            scene.scnBuild(with: options)
+                let renderProgress = RenderProgress()
+                let options = scene.outputOptions(
+                    for: cameraSettings,
+                    backgroundColor: Color(backgroundColor),
+                    wireframe: showWireframe
+                )
 
-            // Show error
-            if let error {
+                // Clear errors and previous geometry
+                progress.setStatus(.partial(.empty, .evaluated))
+
+                @Sendable func scheduleRenderProgressUpdate() {
+                    progress.schedule(after: minUpdatePeriod) {
+                        guard progress.inProgress, !renderProgress.isFinished else {
+                            return
+                        }
+                        guard !progress.isCancelledOrFailed else {
+                            renderProgress.cancel()
+                            return
+                        }
+                        Swift.print(String(format: "[\(progress.id)] rendering..."))
+                        scene.scnBuild(with: options)
+                        guard !renderProgress.isFinished else {
+                            return
+                        }
+                        guard progress.inProgress, !progress.isCancelledOrFailed else {
+                            renderProgress.cancel()
+                            return
+                        }
+                        let geometryFraction = renderProgress.fractionCompleted ?? 0
+                        let progressFraction = .evaluated + geometryFraction * (.geometryBuilt - .evaluated)
+                        progress.setStatus(.partial(scene, progressFraction))
+                        scheduleRenderProgressUpdate()
+                    }
+                }
+                scheduleRenderProgressUpdate()
+                _ = scene.build(progress: renderProgress)
+
+                if logCancelled() {
+                    return
+                }
+
+                let done = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
                 progress.setStatus(.partial(scene, .geometryBuilt))
-                throw error
-            }
+                scene.scnBuild(with: options)
 
-            progress.setStatus(.success(scene))
-            let end = CFAbsoluteTimeGetCurrent()
-            Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
+                // Show error
+                if let error {
+                    progress.setStatus(.partial(scene, .geometryBuilt))
+                    throw error
+                }
+
+                progress.setStatus(.success(scene))
+                let end = CFAbsoluteTimeGetCurrent()
+                Swift.print(String(format: "[\(progress.id)] total: %.2fs", end - start))
+            }
         }
     }
 
