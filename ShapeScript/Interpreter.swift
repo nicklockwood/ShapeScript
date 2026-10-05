@@ -15,6 +15,7 @@ public let version: String = "1.11.6"
 
 public func evaluate(
     _ program: Program,
+    preview: Bool = false,
     options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache? = GeometryCache(),
@@ -22,6 +23,7 @@ public func evaluate(
 ) throws -> Scene {
     let (scene, error) = evaluate(
         program,
+        preview: preview,
         options: options,
         delegate: delegate,
         cache: cache,
@@ -36,6 +38,7 @@ public func evaluate(
 @_disfavoredOverload
 public func evaluate(
     _ program: Program,
+    preview: Bool = false,
     options: [String: Any] = [:],
     delegate: EvaluationDelegate?,
     cache: GeometryCache?,
@@ -49,6 +52,7 @@ public func evaluate(
     }
     let context = EvaluationContext(
         source: program.source,
+        preview: preview,
         delegate: delegate,
         isCancelled: isCancelled
     )
