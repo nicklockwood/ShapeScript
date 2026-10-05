@@ -8,8 +8,9 @@ APP_PATH="${SHAPESCRIPT_QUICKLOOK_APP_PATH:-$HOME/Applications/ShapeScript Viewe
 APPEX_PATH="$APP_PATH/Contents/PlugIns/Preview (Mac).appex"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 PLUGIN_IDS=(
-  "com.charcoaldesign.ShapeScriptViewer.Preview"
   "com.charcoaldesign.ShapeScriptMac.Preview"
+  "com.charcoaldesign.ShapeScriptMacViewer.Preview"
+  "com.charcoaldesign.ShapeScriptViewer.Preview"
 )
 
 log() {

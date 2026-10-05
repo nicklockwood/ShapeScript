@@ -232,6 +232,36 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertNotEqual(mesh.polygons.count, staleMesh.polygons.count)
     }
 
+    func testGeometryCacheAcceptsFuturePayloadVersion() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+
+        let program = try parse("cube")
+        let key = try XCTUnwrap(
+            evaluate(program, delegate: nil, cache: nil).children.first?.cacheKey
+        )
+        let futureMesh = Mesh.sphere(slices: 16)
+        let futurePayload = try JSONEncoder().encode(
+            StaleCachedMesh(version: "999.0.0", mesh: futureMesh)
+        )
+        let rawDiskCache = LRUDiskCache<GeometryCache.Key, Data>(
+            capacity: DiskCache.defaultCapacity,
+            directory: directory
+        )
+        try rawDiskCache.setValue(futurePayload, forKey: key)
+
+        let cache = makeCache(
+            directory: directory,
+            diskWritePolicy: alwaysStoreDiskPolicy
+        )
+        let scene = try evaluate(program, delegate: nil, cache: cache)
+        _ = scene.build { false }
+        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+
+        XCTAssertEqual(mesh.polygons.count, futureMesh.polygons.count)
+        XCTAssertNotEqual(mesh.polygons.count, Mesh.cube().polygons.count)
+    }
+
     func testGeometryCacheCanRemoveAllPersistedMeshes() async throws {
         let directory = makeTemporaryCacheDirectory()
         defer { removeTemporaryCacheDirectory(directory) }

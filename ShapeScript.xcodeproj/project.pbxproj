@@ -1402,7 +1402,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.11.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
 				REGISTER_APP_GROUPS = YES;
@@ -1450,7 +1450,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.11.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer;
 				PRODUCT_MODULE_NAME = Viewer;
 				PRODUCT_NAME = "ShapeScript Viewer";
 				REGISTER_APP_GROUPS = YES;
@@ -1466,6 +1466,7 @@
 		EADF1C5C2EE6EE200055F8D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Preview/Preview.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
@@ -1483,8 +1484,9 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.11.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1502,6 +1504,7 @@
 		EADF1C5D2EE6EE200055F8D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Preview/Preview.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8VQKF583ED;
@@ -1519,8 +1522,9 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 1.11.6;
-				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer.Preview;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer.Preview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
