@@ -107,7 +107,7 @@ jobs:
           appstore-connect-username: ${{ secrets.NOTARIZATION_USERNAME }}
           appstore-connect-password: ${{ secrets.NOTARIZATION_PASSWORD }}
           appstore-connect-team-id: 8VQKF583ED
-          primary-bundle-id: com.charcoaldesign.ShapeScriptViewer
+          primary-bundle-id: com.charcoaldesign.ShapeScriptMacViewer
           verbose: true
 
       - name: Staple notarization

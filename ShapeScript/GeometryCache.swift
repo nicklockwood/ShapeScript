@@ -6,6 +6,7 @@
 //  Copyright © 2021 Nick Lockwood. All rights reserved.
 //
 
+import CoreFoundation
 import Euclid
 import Foundation
 import LRUCache
@@ -143,21 +144,32 @@ extension DiskCache {
     }
 
     static var defaultDirectory: URL {
-        #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS) || os(visionOS)
+        #if os(macOS)
+        if let appGroupIdentifier {
+            let appGroupCachePath = "Library/Caches/\(cachePath)"
+            if let container = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
+            {
+                return container.appendingPathComponent(appGroupCachePath, isDirectory: true)
+            }
+            return FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Group Containers", isDirectory: true)
+                .appendingPathComponent(appGroupIdentifier, isDirectory: true)
+                .appendingPathComponent(appGroupCachePath, isDirectory: true)
+        }
+        #endif
+
         if let url = try? FileManager.default.url(
             for: .cachesDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         ) {
-            return url
-                .appendingPathComponent("ShapeScript", isDirectory: true)
-                .appendingPathComponent("GeometryCache", isDirectory: true)
+            return url.appendingPathComponent(cachePath, isDirectory: true)
         }
-        #endif
+
         return FileManager.default.temporaryDirectory
-            .appendingPathComponent("ShapeScript", isDirectory: true)
-            .appendingPathComponent("GeometryCache", isDirectory: true)
+            .appendingPathComponent(cachePath, isDirectory: true)
     }
 
     func value(forKey key: GeometryCache.Key) -> CachedMesh? {
@@ -179,6 +191,46 @@ extension DiskCache {
             object: self
         )
     }
+}
+
+private extension DiskCache {
+    static var appGroupIdentifier: String? {
+        #if os(macOS)
+        // Derive app group id at runtime
+        if let task = SecTaskCreateFromSelf(nil),
+           let value = SecTaskCopyValueForEntitlement(
+               task,
+               "com.apple.security.application-groups" as CFString,
+               nil
+           ) as? [String],
+           let identifier = value.first
+        {
+            return identifier
+        } else if !["app", "appex", "xctest"].contains(Bundle.main.bundleURL.pathExtension.lowercased()) {
+            // Use hard-coded app group for CLI
+            return "group.8VQKF583ED.com.charcoaldesign.ShapeScript"
+        }
+        #endif
+        // No app group on iOS currently
+        return nil
+    }
+
+    static var cachePath: String {
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+        "ShapeScript/GeometryCache"
+        #else
+        "shapescript/GeometryCache"
+        #endif
+    }
+
+    func performOnDiskQueue(_ action: @escaping @Sendable () -> Void) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                action()
+                continuation.resume()
+            }
+        }
+    }
 
     func async(_ action: @escaping @Sendable () -> Void) {
         queue.async(execute: action)
@@ -189,15 +241,6 @@ extension DiskCache {
             action()
         } else {
             queue.sync(execute: action)
-        }
-    }
-
-    private func performOnDiskQueue(_ action: @escaping @Sendable () -> Void) async {
-        await withCheckedContinuation { continuation in
-            queue.async {
-                action()
-                continuation.resume()
-            }
         }
     }
 }
@@ -407,11 +450,11 @@ struct CachedMesh: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.version = try container.decode(SemanticVersion.self, forKey: .version)
-        guard version == ShapeScript.version else {
+        guard version >= ShapeScript.version else {
             throw DecodingError.dataCorruptedError(
                 forKey: .version,
                 in: container,
-                debugDescription: "Cached mesh version does not match app version"
+                debugDescription: "Cached mesh version is older than app version"
             )
         }
         self.mesh = try container.decode(Mesh.self, forKey: .mesh)
