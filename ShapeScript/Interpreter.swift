@@ -442,7 +442,7 @@ private func _evaluate(
     case .success:
         do {
             try validateLightCount(in: scene, source: program.source)
-            if preview {
+            if preview, program.usesSymbol("preview") {
                 let silentDelegate = delegate.map(SilentDelegate.init)
                 let (_, exportError) = _evaluate(
                     program,
@@ -1061,6 +1061,10 @@ extension Program {
     var importCount: Int {
         statements.reduce(0) { $0 + $1.importCount }
     }
+
+    func usesSymbol(_ name: String) -> Bool {
+        statements.contains { $0.usesSymbol(name) }
+    }
 }
 
 private func evaluateParameters(
@@ -1290,6 +1294,15 @@ private extension Definition {
             expression.importCount
         }
     }
+
+    func usesSymbol(_ name: String) -> Bool {
+        switch type {
+        case let .block(block), let .function(_, block):
+            block.usesSymbol(name)
+        case let .expression(expression):
+            expression.usesSymbol(name)
+        }
+    }
 }
 
 extension EvaluationContext {
@@ -1408,6 +1421,10 @@ private extension Block {
 
     var importCount: Int {
         statements.reduce(0) { $0 + $1.importCount }
+    }
+
+    func usesSymbol(_ name: String) -> Bool {
+        statements.contains { $0.usesSymbol(name) }
     }
 }
 
@@ -1628,6 +1645,19 @@ private extension Statement {
             expression.importCount
         case let .expression(expression):
             expression.importCount
+        }
+    }
+
+    func usesSymbol(_ name: String) -> Bool {
+        switch type {
+        case let .command(identifier, expression):
+            identifier.name == name || expression?.usesSymbol(name) == true
+        case let .define(_, definition):
+            definition.usesSymbol(name)
+        case let .option(_, expression):
+            expression.usesSymbol(name)
+        case let .expression(expression):
+            expression.usesSymbol(name)
         }
     }
 }
@@ -2384,6 +2414,10 @@ extension Expression {
 
 private extension Expression {
     var importCount: Int { type.importCount }
+
+    func usesSymbol(_ name: String) -> Bool {
+        type.usesSymbol(name)
+    }
 }
 
 private extension ExpressionType {
@@ -2409,6 +2443,36 @@ private extension ExpressionType {
             expression.importCount + cases.reduce(0) {
                 $0 + $1.pattern.importCount + $1.body.importCount
             } + (elseBody?.importCount ?? 0)
+        }
+    }
+
+    func usesSymbol(_ name: String) -> Bool {
+        switch self {
+        case .number, .string, .color:
+            false
+        case let .identifier(identifier):
+            identifier == name
+        case let .block(identifier, block):
+            identifier.name == name || block.usesSymbol(name)
+        case let .tuple(expressions):
+            expressions.contains { $0.usesSymbol(name) }
+        case let .prefix(_, expression):
+            expression.usesSymbol(name)
+        case let .infix(lhs, _, rhs), let .subscript(lhs, rhs):
+            lhs.usesSymbol(name) || rhs.usesSymbol(name)
+        case let .member(expression, _):
+            expression.usesSymbol(name)
+        case .import:
+            true
+        case let .ifelse(condition, body, else: elseBody):
+            condition.usesSymbol(name) || body.usesSymbol(name) ||
+                elseBody?.usesSymbol(name) == true
+        case let .forloop(_, in: expression, block):
+            expression.usesSymbol(name) || block.usesSymbol(name)
+        case let .switchcase(expression, cases, else: elseBody):
+            expression.usesSymbol(name) || cases.contains {
+                $0.pattern.usesSymbol(name) || $0.body.usesSymbol(name)
+            } || elseBody?.usesSymbol(name) == true
         }
     }
 }
