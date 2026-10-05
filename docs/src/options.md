@@ -76,6 +76,12 @@ The `detail` command accepts a single integer value, which represents the number
 
 For curved shapes that are not circular, such as a custom [path](paths.md), the relationship between the `detail` value and the number of sections is not quite so straightforward, but typically 1/4 of the `detail` value will be applied to each curved section of the path.
 
+For expensive shapes or scenes, you can combine `detail` with the [preview](debugging.md#preview) symbol to use a lower detail level while viewing the scene, and a higher detail level when exporting:
+
+```swift
+detail if preview 8 else 64
+```
+
 ## Smoothing
 
 Similar to `detail`, `smoothing` is used to control the appearance of curved shapes.

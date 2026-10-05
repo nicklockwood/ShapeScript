@@ -101,6 +101,19 @@ difference {
 
 Hidden shapes are omitted before the model is generated, so a hidden child of a `difference`, `union`, `intersection`, `xor` or `stencil` block does not contribute to the result.
 
+## Preview
+
+ShapeScript provides a built-in `preview` symbol that is `true` while viewing a scene in the app, and `false` when exporting. You can use `preview` with ordinary conditionals to show helper geometry while editing, simplify expensive geometry, or use lower detail settings in the viewer:
+
+```swift
+if preview {
+    detail 8
+    layoutGuide
+} else {
+    detail 32
+}
+```
+
 ## Logging
 
 When creating complex scripts, it can sometimes be difficult to understand what's happening in the code. To help you debug your scripts, you can use the `print` command:

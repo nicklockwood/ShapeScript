@@ -251,7 +251,7 @@ final class CLIRunner {
             let program = try parse(input)
             let cache = GeometryCache()
             printStatus("Running script ...")
-            let scene = try evaluate(program, options: scriptOptions, delegate: self, cache: cache) { false }
+            let scene = try evaluate(program, options: scriptOptions, delegate: self, cache: cache)
             if buildGeometry {
                 printStatus("Building geometry ...")
                 _ = scene.build { false }
