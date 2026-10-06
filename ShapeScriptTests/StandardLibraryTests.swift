@@ -1605,6 +1605,20 @@ final class StandardLibraryTests: XCTestCase {
         ])
     }
 
+    func testInsetTransformedPath() {
+        let program = """
+        print inset (square {
+            size 2 3
+            position 1 2
+        }) 0.25
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [
+            Path.rectangle(width: 1.5, height: 2.5).translated(by: [1, 2, 0]),
+        ])
+    }
+
     func testInsetMesh() throws {
         let program = "print (inset cube 0.1).bounds"
         let delegate = TestDelegate()

@@ -912,20 +912,9 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)
         XCTAssertTrue(geometry.build { false })
-        let compoundGlyphs = geometry.children.compactMap { child -> Mesh? in
-            guard case let .extrude(paths, _) = child.type,
-                  paths.first?.subpaths.count ?? 0 > 1
-            else {
-                return nil
-            }
-            return child.mesh
-        }
-
-        XCTAssertEqual(compoundGlyphs.count, 4)
-        for mesh in compoundGlyphs {
-            XCTAssertTrue(mesh.isWatertight)
-            XCTAssertEqual(mesh.submeshes.filter { $0.signedVolume < 0 }.count, 1)
-        }
+        let mesh = try XCTUnwrap(geometry.mesh)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.submeshes.filter { $0.signedVolume < 0 }.count, 4)
         #endif
     }
 

@@ -732,8 +732,8 @@ final class GeometryCacheTests: XCTestCase {
         thing { color green }
         """), delegate: nil, cache: cache)
         _ = scene.build { false }
-        // Cache should have only 3 entries: sphere, path, minkowski
-        XCTAssertEqual(cache.count, 3)
+        // Path primitives have no mesh to cache: only sphere and minkowski are cached.
+        XCTAssertEqual(cache.count, 2)
         let meshes = scene.children.compactMap(\.mesh)
         XCTAssertEqual(meshes.count, 2)
         // Mesh colors are uniform, so neither has any baked material
@@ -770,8 +770,8 @@ final class GeometryCacheTests: XCTestCase {
         thing { color red }
         """), delegate: nil, cache: cache)
         _ = scene.build { false }
-        // Cache should have 5 entries: sphere, path1, path2, minkowski1, minkowski2
-        XCTAssertEqual(cache.count, 5)
+        // Path primitives have no mesh to cache: sphere, minkowski1 and minkowski2.
+        XCTAssertEqual(cache.count, 3)
         let meshes = scene.children.compactMap(\.mesh)
         XCTAssertEqual(meshes.count, 2)
         // Even though override colors are the same, each mesh has different random vertex colors
