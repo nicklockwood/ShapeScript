@@ -12,6 +12,91 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testTextPathInitializationSupportsCancellation() {
+        #if canImport(CoreText)
+        nonisolated(unsafe) var cancellationChecks = 0
+        let text = TextPath(text: [TextValue(string: "Hello")], wrapWidth: nil, detail: 2) {
+            cancellationChecks += 1
+            return true
+        }
+        XCTAssertGreaterThan(cancellationChecks, 0)
+        XCTAssertTrue(text.paths.isEmpty)
+        #endif
+    }
+
+    func testPathPrimitivesSurviveDefinitions() throws {
+        for primitive in ["circle", "square", "text \"Hello\""] {
+            let direct = try evaluate(parse(primitive), delegate: nil)
+            let expectedType = try XCTUnwrap(direct.children.first?.type)
+            let directScene = try evaluate(parse("extrude \(primitive)"), delegate: nil)
+            let directExtrusion = try XCTUnwrap(directScene.children.first)
+            XCTAssertTrue(directExtrusion.build { false })
+            let expectedMesh = try XCTUnwrap(directExtrusion.mesh)
+            #if canImport(CoreText)
+            XCTAssertFalse(expectedMesh.isEmpty, primitive)
+            #else
+            // Text paths are empty on platforms without CoreText.
+            XCTAssertEqual(expectedMesh.isEmpty, primitive == "text \"Hello\"", primitive)
+            #endif
+            for definition in ["define profile \(primitive)", "define profile { \(primitive) }"] {
+                let scene = try evaluate(parse("\(definition)\nextrude profile"), delegate: nil)
+                let extrusion = try XCTUnwrap(scene.children.first)
+                XCTAssertEqual(extrusion.children.map(\.type), [expectedType])
+                XCTAssertTrue(extrusion.build { false })
+                XCTAssertEqual(extrusion.mesh, expectedMesh, definition)
+            }
+        }
+    }
+
+    func testPathBuildersPreserveAndBuildPrimitivesConsistently() throws {
+        for builder in ["fill", "extrude", "lathe"] {
+            for primitive in ["circle", "square", "text \"Hello\""] {
+                let scene = try evaluate(parse("\(builder) \(primitive)"), delegate: nil)
+                let geometry = try XCTUnwrap(scene.children.first)
+                let child = try XCTUnwrap(geometry.children.first)
+                XCTAssertEqual(geometry.children.count, 1)
+                XCTAssertNotNil(child.path)
+                let paths = child.paths(pretransformed: true)
+                let expectedType: GeometryType = switch builder {
+                case "fill": .fill(paths)
+                case "extrude": .extrude(paths, .default)
+                default: .lathe(paths, segments: 16)
+                }
+                let context = EvaluationContext(source: "", delegate: nil)
+                let expected = Geometry(type: expectedType, in: context)
+                XCTAssertTrue(geometry.build { false })
+                XCTAssertTrue(expected.build { false })
+                XCTAssertEqual(geometry.mesh?.bounds, expected.mesh?.bounds)
+                XCTAssertEqual(geometry.volume { false }, expected.volume { false }, accuracy: 0.000001)
+                let bounds = geometry.exactBounds(with: .identity)
+                let expectedBounds = expected.exactBounds(with: .identity)
+                XCTAssertEqual(bounds.min, expectedBounds.min, accuracy: epsilon)
+                XCTAssertEqual(bounds.max, expectedBounds.max, accuracy: epsilon)
+            }
+        }
+    }
+
+    func testExtrusionBuildsMixedPrimitiveAndExplicitPaths() throws {
+        let scene = try evaluate(parse("""
+        extrude {
+            square { position -2 0 }
+            circle
+            path {
+                point 2 0
+                point 3 0
+                point 3 1
+                point 2 1
+                point 2 0
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.build { false })
+        XCTAssertEqual(geometry.mesh?.bounds.min, [-2.5, -0.5, -0.5])
+        XCTAssertEqual(geometry.mesh?.bounds.max, [3, 1, 0.5])
+        XCTAssertGreaterThan(geometry.volume { false }, 2.7)
+    }
+
     // MARK: Render progress
 
     func testRenderProgressDoesNotReportCompleteUntilFinished() {

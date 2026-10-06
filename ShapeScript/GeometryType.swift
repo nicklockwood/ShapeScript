@@ -70,6 +70,24 @@ public struct ExtrudeOptions: Hashable, Sendable, Codable {
     }
 }
 
+public struct TextPath: Hashable, Sendable, Codable {
+    public let text: [TextValue]
+    public let wrapWidth: Double?
+    public let detail: Int
+    let paths: [Path]
+}
+
+public extension TextPath {
+    init(text: [TextValue], wrapWidth: Double?, detail: Int, isCancelled: CancellationHandler) {
+        self.init(
+            text: text,
+            wrapWidth: wrapWidth,
+            detail: detail,
+            paths: Path.text(text, width: wrapWidth, detail: detail, isCancelled: isCancelled)
+        )
+    }
+}
+
 public enum GeometryType: Hashable, Sendable, Codable {
     case group
     // primitives
@@ -81,6 +99,7 @@ public enum GeometryType: Hashable, Sendable, Codable {
     // path primitives
     case circle(segments: Int)
     case square
+    case text(TextPath)
     // builders
     case extrude([Path], ExtrudeOptions)
     case lathe([Path], segments: Int)
@@ -109,9 +128,14 @@ public extension GeometryType {
             .circle(segments: segments)
         case .square:
             .square()
+        case let .text(text):
+            Path(subpaths: text.paths)
         case let .path(path):
             path
-        default:
+        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .mesh, .camera, .light:
             nil
         }
     }
@@ -124,6 +148,8 @@ public extension GeometryType {
             true
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square:
             false
+        case let .text(text):
+            text.paths.allSatisfy { $0.points.count < 2 }
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
              let .loft(shapes),
@@ -150,6 +176,8 @@ public extension GeometryType {
             return Path.circle(segments: segments).bounds
         case .square:
             return .init(min: [-0.5, -0.5], max: [0.5, 0.5])
+        case let .text(text):
+            return .init(text.paths.map(\.bounds))
         case let .cone(segments), let .cylinder(segments), let .sphere(segments):
             let bounds = Path.circle(segments: segments).bounds
                 .rotated(by: .roll(-.halfPi))
@@ -186,7 +214,7 @@ extension GeometryType {
         switch self {
         case let .extrude(paths, _), let .lathe(paths, _), let .fill(paths):
             !paths.isEmpty
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
              .loft, .path, .group, .camera, .light:
             true
         case .mesh, .hull, .minkowski, .union, .xor, .difference, .intersection, .stencil:
@@ -215,6 +243,8 @@ extension GeometryType {
             return Path.circle(segments: segments).pointPositions
         case .square:
             return [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
+        case let .text(text):
+            return text.paths.flatMap(\.pointPositions)
         case let .cone(segments):
             let points = Path.circle(segments: segments)
                 .rotated(by: .roll(-.halfPi))

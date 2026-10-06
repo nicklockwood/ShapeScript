@@ -534,7 +534,7 @@ final class InterpreterTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil)
         let first = try XCTUnwrap(scene.children.first)
         XCTAssertEqual(first.name, "Foo")
-        guard case .path = first.type else {
+        guard case .circle = first.type else {
             XCTFail()
             return
         }
@@ -1755,10 +1755,10 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         #if canImport(CoreText)
-        let line1 = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        XCTAssertEqual(line1.material.color, .red)
-        let line2 = try XCTUnwrap(context.state.children.last?.value as? Geometry)
-        XCTAssertEqual(line2.material.color, .blue)
+        let text = try XCTUnwrap(context.state.children.first?.value as? Geometry)
+        let paths = text.paths(pretransformed: true)
+        XCTAssertEqual(paths.first?.points.first?.color, .red)
+        XCTAssertEqual(paths.last?.points.first?.color, .blue)
         #endif
     }
 
@@ -2567,13 +2567,15 @@ final class InterpreterTests: XCTestCase {
     func testInvokeExtrudeWithSingleArgument() throws {
         let program = "extrude square"
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [.square])
     }
 
     func testInvokeExtrudeWithSingleArgumentInParens() throws {
         let program = "extrude(square)"
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [.square])
     }
 
     func testInvokeExtrudeWithMiterLimit() throws {
@@ -2592,7 +2594,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, 1)
     }
 
@@ -2612,7 +2616,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, 1)
     }
 
@@ -2624,7 +2630,8 @@ final class InterpreterTests: XCTestCase {
         }
         """
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [.square])
     }
 
     func testInvokeExtrudeInheritsMiterLimit() throws {
@@ -2643,7 +2650,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, 1)
     }
 
@@ -2663,7 +2672,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, 1)
     }
 
@@ -2684,7 +2695,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, 2)
     }
 
@@ -2705,7 +2718,9 @@ final class InterpreterTests: XCTestCase {
         guard case let .extrude(paths, options) = scene.children.first?.type else {
             return XCTFail("Expected extrude geometry, got \(String(describing: scene.children.first?.type))")
         }
-        XCTAssertEqual(paths, [.square()])
+        XCTAssertEqual(paths + (scene.children.first?.children.flatMap {
+            $0.paths(pretransformed: true)
+        } ?? []), [.square()])
         XCTAssertEqual(options.miterLimit, .infinity)
     }
 
@@ -2745,7 +2760,8 @@ final class InterpreterTests: XCTestCase {
         extrude square
         """
         let scene = try evaluate(parse(program), delegate: nil)
-        XCTAssertEqual(scene.children.first?.type, .extrude([.square()], .default))
+        XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
+        XCTAssertEqual(scene.children.first?.children.map(\.type), [.square])
     }
 
     func testMiterLimitGetterReturnsEmptyTupleWhenUnlimited() throws {
@@ -2766,8 +2782,8 @@ final class InterpreterTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: nil)
         XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
         XCTAssertEqual(scene.children.first?.children.map(\.type), [
-            .extrude([.square()], .default),
-            .extrude([.circle()], .default),
+            .square,
+            .circle(segments: 16),
         ])
     }
 
@@ -2776,7 +2792,8 @@ final class InterpreterTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: nil)
         #if canImport(CoreText)
         XCTAssertEqual(scene.children.first?.type, .extrude([], .default))
-        XCTAssertEqual(scene.children.first?.children.count, 3)
+        XCTAssertEqual(scene.children.first?.children.count, 1)
+        XCTAssertEqual(scene.children.first?.children.first?.paths(pretransformed: true).count, 3)
         #endif
     }
 
@@ -3094,8 +3111,8 @@ final class InterpreterTests: XCTestCase {
         foo
         """)
         let geometry = try evaluate(program, delegate: nil).children.first
-        XCTAssertEqual(geometry?.transform.rotation, .identity)
-        XCTAssertEqual(geometry?.path, Path.square().rotated(by: .roll(.halfturns(0.25))))
+        XCTAssertEqual(geometry?.transform.rotation, .roll(.halfturns(0.25)))
+        XCTAssertEqual(geometry?.path(pretransformed: true), Path.square().rotated(by: .roll(.halfturns(0.25))))
     }
 
     func testBlockThatReturnsPathsAllowsChildTransforms() throws {
@@ -3106,7 +3123,7 @@ final class InterpreterTests: XCTestCase {
         }
         foo
         """)
-        let paths = try evaluate(program, delegate: nil).children.compactMap(\.path)
+        let paths = try evaluate(program, delegate: nil).children.flatMap { $0.paths(pretransformed: true) }
         #if canImport(CoreText)
         XCTAssertEqual(paths, Path.text("hello").rotated(by: .roll(.halfturns(0.5))))
         #endif
@@ -3149,9 +3166,9 @@ final class InterpreterTests: XCTestCase {
         }
         """)
         let geometry = try evaluate(program, delegate: nil).children.first
-        XCTAssertEqual(geometry?.transform.rotation, .identity)
+        XCTAssertEqual(geometry?.transform.rotation, .roll(.halfturns(0.25)))
         XCTAssertEqual(
-            geometry?.path,
+            geometry?.path(pretransformed: true),
             Path.square().rotated(by: .roll(.halfturns(0.25))).translated(by: .unitX)
         )
     }
@@ -3166,7 +3183,7 @@ final class InterpreterTests: XCTestCase {
             position 1
         }
         """)
-        let paths = try evaluate(program, delegate: nil).children.compactMap(\.path)
+        let paths = try evaluate(program, delegate: nil).children.flatMap { $0.paths(pretransformed: true) }
         #if canImport(CoreText)
         XCTAssertEqual(paths, Path.text("hello").rotated(by: .roll(.halfturns(0.5))).translated(by: .unitX))
         #endif
@@ -5489,7 +5506,11 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        XCTAssertEqual(context.state.children.count, 4)
+        XCTAssertEqual(
+            context.state.children.compactMap { $0.value as? Geometry }
+                .flatMap { $0.paths(pretransformed: true) }.count,
+            4
+        )
         #endif
     }
 
@@ -5501,7 +5522,11 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program, delegate: nil)
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
-        XCTAssertEqual(context.state.children.count, 4)
+        XCTAssertEqual(
+            context.state.children.compactMap { $0.value as? Geometry }
+                .flatMap { $0.paths(pretransformed: true) }.count,
+            4
+        )
         #endif
     }
 
@@ -5514,8 +5539,9 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
         let chars = context.state.children.compactMap { $0.value as? Geometry }
-        XCTAssertEqual(chars.count, 4)
-        XCTAssertEqual(chars.first?.overestimatedBounds.min.y, chars.last?.overestimatedBounds.min.y)
+        let paths = chars.flatMap { $0.paths(pretransformed: true) }
+        XCTAssertEqual(paths.count, 4)
+        XCTAssertEqual(paths.first?.bounds.min.y, paths.last?.bounds.min.y)
         #endif
     }
 
@@ -5597,8 +5623,9 @@ final class InterpreterTests: XCTestCase {
         XCTAssertNoThrow(try parse(program).evaluate(in: context))
         #if canImport(CoreText)
         let chars = context.state.children.compactMap { $0.value as? Geometry }
-        XCTAssertEqual(chars.count, 2)
-        XCTAssertNotEqual(chars.first?.overestimatedBounds.size, chars.last?.overestimatedBounds.size)
+        let paths = chars.flatMap { $0.paths(pretransformed: true) }
+        XCTAssertEqual(paths.count, 2)
+        XCTAssertNotEqual(paths.first?.bounds.size, paths.last?.bounds.size)
         #endif
     }
 

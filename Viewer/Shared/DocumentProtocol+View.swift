@@ -643,7 +643,7 @@ private extension Geometry {
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
-             .circle, .square, .path:
+             .circle, .square, .text, .path:
             !isHidden && (!focus || isFocused)
         case .camera, .light, .group:
             false
@@ -664,7 +664,7 @@ private extension Geometry {
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
-             .circle, .square, .path, .group:
+             .circle, .square, .text, .path, .group:
             true
         }
     }
