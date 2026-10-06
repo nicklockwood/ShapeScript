@@ -579,20 +579,6 @@ final class UserBlock: @unchecked Sendable {
                     }
                     return .path(path.transformed(by: context.state.transform))
                 case let .mesh(geometry):
-                    if returnType.isSubtype(of: .path), let path = geometry.path(pretransformed: true) {
-                        guard context.state.name.isEmpty else {
-                            return .mesh(Geometry(
-                                type: .path(path),
-                                name: context.state.name,
-                                transform: context.state.transform,
-                                material: .default,
-                                smoothing: nil,
-                                children: [],
-                                sourceLocation: context.sourceLocation
-                            ))
-                        }
-                        return .path(path.transformed(by: context.state.transform))
-                    }
                     // TODO: why not just use `geometry.transformed(by: context.state.transform)`?
                     // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                     return .mesh(Geometry(
@@ -615,7 +601,12 @@ final class UserBlock: @unchecked Sendable {
             } else if context.state.name.isEmpty,
                       // Preserve tuple semantics for blocks that return paths
                       // or mix geometry with other values
-                      !children.contains(where: { $0.type.isSubtype(of: .mesh) }) ||
+                      !children.contains(where: {
+                          if case let .mesh(geometry) = $0.unpretransformed() {
+                              return geometry.type.path == nil
+                          }
+                          return false
+                      }) ||
                       children.contains(where: { !$0.isConvertible(to: .mesh) })
             {
                 return .tuple(children.map {
@@ -1324,6 +1315,25 @@ extension EvaluationContext {
         guard value.isFinite else {
             throw RuntimeErrorType.assertionFailure("Values must be finite")
         }
+        if ValueType.path.isSubtype(of: state.childTypes),
+           !ValueType.mesh.isSubtype(of: state.childTypes)
+        {
+            if case let .mesh(geometry) = value, geometry.type.path != nil {
+                let geometry = geometry.transformed(by: state.childTransform)
+                geometry.gatherNamedObjects(&namedObjects)
+                state.children.append(.mesh(geometry))
+                return
+            } else if case let .tuple(values) = value {
+                try values.forEach(addValue)
+                return
+            } else if case let .pretransformed(value) = value {
+                let transform = state.childTransform
+                state.childTransform = .identity
+                defer { state.childTransform = transform }
+                try addValue(value)
+                return
+            }
+        }
         if let value = try value.as(state.childTypes, in: self) {
             func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
                 switch value {
@@ -1546,7 +1556,7 @@ extension Statement {
             switch value {
             case let .mesh(geometry):
                 switch geometry.type {
-                case .circle, .square:
+                case .circle, .square, .text:
                     break
                 case .cone, .cylinder, .icosphere, .sphere, .cube,
                      .extrude, .lathe, .loft, .fill, .hull, .minkowski,
@@ -1742,6 +1752,9 @@ extension Expression {
                 guard coerceBlockReturn else {
                     return value
                 }
+                if case let .mesh(geometry) = value, geometry.type.path != nil {
+                    return value
+                }
                 return try value.as(type.returnType, in: context) ?? value
             case let .constant(value), let .option(value):
                 return value
@@ -1781,6 +1794,9 @@ extension Expression {
                 }
                 let value = try RuntimeError.wrap(context.callBlock(fn, with: newContext, at: range), at: range)
                 guard coerceBlockReturn else {
+                    return value
+                }
+                if case let .mesh(geometry) = value, geometry.type.path != nil {
                     return value
                 }
                 if case let .tuple(values) = value,
@@ -2073,7 +2089,7 @@ extension Expression {
                 throw RuntimeErrorType.assertionFailure("\(op.rawValue) should be handled by earlier case")
             }
         case let .member(expression, member):
-            let value = try expression.evaluate(in: context)
+            let value = try expression.evaluate(in: context).materializedPathValue
             if let memberValue = value[member.name, context.isCancelled] {
                 assert([.void, .number(0)].contains(memberValue) || value.hasMember(member.name))
                 return memberValue
@@ -2081,7 +2097,7 @@ extension Expression {
             // TODO: if hasMember() == true, should we return void instead of an error?
             throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)
         case let .subscript(lhs, rhs):
-            let value = try lhs.evaluate(in: context)
+            let value = try lhs.evaluate(in: context).materializedPathValue
             let indexType = ValueType.union([.number, .range, .partialRange, .string])
             let index = try rhs.evaluate(as: indexType, for: "index", in: context)
             switch index {

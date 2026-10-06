@@ -103,7 +103,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .intersection, .lathe:
             childDebug || childIsFocused ? children : []
         case .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .path, .camera, .light:
+             .circle, .square, .text, .path, .camera, .light:
             []
         }
         guard focus, !isFocused else {
@@ -123,7 +123,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
             mesh != nil && (childDebug || childIsFocused)
         case .group,
              .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .path, .mesh, .camera, .light:
+             .circle, .square, .text, .path, .mesh, .camera, .light:
             false
         }
     }
@@ -222,10 +222,42 @@ public final class Geometry: Hashable, @unchecked Sendable {
         var useMaterialForCache = false
         var children = children
         var type = type
+        // Keep semantic path children alongside any explicit paths. The explicit paths
+        // retain the existing normalization and per-glyph mesh caching behavior.
+        if children.contains(where: { $0.path != nil }) {
+            let pathType: GeometryType?
+            switch type {
+            case let .extrude(paths, options) where !paths.isEmpty:
+                pathType = type
+                type = .extrude([], options)
+            case let .lathe(paths, segments) where !paths.isEmpty:
+                pathType = type
+                type = .lathe([], segments: segments)
+            case let .fill(paths) where !paths.isEmpty:
+                pathType = type
+                type = .fill([])
+            case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+                 .circle, .square, .text, .path, .mesh, .camera, .light,
+                 .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+                 .union, .difference, .intersection, .xor, .stencil:
+                pathType = nil
+            }
+            if let pathType {
+                children.append(Geometry(
+                    type: pathType,
+                    name: nil,
+                    transform: .identity,
+                    material: material,
+                    smoothing: smoothing,
+                    children: [],
+                    sourceLocation: sourceLocation
+                ))
+            }
+        }
         switch type {
         case var .extrude(paths, options):
             switch (paths.count, options.along.count) {
-            case (0, 0):
+            case (0, _):
                 break
             case (1, 0):
                 (paths, material) = paths.vertexColorsToMaterial(material: material)
@@ -333,6 +365,15 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case var .path(path):
             (path, material) = path.vertexColorsToMaterial(material: material)
             type = .path(path)
+        case let .text(text):
+            let paths: [Path]
+            (paths, material) = text.paths.vertexColorsToMaterial(material: material)
+            type = .text(TextPath(
+                text: text.text,
+                wrapWidth: text.wrapWidth,
+                detail: text.detail,
+                paths: paths
+            ))
         case let .mesh(mesh) where !mesh.isEmpty:
             material = mesh.materials.first as? Material ?? .default
         case .hull, .minkowski:
@@ -431,13 +472,21 @@ public final class Geometry: Hashable, @unchecked Sendable {
                 }
         case .union, .xor, .group:
             self._overestimatedBounds = Bounds(visibleChildren.map(\.overestimatedBounds))
+        case let .extrude([], options):
+            let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
+            self._overestimatedBounds = GeometryType.extrude(paths, options).bounds
+                .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
+        case let .lathe([], segments):
+            let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
+            self._overestimatedBounds = GeometryType.lathe(paths, segments: segments).bounds
+                .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
             self._overestimatedBounds = type.bounds.union(Bounds(visibleChildren.map(\.overestimatedBounds)))
         case .minkowski:
             self._overestimatedBounds = visibleChildren.reduce(.empty) {
                 $0.minkowskiSum(with: $1.overestimatedBounds)
             }
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .path:
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text, .path:
             self._overestimatedBounds = type.bounds
         case .camera, .light:
             self._overestimatedBounds = .empty
@@ -491,11 +540,27 @@ public extension Geometry {
         case .square:
             let path = Path.square(color: material.color)
             return pretransformed ? path.transformed(by: transform) : path
+        case let .text(text):
+            let path = Path(subpaths: text.paths.map { $0.materialToVertexColors(material: material) })
+            return pretransformed ? path.transformed(by: transform) : path
         case let .path(path):
             return pretransformed ? path.transformed(by: transform) : path
-        default:
+        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .mesh, .camera, .light:
             return nil
         }
+    }
+
+    /// Paths represented by a primitive, preserving individual text glyphs for caching.
+    func paths(pretransformed: Bool) -> [Path] {
+        let paths: [Path] = if case let .text(text) = type {
+            text.paths.map { $0.materialToVertexColors(material: material) }
+        } else {
+            path.map { [$0] } ?? []
+        }
+        return pretransformed ? paths.transformed(by: transform) : paths
     }
 
     /// Returns `true` if the geometry's' children should be rendered in debug mode
@@ -606,6 +671,27 @@ public extension Geometry {
             ]
         }
 
+        if !children.isEmpty, children.allSatisfy({ $0.path != nil }) {
+            let paths = children.flatMap { $0.paths(pretransformed: true) }
+            let builderType: GeometryType? = switch type {
+            case let .extrude([], options): .extrude(paths, options)
+            case let .lathe([], segments): .lathe(paths, segments: segments)
+            case .fill([]): .fill(paths)
+            case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+                 .circle, .square, .text, .path, .mesh, .camera, .light,
+                 .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+                 .union, .difference, .intersection, .xor, .stencil:
+                nil
+            }
+            if let builderType {
+                return copy(type: builderType).insetByRewritingPrimitives(
+                    by: distance,
+                    sourceLocation: sourceLocation,
+                    isCancelled: isCancelled
+                )
+            }
+        }
+
         switch type {
         case .cube:
             return copy(transform: transform * .scale(insetScale(for: .init(size: 0.5))))
@@ -651,8 +737,10 @@ public extension Geometry {
             return copy(children: inset)
         case let .loft(paths):
             return copy(type: .loft(paths.map { $0.inset(by: distance, isCancelled: isCancelled) }))
-        case .circle, .square, .path:
-            return copy(type: path.map { .path($0.inset(by: distance, isCancelled: isCancelled)) } ?? type)
+        case .circle, .square, .text, .path:
+            return copy(type: path(pretransformed: true).map {
+                .path($0.inset(by: distance, isCancelled: isCancelled))
+            } ?? type, transform: .identity)
         case let .fill(paths) where paths.count == 1:
             return copy(type: .fill([paths[0].inset(by: distance, isCancelled: isCancelled)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
@@ -884,7 +972,7 @@ private extension GeometryType {
         case .hull, .minkowski:
             true
         case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .circle, .square, .text, .extrude, .lathe, .loft, .fill,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh, .camera, .light:
             false
@@ -900,7 +988,7 @@ private extension GeometryType {
             return [first] + children.dropFirst().filter { !$0.isHidden }
         case .camera, .light,
              .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .path:
+             .circle, .square, .text, .path:
             return []
         case .group, .union, .xor, .intersection, .lathe, .extrude, .loft, .fill,
              .hull, .minkowski, .mesh:
@@ -1038,7 +1126,7 @@ private extension Geometry {
             visibleChildren.first?.leafProgressUnitCount ?? 0
         case .group, .union, .xor, .intersection, .hull, .minkowski,
              .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .circle, .square, .text, .extrude, .lathe, .loft, .fill,
              .path, .mesh, .camera, .light:
             visibleChildren.reduce(0) { $0 + $1.leafProgressUnitCount }
         }
@@ -1072,20 +1160,26 @@ private extension Geometry {
         }
 
         switch type {
-        case .group, .circle, .square, .path, .camera, .light, .cube:
+        case .group, .circle, .square, .text, .path, .camera, .light, .cube:
             return 1
         case let .cone(segments), let .cylinder(segments), let .sphere(segments):
             return bounded(segments)
         case let .icosphere(subdivisions):
             return bounded(20 << min(max(0, subdivisions), 8))
         case let .extrude(paths, options):
-            let profileCount = pathPointCount(paths)
+            let profileCount = pathPointCount(paths + visibleChildren.flatMap {
+                $0.paths(pretransformed: true)
+            })
             let alongCount = pathPointCount(options.along)
             return bounded(profileCount * max(1, alongCount))
         case let .lathe(paths, segments):
-            return bounded(pathPointCount(paths) * max(1, segments))
+            return bounded(pathPointCount(paths + visibleChildren.flatMap {
+                $0.paths(pretransformed: true)
+            }) * max(1, segments))
         case let .loft(paths), let .fill(paths):
-            return bounded(pathPointCount(paths))
+            return bounded(pathPointCount(paths + visibleChildren.flatMap {
+                $0.paths(pretransformed: true)
+            }))
         case let .hull(vertices):
             return bounded(vertices.count)
         case let .mesh(mesh):
@@ -1139,7 +1233,7 @@ private extension Geometry {
             return bounded(mesh.polygons.count + childPolygonCount())
         case .hull:
             return bounded(ownBuildProgressUnitCount + childPolygonCount())
-        case .circle, .square, .path, .camera, .light:
+        case .circle, .square, .text, .path, .camera, .light:
             return 0
         case let .cone(segments):
             return product(segments, 2)
@@ -1285,7 +1379,7 @@ private extension Geometry {
                 }
             }
         case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .circle, .square, .text, .extrude, .lathe, .loft, .fill,
              .hull, .path, .mesh, .camera, .light:
             break
         }
@@ -1429,7 +1523,7 @@ private extension Geometry {
             return visibleChildren.first?.buildLeaves(progress, plan: plan) ?? true
         case .group, .union, .xor, .intersection, .hull, .minkowski,
              .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .extrude, .lathe, .loft, .fill,
+             .circle, .square, .text, .extrude, .lathe, .loft, .fill,
              .path, .mesh, .camera, .light:
             for child in visibleChildren where !child.buildLeaves(progress, plan: plan) {
                 return false
@@ -1461,7 +1555,7 @@ private extension Geometry {
             assert(mesh != nil) // Already built by buildLeaves
         case .mesh:
             break // Children-only or mesh + children
-        case .group, .circle, .square, .path,
+        case .group, .circle, .square, .text, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:
             assert(isLeaf) // Leaves
@@ -1523,7 +1617,11 @@ private extension Geometry {
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
     func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        cache?.buildMesh(for: self) { mesh in
+        if !hasMesh {
+            mesh = .empty
+            return !isCancelled()
+        }
+        return cache?.buildMesh(for: self) { mesh in
             if let mesh {
                 self.mesh = mesh
                 return !isCancelled()
@@ -1538,7 +1636,7 @@ private extension Geometry {
     func buildUncachedMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
         guard !isCancelled() else { return false }
         switch type {
-        case .group, .circle, .square, .path, .camera, .light:
+        case .group, .circle, .square, .text, .path, .camera, .light:
             mesh = .empty
         case let .cone(segments):
             mesh = .cone(slices: segments, isCancelled: isCancelled)
@@ -1666,7 +1764,40 @@ private extension Geometry {
             }
             mesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case .union, .lathe, .extrude, .fill:
-            mesh = .union(childMeshes(isCancelled), isCancelled: isCancelled)
+            let meshes = visibleChildren.compactMap { child -> Mesh? in
+                let paths = child.paths(pretransformed: true)
+                guard !paths.isEmpty else {
+                    return child.flattened(with: material, isCancelled)
+                }
+                let builderType: GeometryType
+                switch type {
+                case let .extrude(_, options): builderType = .extrude(paths, options)
+                case let .lathe(_, segments): builderType = .lathe(paths, segments: segments)
+                case .fill: builderType = .fill(paths)
+                case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+                     .circle, .square, .text, .path, .mesh, .camera, .light,
+                     .loft, .hull, .minkowski, .union, .difference,
+                     .intersection, .xor, .stencil:
+                    return child.flattened(with: material, isCancelled)
+                }
+                let builder = Geometry(
+                    type: builderType,
+                    name: nil,
+                    transform: .identity,
+                    material: material,
+                    smoothing: smoothing,
+                    children: [],
+                    sourceLocation: _sourceLocation
+                )
+                if builder.children.isEmpty {
+                    builder.cache = cache
+                } else {
+                    builder.children.forEach { $0.cache = cache }
+                }
+                guard builder.build(isCancelled) else { return nil }
+                return builder.flattened(with: material, isCancelled)
+            }
+            mesh = .union(meshes, isCancelled: isCancelled)
         case .xor:
             mesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
         case .difference:
@@ -1964,7 +2095,7 @@ public extension Geometry {
     /// - Note: this will return `true` even if mesh is empty has not been built yet
     var hasMesh: Bool {
         switch type {
-        case .camera, .light, .circle, .square, .path:
+        case .camera, .light, .circle, .square, .text, .path:
             false
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
@@ -1978,7 +2109,7 @@ public extension Geometry {
     /// This can be used to inspect geometry without triggering additional mesh generation.
     var hasBuiltMeshes: Bool {
         switch type {
-        case .camera, .light, .circle, .square, .path, .group:
+        case .camera, .light, .circle, .square, .text, .path, .group:
             break
         case .union where parent?.distributableMinkowskiUnion === self && parent?.mesh != nil:
             break
@@ -2001,7 +2132,7 @@ public extension Geometry {
             children.reduce(0) { $0 + $1.objectCount }
         case .camera, .light:
             0
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .path, .mesh:
@@ -2013,7 +2144,7 @@ public extension Geometry {
     /// - Note: only child meshes or groups are counted
     var childCount: Int {
         switch type {
-        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
+        case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
              .extrude, .lathe, .fill, .loft,
              .mesh, .path, .camera, .light:
             0 // TODO: should paths/points/submeshes be treated as children?
@@ -2067,12 +2198,15 @@ public extension Geometry {
         switch type {
         case .camera, .light:
             return .empty
+        case .lathe([], _) where visibleChildren.contains(where: { $0.path != nil }),
+             .extrude([], _) where visibleChildren.contains(where: { $0.path != nil }):
+            return mesh(isCancelled)?.transformed(by: transform).bounds ?? .empty
         case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
             return Bounds(visibleChildren.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
             })
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
-             .path, .extrude, .lathe:
+             .text, .path, .extrude, .lathe:
             assert(children.isEmpty)
             if transform.rotation == .identity {
                 return type.bounds.transformed(by: transform)

@@ -39,11 +39,11 @@ extension String: Loggable {
 }
 
 extension TextValue: Loggable {
-    var logDescription: String {
+    public var logDescription: String {
         string
     }
 
-    var nestedLogDescription: String {
+    public var nestedLogDescription: String {
         string.nestedLogDescription
     }
 }
@@ -246,6 +246,7 @@ extension GeometryType: Loggable {
         case .cube: "cube"
         case .circle: "circle"
         case .square: "square"
+        case .text: "text"
         case .extrude: "extrusion"
         case .lathe: "lathe"
         case .loft: "loft"

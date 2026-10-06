@@ -230,17 +230,18 @@ extension Symbols {
             } ?? .default
             if let along = context.value(for: "along")?.tupleValue as? [Path] {
                 // shapes follow a common path
+                // Sweeps require explicit profiles and cannot retain native CSG primitives.
                 return .mesh(Geometry(type: .extrude(context.paths, .init(
                     along: along.map { $0.withDetail(context.state.detail, forTwist: twist) },
                     twist: twist,
                     align: align,
                     miterLimit: miterLimit
-                )), in: context))
+                )), in: context, children: []))
             }
             if twist == .zero {
                 // Fast path - can reuse meshes (good for text)
                 return .mesh(Geometry(
-                    type: .extrude(context.paths, .default),
+                    type: .extrude(context.rawPaths, .default),
                     in: context
                 ))
             }
@@ -254,20 +255,20 @@ extension Symbols {
                     twist: twist,
                     align: align,
                     miterLimit: nil
-                )), in: context))
+                )), in: context, children: []))
             })
         },
         "lathe": .block(.builder) { context in
             .mesh(Geometry(
-                type: .lathe(context.paths, segments: context.state.detail),
+                type: .lathe(context.rawPaths, segments: context.state.detail),
                 in: context
             ))
         },
         "loft": .block(.builder) { context in
-            .mesh(Geometry(type: .loft(context.paths), in: context))
+            .mesh(Geometry(type: .loft(context.paths), in: context, children: []))
         },
         "fill": .block(.builder) { context in
-            .mesh(Geometry(type: .fill(context.paths), in: context))
+            .mesh(Geometry(type: .fill(context.rawPaths), in: context))
         },
         "hull": .block(.hull) { context in
             let vertices = try context.state.children.flatMap { child -> [Vertex] in
@@ -383,8 +384,15 @@ extension Symbols {
                 }
                 points.removeAll()
             }
-            for i in context.state.children.indices {
-                let child = context.state.children[i]
+            // This operation constructs a new path, so materialize primitive outlines.
+            let children = context.state.children.flatMap { child -> [ShapeScript.Value] in
+                if case let .mesh(geometry) = child {
+                    return geometry.paths(pretransformed: true).map(ShapeScript.Value.path)
+                }
+                return [child]
+            }
+            for i in children.indices {
+                let child = children[i]
                 switch child {
                 case let .point(point):
                     points.append(point)
@@ -394,11 +402,14 @@ extension Symbols {
                     }
                     endPath()
                     subpaths.append(path)
-                    if !path.isClosed, context.state.children.indices.contains(i + 1), {
-                        switch context.state.children[i + 1] {
+                    if !path.isClosed, children.indices.contains(i + 1), {
+                        switch children[i + 1] {
                         case .point: true
                         case let .path(path): !path.isClosed
-                        default: false
+                        case .color, .texture, .material, .boolean, .number, .radians,
+                             .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                             .polygon, .mesh, .tuple, .range, .bounds, .object, .pretransformed:
+                            false
                         }
                     }(), let point = path.points.last {
                         points.append(point.curved(false))
@@ -408,7 +419,9 @@ extension Symbols {
                     throw RuntimeErrorType.assertionFailure(
                         "Unexpected child of type tuple in path"
                     )
-                default:
+                case .color, .texture, .material, .boolean, .number, .radians,
+                     .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                     .polygon, .mesh, .range, .bounds, .object, .pretransformed:
                     throw RuntimeErrorType.assertionFailure(
                         "Unexpected child of type \(child.errorDescription) in path"
                     )
@@ -489,14 +502,16 @@ extension Symbols {
             "linespacing": .number,
         ], .text, .list(.path))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
-            let text = context.state.children.compactMap { $0.value as? TextValue }
-            let paths = Path.text(
-                text,
-                width: width,
+            let text = context.state.children.compactMap { value -> TextValue? in
+                if case let .text(text) = value.unpretransformed() { return text }
+                return nil
+            }
+            return .mesh(Geometry(type: .text(TextPath(
+                text: text,
+                wrapWidth: width,
                 detail: context.state.detail / 8,
                 isCancelled: context.isCancelled
-            )
-            return .tuple(paths.map { .path($0.transformed(by: context.state.transform)) })
+            )), in: context, children: []))
         },
         "svgpath": .block(.init(.pathShape, [:], .string, .path)) { context in
             let text = context.state.children.map(\.stringValue).joined(separator: "\n")
@@ -563,7 +578,7 @@ extension Symbols {
     static let functions: Symbols = [
         // Debug
         "print": .command(.list(.any)) { value, context in
-            context.debugLog(value.tupleValue)
+            context.debugLog(value.materializedPathValue.tupleValue)
         },
         "assert": .command(.tuple([.boolean, .optional(.string)])) { value, _ in
             let values = value.tupleValue
@@ -832,19 +847,36 @@ extension Symbols {
 
 extension EvaluationContext {
     var paths: [Path] {
+        state.children.flatMap { value -> [Path] in
+            switch value {
+            case let .path(path): [path]
+            case let .mesh(geometry): geometry.paths(pretransformed: true)
+            case .color, .texture, .material, .boolean, .number, .radians,
+                 .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                 .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
+                []
+            }
+        }
+    }
+
+    var rawPaths: [Path] {
         state.children.compactMap { $0.value as? Path }
     }
 }
 
 extension Geometry {
-    convenience init(type: GeometryType, in context: EvaluationContext) {
+    convenience init(
+        type: GeometryType,
+        in context: EvaluationContext,
+        children: [Geometry]? = nil
+    ) {
         self.init(
             type: type,
             name: context.state.name,
             transform: context.state.transform,
             material: context.state.material,
             smoothing: context.state.smoothing,
-            children: context.state.children.compactMap { $0.value as? Geometry },
+            children: children ?? context.state.children.compactMap { $0.value as? Geometry },
             sourceLocation: context.sourceLocation
         )
     }

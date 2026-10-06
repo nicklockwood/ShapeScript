@@ -126,11 +126,18 @@ extension RangeValue {
     }
 }
 
-struct TextValue: Hashable {
-    var string: String
-    var font: String?
-    var color: Color?
-    var linespacing: Double?
+public struct TextValue: Hashable, Sendable, Codable {
+    public var string: String
+    public var font: String?
+    public var color: Color?
+    public var linespacing: Double?
+
+    public init(string: String, font: String? = nil, color: Color? = nil, linespacing: Double? = nil) {
+        self.string = string
+        self.font = font
+        self.color = color
+        self.linespacing = linespacing
+    }
 }
 
 extension Value {
@@ -203,7 +210,7 @@ extension Value {
             case .icosphere: "icosphere"
             case .sphere: "sphere"
             case .cube: "cube"
-            case .circle, .square, .path: "path"
+            case .circle, .square, .text, .path: "path"
             case .group, .extrude, .lathe, .loft, .fill, .hull, .minkowski, .union, .difference,
                  .intersection, .xor, .stencil, .mesh:
                 "mesh"
@@ -239,6 +246,33 @@ extension Value {
         case let .bounds(bounds): bounds
         case let .object(values): values.mapValues { $0.value }
         case let .pretransformed(value): value.value
+        }
+    }
+
+    /// Extract outlines only when an operation needs path data rather than geometry.
+    var materializedPathValue: Value {
+        switch self {
+        case let .mesh(geometry):
+            guard geometry.type.path != nil else { return self }
+            if case .text = geometry.type {
+                return .tuple(geometry.paths(pretransformed: true).map(Value.path))
+            }
+            return geometry.path(pretransformed: true).map(Value.path) ?? self
+        case let .tuple(values):
+            return .tuple(values.flatMap { value -> [Value] in
+                if case let .mesh(geometry) = value.unpretransformed(),
+                   case .text = geometry.type
+                {
+                    return geometry.paths(pretransformed: true).map(Value.path)
+                }
+                return [value.materializedPathValue]
+            })
+        case let .pretransformed(value):
+            return .pretransformed(value.materializedPathValue)
+        case .color, .texture, .material, .boolean, .number, .radians, .halfturns,
+             .vector, .size, .rotation, .string, .font, .text, .path,
+             .polygon, .point, .range, .bounds, .object:
+            return self
         }
     }
 
