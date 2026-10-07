@@ -22,10 +22,6 @@ typealias OSTextView = NSTextView
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/mac/")!
 
-extension UTType {
-    static let shape: Self = .init(exportedAs: "com.charcoaldesign.shapescript-source", conformingTo: .script)
-}
-
 @MainActor func loadRTF(_ file: String) -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
     let data = try! Data(contentsOf: file)

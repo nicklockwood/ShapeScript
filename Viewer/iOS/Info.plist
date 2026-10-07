@@ -89,12 +89,12 @@
 			<string>com.charcoaldesign.ShapeScript</string>
 		</dict>
 	</array>
-	<key>UTImportedTypeDeclarations</key>
+	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.c-source</string>
+				<string>public.source-code</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>ShapeScript document</string>
