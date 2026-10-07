@@ -595,7 +595,7 @@ private extension MemberwiseConstructor {
         $0["hue"] ?? $0["saturation"] ?? $0["brightness"] != nil
     }) { values in
         guard values["red"] ?? values["green"] ?? values["blue"] == nil else {
-            throw RuntimeErrorType.assertionFailure(
+            throw RuntimeErrorType.custom(
                 "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
             )
         }
@@ -620,7 +620,7 @@ private extension MemberwiseConstructor {
         $0["axis"] ?? $0["angle"] != nil
     }) { values in
         guard values["roll"] ?? values["yaw"] ?? values["pitch"] == nil else {
-            throw RuntimeErrorType.assertionFailure(
+            throw RuntimeErrorType.custom(
                 "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
             )
         }
@@ -628,7 +628,7 @@ private extension MemberwiseConstructor {
             axis: values["axis"]?.vectorValue ?? .unitZ,
             angle: values["angle"]?.angleValue ?? .zero
         ) else {
-            throw RuntimeErrorType.assertionFailure("Axis vector must be nonzero")
+            throw RuntimeErrorType.zeroAxisVector
         }
         return .rotation(rotation)
     }

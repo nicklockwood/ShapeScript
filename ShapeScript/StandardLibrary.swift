@@ -280,9 +280,7 @@ extension Symbols {
                 case .mesh:
                     return []
                 default:
-                    throw RuntimeErrorType.assertionFailure(
-                        "Unexpected child of type \(child.type) in hull"
-                    )
+                    throw RuntimeErrorType.unexpectedChild(ofType: "\(child.type)", in: "hull")
                 }
             }
             return .mesh(Geometry(type: .hull(vertices), in: context))
@@ -416,15 +414,11 @@ extension Symbols {
                     }
                 case .tuple:
                     // Special case due to tuple type returning element type
-                    throw RuntimeErrorType.assertionFailure(
-                        "Unexpected child of type tuple in path"
-                    )
+                    throw RuntimeErrorType.unexpectedChild(ofType: "tuple", in: "path")
                 case .color, .texture, .material, .boolean, .number, .radians,
                      .halfturns, .vector, .size, .rotation, .string, .font, .text,
                      .polygon, .mesh, .range, .bounds, .object, .pretransformed:
-                    throw RuntimeErrorType.assertionFailure(
-                        "Unexpected child of type \(child.errorDescription) in path"
-                    )
+                    throw RuntimeErrorType.unexpectedChild(ofType: child.errorDescription, in: "path")
                 }
             }
             endPath()
@@ -467,7 +461,7 @@ extension Symbols {
             let points = context.state.children.compactMap { $0.value as? PathPoint }
             if !points.isEmpty {
                 if sides != nil {
-                    throw RuntimeErrorType.assertionFailure("Polygon cannot have both sides and points")
+                    throw RuntimeErrorType.custom("Polygon cannot have both sides and points")
                 }
                 let path = Path(points).transformed(by: context.state.transform)
                 let polygons = path.closed().facePolygons(
@@ -519,7 +513,7 @@ extension Symbols {
             do {
                 svgPath = try SVGPath(string: text)
             } catch let error as SVGError {
-                throw RuntimeErrorType.assertionFailure(error.message)
+                throw RuntimeErrorType.custom(error.message)
             }
             return .path(Path(
                 svgPath,
@@ -713,9 +707,7 @@ extension Symbols {
                   case let .tuple(stringValues) = args[0],
                   case let .string(separator) = args[1]
             else {
-                throw RuntimeErrorType.assertionFailure(
-                    "Invalid arguments to join function"
-                )
+                throw RuntimeErrorType.custom("Invalid arguments to join function")
             }
             let strings = stringValues.map(\.stringValue)
             return .string(strings.joined(separator: separator))
