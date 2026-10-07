@@ -6,6 +6,7 @@
 //  Copyright © 2023 Nick Lockwood. All rights reserved.
 //
 
+import ShapeScript
 import UIKit
 import UniformTypeIdentifiers
 
@@ -30,7 +31,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = DocumentBrowserViewController(
-            forOpening: [UTType(importedAs: "com.charcoaldesign.shapescript-source")]
+            forOpening: [.shape]
         )
         window.backgroundColor = .clear
         window.makeKeyAndVisible()

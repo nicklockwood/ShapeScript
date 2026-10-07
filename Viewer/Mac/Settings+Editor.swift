@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import ShapeScript
 import UniformTypeIdentifiers
 
 struct EditorApp: Comparable {
@@ -24,8 +25,6 @@ struct EditorApp: Comparable {
 }
 
 extension Settings {
-    // MARK: Editor
-
     var editorApps: [EditorApp] {
         if let apps = associatedData[#function] as? [EditorApp] {
             return apps
@@ -35,7 +34,7 @@ extension Settings {
         }
         for type in Settings.fileTypes {
             appURLs += NSWorkspace.shared.urlsForApplications(toOpen: type).filter {
-                !Settings.isBlacklisted($0)
+                !Settings.isExcludedApp($0)
             }
         }
         var apps = [EditorApp]()
@@ -68,7 +67,7 @@ extension Settings {
         // find best match for applicable file types
         for type in Settings.fileTypes {
             if let url = NSWorkspace.shared.urlForApplication(toOpen: type),
-               !Settings.isBlacklisted(url)
+               !Settings.isExcludedApp(url)
             {
                 return EditorApp(url)
             }
@@ -93,13 +92,15 @@ extension Settings {
         get { defaults.bool(forKey: #function) }
         set { defaults.set(newValue, forKey: #function) }
     }
+}
 
-    private var editorAppBookmarks: [Data] {
+private extension Settings {
+    var editorAppBookmarks: [Data] {
         get { defaults.object(forKey: #function) as? [Data] ?? [] }
         set { defaults.set(newValue, forKey: #function) }
     }
 
-    private func bookmark(for url: URL) -> Data? {
+    func bookmark(for url: URL) -> Data? {
         // TODO: Handle errors
         try? url.bookmarkData(
             options: [],
@@ -108,7 +109,7 @@ extension Settings {
         )
     }
 
-    private func url(forBookmark data: Data) -> URL? {
+    func url(forBookmark data: Data) -> URL? {
         // TODO: Handle errors
         var isStale = false
         return try? URL(
@@ -119,13 +120,13 @@ extension Settings {
         )
     }
 
-    private static let fileTypes: [UTType] = [
+    static let fileTypes: [UTType] = [
         .shape,
         .sourceCode,
         .plainText,
     ]
 
-    private static let preferredEditorBundleIDs = [
+    static let preferredEditorBundleIDs = [
         "com.github.atom", "com.microsoft.VSCode",
         "com.sublimetext", "com.sublimetext.2", "com.sublimetext.3",
         "com.panic.Coda", "com.panic.Coda2",
@@ -133,7 +134,7 @@ extension Settings {
         "com.apple.TextEdit",
     ]
 
-    private static let blacklist = [
+    static let exclusionList = [
         "com.apple.iWork.Numbers",
         "com.microsoft.Word",
         "com.microsoft.Excel",
@@ -142,11 +143,11 @@ extension Settings {
         "com.charcoaldesign.ShapeScript",
     ]
 
-    private static func isBlacklisted(_ url: URL) -> Bool {
+    static func isExcludedApp(_ url: URL) -> Bool {
         guard let bundleID = Bundle(url: url)?.bundleIdentifier else {
             return false
         }
-        return blacklist.contains {
+        return exclusionList.contains {
             bundleID.compare($0, options: .caseInsensitive) == .orderedSame
         }
     }
