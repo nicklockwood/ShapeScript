@@ -15,6 +15,32 @@ private final class ActiveCallRecorder: @unchecked Sendable {
 }
 
 final class InterpreterTests: XCTestCase {
+    func testCustomRuntimeErrorPreservesDiagnosticAndSourceRange() throws {
+        let source = "cube"
+        let range = source.startIndex ..< source.endIndex
+        func fail() throws {
+            throw RuntimeErrorType.custom("Invalid geometry", hint: "Check the input")
+        }
+        XCTAssertThrowsError(try RuntimeError.wrap(fail(), at: range)) { error in
+            let error = ProgramError(error)
+            XCTAssertEqual(error.type, .evaluation)
+            XCTAssertEqual(error.message, "Invalid geometry")
+            XCTAssertEqual(error.hint, "Check the input.")
+            XCTAssertEqual(error.range, range)
+            XCTAssertNil(error.accessErrorURL)
+            XCTAssertEqual(error.underlyingError, error)
+        }
+    }
+
+    func testScriptAssertionRetainsAssertionDiagnostic() throws {
+        XCTAssertThrowsError(try evaluate(parse("assert false \"Expected true\""), delegate: nil)) { error in
+            let error = error as? RuntimeError
+            XCTAssertEqual(error?.type, .assertionFailure("Expected true"))
+            XCTAssertEqual(error?.message, "Assertion failure")
+            XCTAssertEqual(error?.hint, "Expected true.")
+        }
+    }
+
     func testEvaluationProgressRevisesEstimateForNestedImports() throws {
         let program = try parse("import \"A.shape\"")
         let importedProgram = try parse("import \"B.shape\"")
@@ -108,9 +134,9 @@ final class InterpreterTests: XCTestCase {
 
         XCTAssertThrowsError(try evaluate(parse(input), delegate: nil)) { error in
             guard let error = error as? RuntimeError,
-                  case let .assertionFailure(message) = error.type
+                  case let .custom(message, _) = error.type
             else {
-                return XCTFail("Expected an assertion failure")
+                return XCTFail("Expected a custom error")
             }
             XCTAssertEqual(
                 message,
@@ -3003,8 +3029,8 @@ final class InterpreterTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Assertion failure")
-            XCTAssertEqual(error?.hint, "Blocks that return a number value cannot be assigned a name.")
+            XCTAssertEqual(error?.message, "Blocks that return a number value cannot be assigned a name")
+            XCTAssertNil(error?.hint)
         }
     }
 
@@ -3455,9 +3481,10 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error, RuntimeError(
-                .assertionFailure("Axis vector must be nonzero"), at: range
+                .zeroAxisVector, at: range
             ))
-            XCTAssertEqual(error?.hint, "Axis vector must be nonzero.")
+            XCTAssertEqual(error?.message, "Axis vector must be nonzero")
+            XCTAssertNil(error?.hint)
         }
     }
 
@@ -3613,10 +3640,8 @@ final class InterpreterTests: XCTestCase {
         let range = try XCTUnwrap(program.range(of: "0"))
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Assertion failure")
-            XCTAssertEqual(error, RuntimeError(
-                .assertionFailure("Step value must be nonzero"), at: range
-            ))
+            XCTAssertEqual(error?.message, "Step value must be nonzero")
+            XCTAssertEqual(error, RuntimeError(.custom("Step value must be nonzero"), at: range))
         }
     }
 
@@ -5201,7 +5226,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.range, range)
-            guard case .assertionFailure("Too much recursion")? = error?.type else {
+            guard case .custom("Too much recursion", nil)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -5219,7 +5244,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.range, range)
-            guard case .assertionFailure("Too much recursion")? = error?.type else {
+            guard case .custom("Too much recursion", nil)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -5239,7 +5264,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.range, range)
-            guard case .assertionFailure("Too much recursion")? = error?.type else {
+            guard case .custom("Too much recursion", nil)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -5259,7 +5284,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.range, range)
-            guard case .assertionFailure("Too much recursion")? = error?.type else {
+            guard case .custom("Too much recursion", nil)? = error?.type else {
                 XCTFail()
                 return
             }
@@ -5279,7 +5304,7 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.range, range)
-            guard case .assertionFailure("Too much recursion")? = error?.type else {
+            guard case .custom("Too much recursion", nil)? = error?.type else {
                 XCTFail()
                 return
             }

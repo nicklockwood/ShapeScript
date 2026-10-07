@@ -1120,9 +1120,7 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse(source)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            XCTAssertEqual(error as? RuntimeError, RuntimeError(
-                .assertionFailure("Values must be finite"), at: range
-            ))
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(.nonFiniteValue, at: range))
         }
     }
 
@@ -1137,9 +1135,7 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse(source)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            XCTAssertEqual(error as? RuntimeError, RuntimeError(
-                .assertionFailure("Values must be finite"), at: range
-            ))
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(.nonFiniteValue, at: range))
         }
     }
 
@@ -1149,9 +1145,7 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse(source)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            XCTAssertEqual(error as? RuntimeError, RuntimeError(
-                .assertionFailure("Values must be finite"), at: range
-            ))
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(.nonFiniteValue, at: range))
         }
     }
 
@@ -1236,9 +1230,7 @@ final class StandardLibraryTests: XCTestCase {
         let program = try parse(source)
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            XCTAssertEqual(error as? RuntimeError, RuntimeError(
-                .assertionFailure("Values must be finite"), at: range
-            ))
+            XCTAssertEqual(error as? RuntimeError, RuntimeError(.nonFiniteValue, at: range))
         }
     }
 
@@ -1297,7 +1289,7 @@ final class StandardLibraryTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            guard case let .assertionFailure(message)? = error?.type else {
+            guard case let .custom(message, _)? = error?.type else {
                 XCTFail()
                 return
             }

@@ -11,20 +11,6 @@ import Foundation
 
 let testsDirectory = URL(fileURLWithPath: #file).deletingLastPathComponent()
 
-extension RuntimeErrorType {
-    static func typeMismatch(for name: String, expected: String, got: String) -> Self {
-        .typeMismatch(for: name, index: -1, expected: expected, got: got)
-    }
-
-    static func missingArgument(for name: String, type: String) -> Self {
-        .missingArgument(for: name, index: 0, type: type)
-    }
-
-    static func missingArgument(for name: String, type: ValueType) -> Self {
-        .missingArgument(for: name, index: 0, type: type.errorDescription)
-    }
-}
-
 final class TestDelegate: EvaluationDelegate {
     let directory: URL
     init(directory: URL = testsDirectory) {

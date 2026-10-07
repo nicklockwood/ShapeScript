@@ -46,7 +46,7 @@ public extension ProgramError {
                 .fileAccess
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
                  .typeMismatch, .forwardReference, .unexpectedArgument,
-                 .missingArgument, .unusedValue, .assertionFailure,
+                 .missingArgument, .unusedValue, .assertionFailure, .custom,
                  .fileNotFound, .fileTimedOut, .fileTypeMismatch,
                  .fileParsingError, .circularImport, .importError:
                 .evaluation
@@ -112,7 +112,7 @@ public extension ProgramError {
                 return error.shapeFileURL(relativeTo: url)
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
                  .typeMismatch, .forwardReference, .unexpectedArgument,
-                 .missingArgument, .unusedValue, .assertionFailure,
+                 .missingArgument, .unusedValue, .assertionFailure, .custom,
                  .fileNotFound, .fileTimedOut, .fileAccessRestricted,
                  .fileTypeMismatch, .fileParsingError, .circularImport:
                 return baseURL
@@ -131,7 +131,7 @@ public extension ProgramError {
                 error.underlyingError
             case .unknownSymbol, .unknownMember, .invalidIndex, .unknownFont,
                  .typeMismatch, .forwardReference, .unexpectedArgument, .missingArgument,
-                 .unusedValue, .assertionFailure, .fileNotFound, .fileTimedOut,
+                 .unusedValue, .assertionFailure, .custom, .fileNotFound, .fileTimedOut,
                  .fileAccessRestricted, .fileTypeMismatch, .fileParsingError,
                  .circularImport:
                 self

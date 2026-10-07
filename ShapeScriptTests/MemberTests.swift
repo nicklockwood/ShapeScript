@@ -349,11 +349,11 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Assertion failure")
-            XCTAssertEqual(error?.hint, """
-            Rotation initializer cannot mix roll/yaw/pitch with axis/angle.
+            XCTAssertNil(error?.hint)
+            XCTAssertEqual(error?.message, """
+            Rotation initializer cannot mix roll/yaw/pitch with axis/angle
             """)
-            XCTAssertEqual(error?.type, .assertionFailure(
+            XCTAssertEqual(error?.type, .custom(
                 "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
             ))
         }
@@ -370,9 +370,9 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Assertion failure")
-            XCTAssertEqual(error?.hint, "Axis vector must be nonzero.")
-            XCTAssertEqual(error?.type, .assertionFailure("Axis vector must be nonzero"))
+            XCTAssertEqual(error?.message, "Axis vector must be nonzero")
+            XCTAssertNil(error?.hint)
+            XCTAssertEqual(error?.type, .zeroAxisVector)
         }
     }
 
@@ -605,11 +605,11 @@ final class MemberTests: XCTestCase {
         """
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Assertion failure")
-            XCTAssertEqual(error?.hint, """
-            Color initializer cannot mix red/green/blue with hue/saturation/brightness.
+            XCTAssertNil(error?.hint)
+            XCTAssertEqual(error?.message, """
+            Color initializer cannot mix red/green/blue with hue/saturation/brightness
             """)
-            XCTAssertEqual(error?.type, .assertionFailure(
+            XCTAssertEqual(error?.type, .custom(
                 "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
             ))
         }
