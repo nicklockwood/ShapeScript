@@ -259,13 +259,11 @@ extension GeometryType {
             return points.translated(by: [0, -0.5, 0])
                 + points.translated(by: [0, 0.5, 0])
         case let .icosphere(subdivisions):
-            return Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none).polygons.flatMap { polygon in
-                polygon.vertices.map(\.position)
-            }
+            return Mesh.icosphere(subdivisions: subdivisions, wrapMode: .none)
+                .polygons.flatMap { $0.vertices.map(\.position) }
         case let .sphere(segments):
-            let stacks = max(2, segments / 2)
             return GeometryType
-                .lathe([.arc(segments: stacks)], segments: stacks)
+                .lathe([.arc(segments: max(2, segments / 2))], segments: segments)
                 .representativePoints
         case let .extrude(paths, options) where options.along.isEmpty:
             return paths.reduce(into: []) { vertices, path in
