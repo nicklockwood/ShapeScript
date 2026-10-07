@@ -104,12 +104,13 @@ public enum RuntimeErrorType: Error, Equatable {
     case unknownMember(String, of: String, options: [String])
     case invalidIndex(Double, range: Range<Int>)
     case unknownFont(String, options: [String])
-    case typeMismatch(for: String, index: Int, expected: String, got: String)
+    case typeMismatch(for: String, index: Int = -1, expected: String, got: String)
     case forwardReference(String)
     case unexpectedArgument(for: String, max: Int)
-    case missingArgument(for: String, index: Int, type: String)
+    case missingArgument(for: String, index: Int = 0, type: String)
     case unusedValue(type: String)
     case assertionFailure(String)
+    case custom(String, hint: String? = nil)
     case fileNotFound(for: String, at: URL?)
     case fileTimedOut(for: String, at: URL)
     case fileAccessRestricted(for: String, at: URL)
@@ -155,6 +156,8 @@ public extension RuntimeError {
             return "Unused value"
         case .assertionFailure:
             return "Assertion failure"
+        case let .custom(message, _):
+            return message
         case let .fileNotFound(for: name, _):
             guard !name.isEmpty else {
                 return "Empty file name"
@@ -198,6 +201,7 @@ public extension RuntimeError {
              .invalidIndex,
              .unusedValue,
              .assertionFailure,
+             .custom,
              .fileNotFound,
              .fileTimedOut,
              .fileAccessRestricted,
@@ -295,6 +299,8 @@ public extension RuntimeError {
             return "\(aOrAn(type, capitalized: true)) value was not expected in this context."
         case let .assertionFailure(message):
             return formatMessage(message)
+        case let .custom(_, hint):
+            return hint.flatMap(formatMessage)
         case let .fileNotFound(for: name, at: url):
             guard let url else {
                 return nil
@@ -339,6 +345,7 @@ public extension RuntimeError {
              .missingArgument,
              .unusedValue,
              .assertionFailure,
+             .custom,
              .fileNotFound,
              .fileTimedOut,
              .fileTypeMismatch,
@@ -386,7 +393,7 @@ private func validateLightCount(in scene: Scene, source: String) throws {
     let nonAmbientLights = scene.lights.filter { $0.light?.isAmbient == false }
     if nonAmbientLights.count > maxLights {
         throw RuntimeError(
-            .assertionFailure("""
+            .custom("""
             There is a maximum of \(maxLights) non-ambient lights per scene. \
             This scene has \(nonAmbientLights.count) lights
             """),
@@ -643,7 +650,7 @@ final class UserBlock: @unchecked Sendable {
                     case let .mesh(geometry):
                         return geometry
                     default:
-                        throw RuntimeErrorType.assertionFailure(
+                        throw RuntimeErrorType.custom(
                             "Blocks that return \(aOrAn($0.errorDescription)) " +
                                 "value cannot be assigned a name"
                         )
@@ -750,7 +757,7 @@ extension Call: Equatable {
             } catch let request as CallRequest {
                 guard frames.count < maxCallDepth else {
                     throw RuntimeError(
-                        .assertionFailure("Too much recursion"),
+                        .custom("Too much recursion"),
                         at: request.range ?? context.source.startIndex ..< context.source.startIndex
                     )
                 }
@@ -797,12 +804,11 @@ private func aOrAn(_ string: String, capitalized: Bool = false) -> String {
 }
 
 extension RuntimeErrorType {
-    static func typeMismatch(
-        for symbol: String,
-        expected: String,
-        got: String
-    ) -> RuntimeErrorType {
-        .typeMismatch(for: symbol, index: -1, expected: expected, got: got)
+    static let nonFiniteValue = RuntimeErrorType.custom("Values must be finite")
+    static let zeroAxisVector = RuntimeErrorType.custom("Axis vector must be nonzero")
+
+    static func unexpectedChild(ofType type: String, in name: String) -> RuntimeErrorType {
+        .custom("Unexpected child of type \(type) in \(name)")
     }
 
     static func typeMismatch(
@@ -825,13 +831,6 @@ extension RuntimeErrorType {
             expected: typeDescription,
             got: got.errorDescription
         )
-    }
-
-    static func missingArgument(
-        for symbol: String,
-        type: String
-    ) -> RuntimeErrorType {
-        .missingArgument(for: symbol, index: 0, type: type)
     }
 
     static func missingArgument(
@@ -1146,7 +1145,7 @@ private func evaluateBlockParameters(
     for (j, child) in children {
         guard child.isFinite else {
             throw RuntimeError(
-                .assertionFailure("Values must be finite"),
+                .nonFiniteValue,
                 at: j < parameters.count ? parameters[j].range : range
             )
         }
@@ -1185,10 +1184,7 @@ private func evaluateParameter(
     }
     let value = try parameter.evaluate(as: type, for: identifier.name, in: context)
     guard value.isFinite else {
-        throw RuntimeError(
-            .assertionFailure("Values must be finite"),
-            at: parameter.range
-        )
+        throw RuntimeError(.nonFiniteValue, at: parameter.range)
     }
     return value
 }
@@ -1313,7 +1309,7 @@ extension EvaluationContext {
 
     func addValue(_ value: Value) throws {
         guard value.isFinite else {
-            throw RuntimeErrorType.assertionFailure("Values must be finite")
+            throw RuntimeErrorType.nonFiniteValue
         }
         if ValueType.path.isSubtype(of: state.childTypes),
            !ValueType.mesh.isSubtype(of: state.childTypes)
@@ -1418,7 +1414,7 @@ private extension Block {
                           let expression
                     else {
                         throw RuntimeError(
-                            .assertionFailure("Import options must be specified as name/value pairs"),
+                            .custom("Import options must be specified as name/value pairs"),
                             at: statement.range
                         )
                     }
@@ -1637,10 +1633,7 @@ private extension Statement {
             in: context
         )
         guard value.isFinite else {
-            throw RuntimeError(
-                .assertionFailure("Values must be finite"),
-                at: identifier.range
-            )
+            throw RuntimeError(.nonFiniteValue, at: identifier.range)
         }
         context.define(identifier.name, as: .option(value))
     }
@@ -1930,10 +1923,7 @@ extension Expression {
                 to: range.end,
                 step: stepValue.doubleValue
             ) else {
-                throw RuntimeError(
-                    .assertionFailure("Step value must be nonzero"),
-                    at: rhs.range
-                )
+                throw RuntimeError(.custom("Step value must be nonzero"), at: rhs.range)
             }
             return .range(value)
         case let .infix(lhs, .in, rhs):
@@ -2086,7 +2076,9 @@ extension Expression {
             case .gte:
                 return try .boolean(doubleValue(for: lhs) >= doubleValue(for: rhs, at: 1))
             case .in, .to, .step, .equal, .unequal, .and, .or:
-                throw RuntimeErrorType.assertionFailure("\(op.rawValue) should be handled by earlier case")
+                let message = "\(op.rawValue) should be handled by earlier case"
+                assertionFailure(message)
+                throw RuntimeErrorType.custom(message)
             }
         case let .member(expression, member):
             let value = try expression.evaluate(in: context).materializedPathValue
@@ -2357,7 +2349,7 @@ extension Expression {
             )
             guard !axis.isZero else {
                 throw RuntimeError(
-                    .assertionFailure("Axis vector must be nonzero"),
+                    .zeroAxisVector,
                     at: expressions[1].range.lowerBound ..< expressions[3].range.upperBound
                 )
             }

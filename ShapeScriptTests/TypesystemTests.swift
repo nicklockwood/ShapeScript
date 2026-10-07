@@ -1224,7 +1224,7 @@ final class TypesystemTests: XCTestCase {
             Expected mixed \(rgbMember) and hue/saturation/brightness to be rejected
             """)
             XCTAssertThrowsError(try value.as(type, in: nil)) { error in
-                XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
+                XCTAssertEqual(error as? RuntimeErrorType, .custom(
                     "Color initializer cannot mix red/green/blue with hue/saturation/brightness"
                 ))
             }
@@ -1820,9 +1820,7 @@ final class TypesystemTests: XCTestCase {
         ])
         XCTAssertFalse(value.isConvertible(to: type))
         XCTAssertThrowsError(try value.as(type, in: nil)) { error in
-            XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
-                "Axis vector must be nonzero"
-            ))
+            XCTAssertEqual(error as? RuntimeErrorType, .zeroAxisVector)
         }
     }
 
@@ -1838,7 +1836,7 @@ final class TypesystemTests: XCTestCase {
             Expected mixed \(eulerMember) and axis/angle to be rejected
             """)
             XCTAssertThrowsError(try value.as(type, in: nil)) { error in
-                XCTAssertEqual(error as? RuntimeErrorType, .assertionFailure(
+                XCTAssertEqual(error as? RuntimeErrorType, .custom(
                     "Rotation initializer cannot mix roll/yaw/pitch with axis/angle"
                 ))
             }
