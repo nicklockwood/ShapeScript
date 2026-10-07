@@ -725,6 +725,41 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(GeometryType.icosphere(subdivisions: 0).bounds.size, Vector(size: 1))
     }
 
+    func testSphereRepresentativePointsMatchMeshVertices() {
+        for segments in [3, 4, 5, 6, 7, 8, 12, 16, 32] {
+            let points = GeometryType.sphere(segments: segments).representativePoints
+            let vertices = Set(Mesh.sphere(slices: segments).polygons.flatMap {
+                $0.vertices.map(\.position)
+            })
+            for vertex in vertices {
+                XCTAssertTrue(points.contains {
+                    $0.isApproximatelyEqual(to: vertex, absoluteTolerance: epsilon)
+                }, "Missing mesh vertex \(vertex) with \(segments) segments")
+            }
+            for point in points {
+                XCTAssertTrue(vertices.contains {
+                    $0.isApproximatelyEqual(to: point, absoluteTolerance: epsilon)
+                }, "Unexpected representative point \(point) with \(segments) segments")
+            }
+        }
+    }
+
+    func testRotatedSphereBoundsMatchMesh() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let transform = Transform(
+            scale: [2, 3, 4],
+            rotation: .init(pitch: .pi / 7, yaw: .pi / 5, roll: .pi / 3),
+            translation: [1, 2, 3]
+        )
+        for segments in [3, 4, 5, 6, 7, 8, 12, 16, 32] {
+            let sphere = Geometry(type: .sphere(segments: segments), in: context)
+            let bounds = sphere.exactBounds(with: transform)
+            let expected = Mesh.sphere(slices: segments).transformed(by: transform).bounds
+            XCTAssertEqual(bounds.min, expected.min, accuracy: epsilon, "\(segments) segments")
+            XCTAssertEqual(bounds.max, expected.max, accuracy: epsilon, "\(segments) segments")
+        }
+    }
+
     func testPrimitiveGenerationCanBeCancelled() {
         let context = EvaluationContext(source: "", delegate: nil)
         for type in [
