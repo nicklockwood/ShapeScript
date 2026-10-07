@@ -1319,7 +1319,9 @@ extension EvaluationContext {
                 geometry.gatherNamedObjects(&namedObjects)
                 state.children.append(.mesh(geometry))
                 return
-            } else if case let .tuple(values) = value {
+            } else if case let .tuple(values) = value,
+                      !(ValueType.point.isSubtype(of: state.childTypes) && value.isConvertible(to: .point))
+            {
                 try values.forEach(addValue)
                 return
             } else if case let .pretransformed(value) = value {
