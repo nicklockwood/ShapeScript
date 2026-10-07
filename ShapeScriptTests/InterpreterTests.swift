@@ -1752,6 +1752,18 @@ final class InterpreterTests: XCTestCase {
         XCTAssertFalse(path.points.last?.isCurved ?? true)
     }
 
+    func testBareCoordinatesInPath() throws {
+        let scene = try evaluate(parse("""
+        path {
+            0
+            0 0.6
+            1 2 3
+        }
+        """), delegate: nil)
+        let path = try XCTUnwrap(scene.children.first?.path)
+        XCTAssertEqual(path.points.map(\.position), [.zero, [0, 0.6, 0], [1, 2, 3]])
+    }
+
     func testNestedPathColor() throws {
         let program = try parse("""
         path {
