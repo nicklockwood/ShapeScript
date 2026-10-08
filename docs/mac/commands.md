@@ -55,7 +55,7 @@ The `smoothing` command can be used anywhere in the ShapeScript file to override
 
 ## Miter Limit
 
-The `miterLimit` command controls when sharp corners in shapes extruded along a path are beveled instead of mitered. Unlike `detail` and `smoothing`, it is only available in contexts where it can affect an extrusion. It is documented in the [extrude](builders.md#extrude) section.
+The `miterLimit` command controls when sharp corners in shapes extruded or lathed along a path are beveled instead of mitered. It is documented in the [extrude](builders.md#extrude) and [lathe](builders.md#lathe) sections.
 
 ## Materials
 
