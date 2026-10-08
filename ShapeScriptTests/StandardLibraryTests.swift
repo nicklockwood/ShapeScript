@@ -799,9 +799,21 @@ final class StandardLibraryTests: XCTestCase {
         }
     }
 
-    func testMiterLimitInBuilder() throws {
+    func testMiterLimitInLathe() throws {
         let program = try parse("""
         lathe {
+            miterLimit 1
+            miterLimit ()
+            square
+        }
+        """)
+        let context = EvaluationContext(source: program.source, delegate: nil)
+        XCTAssertNoThrow(try program.evaluate(in: context))
+    }
+
+    func testMiterLimitInBuilder() throws {
+        let program = try parse("""
+        fill {
             miterLimit 1
             square
         }

@@ -2647,6 +2647,77 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(scene.children.first?.children.map(\.type), [.square])
     }
 
+    func testInvokeLatheWithAlongPath() throws {
+        let program = """
+        lathe {
+            path {
+                point 0 -0.5
+                point 0.2 -0.4
+                point 0.2 0.4
+                point 0 0.5
+            }
+            along path {
+                point 0 -1 0
+                point 0 0 1
+                point 0 1 0
+            }
+        }
+        """
+        let scene = try evaluate(parse(program), delegate: nil)
+        guard case let .lathe(paths, options) = scene.children.first?.type else {
+            return XCTFail("Expected lathe geometry, got \(String(describing: scene.children.first?.type))")
+        }
+        XCTAssertEqual(paths.count, 1)
+        XCTAssertEqual(options.segments, 16)
+        XCTAssertEqual(options.along.count, 1)
+        XCTAssertEqual(options.along.first?.points.count, 3)
+    }
+
+    func testInvokeLatheAlongMultiplePathsWithoutParens() {
+        let program = """
+        lathe {
+            path {
+                point 0 -0.5
+                point 0.2 -0.4
+                point 0.2 0.4
+                point 0 0.5
+            }
+            along circle square
+        }
+        """
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: nil))
+    }
+
+    func testInvokeLatheAlongMiterLimit() throws {
+        for (prefix, setting, expected) in [
+            ("", "miterLimit 1", MiterLimit.ratio(1)),
+            ("", "mitreLimit 1", .ratio(1)),
+            ("miterLimit 2", "", .ratio(2)),
+            ("miterLimit 2", "miterLimit 1", .ratio(1)),
+            ("miterLimit 2", "miterLimit ()", .infinity),
+        ] {
+            let scene = try evaluate(parse("""
+            \(prefix)
+            lathe {
+                \(setting)
+                path {
+                    point -0.1 1
+                    point -0.1 0
+                }
+                along path {
+                    point 0 -2
+                    point 0 0
+                    point 0.5 -1
+                }
+            }
+            """), delegate: nil)
+            guard case let .lathe(_, options) = scene.children.first?.type else {
+                return XCTFail("Expected lathe geometry")
+            }
+            XCTAssertEqual(options.miterLimit, expected)
+        }
+    }
+
     func testInvokeExtrudeWithMiterLimit() throws {
         let program = """
         extrude {

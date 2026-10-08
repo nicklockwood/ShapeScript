@@ -60,7 +60,7 @@ final class GeometryTests: XCTestCase {
                 let expectedType: GeometryType = switch builder {
                 case "fill": .fill(paths)
                 case "extrude": .extrude(paths, .default)
-                default: .lathe(paths, segments: 16)
+                default: .lathe(paths, .init(segments: 16))
                 }
                 let context = EvaluationContext(source: "", delegate: nil)
                 let expected = Geometry(type: expectedType, in: context)
@@ -1146,10 +1146,329 @@ final class GeometryTests: XCTestCase {
         let shape = Geometry(type: GeometryType.lathe([
             .square(),
             .circle(radius: 0.5).translated(by: [0, 1, 0]),
-        ], segments: 4), in: context)
+        ], .init(segments: 4)), in: context)
         XCTAssertEqual(shape.overestimatedBounds.size, [1, 2, 1])
         XCTAssertEqual(shape.overestimatedBounds.center, [1, 2.5, 3])
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
+    }
+
+    func testLatheAlongStraightAxisMatchesOrdinaryLathe() throws {
+        let profile = """
+        path {
+            point 0 0.6
+            point -0.05 0.6
+            curve -0.12 0.2
+            point -0.25 0.1
+            point -0.25 0
+            point -0.25 0
+            point 0 0
+        }
+        """
+        let ordinary = try evaluate(parse("lathe { \(profile) }"), delegate: nil)
+        let expected = try XCTUnwrap(ordinary.children.first?.mesh())
+        for axis in ["0\n0 0.6", "point 0\npoint 0 0.6"] {
+            let scene = try evaluate(parse("""
+            lathe {
+                \(profile)
+                along path { \(axis) }
+            }
+            """), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            guard case let .lathe(_, options) = geometry.type else {
+                return XCTFail("Expected lathe geometry")
+            }
+            XCTAssertEqual(options.along.first?.points.map(\.position), [.zero, [0, 0.6, 0]])
+            let mesh = try XCTUnwrap(geometry.mesh())
+            XCTAssertEqual(mesh.bounds.min, expected.bounds.min, accuracy: epsilon)
+            XCTAssertEqual(mesh.bounds.max, expected.bounds.max, accuracy: epsilon)
+            XCTAssertEqual(mesh.surfaceArea, expected.surfaceArea, accuracy: epsilon)
+            XCTAssertEqual(mesh.signedVolume, expected.signedVolume, accuracy: epsilon)
+            XCTAssertTrue(mesh.isWatertight)
+            let topFaces = mesh.polygons.filter { polygon in
+                polygon.vertices.allSatisfy { abs($0.position.y - 0.6) < epsilon }
+            }
+            XCTAssertFalse(topFaces.isEmpty, "Expected a flat top cap")
+            let topBounds = Bounds(topFaces.flatMap { $0.vertices.map(\.position) })
+            XCTAssertEqual(topBounds.size, [0.1, 0, 0.1], accuracy: epsilon)
+            for vertex in topFaces.flatMap(\.vertices) {
+                XCTAssertEqual(vertex.normal, .unitY, accuracy: epsilon)
+            }
+        }
+    }
+
+    func testLatheAlongCircleWithRadialProfile() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            path {
+                point 0
+                point 1
+            }
+            along circle
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let bounds = geometry.exactBounds(with: .identity)
+        let mesh = try XCTUnwrap(geometry.mesh())
+        XCTAssertFalse(mesh.polygons.isEmpty)
+        XCTAssertEqual(bounds, mesh.bounds)
+        XCTAssertGreaterThan(mesh.surfaceArea, 0)
+    }
+
+    func testLatheAlongClosedLoop() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            path {
+                point -0.1 1
+                point -0.1 0
+            }
+            along circle { size 2 }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let bounds = geometry.exactBounds(with: .identity)
+        let mesh = try XCTUnwrap(geometry.mesh())
+        XCTAssertEqual(bounds, mesh.bounds)
+        XCTAssertTrue(mesh.polygons.areWatertight)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        guard case let .lathe(paths, options) = geometry.type else {
+            return XCTFail("Expected lathe")
+        }
+        let contours = try XCTUnwrap(paths.first).latheContours(
+            along: XCTUnwrap(options.along.first), slices: options.segments
+        )
+        XCTAssertEqual(contours.first, contours.last)
+    }
+
+    func testLatheAlongMiterLimitBuildAndBounds() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            miterLimit 1
+            path {
+                point -0.1 1
+                point -0.1 0
+            }
+            along path {
+                point 0 -2
+                point 0 0
+                point 0.5 -1
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let bounds = geometry.exactBounds(with: .identity)
+        let mesh = try XCTUnwrap(geometry.mesh())
+        XCTAssertTrue(mesh.polygons.areWatertight)
+        XCTAssertEqual(bounds, mesh.bounds)
+        let encoded = try JSONEncoder().encode(geometry.type)
+        XCTAssertEqual(try JSONDecoder().decode(GeometryType.self, from: encoded), geometry.type)
+        let legacy = Data(#"{"segments":16,"along":[]}"#.utf8)
+        XCTAssertEqual(try JSONDecoder().decode(LatheOptions.self, from: legacy).miterLimit, .infinity)
+    }
+
+    func testLatheAlongBendKeepsNeighboringContoursApart() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            path {
+                point 0 0.6
+                point -0.05 0.6
+                curve -0.12 0.2
+                point -0.25 0.1
+                point -0.25 0
+                point -0.25 0
+                point 0 0
+            }
+            along path {
+                0 -0.5
+                0 0
+                0.2 0.5
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .lathe(paths, options) = geometry.type else {
+            return XCTFail("Expected lathe geometry")
+        }
+        let profile = try XCTUnwrap(paths.first)
+        let axis = try XCTUnwrap(options.along.first)
+        let contours = profile.latheContours(along: axis, slices: options.segments).sorted {
+            $0.bounds.center.y < $1.bounds.center.y
+        }
+        for (previous, next) in zip(contours, contours.dropFirst()) {
+            for point in previous.points {
+                XCTAssertLessThanOrEqual(
+                    (point.position - next.bounds.center).dot(next.faceNormal), epsilon
+                )
+            }
+            for point in next.points {
+                XCTAssertGreaterThanOrEqual(
+                    (point.position - previous.bounds.center).dot(previous.faceNormal), -epsilon
+                )
+            }
+        }
+        XCTAssertTrue(try XCTUnwrap(geometry.mesh()).isWatertight)
+    }
+
+    func testLatheAlongCylinderHasStraightSides() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            path {
+                0.5
+                0.5 0.25
+                0.5 0.5
+                0.5 0.75
+                0.5 1
+            }
+            along path {
+                0.2 -0.5
+                0 0
+                0.2 0.5
+            }
+        }
+        """), delegate: nil)
+        let mesh = try XCTUnwrap(scene.children.first?.mesh())
+        let directions = [Vector(-0.2, 0.5).normalized(), Vector(0.2, 0.5).normalized()]
+        let endpoints = [Vector(0.2, -0.5), Vector(0.2, 0.5)]
+        var capCount = 0
+        for polygon in mesh.polygons {
+            let isCap = zip(endpoints, directions).contains { center, normal in
+                polygon.vertices.allSatisfy { abs(($0.position - center).dot(normal)) < epsilon }
+            }
+            if isCap {
+                capCount += 1
+            } else {
+                XCTAssertTrue(directions.contains { abs(polygon.plane.normal.dot($0)) < epsilon })
+            }
+        }
+        XCTAssertEqual(capCount, 2)
+        XCTAssertTrue(mesh.isWatertight)
+    }
+
+    func testLatheAlongPathBuildsMesh() throws {
+        let profile = Path([
+            .point(0, -0.5),
+            .point(0.2, -0.4),
+            .point(0.2, 0.4),
+            .point(0, 0.5),
+        ])
+        let along = Path([
+            .point(0, -1, 0),
+            .point(0, 0, 1),
+            .point(0, 1, 0),
+        ])
+        let options = LatheOptions(segments: 12, along: [along])
+        let geometry = Geometry(
+            type: .lathe([profile], options),
+            in: EvaluationContext(source: "", delegate: nil)
+        )
+
+        let mesh = try XCTUnwrap(geometry.mesh())
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertGreaterThan(mesh.bounds.max.z, 0.9)
+        XCTAssertLessThan(mesh.bounds.min.y, -0.9)
+        XCTAssertGreaterThan(mesh.bounds.max.y, 0.9)
+    }
+
+    func testLatheAlongWithPrimitiveProfile() throws {
+        let scene = try evaluate(parse("""
+        lathe {
+            square { size 2 3 }
+            along path {
+                point 0 -1 0
+                point 0 0 1
+                point 0 1 0
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .lathe(paths, options) = geometry.type else {
+            return XCTFail("Expected lathe geometry")
+        }
+        XCTAssertEqual(paths, [.rectangle(width: 2, height: 3)])
+        XCTAssertTrue(geometry.children.isEmpty)
+        let along = try XCTUnwrap(options.along.first)
+        let expected = Mesh.lathe(paths[0], along: along, slices: options.segments)
+        XCTAssertFalse(expected.isEmpty)
+        XCTAssertEqual(try XCTUnwrap(geometry.mesh()), expected)
+        XCTAssertEqual(geometry.overestimatedBounds, expected.bounds)
+
+        let encoded = try JSONEncoder().encode(geometry.type)
+        XCTAssertEqual(try JSONDecoder().decode(GeometryType.self, from: encoded), geometry.type)
+    }
+
+    func testLatheAlongMaintainsContinuousRingFrames() throws {
+        func program(detail: Int) -> String {
+            """
+            detail \(detail)
+            lathe {
+                path {
+                    point 0
+                    point 1 1
+                    point 0 2
+                }
+                along path {
+                    point 0
+                    curve 0 5
+
+                    scale 2 1 2
+                    size 2 1 2
+
+                    curve 5 10 5
+
+                    scale 1 1 1
+                    size 1 1 1
+
+                    point 0 20
+                }
+            }
+            """
+        }
+
+        for detail in [8, 16, 32, 64] {
+            let scene = try evaluate(parse(program(detail: detail)), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            guard case let .lathe(paths, options) = geometry.type,
+                  let profile = paths.first,
+                  let along = options.along.first
+            else {
+                return XCTFail("Expected lathe geometry, got \(geometry.type)")
+            }
+
+            let contours = profile.latheContours(along: along, slices: options.segments)
+            XCTAssertEqual(contours.first?.points.count, 1, "detail \(detail)")
+            XCTAssertEqual(contours.last?.points.count, 1, "detail \(detail)")
+            XCTAssertTrue(contours.dropFirst().prefix(while: { $0.points.count == 1 }).isEmpty, "detail \(detail)")
+            XCTAssertTrue(
+                contours.reversed().dropFirst().prefix(while: { $0.points.count == 1 }).isEmpty,
+                "detail \(detail)"
+            )
+            let centers = contours.map(\.bounds.center)
+            XCTAssertLessThanOrEqual(contours.count, profile.points.count + along.points.count - 2)
+            for point in along.points {
+                XCTAssertTrue(centers.contains {
+                    $0.isApproximatelyEqual(to: point.position, absoluteTolerance: epsilon)
+                }, "Missing contour at axis vertex \(point.position), detail \(detail)")
+            }
+            for (lhs, rhs) in zip(centers, centers.dropFirst()) {
+                XCTAssertGreaterThan(lhs.distance(from: rhs), epsilon, "detail \(detail)")
+            }
+
+            let mesh = try XCTUnwrap(geometry.mesh())
+            XCTAssertFalse(mesh.isEmpty, "detail \(detail)")
+            let polePositions = try [
+                XCTUnwrap(contours.first?.points.first?.position),
+                XCTUnwrap(contours.last?.points.first?.position),
+            ]
+            for polePosition in polePositions {
+                let incidentPolygons = mesh.polygons.filter { polygon in
+                    polygon.vertices.contains {
+                        $0.position.isApproximatelyEqual(to: polePosition, absoluteTolerance: epsilon)
+                    }
+                }
+                XCTAssertEqual(incidentPolygons.count, options.segments, "detail \(detail)")
+            }
+            XCTAssertGreaterThan(mesh.bounds.max.z, 4, "detail \(detail)")
+            XCTAssertGreaterThan(mesh.bounds.max.y, 16, "detail \(detail)")
+        }
     }
 
     // MARK: Intersection

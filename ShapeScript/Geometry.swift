@@ -230,9 +230,9 @@ public final class Geometry: Hashable, @unchecked Sendable {
             case let .extrude(paths, options) where !paths.isEmpty:
                 pathType = type
                 type = .extrude([], options)
-            case let .lathe(paths, segments) where !paths.isEmpty:
+            case let .lathe(paths, options) where !paths.isEmpty:
                 pathType = type
-                type = .lathe([], segments: segments)
+                type = .lathe([], options)
             case let .fill(paths) where !paths.isEmpty:
                 pathType = type
                 type = .fill([])
@@ -306,22 +306,27 @@ public final class Geometry: Hashable, @unchecked Sendable {
                 }
                 material = children.first?.material ?? .default
             }
-        case .lathe(var paths, let segments):
-            switch paths.count {
-            case 0:
+        case var .lathe(paths, options):
+            switch (paths.count, options.along.count) {
+            case (0, _):
                 break
-            case 1:
+            case (1, 0):
                 (paths, material) = paths.vertexColorsToMaterial(material: material)
-                type = .lathe(paths, segments: segments)
-            default:
+                type = .lathe(paths, options)
+            case (1, 1):
+                var pair = (paths + options.along)
+                (pair, material) = pair.vertexColorsToMaterial(material: material)
+                options.along = [pair[1]]
+                type = .lathe([pair[0]], options)
+            case (_, 0):
                 // For lathes with multiple paths, convert each path to a
                 // separate child geometry so they can be renderered individually
-                type = .lathe([], segments: 0)
+                type = .lathe([], .init(segments: 0))
                 children = paths.map { path in
                     // TODO: normalize path y-position for better caching
                     let (path, material) = path.vertexColorsToMaterial(material: material)
                     return Geometry(
-                        type: .lathe([path], segments: segments),
+                        type: .lathe([path], options),
                         name: nil,
                         transform: .identity,
                         material: material,
@@ -329,6 +334,28 @@ public final class Geometry: Hashable, @unchecked Sendable {
                         children: [],
                         sourceLocation: sourceLocation
                     )
+                }
+                material = children.first?.material ?? .default
+            default:
+                // For lathes with multiple paths, convert each path to a
+                // separate child geometry so they can be renderered individually
+                type = .lathe([], .init(segments: 0))
+                children = paths.flatMap { path in
+                    options.along.map { along in
+                        let (along, offset) = along.withNormalizedPosition()
+                        let (pair, material) = [path, along].vertexColorsToMaterial(material: material)
+                        var options = options
+                        options.along = [pair[1]]
+                        return Geometry(
+                            type: .lathe([pair[0]], options),
+                            name: nil,
+                            transform: .translation(offset),
+                            material: material,
+                            smoothing: smoothing,
+                            children: [],
+                            sourceLocation: sourceLocation
+                        )
+                    }
                 }
                 material = children.first?.material ?? .default
             }
@@ -476,9 +503,9 @@ public final class Geometry: Hashable, @unchecked Sendable {
             let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
             self._overestimatedBounds = GeometryType.extrude(paths, options).bounds
                 .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
-        case let .lathe([], segments):
+        case let .lathe([], options):
             let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
-            self._overestimatedBounds = GeometryType.lathe(paths, segments: segments).bounds
+            self._overestimatedBounds = GeometryType.lathe(paths, options).bounds
                 .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
             self._overestimatedBounds = type.bounds.union(Bounds(visibleChildren.map(\.overestimatedBounds)))
@@ -675,7 +702,7 @@ public extension Geometry {
             let paths = children.flatMap { $0.paths(pretransformed: true) }
             let builderType: GeometryType? = switch type {
             case let .extrude([], options): .extrude(paths, options)
-            case let .lathe([], segments): .lathe(paths, segments: segments)
+            case let .lathe([], options): .lathe(paths, options)
             case .fill([]): .fill(paths)
             case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
                  .circle, .square, .text, .path, .mesh, .camera, .light,
@@ -1172,10 +1199,10 @@ private extension Geometry {
             })
             let alongCount = pathPointCount(options.along)
             return bounded(profileCount * max(1, alongCount))
-        case let .lathe(paths, segments):
+        case let .lathe(paths, options):
             return bounded(pathPointCount(paths + visibleChildren.flatMap {
                 $0.paths(pretransformed: true)
-            }) * max(1, segments))
+            }) * max(1, options.segments))
         case let .loft(paths), let .fill(paths):
             return bounded(pathPointCount(paths + visibleChildren.flatMap {
                 $0.paths(pretransformed: true)
@@ -1659,8 +1686,16 @@ private extension Geometry {
                 miterLimit: options.miterLimit,
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
-        case let .lathe(paths, segments: segments) where paths.count == 1:
-            mesh = .lathe(paths[0], slices: segments, isCancelled: isCancelled)
+        case let .lathe(paths, options) where paths.count == 1 && options.along.isEmpty:
+            mesh = .lathe(paths[0], slices: options.segments, isCancelled: isCancelled)
+        case let .lathe(paths, options) where paths.count == 1 && options.along.count == 1:
+            mesh = .lathe(
+                paths[0].materialToVertexColors(material: material),
+                along: options.along[0].materialToVertexColors(material: material).predividedBy(material),
+                slices: options.segments,
+                miterLimit: options.miterLimit,
+                isCancelled: isCancelled
+            ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case let .fill(paths) where paths.count == 1:
             mesh = .fill(paths[0], isCancelled: isCancelled)
         case let .loft(paths):
@@ -1772,7 +1807,7 @@ private extension Geometry {
                 let builderType: GeometryType
                 switch type {
                 case let .extrude(_, options): builderType = .extrude(paths, options)
-                case let .lathe(_, segments): builderType = .lathe(paths, segments: segments)
+                case let .lathe(_, options): builderType = .lathe(paths, options)
                 case .fill: builderType = .fill(paths)
                 case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
                      .circle, .square, .text, .path, .mesh, .camera, .light,

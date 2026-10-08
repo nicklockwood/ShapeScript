@@ -252,10 +252,18 @@ extension Symbols {
                 )), in: context, children: []))
             })
         },
-        "lathe": .block(.builder) { context in
-            .mesh(Geometry(
-                type: .lathe(context.rawPaths, segments: context.state.detail),
-                in: context
+        "lathe": .block(.init(_merge(.builder, miterLimit), [
+            "along": .list(.path),
+        ], .path, .list(.mesh))) { context in
+            let along = (context.value(for: "along")?.tupleValue as? [Path]) ?? []
+            return .mesh(Geometry(
+                type: .lathe(along.isEmpty ? context.rawPaths : context.paths, .init(
+                    segments: context.state.detail,
+                    along: along,
+                    miterLimit: along.isEmpty ? .infinity : context.state.miterLimit ?? .infinity
+                )),
+                in: context,
+                children: along.isEmpty ? nil : []
             ))
         },
         "loft": .block(.builder) { context in
