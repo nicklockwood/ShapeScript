@@ -217,14 +217,8 @@ extension Symbols {
             "along": .list(.path),
             "twist": .halfturns,
             "axisAligned": .boolean,
-            "miterLimit": .optional(.number),
         ], .path, .list(.mesh))) { context in
             let twist = context.value(for: "twist")?.angleValue ?? .zero
-            let miterLimit: MiterLimit? = if let value = context.value(for: "miterLimit") {
-                value.type == .void ? nil : MiterLimit.ratio(value.doubleValue)
-            } else {
-                context.state.miterLimit
-            }
             let align: Path.Alignment = context.value(for: "axisAligned").map {
                 $0.boolValue ? .axis : .tangent
             } ?? .default
@@ -235,7 +229,7 @@ extension Symbols {
                     along: along.map { $0.withDetail(context.state.detail, forTwist: twist) },
                     twist: twist,
                     align: align,
-                    miterLimit: miterLimit
+                    miterLimit: context.state.miterLimit
                 )), in: context, children: []))
             }
             if twist == .zero {
