@@ -35,50 +35,6 @@ fill path {
 
 ![Even-odd Fill](../images/even-odd-fill.png)
 
-## Lathe
-
-The `lathe` command creates a 3D shape from a 2D path by revolving it around the Y axis.
-
-To use `lathe`, you must first define a suitable path. For example, the following code defines the *profile* (one half of the outline) of a chess piece:
-
-```swift
-path {
-    curve 0 0.78
-    curve -0.15 0.7
-    curve -0.15 0.5
-    point -0.07 0.45
-    curve -0.12 0.2
-    point -0.25 0.1
-    point -0.25 0
-    point 0 0
-}
-```
-
-![Pawn outline](../images/pawn-profile.png)
-
-When passed to the `lathe` command, the path creates a solid 3D shape:
-
-```swift
-lathe path {
-    curve 0 0.78
-    curve -0.15 0.7
-    curve -0.15 0.5
-    point -0.07 0.45
-    curve -0.12 0.2
-    point -0.25 0.1
-    point -0.25 0
-    point 0 0
-}
-```
-
-![Pawn](../images/pawn.png)
-
-As with other curved shapes such as the `sphere` and `cone`, the smoothness of the lathed surface can be controlled using the `detail` and `smoothing` commands.
-
-The path describing the profile of the lathed shape was in this case open-ended. Since the ends meet at the Y axis anyway, the resultant shape will still be closed. Open paths that do not touch the axis will produce a hollow shape with visible holes.
-
-Lathed paths must lie flat on the XY plane, and  be positioned entirely to one side of the Y axis. Any points on the path with a non-zero Z coordinate will be flattened, and parts of the path that cross the Y axis will be clipped before lathing.
-
 ## Extrude
 
 The `extrude` command extrudes a 2D path along the Z axis. The path therefore represents a cross-section of the final shape. The default extrusion distance is 1 unit, but it can be overridden using the `size` option or relative `scale` command (as described in [transforms](transforms.md)).
@@ -212,7 +168,79 @@ extrude {
 
 ![Limited miter](../images/limited-miter.png)
 
-`miterLimit` only applies when extruding along a path, so it has no effect on a simple straight extrusion along the Z axis. You can set it inside an `extrude` block, as above, or set it at the root level and inherit it into later extrusions. The British spelling `mitreLimit` is also accepted.
+`miterLimit` applies along a jointed path, so it has no effect on a simple straight extrusion along the Z axis or an ordinary lathe. You can set it inside an `extrude` block, as above, or set it at the root level and inherit it into later extrusions. The British spelling `mitreLimit` is also accepted.
+
+## Lathe
+
+The `lathe` command creates a 3D shape from a 2D path by revolving it around the Y axis.
+
+To use `lathe`, you must first define a suitable path. For example, the following code defines the *profile* (one half of the outline) of a chess piece:
+
+```swift
+path {
+    curve 0 0.78
+    curve -0.15 0.7
+    curve -0.15 0.5
+    point -0.07 0.45
+    curve -0.12 0.2
+    point -0.25 0.1
+    point -0.25 0
+    point 0 0
+}
+```
+
+![Pawn outline](../images/pawn-profile.png)
+
+When passed to the `lathe` command, the path creates a solid 3D shape:
+
+```swift
+lathe path {
+    curve 0 0.78
+    curve -0.15 0.7
+    curve -0.15 0.5
+    point -0.07 0.45
+    curve -0.12 0.2
+    point -0.25 0.1
+    point -0.25 0
+    point 0 0
+}
+```
+
+![Pawn](../images/pawn.png)
+
+As with other curved shapes such as the `sphere` and `cone`, the smoothness of the lathed surface can be controlled using the `detail` and `smoothing` commands.
+
+The path describing the profile of the lathed shape was in this case open-ended. Since the ends meet at the Y axis anyway, the resultant shape will still be closed. Open paths that do not touch the axis will produce a hollow shape with visible holes.
+
+Lathed paths must lie flat on the XY plane, and  be positioned entirely to one side of the Y axis. Any points on the path with a non-zero Z coordinate will be flattened, and parts of the path that cross the Y axis will be clipped before lathing.
+
+You can use the `along` option to bend a lathed shape along another path:
+
+```swift
+lathe {
+    path {
+        curve 0 0.78
+        curve -0.15 0.7
+        curve -0.15 0.5
+        point -0.07 0.45
+        curve -0.12 0.2
+        point -0.25 0.1
+        point -0.25 0
+        point 0 0
+    }
+    along path {
+        point 0 -0.5
+        curve 0 0
+        point 0.2 0.5
+    }
+}
+```
+
+![Curved pawn](../images/curved-pawn.png)
+
+The profile's height is stretched to fit the full length of the `along` path. Cross-sections are generated at the profile points and at positions corresponding to points on the `along` path.
+
+For sharp bends in the `along` path, you can use `miterLimit` as described in the [extrusion section](#extrude).
 
 ## Loft
 

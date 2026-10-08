@@ -88,6 +88,29 @@ public extension TextPath {
     }
 }
 
+public struct LatheOptions: Hashable, Sendable, Codable {
+    public var segments: Int
+    public var along: [Path]
+    public var miterLimit: MiterLimit
+
+    public init(segments: Int, along: [Path] = [], miterLimit: MiterLimit = .infinity) {
+        self.segments = segments
+        self.along = along
+        self.miterLimit = miterLimit
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case segments, along, miterLimit
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.segments = try container.decode(Int.self, forKey: .segments)
+        self.along = try container.decodeIfPresent([Path].self, forKey: .along) ?? []
+        self.miterLimit = try container.decodeIfPresent(MiterLimit.self, forKey: .miterLimit) ?? .infinity
+    }
+}
+
 public enum GeometryType: Hashable, Sendable, Codable {
     case group
     // primitives
@@ -102,7 +125,7 @@ public enum GeometryType: Hashable, Sendable, Codable {
     case text(TextPath)
     // builders
     case extrude([Path], ExtrudeOptions)
-    case lathe([Path], segments: Int)
+    case lathe([Path], LatheOptions)
     case loft([Path])
     case fill([Path])
     case hull([Vertex])
@@ -263,7 +286,7 @@ extension GeometryType {
                 .polygons.flatMap { $0.vertices.map(\.position) }
         case let .sphere(segments):
             return GeometryType
-                .lathe([.arc(segments: max(2, segments / 2))], segments: segments)
+                .lathe([.arc(segments: max(2, segments / 2))], .init(segments: segments))
                 .representativePoints
         case let .extrude(paths, options) where options.along.isEmpty:
             return paths.reduce(into: []) { vertices, path in
@@ -282,18 +305,25 @@ extension GeometryType {
                     ).flatMap(\.pointPositions)
                 }
             }
-        case let .lathe(paths, segments):
+        case let .lathe(paths, options) where options.along.isEmpty:
             return paths.flatMap { path -> [Vector] in
                 let profile = path.latheProfile
                 return profile.pointPositions.flatMap { point -> [Vector] in
                     let diameter = abs(point.x) * 2
-                    let circle = Path.circle(segments: segments)
+                    let circle = Path.circle(segments: options.segments)
                         .scaled(by: diameter)
                         .rotated(by: .roll(-.halfPi))
                         .rotated(by: .pitch(.halfPi))
                     return circle
                         .translated(by: point.y * .unitY)
                         .pointPositions
+                }
+            }
+        case let .lathe(paths, options):
+            return paths.flatMap { path in
+                options.along.flatMap { along in
+                    path.latheContours(along: along, slices: options.segments, miterLimit: options.miterLimit)
+                        .flatMap(\.pointPositions)
                 }
             }
         case let .loft(paths), let .fill(paths):
