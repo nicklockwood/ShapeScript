@@ -312,7 +312,8 @@ public extension Mesh {
             material: material
         )
         var triangles = icosahedron.polygons
-        for _ in 0 ..< subdivisions where !isCancelled() {
+        for _ in 0 ..< subdivisions {
+            guard !isCancelled() else { return .empty }
             triangles = triangles.subdivide()
         }
         triangles = triangles.mapVertices {
@@ -511,6 +512,53 @@ public extension Mesh {
         )
     }
 
+    /// Creates a mesh by turning the specified path around another path.
+    ///
+    /// The profile's vertical axis is mapped onto the length of the `along` path, and
+    /// the generated contours are oriented perpendicular to that path.
+    ///
+    /// - Parameters:
+    ///   - profile: The path to use as the profile for the mesh.
+    ///   - along: The path to use as the lathe axis.
+    ///   - slices: The number of radial slices that make up the lathed mesh.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The way that texture coordinates are calculated for the lathed mesh.
+    ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
+    static func lathe(
+        _ profile: Path,
+        along: Path,
+        slices: Int = 16,
+        miterLimit: MiterLimit = .infinity,
+        faces: Faces = .default,
+        wrapMode: WrapMode = .default,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        let (contours, contourOffsets, axisOffsets) = profile.latheContoursWithOffsets(
+            along: along, slices: slices, miterLimit: miterLimit
+        )
+        let mesh = loft(
+            contours,
+            contourOffsets: wrapMode == .tube ? axisOffsets.map { 1 - $0 } : contourOffsets,
+            faces: faces,
+            material: material,
+            isConvex: false,
+            isWatertight: nil,
+            preserveEvenOddWinding: false,
+            isCancelled: isCancelled
+        )
+        switch wrapMode {
+        case .default, .shrink, .tube:
+            return mesh
+        case .box:
+            return mesh.cubeMapped()
+        case .none:
+            return mesh.withoutTexcoords()
+        }
+    }
+
     /// Creates a mesh by extruding a path along its face normal.
     /// - Parameters:
     ///   - shape: The path to extrude in order to create the mesh.
@@ -652,7 +700,7 @@ public extension Mesh {
                 )
             }, isCancelled: isCancelled))
         }
-        let contours = shape.extrusionContours(
+        let (contours, contourOffsets) = shape.extrusionContoursWithOffsets(
             along: along,
             twist: twist,
             align: align,
@@ -660,6 +708,7 @@ public extension Mesh {
         )
         return loft(
             contours,
+            contourOffsets: contourOffsets,
             faces: faces,
             material: material,
             isConvex: false,
@@ -1616,6 +1665,7 @@ private extension Mesh {
 
     static func compoundLoft(
         originalShapes: [Path],
+        contourOffsets: [Double]? = nil,
         boundarySubshapes: [[Path]],
         useMeshableNonZeroBoundary: Bool,
         preserveEvenOddWinding: Bool,
@@ -1623,6 +1673,9 @@ private extension Mesh {
         material: Material?,
         isCancelled: CancellationHandler
     ) -> Mesh {
+        let contourOffsets = contourOffsets.map { values in
+            originalShapes.indices.filter { !originalShapes[$0].isEmpty }.map { values[$0] }
+        }
         let shapes = originalShapes.filter { !$0.isEmpty }
         let first = shapes.first
         let transforms = first.map { first in
@@ -1858,12 +1911,12 @@ private extension Mesh {
                 count += 1
                 previous = shape
             }
-            var uvstart = 0.0
+            var uvstart = contourOffsets?.first ?? 0
             let uvstep = 1 / Double(max(1, count - 1))
             var curvestart = true
             for i in shapes.indices.dropFirst() {
                 let shape0 = shapes[i - 1], shape1 = shapes[i]
-                let uvend = uvstart + uvstep
+                let uvend = contourOffsets?[i] ?? (uvstart + uvstep)
                 if shape0 == shape1 {
                     curvestart = false
                     continue
@@ -1960,10 +2013,10 @@ private extension Mesh {
             for subshapes in boundarySubshapes {
                 var sidePolygons = [Polygon]()
                 var previous = subshapes.first
-                var uvx0 = 0.0
+                var uvx0 = contourOffsets?.first ?? 0
                 let uvstep = Double(1) / Double(max(1, subshapes.count - 1))
-                for shape in subshapes.dropFirst() where !isCancelled() {
-                    let uvx1 = uvx0 + uvstep
+                for (i, shape) in subshapes.enumerated().dropFirst() where !isCancelled() {
+                    let uvx1 = contourOffsets?[i] ?? (uvx0 + uvstep)
                     if let previous, previous != shape {
                         loft(
                             unchecked: previous, shape,
@@ -2064,6 +2117,7 @@ private extension Mesh {
 
     static func loft(
         _ shapes: [Path],
+        contourOffsets: [Double]? = nil,
         faces: Faces,
         material: Material?,
         isConvex: Bool,
@@ -2093,6 +2147,7 @@ private extension Mesh {
         {
             return compoundLoft(
                 originalShapes: usesOddEvenBoundary ? normalizedShapes : shapes,
+                contourOffsets: contourOffsets,
                 boundarySubshapes: subshapes,
                 useMeshableNonZeroBoundary: true,
                 preserveEvenOddWinding: false,
@@ -2107,11 +2162,16 @@ private extension Mesh {
             } ?? false
             guard shouldMapCompoundSides else {
                 return Mesh.symmetricDifference(subshapes.map {
-                    Mesh.loft($0, faces: faces, material: material, isCancelled: isCancelled)
+                    loft(
+                        $0, contourOffsets: contourOffsets, faces: faces, material: material,
+                        isConvex: false, isWatertight: nil, preserveEvenOddWinding: false,
+                        isCancelled: isCancelled
+                    )
                 }, isCancelled: isCancelled)
             }
             return compoundLoft(
                 originalShapes: normalizedShapes,
+                contourOffsets: contourOffsets,
                 boundarySubshapes: subshapes,
                 useMeshableNonZeroBoundary: false,
                 preserveEvenOddWinding: preserveEvenOddWinding && usesOddEvenBoundary,
@@ -2121,6 +2181,9 @@ private extension Mesh {
             )
         }
         // TODO: could we split the extrusion at empty shapes instead?
+        let contourOffsets = contourOffsets.map { values in
+            normalizedShapes.indices.filter { !normalizedShapes[$0].isEmpty }.map { values[$0] }
+        }
         let shapes = normalizedShapes.filter { !$0.isEmpty }
         guard let first = shapes.first, let last = shapes.last else {
             return .empty
@@ -2132,7 +2195,8 @@ private extension Mesh {
             prev = shape
         }
         let allShapesAreClosed = shapes.allSatisfy(\.isClosed)
-        let isClosed = allShapesAreClosed && (shapes.first == shapes.last)
+        // Shape is considered closed if path positions match, regardless of color, texcoords, etc
+        let isClosed = allShapesAreClosed && first.points.map(\.position) == last.points.map(\.position)
         if count < 3, isClosed {
             return fill(first, faces: faces, material: material, isCancelled: isCancelled)
         }
@@ -2150,12 +2214,12 @@ private extension Mesh {
                 }
             }
         }
-        var uvx0 = 0.0
+        var uvx0 = contourOffsets?.first ?? 0
         let uvstep = Double(1) / Double(count - 1)
         prev = first
         var curvestart = true
         for (i, shape) in shapes.enumerated().dropFirst() where !isCancelled() {
-            let uvx1 = uvx0 + uvstep
+            let uvx1 = contourOffsets?[i] ?? (uvx0 + uvstep)
             if shape == prev {
                 curvestart = false
                 continue
