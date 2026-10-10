@@ -166,14 +166,77 @@ public extension Path {
         points.contains(where: { $0.texcoord != nil })
     }
 
-    /// The total length of the path.
+    /// The total length of the path or subpaths.
     var length: Double {
-        var prev = points.first?.position ?? .zero
-        return points.dropFirst().reduce(0.0) {
-            let position = $1.position
-            defer { prev = position }
-            return $0 + position.distance(from: prev)
+        switch storage {
+        case let .points(points):
+            var prev = points.first?.position ?? .zero
+            return points.dropFirst().reduce(0.0) {
+                let position = $1.position
+                defer { prev = position }
+                return $0 + position.distance(from: prev)
+            }
+        case let .subpaths(subpaths):
+            return subpaths.reduce(0) { $0 + $1.length }
         }
+    }
+
+    /// Returns an interpolated point at a normalized distance along the path or subpaths.
+    /// - Parameter t: The fraction of the total path length, from 0 to 1, excluding gaps between subpaths.
+    /// - Returns: An interpolated path point, or `nil` if the path is empty. Values outside 0 to 1
+    ///   are clamped for open paths, or wrapped if all subpaths are closed.
+    func interpolatedPoint(by t: Double) -> PathPoint? {
+        interpolatedPoint(at: t * length)
+    }
+
+    /// Returns an interpolated point at the specified distance along the path or subpaths.
+    /// - Parameter distance: The distance from the start of the path.
+    /// - Returns: An interpolated path point, clamped to the path ends for open paths,
+    ///   or wrapped around the total length if all subpaths are closed.
+    func interpolatedPoint(at distance: Double) -> PathPoint? {
+        let points = points
+        guard let first = points.first else {
+            return nil
+        }
+        let length = length
+        guard length > 0 else {
+            return first
+        }
+
+        var remaining: Double
+        if isClosed {
+            remaining = distance.truncatingRemainder(dividingBy: length)
+            if remaining < 0 {
+                remaining += length
+            }
+        } else if distance <= 0 {
+            return first
+        } else if distance >= length {
+            return points.last
+        } else {
+            remaining = distance
+        }
+
+        for subpath in subpaths {
+            guard var previousPoint = subpath.points.first else {
+                continue
+            }
+            for point in subpath.points.dropFirst() {
+                let segmentLength = (point.position - previousPoint.position).length
+                if remaining <= segmentLength {
+                    var interpolatedPoint = previousPoint.interpolated(
+                        with: point,
+                        by: segmentLength > 0 ? remaining / segmentLength : 0
+                    )
+                    let tangent = point.position - previousPoint.position
+                    interpolatedPoint.orientation = Rotation(forward: tangent, up: tangent.cross(subpath.faceNormal))
+                    return interpolatedPoint
+                }
+                remaining -= segmentLength
+                previousPoint = point
+            }
+        }
+        return isClosed ? first : points.last
     }
 
     /// The face normal vector for the path.
@@ -508,15 +571,22 @@ public extension Path {
         Set(orderedEdges.map(LineSegment.init(undirected:)))
     }
 
+    /// Returns a copy of the path uniformly scaled about the origin to the specified length.
+    /// - Parameter length: The target length, excluding gaps between subpaths.
+    /// - Returns: The scaled path, or `self` if its length is zero.
+    /// > Note: Uses the same minimum scale as `scaled(by:)`. Negative lengths also reflect the path.
+    func withLength(_ length: Double) -> Path {
+        let currentLength = self.length
+        guard currentLength > 0 else {
+            return self
+        }
+        return scaled(by: length / currentLength)
+    }
+
     /// Returns the path recentered on the origin.
     func withNormalizedPosition() -> (path: Path, offset: Vector) {
         let offset = points.centroid
         return offset.isZero ? (self, .zero) : (translated(by: -offset), offset)
-    }
-
-    @available(*, deprecated, renamed: "withDetail(_:forTwist:)")
-    func withDetail(_ detail: Int, twist: Angle) -> Path {
-        withDetail(detail, forTwist: twist)
     }
 
     /// Returns a copy of the path with added points to support a twist.
@@ -693,11 +763,13 @@ extension Path {
         switch storage {
         case let .points(points):
             assert(sanitizePoints(points) == points)
-            self.storage = storage
+            let computedPlane = plane ?? Plane(points: points.map(\.position))
+            let points = points.withOrientations(faceNormal: computedPlane?.normal)
+            self.storage = .points(points)
             if let plane {
                 assert(points.map(\.position).allSatisfy { plane.intersects($0) })
             }
-            self.plane = plane ?? Plane(points: points.map(\.position))
+            self.plane = computedPlane
         case let .subpaths(subpaths):
             switch subpaths.count {
             case 0:
@@ -777,38 +849,6 @@ extension Path {
                 isCurved: $0.isCurved
             )
         }), plane: .xy)
-    }
-
-    /// Groups subpaths into independent filled regions using even-odd containment.
-    /// - Returns: An array of paths, each containing one outer contour and any directly nested hole contours.
-    ///
-    /// This is useful when processing a compound path as filled geometry. Paths with multiple independent
-    /// outer contours are split into separate groups, while a single filled region is returned as `self`.
-    func filledSubpaths() -> [Path] {
-        let subpaths = subpaths.filter { !$0.isEmpty }
-        guard subpaths.count > 1 else {
-            return subpaths
-        }
-        let containment = PathContainmentIndex(subpaths)
-        let depths = subpaths.indices.map { containment.depth(of: $0) }
-        let outerIndexes = subpaths.indices.filter { depths[$0].isMultiple(of: 2) }
-        guard outerIndexes.count > 1 else {
-            return [self]
-        }
-        return outerIndexes.map { outerIndex in
-            let group = subpaths.indices.filter { index in
-                if index == outerIndex {
-                    return true
-                }
-                guard !depths[index].isMultiple(of: 2),
-                      depths[index] == depths[outerIndex] + 1
-                else {
-                    return false
-                }
-                return containment.containingPathIndexes(for: index).contains(outerIndex)
-            }
-            return Path(subpaths: group.sorted().map { subpaths[$0] })
-        }
     }
 
     /// Decomposes the filled area of a closed planar path into coplanar polygons.
@@ -1482,5 +1522,57 @@ private extension [PathPoint] {
         }
         let rotated = Array(self[startIndex ..< points.endIndex] + self[points.startIndex ..< startIndex])
         return rotated + [rotated[0]]
+    }
+
+    func withOrientations(faceNormal: Vector?) -> [PathPoint] {
+        guard count > 1 else {
+            return map {
+                var point = $0
+                point.orientation = nil
+                return point
+            }
+        }
+
+        let faceNormal = faceNormal ?? faceNormalForPoints(map(\.position))
+        var result = self
+        let isClosed = pointsAreClosed(unchecked: self)
+        let lastConnectedIndex = isClosed ? count - 2 : count - 1
+
+        func direction(from start: Int, to end: Int) -> Vector? {
+            (self[end].position - self[start].position).direction
+        }
+
+        for index in indices {
+            let incoming: Vector? = if index == 0 {
+                isClosed ? direction(from: lastConnectedIndex, to: 0) : nil
+            } else {
+                direction(from: index - 1, to: index)
+            }
+
+            let outgoing: Vector? = if index == count - 1 {
+                isClosed ? result[0].orientation?.forward : nil
+            } else if isClosed, index == lastConnectedIndex {
+                direction(from: index, to: 0)
+            } else {
+                direction(from: index, to: index + 1)
+            }
+
+            let tangent: Vector? = switch (incoming, outgoing) {
+            case let (incoming?, outgoing?): (incoming + outgoing).direction ?? outgoing
+            case let (nil, outgoing?): outgoing
+            case let (incoming?, nil): incoming
+            case (nil, nil): nil
+            }
+
+            result[index].orientation = tangent.flatMap {
+                Rotation(forward: $0, up: $0.cross(faceNormal))
+            }
+        }
+
+        if isClosed {
+            result[result.count - 1].orientation = result[0].orientation
+        }
+
+        return result
     }
 }

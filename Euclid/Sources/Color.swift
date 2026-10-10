@@ -207,9 +207,27 @@ public extension Color {
         hsbComponents.brightness
     }
 
+    /// The perceived luminance of the color.
+    /// Per https://en.wikipedia.org/wiki/Rec._709
+    var luminance: Double {
+        red * 0.2126 + green * 0.7152 + blue * 0.0722
+    }
+
     /// Creates a copy of the color updated with the specified alpha component.
     func withAlphaComponent(_ alpha: Double) -> Color {
         .init(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// Composites this color over a background using source-over alpha blending.
+    /// - Parameter background: The color beneath this color.
+    /// - Returns: The combined color, or ``clear`` if both colors are fully transparent.
+    func composited(over background: Color) -> Color {
+        let alpha = alpha + background.alpha * (1 - alpha)
+        guard alpha > 0 else {
+            return .clear
+        }
+        return background.interpolated(with: self, by: self.alpha / alpha)
+            .withAlphaComponent(alpha)
     }
 
     /// Linearly interpolate between two colors.
@@ -242,16 +260,7 @@ public extension Collection<Color> where Index == Int {
     /// - Parameter t: The normalized extent of interpolation between all the colors, from 0 to 1.
     /// - Returns: The interpolated color.
     func lerp(_ t: Double) -> Color {
-        let steps = count - 1
-        guard steps > -1 else {
-            return .clear
-        }
-        let t = Swift.max(0, Swift.min(1, t)) * Double(steps)
-        let index = Int(t)
-        guard index < steps else {
-            return self[steps]
-        }
-        return self[index].lerp(self[index + 1], t - t.rounded(.down))
+        interpolated(by: t) ?? .clear
     }
 }
 
@@ -315,46 +324,5 @@ extension Color {
             brightness: max,
             alpha: alpha
         )
-    }
-}
-
-public extension Color {
-    @available(*, deprecated, renamed: "red")
-    var r: Double {
-        get { red }
-        set { red = newValue }
-    }
-
-    @available(*, deprecated, renamed: "green")
-    var g: Double {
-        get { green }
-        set { green = newValue }
-    }
-
-    @available(*, deprecated, renamed: "blue")
-    var b: Double {
-        get { blue }
-        set { blue = newValue }
-    }
-
-    @available(*, deprecated, renamed: "alpha")
-    var a: Double {
-        get { alpha }
-        set { alpha = newValue }
-    }
-
-    @available(*, deprecated, renamed: "init(red:green:blue:alpha:)")
-    init(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) {
-        self.init(red: r, green: g, blue: b, alpha: a)
-    }
-
-    @available(*, deprecated, renamed: "init(white:alpha:)")
-    init(_ rgb: Double, _ a: Double = 1) {
-        self.init(white: rgb, alpha: a)
-    }
-
-    @available(*, deprecated, renamed: "withAlphaComponent(_:)")
-    func withAlpha(_ a: Double) -> Color {
-        withAlphaComponent(a)
     }
 }

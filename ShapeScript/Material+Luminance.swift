@@ -35,14 +35,9 @@ public extension MaterialProperty {
 }
 
 public extension Color {
-    var luminance: Double {
-        // https://en.wikipedia.org/wiki/Rec._709
-        red * 0.2126 + green * 0.7152 + blue * 0.0722
-    }
-
     /// The aggregate luminance of a translucent color when placed over a background color.
     func luminance(over background: Color) -> Double {
-        luminance * alpha + background.luminance * (1 - alpha)
+        composited(over: background).luminance
     }
 
     @available(*, deprecated, message: "Do not use")
