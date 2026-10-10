@@ -10,6 +10,33 @@
 import XCTest
 
 final class PathTests: XCTestCase {
+    func testWithLength() {
+        let path = Path([.point(1, 1), .point(4, 1), .point(4, 5)])
+        for length in [3.5, 7, 14] {
+            let scaled = path.withLength(length)
+            XCTAssertEqual(scaled.length, length)
+            XCTAssertEqual(scaled.points.map(\.position), path.points.map { $0.position * (length / 7) })
+        }
+    }
+
+    func testWithLengthExcludesSubpathGaps() {
+        let path = Path(subpaths: [
+            Path([.point(0, 0), .point(1, 0)]),
+            Path([.point(10, 0), .point(10, 3)]),
+        ])
+        let scaled = path.withLength(8)
+        XCTAssertEqual(scaled.length, 8)
+        XCTAssertEqual(scaled.subpaths.count, 2)
+        XCTAssertEqual(scaled.subpaths[0].length, 2)
+        XCTAssertEqual(scaled.subpaths[1].length, 6)
+    }
+
+    func testWithLengthForZeroLengthPaths() {
+        XCTAssertEqual(Path.empty.withLength(10), .empty)
+        let path = Path([.point(3, 4)])
+        XCTAssertEqual(path.withLength(10), path)
+    }
+
     // MARK: isSimple
 
     func testSinglePoint() {
@@ -46,6 +73,232 @@ final class PathTests: XCTestCase {
         XCTAssertTrue(path.isSimple)
         XCTAssertFalse(path.isClosed)
         XCTAssertEqual(path.points.count, 2)
+    }
+
+    func testPathPointsHaveOrientations() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+        ])
+        XCTAssertEqual(path.points[0].orientation?.forward, .unitX)
+        XCTAssertEqual(path.points[0].orientation?.up, -.unitY)
+        XCTAssertEqual(path.points[1].orientation?.forward, Vector(1, 1).normalized())
+        XCTAssertEqual(path.points[1].orientation?.up, Vector(1, -1).normalized())
+        XCTAssertEqual(path.points[2].orientation?.forward, .unitY)
+        XCTAssertEqual(path.points[2].orientation?.up, .unitX)
+    }
+
+    func testClosedPathPointOrientationUsesClosingSegment() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+            .point(0, 1),
+            .point(0, 0),
+        ])
+        XCTAssertEqual(path.points[0].orientation?.forward, Vector(1, -1).normalized())
+        XCTAssertEqual(path.points[0].orientation?.up, Vector(-1, -1).normalized())
+        XCTAssertEqual(path.points.last?.orientation?.forward, path.points[0].orientation?.forward)
+        XCTAssertEqual(path.points.last?.orientation?.up, path.points[0].orientation?.up)
+    }
+
+    func testStandalonePathPointHasNoOrientation() {
+        let point = PathPoint.point(0, 0)
+        XCTAssertNil(point.orientation)
+    }
+
+    func testPathPointOrientation() {
+        let path = Path([
+            .point(0, 0, 0),
+            .point(1, 2, 3),
+            .point(3, 4, 2),
+        ])
+        let tangent = Vector(1, 2, 3).normalized()
+        let orientation = path.points[0].orientation
+        XCTAssertEqual(orientation?.forward, tangent)
+        XCTAssertEqual(orientation?.up, tangent.cross(path.faceNormal).normalized())
+        let interpolated = path.interpolatedPoint(at: 0.5)?.orientation
+        XCTAssertEqual(interpolated, orientation)
+    }
+
+    func testInterpolatedPointByNormalizedDistance() {
+        let path = Path([.point(0, 0), .point(1, 0), .point(10, 0)])
+        XCTAssertEqual(path.interpolatedPoint(by: 0.5)?.position, [5, 0])
+        XCTAssertEqual(path.interpolatedPoint(by: 0.5)?.orientation?.forward, .unitX)
+        XCTAssertEqual(path.interpolatedPoint(by: -0.5)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(by: 1.5)?.position, [10, 0])
+    }
+
+    func testInterpolatedPointByNormalizedDistanceWraps() {
+        let path = Path([.point(0, 0), .point(1, 0), .point(1, 1), .point(0, 1), .point(0, 0)])
+        XCTAssertEqual(path.interpolatedPoint(by: 1)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(by: 1.125)?.position, [0.5, 0])
+        XCTAssertEqual(path.interpolatedPoint(by: -0.125)?.position, [0, 0.5])
+    }
+
+    func testInterpolatedPointByNormalizedDistanceExcludesGaps() {
+        let path = Path(subpaths: [
+            Path([.point(0, 0), .point(1, 0)]),
+            Path([.point(10, 0), .point(10, 3)]),
+        ])
+        XCTAssertEqual(path.interpolatedPoint(by: 0.25)?.position, [1, 0])
+        XCTAssertEqual(path.interpolatedPoint(by: 0.5)?.position, [10, 1])
+    }
+
+    func testInterpolatedPointByNormalizedDistanceForEmptyAndSinglePointPaths() {
+        XCTAssertNil(Path.empty.interpolatedPoint(by: 0.5))
+        let path = Path([.point(3, 4)])
+        XCTAssertEqual(path.interpolatedPoint(by: 0.5)?.position, [3, 4])
+    }
+
+    func testInterpolatedPointAtDistanceUsesSegmentOrientation() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+        ])
+        let point = path.interpolatedPoint(at: 1.5)
+        XCTAssertEqual(point?.position, [1, 0.5])
+        XCTAssertEqual(point?.orientation?.forward, .unitY)
+        XCTAssertEqual(point?.orientation?.up, .unitX)
+    }
+
+    func testInterpolatedPointAtVerticesRetainsOrientation() {
+        let path = Path.square()
+        for index in 0 ..< 4 {
+            let distance = Double(index)
+            for offset in [-4.0, 0, 4] {
+                XCTAssertEqual(path.interpolatedPoint(at: distance + offset), path.points[index])
+                XCTAssertEqual(
+                    path.interpolatedPoint(at: distance + offset)?.orientation,
+                    path.points[index].orientation
+                )
+            }
+            XCTAssertEqual(path.interpolatedPoint(by: distance / 4), path.points[index])
+            XCTAssertEqual(path.interpolatedPoint(by: distance / 4)?.orientation, path.points[index].orientation)
+        }
+    }
+
+    func testInterpolatedPointNearVerticesRetainsOrientation() {
+        let path = Path.square()
+        for index in 0 ..< 4 {
+            for offset in [-epsilon / 2, epsilon / 2] {
+                XCTAssertEqual(path.interpolatedPoint(at: Double(index) + offset), path.points[index])
+                XCTAssertEqual(
+                    path.interpolatedPoint(at: Double(index) + offset)?.orientation,
+                    path.points[index].orientation
+                )
+            }
+        }
+    }
+
+    func testInterpolatedPointAtOpenPathCornerRetainsOrientation() {
+        let path = Path([.point(0, 0), .point(1, 0), .point(1, 1)])
+        for distance in [Double(1).nextDown, 1.0, Double(1).nextUp] {
+            XCTAssertEqual(path.interpolatedPoint(at: distance), path.points[1])
+            XCTAssertEqual(path.interpolatedPoint(at: distance)?.orientation, path.points[1].orientation)
+        }
+        XCTAssertEqual(path.interpolatedPoint(at: 0.5)?.orientation?.forward, .unitX)
+        XCTAssertEqual(path.interpolatedPoint(at: 1.5)?.orientation?.forward, .unitY)
+    }
+
+    func testInterpolatedPointAtShortEdgeMidpointUsesSegmentOrientation() {
+        let path = Path([.point(0, 0), .point(epsilon, 0)])
+        let first = path.points[0].position
+        let second = path.points[1].position
+        let distance = (second - first).length / 2
+        let sample = path.interpolatedPoint(at: distance)
+        XCTAssertEqual(sample?.position, (first + second) / 2)
+        XCTAssertEqual(sample?.orientation?.forward, (second - first).normalized())
+    }
+
+    func testInterpolatedPointAtDistanceClampsForOpenPath() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+        ])
+        XCTAssertEqual(path.interpolatedPoint(at: -1)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 3)?.position, [1, 1])
+        XCTAssertEqual(path.interpolatedPoint(at: -1)?.orientation?.forward, .unitX)
+        XCTAssertEqual(path.interpolatedPoint(at: 3)?.orientation?.forward, .unitY)
+    }
+
+    func testInterpolatedPointAtDistanceWrapsForClosedPath() {
+        let path = Path([
+            .point(0, 0),
+            .point(1, 0),
+            .point(1, 1),
+            .point(0, 1),
+            .point(0, 0),
+        ])
+        let positivePoint = path.interpolatedPoint(at: 4.5)
+        XCTAssertEqual(positivePoint?.position, [0.5, 0])
+        XCTAssertEqual(positivePoint?.orientation?.forward, .unitX)
+        XCTAssertEqual(positivePoint?.orientation?.up, -.unitY)
+
+        let negativePoint = path.interpolatedPoint(at: -0.5)
+        XCTAssertEqual(negativePoint?.position, [0, 0.5])
+        XCTAssertEqual(negativePoint?.orientation?.forward, -.unitY)
+        XCTAssertEqual(negativePoint?.orientation?.up, -.unitX)
+    }
+
+    func testSubpathLengthExcludesGaps() {
+        let path = Path(subpaths: [
+            Path([.point(0, 0), .point(1, 0)]),
+            Path([.point(10, 0), .point(10, 2)]),
+        ])
+        XCTAssertEqual(path.length, 3)
+        XCTAssertEqual(path.interpolatedPoint(at: 1)?.position, [1, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 1.5)?.position, [10, 0.5])
+        XCTAssertEqual(path.interpolatedPoint(at: 1.5)?.orientation?.forward, .unitY)
+        XCTAssertEqual(path.interpolatedPoint(at: -1)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 4)?.position, [10, 2])
+    }
+
+    func testInterpolatedSubpathPointUsesSubpathNormal() {
+        let first = Path([.point(0, 0), .point(1, 0), .point(1, 1)])
+        let second = Path([.point(10, 0, 0), .point(10, 1, 0), .point(10, 1, 1)])
+        let path = Path(subpaths: [first, second])
+        let point = path.interpolatedPoint(at: first.length + 0.5)
+        XCTAssertEqual(point?.position, [10, 0.5, 0])
+        XCTAssertEqual(point?.orientation, second.interpolatedPoint(at: 0.5)?.orientation)
+    }
+
+    func testInterpolatedClosedSubpathsWrapAroundTotalLength() {
+        let first = Path([.point(0, 0), .point(1, 0), .point(1, 1), .point(0, 1), .point(0, 0)])
+        let second = first.translated(by: [10, 0])
+        let path = Path(subpaths: [first, second])
+        XCTAssertEqual(path.length, 8)
+        XCTAssertEqual(path.interpolatedPoint(at: 4)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 4)?.orientation, first.points[0].orientation)
+        XCTAssertEqual(path.interpolatedPoint(at: 4.5)?.position, [10.5, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 8.5)?.position, [0.5, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: -0.5)?.position, [10, 0.5])
+    }
+
+    func testInterpolatedMixedSubpathsClampToEnds() {
+        let path = Path(subpaths: [
+            Path([.point(0, 0), .point(1, 0)]),
+            Path([.point(10, 0), .point(11, 0), .point(11, 1), .point(10, 1), .point(10, 0)]),
+        ])
+        XCTAssertEqual(path.length, 5)
+        XCTAssertEqual(path.interpolatedPoint(at: -0.5)?.position, [0, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 1.5)?.position, [10.5, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 5.5)?.position, [10, 0])
+    }
+
+    func testInterpolatedSubpathsSkipIsolatedPoints() {
+        let path = Path(subpaths: [
+            Path([.point(5, 0)]),
+            Path([.point(10, 0), .point(11, 0)]),
+            Path([.point(20, 0)]),
+        ])
+        XCTAssertEqual(path.length, 1)
+        XCTAssertEqual(path.interpolatedPoint(at: 0.5)?.position, [10.5, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 0)?.position, [5, 0])
+        XCTAssertEqual(path.interpolatedPoint(at: 1)?.position, [20, 0])
     }
 
     func testLineShorterThanEpsilon() {
@@ -932,19 +1185,6 @@ final class PathTests: XCTestCase {
         XCTAssertEqual(path.plane?.normal, .unitZ)
     }
 
-    func testFilledSubpathsGroupsNestedContoursWithTheirOuters() {
-        let firstOuter = Path.square(size: 10)
-        let firstInner = Path.square(size: 4)
-        let secondOuter = Path.square(size: 10).translated(by: [20, 0])
-        let secondInner = Path.square(size: 4).translated(by: [20, 0])
-        let path = Path(subpaths: [firstOuter, firstInner, secondOuter, secondInner])
-
-        XCTAssertEqual(path.filledSubpaths(), [
-            Path(subpaths: [firstOuter, firstInner]),
-            Path(subpaths: [secondOuter, secondInner]),
-        ])
-    }
-
     func testLinkedArcSubpathsAreJoinedCorrectly() {
         let quarterTurn = Angle.pi / 2
         let first = Path.arc(angle: quarterTurn, segments: 4)
@@ -1256,5 +1496,106 @@ final class PathTests: XCTestCase {
 
         XCTAssertTrue(polygons.isEmpty)
         XCTAssertEqual(cancellationChecks, 1)
+    }
+}
+
+extension PathTests {
+    func testInterpolatedPathClampsWrapsAndPreservesSubpaths() throws {
+        let square = Path.square()
+        for i in 0 ..< 100 {
+            let start = square.length * Double(i) / 100
+            let slice = square.interpolated(from: start)
+            XCTAssertEqual(slice.subpaths.count, 1)
+            XCTAssertTrue(slice.isClosed)
+            XCTAssertEqual(slice.length, square.length, accuracy: 1e-8)
+        }
+        let open = Path([.point(0, 0), .point(1, 0), .point(1, 1)])
+        XCTAssertEqual(open.interpolated(from: -1, to: 3).points, open.points)
+        XCTAssertEqual(open.interpolated(from: 1, to: 1).points.count, 1)
+        XCTAssertEqual(open.interpolated(from: 1, to: 1).points.first?.orientation, open.points[1].orientation)
+        XCTAssertEqual(Path.empty.interpolated(from: 1), .empty)
+        XCTAssertEqual(open.interpolated(from: .infinity), .empty)
+        let loops = square.interpolated(from: 0.5, to: 8.5)
+        XCTAssertEqual(loops.subpaths.count, 2)
+        XCTAssertEqual(loops.length, 8, accuracy: 1e-8)
+        let compound = Path(subpaths: [square, open.translated(by: [5, 0])])
+        let sliced = compound.interpolated(from: 0.25)
+        XCTAssertEqual(sliced.subpaths.count, 2)
+        XCTAssertTrue(sliced.subpaths[0].isClosed)
+        XCTAssertFalse(sliced.subpaths[1].isClosed)
+        let decoded = try JSONDecoder().decode(Path.self, from: JSONEncoder().encode(sliced))
+        XCTAssertEqual(decoded, sliced)
+    }
+
+    func testResampledPathPreservesSourceOrientations() throws {
+        let paths = [
+            Path.square(),
+            Path.circle(segments: 32).rotated(by: Rotation(pitch: .degrees(37), yaw: .degrees(23))),
+            Path([.point(0, 0, 0), .point(1, 0, 0), .point(1, 1, 0), .point(1, 1, 1)]),
+        ]
+        for path in paths {
+            for start in [0.0, 0.23, 1.0] {
+                for step in [0.13, 0.7, 1.0] {
+                    let end = min(start + 1.9, path.length)
+                    let sampled = path.interpolated(from: start, to: end, step: step)
+                    let decoded = try JSONDecoder().decode(Path.self, from: JSONEncoder().encode(sampled))
+                    XCTAssertEqual(sampled, decoded)
+                    for (index, point) in sampled.points.enumerated() {
+                        let expected = try XCTUnwrap(path.interpolatedPoint(at: start + Double(index) * step))
+                        XCTAssertLessThan((point.position - expected.position).length, 1e-8)
+                        let actualFrame = try XCTUnwrap(point.orientation)
+                        let expectedFrame = try XCTUnwrap(expected.orientation)
+                        XCTAssertLessThan((actualFrame.forward - expectedFrame.forward).length, 1e-8)
+                        XCTAssertLessThan((actualFrame.up - expectedFrame.up).length, 1e-8)
+                    }
+                }
+            }
+        }
+    }
+
+    func testInterpolatedPathDoesNotRetainSourceContext() throws {
+        let source = Path.square()
+        let sampled = source.interpolated(step: 0.7)
+        let rebuilt = Path(sampled.points)
+        XCTAssertEqual(sampled, rebuilt)
+        XCTAssertNotEqual(sampled.points.map(\.orientation), rebuilt.points.map(\.orientation))
+        let decoded = try JSONDecoder().decode(Path.self, from: JSONEncoder().encode(sampled))
+        XCTAssertEqual(decoded.points.map(\.orientation), rebuilt.points.map(\.orientation))
+        let compound = Path(subpaths: [source, source.translated(by: [3, 0])])
+        let result = compound.interpolated(from: 0.25, to: 1.25, step: 0.5)
+        XCTAssertEqual(result.subpaths.count, 2)
+        for (original, slice) in zip(compound.subpaths, result.subpaths) {
+            for (index, point) in slice.points.enumerated() {
+                XCTAssertEqual(
+                    point.orientation,
+                    original.interpolatedPoint(at: 0.25 + Double(index) * 0.5)?.orientation
+                )
+            }
+        }
+    }
+
+    func testResampledPathEndpointsAndInvalidSteps() throws {
+        let path = Path([.point(0, 0), .point(1, 0)])
+        XCTAssertEqual(path.interpolated(step: 0.3).points.count, 4)
+        XCTAssertEqual(path.interpolated(step: 0.25).points.count, 5)
+        XCTAssertEqual(
+            path.interpolated(step: -0.25).points.map(\.position),
+            path.interpolated(step: 0.25).points.reversed().map(\.position)
+        )
+        let backwards = path.interpolated(step: -0.25)
+        let reversed = path.interpolated(step: 0.25).inverted()
+        for (a, b) in zip(backwards.points, reversed.points) {
+            let actual = try XCTUnwrap(a.orientation)
+            let expected = try XCTUnwrap(b.orientation)
+            XCTAssertLessThan((actual.forward - expected.forward).length, 1e-8)
+            XCTAssertLessThan((actual.up - expected.up).length, 1e-8)
+        }
+        for step in [0, Double.infinity, .nan] {
+            XCTAssertEqual(path.interpolated(step: step), .empty)
+        }
+        XCTAssertEqual(path.interpolated(step: 1e-12, isCancelled: { true }), .empty)
+        let closed = Path.square().interpolated(from: 0.23, step: 0.7)
+        XCTAssertTrue(closed.isClosed)
+        XCTAssertEqual(closed.points.first?.orientation, closed.points.last?.orientation)
     }
 }

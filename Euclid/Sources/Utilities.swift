@@ -168,6 +168,19 @@ func verticesAreDegenerate(_ vertices: some Collection<Vertex>) -> Bool {
     return pointsAreDegenerate(positions) || pointsAreSelfIntersecting(positions)
 }
 
+/// Returns true if all vertices lie within `epsilon` of a single line.
+func verticesAreCollinear(_ vertices: [Vertex]) -> Bool {
+    guard let first = vertices.first,
+          let furthest = vertices.max(by: {
+              ($0.position - first.position).lengthSquared < ($1.position - first.position).lengthSquared
+          }),
+          let line = Line(origin: first.position, direction: furthest.position - first.position)
+    else {
+        return true
+    }
+    return vertices.allSatisfy { line.intersects($0.position) }
+}
+
 func verticesAreConvex(_ vertices: some Collection<Vertex>) -> Bool {
     guard vertices.count > 3 else {
         return vertices.count > 2
@@ -349,14 +362,14 @@ func triangulateVertices(
     }
 
     /// Scores a flattened triangle by compactness so ear clipping prefers less narrow triangles.
-    func triangleScore(_ a: Vector, _ b: Vector, _ c: Vector) -> Double {
+    func triangleScore(_ a: Vector, _ b: Vector, _ c: Vector) -> Double? {
         let ab = (b - a).lengthSquared
         let bc = (c - b).lengthSquared
         let ca = (a - c).lengthSquared
         let area = abs(signedArea(a, b, c))
         let perimeterSquared = ab + bc + ca
         guard area > 0, perimeterSquared > epsilon else {
-            return 0
+            return nil
         }
         return area / perimeterSquared
     }
@@ -374,13 +387,16 @@ func triangulateVertices(
         let windingSign = winding < 0 ? -1.0 : 1.0
         let knownConvex = isConvex ?? verticesAreConvex(vertices)
 
+        // Projected area can round above zero for a degenerate 3D triangle. Reject
+        // that ear before clipping it so another diagonal can preserve the boundary.
+        func isValidTriangle(_ a: Int, _ b: Int, _ c: Int) -> Bool {
+            signedArea(points[a], points[b], points[c]) * windingSign > 0 &&
+                !verticesAreDegenerate([vertices[a], vertices[b], vertices[c]])
+        }
+
         func ear(previous: Int, current: Int, next: Int, ringIndex: Int) -> Ear? {
             let a = points[previous], b = points[current], c = points[next]
-            guard signedArea(a, b, c) * windingSign > 0 else {
-                return nil
-            }
-            let score = triangleScore(a, b, c)
-            guard score > 0 else {
+            guard isValidTriangle(previous, current, next), let score = triangleScore(a, b, c) else {
                 return nil
             }
             return Ear(ringIndex: ringIndex, previous: previous, current: current, next: next, score: score)
@@ -390,14 +406,11 @@ func triangulateVertices(
         // original ring and explore alternate ears before falling back to the slower 3D clipper.
         let maxBacktrackingVertexCount = 8
         func triangulateWithBacktracking(_ ring: [Int]) -> [[Int]]? {
-            guard !isCancelled() else { return nil }
-            guard ring.count <= maxBacktrackingVertexCount else {
+            guard !isCancelled(), ring.count <= maxBacktrackingVertexCount else {
                 return nil
             }
             guard ring.count > 3 else {
-                guard ring.count == 3,
-                      signedArea(points[ring[0]], points[ring[1]], points[ring[2]]) * windingSign > 0
-                else {
+                guard ring.count == 3, isValidTriangle(ring[0], ring[1], ring[2]) else {
                     return nil
                 }
                 return [ring]
@@ -407,8 +420,7 @@ func triangulateVertices(
                 let previous = points[ring[(ringIndex + count - 1) % count]]
                 let current = points[ring[ringIndex]]
                 let next = points[ring[(ringIndex + 1) % count]]
-                return signedArea(previous, current, next) * windingSign <= 0 ?
-                    ring[ringIndex] : nil
+                return signedArea(previous, current, next) * windingSign <= 0 ? ring[ringIndex] : nil
             }
             var ears = ring.indices.compactMap { ringIndex -> Ear? in
                 let count = ring.count
@@ -553,9 +565,7 @@ func triangulateVertices(
             searchStartIndex = ring.isEmpty ? 0 : bestEar.ringIndex % ring.count
         }
 
-        guard ring.count == 3,
-              signedArea(points[ring[0]], points[ring[1]], points[ring[2]]) * windingSign > 0
-        else {
+        guard ring.count == 3, isValidTriangle(ring[0], ring[1], ring[2]) else {
             return triangulateWithBacktracking(Array(vertices.indices)) ?? []
         }
         result.append(ring)
@@ -563,8 +573,6 @@ func triangulateVertices(
     }
 
     let triangles = triangulateProjected().map { indices in
-        // The projected signed-area checks are more reliable for shallow planar triangles than
-        // verticesAreDegenerate(), whose normalized dot products can round to exactly collinear.
         Polygon(
             unchecked: indices.map { vertices[$0] },
             plane: plane,
@@ -1256,15 +1264,13 @@ private func subpathIndicesFor(_ points: [PathPoint]) -> [Int] {
     var lastIndex = 0
     var indices = [Int]()
     for (i, p) in points.enumerated() {
-        for j in lastIndex ..< i {
-            if points[j].position == p.position {
-                if j > lastIndex, j < i - 1 {
-                    indices.append(j)
-                }
-                indices.append(i)
-                lastIndex = i + 1
-                break
+        for j in lastIndex ..< i where points[j].position == p.position {
+            if j > lastIndex, j < i - 1 {
+                indices.append(j)
             }
+            indices.append(i)
+            lastIndex = i + 1
+            break
         }
     }
     if !indices.isEmpty, indices.last != points.count - 1 {

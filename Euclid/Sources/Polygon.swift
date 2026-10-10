@@ -377,15 +377,17 @@ public extension Polygon {
     ///   - maxSides: The maximum number of sides each polygon may have.
     ///   - isCancelled: Callback used to cancel the operation.
     /// - Returns: An array of convex polygons.
-    func tessellate(
-        maxSides: Int = .max,
-        isCancelled: CancellationHandler = { false }
-    ) -> [Polygon] {
+    func tessellate(maxSides: Int = .max, isCancelled: CancellationHandler = { false }) -> [Polygon] {
         let maxSides = max(maxSides, 3)
         if vertices.count <= maxSides, isConvex {
             return [self]
         }
-        let polygons = triangulate(isCancelled: isCancelled)
+        var polygons = triangulate(isCancelled: isCancelled)
+        if !verticesAreCollinear(vertices) {
+            // Nearly collinear boundary vertices can produce zero-width ears. Do not merge
+            // those into folded polygons that overlap the surrounding faces during CSG.
+            polygons.removeAll { verticesAreCollinear($0.vertices) }
+        }
         if maxSides == 3 {
             return polygons
         }
@@ -591,9 +593,10 @@ extension [Polygon] {
 
     /// Returns a copy of the polygons with winding made consistent across shared edges.
     ///
-    /// The repair is propagated through two-polygon shared edges first, then makes
-    /// bounded balancing passes over non-manifold edges that are shared by more
-    /// than two polygons.
+    /// Edge subdivisions are reconciled before repair propagates through edges
+    /// shared by exactly two polygons. Components with contradictory orientation
+    /// constraints, conflicting locked polygons, or unresolved non-manifold edge
+    /// winding are left unchanged.
     ///
     /// - Parameter isLocked: A predicate that returns `true` for polygons whose
     ///   current orientation should be preserved. Components containing locked
@@ -606,7 +609,18 @@ extension [Polygon] {
         isCancelled: CancellationHandler
     ) -> [Polygon] {
         guard !isCancelled() else { return self }
-        let edgeMap = windingEdgeMap
+        var polygons = self
+        var edgeMap = windingEdgeMap
+        let mismatchedEdges = Set(edgeMap.compactMap { edge, matches in
+            matches.count > 1 && matches.reduce(0) { $0 + $1.sign } != 0 ? edge : nil
+        })
+        if !mismatchedEdges.isEmpty {
+            // At non-manifold contacts, pairs of long and short edges can each
+            // cancel in the hole check despite having incompatible subdivisions.
+            // Reconcile those T-junctions before inferring face orientations.
+            polygons = insertingEdgeVertices(with: mismatchedEdges, isCancelled: isCancelled)
+            edgeMap = polygons.windingEdgeMap
+        }
         var adjacency = [[(index: Int, parity: Int)]](repeating: [], count: count)
         for (index, matches) in edgeMap.values.enumerated() where matches.count == 2 {
             if index.isMultiple(of: cancellationCheckInterval), isCancelled() {
@@ -620,6 +634,7 @@ extension [Polygon] {
         var signs = [Int](repeating: 0, count: count)
         var componentIDs = [Int](repeating: -1, count: count)
         var components = [[Int]]()
+        var invalidComponents = Set<Int>()
         var traversalSteps = 0
         func addComponent(from start: Int) -> Bool {
             let componentID = components.count
@@ -633,12 +648,17 @@ extension [Polygon] {
                 }
                 traversalSteps += 1
                 component.append(index)
+                if locked[index], signs[index] != 1 {
+                    invalidComponents.insert(componentID)
+                }
                 for neighbor in adjacency[index] {
                     let expectedSign = signs[index] * neighbor.parity
                     if componentIDs[neighbor.index] < 0 {
                         signs[neighbor.index] = expectedSign
                         componentIDs[neighbor.index] = componentID
                         queue.append(neighbor.index)
+                    } else if signs[neighbor.index] != expectedSign {
+                        invalidComponents.insert(componentID)
                     }
                 }
             }
@@ -657,44 +677,35 @@ extension [Polygon] {
             component.contains { locked[$0] }
         }
         let hasLockedComponents = componentIsLocked.contains(true)
-        var componentSigns = [Int](repeating: 1, count: components.count)
-        let multiEdgeMatches = inconsistentWindingEdges(in: edgeMap).compactMap {
-            edgeMap[$0]
-        }.filter {
-            $0.count != 2
-        }
-        let maxPasses = multiEdgeMatches.count
-        for pass in 0 ..< maxPasses {
-            if pass.isMultiple(of: cancellationCheckInterval), isCancelled() {
-                return self
-            }
-            var changed = false
-            for matches in multiEdgeMatches {
-                let balance = matches.reduce(0) {
-                    $0 + componentSigns[componentIDs[$1.index]] * signs[$1.index] * $1.sign
-                }
-                guard balance != 0 else {
-                    continue
-                }
-                let signToFlip = balance > 0 ? 1 : -1
-                if let match = matches.first(where: {
-                    let componentID = componentIDs[$0.index]
-                    return !componentIsLocked[componentID] &&
-                        componentSigns[componentID] * signs[$0.index] * $0.sign == signToFlip
-                }) {
-                    componentSigns[componentIDs[match.index]] *= -1
-                    changed = true
+        // A non-manifold edge does not determine which sheets belong together.
+        // Never guess by greedily flipping neighboring components. If the proposed
+        // repair cannot balance every shared edge, preserve the connected region.
+        var connections = [[Int]](repeating: [], count: components.count)
+        for matches in edgeMap.values where matches.count > 2 {
+            guard !isCancelled() else { return self }
+            let first = componentIDs[matches[0].index]
+            for match in matches.dropFirst() {
+                let other = componentIDs[match.index]
+                if other != first {
+                    connections[first].append(other)
+                    connections[other].append(first)
                 }
             }
-            if !changed {
-                break
+            if matches.reduce(0, { $0 + signs[$1.index] * $1.sign }) != 0 {
+                invalidComponents.insert(first)
             }
         }
-        var result = enumerated().map { index, polygon in
-            let sign = signs[index] * componentSigns[componentIDs[index]]
+        var pending = [Int](invalidComponents)
+        while let component = pending.popLast() {
+            for neighbor in connections[component] where invalidComponents.insert(neighbor).inserted {
+                pending.append(neighbor)
+            }
+        }
+        var result = polygons.enumerated().map { index, polygon in
+            let sign = invalidComponents.contains(componentIDs[index]) ? 1 : signs[index]
             return sign < 0 ? polygon.inverted() : polygon
         }
-        if !hasLockedComponents, signedVolume * result.signedVolume < 0 {
+        if invalidComponents.isEmpty, !hasLockedComponents, polygons.signedVolume * result.signedVolume < 0 {
             result = result.inverted()
         }
         return result
@@ -1083,16 +1094,13 @@ extension Collection<Polygon> {
     }
 
     /// Decompose each concave polygon into 2 or more convex polygons
-    func tessellate(
-        maxSides: Int = .max,
-        isCancelled: Euclid.CancellationHandler
-    ) -> [Polygon] {
-        return flatMap { $0.tessellate(maxSides: maxSides, isCancelled: isCancelled) }
+    func tessellate(maxSides: Int = .max, isCancelled: Euclid.CancellationHandler) -> [Polygon] {
+        flatMap { $0.tessellate(maxSides: maxSides, isCancelled: isCancelled) }
     }
 
     /// Decompose each polygon into triangles
     func triangulate(isCancelled: Euclid.CancellationHandler) -> [Polygon] {
-        return flatMap { $0.triangulate(isCancelled: isCancelled) }
+        flatMap { $0.triangulate(isCancelled: isCancelled) }
     }
 
     /// Merge polygons
@@ -1179,8 +1187,7 @@ extension Collection<Polygon> {
 
         guard !isCancelled() else { return [] }
         var polygons = Array(self)
-        let shouldUseQualityMerge = useQualityMerge && allowDisjointSharedVertices && maxSides == .max && !ensureConvex
-        guard shouldUseQualityMerge else {
+        guard useQualityMerge, allowDisjointSharedVertices, maxSides == .max, !ensureConvex else {
             return polygons.greedyDetessellate(
                 ensureConvex: ensureConvex,
                 maxSides: maxSides,
@@ -1238,9 +1245,7 @@ extension Collection<Polygon> {
     }
 
     /// Group polygons by plane
-    func groupedByPlane(
-        isCancelled: Euclid.CancellationHandler
-    ) -> [(plane: Plane, polygons: [Polygon])] {
+    func groupedByPlane(isCancelled: Euclid.CancellationHandler) -> [(plane: Plane, polygons: [Polygon])] {
         let polygons = sorted(by: { $0.plane.w < $1.plane.w })
         guard var plane = polygons.first?.plane else {
             return []
@@ -1292,18 +1297,16 @@ extension Collection<Polygon> {
         for poly in self {
             let positions = Set(poly.vertices.map(\.position))
             var lastMatch: Int?
-            for i in points.indices.reversed() {
-                if !points[i].isDisjoint(with: positions) {
-                    submeshes[i].append(poly)
-                    points[i].formUnion(positions)
-                    if let j = lastMatch {
-                        for p in submeshes.remove(at: j) where !submeshes[i].contains(p) {
-                            submeshes[i].append(p)
-                        }
-                        points[i].formUnion(points.remove(at: j))
+            for i in points.indices.reversed() where !points[i].isDisjoint(with: positions) {
+                submeshes[i].append(poly)
+                points[i].formUnion(positions)
+                if let j = lastMatch {
+                    for p in submeshes.remove(at: j) where !submeshes[i].contains(p) {
+                        submeshes[i].append(p)
                     }
-                    lastMatch = i
+                    points[i].formUnion(points.remove(at: j))
                 }
+                lastMatch = i
             }
             if lastMatch == nil {
                 submeshes.append([poly])
@@ -1735,10 +1738,7 @@ extension Polygon {
             }
             return (i, j)
         }
-        guard matches.count >= 2 else {
-            return nil
-        }
-        guard allowDisjointSharedVertices || matches.count == 2 else {
+        guard matches.count >= 2, allowDisjointSharedVertices || matches.count == 2 else {
             return nil
         }
 
@@ -1861,10 +1861,10 @@ extension Polygon {
         // they allow a hole to be connected to the outer boundary by a zero-width bridge, but general
         // mesh detessellation must keep matching front and back partitions to remain watertight.
         if !allowRepeatedVertexPositions {
-            for i in result.indices.dropFirst() {
-                if result[..<i].contains(where: { $0.position.isApproximatelyEqual(to: result[i].position) }) {
-                    return nil
-                }
+            for i in result.indices.dropFirst() where result[..<i].contains(where: {
+                $0.position.isApproximatelyEqual(to: result[i].position)
+            }) {
+                return nil
             }
         }
 

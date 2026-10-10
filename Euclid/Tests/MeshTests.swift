@@ -150,6 +150,89 @@ final class MeshTests: XCTestCase {
         XCTAssertEqual(result.signedVolume, cube.signedVolume * 2, accuracy: epsilon)
     }
 
+    func testWindingRepairPreservesNonOrientableComponent() {
+        // A triangulated Mobius strip has contradictory shared-edge constraints.
+        let count = 8
+        let vertices = (0 ..< count).flatMap { i -> [Vector] in
+            let angle = Double(i) * .pi * 2 / Double(count)
+            return [-0.25, 0.25].map { width in
+                let radius = 1 + width * cos(angle / 2)
+                return Vector(radius * cos(angle), radius * sin(angle), width * sin(angle / 2))
+            }
+        }
+        let strip = (0 ..< count).flatMap { i -> [Euclid.Polygon] in
+            let a = vertices[i * 2], b = vertices[i * 2 + 1]
+            let c = vertices[i == count - 1 ? 1 : (i + 1) * 2]
+            let d = vertices[i == count - 1 ? 0 : (i + 1) * 2 + 1]
+            return [Polygon([a, b, c])!, Polygon([b, d, c])!]
+        }
+        for offset in strip.indices {
+            let polygons = Array(strip[offset...] + strip[..<offset])
+            XCTAssertEqual(polygons.withConsistentWinding(isCancelled: { false }), polygons)
+        }
+        // An unrelated, orientable component can still be repaired.
+        let cube = Mesh.cube().translated(by: [3, 0, 0]).polygons
+        var polygons = strip + cube
+        polygons[strip.count + 1] = polygons[strip.count + 1].inverted()
+        XCTAssertEqual(polygons.withConsistentWinding(isCancelled: { false }), strip + cube)
+    }
+
+    func testWindingRepairPreservesConflictingLockedFaces() {
+        var polygons = Mesh.cube().polygons
+        polygons[1] = polygons[1].inverted()
+        XCTAssertEqual(polygons.withConsistentWinding(isLocked: { _ in true }, isCancelled: { false }), polygons)
+    }
+
+    func testWindingRepairDoesNotReorientUnrepairableClosedComponent() {
+        let cube = Mesh.cube().inverted()
+        // Duplicate faces create contradictory non-manifold edge winding.
+        // A negative total volume is not sufficient reason to invert this mesh.
+        let mesh = Mesh(cube.polygons + [cube.polygons[0], cube.polygons[0]])
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertFalse(mesh.polygons.areConsistentlyWound)
+        XCTAssertLessThan(mesh.signedVolume, 0)
+        XCTAssertEqual(mesh.withConsistentWinding(), mesh)
+    }
+
+    func testWindingRepairDoesNotGuessAtNonManifoldEdge() {
+        let polygons = [Vector(0, 1, 0), Vector(0, 0, 1), Vector(0, -1, 0)].map {
+            Polygon([Vector.zero, .unitX, $0])!
+        }
+        XCTAssertEqual(polygons.withConsistentWinding(isCancelled: { false }), polygons)
+    }
+
+    func testMakeWatertightReconcilesSubdividedNonManifoldEdges() throws {
+        let cubes = Mesh.merge([
+            Mesh.cube().translated(by: [0, 0.5, 0.5]),
+            Mesh.cube().translated(by: [0, -0.5, -0.5]),
+        ])
+        let edge = try XCTUnwrap(LineSegment(start: [-0.5, 0, 0], end: [0.5, 0, 0]))
+        var polygons = cubes.polygons
+        for i in polygons.indices where polygons[i].orderedEdges.contains(edge) {
+            XCTAssertTrue(polygons[i].insertEdgePoint(.zero))
+        }
+        // The two long uses match, as do the pairs of shorter uses, so parity
+        // alone cannot identify this T-junction at the four-face contact.
+        XCTAssertTrue(polygons.areWatertight)
+        XCTAssertFalse(polygons.areConsistentlyWound)
+        for cacheWatertight in [false, true] {
+            let mesh = Mesh(polygons)
+            if cacheWatertight { XCTAssertTrue(mesh.isWatertight) }
+            let oriented = mesh.withConsistentWinding()
+            XCTAssertTrue(oriented.polygons.areConsistentlyWound)
+            XCTAssertEqual(oriented.signedVolume, cubes.signedVolume, accuracy: epsilon)
+            let result = mesh.makeWatertight()
+            XCTAssertTrue(result.isWatertight)
+            XCTAssertTrue(result.polygons.areConsistentlyWound)
+            XCTAssertEqual(result.polygons.count, polygons.count)
+            XCTAssertEqual(result.signedVolume, cubes.signedVolume, accuracy: epsilon)
+            for (before, after) in zip(polygons, result.polygons) {
+                XCTAssertEqual(before.plane, after.plane)
+            }
+            XCTAssertEqual(result.makeWatertight(), result)
+        }
+    }
+
     func testSphereIsWatertightAndConvex() {
         let mesh = Mesh.sphere()
         XCTAssertEqual(mesh.watertightIfSet, true)

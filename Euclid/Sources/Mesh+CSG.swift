@@ -348,7 +348,7 @@ public extension Mesh {
         nonisolated(unsafe) var lhs: [Polygon] = [], rhs: [Polygon] = []
         inParallel({
             lhs = BSP(mesh, isCancelled).clip(
-                boundsTest(intersection, polygons, isCancelled),
+                boundsTest(intersection, self.polygons, isCancelled),
                 .lessThan,
                 isCancelled
             )
@@ -359,11 +359,17 @@ public extension Mesh {
                 isCancelled
             )
         })
-        return Mesh(
-            unchecked: lhs + rhs,
+        let isConvex = isKnownConvex && mesh.isKnownConvex
+        // Separate clipping passes can leave shared corners at slightly different positions
+        let polygons = isConvex ? (lhs + rhs).mergingVertices(
+            withPrecision: epsilon,
+            isCancelled: isCancelled
+        ) : lhs + rhs
+        return isCancelled() ? .empty : Mesh(
+            unchecked: polygons,
             bounds: nil, // TODO: is there a way to efficiently preserve this?
             bsp: nil, // TODO: Is there a cheap way to calculate this?
-            isConvex: isKnownConvex && mesh.isKnownConvex,
+            isConvex: isConvex,
             isWatertight: nil,
             isPlanar: planarIfSet.flatMap { lhs in
                 mesh.planarIfSet.map { rhs in lhs || rhs }
@@ -1149,7 +1155,7 @@ private extension Mesh {
             )
         }
         return Mesh(
-            unchecked: polygons,
+            unchecked: polygons.correctingHullNormals(),
             bounds: nil,
             bsp: nil,
             isConvex: true,
@@ -1184,20 +1190,14 @@ private extension Mesh {
             a = points.min { $0.z < $1.z }!
             b = points.max { $0.z < $1.z }!
         }
-        guard let baseline = LineSegment(start: a, end: b) else {
-            return (.empty, false)
-        }
-        guard let c = points.max(by: {
+        guard let baseline = LineSegment(start: a, end: b), let c = points.max(by: {
             baseline.distance(from: $0) < baseline.distance(from: $1)
-        }), baseline.distance(from: c) > epsilon,
-        let basePlane = Plane(points: [a, b, c])
-        else {
+        }), baseline.distance(from: c) > epsilon, let basePlane = Plane(points: [a, b, c]) else {
             return (.empty, false)
         }
         guard let d = points.max(by: {
             basePlane.distance(from: $0) < basePlane.distance(from: $1)
-        }), basePlane.distance(from: d) > epsilon
-        else {
+        }), basePlane.distance(from: d) > epsilon else {
             return (.empty, false) // Planar input; use the existing hull implementation
         }
 
@@ -1318,7 +1318,7 @@ private extension Mesh {
         }
 
         return (Mesh(
-            unchecked: faces.map(\.polygon),
+            unchecked: faces.map(\.polygon).correctingHullNormals(),
             bounds: bounds,
             bsp: nil,
             isConvex: true,
@@ -1480,6 +1480,25 @@ private struct QuickHullFace {
 }
 
 private extension Collection<Polygon> {
+    func correctingHullNormals() -> [Polygon] {
+        arePlanar ? Array(self) : map { polygon in
+            let normal = polygon.plane.normal
+            guard polygon.vertices.contains(where: { $0.normal.dot(normal) <= epsilon }) else {
+                return polygon
+            }
+            return Polygon(
+                unchecked: polygon.vertices.map {
+                    $0.normal.dot(normal) <= epsilon ? $0.withNormal(normal) : $0
+                },
+                plane: polygon.plane,
+                isConvex: polygon.isConvex,
+                sanitizeNormals: false,
+                material: polygon.material,
+                id: polygon.id
+            )
+        }
+    }
+
     var needsHullNormalReconstruction: Bool {
         contains { polygon in
             polygon.vertices.allSatisfy {

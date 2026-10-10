@@ -312,7 +312,8 @@ public extension Mesh {
             material: material
         )
         var triangles = icosahedron.polygons
-        for _ in 0 ..< subdivisions where !isCancelled() {
+        for _ in 0 ..< subdivisions {
+            guard !isCancelled() else { return .empty }
             triangles = triangles.subdivide()
         }
         triangles = triangles.mapVertices {
@@ -511,6 +512,53 @@ public extension Mesh {
         )
     }
 
+    /// Creates a mesh by turning the specified path around another path.
+    ///
+    /// The profile's vertical axis is mapped onto the length of the `along` path, and
+    /// the generated contours are oriented perpendicular to that path.
+    ///
+    /// - Parameters:
+    ///   - profile: The path to use as the profile for the mesh.
+    ///   - along: The path to use as the lathe axis.
+    ///   - slices: The number of radial slices that make up the lathed mesh.
+    ///   - miterLimit: The miter threshold beyond which a corner is beveled.
+    ///   - faces: The direction of the generated polygon faces.
+    ///   - wrapMode: The way that texture coordinates are calculated for the lathed mesh.
+    ///   - material: The optional material for the mesh.
+    ///   - isCancelled: Callback used to cancel the operation.
+    static func lathe(
+        _ profile: Path,
+        along: Path,
+        slices: Int = 16,
+        miterLimit: MiterLimit = .infinity,
+        faces: Faces = .default,
+        wrapMode: WrapMode = .default,
+        material: Material? = nil,
+        isCancelled: CancellationHandler = { false }
+    ) -> Mesh {
+        let (contours, contourOffsets, axisOffsets) = profile.latheContoursWithOffsets(
+            along: along, slices: slices, miterLimit: miterLimit
+        )
+        let mesh = loft(
+            contours,
+            contourOffsets: wrapMode == .tube ? axisOffsets.map { 1 - $0 } : contourOffsets,
+            faces: faces,
+            material: material,
+            isConvex: false,
+            isWatertight: nil,
+            preserveEvenOddWinding: false,
+            isCancelled: isCancelled
+        )
+        switch wrapMode {
+        case .default, .shrink, .tube:
+            return mesh
+        case .box:
+            return mesh.cubeMapped()
+        case .none:
+            return mesh.withoutTexcoords()
+        }
+    }
+
     /// Creates a mesh by extruding a path along its face normal.
     /// - Parameters:
     ///   - shape: The path to extrude in order to create the mesh.
@@ -652,7 +700,7 @@ public extension Mesh {
                 )
             }, isCancelled: isCancelled))
         }
-        let contours = shape.extrusionContours(
+        let (contours, contourOffsets) = shape.extrusionContoursWithOffsets(
             along: along,
             twist: twist,
             align: align,
@@ -660,6 +708,7 @@ public extension Mesh {
         )
         return loft(
             contours,
+            contourOffsets: contourOffsets,
             faces: faces,
             material: material,
             isConvex: false,
@@ -924,9 +973,7 @@ public extension Mesh {
 }
 
 private extension Collection<Path> {
-    func normalizingCompoundPathsForLoft(
-        isCancelled: Euclid.CancellationHandler
-    ) -> (
+    func normalizingCompoundPathsForLoft(isCancelled: Euclid.CancellationHandler) -> (
         shapes: [Path],
         usesMeshableNonZeroBoundary: Bool,
         usesOddEvenBoundary: Bool
@@ -988,22 +1035,16 @@ private extension Collection<Path> {
 private extension Path {
     var removingRepeatedClosedPrefixTailForMeshing: Path {
         let subpaths = subpaths
-        if subpaths.count > 1,
-           let first = subpaths.first,
-           first.isClosed,
-           first.points.count > 256
-        {
+        if subpaths.count > 1, let first = subpaths.first, first.isClosed, first.points.count > 256 {
             let tail = subpaths.dropFirst().flatMap(\.points).map(\.position)
             let contour = first.points.dropLast(first.isClosed ? 1 : 0).map(\.position)
-            if !tail.isEmpty, tail.count <= contour.count,
-               contour.indices.contains(where: { start in
-                   tail.indices.allSatisfy { tailIndex in
-                       tail[tailIndex].isApproximatelyEqual(
-                           to: contour[(start + tailIndex) % contour.count]
-                       )
-                   }
-               })
-            {
+            if !tail.isEmpty, tail.count <= contour.count, contour.indices.contains(where: { start in
+                tail.indices.allSatisfy { tailIndex in
+                    tail[tailIndex].isApproximatelyEqual(
+                        to: contour[(start + tailIndex) % contour.count]
+                    )
+                }
+            }) {
                 return first
             }
         }
@@ -1085,20 +1126,11 @@ private extension Path {
         } else if shape.hasRepairableCoincidentContours {
             // Fill may need a rebuilt non-zero boundary instead of odd-even composition.
             // Compound paths only use this for SVG-style contours with coincident points.
-            let nonZeroFillPolygons = shape.nonZeroFillPolygons(
-                material: material,
-                isCancelled: isCancelled
-            )
+            let nonZeroFillPolygons = shape.nonZeroFillPolygons(material: material, isCancelled: isCancelled)
             if shape.filledAreaBoundary(from: nonZeroFillPolygons).subpaths.count > 1 {
-                polygons = shape.nonZeroFillCapPolygons(
-                    nonZeroFillPolygons,
-                    isCancelled: isCancelled
-                )
+                polygons = shape.nonZeroFillCapPolygons(nonZeroFillPolygons, isCancelled: isCancelled)
             } else {
-                polygons = shape.oddEvenFillPolygons(
-                    material: material,
-                    isCancelled: isCancelled
-                )
+                polygons = shape.oddEvenFillPolygons(material: material, isCancelled: isCancelled)
             }
         } else {
             polygons = shape.oddEvenFillPolygons(
@@ -1112,10 +1144,7 @@ private extension Path {
     /// Returns an edge-aligned non-zero fill boundary when it can safely replace this path for
     /// mesh generation. Some boundaries merge or reorder subpaths in ways that break side matching.
     func meshableNonZeroFillBoundary(isCancelled: CancellationHandler) -> Path? {
-        if subpaths.count == 1, !usesNonZeroFill {
-            return nil
-        }
-        guard isClosed else {
+        if subpaths.count == 1 && !usesNonZeroFill || !isClosed {
             return nil
         }
         let polygons = nonZeroFillPolygons(material: nil, isCancelled: isCancelled)
@@ -1146,9 +1175,7 @@ private extension Path {
             return pointsAreAllCurved && boundary.subpathsTouchOrIntersect
         }
         if hasCurvedPoints {
-            return boundary.subpaths.count > 1 &&
-                subpathsTouchOrIntersect &&
-                hasRepairableCoincidentContours
+            return boundary.subpaths.count > 1 && subpathsTouchOrIntersect && hasRepairableCoincidentContours
         }
         return boundary.subpaths.count > 1 && (
             !subpathsTouchOrIntersect || hasRepairableCoincidentContours
@@ -1254,20 +1281,14 @@ private extension Path {
 
     /// Builds cap polygons directly from the scanline non-zero fill, then inserts
     /// any split edge vertices needed to match side-wall boundary edges.
-    func nonZeroFillCapPolygons(
-        material: Mesh.Material?,
-        isCancelled: CancellationHandler
-    ) -> [Polygon] {
+    func nonZeroFillCapPolygons(material: Mesh.Material?, isCancelled: CancellationHandler) -> [Polygon] {
         nonZeroFillCapPolygons(
             nonZeroFillPolygons(material: material, isCancelled: isCancelled),
             isCancelled: isCancelled
         )
     }
 
-    func nonZeroFillCapPolygons(
-        _ polygons: [Polygon],
-        isCancelled: CancellationHandler
-    ) -> [Polygon] {
+    func nonZeroFillCapPolygons(_ polygons: [Polygon], isCancelled: CancellationHandler) -> [Polygon] {
         let precision = max(bounds.size.length * 1e-9, epsilon)
         return polygons.count > 1 ? polygons
             .insertingEdgeVertices(with: polygons.holeEdges, isCancelled: isCancelled)
@@ -1296,16 +1317,12 @@ private extension Path {
         let targetU = points[xIndex] - first
         let sourceNormal = other.faceNormal
         let targetNormal = faceNormal
-        guard sourceU != .zero, targetU != .zero,
-              sourceNormal != .zero, targetNormal != .zero
+        guard sourceU != .zero, targetU != .zero, sourceNormal != .zero, targetNormal != .zero,
+              let yIndex = otherPoints.indices.dropFirst().first(where: {
+                  let sourceV = otherPoints[$0] - otherFirst
+                  return sourceU.cross(sourceV).length > epsilon
+              })
         else {
-            return nil
-        }
-
-        guard let yIndex = otherPoints.indices.dropFirst().first(where: {
-            let sourceV = otherPoints[$0] - otherFirst
-            return sourceU.cross(sourceV).length > epsilon
-        }) else {
             return nil
         }
         let sourceV = otherPoints[yIndex] - otherFirst
@@ -1616,6 +1633,7 @@ private extension Mesh {
 
     static func compoundLoft(
         originalShapes: [Path],
+        contourOffsets: [Double]? = nil,
         boundarySubshapes: [[Path]],
         useMeshableNonZeroBoundary: Bool,
         preserveEvenOddWinding: Bool,
@@ -1623,6 +1641,9 @@ private extension Mesh {
         material: Material?,
         isCancelled: CancellationHandler
     ) -> Mesh {
+        let contourOffsets = contourOffsets.map { values in
+            originalShapes.indices.filter { !originalShapes[$0].isEmpty }.map { values[$0] }
+        }
         let shapes = originalShapes.filter { !$0.isEmpty }
         let first = shapes.first
         let transforms = first.map { first in
@@ -1664,11 +1685,7 @@ private extension Mesh {
             }
             return edges.compactMap { $0 }
         }
-        func sourceVertices(
-            at p0: Vector,
-            _ p1: Vector,
-            on source: (Vertex, Vertex)
-        ) -> (Vertex, Vertex) {
+        func sourceVertices(at p0: Vector, _ p1: Vector, on source: (Vertex, Vertex)) -> (Vertex, Vertex) {
             let sourceEdge = LineSegment(unchecked: source.0.position, source.1.position)
             func vertex(at position: Vector) -> Vertex {
                 let distance = (position - sourceEdge.start).dot(sourceEdge.direction)
@@ -1677,11 +1694,7 @@ private extension Mesh {
             }
             return (vertex(at: p0), vertex(at: p1))
         }
-        func sourceEdgeIndex(
-            at p0: Vector,
-            _ p1: Vector,
-            in edges: [(Vertex, Vertex)]
-        ) -> Int? {
+        func sourceEdgeIndex(at p0: Vector, _ p1: Vector, in edges: [(Vertex, Vertex)]) -> Int? {
             edges.firstIndex(where: {
                 let edge = LineSegment(unchecked: $0.0.position, $0.1.position)
                 return edge.intersects(p0) && edge.intersects(p1)
@@ -1795,7 +1808,12 @@ private extension Mesh {
                     (transform(vertex.position + vertex.normal) - position).normalized()
                 return Vertex(unchecked: position, normal, vertex.texcoord, vertex.color)
             }
-            func sidePolygons(_ vertices: [Vertex]) -> [Polygon] {
+            func sidePolygons(_ vertices: [Vertex], inverted: Bool = false) -> [Polygon] {
+                // Choose the side-wall diagonal in the direction of the loft before
+                // restoring contour winding. Reversing a section must not change its volume.
+                if inverted {
+                    return sidePolygons(Array(vertices.reversed())).inverted()
+                }
                 func triangulatedSidePolygons(_ vertices: [Vertex]) -> [Polygon] {
                     triangulateVertices(
                         vertices,
@@ -1858,12 +1876,12 @@ private extension Mesh {
                 count += 1
                 previous = shape
             }
-            var uvstart = 0.0
+            var uvstart = contourOffsets?.first ?? 0
             let uvstep = 1 / Double(max(1, count - 1))
             var curvestart = true
             for i in shapes.indices.dropFirst() {
                 let shape0 = shapes[i - 1], shape1 = shapes[i]
-                let uvend = uvstart + uvstep
+                let uvend = contourOffsets?[i] ?? (uvstart + uvstep)
                 if shape0 == shape1 {
                     curvestart = false
                     continue
@@ -1924,7 +1942,7 @@ private extension Mesh {
                             v0, by: transform1, from: n1, isCurved: curveend,
                             uv: uvend, attributes: attributes1?.0
                         ),
-                    ])
+                    ], inverted: direction.dot(shape0.faceNormal) < 0)
                     let edge = LineSegment(unchecked: v0.position, v1.position)
                     let transformedEdge = LineSegment(
                         unchecked: transform0(v0.position),
@@ -1945,9 +1963,7 @@ private extension Mesh {
                 uvstart = uvend
             }
             if useMeshableNonZeroBoundary, first?.hasCurvedPoints == true {
-                let capPoints = firstCapPolygons.flatMap {
-                    $0.vertices.map(\.position)
-                }
+                let capPoints = firstCapPolygons.flatMap { $0.vertices.map(\.position) }
                 accumulatedSidePolygons = accumulatedSidePolygons.insertingEdgePoints(
                     capPoints,
                     isCancelled: isCancelled
@@ -1960,10 +1976,10 @@ private extension Mesh {
             for subshapes in boundarySubshapes {
                 var sidePolygons = [Polygon]()
                 var previous = subshapes.first
-                var uvx0 = 0.0
+                var uvx0 = contourOffsets?.first ?? 0
                 let uvstep = Double(1) / Double(max(1, subshapes.count - 1))
-                for shape in subshapes.dropFirst() where !isCancelled() {
-                    let uvx1 = uvx0 + uvstep
+                for (i, shape) in subshapes.enumerated().dropFirst() where !isCancelled() {
+                    let uvx1 = contourOffsets?[i] ?? (uvx0 + uvstep)
                     if let previous, previous != shape {
                         loft(
                             unchecked: previous, shape,
@@ -2010,19 +2026,17 @@ private extension Mesh {
             isCancelled: isCancelled
         )
         let isClosed = shapes.first == shapes.last
-        if isClosed, !preserveEvenOddWinding {
-            let submeshIndices = polygons.groupedSubmeshIndices
-            if submeshIndices.count > 1 {
-                for indices in submeshIndices {
-                    let submesh = indices.map { polygons[$0] }
-                    if submesh.areWatertight, !submesh.arePlanar, submesh.signedVolume < 0 {
-                        for index in indices {
-                            polygons[index] = polygons[index].inverted()
-                        }
+        if isClosed, !preserveEvenOddWinding,
+           case let submeshIndices = polygons.groupedSubmeshIndices,
+           submeshIndices.count > 1
+        {
+            for indices in submeshIndices {
+                let submesh = indices.map { polygons[$0] }
+                if submesh.areWatertight, !submesh.arePlanar, submesh.signedVolume < 0 {
+                    for index in indices {
+                        polygons[index] = polygons[index].inverted()
                     }
                 }
-            } else if polygons.signedVolume < 0 {
-                polygons = polygons.inverted()
             }
         } else if polygons.signedVolume < 0 {
             polygons = polygons.inverted()
@@ -2064,6 +2078,7 @@ private extension Mesh {
 
     static func loft(
         _ shapes: [Path],
+        contourOffsets: [Double]? = nil,
         faces: Faces,
         material: Material?,
         isConvex: Bool,
@@ -2093,6 +2108,7 @@ private extension Mesh {
         {
             return compoundLoft(
                 originalShapes: usesOddEvenBoundary ? normalizedShapes : shapes,
+                contourOffsets: contourOffsets,
                 boundarySubshapes: subshapes,
                 useMeshableNonZeroBoundary: true,
                 preserveEvenOddWinding: false,
@@ -2107,11 +2123,16 @@ private extension Mesh {
             } ?? false
             guard shouldMapCompoundSides else {
                 return Mesh.symmetricDifference(subshapes.map {
-                    Mesh.loft($0, faces: faces, material: material, isCancelled: isCancelled)
+                    loft(
+                        $0, contourOffsets: contourOffsets, faces: faces, material: material,
+                        isConvex: false, isWatertight: nil, preserveEvenOddWinding: false,
+                        isCancelled: isCancelled
+                    )
                 }, isCancelled: isCancelled)
             }
             return compoundLoft(
                 originalShapes: normalizedShapes,
+                contourOffsets: contourOffsets,
                 boundarySubshapes: subshapes,
                 useMeshableNonZeroBoundary: false,
                 preserveEvenOddWinding: preserveEvenOddWinding && usesOddEvenBoundary,
@@ -2121,6 +2142,9 @@ private extension Mesh {
             )
         }
         // TODO: could we split the extrusion at empty shapes instead?
+        let contourOffsets = contourOffsets.map { values in
+            normalizedShapes.indices.filter { !normalizedShapes[$0].isEmpty }.map { values[$0] }
+        }
         let shapes = normalizedShapes.filter { !$0.isEmpty }
         guard let first = shapes.first, let last = shapes.last else {
             return .empty
@@ -2132,7 +2156,8 @@ private extension Mesh {
             prev = shape
         }
         let allShapesAreClosed = shapes.allSatisfy(\.isClosed)
-        let isClosed = allShapesAreClosed && (shapes.first == shapes.last)
+        // Shape is considered closed if path positions match, regardless of color, texcoords, etc
+        let isClosed = allShapesAreClosed && first.points.map(\.position) == last.points.map(\.position)
         if count < 3, isClosed {
             return fill(first, faces: faces, material: material, isCancelled: isCancelled)
         }
@@ -2150,12 +2175,12 @@ private extension Mesh {
                 }
             }
         }
-        var uvx0 = 0.0
+        var uvx0 = contourOffsets?.first ?? 0
         let uvstep = Double(1) / Double(count - 1)
         prev = first
         var curvestart = true
         for (i, shape) in shapes.enumerated().dropFirst() where !isCancelled() {
-            let uvx1 = uvx0 + uvstep
+            let uvx1 = contourOffsets?[i] ?? (uvx0 + uvstep)
             if shape == prev {
                 curvestart = false
                 continue

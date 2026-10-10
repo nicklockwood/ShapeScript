@@ -255,6 +255,66 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertEqual(Mesh.empty, .intersection([]))
     }
 
+    func testIntersectionCanBeCancelled() {
+        let a = Mesh.cube()
+        let b = Mesh.cube().rotated(by: .roll(.degrees(30)))
+        XCTAssertEqual(a.intersection(b, isCancelled: { true }), .empty)
+    }
+
+    func testIntersectionOfRotatedBoxes() throws {
+        // Rotations from the OpenSCAD intersecting-boxes fixture.
+        let matrices: [[Double]] = [
+            [1, 0, 0, 0, 1, 0, 0, 0, 1],
+            [
+                0.46984631039,
+                -0.81379768134,
+                -0.34202014332,
+                0.88256411925,
+                0.44096961053,
+                0.16317591116,
+                0.01802831123,
+                -0.37852230637,
+                0.92541657839,
+            ],
+            [
+                0.41721770627,
+                0.64245892818,
+                -0.64278760968,
+                0.66835566162,
+                -0.69617191219,
+                -0.26200263022,
+                -0.61581660836,
+                -0.32029860173,
+                -0.71984631039,
+            ],
+            [
+                0.0190076282,
+                0.02926918072,
+                -0.99939082701,
+                -0.60192849838,
+                0.79846077351,
+                0.01193633086,
+                0.7983237394,
+                0.60133493846,
+                0.03279479952,
+            ],
+        ]
+        let meshes = try matrices.map { matrix in
+            let rotation = try JSONDecoder().decode(Rotation.self, from: JSONEncoder().encode(matrix))
+            return Mesh.cube(size: Vector(100, 20, 20)).rotated(by: rotation)
+        }
+        var mesh = meshes[0]
+        for other in meshes.dropFirst() {
+            mesh = mesh.intersection(other)
+            XCTAssertTrue(mesh.isKnownConvex)
+            XCTAssertTrue(mesh.isActuallyConvex)
+            XCTAssertTrue(mesh.isWatertight)
+            XCTAssertEqual(mesh.polygons.groupedBySubmesh().count, 1)
+            XCTAssertGreaterThan(mesh.signedVolume, 0)
+        }
+        XCTAssertEqual(mesh, .intersection(meshes))
+    }
+
     // MARK: Convex Hull
 
     func testConvexHullOfCubes() {
@@ -637,6 +697,26 @@ final class MeshCSGTests: XCTestCase {
         XCTAssert(mesh.polygons.areWatertight)
     }
 
+    func testConvexHullOfCurvedProfilesHasFlatCaps() {
+        let a = Path.circle(segments: 32).translated(by: [0, 0, -1])
+        let b = Path.circle(segments: 32).scaled(by: [1, 2, 1]).translated(by: [0, 0, 1])
+        // ShapeScript builds planar hulls for its path children first.
+        let profiles = [a, b].map { Mesh.convexHull(of: [$0]) }
+        for mesh in [Mesh.convexHull(of: [a, b]), Mesh.convexHull(of: profiles)] {
+            let caps = mesh.polygons.filter { abs($0.plane.normal.z) > 1 - epsilon }
+            XCTAssertFalse(caps.isEmpty)
+            for cap in caps {
+                for vertex in cap.vertices {
+                    XCTAssertEqual(vertex.normal, cap.plane.normal)
+                }
+            }
+            let sides = mesh.polygons.filter { abs($0.plane.normal.z) < 1 - epsilon }
+            XCTAssertTrue(sides.contains { polygon in
+                polygon.vertices.contains { !$0.normal.isApproximatelyEqual(to: polygon.plane.normal) }
+            })
+        }
+    }
+
     func testConvexHullOfPaths() {
         let detail = 16
         let a = Mesh.sphere(slices: detail)
@@ -724,8 +804,8 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(cancellationChecks, 8)
     }
 
-    func testMinkowskiSumWithPolygonCanBeCancelled() {
-        let polygon = Path.square().facePolygons().first!
+    func testMinkowskiSumWithPolygonCanBeCancelled() throws {
+        let polygon = try XCTUnwrap(Path.square().facePolygons().first)
         nonisolated(unsafe) var cancellationChecks = 0
         let mesh = Mesh.cube().minkowskiSum(with: polygon) {
             cancellationChecks += 1

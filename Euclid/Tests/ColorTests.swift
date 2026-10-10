@@ -10,6 +10,55 @@
 import XCTest
 
 final class ColorTests: XCTestCase {
+    func testCompositedOpaqueForeground() {
+        XCTAssertEqual(Color.red.composited(over: .blue.withAlphaComponent(0.5)), .red)
+    }
+
+    func testCompositedTransparentForeground() {
+        let background = Color.blue.withAlphaComponent(0.5)
+        XCTAssertEqual(Color.red.withAlphaComponent(0).composited(over: background), background)
+    }
+
+    func testCompositedTransparentBackground() {
+        let foreground = Color.red.withAlphaComponent(0.5)
+        XCTAssertEqual(foreground.composited(over: .blue.withAlphaComponent(0)), foreground)
+    }
+
+    func testCompositedTransparentColors() {
+        XCTAssertEqual(
+            Color.red.withAlphaComponent(0).composited(over: .blue.withAlphaComponent(0)),
+            .clear
+        )
+    }
+
+    func testCompositedOntoOpaqueBackground() {
+        XCTAssertEqual(
+            Color.red.withAlphaComponent(0.5).composited(over: .blue),
+            Color(red: 0.5, green: 0, blue: 0.5),
+            accuracy: epsilon
+        )
+    }
+
+    func testCompositedTranslucentColors() {
+        XCTAssertEqual(
+            Color.red.withAlphaComponent(0.5).composited(over: .blue.withAlphaComponent(0.5)),
+            Color(red: 2.0 / 3, green: 0, blue: 1.0 / 3, alpha: 0.75),
+            accuracy: epsilon
+        )
+    }
+
+    func testCollectionLerp() {
+        let colors: [Color] = [.red, .green, .blue]
+        XCTAssertEqual(colors.lerp(-1), .red)
+        XCTAssertEqual(colors.lerp(0.25), Color(red: 0.5, green: 0.5, blue: 0))
+        XCTAssertEqual(colors.lerp(0.5), .green)
+        XCTAssertEqual(colors.lerp(0.75), Color(red: 0, green: 0.5, blue: 0.5))
+        XCTAssertEqual(colors.lerp(2), .blue)
+        XCTAssertEqual([Color]().lerp(0.5), .clear)
+        XCTAssertEqual([Color.red].lerp(0.5), .red)
+        XCTAssertEqual(colors[1...].lerp(0.5), Color(red: 0, green: 0.5, blue: 0.5))
+    }
+
     func testHSBInitializer() {
         XCTAssertEqual(Color(hue: 0, saturation: 1, brightness: 1), .red, accuracy: epsilon)
         XCTAssertEqual(Color(hue: 1.0 / 6, saturation: 1, brightness: 1), .yellow, accuracy: epsilon)

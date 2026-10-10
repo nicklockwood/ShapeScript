@@ -51,3 +51,15 @@ A bezier path in three-dimensional space.
 - ``Path/withColor(_:)``
 - ``Path/withDetail(_:forTwist:)``
 - ``Path/closed()``
+
+### Interpolating Paths
+
+- ``Path/interpolatedPoint(at:)``
+- ``Path/interpolatedPoint(by:)``
+- ``Path/interpolated(from:to:step:isCancelled:)``
+
+### Clipping Paths
+
+- ``Path/split(along:isCancelled:)``
+- ``Path/clipped(to:isCancelled:)->Path``
+- ``Path/clipped(to:isCancelled:)->Path?``

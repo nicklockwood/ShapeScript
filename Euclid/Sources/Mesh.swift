@@ -263,10 +263,8 @@ public extension Mesh {
         let polygons = polygons.map(transform)
         // Check if changes affect shape
         for (old, new) in zip(self.polygons, polygons) {
-            for (old, new) in zip(old.vertices, new.vertices) {
-                if old.position != new.position {
-                    return .init(polygons)
-                }
+            for (old, new) in zip(old.vertices, new.vertices) where old.position != new.position {
+                return .init(polygons)
             }
         }
         return Mesh(
@@ -457,6 +455,7 @@ public extension Mesh {
             let merged = polygons
                 .insertingEdgeVertices(with: holeEdges, isCancelled: isCancelled)
                 .mergingVertices(withPrecision: precision, isCancelled: isCancelled)
+                .removingOverlappingSlivers(isCancelled: isCancelled)
             let newEdges = merged.holeEdges(isCancelled: isCancelled)
             if newEdges.count < holeEdges.count {
                 polygons = merged
@@ -576,6 +575,7 @@ public extension Mesh {
                 let capped = (polygons + caps)
                     .insertingEdgeVertices(with: holeEdges, isCancelled: isCancelled)
                     .mergingVertices(withPrecision: epsilon, isCancelled: isCancelled)
+                    .removingOverlappingSlivers(isCancelled: isCancelled)
                 let newEdges = capped.holeEdges(isCancelled: isCancelled)
                 guard newEdges.count < holeEdges.count else {
                     break
@@ -601,6 +601,7 @@ public extension Mesh {
     ///
     /// For closed, non-planar submeshes, the result is also oriented so that the signed volume is positive.
     /// Open or planar surfaces will have locally consistent winding, but their absolute orientation is ambiguous.
+    /// Components with contradictory winding constraints are left unchanged.
     /// - Parameter isCancelled: Callback used to cancel the operation.
     /// - Returns: A new mesh with consistently wound polygons.
     func withConsistentWinding(isCancelled: CancellationHandler = { false }) -> Mesh {
@@ -613,7 +614,9 @@ public extension Mesh {
             }
             let group = indices.map { polygons[$0] }
             var repaired = group.withConsistentWinding(isCancelled: isCancelled)
-            if repaired.areWatertight, !repaired.arePlanar, repaired.signedVolume < 0 {
+            if repaired.areWatertight, repaired.areConsistentlyWound,
+               !repaired.arePlanar, repaired.signedVolume < 0
+            {
                 repaired = repaired.inverted()
             }
             for (index, polygon) in zip(indices, repaired) {
@@ -867,6 +870,32 @@ private extension Mesh {
 }
 
 extension [Polygon] {
+    /// Repair can join the boundaries of a sub-tolerance sliver to adjacent faces.
+    /// Remove the redundant face instead of capping its odd-use edges a second time.
+    func removingOverlappingSlivers(isCancelled: CancellationHandler) -> [Polygon] {
+        var uses = [LineSegment: Int]()
+        for polygon in self {
+            guard !isCancelled() else { return self }
+            for edge in polygon.orderedEdges {
+                uses[LineSegment(undirected: edge), default: 0] += 1
+            }
+        }
+        return filter { polygon in
+            guard !isCancelled() else { return true }
+            let edges = polygon.orderedEdges.map(LineSegment.init(undirected:))
+            guard edges.contains(where: { uses[$0, default: 0] > 2 }),
+                  // Do not remove a face that supports an otherwise manifold edge.
+                  edges.allSatisfy({ uses[$0, default: 0] != 2 }),
+                  let longest = edges.max(by: { $0.length < $1.length }),
+                  polygon.vertices.allSatisfy({ longest.intersects($0.position) })
+            else { return true }
+            for edge in edges {
+                uses[edge, default: 0] -= 1
+            }
+            return false
+        }
+    }
+
     /// Group by touching vertices, returning polygon indices in original order.
     var groupedSubmeshIndices: [[Int]] {
         var submeshes = [[Int]]()
@@ -874,20 +903,18 @@ extension [Polygon] {
         for (index, poly) in enumerated() {
             let positions = Set(poly.vertices.map(\.position))
             var lastMatch: Int?
-            for i in points.indices.reversed() {
-                if !points[i].isDisjoint(with: positions) {
-                    if !submeshes[i].contains(index) {
+            for i in points.indices.reversed() where !points[i].isDisjoint(with: positions) {
+                if !submeshes[i].contains(index) {
+                    submeshes[i].append(index)
+                }
+                points[i].formUnion(positions)
+                if let j = lastMatch {
+                    for index in submeshes.remove(at: j) where !submeshes[i].contains(index) {
                         submeshes[i].append(index)
                     }
-                    points[i].formUnion(positions)
-                    if let j = lastMatch {
-                        for index in submeshes.remove(at: j) where !submeshes[i].contains(index) {
-                            submeshes[i].append(index)
-                        }
-                        points[i].formUnion(points.remove(at: j))
-                    }
-                    lastMatch = i
+                    points[i].formUnion(points.remove(at: j))
                 }
+                lastMatch = i
             }
             if lastMatch == nil {
                 submeshes.append([index])
