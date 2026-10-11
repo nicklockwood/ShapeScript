@@ -704,6 +704,20 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(points.count, 4)
     }
 
+    func testPathLengthLookup() {
+        let program = """
+        define p path {
+            point 0 0
+            point 1 0
+            point 1 1
+        }
+        print p.length
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.first as? Double ?? 0, 2, accuracy: epsilon)
+    }
+
     func testPolygonCenterLookup() throws {
         let program = """
         print cube.polygons.first.center
