@@ -735,6 +735,37 @@ final class InterpreterTests: XCTestCase {
 
     // MARK: Option scope
 
+    func testOptionsAreLocalToReceiver() {
+        let program = """
+        define outer {
+            option amount 2
+            define inner {
+                option amount 1
+                print amount
+            }
+            inner {}
+            inner { amount amount }
+        }
+        outer { amount 3 }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 3])
+    }
+
+    func testBlockOptionsDoNotInheritValues() {
+        let parent = EvaluationContext(source: "", delegate: nil)
+        let type = BlockType([:], ["amount": .number], .void, .void)
+        for symbol in [SymbolPair.constant(.number(3)), .option(.number(3))] {
+            parent.define("amount", as: symbol)
+            let child = parent.push(type)
+            XCTAssertNil(child.value(for: "amount"))
+            child.define("amount", as: .option(.number(4)))
+            XCTAssertEqual(child.value(for: "amount"), .number(4))
+            XCTAssertEqual(parent.value(for: "amount"), .number(3))
+        }
+    }
+
     func testOptionValidInBlockDefine() {
         let program = """
         define foo {

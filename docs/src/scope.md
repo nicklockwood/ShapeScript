@@ -11,6 +11,8 @@ Block scope is not just limited to symbols; it also affects [materials](material
 
 This is convenient, because it means that code that defines subcomponents in your scene can use transforms and materials internally without them "leaking out" and affecting other objects.
 
+Options configure only the block they are supplied to. Nested blocks use their own defaults unless an option is supplied explicitly. Outer option values remain available in expressions, so `amount amount` can pass an outer value to a nested block with an option of the same name.
+
 ## Function Scope
 
 When you define a [custom function](functions.md#custom-functions), it also creates a local scope around its body. Like blocks, functions inherit symbols from their parent scope and locally defined symbols will not *leak* out into their parent scope. Unlike blocks, functions can affect the transforms and materials of the scope where they are invoked.

@@ -56,9 +56,7 @@ struct BlockState: Hashable {
 extension BlockState {
     init(from context: EvaluationContext) {
         self = context.state
-        self.optionValues = context.userSymbols.compactMapValues {
-            if case let .option(value) = $0.getter { value } else { nil }
-        }
+        self.optionValues = context.localOptionValues
     }
 }
 
@@ -94,6 +92,7 @@ final class EvaluationContext {
     private var symbols: Symbols = .root
     var userSymbols: Symbols = [:]
     var options: Options = [:]
+    private(set) var localOptionValues: [String: Value] = [:]
     private let importCache: ImportCache
     private var importStack: [URL]
     let preview: Bool
@@ -182,6 +181,7 @@ final class EvaluationContext {
     func pushScope(_ block: (EvaluationContext) throws -> Void) rethrows {
         let oldSourceIndex = sourceIndex
         let oldSymbols = userSymbols
+        let oldOptionValues = localOptionValues
         defer {
             sourceIndex = oldSourceIndex
             userSymbols = oldSymbols.merging(userSymbols.filter {
@@ -189,6 +189,9 @@ final class EvaluationContext {
                     return true
                 }
                 return false
+            }) { $1 }
+            localOptionValues = oldOptionValues.merging(localOptionValues.filter {
+                options[$0.key] != nil
             }) { $1 }
         }
         try block(self)
@@ -245,6 +248,11 @@ extension EvaluationContext {
     }
 
     func define(_ name: String, as symbol: SymbolPair?) {
+        if case let .option(value)? = symbol?.getter {
+            localOptionValues[name] = value
+        } else {
+            localOptionValues[name] = nil
+        }
         if let symbol,
            !symbol.isCommand,
            let setter = symbols[name] ?? Symbols.global[name],
@@ -272,7 +280,10 @@ extension EvaluationContext {
 
     /// Return the value of the specified symbol in the current context
     func value(for name: String) -> Value? {
-        switch symbol(for: name)?.getter {
+        if options[name] != nil {
+            return localOptionValues[name]
+        }
+        return switch symbol(for: name)?.getter {
         case let .constant(value), let .option(value):
             value
         case .function, .property, .block, .placeholder, nil:
