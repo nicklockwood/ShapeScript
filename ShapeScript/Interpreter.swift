@@ -1603,7 +1603,7 @@ private extension Statement {
         defer {
             context.sourceIndex = sourceIndex
         }
-        if case .option? = context.symbol(for: identifier.name)?.getter {
+        if context.localOptionValues[identifier.name] != nil {
             // Ignore default
         } else {
             try context.define(identifier.name, as: .constant(expression.evaluate(in: context)))
