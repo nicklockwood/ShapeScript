@@ -16,6 +16,9 @@ final class FileMonitor: @unchecked Sendable {
     private var modified: TimeInterval
     private var timer: Timer?
     private var reload: (URL) throws -> Void
+    #if os(macOS)
+    private var bookmark: Data?
+    #endif
 
     init?(_ url: URL?, reload: @escaping (URL) throws -> Void) {
         guard let url, url.isFileURL,
@@ -26,8 +29,18 @@ final class FileMonitor: @unchecked Sendable {
         self.url = url
         self.reload = reload
         self.modified = Date.timeIntervalSinceReferenceDate
+        #if os(macOS)
+        self.bookmark = try? url.bookmarkData(
+            options: .withSecurityScope,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+        #endif
+        startMonitoring()
+    }
 
-        self.timer = Timer.scheduledTimer(
+    private func startMonitoring() {
+        timer = Timer.scheduledTimer(
             withTimeInterval: 0.5,
             repeats: true
         ) { [weak self] _ in
@@ -40,8 +53,34 @@ final class FileMonitor: @unchecked Sendable {
     }
 
     func move(to url: URL) {
+        #if os(macOS)
+        // Renew access using the bookmark from before the move
+        var bookmarkURL = url
+        var isStale = false
+        if let bookmark,
+           let resolvedURL = try? URL(
+               resolvingBookmarkData: bookmark,
+               options: [.withSecurityScope, .withoutUI],
+               relativeTo: nil,
+               bookmarkDataIsStale: &isStale
+           ), resolvedURL.standardizedFileURL == url.standardizedFileURL
+        {
+            if !securityScopedResources.contains(resolvedURL), resolvedURL.startAccessingSecurityScopedResource() {
+                securityScopedResources.insert(resolvedURL)
+            }
+            bookmarkURL = resolvedURL
+        }
+        bookmark = (try? bookmarkURL.bookmarkData(
+            options: .withSecurityScope,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )) ?? bookmark
+        #endif
         self.url = url
         markUpdated()
+        if timer == nil {
+            startMonitoring()
+        }
     }
 
     private static func getModifiedDate(_ url: URL) -> TimeInterval? {
