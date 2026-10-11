@@ -271,6 +271,10 @@ private extension MemberProperties {
             guard case let .point(point) = value else { return nil }
             return .vector(point.position)
         },
+        "orientation": .init(.optional(.rotation)) { value, _ in
+            guard case let .point(point) = value else { return nil }
+            return point.orientation.map { .rotation($0) } ?? .void
+        },
         "color": .init(.optional(.color)) { value, _ in
             guard case let .point(point) = value else { return nil }
             return point.color.map { .color($0) } ?? .void

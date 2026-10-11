@@ -293,6 +293,47 @@ path {
 
 ![Path colors](../images/path-colors.png)
 
+## Point Orientation
+
+Points belonging to a path have an `orientation` property that can be used to align other shapes with the path. You can use `point.position` to place a shape on the path and `point.orientation` to match the orientation of the path at that point.
+
+In this example, we build an arrow pointing along the Y axis, then place a copy at each point of a circle:
+
+```swift
+define arrow {
+    cylinder {
+        size 0.33 1
+    }
+    cone {
+        position 0 1
+    }
+}
+
+for point in circle.points {
+    arrow {
+        size 0.08
+        position point.position
+        orientation point.orientation
+    }
+}
+```
+
+![Arrows pointing outwards around a circle](../images/path-arrows-outwards.png)
+
+The arrows point outwards because the path orientation aligns their Y axis with the circle's outward normal. To make them point along the tangent instead, multiply `point.orientation` by a 90-degree rotation around the arrow's X axis. Angles are measured in [half-turns](transforms.md#orientation), so 90 degrees is `0.5`:
+
+```swift
+for point in circle.points {
+    arrow {
+        size 0.08
+        position point.position
+        orientation point.orientation * (0 0 0.5)
+    }
+}
+```
+
+![Arrows pointing along the tangent of a circle](../images/path-arrows-tangent.png)
+
 ## SVG Paths
 
 [Scalable Vector Graphics (SVG)](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics) is a popular standard for defining vector graphics. SVG is a fairly complex XML-based format, but a subset of the SVG standard defines a simple text-based [path syntax](https://www.w3.org/TR/SVG11/paths.html#PathData) that uses a series of single-character instructions, each followed by one or more coordinates to define a path. For example, the following SVG path code defines a triangle:
