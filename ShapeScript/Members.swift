@@ -217,6 +217,10 @@ private extension MemberProperties {
             guard case let .path(path) = value else { return nil }
             return .bounds(path.bounds)
         },
+        "length": .init(.number) { value, _ in
+            guard case let .path(path) = value else { return nil }
+            return .number(path.length)
+        },
         "points": .init(.list(.point)) { value, _ in
             guard case let .path(path) = value else { return nil }
             return .tuple(path.points.map { .point($0) })
