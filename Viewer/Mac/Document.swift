@@ -69,8 +69,12 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     override var fileURL: URL? {
         didSet {
             MainActor.assumeIsolated {
-                fileMonitor = FileMonitor(fileURL) { [weak self] url in
-                    _ = try self?.read(from: url, ofType: url.pathExtension)
+                if let fileURL, let fileMonitor {
+                    fileMonitor.move(to: fileURL)
+                } else {
+                    fileMonitor = FileMonitor(fileURL) { [weak self] url in
+                        _ = try self?.read(from: url, ofType: url.pathExtension)
+                    }
                 }
             }
         }
@@ -138,6 +142,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         super.presentedItemDidMove(to: newURL)
         Task { @MainActor [weak self] in
             self?.refreshAfterDocumentURLChange()
+            self?.didUpdateSource()
         }
     }
 
