@@ -50,6 +50,7 @@
         - [Mesh Hierarchies](meshes.md#mesh-hierarchies)
     - [Paths](paths.md)
         - [Points](paths.md#points)
+        - [Length](paths.md#length)
         - [Curves](paths.md#curves)
         - [Arcs](paths.md#arcs)
         - [Circles](paths.md#circles)
