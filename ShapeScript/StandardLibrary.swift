@@ -376,6 +376,12 @@ extension Symbols {
 
     static let paths: Symbols = [
         "path": .block(.path) { context in
+            let length = context.value(for: "length")?.doubleValue
+            let size = context.value(for: "size")?.vectorValue
+            if length != nil, size != nil {
+                throw RuntimeErrorType.custom("Path cannot have both length and size")
+            }
+            size.map { context.state.transform.scale = $0 }
             var subpaths = [Path]()
             var points = [PathPoint]()
             func endPath() {
@@ -427,7 +433,8 @@ extension Symbols {
             if subpaths.count != 1 {
                 subpaths = [Path(subpaths: subpaths)]
             }
-            return .path(subpaths[0].transformed(by: context.state.transform))
+            let path = length.map { subpaths[0].withLength($0) } ?? subpaths[0]
+            return .path(path.transformed(by: context.state.transform))
         },
         "arc": .block(.init(.polygon, [
             "angle": .halfturns,

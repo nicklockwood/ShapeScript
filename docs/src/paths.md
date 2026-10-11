@@ -47,6 +47,21 @@ path {
 
 ![Triangle](../images/triangle.png)
 
+## Length
+
+Set `length` inside a `path` block to scale the path uniformly to a total length:
+
+```swift
+path {
+    length 5
+    point 0 0
+    point 1 0
+    point 1 1
+}
+```
+
+The length includes all segments and curves, excluding gaps between subpaths. Scaling is relative to the origin, before the path's `orientation` and `position` are applied. You cannot set both `length` and `size` in the same path block.
+
 ## Curves
 
 Points are great for defining polygonal shapes, but what about curves?
