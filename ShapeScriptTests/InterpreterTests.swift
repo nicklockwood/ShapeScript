@@ -753,6 +753,42 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [1, 3])
     }
 
+    func testPathLengthIsLocalToReceiver() {
+        let program = """
+        define p path {
+            length 5
+            define inner path {
+                point 0
+                point 1
+            }
+            print inner.length
+            inner
+        }
+        print p.length
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [1, 5])
+    }
+
+    func testPathLengthCanBeForwardedExplicitly() {
+        let program = """
+        path {
+            length 5
+            define inner path {
+                length length
+                point 0
+                point 1
+            }
+            print inner.length
+            inner
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [5])
+    }
+
     func testBlockOptionsDoNotInheritValues() {
         let parent = EvaluationContext(source: "", delegate: nil)
         let type = BlockType([:], ["amount": .number], .void, .void)
@@ -3885,6 +3921,72 @@ final class InterpreterTests: XCTestCase {
         for (point, x) in zip(points, [0.0, 0.2, 1]) {
             XCTAssertEqual(point.x, x, accuracy: 1e-8)
         }
+    }
+
+    func testPathLengthOption() {
+        let program = """
+        define p path {
+            length 10
+            position 3 4
+            point 1 0
+            point 3 0
+        }
+        print p.length
+        for point in p { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.first as? Double, 10)
+        XCTAssertEqual(Array(delegate.log.dropFirst()) as? [Vector], [[8, 4], [18, 4]])
+    }
+
+    func testPathLengthAndSizeAreMutuallyExclusive() {
+        for properties in ["length 10\nsize 2", "size 2\nlength 10", "size 1\nlength 10"] {
+            let program = """
+            path {
+                \(properties)
+                point 0
+                point 1
+            }
+            """
+            XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+                XCTAssertEqual((error as? RuntimeError)?.message, "Path cannot have both length and size")
+            }
+        }
+    }
+
+    func testPathLengthAllowsNestedSize() {
+        let program = """
+        define p path {
+            length 8
+            path {
+                size 2
+                point 0
+                point 1
+            }
+        }
+        print p.length
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [8])
+    }
+
+    func testPathLengthAllowsParentSize() {
+        let program = """
+        define p path {
+            size 2
+            path {
+                length 3
+                point 0
+                point 1
+            }
+        }
+        print p.length
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [6])
     }
 
     func testForLoopWithPathStep() {
