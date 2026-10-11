@@ -718,6 +718,35 @@ final class MemberTests: XCTestCase {
         XCTAssertEqual(delegate.log.first as? Double ?? 0, 2, accuracy: epsilon)
     }
 
+    func testPathPointOrientationLookup() {
+        let program = """
+        define p path {
+            point 0 0
+            point 1 0
+            point 1 1
+        }
+        print p.points.first.orientation
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let orientation = delegate.log.first as? Rotation
+        XCTAssertEqual(orientation?.forward.x ?? 0, 1, accuracy: epsilon)
+        XCTAssertEqual(orientation?.forward.y ?? 0, 0, accuracy: epsilon)
+        XCTAssertEqual(orientation?.forward.z ?? 0, 0, accuracy: epsilon)
+        XCTAssertEqual(orientation?.up.x ?? 0, 0, accuracy: epsilon)
+        XCTAssertEqual(orientation?.up.y ?? 0, -1, accuracy: epsilon)
+        XCTAssertEqual(orientation?.up.z ?? 0, 0, accuracy: epsilon)
+    }
+
+    func testStandalonePointOrientationIsNil() {
+        let program = """
+        print (point 0 0).orientation
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log, [])
+    }
+
     func testPolygonCenterLookup() throws {
         let program = """
         print cube.polygons.first.center
