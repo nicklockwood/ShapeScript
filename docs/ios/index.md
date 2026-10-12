@@ -144,6 +144,7 @@
         - [Loop Index](control-flow.md#loop-index)
         - [Looping Backwards](control-flow.md#looping-backwards)
         - [Looping Over Values](control-flow.md#looping-over-values)
+        - [Looping Over Paths](control-flow.md#looping-over-paths)
         - [If-Else](control-flow.md#if-else)
         - [Switch-Case](control-flow.md#switch-case)
         - [Conditional Defines](control-flow.md#conditional-defines)

@@ -742,7 +742,7 @@ extension Expression {
         using op: InfixOperator
     ) throws -> ValueType {
         func variants(of type: ValueType) -> Set<ValueType> {
-            let expandedTypes: Set<ValueType> = [.color, .texture, .rotation]
+            let expandedTypes: Set<ValueType> = op == .step ? [.path, .mesh, .polygon] : [.color, .texture, .rotation]
             guard !type.nonOptional.subtypes.isDisjoint(with: expandedTypes) else {
                 return [type]
             }
@@ -771,7 +771,12 @@ extension Expression {
                     return .list(.number)
                 }
                 return .number
-            case .to, .step:
+            case .step:
+                if case let .tuple(types) = lhs, types.count == 1 {
+                    return concreteArithmeticType(types[0], rhs)
+                }
+                return lhs.isSubtype(of: .union([.path, .mesh, .polygon])) ? .list(.point) : .range
+            case .to:
                 return .range
             case .equal, .unequal, .lt, .gt, .lte, .gte, .and, .or, .in:
                 return .boolean
@@ -856,7 +861,7 @@ extension Expression {
             body.inferTypes(for: &params, in: context)
             elseBody?.inferTypes(for: &params, in: context)
         case let .forloop(_, in: expression, body):
-            expression.inferTypes(for: &params, in: context, with: .sequence)
+            expression.inferTypes(for: &params, in: context, with: .union([.sequence, .path]))
             body.inferTypes(for: &params, in: context)
         case let .switchcase(condition, cases, else: elseBody):
             condition.inferTypes(for: &params, in: context, with: .any)
@@ -866,7 +871,7 @@ extension Expression {
             }
             elseBody?.inferTypes(for: &params, in: context)
         case let .infix(lhs, .step, rhs):
-            lhs.inferTypes(for: &params, in: context, with: .range)
+            lhs.inferTypes(for: &params, in: context, with: .union([.range, .partialRange, .path]))
             rhs.inferTypes(for: &params, in: context, with: .number)
         case let .prefix(.minus, rhs), let .prefix(.plus, rhs):
             rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
@@ -1000,7 +1005,9 @@ extension Expression {
                 rhs.staticType(in: context),
                 using: .modulo
             )
-        case .infix(_, .to, _), .infix(_, .step, _):
+        case let .infix(lhs, .step, rhs):
+            return try arithmeticType(lhs.staticType(in: context), rhs.staticType(in: context), using: .step)
+        case .infix(_, .to, _):
             return .range
         case .infix(_, .equal, _),
              .infix(_, .unequal, _),
@@ -1061,11 +1068,13 @@ extension Expression {
                 if let identifier {
                     let elementType: ValueType = switch try expression.staticType(in: context) {
                     case let .tuple(types):
-                        .union(Set(types))
+                        types.count == 1 && types[0].isSubtype(of: .union([.path, .mesh])) ? .point : .union(Set(types))
                     case let .list(type):
                         type
                     case .range:
                         .number
+                    case .path, .mesh:
+                        .point
                     default:
                         // TODO: can we do better here?
                         .any

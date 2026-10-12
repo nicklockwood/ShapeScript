@@ -1916,9 +1916,36 @@ extension Expression {
             let end = try rhs.evaluate(as: .number, for: "to", index: 1, in: context)
             return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
         case let .infix(lhs, .step, rhs):
-            let rangeType = ValueType.union([.range, .partialRange])
+            let rangeType = ValueType.union([.range, .partialRange, .path])
             let rangeValue = try lhs.evaluate(as: rangeType, for: "step", index: 0, in: context)
             let stepValue = try rhs.evaluate(as: .number, for: "step", index: 1, in: context)
+            if case let .path(path) = rangeValue {
+                let step = stepValue.doubleValue
+                guard step != 0, step.isFinite else {
+                    throw RuntimeError(.custom("Step value must be finite and nonzero"), at: rhs.range)
+                }
+                let length = path.length
+                guard length > 0 else {
+                    return .tuple(path.points.prefix(1).map { .point($0) })
+                }
+                let range = RangeValue(from: step > 0 ? 0 : length, to: step > 0 ? length : 0, step: step)!
+                var points = [Value]()
+                for distance in range.stride! {
+                    if context.isCancelled() {
+                        throw EvaluationCancelled()
+                    }
+                    if path.isClosed, step > 0 ? distance >= length : distance <= 0 {
+                        break
+                    }
+                    if let point = path.interpolatedPoint(at: min(max(distance, 0), length)) {
+                        points.append(.point(point))
+                    }
+                    if step > 0 ? distance >= length : distance <= 0 {
+                        break
+                    }
+                }
+                return .tuple(points)
+            }
             let range = rangeValue.value as! RangeValue
             guard let value = RangeValue(
                 from: range.start,
