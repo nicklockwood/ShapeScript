@@ -571,6 +571,7 @@ public extension Geometry {
             let path = Path(subpaths: text.paths.map { $0.materialToVertexColors(material: material) })
             return pretransformed ? path.transformed(by: transform) : path
         case let .path(path):
+            let path = path.materialToVertexColors(material: material)
             return pretransformed ? path.transformed(by: transform) : path
         case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
