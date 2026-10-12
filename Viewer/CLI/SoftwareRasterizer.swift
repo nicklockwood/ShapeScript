@@ -18,14 +18,10 @@ struct SoftwareImage {
 extension ShapeScript.Camera {
     var pixelSize: (width: Int, height: Int) {
         get throws {
-            guard let width, let height,
-                  let pixelWidth = Int(exactly: width.rounded()),
-                  let pixelHeight = Int(exactly: height.rounded()),
-                  pixelWidth > 0, pixelHeight > 0
-            else {
+            guard let width, let height, width > 0, height > 0 else {
                 throw CLIError("Invalid software image dimensions")
             }
-            return (pixelWidth, pixelHeight)
+            return (width, height)
         }
     }
 }
@@ -50,9 +46,6 @@ func render(mesh: Mesh, camera: ShapeScript.Camera, background: Color) throws ->
     guard width <= Int.max / height / MemoryLayout<Color>.stride else {
         throw CLIError("Image is too large for software rendering")
     }
-    var camera = camera
-    camera.width = Double(width)
-    camera.height = Double(height)
     var pixels = Array(repeating: background, count: width * height)
     var depth = Array(repeating: Double.infinity, count: pixels.count)
     let light = Vector(-0.3, 0.8, 1).normalized().rotated(by: camera.orientation ?? .identity)
@@ -73,16 +66,25 @@ func render(mesh: Mesh, camera: ShapeScript.Camera, background: Color) throws ->
 
 private func project(_ position: Vector, using camera: ShapeScript.Camera) -> Vector? {
     guard let width = camera.width, let height = camera.height else { return nil }
+    let pixelWidth = Double(width), pixelHeight = Double(height)
     let view = (-(camera.orientation ?? .identity)).rotate(position - (camera.position ?? .zero))
     guard view.z < -Double.ulpOfOne else { return nil }
     let fov = camera.fov ?? .degrees(60)
     if fov <= .zero {
         let scale = camera.scale.map { max($0.x, $0.y, $0.z) } ?? 1
-        let pointsPerPixel = scale / height
-        return [width / 2 + view.x / pointsPerPixel, height / 2 - view.y / pointsPerPixel, -view.z]
+        let pointsPerPixel = scale / pixelHeight
+        return Vector(
+            pixelWidth / 2 + view.x / pointsPerPixel,
+            pixelHeight / 2 - view.y / pointsPerPixel,
+            -view.z
+        )
     }
-    let focal = height / (2 * tan(fov.radians / 2))
-    return [width / 2 + view.x * focal / -view.z, height / 2 - view.y * focal / -view.z, -view.z]
+    let focal = pixelHeight / (2 * tan(fov.radians / 2))
+    return Vector(
+        pixelWidth / 2 + view.x * focal / -view.z,
+        pixelHeight / 2 - view.y * focal / -view.z,
+        -view.z
+    )
 }
 
 private func rasterize(

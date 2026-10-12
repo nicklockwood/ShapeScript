@@ -11,15 +11,9 @@ import Euclid
 import Foundation
 import ShapeScript
 
-struct ExportOptions {
-    var convertToZUp: Bool
-    var width: Int?
-    var height: Int?
-}
-
 extension ShapeScriptCommand {
     static var exportValueOptions: [String] {
-        ["--output", "-o", "--width", "--height"]
+        ["--output", "-o", "--camera", "--width", "--height"]
     }
 
     struct Export: ParsableCommand {
@@ -39,6 +33,9 @@ extension ShapeScriptCommand {
         @Option(name: .shortAndLong, help: "Exported model file.")
         var output: String?
 
+        @Option(help: "Camera to use when exporting an image.")
+        var camera: String?
+
         @Option(help: "Width in pixels for image exports.")
         var width: Int?
 
@@ -54,6 +51,9 @@ extension ShapeScriptCommand {
         init() {}
 
         mutating func validate() throws {
+            if camera?.isEmpty == true {
+                throw ValidationError("--camera option expects a camera name")
+            }
             if let width, width <= 0 {
                 throw ValidationError("--width option expects a positive integer")
             }
@@ -64,7 +64,7 @@ extension ShapeScriptCommand {
 
         mutating func run() throws {
             let directory = FileManager.default.currentDirectoryPath
-            let exportOptions = ExportOptions(convertToZUp: zUp, width: width, height: height)
+            let exportOptions = ExportOptions(convertToZUp: zUp, camera: camera, width: width, height: height)
             let runner = try CLIRunner(
                 directory: directory,
                 inputPath: inputPath,
@@ -92,6 +92,9 @@ extension CLIRunner {
     }
 
     func export(to url: URL, options: ExportOptions) throws {
+        if options.camera != nil, url.pathExtension.lowercased() != "bmp" {
+            throw CLIError("Image export options cannot be used with .\(url.pathExtension.lowercased()) output")
+        }
         let scene = try loadScene()
         printStatus("Exporting to '\(url.lastPathComponent)' ...")
         let geometry = scene.geometry

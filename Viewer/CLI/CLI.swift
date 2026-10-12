@@ -76,6 +76,7 @@ public extension ShapeScriptCommand {
         let valueOptions = exportValueOptions
         var positionals: [(index: Int, value: String)] = []
         var hasOutputOption = false
+        var hasCameraOption = false
         var index = arguments.startIndex
         while index < arguments.endIndex {
             let argument = arguments[index]
@@ -84,6 +85,9 @@ public extension ShapeScriptCommand {
             }
             if argument == "--output" || argument == "-o" {
                 hasOutputOption = true
+            }
+            if argument == "--camera" || argument.hasPrefix("--camera=") {
+                hasCameraOption = true
             }
             if valueOptions.contains(argument) {
                 index += 2
@@ -114,7 +118,7 @@ public extension ShapeScriptCommand {
             normalizedArguments.insert(["--output", output.value], beforeTerminator: "--")
             return ["export"] + normalizedArguments
         }
-        let subcommand = hasOutputOption ? "export" : "info"
+        let subcommand = hasOutputOption || hasCameraOption ? "export" : "info"
         return [subcommand] + arguments
     }
 
@@ -235,7 +239,7 @@ final class CLIRunner {
     let cacheOptions: CacheOptions
 
     func defaultExportURL(with options: ExportOptions) -> URL {
-        let fileExtension = options.width != nil || options.height != nil ? "bmp" : "stl"
+        let fileExtension = options.camera != nil || options.width ?? options.height != nil ? "bmp" : "stl"
         return inputURL.deletingPathExtension().appendingPathExtension(fileExtension)
     }
 

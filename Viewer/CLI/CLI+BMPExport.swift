@@ -12,7 +12,7 @@ import ShapeScript
 
 extension CLIRunner {
     func exportBMP(_ scene: Scene, geometry: Geometry, to url: URL, with options: ExportOptions) throws {
-        let camera = camera(for: scene, options: options)
+        let camera = try scene.exportCamera(with: options, fallbackSize: (width: 320, height: 320), camera: nil)
         let (width, height) = try camera.pixelSize
         guard width <= Int(Int32.max), height <= Int(Int32.max) else {
             throw CLIError("Image dimensions are too large for BMP export")
@@ -72,80 +72,5 @@ private extension Data {
     mutating func appendLittleEndian(_ value: some FixedWidthInteger) {
         var value = value.littleEndian
         Swift.withUnsafeBytes(of: &value) { append(contentsOf: $0) }
-    }
-}
-
-private extension Scene {
-    var primaryCamera: Geometry? {
-        cameras.first
-    }
-}
-
-private extension Geometry {
-    var cameraWithTransform: (camera: Camera, transform: Transform)? {
-        guard case let .camera(camera) = type else {
-            return children.compactMap(\.cameraWithTransform).first
-        }
-        return (camera, worldTransform)
-    }
-}
-
-private extension CLIRunner {
-    func camera(for scene: Scene, options: ExportOptions) -> ShapeScript.Camera {
-        let cameraGeometry = scene.primaryCamera?.cameraWithTransform
-        let camera = cameraGeometry?.camera ?? .default
-        let bounds = scene.visibleBounds
-        let size = bounds.size
-        let center = bounds.center
-
-        var width = camera.width.map { max(1, Int($0.rounded())) } ?? 320
-        var height = camera.height.map { max(1, Int($0.rounded())) } ?? width
-        switch (options.width, options.height) {
-        case let (newWidth?, newHeight?):
-            width = newWidth
-            height = newHeight
-        case let (newWidth?, nil):
-            height = max(1, Int((Double(height) * Double(newWidth) / Double(width)).rounded()))
-            width = newWidth
-        case let (nil, newHeight?):
-            width = max(1, Int((Double(width) * Double(newHeight) / Double(height)).rounded()))
-            height = newHeight
-        case (nil, nil):
-            break
-        }
-        let aspectRatio = Double(height) / Double(width)
-        let fov = camera.fov ?? .degrees(60)
-
-        let distance = max(size.x * aspectRatio, size.y) + size.z / 2
-        var scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
-        scale /= 1.8
-
-        let explicitOrientation = camera.orientation ?? cameraGeometry?.camera.orientation
-        var orientation = cameraGeometry?.transform.rotation ?? explicitOrientation ?? .identity
-        let direction = -Vector.unitZ.rotated(by: orientation)
-        var position = center - direction * distance + Vector(0, 0.000001, 0)
-
-        if let transform = cameraGeometry?.transform {
-            if camera.hasPosition {
-                position = transform.translation
-            }
-            if camera.hasScale {
-                let v = transform.scale
-                scale = max(v.x, v.y, v.z)
-            }
-        }
-
-        if explicitOrientation == nil {
-            orientation = Rotation(from: -.unitZ, to: center - position)
-        }
-
-        var result = camera
-        result.position = position
-        result.orientation = orientation
-        result.scale = Vector(scale, scale, scale)
-        result.fov = fov
-        result.width = Double(width)
-        result.height = Double(height)
-        return result
     }
 }

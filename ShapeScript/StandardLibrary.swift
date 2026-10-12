@@ -804,13 +804,20 @@ extension Symbols {
             "width": .number,
             "height": .number,
         ], .void, .mesh)) { context in
+            func dimension(for name: String) throws -> Int? {
+                guard let value = context.value(for: name)?.doubleValue else { return nil }
+                guard let dimension = Int(exactly: value.rounded()) else {
+                    throw RuntimeErrorType.custom("Camera \(name) is out of range")
+                }
+                return dimension
+            }
             let position = context.value(for: "position")?.value as? Vector
             position.map { context.state.transform.translation = $0 }
             let orientation = context.value(for: "orientation")?.value as? Rotation
             orientation.map { context.state.transform.rotation = $0 }
             let scale = context.value(for: "size")?.value as? Vector
             scale.map { context.state.transform.scale = $0 }
-            return .mesh(Geometry(
+            return try .mesh(Geometry(
                 type: .camera(Camera(
                     position: position,
                     orientation: orientation,
@@ -818,8 +825,8 @@ extension Symbols {
                     background: context.value(for: "background")?.colorOrTextureValue,
                     antialiased: context.value(for: "antialiased")?.boolValue ?? Camera.default.antialiased,
                     fov: context.value(for: "fov")?.angleValue,
-                    width: context.value(for: "width")?.doubleValue,
-                    height: context.value(for: "height")?.doubleValue
+                    width: dimension(for: "width"),
+                    height: dimension(for: "height")
                 )),
                 in: context
             ))
