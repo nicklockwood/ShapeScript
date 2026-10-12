@@ -342,8 +342,8 @@ extension DocumentProtocol {
             return nil
         }
         let contentsScale = scnView.contentScaleFactor
-        camera.width = Double(scnView.frame.width * contentsScale)
-        camera.height = Double(scnView.frame.height * contentsScale)
+        camera.width = Int(exactly: (scnView.frame.width * contentsScale).rounded())
+        camera.height = Int(exactly: (scnView.frame.height * contentsScale).rounded())
         camera.background = self.camera.background
         return Geometry(
             type: .camera(camera),

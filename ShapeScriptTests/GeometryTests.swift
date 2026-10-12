@@ -12,6 +12,25 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testCameraDimensionsUseIntegerPixels() throws {
+        let scene = try evaluate(parse("camera { width 80.6\nheight 40.4 }"), delegate: nil)
+        let camera = try XCTUnwrap(scene.cameras.first?.camera)
+        XCTAssertEqual(camera.width, 81)
+        XCTAssertEqual(camera.height, 40)
+        XCTAssertEqual(try JSONDecoder().decode(Camera.self, from: JSONEncoder().encode(camera)), camera)
+        XCTAssertNil(Camera.default.width)
+        XCTAssertNil(Camera.default.height)
+    }
+
+    func testCameraDimensionsRejectOutOfRangeValues() throws {
+        for dimension in ["width", "height"] {
+            let source = "camera { \(dimension) 1000000000000000000000000000000 }"
+            XCTAssertThrowsError(try evaluate(parse(source), delegate: nil)) { error in
+                XCTAssertEqual((error as? RuntimeError)?.message, "Camera \(dimension) is out of range")
+            }
+        }
+    }
+
     func testTextPathInitializationSupportsCancellation() {
         #if canImport(CoreText)
         nonisolated(unsafe) var cancellationChecks = 0

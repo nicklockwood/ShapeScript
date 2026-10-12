@@ -68,6 +68,7 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript export <input-path>"))
         XCTAssertTrue(result.output.contains("--output"))
+        XCTAssertTrue(result.output.contains("--camera"))
         XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))
         XCTAssertTrue(result.output.contains("script-options"))
@@ -515,6 +516,7 @@ final class CLITests: XCTestCase {
     func testBMPExportDimensions() throws {
         let cases: [(camera: String, options: [String], width: Int, height: Int)] = [
             ("", [], 320, 320),
+            ("width 3.4\nheight 2.6", [], 3, 3),
             ("", ["--width", "80"], 80, 80),
             ("", ["--height", "60"], 60, 60),
             ("width 80\nheight 40", [], 80, 40),
@@ -602,7 +604,7 @@ final class CLITests: XCTestCase {
         }
     }
 
-    func testCLIRejectsImageOutput() throws {
+    func testCLIRejectsCameraForModelOutput() throws {
         try withTemporaryShapeFile { directory, inputURL in
             let result = try runExecutable([
                 "export",
@@ -613,7 +615,91 @@ final class CLITests: XCTestCase {
                 "Hero",
             ], in: directory)
             XCTAssertNotEqual(result.status, 0, result.failureMessage)
-            XCTAssertTrue(result.output.contains("Unknown option '--camera'"), result.failureMessage)
+            XCTAssertTrue(
+                result.output.contains("Image export options cannot be used with .stl output"),
+                result.failureMessage
+            )
+        }
+    }
+
+    func testCameraArgumentDefaultsToBMPAndSupportsShorthand() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let result = try runExecutable([inputURL.lastPathComponent, "--camera", "Front"], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("model.bmp").path))
+        }
+    }
+
+    func testBMPExportSelectsNamedCamera() throws {
+        let source = """
+        camera {
+            name "First"
+            width 12
+            height 8
+            background red
+        }
+        camera {
+            name "Héro"
+            width 6
+            height 4
+            background blue
+        }
+        cube
+        """
+        try withTemporaryShapeFile(source) { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--camera", "hero", "--output", "model.bmp",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            XCTAssertEqual(data[18], 6)
+            XCTAssertEqual(data[22], 4)
+            XCTAssertEqual(Array(data[54 ..< 57]), [255, 0, 0])
+        }
+    }
+
+    func testBMPExportSelectsUnnamedCamera() throws {
+        try withTemporaryShapeFile("camera { width 8\nheight 6 }\ncamera { width 4\nheight 3 }\ncube") { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--camera", "Custom 2", "--output", "model.bmp",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            XCTAssertEqual(data[18], 4)
+            XCTAssertEqual(data[22], 3)
+        }
+    }
+
+    func testBMPExportSupportsPresetCameras() throws {
+        try withTemporaryShapeFile("cube { size 1 2 3\ncolor red }\nbackground white") { directory, inputURL in
+            for camera in ["Front", "Back", "Left", "Right", "Top", "Bottom"] {
+                let result = try runExecutable([
+                    "export", inputURL.lastPathComponent, "--camera", camera,
+                    "--width", "16", "--height", "16", "--output", "model.bmp",
+                ], in: directory)
+                XCTAssertEqual(result.status, 0, result.failureMessage)
+                let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+                XCTAssertTrue(data.dropFirst(54).contains { $0 != 255 }, camera)
+            }
+        }
+    }
+
+    func testCameraArgumentReportsMissingAndAmbiguousNames() throws {
+        try withTemporaryShapeFile("camera { name \"Hero\" }\ncamera { name \"hero\" }\ncube") { directory, inputURL in
+            for (camera, message) in [
+                (
+                    "Missing",
+                    "Camera 'Missing' not found. Available cameras: Front, Back, Left, Right, Top, Bottom, Hero, hero."
+                ),
+                ("Hero", "Camera name 'Hero' is ambiguous."),
+                ("", "--camera option expects a camera name"),
+            ] {
+                let result = try runExecutable([
+                    "export", inputURL.lastPathComponent, "--camera", camera, "--output", "model.bmp",
+                ], in: directory)
+                XCTAssertNotEqual(result.status, 0, result.failureMessage)
+                XCTAssertTrue(result.output.contains(message), result.failureMessage)
+            }
         }
     }
 

@@ -15,8 +15,8 @@ public struct Camera: Hashable, Sendable, Codable {
     public var background: MaterialProperty?
     public var antialiased: Bool
     public var fov: Angle?
-    public var width: Double?
-    public var height: Double?
+    public var width: Int?
+    public var height: Int?
 
     public static let `default`: Self = .init(antialiased: true)
 }

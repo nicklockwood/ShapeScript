@@ -294,10 +294,10 @@ extension Geometry: Loggable {
                 fields.append("fov \(fov.logDescription)")
             }
             if let width = camera.width {
-                fields.append("width \(width.logDescription)")
+                fields.append("width \(width)")
             }
             if let height = camera.height {
-                fields.append("height \(height.logDescription)")
+                fields.append("height \(height)")
             }
             switch camera.background {
             case let .color(color)?:
