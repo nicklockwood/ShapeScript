@@ -97,7 +97,7 @@ A separate `shapescript` command-line tool is available for exporting files from
 
 On macOS, command-line export requires an unlocked copy of the ShapeScript Mac app to be installed on the same machine. Without Export unlocked, the command-line tool can still check `.shape` files and report errors, but it cannot write exported files.
 
-The Linux command-line tool does not require the Mac app or an Export unlock, but it is limited to `.stl` or `.stla` export.
+The Linux command-line tool does not require the Mac app or an Export unlock, but it is limited to `.stl` or `.stla` model export and `.bmp` image export.
 
 To export a file using the command-line tool, use the `export` subcommand with an input `.shape` file:
 
@@ -121,7 +121,9 @@ shapescript export myfile.shape --z-up
 
 This is the command-line equivalent of the "Convert to Z-Up" option described in the [3D Printing](#3d-printing) section.
 
-On macOS, the command-line tool can also export the [image formats](#image-formats) listed above. When exporting images, you can choose the camera and output size from Terminal:
+The `shapescript` command-line tool also supports image export. On macOS you can export any of the [image formats](#image-formats) listed above. On Linux, you are limited to BMP images, which are uncompressed and do not retain transparency.
+
+When exporting an image, you can choose the camera and output size from Terminal:
 
 ```bash
 shapescript export myfile.shape --output myfile.png --camera "Side View"
