@@ -234,8 +234,9 @@ final class CLIRunner {
     let scriptOptions: [String: Any]
     let cacheOptions: CacheOptions
 
-    var defaultExportURL: URL {
-        inputURL.deletingPathExtension().appendingPathExtension("stl")
+    func defaultExportURL(with options: ExportOptions) -> URL {
+        let fileExtension = options.width != nil || options.height != nil ? "bmp" : "stl"
+        return inputURL.deletingPathExtension().appendingPathExtension(fileExtension)
     }
 
     init(
