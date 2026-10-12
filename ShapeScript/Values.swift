@@ -363,6 +363,12 @@ extension Value {
         switch self {
         case let .range(range):
             return range.stride.map { AnySequence($0.lazy.map { .number($0) }) }
+        case let .path(path):
+            return AnySequence(path.points.lazy.map { .point($0) })
+        case let .mesh(geometry):
+            return geometry.path(pretransformed: true).map { path in
+                AnySequence(path.points.lazy.map { .point($0) })
+            }
         case let .pretransformed(value):
             return value.sequenceValue
         case let .tuple(values):
@@ -387,7 +393,7 @@ extension Value {
                 [.string($0), $1]
             })
         case .boolean, .vector, .size, .rotation, .color, .texture, .material,
-             .number, .radians, .halfturns, .string, .font, .text, .path, .mesh,
+             .number, .radians, .halfturns, .string, .font, .text,
              .polygon, .point, .bounds:
             return nil
         }

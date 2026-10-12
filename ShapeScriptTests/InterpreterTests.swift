@@ -3869,6 +3869,159 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [0, 0.5, 1])
     }
 
+    func testForLoopWithPath() throws {
+        let program = """
+        define p path {
+            point 0
+            point 0.2
+            point 1
+        }
+        for point in p { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let points = try XCTUnwrap(delegate.log as? [Vector])
+        XCTAssertEqual(points.count, 3)
+        for (point, x) in zip(points, [0.0, 0.2, 1]) {
+            XCTAssertEqual(point.x, x, accuracy: 1e-8)
+        }
+    }
+
+    func testForLoopWithPathStep() {
+        let program = """
+        define p path {
+            point 0
+            point 0.2
+            point 1
+        }
+        for point in p step 0.25 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log as? [Vector], [[0, 0], [0.25, 0], [0.5, 0], [0.75, 0], [1, 0]])
+    }
+
+    func testForLoopWithNegativePathStep() throws {
+        let program = """
+        define p path {
+            point 0
+            point 1
+        }
+        for point in p step -0.4 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let points = try XCTUnwrap(delegate.log as? [Vector])
+        XCTAssertEqual(points.count, 3)
+        for (point, x) in zip(points, [1.0, 0.6, 0.2]) {
+            XCTAssertEqual(point.x, x, accuracy: 1e-8)
+        }
+    }
+
+    func testForLoopWithClosedPathStep() {
+        let program = """
+        define p path {
+            point 0 0
+            point 1 0
+            point 1 1
+            point 0 1
+            point 0 0
+        }
+        for point in p step 1 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log as? [Vector], [[0, 0], [1, 0], [1, 1], [0, 1]])
+    }
+
+    func testForLoopWithPathStepInDefinition() {
+        let program = """
+        define sample(p) {
+            for point in p step 0.5 { print point.position }
+        }
+        sample path {
+            point 0
+            point 1
+        }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log as? [Vector], [[0, 0], [0.5, 0], [1, 0]])
+    }
+
+    func testForLoopWithZeroPathStep() {
+        let program = "for point in (path { point 0 }) step 0 { print point }"
+        XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
+            XCTAssertEqual((error as? RuntimeError)?.message, "Step value must be finite and nonzero")
+        }
+    }
+
+    func testForLoopWithDecimalPathStep() throws {
+        let program = """
+        define p path {
+            point 0
+            point 1
+        }
+        for point in p step 0.1 { print point.position.x }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        let values = try XCTUnwrap(delegate.log as? [Double])
+        XCTAssertEqual(values.count, 11)
+        for (i, value) in values.enumerated() {
+            XCTAssertEqual(value, Double(i) / 10, accuracy: 1e-8)
+        }
+    }
+
+    func testForLoopWithPathPrimitive() {
+        let program = """
+        for point in square { print point.position }
+        for point in square step 1 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log.count, 9)
+    }
+
+    func testForLoopWithEmptyAndSinglePointPaths() {
+        let program = """
+        define empty path {}
+        define single path { point 2 3 }
+        for point in empty { print point.position }
+        for point in empty step 0.1 { print point.position }
+        for point in single { print point.position }
+        for point in single step 0.1 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log as? [Vector], [[2, 3], [2, 3]])
+    }
+
+    func testForLoopWithSubpathStep() {
+        let program = """
+        define p path {
+            path {
+                point 0 0
+                point 1 0
+                point 1 1
+                point 0 1
+                point 0 0
+            }
+            path {
+                point 10 0
+                point 11 0
+                point 11 1
+                point 10 1
+                point 10 0
+            }
+        }
+        for point in p step 3 { print point.position }
+        """
+        let delegate = TestDelegate()
+        XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
+        XCTAssertEqual(delegate.log as? [Vector], [[0, 0], [0, 1], [11, 1]])
+    }
+
     func testForLoopWithNonRangeExpression() throws {
         let program = "for 1 { print i }"
         let range = try XCTUnwrap(program.range(of: "1"))
