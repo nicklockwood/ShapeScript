@@ -55,7 +55,7 @@ for i in 0 to 1 step 0.2 {
 }
 ```
 
-If not specified, the `step` value defaults to 1.
+For numeric ranges, the `step` value defaults to 1.
 
 ## Looping Backwards
 
@@ -96,6 +96,52 @@ for i in ("parentheses" "are" "required") {
     print i
 }
 ```
+
+## Looping Over Paths
+
+You can loop over the points in a path as follows:
+
+```swift
+for point in square {
+    print point.position // 4 points
+}
+```
+
+Without a `step`, the loop visits each control point in the path. These can be widely or unevenly spaced. Passing a value for `step` interpolates new points along the path by repeating the specified increment:
+
+```swift
+for point in square step 0.1 {
+    print point.position // 40 points
+}
+```
+
+The step increment must be finite and nonzero. It is measured in model units, not a fraction of the path length or an index into its points. Curves are sampled along their generated segments, so `detail` still controls how smoothly the path is represented. A negative step samples backwards from the end of the path to the start.
+
+This example places small circles every `0.05` units along a pawn profile, then uses [lathe](builders.md#lathe) to turn each circle into a ring:
+
+```swift
+detail 32
+
+define pawn path {
+    curve 0 0.78
+    curve -0.15 0.7
+    curve -0.15 0.5
+    point -0.07 0.45
+    curve -0.12 0.2
+    point -0.25 0.1
+    point -0.25 0
+    point 0 0
+}
+
+lathe for point in pawn step 0.05 {
+    circle {
+        size 0.02
+        position point.position
+    }
+}
+```
+
+![Rings spaced along a pawn profile](../images/pawn-path-rings.png)
 
 ## If-Else
 

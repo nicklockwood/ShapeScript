@@ -310,6 +310,16 @@ final class TypesystemTests: XCTestCase {
         """), .list(.number))
     }
 
+    func testPathStepReturnType() {
+        XCTAssertEqual(try expressionType("""
+        define p path {
+            point 0
+            point 1
+        }
+        p step 0.1
+        """), .list(.point))
+    }
+
     func testCustomBlockRecursiveReturnType() {
         XCTAssertEqual(try expressionType("""
         define foo {
