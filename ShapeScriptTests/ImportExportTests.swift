@@ -303,4 +303,35 @@ final class ImportExportTests: XCTestCase {
             }
         }
     }
+
+    func testOversizedMeshImportsAreRejected() throws {
+        for fileExtension in ["stl", "stla", "obj", "off"] {
+            try withSparseFile(extension: fileExtension, size: FileSizeLimit.mesh + 1) { url in
+                let context = EvaluationContext(source: "", delegate: nil)
+                XCTAssertThrowsError(try context.importGeometry(at: url)) { error in
+                    guard case let FileError.tooLarge(errorURL, maximumSize) = error else {
+                        XCTFail("Unexpected error: \(error)")
+                        return
+                    }
+                    XCTAssertEqual(errorURL, url)
+                    XCTAssertEqual(maximumSize, FileSizeLimit.mesh)
+                }
+            }
+        }
+    }
+
+    func testMeshImportSizeErrorIsSurfaced() throws {
+        try withSparseFile(extension: "obj", size: FileSizeLimit.mesh + 1) { url in
+            let delegate = TestDelegate(directory: url.deletingLastPathComponent())
+            let context = EvaluationContext(source: "", delegate: delegate)
+            XCTAssertThrowsError(try context.importFile(at: url.lastPathComponent)) { error in
+                guard case let RuntimeErrorType.fileParsingError(_, at, message) = error else {
+                    XCTFail("Unexpected error: \(error)")
+                    return
+                }
+                XCTAssertEqual(at, url)
+                XCTAssertTrue(message.contains("size limit"))
+            }
+        }
+    }
 }
