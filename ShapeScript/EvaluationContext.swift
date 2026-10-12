@@ -307,6 +307,7 @@ enum FileSizeLimit {
     static let text = 16 * 1024 * 1024
     static let json = 16 * 1024 * 1024
     static let image = 64 * 1024 * 1024
+    static let mesh = 128 * 1024 * 1024
 }
 
 enum FileError: Error, LocalizedError {
@@ -547,8 +548,9 @@ extension EvaluationContext {
 
     private func loadMesh(
         at url: URL,
-        materialLookup: (@Sendable (AnyHashable?) -> Material?)? = nil
+        materialLookup: @escaping @Sendable (AnyHashable?) -> Material?
     ) throws -> Mesh {
+        try url.validateFileSize(limit: FileSizeLimit.mesh)
         if url.pathExtension.lowercased() == "obj",
            url.deletingLastPathComponent().pathExtension.lowercased() == "obj",
            let mesh = try Mesh(objString: String(contentsOf: url))
