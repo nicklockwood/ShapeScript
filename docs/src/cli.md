@@ -88,7 +88,7 @@ shapescript check myfile.shape -- --color '#ff0000'
 
 ## Building from Source
 
-You can also build the command-line tool from source. This builds the feature-limited open source version used for the Linux build, not the full macOS version described above.
+You can also build the command-line tool from source. This builds the feature-limited open source version used for the Linux build, not the full macOS version described above. It supports [STL models](export.md#model-and-scene-formats) and [BMP images](export.md#image-formats). Images are rendered using a simplified software renderer that may not capture all the features of your scene in full fidelity.
 
 To build directly with Swift Package Manager, install the [latest Swift toolchain](https://www.swift.org/download/), then run:
 

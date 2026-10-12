@@ -463,12 +463,122 @@ final class CLITests: XCTestCase {
         }
     }
 
+    func testBMPExportColorsAndRowPadding() throws {
+        try withTemporaryShapeFile("background 1 0 0 0.5") { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--width", "3", "--height", "2",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            XCTAssertEqual(data.count, 78)
+            XCTAssertEqual(Array(data.prefix(2)), [0x42, 0x4D])
+            XCTAssertEqual(Array(data[2 ..< 6]), [78, 0, 0, 0])
+            XCTAssertEqual(Array(data[10 ..< 14]), [54, 0, 0, 0])
+            XCTAssertEqual(Array(data[28 ..< 34]), [24, 0, 0, 0, 0, 0])
+            let row: [UInt8] = [75, 75, 203, 75, 75, 203, 75, 75, 203, 0, 0, 0]
+            XCTAssertEqual(Array(data.dropFirst(54)), row + row)
+        }
+    }
+
+    func testBMPExportRendersGeometry() throws {
+        try withTemporaryShapeFile("cube { color red }") { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--output", "model.bmp",
+                "--width", "32", "--height", "32",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            let center = 54 + (16 * 32 + 16) * 3
+            XCTAssertEqual(data[center], 0)
+            XCTAssertEqual(data[center + 1], 0)
+            XCTAssertGreaterThan(data[center + 2], 100)
+            XCTAssertEqual(Array(data[54 ..< 57]), [150, 150, 150])
+        }
+    }
+
+    func testBMPExportRendersOrthographicGeometry() throws {
+        try withTemporaryShapeFile("background 1\ncamera { fov 0\nsize 4 }\ncube { color red }") { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--output", "model.bmp",
+                "--width", "32", "--height", "32",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            let center = 54 + (16 * 32 + 16) * 3
+            XCTAssertEqual(data[center], 0)
+            XCTAssertEqual(data[center + 1], 0)
+            XCTAssertGreaterThan(data[center + 2], 100)
+            XCTAssertEqual(Array(data[54 ..< 57]), [255, 255, 255])
+        }
+    }
+
+    func testBMPExportDimensions() throws {
+        let cases: [(camera: String, options: [String], width: Int, height: Int)] = [
+            ("", [], 320, 320),
+            ("", ["--width", "80"], 80, 80),
+            ("", ["--height", "60"], 60, 60),
+            ("width 80\nheight 40", [], 80, 40),
+            ("width 80\nheight 40", ["--width", "40"], 40, 20),
+            ("width 80\nheight 40", ["--height", "60"], 120, 60),
+            ("width 40\nheight 80", ["--width", "60"], 60, 120),
+            ("width 40\nheight 80", ["--height", "40"], 20, 40),
+            ("width 80\nheight 40", ["--width", "60", "--height", "50"], 60, 50),
+            ("width 80", ["--height", "40"], 40, 40),
+            ("height 160", ["--width", "80"], 80, 40),
+            ("width 80\nheight 40", ["--width", "3"], 3, 2),
+            ("width 80\nheight 40", ["--width", "1"], 1, 1),
+        ]
+        for test in cases {
+            try withTemporaryShapeFile("camera {\n\(test.camera)\n}\ncube") { directory, inputURL in
+                let result = try runExecutable([
+                    "export", inputURL.lastPathComponent, "--output", "model.bmp",
+                ] + test.options, in: directory)
+                XCTAssertEqual(result.status, 0, result.failureMessage)
+                let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+                XCTAssertEqual(Array(data.prefix(2)), [0x42, 0x4D])
+                guard data.count >= 54 else {
+                    return XCTFail("Missing BMP header")
+                }
+                let width = data[18 ..< 22].reversed().reduce(0) { $0 * 256 + Int($1) }
+                let height = data[22 ..< 26].reversed().reduce(0) { $0 * 256 + Int($1) }
+                XCTAssertEqual(data.count, 54 + ((test.width * 3 + 3) & ~3) * test.height)
+                XCTAssertEqual(width, test.width, "\(test)")
+                XCTAssertEqual(height, test.height, "\(test)")
+            }
+        }
+    }
+
     func testExportSubcommandDefaultsOutputToInputWithSTLExtension() throws {
         try withTemporaryShapeFile { directory, inputURL in
             let outputURL = directory.appendingPathComponent("model.stl")
             let result = try runExecutable(["export", inputURL.lastPathComponent], in: directory)
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        }
+    }
+
+    func testExportDefaultsToBMPWithImageDimensions() throws {
+        for options in [["--width", "16"], ["--height", "12"], ["--width", "16", "--height", "12"]] {
+            try withTemporaryShapeFile { directory, inputURL in
+                let result = try runExecutable(["export", inputURL.lastPathComponent] + options, in: directory)
+                XCTAssertEqual(result.status, 0, result.failureMessage)
+                let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+                XCTAssertEqual(Array(data.prefix(2)), [0x42, 0x4D])
+                XCTAssertFalse(FileManager.default
+                    .fileExists(atPath: directory.appendingPathComponent("model.stl").path))
+            }
+        }
+    }
+
+    func testExportRespectsExplicitOutputWithImageDimensions() throws {
+        try withTemporaryShapeFile { directory, inputURL in
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--width", "16", "--output", "model.stla",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let output = try String(contentsOf: directory.appendingPathComponent("model.stla"))
+            XCTAssertTrue(output.hasPrefix("solid "))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("model.bmp").path))
         }
     }
 

@@ -13,11 +13,13 @@ import ShapeScript
 
 struct ExportOptions {
     var convertToZUp: Bool
+    var width: Int?
+    var height: Int?
 }
 
 extension ShapeScriptCommand {
     static var exportValueOptions: [String] {
-        ["--output", "-o"]
+        ["--output", "-o", "--width", "--height"]
     }
 
     struct Export: ParsableCommand {
@@ -37,6 +39,12 @@ extension ShapeScriptCommand {
         @Option(name: .shortAndLong, help: "Exported model file.")
         var output: String?
 
+        @Option(help: "Width in pixels for image exports.")
+        var width: Int?
+
+        @Option(help: "Height in pixels for image exports.")
+        var height: Int?
+
         @Flag(help: "Output model using Z as up axis instead of Y.")
         var zUp = false
 
@@ -45,9 +53,18 @@ extension ShapeScriptCommand {
 
         init() {}
 
+        mutating func validate() throws {
+            if let width, width <= 0 {
+                throw ValidationError("--width option expects a positive integer")
+            }
+            if let height, height <= 0 {
+                throw ValidationError("--height option expects a positive integer")
+            }
+        }
+
         mutating func run() throws {
             let directory = FileManager.default.currentDirectoryPath
-            let exportOptions = ExportOptions(convertToZUp: zUp)
+            let exportOptions = ExportOptions(convertToZUp: zUp, width: width, height: height)
             let runner = try CLIRunner(
                 directory: directory,
                 inputPath: inputPath,
@@ -57,18 +74,18 @@ extension ShapeScriptCommand {
             )
             let outputURL = try output.map {
                 try CLIRunner.exportURL(for: $0, in: directory)
-            } ?? runner.defaultExportURL
+            } ?? runner.defaultExportURL(with: exportOptions)
             try runner.export(to: outputURL, options: exportOptions)
         }
     }
 }
 
 extension CLIRunner {
-    static let exportTypes = ["stl", "stla"]
+    static let exportTypes = ["stl", "stla", "bmp"]
 
     static func exportURL(for outputPath: String, in directory: String) throws -> URL {
         let url = expandPath(outputPath, in: directory)
-        guard exportTypes.contains(url.pathExtension) else {
+        guard exportTypes.contains(url.pathExtension.lowercased()) else {
             throw CLIError("Unsupported export file type '\(url.pathExtension)'")
         }
         return url
@@ -78,6 +95,11 @@ extension CLIRunner {
         let scene = try loadScene()
         printStatus("Exporting to '\(url.lastPathComponent)' ...")
         let geometry = scene.geometry
+        if url.pathExtension.lowercased() == "bmp" {
+            try exportBMP(scene, geometry: geometry, to: url, with: options)
+            printStatus("Export complete")
+            return
+        }
         var mesh = geometry.merged()
         if options.convertToZUp {
             mesh.rotate(by: .pitch(.degrees(-90)))
