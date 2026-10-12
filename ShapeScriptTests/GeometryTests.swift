@@ -839,6 +839,19 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.exactBounds(with: shape.transform).center, offset)
     }
 
+    func testPathGeometryPreservesMaterialAndVertexColors() {
+        let offset = Vector(1, 2, 3)
+        for path in [Path.square(), Path.square(color: .blue)] {
+            let geometry = Geometry(
+                type: .path(path), name: nil, transform: .translation(offset),
+                material: Material(color: .red), smoothing: nil, children: [], sourceLocation: nil
+            )
+            let expected = Path.square(color: path.hasColors ? .blue : .red)
+            XCTAssertEqual(geometry.path(pretransformed: false), expected)
+            XCTAssertEqual(geometry.path(pretransformed: true), expected.translated(by: offset))
+        }
+    }
+
     func testSquareCommandUsesPathPrimitiveGeometry() throws {
         let scene = try evaluate(parse("""
         color red
