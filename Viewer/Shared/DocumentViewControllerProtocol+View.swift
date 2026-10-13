@@ -42,21 +42,58 @@ extension DocumentViewControllerProtocol {
             ShapeScript\(clientVersion) and may not be fully compatible with this version.
             """, at: 0)
         }
-        // Moving an existing diagnostic to another line does not introduce a new warning.
-        func warningKey(_ message: String) -> String {
-            if let range = message.range(of: #" \(line \d+, column \d+\)$"#, options: .regularExpression) {
-                return String(message[..<range.lowerBound])
-            }
-            return message
-        }
-        messages = messages.filter { !document.dismissedWarnings.contains(warningKey($0)) }
-        guard !messages.isEmpty else {
+        document.warningQueue.update(messages)
+        presentQueuedWarning()
+    }
+
+    private func presentQueuedWarning() {
+        guard !isQuickLook, let document else {
             return
         }
-        let keys = messages.map(warningKey)
-        showWarning(messages.joined(separator: "\n\n")) {
-            document.dismissedWarnings.formUnion(keys)
+        guard document.error == nil, errorMessage == nil else {
+            warningPresentation = nil
+            hideWarning()
+            return
         }
+        let presentation = document.warningQueue.current
+        guard presentation != warningPresentation else { return }
+        warningPresentation = presentation
+        guard let presentation else {
+            hideWarning()
+            return
+        }
+        #if os(macOS)
+        let fontSize: CGFloat = 13
+        #else
+        let fontSize: CGFloat = 14
+        #endif
+        let message = NSMutableAttributedString(string: presentation.text, attributes: [
+            .font: OSFont.systemFont(ofSize: fontSize, weight: .medium),
+        ])
+        if presentation.total > 1 {
+            message.addAttribute(
+                .font,
+                value: OSFont.systemFont(ofSize: fontSize, weight: .bold),
+                range: NSRange(
+                    location: 0,
+                    length: "\(presentation.position)/\(presentation.total)".utf16.count
+                )
+            )
+        }
+        showWarning(message, onNext: { [weak self, weak document] in
+            guard let self, let document, self.document === document,
+                  document.error == nil, errorMessage == nil,
+                  document.warningQueue.advance(presentation.id)
+            else { return }
+            warningPresentation = nil
+            presentQueuedWarning()
+        }, onDismissAll: { [weak self, weak document] in
+            guard let self, let document, self.document === document,
+                  document.error == nil, errorMessage == nil,
+                  document.warningQueue.dismissAll(presentation.id)
+            else { return }
+            warningPresentation = nil
+        })
     }
 
     func setError(_ error: ProgramError?, message: NSAttributedString?) {
@@ -69,6 +106,12 @@ extension DocumentViewControllerProtocol {
             grantAccessButton.isHidden = isQuickLook
         }
         errorMessage = message
+        if error != nil || message != nil {
+            warningPresentation = nil
+            hideWarning()
+        } else {
+            presentQueuedWarning()
+        }
     }
 
     func makeCameraNode() -> SCNNode {

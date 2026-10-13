@@ -10,6 +10,66 @@ import Euclid
 import SceneKit
 import ShapeScript
 
+final class WarningTextView: NSTextView {
+    var onNext: (@MainActor () -> Void)?
+    private var clickTask: Task<Void, Never>?
+
+    override var intrinsicContentSize: NSSize {
+        guard let layoutManager, let textContainer else {
+            return super.intrinsicContentSize
+        }
+        layoutManager.ensureLayout(for: textContainer)
+        return NSSize(
+            width: NSView.noIntrinsicMetric,
+            height: ceil(layoutManager.usedRect(for: textContainer).height)
+        )
+    }
+
+    override func setFrameSize(_ size: NSSize) {
+        let widthChanged = size.width != frame.width
+        super.setFrameSize(size)
+        if widthChanged {
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        clickTask?.cancel()
+        let hadSelection = selectedRange().length > 0
+        super.mouseDown(with: event)
+        let mouseUpLocation: NSPoint = if let up = NSApp.currentEvent, up.type == .leftMouseUp {
+            up.locationInWindow
+        } else {
+            event.locationInWindow
+        }
+        completeMouseInteraction(with: event, mouseUpLocation: mouseUpLocation, hadSelection: hadSelection)
+    }
+
+    func completeMouseInteraction(with event: NSEvent, mouseUpLocation: NSPoint, hadSelection: Bool = false) {
+        clickTask?.cancel()
+        guard event.clickCount == 1,
+              event.modifierFlags.intersection([.shift, .command, .option, .control]).isEmpty,
+              abs(mouseUpLocation.x - event.locationInWindow.x) < 3,
+              abs(mouseUpLocation.y - event.locationInWindow.y) < 3
+        else { return }
+        if hadSelection {
+            setSelectedRange(NSRange(location: selectedRange().location, length: 0))
+            return
+        }
+        guard selectedRange().length == 0 else { return }
+        // Give a second click time to select a word instead of dismissing the toast.
+        clickTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(NSEvent.doubleClickInterval * 1_000_000_000))
+            } catch {
+                return
+            }
+            guard let self, window != nil, selectedRange().length == 0 else { return }
+            onNext?()
+        }
+    }
+}
+
 private final class SelectionSubmenu: NSMenu, @unchecked Sendable {
     let entries: [SelectionMenuEntry]
 
@@ -42,6 +102,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private let consoleTextView: NSTextView = .init()
     private let defaultConsoleHeight: CGFloat = 135
     private weak var warningView: NSView?
+    var warningPresentation: WarningQueue.Presentation?
+    private var warningNextHandler: (@MainActor @Sendable () -> Void)?
     private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
     private var lastLayoutBackgroundColor: NSColor?
 
@@ -365,9 +427,14 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         return super.presentError(error)
     }
 
-    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void) {
+    func showWarning(
+        _ message: NSAttributedString,
+        onNext: @escaping @MainActor @Sendable () -> Void,
+        onDismissAll: @escaping @MainActor @Sendable () -> Void
+    ) {
         dismissWarning(notify: false)
-        warningDismissHandler = onDismiss
+        warningNextHandler = onNext
+        warningDismissHandler = onDismissAll
 
         let banner = NSVisualEffectView()
         banner.translatesAutoresizingMaskIntoConstraints = false
@@ -397,13 +464,33 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             weight: .semibold
         )
 
-        let label = NSTextField(labelWithString: message)
+        let label = WarningTextView(frame: .zero)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textStorage?.setAttributedString(message)
         label.textColor = .labelColor
-        label.lineBreakMode = .byWordWrapping
-        label.maximumNumberOfLines = 0
+        label.isEditable = false
+        label.isSelectable = true
+        label.isRichText = true
+        label.drawsBackground = false
+        label.isHorizontallyResizable = false
+        label.isVerticallyResizable = true
+        label.textContainerInset = .zero
+        label.textContainer?.lineFragmentPadding = 0
+        label.textContainer?.widthTracksTextView = true
+        label.textContainer?.heightTracksTextView = false
+        label.onNext = { [weak self] in self?.nextWarningPressed() }
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        imageView.setAccessibilityElement(false)
+
+        let nextButton = NSButton()
+        nextButton.translatesAutoresizingMaskIntoConstraints = false
+        nextButton.isTransparent = true
+        nextButton.title = ""
+        nextButton.target = self
+        nextButton.action = #selector(nextWarningPressed)
+        nextButton.toolTip = "Next warning"
+        nextButton.setAccessibilityLabel("Next warning")
+        nextButton.setAccessibilityHelp("Show the next warning")
 
         let closeButton = NSButton()
         closeButton.translatesAutoresizingMaskIntoConstraints = false
@@ -412,10 +499,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         closeButton.bezelStyle = .inline
         closeButton.isBordered = false
         closeButton.imagePosition = .imageOnly
-        closeButton.toolTip = "Dismiss"
+        closeButton.toolTip = "Dismiss all warnings"
         closeButton.image = NSImage(
             systemSymbolName: "xmark.circle.fill",
-            accessibilityDescription: "Dismiss"
+            accessibilityDescription: "Dismiss all warnings"
         )
         closeButton.symbolConfiguration = NSImage.SymbolConfiguration(
             pointSize: 15,
@@ -424,12 +511,18 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         closeButton.contentTintColor = .secondaryLabelColor
 
         banner.addSubview(imageView)
+        banner.addSubview(nextButton)
+        // Keep the hit target behind the selectable text so selection cannot advance the queue.
         banner.addSubview(label)
         banner.addSubview(closeButton)
         view.addSubview(banner, positioned: .above, relativeTo: nil)
         warningView = banner
 
+        // Wrapping text needs a preferred width; otherwise the toast can collapse to its icons.
+        let preferredWidth = banner.widthAnchor.constraint(equalToConstant: 640)
+        preferredWidth.priority = .defaultHigh
         NSLayoutConstraint.activate([
+            preferredWidth,
             tintView.leadingAnchor.constraint(equalTo: banner.leadingAnchor),
             tintView.trailingAnchor.constraint(equalTo: banner.trailingAnchor),
             tintView.topAnchor.constraint(equalTo: banner.topAnchor),
@@ -450,6 +543,11 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             label.topAnchor.constraint(equalTo: banner.topAnchor, constant: 11),
             label.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -11),
 
+            nextButton.leadingAnchor.constraint(equalTo: banner.leadingAnchor),
+            nextButton.topAnchor.constraint(equalTo: banner.topAnchor),
+            nextButton.bottomAnchor.constraint(equalTo: banner.bottomAnchor),
+            nextButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor),
+
             closeButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
             closeButton.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -10),
             closeButton.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
@@ -462,7 +560,17 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         dismissWarning(notify: true)
     }
 
+    @objc private func nextWarningPressed() {
+        warningDismissHandler = warningNextHandler
+        dismissWarning(notify: true)
+    }
+
+    func hideWarning() {
+        dismissWarning(notify: false)
+    }
+
     private func dismissWarning(notify: Bool) {
+        warningNextHandler = nil
         guard let warningView else {
             if notify, let handler = warningDismissHandler {
                 warningDismissHandler = nil

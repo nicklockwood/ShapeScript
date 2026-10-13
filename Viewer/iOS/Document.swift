@@ -87,7 +87,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { errorMessage = error?.message(with: sourceString) }
     }
 
-    @MainActor var dismissedWarnings = Set<String>()
+    @MainActor let warningQueue = WarningQueue()
 
     @MainActor func scheduleAutosave() {
         saveTimer?.invalidate()
@@ -371,7 +371,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             self.stopAccessingPrimarySecurityScopedResource()
             Task { @MainActor in
                 if success {
-                    self.dismissedWarnings.removeAll()
+                    self.warningQueue.reset()
                 }
                 completionHandler?(success)
             }
