@@ -10,6 +10,118 @@ import Euclid
 import XCTest
 
 final class CSGImportTests: XCTestCase {
+    private func descendants(_ geometry: Geometry) -> [Geometry] {
+        [geometry] + geometry.children.flatMap(descendants)
+    }
+
+    func testModifierMappings() throws {
+        for (prefix, debug, hidden, focused) in [
+            ("#", true, false, false), ("%", false, true, false),
+            ("*", false, true, false), ("!", false, false, true),
+            ("!##", true, false, true), ("%#!", true, true, true),
+        ] {
+            let geometry = try Geometry(csgString: "\(prefix) cube(1);", isCancelled: { false })
+            let cube = try XCTUnwrap(geometry.children.first)
+            XCTAssertEqual(cube.debug, debug, prefix)
+            XCTAssertEqual(cube.isHidden, hidden, prefix)
+            XCTAssertEqual(cube.isFocused, focused, prefix)
+        }
+    }
+
+    func testModifiersOnGroupsPropagateToChildren() throws {
+        let geometry = try Geometry(csgString: "#!group() { cube(1); sphere(1); }", isCancelled: { false })
+        let group = try XCTUnwrap(geometry.children.first)
+        XCTAssertTrue(group.debug)
+        XCTAssertTrue(group.isFocused)
+        XCTAssertTrue(group.children.allSatisfy { $0.debug && $0.isFocused })
+    }
+
+    func testHiddenModifiersExcludeBooleanOperands() throws {
+        for prefix in ["%", "*"] {
+            XCTAssertEqual(
+                try mesh("difference() { cube(2,true); \(prefix)cube(1,true); }").signedVolume,
+                8,
+                accuracy: 1e-8
+            )
+            XCTAssertTrue(try mesh("difference() { \(prefix)cube(2,true); cube(1,true); }").isEmpty)
+        }
+        XCTAssertEqual(try mesh("difference() { cube(2,true); #cube(1,true); }").signedVolume, 7, accuracy: 1e-8)
+    }
+
+    func testFocusModifierFiltersSceneGeometry() throws {
+        let scene = try Scene(csgString: "cube(4,true); !translate([10,0,0]) cube(1,true);", isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.visibleBounds, Bounds([9.5, -0.5, -0.5], [10.5, 0.5, 0.5]))
+        XCTAssertEqual(scene.visibleGeometry.merged().signedVolume, 1, accuracy: 1e-8)
+    }
+
+    func testModifiersSurviveTransformsAndColors() throws {
+        let geometry = try Geometry(csgString: """
+        translate([2,3,4]) rotate([0,0,90]) scale([2,1,1]) color([1,0,0]) group() {
+            #cube(1,true);
+            %sphere(2);
+            !translate([3,0,0]) cube(1,true);
+        }
+        """, isCancelled: { false })
+        XCTAssertTrue(geometry.childDebug)
+        XCTAssertTrue(geometry.childIsHidden)
+        XCTAssertTrue(geometry.childIsFocused)
+        XCTAssertTrue(geometry.build { false })
+        let focused = geometry.withoutHiddenOrUnfocused()
+        XCTAssertEqual(focused.merged().bounds, Bounds([1.5, 8, 3.5], [2.5, 10, 4.5]))
+        XCTAssertTrue(focused.merged().polygons.allSatisfy { ($0.material as? Material)?.color == .red })
+    }
+
+    func testDebugModifierSurvivesShearedBooleanTransform() throws {
+        let geometry = try Geometry(csgString: """
+        multmatrix([[1,1,0,2],[0,1,0,3],[0,0,1,4],[0,0,0,1]])
+        difference() { cube(2,true); #cube(1,true); }
+        """, isCancelled: { false })
+        XCTAssertTrue(geometry.childDebug)
+        XCTAssertTrue(geometry.build { false })
+        XCTAssertEqual(geometry.merged().signedVolume, 7, accuracy: 1e-8)
+        let debug = try XCTUnwrap(descendants(geometry).first { $0.debug })
+        XCTAssertEqual(debug.merged().bounds, Bounds([1, 2.5, 3.5], [3, 3.5, 4.5]))
+    }
+
+    func testModifiersOnTransformedMinkowskiSum() throws {
+        let geometry = try Geometry(csgString: """
+        translate([5,0,0]) minkowski() { #cube(1,true); cube(1,true); }
+        """, isCancelled: { false })
+        XCTAssertTrue(geometry.childDebug)
+        XCTAssertTrue(geometry.build { false })
+        XCTAssertEqual(geometry.merged().bounds, Bounds([4, -1, -1], [6, 1, 1]))
+    }
+
+    func testModifiersOnPathsAreNotFlattenedAway() throws {
+        let geometry = try Geometry(
+            csgString: "translate([2,0,0]) group() { #square(1); %circle(1); }",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(geometry.childDebug)
+        XCTAssertTrue(geometry.childIsHidden)
+        let visible = geometry.withoutHiddenOrUnfocused()
+        XCTAssertFalse(visible.childIsHidden)
+        XCTAssertEqual(visible.overestimatedBounds, Bounds([2, 0, 0], [3, 1, 0]))
+        XCTAssertEqual(
+            try mesh("linear_extrude(height=2) group() { square(1); %square(4); }").signedVolume,
+            2, accuracy: 1e-8
+        )
+    }
+
+    func testMalformedModifiersAndErrorLocations() throws {
+        for source in ["#", "%!", "cube(#1);", "#%group() { ! }"] {
+            XCTAssertThrowsError(try Geometry(csgString: source, isCancelled: { false })) {
+                XCTAssertTrue($0 is CSGImportError)
+            }
+        }
+        XCTAssertThrowsError(try Geometry(csgString: "\n# projection() cube(1);", isCancelled: { false })) {
+            let error = $0 as? CSGImportError
+            XCTAssertEqual(error?.line, 2)
+            XCTAssertEqual(error?.column, 3)
+        }
+    }
+
     func testCSGSceneLoading() throws {
         let cache = GeometryCache()
         let scene = try Scene(csgString: "cube([2,3,4]);", cache: cache, isCancelled: { false })
