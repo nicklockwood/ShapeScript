@@ -441,7 +441,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         updateSceneTitle()
-        checkDocumentVersion()
+        checkDocumentWarnings()
         if showConsole {
             presentConsole()
         }

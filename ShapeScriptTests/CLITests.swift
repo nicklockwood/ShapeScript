@@ -11,6 +11,18 @@
 import XCTest
 
 final class CLITests: XCTestCase {
+    func testCSGWarningsArePrintedWithoutFailing() throws {
+        try withTemporaryFile(named: "model.csg") { directory, inputURL in
+            try "color(\"red\") cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)
+            let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            XCTAssertTrue(
+                result.output.contains("Warning: model.csg: Named CSG colors are unsupported"),
+                result.failureMessage
+            )
+        }
+    }
+
     func testCSGCheckInfoAndSTLExport() throws {
         for name in ["model.csg", "model.CSG"] {
             try withTemporaryFile(named: name) { directory, inputURL in
@@ -44,10 +56,10 @@ final class CLITests: XCTestCase {
 
     func testCSGErrorsAreSurfaced() throws {
         try withTemporaryFile(named: "model.csg") { directory, inputURL in
-            try "\nprojection() cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)
+            try "\ncube([1,2]);".write(to: inputURL, atomically: true, encoding: .utf8)
             let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
             XCTAssertNotEqual(result.status, 0)
-            XCTAssertTrue(result.output.contains("Unsupported CSG operation 'projection'"), result.failureMessage)
+            XCTAssertTrue(result.output.contains("Expected a CSG vector with 3 components"), result.failureMessage)
             XCTAssertTrue(result.output.contains("line 2"), result.failureMessage)
         }
     }

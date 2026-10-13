@@ -342,7 +342,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     override func viewDidAppear() {
         super.viewDidAppear()
-        checkDocumentVersion()
+        checkDocumentWarnings()
     }
 
     override func viewDidDisappear() {

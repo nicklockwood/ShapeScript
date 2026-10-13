@@ -22,16 +22,20 @@ public struct CSGImportError: Error, LocalizedError, Equatable, Sendable {
 
 public extension Geometry {
     /// Imports an evaluated OpenSCAD CSG tree, not a SCAD program.
-    convenience init(csgString: String, isCancelled: @escaping CancellationHandler) throws {
+    convenience init(
+        csgString: String,
+        onWarning: ((String) -> Void)? = nil,
+        isCancelled: @escaping CancellationHandler
+    ) throws {
         if isCancelled() {
             throw CancellationError()
         }
         var parser = CSGParser(csgString, isCancelled: isCancelled)
         let nodes = try parser.parse()
-        let importer = CSGImporter(isCancelled: isCancelled)
+        let importer = CSGImporter(isCancelled: isCancelled, onWarning: onWarning)
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
-        if !shapes.isEmpty, shapes.allSatisfy({ $0.paths != nil }),
+        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }),
            !shapes
            .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
         {
@@ -64,8 +68,14 @@ public extension Scene {
         if let fileURL {
             try fileURL.validateFileSize(limit: FileSizeLimit.text)
         }
-        let geometry = try Geometry(csgString: csgString, isCancelled: isCancelled)
-        self.init(background: .color(.clear), children: [geometry], cache: cache)
+        var warnings = [String]()
+        let geometry = try Geometry(csgString: csgString, onWarning: { message in
+            let message = fileURL.map { "\($0.lastPathComponent): \(message)" } ?? message
+            if !warnings.contains(message) {
+                warnings.append(message)
+            }
+        }, isCancelled: isCancelled)
+        self.init(background: .color(.clear), children: [geometry], cache: cache, warnings: warnings)
     }
 }
 
@@ -104,7 +114,7 @@ private struct CSGNode {
         .init(message: message, line: line, column: column)
     }
 
-    func validate(_ names: [String], positional: [String] = []) throws -> [String: CSGValue] {
+    func validate(_ names: [String], positional: [String] = []throws -> [String: CSGValue] {
         var result = arguments
         for (index, name) in positional.enumerated() {
             if let value = result.removeValue(forKey: "\(index)") {
@@ -114,8 +124,8 @@ private struct CSGNode {
                 result[name] = value
             }
         }
-        if let unknown = result.keys.sorted().first(where: { !names.contains($0) }) {
-            throw error("Unsupported CSG argument '\(unknown)' for '\(name)'")
+        for unknown in result.keys.sorted() where !names.contains(unknown) {
+            throw error("Unknown CSG argument '\(unknown)' for '\(name)'")
         }
         return result
     }
@@ -432,10 +442,21 @@ private struct CSGParser {
 private struct CSGShape {
     let geometry: Geometry
     let paths: [Path]?
+
+    var isEmpty: Bool { geometry.type == .group && geometry.children.isEmpty }
 }
 
 private struct CSGImporter {
     let isCancelled: CancellationHandler
+    let onWarning: ((String) -> Void)?
+
+    private func warn(_ message: String, at node: CSGNode) {
+        onWarning?(node.error(message).localizedDescription)
+    }
+
+    private func validate(_ node: CSGNode, _ names: [String], positional: [String] = []) throws -> [String: CSGValue] {
+        try node.validate(names, positional: positional)
+    }
 
     func checkCancellation() throws {
         if isCancelled() {
@@ -486,8 +507,8 @@ private struct CSGImporter {
     }
 
     private func paths(_ children: [CSGShape], node: CSGNode) throws -> [Path] {
-        guard children.allSatisfy({ $0.paths != nil }) else {
-            throw node.error("'\(node.name)' requires 2D children")
+        if children.contains(where: { $0.paths == nil && !$0.isEmpty }) {
+            warn("'\(node.name)' requires 2D children; incompatible geometry skipped", at: node)
         }
         return children.filter { !$0.geometry.isHidden }.flatMap { $0.paths ?? [] }
     }
@@ -528,19 +549,23 @@ private struct CSGImporter {
         let tessellation = ["$fn", "$fa", "$fs", "convexity"]
         switch node.name {
         case "group", "union", "difference", "intersection", "hull", "minkowski", "render":
-            _ = try node.validate(node.name == "render" ? ["convexity"] : [])
+            _ = try validate(node, node.name == "render" ? ["convexity"] : [])
             let children = try children(node, material: material)
-            if !children.isEmpty, children.allSatisfy({ $0.paths != nil }) {
-                guard node.name == "group" || node.name == "render" || children.count == 1 else {
-                    throw node.error("2D '\(node.name)' is not supported by the CSG importer")
+            if children.contains(where: { $0.paths != nil }), children.allSatisfy({ $0.paths != nil || $0.isEmpty }) {
+                if node.name != "group", node.name != "render", children.filter({ !$0.isEmpty }).count > 1 {
+                    warn("2D '\(node.name)' is unsupported; using grouped profiles", at: node)
                 }
                 return try .init(
                     geometry: geometry(.group, material: material, children: children.map(\.geometry)),
                     paths: paths(children, node: node)
                 )
             }
-            guard children.allSatisfy({ $0.paths == nil }) else {
-                throw node.error("Mixed 2D and 3D CSG children are unsupported")
+            if !children.allSatisfy({ $0.paths == nil }) {
+                warn("Mixed 2D and 3D CSG children are unsupported; using grouped geometry", at: node)
+                return .init(
+                    geometry: geometry(.group, material: material, children: children.map(\.geometry)),
+                    paths: nil
+                )
             }
             let type: GeometryType
             switch node.name {
@@ -557,11 +582,21 @@ private struct CSGImporter {
             case "minkowski":
                 type = .minkowski
             default:
-                throw node.error("Unsupported CSG operation '\(node.name)'")
+                throw node.error("Invalid CSG operation '\(node.name)'")
             }
             return .init(geometry: geometry(type, material: material, children: children.map(\.geometry)), paths: nil)
         case "color":
-            let values = try node.validate(["c", "alpha"], positional: ["c", "alpha"])
+            let values = try validate(node, ["c", "alpha"], positional: ["c", "alpha"])
+            if case .string? = values["c"] {
+                guard try (0 ... 1).contains(node.number(values, "alpha", default: 1)) else {
+                    throw node.error("Invalid CSG color")
+                }
+                warn("Named CSG colors are unsupported; using the inherited color", at: node)
+                return try shape(
+                    .init(name: "group", arguments: [:], children: node.children, line: node.line, column: node.column),
+                    material: material
+                )
+            }
             let components: [Double]
             if let numbers = values["c"]?.numbers, numbers.count == 3 || numbers.count == 4 {
                 components = numbers
@@ -582,10 +617,10 @@ private struct CSGImporter {
                 ))
             )
         case "cube", "square":
-            guard node.children.isEmpty else {
-                throw node.error("CSG primitives cannot have children")
+            if !node.children.isEmpty {
+                warn("CSG primitives cannot have children; children ignored", at: node)
             }
-            let values = try node.validate(["size", "center"], positional: ["size", "center"])
+            let values = try validate(node, ["size", "center"], positional: ["size", "center"])
             let count = node.name == "cube" ? 3 : 2
             let size = try node.vector(values["size"] ?? .number(1), count: count, scalar: true)
             guard size.allSatisfy({ $0 > 0 }) else {
@@ -608,11 +643,12 @@ private struct CSGImporter {
                 paths: nil
             )
         case "sphere", "circle", "cylinder":
-            guard node.children.isEmpty else {
-                throw node.error("CSG primitives cannot have children")
+            if !node.children.isEmpty {
+                warn("CSG primitives cannot have children; children ignored", at: node)
             }
             let names = node.name == "cylinder" ? ["h", "r", "r1", "r2", "d", "d1", "d2", "center"] : ["r", "d"]
-            let values = try node.validate(
+            let values = try validate(
+                node,
                 names + tessellation,
                 positional: node.name == "cylinder" ? ["h", "r1", "r2", "center"] : ["r"]
             )
@@ -677,8 +713,8 @@ private struct CSGImporter {
             try checkCancellation()
             return try result(mesh, material: material)
         case "polygon", "polyhedron":
-            guard node.children.isEmpty else {
-                throw node.error("CSG primitives cannot have children")
+            if !node.children.isEmpty {
+                warn("CSG primitives cannot have children; children ignored", at: node)
             }
             let names = node.name == "polygon" ? ["points", "paths", "convexity"] : [
                 "points",
@@ -686,7 +722,7 @@ private struct CSGImporter {
                 "triangles",
                 "convexity",
             ]
-            let values = try node.validate(names, positional: ["points", node.name == "polygon" ? "paths" : "faces"])
+            let values = try validate(node, names, positional: ["points", node.name == "polygon" ? "paths" : "faces"])
             guard case let .array(pointValues)? = values["points"] else {
                 throw node.error("CSG points must be an array")
             }
@@ -735,17 +771,17 @@ private struct CSGImporter {
             }
             return try result(Mesh(polygons), material: material)
         case "offset":
-            let values = try node.validate(["r", "delta", "chamfer"] + tessellation)
-            guard values["r"] == nil, values["delta"] != nil,
-                  try !node.boolean(values, "chamfer", default: false)
-            else {
-                throw node.error("Rounded or chamfered CSG offsets are not supported")
+            let values = try validate(node, ["r", "delta", "chamfer"] + tessellation)
+            let radius = try node.number(values, "r", default: 1)
+            let chamfer = try node.boolean(values, "chamfer", default: false)
+            if values["r"] != nil || values["delta"] == nil || chamfer {
+                warn("Rounded or chamfered CSG offsets are unsupported; using a sharp offset", at: node)
             }
             let profiles = try paths(children(node, material: material), node: node)
-            guard profiles.count == 1 else {
-                throw node.error("CSG offset requires a single profile")
+            if profiles.count > 1 {
+                warn("CSG offset with multiple profiles is unsupported; offsetting each profile separately", at: node)
             }
-            let delta = try node.number(values, "delta", default: 0)
+            let delta = try node.number(values, "delta", default: radius)
             let paths = profiles.map { $0.inset(by: -delta, isCancelled: isCancelled) }
             try checkCancellation()
             return result(paths, material: material)
@@ -754,7 +790,8 @@ private struct CSGImporter {
                 "angle",
                 "start",
             ]
-            let values = try node.validate(
+            let values = try validate(
+                node,
                 names + tessellation,
                 positional: node.name == "linear_extrude" ? ["height"] : []
             )
@@ -768,8 +805,8 @@ private struct CSGImporter {
             if node.name == "linear_extrude" {
                 if let scale = values["scale"] {
                     let components = try node.vector(scale, count: 2, scalar: true)
-                    guard components == [1, 1] else {
-                        throw node.error("Tapered CSG linear_extrude is not supported")
+                    if components != [1, 1] {
+                        warn("Tapered CSG linear_extrude is unsupported; using an untapered extrusion", at: node)
                     }
                 }
                 let height = try node.number(values, "height", default: 1)
@@ -798,10 +835,10 @@ private struct CSGImporter {
                 try checkCancellation()
                 return try result(mesh, material: material)
             }
-            guard try node.number(values, "angle", default: 360) == 360,
-                  try node.number(values, "start", default: 0) == 0
-            else {
-                throw node.error("Partial CSG rotate_extrude is not supported")
+            let angle = try node.number(values, "angle", default: 360)
+            let start = try node.number(values, "start", default: 0)
+            if angle != 360 || start != 0 {
+                warn("Partial CSG rotate_extrude is unsupported; using a full revolution starting at zero", at: node)
             }
             let radius = profiles.flatMap(\.points).map { abs($0.position.x) }.max() ?? 0
             let detail = try fragments(values, radius: radius, node: node)
@@ -813,34 +850,51 @@ private struct CSGImporter {
             try checkCancellation()
             return try result(mesh, material: material)
         case "text":
-            guard node.children.isEmpty else {
-                throw node.error("CSG primitives cannot have children")
+            if !node.children.isEmpty {
+                warn("CSG primitives cannot have children; children ignored", at: node)
             }
-            let values = try node.validate(
-                ["text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script"] +
-                    tessellation,
-                positional: ["text", "size", "font"]
-            )
-            guard try node.string(values, "halign", default: "left") == "left",
-                  try node.string(values, "valign", default: "baseline") == "baseline",
-                  try node.string(values, "direction", default: "ltr") == "ltr",
-                  try node.string(values, "language", default: "en") == "en",
-                  try node.string(values, "script", default: "Latn") == "Latn",
-                  try node.number(values, "spacing", default: 1) == 1
-            else {
-                throw node.error("Unsupported CSG text layout options")
+            let names = ["text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script"] +
+                tessellation
+            let values = try validate(node, names, positional: ["text", "size", "font"])
+            var unsupported = [String]()
+            for (name, fallback, allowed) in [
+                ("halign", "left", ["default", "left", "center", "right"]),
+                ("valign", "baseline", ["default", "baseline", "top", "center", "bottom"]),
+                ("direction", "ltr", ["ltr", "rtl", "ttb", "btt"]),
+                ("language", "en", []), ("script", "Latn", []),
+            ] {
+                let value = try node.string(values, name, default: fallback)
+                guard allowed.isEmpty || allowed.contains(value) else {
+                    throw node.error("Invalid CSG text '\(name)' value '\(value)'")
+                }
+                if value != fallback {
+                    unsupported.append(name)
+                }
             }
-            #if canImport(CoreText)
+            if try node.number(values, "spacing", default: 1) != 1 {
+                unsupported.append("spacing")
+            }
+            if !unsupported.isEmpty {
+                warn(
+                    "Unsupported CSG text options: \(unsupported.joined(separator: ", ")); using default text layout",
+                    at: node
+                )
+            }
             let text = try node.string(values, "text", default: "")
-            let font = try node.string(values, "font", default: "Liberation Sans")
-            guard !font.contains(":") else {
-                throw node.error("OpenSCAD font style descriptors are not supported")
+            var font = try node.string(values, "font", default: "Liberation Sans")
+            if let colon = font.firstIndex(of: ":") {
+                warn("OpenSCAD font style descriptors are unsupported; using the base font", at: node)
+                font = String(font[..<colon])
+                if font.isEmpty {
+                    font = "Liberation Sans"
+                }
             }
             let size = try node.number(values, "size", default: 10)
             guard size > 0 else {
                 throw node.error("CSG text size must be positive")
             }
             let detail = try fragments(values, radius: size, node: node)
+            #if canImport(CoreText)
             let paths = TextPath(
                 text: [TextValue(string: text, font: font, color: material.color)],
                 wrapWidth: nil,
@@ -850,12 +904,86 @@ private struct CSGImporter {
             try checkCancellation()
             return result(paths, material: material)
             #else
-            throw node.error("CSG text requires platform font support")
+            warn("CSG text requires platform font support; text geometry skipped", at: node)
+            return result([], material: material)
             #endif
         case "translate", "scale", "rotate", "mirror", "multmatrix":
             return try transformed(node, material: material)
+        case "projection", "resize", "surface", "import":
+            let names: [String]
+            let positional: [String]
+            switch node.name {
+            case "projection":
+                names = ["cut", "convexity"]
+                positional = ["cut"]
+            case "resize":
+                names = ["newsize", "auto", "convexity"]
+                positional = ["newsize", "auto"]
+            case "surface":
+                names = ["file", "center", "invert", "convexity", "timestamp"]
+                positional = ["file", "center", "convexity"]
+            case "import":
+                names = [
+                    "file",
+                    "filename",
+                    "layer",
+                    "layername",
+                    "origin",
+                    "scale",
+                    "width",
+                    "height",
+                    "center",
+                    "dpi",
+                    "id",
+                    "timestamp",
+                ] + tessellation
+                positional = ["file", "layer", "convexity", "origin", "scale"]
+            default:
+                throw node.error("Unknown CSG operation '\(node.name)'")
+            }
+            let values = try validate(node, names, positional: positional)
+            for name in ["file", "filename", "layer", "layername", "id"] where values[name] != nil {
+                _ = try node.string(values, name, default: "")
+            }
+            for name in ["cut", "center", "invert"] where values[name] != nil {
+                _ = try node.boolean(values, name, default: false)
+            }
+            for name in ["convexity", "timestamp", "scale", "dpi", "width", "height", "$fn", "$fa", "$fs"]
+                where values[name] != nil
+            {
+                _ = try node.number(values, name, default: 0)
+            }
+            if let size = values["newsize"] {
+                let size = try node.vector(size, count: 3)
+                guard size.allSatisfy({ $0 >= 0 }) else { throw node.error("CSG resize size must be non-negative") }
+            }
+            if let origin = values["origin"] {
+                _ = try node.vector(origin, count: 2)
+            }
+            if let auto = values["auto"] {
+                switch auto {
+                case .boolean:
+                    break
+                case let .array(values) where values.count == 3 && values.allSatisfy {
+                    if case .boolean = $0 { return true }
+                    return false
+                }:
+                    break
+                case .array, .number, .string, .undefined:
+                    throw node.error("CSG resize 'auto' must be a boolean or 3 booleans")
+                }
+            }
+            warn(
+                "Unsupported CSG operation '\(node.name)'; " +
+                    (node.children.isEmpty ? "geometry skipped" : "using children without this operation"),
+                at: node
+            )
+            return try unmodifiedShape(
+                .init(name: "group", arguments: [:], children: node.children, line: node.line, column: node.column),
+                material: material
+            )
         default:
-            throw node.error("Unsupported CSG operation '\(node.name)'")
+            throw node.error("Unknown CSG operation '\(node.name)'")
         }
     }
 
@@ -863,16 +991,16 @@ private struct CSGImporter {
         let matrix: [[Double]]
         switch node.name {
         case "multmatrix":
-            let values = try node.validate(["m"], positional: ["m"])
+            let values = try validate(node, ["m"], positional: ["m"])
             guard case let .array(rows)? = values["m"], rows.count == 4 else {
                 throw node.error("CSG multmatrix requires a 4×4 matrix")
             }
             matrix = try rows.map { try node.vector($0, count: 4) }
-            guard matrix[3] == [0, 0, 0, 1] else {
-                throw node.error("Projective CSG matrices are unsupported")
+            if matrix[3] != [0, 0, 0, 1] {
+                warn("Projective CSG matrices are unsupported; using the affine part of the matrix", at: node)
             }
         case "translate", "scale":
-            let values = try node.validate(["v"], positional: ["v"])
+            let values = try validate(node, ["v"], positional: ["v"])
             let v = try node.vector(values["v"], count: 3, scalar: node.name == "scale")
             if node.name == "translate" {
                 matrix = [
@@ -890,7 +1018,7 @@ private struct CSGImporter {
                 ]
             }
         case "mirror":
-            let values = try node.validate(["v"], positional: ["v"])
+            let values = try validate(node, ["v"], positional: ["v"])
             let v = try node.vector(values["v"], count: 3)
             let normal = Vector(v[0], v[1], v[2])
             guard normal.length > 0, normal.length.isFinite else {
@@ -908,7 +1036,7 @@ private struct CSGImporter {
             reflection[3][3] = 1
             matrix = reflection
         case "rotate":
-            let values = try node.validate(["a", "v"], positional: ["a", "v"])
+            let values = try validate(node, ["a", "v"], positional: ["a", "v"])
             if let angles = values["a"]?.numbers {
                 guard angles.count == 3, values["v"] == nil else {
                     throw node.error("Invalid CSG Euler rotation")
@@ -937,7 +1065,7 @@ private struct CSGImporter {
                 ]
             }
         default:
-            throw node.error("Unsupported CSG transform '\(node.name)'")
+            throw node.error("Invalid CSG transform '\(node.name)'")
         }
         func apply(_ p: Vector) throws -> Vector {
             let coordinates = matrix.prefix(3).map { $0[0] * p.x + $0[1] * p.y + $0[2] * p.z + $0[3] }
@@ -1011,7 +1139,7 @@ private struct CSGImporter {
             geometry.isHidden = source.isHidden
             return geometry
         }
-        if shapes.allSatisfy({ $0.paths != nil }) {
+        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }) {
             let paths = try paths(shapes, node: node).map { path in
                 try Path(subpaths: path.subpaths.map { subpath in
                     try Path(subpath.points.map { point in try .point(apply(point.position), color: point.color) })
@@ -1027,13 +1155,18 @@ private struct CSGImporter {
             }
             return result(paths, material: material)
         }
-        guard shapes.allSatisfy({ $0.paths == nil }) else {
-            throw node.error("Mixed 2D and 3D CSG children are unsupported")
+        let hasPaths = shapes.contains { $0.paths != nil }
+        if hasPaths {
+            warn("Mixed 2D and 3D CSG children are unsupported; transforming each child separately", at: node)
         }
-        guard determinant.isFinite, abs(determinant) > Double.ulpOfOne else {
-            throw node.error("Singular CSG transforms are unsupported")
+        guard determinant.isFinite else {
+            throw node.error("CSG transform overflow")
         }
-        if hasModifiers {
+        guard abs(determinant) > Double.ulpOfOne else {
+            warn("Singular CSG transforms are unsupported; geometry skipped", at: node)
+            return .init(geometry: geometry(.group, material: material), paths: nil)
+        }
+        if hasModifiers || hasPaths {
             return try .init(
                 geometry: geometry(.group, material: material, children: shapes.map {
                     try transformedGeometry($0.geometry)

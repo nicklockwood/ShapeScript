@@ -87,6 +87,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { errorMessage = error?.message(with: sourceString) }
     }
 
+    @MainActor var dismissedWarnings = Set<String>()
+
     @MainActor func scheduleAutosave() {
         saveTimer?.invalidate()
         guard autosaveEnabled else {
@@ -362,12 +364,17 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     override func close(completionHandler: (@Sendable (Bool) -> Void)? = nil) {
         loadingProgress?.cancel()
         exportProgress?.cancel()
-        super.close { hasChanges in
-            completionHandler?(hasChanges)
+        super.close { success in
             for resource in self.securityScopedResources {
                 resource.stopAccessingSecurityScopedResource()
             }
             self.stopAccessingPrimarySecurityScopedResource()
+            Task { @MainActor in
+                if success {
+                    self.dismissedWarnings.removeAll()
+                }
+                completionHandler?(success)
+            }
         }
     }
 

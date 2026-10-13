@@ -10,6 +10,184 @@ import Euclid
 import XCTest
 
 final class CSGImportTests: XCTestCase {
+    func testUnknownSymbolsAreErrorsWithLocations() {
+        for source in [
+            "cubee(1);", "hullz() { cube(1); }", "cube(szie=2);",
+            "cube(1, false, 3);", "text(\"Hi\", halgin=\"center\");",
+            "text(\"Hi\", future_option=true);", "projection(cutt=true) cube(1);",
+            "surface(flie=\"a.dat\");", "import(flie=\"a.stl\");", "resize(newsz=[1,2,3]) cube(1);",
+        ] {
+            XCTAssertThrowsError(try Scene(csgString: "\n\(source)", isCancelled: { false })) { error in
+                let error = error as? CSGImportError
+                XCTAssertTrue(error?.message.hasPrefix("Unknown CSG") == true, source)
+                XCTAssertEqual(error?.line, 2, source)
+                XCTAssertEqual(error?.column, 1, source)
+            }
+        }
+    }
+
+    func testInvalidUnsupportedFeatureValuesAreErrors() {
+        for source in [
+            "text(\"Hi\", halign=\"cenetr\");", "text(\"Hi\", valign=\"botom\");",
+            "text(\"Hi\", direction=\"left\");", "projection(cut=2) cube(1);",
+            "resize([1,2]) cube(1);", "resize([1,2,3], auto=\"yes\") cube(1);",
+            "surface(file=2);", "import(file=\"a.stl\", origin=[1,2,3]);",
+        ] {
+            XCTAssertThrowsError(try Scene(csgString: source, isCancelled: { false }), source)
+        }
+    }
+
+    func testDefaultTextAlignmentWarnsInsteadOfFailing() throws {
+        let scene = try Scene(
+            csgString: "text(\"Hi\", halign=\"default\", valign=\"default\");",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(scene.warnings.contains { $0.contains("halign, valign") })
+    }
+
+    func testUnsupportedLeavesAreSkippedAndWrappersPreserveChildren() throws {
+        let scene = try Scene(
+            csgString: "union() { resize([4,4,4]) cube(2,true); surface(file=\"missing.dat\"); }",
+            isCancelled: { false }
+        )
+        XCTAssertEqual(scene.warnings.count, 2)
+        XCTAssertTrue(scene.warnings.contains { $0.contains("geometry skipped") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("using children") })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
+    }
+
+    func testUnsupportedExtrusionOptionsHaveExplicitFallbacks() throws {
+        let tapered = try Scene(csgString: "linear_extrude(height=2, scale=0.5) square(1);", isCancelled: { false })
+        XCTAssertEqual(tapered.warnings.count, 1)
+        XCTAssertTrue(tapered.warnings[0].contains("untapered"))
+        XCTAssertTrue(tapered.build { false })
+        XCTAssertEqual(tapered.geometry.merged().signedVolume, 2, accuracy: 1e-8)
+        let partial = try Scene(
+            csgString: "rotate_extrude(angle=90, start=30, $fn=16) translate([2,0,0]) square(1);",
+            isCancelled: { false }
+        )
+        XCTAssertEqual(partial.warnings.count, 1)
+        XCTAssertTrue(partial.warnings[0].contains("full revolution"))
+        XCTAssertTrue(partial.build { false })
+        XCTAssertEqual(partial.geometry.merged(), try mesh("rotate_extrude($fn=16) translate([2,0,0]) square(1);"))
+    }
+
+    func testUnsupportedOffsetOptionsHaveExplicitFallbacks() throws {
+        let rounded = try Scene(csgString: "offset(r=1, chamfer=true) square(2,true);", isCancelled: { false })
+        XCTAssertEqual(rounded.warnings.count, 1)
+        XCTAssertTrue(rounded.warnings[0].contains("sharp offset"))
+        XCTAssertEqual(rounded.geometry.overestimatedBounds, Bounds([-2, -2, 0], [2, 2, 0]))
+        let multiple = try Scene(
+            csgString: "offset(delta=1) group() { square(1); translate([4,0,0]) square(1); }",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(multiple.warnings.contains { $0.contains("separately") })
+        XCTAssertEqual(try XCTUnwrap(multiple.children.first?.path).subpaths.count, 2)
+    }
+
+    func testUnsupportedMatrixOptionsWarnWithoutLosingOtherGeometry() throws {
+        let projective = try Scene(
+            csgString: "multmatrix([[1,0,0,2],[0,1,0,0],[0,0,1,0],[0,0,0.1,1]]) cube(1);",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(projective.warnings.contains { $0.contains("affine part") })
+        XCTAssertTrue(projective.build { false })
+        XCTAssertEqual(projective.geometry.merged().bounds, Bounds([2, 0, 0], [3, 1, 1]))
+        let singular = try Scene(csgString: "cube(1); scale([0,1,1]) cube(4);", isCancelled: { false })
+        XCTAssertTrue(singular.warnings.contains { $0.contains("Singular") })
+        XCTAssertTrue(singular.build { false })
+        XCTAssertEqual(singular.geometry.merged().signedVolume, 1, accuracy: 1e-8)
+    }
+
+    func testPrimitiveChildrenAreIgnoredWithWarnings() throws {
+        let scene = try Scene(csgString: "cube(size=2) { sphere(1); }", isCancelled: { false })
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
+        XCTAssertThrowsError(try Scene(csgString: "cube(1,size=2);", isCancelled: { false }))
+    }
+
+    func testMixedDimensionsAndUnsupportedExtrusionChildrenWarn() throws {
+        let mixed = try Scene(csgString: "translate([2,0,0]) group() { cube(1); square(1); }", isCancelled: { false })
+        XCTAssertFalse(mixed.warnings.isEmpty)
+        XCTAssertTrue(mixed.build { false })
+        XCTAssertEqual(mixed.geometry.merged().signedVolume, 1, accuracy: 1e-8)
+        let extruded = try Scene(
+            csgString: "linear_extrude(height=1) group() { square(1); surface(file=\"missing\"); }",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(extruded.build { false })
+        XCTAssertEqual(extruded.geometry.merged().signedVolume, 1, accuracy: 1e-8)
+        let incompatible = try Scene(
+            csgString: "cube(1); linear_extrude(height=1) projection() cube(1);",
+            isCancelled: { false }
+        )
+        XCTAssertEqual(incompatible.warnings.count, 2)
+        XCTAssertTrue(incompatible.build { false })
+        XCTAssertEqual(incompatible.geometry.merged().signedVolume, 1, accuracy: 1e-8)
+    }
+
+    #if canImport(CoreText)
+    func testUnsupportedTextOptionsWarnAndUseDefaults() throws {
+        let source = "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2, language=\"fr\");"
+        let scene = try Scene(csgString: source, isCancelled: { false })
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].contains("halign"))
+        XCTAssertTrue(scene.warnings[0].contains("spacing"))
+        XCTAssertTrue(scene.warnings[0].contains("language"))
+        XCTAssertTrue(scene.warnings[0].contains("line 1, column 1"))
+        let fallback = try Scene(csgString: "text(\"Hi\", font=\"Helvetica\");", isCancelled: { false })
+        XCTAssertEqual(scene.geometry, fallback.geometry)
+        XCTAssertTrue(fallback.warnings.isEmpty)
+    }
+
+    func testUnsupportedFontStyleWarnsAndUsesBaseFont() throws {
+        let scene = try Scene(csgString: "text(\"Hi\", font=\"Helvetica:style=Bold\");", isCancelled: { false })
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].contains("base font"))
+        let fallback = try Scene(csgString: "text(\"Hi\", font=\"Helvetica\");", isCancelled: { false })
+        XCTAssertEqual(scene.geometry, fallback.geometry)
+    }
+    #endif
+
+    func testNamedColorWarnsAndUsesInheritedColor() throws {
+        let scene = try Scene(csgString: "color([1,0,0]) color(\"blue\") cube(1);", isCancelled: { false })
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].contains("inherited color"))
+        XCTAssertTrue(scene.build { false })
+        XCTAssertTrue(scene.geometry.merged().polygons.allSatisfy { ($0.material as? Material)?.color == .red })
+    }
+
+    func testInvalidValuesAndGeometryOptionsRemainErrors() {
+        for source in [
+            "text(\"Hi\", halign=2);", "text(\"Hi\", spacing=\"wide\");", "text(\"Hi\", size=-1);",
+            "color(\"red\", alpha=2) cube(1);", "linear_extrude(height=-1) square(1);",
+            "multmatrix([[1,0],[0,1]]) cube(1);",
+        ] {
+            XCTAssertThrowsError(try Scene(csgString: source, isCancelled: { false }), source)
+        }
+    }
+
+    func testImportedCSGWarningsReachSceneIncludingExportValidation() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("warning.csg")
+        try "color(\"red\") cube(1);".write(to: url, atomically: true, encoding: .utf8)
+        let importStatement = "import \"warning.csg\""
+        let delegate = TestDelegate(directory: directory)
+        let scene = try evaluate(parse("group { \(importStatement) }\n\(importStatement)"), delegate: delegate)
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].hasPrefix("warning.csg:"))
+        let exportOnly = try evaluate(
+            parse("if preview { cube } else { \(importStatement) }"),
+            preview: true,
+            delegate: delegate
+        )
+        XCTAssertEqual(exportOnly.warnings, scene.warnings)
+    }
+
     private func descendants(_ geometry: Geometry) -> [Geometry] {
         [geometry] + geometry.children.flatMap(descendants)
     }
@@ -115,7 +293,7 @@ final class CSGImportTests: XCTestCase {
                 XCTAssertTrue($0 is CSGImportError)
             }
         }
-        XCTAssertThrowsError(try Geometry(csgString: "\n# projection() cube(1);", isCancelled: { false })) {
+        XCTAssertThrowsError(try Geometry(csgString: "\n# cube([1,2]);", isCancelled: { false })) {
             let error = $0 as? CSGImportError
             XCTAssertEqual(error?.line, 2)
             XCTAssertEqual(error?.column, 3)
@@ -131,8 +309,8 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(scene.geometry.merged().bounds, Bounds(.zero, [2, 3, 4]))
     }
 
-    func testCSGSceneLoadingRejectsUnsupportedOperationsAndCancellation() throws {
-        XCTAssertThrowsError(try Scene(csgString: "projection() cube(1);", isCancelled: { false })) {
+    func testCSGSceneLoadingRejectsInvalidInputsAndCancellation() throws {
+        XCTAssertThrowsError(try Scene(csgString: "cube([1,2]);", isCancelled: { false })) {
             XCTAssertTrue($0 is CSGImportError)
         }
         XCTAssertThrowsError(try Scene(csgString: "cube(1);", isCancelled: { true })) {
@@ -353,13 +531,13 @@ final class CSGImportTests: XCTestCase {
             "offset(r=1) circle(1);", "projection() cube(1);", "surface(file=\"a.dat\");",
             "import(file=\"a.stl\");", "resize([2,3,4]) cube(1);",
             "linear_extrude(height=2, scale=0.5) square(1);",
-            "rotate_extrude(angle=90) square(1);", "cube(1, unknown=true);",
-            "difference() { square(2); circle(1); }", "text(\"a\", halign=\"center\");",
+            "rotate_extrude(angle=90) square(1);",
+            "difference() { square(2); circle(1); }",
         ] {
-            XCTAssertThrowsError(try mesh("\n\(source)")) { error in
-                XCTAssertNotNil(error as? CSGImportError)
-                XCTAssertTrue(error.localizedDescription.contains("line 2"), error.localizedDescription)
-            }
+            let scene = try Scene(csgString: "\n\(source)", isCancelled: { false })
+            XCTAssertFalse(scene.warnings.isEmpty, source)
+            XCTAssertTrue(scene.warnings.allSatisfy { $0.contains("line 2") }, source)
+            XCTAssertTrue(scene.build { false }, source)
         }
     }
 
@@ -409,12 +587,12 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(extruded.build { false })
         XCTAssertEqual(extruded.geometry.merged().signedVolume, 1, accuracy: 0.000001)
         XCTAssertTrue(extruded.geometry.merged().polygons.contains { ($0.material as? Material)?.color == .red })
-        try "projection() cube(1);".write(to: url, atomically: true, encoding: .utf8)
+        try "cube([1,2]);".write(to: url, atomically: true, encoding: .utf8)
         XCTAssertThrowsError(try evaluate(
             parse("import \"part.csg\""),
             delegate: TestDelegate(directory: directory)
         )) { error in
-            XCTAssertTrue(ProgramError(error).hint?.contains("Unsupported CSG operation 'projection'") == true)
+            XCTAssertTrue(ProgramError(error).hint?.contains("Expected a CSG vector with 3 components") == true)
         }
     }
 }
