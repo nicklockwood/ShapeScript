@@ -508,6 +508,9 @@ extension EvaluationContext {
             }
         }
         switch url.pathExtension.lowercased() {
+        case "csg":
+            try url.validateFileSize(limit: FileSizeLimit.text)
+            return try Geometry(csgString: String(contentsOf: url), isCancelled: isCancelled)
         case "stl", "stla", "obj", "off":
             let mesh = try loadMesh(at: url) {
                 switch $0 {
