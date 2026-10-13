@@ -440,10 +440,11 @@ private func _evaluate(
     if progress?.isCancelled == false {
         progress?.finish()
     }
-    let scene = Scene(
+    var scene = Scene(
         background: context.background ?? .color(.clear),
         children: context.state.children.compactMap { $0.value as? Geometry },
-        cache: cache
+        cache: cache,
+        warnings: context.warnings
     )
     switch result {
     case .success:
@@ -451,7 +452,7 @@ private func _evaluate(
             try validateLightCount(in: scene, source: program.source)
             if preview, program.usesSymbol("preview") {
                 let silentDelegate = delegate.map(SilentDelegate.init)
-                let (_, exportError) = _evaluate(
+                let (exportScene, exportError) = _evaluate(
                     program,
                     preview: false,
                     options: options,
@@ -462,6 +463,13 @@ private func _evaluate(
                 )
                 if let exportError {
                     return (scene, exportError)
+                }
+                let warnings = exportScene.warnings.filter { !scene.warnings.contains($0) }
+                if !warnings.isEmpty {
+                    scene = Scene(
+                        background: scene.background, children: scene.children,
+                        cache: cache, warnings: scene.warnings + warnings
+                    )
                 }
             }
             return (scene, nil)

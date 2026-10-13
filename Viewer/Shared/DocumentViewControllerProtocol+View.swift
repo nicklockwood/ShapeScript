@@ -30,23 +30,32 @@ extension DocumentViewControllerProtocol {
         document?.scene?.visibleBounds ?? .empty
     }
 
-    func checkDocumentVersion() {
-        guard !isQuickLook, let document,
-              let formatVersion = document.formatVersion,
-              formatVersion > ShapeScript.version
-        else {
+    func checkDocumentWarnings(_ warnings: [String]? = nil) {
+        guard !isQuickLook, let document else {
             return
         }
-        if let clientVersion = document.clientVersion, clientVersion == appVersion {
-            return
-        }
-        let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
-        showWarning("""
+        var messages = warnings ?? document.scene?.warnings ?? []
+        if (document.formatVersion ?? ShapeScript.version) > ShapeScript.version {
+            let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
+            messages.insert("""
             \(document.fileName) was last edited with a newer version of \
             ShapeScript\(clientVersion) and may not be fully compatible with this version.
-            """
-        ) {
-            document.clientVersion = appVersion
+            """, at: 0)
+        }
+        // Moving an existing diagnostic to another line does not introduce a new warning.
+        func warningKey(_ message: String) -> String {
+            if let range = message.range(of: #" \(line \d+, column \d+\)$"#, options: .regularExpression) {
+                return String(message[..<range.lowerBound])
+            }
+            return message
+        }
+        messages = messages.filter { !document.dismissedWarnings.contains(warningKey($0)) }
+        guard !messages.isEmpty else {
+            return
+        }
+        let keys = messages.map(warningKey)
+        showWarning(messages.joined(separator: "\n\n")) {
+            document.dismissedWarnings.formUnion(keys)
         }
     }
 

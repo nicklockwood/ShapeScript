@@ -85,6 +85,7 @@ final class EvaluationContext {
         }
 
         var store = [URL: Import]()
+        var warnings = [String]()
     }
 
     private weak var delegate: EvaluationDelegate?
@@ -95,6 +96,7 @@ final class EvaluationContext {
     private(set) var localOptionValues: [String: Value] = [:]
     private let importCache: ImportCache
     private var importStack: [URL]
+    var warnings: [String] { importCache.warnings }
     let preview: Bool
     let isCancelled: CancellationHandler
 
@@ -510,7 +512,12 @@ extension EvaluationContext {
         switch url.pathExtension.lowercased() {
         case "csg":
             try url.validateFileSize(limit: FileSizeLimit.text)
-            return try Geometry(csgString: String(contentsOf: url), isCancelled: isCancelled)
+            return try Geometry(csgString: String(contentsOf: url), onWarning: { [importCache] message in
+                let message = "\(url.lastPathComponent): \(message)"
+                if !importCache.warnings.contains(message) {
+                    importCache.warnings.append(message)
+                }
+            }, isCancelled: isCancelled)
         case "stl", "stla", "obj", "off":
             let mesh = try loadMesh(at: url) {
                 switch $0 {

@@ -300,6 +300,9 @@ final class CLIRunner {
                     cache: cache
                 )
             }
+            for warning in scene.warnings {
+                printStatus("Warning: \(warning)")
+            }
             if buildGeometry {
                 printStatus("Building geometry ...")
                 _ = scene.build { false }
