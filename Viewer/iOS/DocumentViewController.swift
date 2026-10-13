@@ -13,6 +13,54 @@ import ShapeScript
 import SwiftUI
 import UIKit
 
+final class WarningTextView: UITextView, UIGestureRecognizerDelegate {
+    var onNext: (@MainActor () -> Void)?
+    private var hadSelection = false
+    private lazy var advanceTap = UITapGestureRecognizer(target: self, action: #selector(advanceWarning))
+
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        advanceTap.cancelsTouchesInView = false
+        advanceTap.delegate = self
+        addGestureRecognizer(advanceTap)
+
+        // Let a double tap select a word before deciding whether a single tap should advance.
+        let doubleTap = UITapGestureRecognizer()
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.cancelsTouchesInView = false
+        doubleTap.delegate = self
+        addGestureRecognizer(doubleTap)
+        advanceTap.require(toFail: doubleTap)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive _: UITouch) -> Bool {
+        if gestureRecognizer === advanceTap {
+            hadSelection = selectedRange.length > 0
+        }
+        return true
+    }
+
+    func gestureRecognizer(
+        _: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer
+    ) -> Bool {
+        true
+    }
+
+    @objc private func advanceWarning() {
+        if hadSelection {
+            selectedRange = NSRange(location: selectedRange.location, length: 0)
+        } else if selectedRange.length == 0 {
+            onNext?()
+        }
+    }
+}
+
 @MainActor
 protocol ExportMenuProvider {
     func updateExportMenu()
@@ -31,6 +79,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private let containerView: SplitView = .init()
     private(set) var exportButton: UIBarButtonItem = .init()
     private weak var warningView: UIView?
+    var warningPresentation: WarningQueue.Presentation?
+    private var warningNextHandler: (@MainActor @Sendable () -> Void)?
     private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
     private var compactWarningConstraints = [NSLayoutConstraint]()
     private var regularWarningConstraints = [NSLayoutConstraint]()
@@ -465,9 +515,14 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         return true
     }
 
-    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void) {
+    func showWarning(
+        _ message: NSAttributedString,
+        onNext: @escaping @MainActor @Sendable () -> Void,
+        onDismissAll: @escaping @MainActor @Sendable () -> Void
+    ) {
         dismissWarning(notify: false)
-        warningDismissHandler = onDismiss
+        warningNextHandler = onNext
+        warningDismissHandler = onDismissAll
 
         let banner = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
         banner.translatesAutoresizingMaskIntoConstraints = false
@@ -487,20 +542,30 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         imageView.tintColor = .secondaryLabel
         imageView.contentMode = .scaleAspectFit
 
-        let label = UILabel()
+        let label = WarningTextView(frame: .zero, textContainer: nil)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = message
-        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.attributedText = message
         label.textColor = .label
-        label.numberOfLines = 0
-        label.lineBreakMode = .byWordWrapping
+        label.backgroundColor = .clear
+        label.isEditable = false
+        label.isSelectable = true
+        label.isScrollEnabled = false
+        label.textContainerInset = .zero
+        label.textContainer.lineFragmentPadding = 0
+        label.onNext = { [weak self] in self?.nextWarningPressed() }
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let nextButton = UIButton(type: .custom)
+        nextButton.translatesAutoresizingMaskIntoConstraints = false
+        nextButton.accessibilityLabel = "Next warning"
+        nextButton.accessibilityHint = "Show the next warning"
+        nextButton.addTarget(self, action: #selector(nextWarningPressed), for: .touchUpInside)
 
         let closeButton = UIButton(type: .system)
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
         closeButton.tintColor = .secondaryLabel
-        closeButton.accessibilityLabel = "Dismiss"
+        closeButton.accessibilityLabel = "Dismiss all warnings"
         closeButton.addTarget(
             self,
             action: #selector(dismissWarningPressed),
@@ -508,6 +573,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         )
 
         banner.contentView.addSubview(imageView)
+        banner.contentView.addSubview(nextButton)
+        // Selection gestures belong to the text view, not the next-warning button beneath it.
         banner.contentView.addSubview(label)
         banner.contentView.addSubview(closeButton)
         view.addSubview(banner)
@@ -522,7 +589,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 constant: -16
             ),
         ]
+        let preferredWidth = banner.widthAnchor.constraint(equalToConstant: 640)
+        preferredWidth.priority = .defaultHigh
         regularWarningConstraints = [
+            preferredWidth,
             banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             banner.leadingAnchor.constraint(
                 greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
@@ -552,6 +622,11 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             label.topAnchor.constraint(equalTo: banner.contentView.topAnchor, constant: 12),
             label.bottomAnchor.constraint(equalTo: banner.contentView.bottomAnchor, constant: -12),
 
+            nextButton.leadingAnchor.constraint(equalTo: banner.contentView.leadingAnchor),
+            nextButton.topAnchor.constraint(equalTo: banner.contentView.topAnchor),
+            nextButton.bottomAnchor.constraint(equalTo: banner.contentView.bottomAnchor),
+            nextButton.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor),
+
             closeButton.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
             closeButton.trailingAnchor.constraint(equalTo: banner.contentView.trailingAnchor, constant: -10),
             closeButton.centerYAnchor.constraint(equalTo: banner.contentView.centerYAnchor),
@@ -565,7 +640,17 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         dismissWarning(notify: true)
     }
 
+    @objc private func nextWarningPressed() {
+        warningDismissHandler = warningNextHandler
+        dismissWarning(notify: true)
+    }
+
+    func hideWarning() {
+        dismissWarning(notify: false)
+    }
+
     private func dismissWarning(notify: Bool) {
+        warningNextHandler = nil
         guard let warningView else {
             if notify, let handler = warningDismissHandler {
                 warningDismissHandler = nil
@@ -587,6 +672,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             return
         }
         warningDismissHandler = nil
+        let constraints = compactWarningConstraints + regularWarningConstraints
+        compactWarningConstraints.removeAll()
+        regularWarningConstraints.removeAll()
         UIView.animate(
             withDuration: 0.18,
             delay: 0,
@@ -595,10 +683,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             warningView.alpha = 0
             warningView.transform = CGAffineTransform(translationX: 0, y: -8)
         } completion: { _ in
-            NSLayoutConstraint.deactivate(self.compactWarningConstraints + self.regularWarningConstraints)
+            NSLayoutConstraint.deactivate(constraints)
             warningView.removeFromSuperview()
-            self.compactWarningConstraints.removeAll()
-            self.regularWarningConstraints.removeAll()
             handler()
         }
     }

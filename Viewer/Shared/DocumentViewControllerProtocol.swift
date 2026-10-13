@@ -34,10 +34,16 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     var background: MaterialProperty? { get set }
     var geometry: Geometry? { get set }
     var selectedGeometry: Geometry? { get set }
+    var warningPresentation: WarningQueue.Presentation? { get set }
 
     @discardableResult
     func presentError(_ error: Error, completionHandler: (() -> Void)?) -> Bool
-    func showWarning(_ message: String, onDismiss: @escaping @MainActor @Sendable () -> Void)
+    func showWarning(
+        _ message: NSAttributedString,
+        onNext: @escaping @MainActor @Sendable () -> Void,
+        onDismissAll: @escaping @MainActor @Sendable () -> Void
+    )
+    func hideWarning()
 
     func clearLog()
     func appendLog(_ text: String)

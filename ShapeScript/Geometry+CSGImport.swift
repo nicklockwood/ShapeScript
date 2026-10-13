@@ -114,7 +114,7 @@ private struct CSGNode {
         .init(message: message, line: line, column: column)
     }
 
-    func validate(_ names: [String], positional: [String] = []throws -> [String: CSGValue] {
+    func validate(_ names: [String], positional: [String] = []) throws -> [String: CSGValue] {
         var result = arguments
         for (index, name) in positional.enumerated() {
             if let value = result.removeValue(forKey: "\(index)") {
