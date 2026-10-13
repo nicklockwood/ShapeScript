@@ -66,7 +66,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         didSet { errorMessage = error?.message(with: sourceString) }
     }
 
-    var dismissedWarnings = Set<String>()
+    let warningQueue = WarningQueue()
 
     override var fileURL: URL? {
         didSet {
@@ -129,7 +129,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     override func close() {
-        dismissedWarnings.removeAll()
+        warningQueue.reset()
         super.close()
         observer.map(NotificationCenter.default.removeObserver)
         loadingProgress?.cancel()
