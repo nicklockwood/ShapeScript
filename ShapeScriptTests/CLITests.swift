@@ -11,6 +11,47 @@
 import XCTest
 
 final class CLITests: XCTestCase {
+    func testCSGCheckInfoAndSTLExport() throws {
+        for name in ["model.csg", "model.CSG"] {
+            try withTemporaryFile(named: name) { directory, inputURL in
+                try "cube([2,3,4]);".write(to: inputURL, atomically: true, encoding: .utf8)
+                for command in ["check", "info"] {
+                    let result = try runExecutable([command, name], in: directory)
+                    XCTAssertEqual(result.status, 0, result.failureMessage)
+                }
+                let result = try runExecutable([name, "--output", "model.stl"], in: directory)
+                XCTAssertEqual(result.status, 0, result.failureMessage)
+                XCTAssertTrue(FileManager.default
+                    .fileExists(atPath: directory.appendingPathComponent("model.stl").path))
+            }
+        }
+    }
+
+    func testCSGImageExport() throws {
+        try withTemporaryFile(named: "model.csg") { directory, inputURL in
+            try "color([1,0,0]) cube(1,true);".write(to: inputURL, atomically: true, encoding: .utf8)
+            let result = try runExecutable([
+                "export", inputURL.lastPathComponent, "--output", "model.bmp", "--camera", "Front",
+                "--width", "8", "--height", "6",
+            ], in: directory)
+            XCTAssertEqual(result.status, 0, result.failureMessage)
+            let data = try Data(contentsOf: directory.appendingPathComponent("model.bmp"))
+            XCTAssertEqual(data[18], 8)
+            XCTAssertEqual(data[22], 6)
+            XCTAssertTrue(data.dropFirst(54).contains { $0 != 255 })
+        }
+    }
+
+    func testCSGErrorsAreSurfaced() throws {
+        try withTemporaryFile(named: "model.csg") { directory, inputURL in
+            try "\nprojection() cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)
+            let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
+            XCTAssertNotEqual(result.status, 0)
+            XCTAssertTrue(result.output.contains("Unsupported CSG operation 'projection'"), result.failureMessage)
+            XCTAssertTrue(result.output.contains("line 2"), result.failureMessage)
+        }
+    }
+
     func testRootHelpListsSubcommands() throws {
         let result = try runExecutable(["--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
@@ -45,7 +86,7 @@ final class CLITests: XCTestCase {
         let result = try runExecutable(["check", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript check [--preview] [--no-cache] <input-path>"))
-        XCTAssertTrue(result.output.contains("Input .shape file."))
+        XCTAssertTrue(result.output.contains("Input .shape or .csg file."))
         XCTAssertFalse(result.output.contains("--output"))
         XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))
@@ -56,7 +97,7 @@ final class CLITests: XCTestCase {
         let result = try runExecutable(["info", "--help"])
         XCTAssertEqual(result.status, 0, result.failureMessage)
         XCTAssertTrue(result.output.contains("USAGE: shapescript info [--preview] [--no-cache] <input-path>"))
-        XCTAssertTrue(result.output.contains("Input .shape file."))
+        XCTAssertTrue(result.output.contains("Input .shape or .csg file."))
         XCTAssertFalse(result.output.contains("--output"))
         XCTAssertTrue(result.output.contains("--preview"))
         XCTAssertTrue(result.output.contains("--no-cache"))

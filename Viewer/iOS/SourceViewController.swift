@@ -765,6 +765,9 @@ extension Token {
 
 extension SourceViewController: TokenViewDelegate {
     func tokens(for input: String) -> [TokenView.Token] {
+        guard document?.documentFileURL?.pathExtension.lowercased() != "csg" else {
+            return []
+        }
         var stack = [Set<String>()]
         var isSwitch = [false]
         var lastKeyword: String?
@@ -846,6 +849,9 @@ extension SourceViewController: TokenViewDelegate {
     }
 
     func textViewDidChange(_ textView: UITextView) {
+        guard document?.isEditable == true else {
+            return
+        }
         document?.sourceString = textView.text
         document?.scheduleAutosave()
         document?.fileMonitor?.markUpdated()

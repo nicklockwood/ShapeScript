@@ -22,7 +22,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         completionHandler handler: @escaping @Sendable (Error?) -> Void
     ) {
         do {
-            let document = try Document(contentsOf: url, ofType: "shape")
+            let document = try Document(contentsOf: url, ofType: url.pathExtension.lowercased())
             self.document = document
             document.makeWindowControllers()
             documentViewController = document.viewController

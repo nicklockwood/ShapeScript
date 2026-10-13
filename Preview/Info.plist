@@ -11,6 +11,7 @@
 			<key>QLSupportedContentTypes</key>
 			<array>
 				<string>com.charcoaldesign.shapescript-source</string>
+				<string>org.openscad.csg</string>
 			</array>
 			<key>QLSupportsSearchableItems</key>
 			<false/>

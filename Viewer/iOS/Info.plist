@@ -30,6 +30,18 @@
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).Document</string>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>OpenSCAD CSG document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.openscad.csg</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -87,6 +99,26 @@
 			</array>
 			<key>CFBundleURLName</key>
 			<string>com.charcoaldesign.ShapeScript</string>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.openscad.csg</string>
+			<key>UTTypeDescription</key>
+			<string>OpenSCAD CSG document</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>csg</string>
+				</array>
+			</dict>
 		</dict>
 	</array>
 	<key>UTExportedTypeDeclarations</key>

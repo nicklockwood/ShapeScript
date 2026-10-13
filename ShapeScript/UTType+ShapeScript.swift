@@ -15,6 +15,12 @@ public extension UTType {
         exportedAs: "com.charcoaldesign.shapescript-source",
         conformingTo: .sourceCode
     )
+
+    /// An evaluated OpenSCAD CSG document, identified by the `.csg` filename extension.
+    static let csg: Self = .init(
+        importedAs: "org.openscad.csg",
+        conformingTo: .plainText
+    )
 }
 
 #endif

@@ -21,7 +21,7 @@ extension ShapeScriptCommand {
             abstract: "Export a ShapeScript document."
         )
 
-        @Argument(help: "Input .shape file.")
+        @Argument(help: "Input .shape or .csg file.")
         var inputPath: String
 
         @Flag(help: "Evaluate the document in preview mode.")

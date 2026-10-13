@@ -46,6 +46,26 @@ public extension Geometry {
     }
 }
 
+public extension Scene {
+    /// Creates a scene from an evaluated OpenSCAD CSG tree.
+    /// If a source file URL is supplied, its size is checked against the text file limit.
+    convenience init(
+        csgString: String,
+        at fileURL: URL? = nil,
+        cache: GeometryCache? = nil,
+        isCancelled: @escaping CancellationHandler
+    ) throws {
+        if isCancelled() {
+            throw CancellationError()
+        }
+        if let fileURL {
+            try fileURL.validateFileSize(limit: FileSizeLimit.text)
+        }
+        let geometry = try Geometry(csgString: csgString, isCancelled: isCancelled)
+        self.init(background: .color(.clear), children: [geometry], cache: cache)
+    }
+}
+
 // MARK: Implementation
 
 private enum CSGValue {
