@@ -1,9 +1,11 @@
 Getting Started
 ---
 
-ShapeScript Viewer for iOS is designed for opening and editing 3D models and scenes that use the ShapeScript `.shape` file format.
+ShapeScript Viewer for iOS lets you view 3D models and create your own using text-based `.shape` documents. This guide covers opening and viewing models, then walks through editing a new ShapeScript document.
 
-If you do not have any existing ShapeScript files, you can create one using the `+` button. You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
+## Creating a Document
+
+To create a new ShapeScript document, tap the `+` button in the document browser. You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
 
 ![New file modal](../images/new-file-ios.png)
 
@@ -11,9 +13,17 @@ After pressing OK you should see a new screen appear containing a cube, sphere a
 
 ![New document window](../images/new-document-ios.png)
 
+## Opening Documents
+
+To open an existing ShapeScript `.shape` document, find it in the document browser and tap it.
+
+You can open OpenSCAD `.csg` files in the same way. See [OpenSCAD CSG Files](import.md#openscad-csg-files) for supported features and limitations.
+
+**Note:** ShapeScript cannot open `.scad` source programs directly, you will need to export them from OpenSCAD as `.csg`.
+
 ## Viewing
 
-Drag your finger inside the window and you will notice that the three shapes appear to rotate.
+Once you have opened or created a document, drag your finger inside the window to rotate the view of the model.
 
 You are not actually moving the shapes themselves, but rotating the camera around them. To return to the original orientation, tap the camera icon in the top-right and select `Reset View`.
 
@@ -24,6 +34,8 @@ To help you orient yourself, you can enable the `Show Axes` option in the camera
 For more information about navigating around the scene, see [Camera Control](camera-control.md).
 
 ## Editing
+
+**Note:** The rest of this tutorial uses the default shapes in a [new ShapeScript document](#creating-a-document). If you opened an existing model, create a new `.shape` document to follow along.
 
 To edit your `.shape` file, tap the pencil icon in the top-right of the screen. This will open the file inside the integrated source editor:
 

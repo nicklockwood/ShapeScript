@@ -31,7 +31,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = DocumentBrowserViewController(
-            forOpening: [.shape]
+            forOpening: [.shape, .csg]
         )
         window.backgroundColor = .clear
         window.makeKeyAndVisible()

@@ -93,13 +93,13 @@ The [preview](debugging.md#preview) symbol is `false` during export, so you can 
 
 ## Command-Line Export
 
-A separate `shapescript` command-line tool is available for exporting files from Terminal. This is useful when you want to script exports, bulk-export a folder of `.shape` files, or generate ShapeScript output as part of an automated build process. See [Command Line Tool](cli.md) for installation instructions.
+A separate `shapescript` command-line tool is available for exporting files from Terminal. This is useful when you want to script exports, bulk-export a folder of `.shape` or `.csg` files, or generate ShapeScript output as part of an automated build process. See [Command Line Tool](cli.md) for installation instructions.
 
-On macOS, command-line export requires an unlocked copy of the ShapeScript Mac app to be installed on the same machine. Without Export unlocked, the command-line tool can still check `.shape` files and report errors, but it cannot write exported files.
+On macOS, command-line export requires an unlocked copy of the ShapeScript Mac app to be installed on the same machine. Without Export unlocked, the command-line tool can still check `.shape` and `.csg` files and report errors, but it cannot write exported files.
 
 The Linux command-line tool does not require the Mac app or an Export unlock, but it is limited to `.stl` or `.stla` model export and `.bmp` image export.
 
-To export a file using the command-line tool, use the `export` subcommand with an input `.shape` file:
+To export a file using the command-line tool, use the `export` subcommand with an input `.shape` or [OpenSCAD `.csg` file](import.md#openscad-csg-files):
 
 ```bash
 shapescript export myfile.shape

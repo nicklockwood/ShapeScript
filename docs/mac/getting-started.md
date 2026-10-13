@@ -1,17 +1,29 @@
 Getting Started
 ---
 
-Start by creating a new ShapeScript document. You can do this by selecting `File > New` in the menu bar (or by pressing **Cmd-N** on the keyboard). You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
+ShapeScript lets you view 3D models and create your own using text-based `.shape` documents. This guide covers opening and viewing models, then walks through editing a new ShapeScript document.
+
+## Creating a Document
+
+To create a new ShapeScript document, select `File > New` in the menu bar (or press **Cmd-N**). You will be prompted to select a name and location for your new file - you can call it anything you want, but be sure to retain the `.shape` file extension.
 
 You should see a new window appear containing a cube, sphere and cone. These are the default contents for a new file (don't worry, you can replace them with your own shapes).
 
 ![New document window](../images/new-document-mac.png)
 
-**Note:** On macOS, ShapeScript includes a Quick Look extension, so you can preview `.shape` files directly in Finder using the spacebar.
+## Opening Documents
+
+To open an existing ShapeScript `.shape` document, select `File > Open` in the menu bar (or press **Cmd-O**) and choose the file.
+
+You can open OpenSCAD `.csg` files in the same way. See [OpenSCAD CSG Files](import.md#openscad-csg-files) for supported features and limitations.
+
+**Note:** ShapeScript cannot open `.scad` source programs directly, you will need to export them from OpenSCAD as `.csg`.
+
+ShapeScript also includes a [Quick Look](https://en.wikipedia.org/wiki/Quick_Look) extension, so you can preview `.shape` and `.csg` files directly in Finder using the spacebar.
 
 ## Viewing
 
-Drag your mouse cursor inside the window and you will notice that the three objects appear to rotate.
+Once you have opened or created a document, drag your mouse cursor inside the window to rotate the view of the model.
 
 You are not actually moving the shapes themselves, but rotating the camera around them. To reset the view, select `View > Camera > Reset` or press **Cmd-0**.
 
@@ -23,7 +35,9 @@ For more information about navigating around the model, see [Camera Control](cam
 
 ## Editing
 
-To edit the 3D model, select the `Edit > Open in Editor` menu or press **Cmd-E**.
+**Note:** The rest of this tutorial uses the default shapes in a [new ShapeScript document](#creating-a-document). If you opened an existing model, create a new `.shape` document to follow along.
+
+To edit your `.shape` file, select the `Edit > Open in Editor` menu or press **Cmd-E**.
 
 ShapeScript does not include an editor. Instead, the `Open in Editor` command will ask you to select an external text editor to use. If you do not have any other editors installed, the default option will probably be TextEdit. Once opened, the file should look something like this:
 

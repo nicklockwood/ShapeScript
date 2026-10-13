@@ -10,6 +10,24 @@ import Euclid
 import XCTest
 
 final class CSGImportTests: XCTestCase {
+    func testCSGSceneLoading() throws {
+        let cache = GeometryCache()
+        let scene = try Scene(csgString: "cube([2,3,4]);", cache: cache, isCancelled: { false })
+        XCTAssertTrue(scene.cache === cache)
+        XCTAssertEqual(scene.background, .color(.clear))
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().bounds, Bounds(.zero, [2, 3, 4]))
+    }
+
+    func testCSGSceneLoadingRejectsUnsupportedOperationsAndCancellation() throws {
+        XCTAssertThrowsError(try Scene(csgString: "projection() cube(1);", isCancelled: { false })) {
+            XCTAssertTrue($0 is CSGImportError)
+        }
+        XCTAssertThrowsError(try Scene(csgString: "cube(1);", isCancelled: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+    }
+
     private func mesh(_ source: String) throws -> Mesh {
         let geometry = try Geometry(csgString: source, isCancelled: { false })
         XCTAssertTrue(geometry.build { false })
