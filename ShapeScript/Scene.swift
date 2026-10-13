@@ -15,17 +15,20 @@ public final class Scene: Sendable {
     public let cameras: [Geometry]
     public let lights: [Geometry]
     public let cache: GeometryCache?
+    public let warnings: [String]
 
     public init(
         background: MaterialProperty,
         children: [Geometry],
-        cache: GeometryCache?
+        cache: GeometryCache?,
+        warnings: [String] = []
     ) {
         self.background = background
         self.children = children
         self.cameras = children.flatMap(\._cameras)
         self.lights = children.flatMap(\._lights)
         self.cache = cache
+        self.warnings = warnings
         children.forEach { $0.cache = cache }
     }
 }
@@ -34,7 +37,8 @@ extension Scene: Equatable {
     public static func == (lhs: Scene, rhs: Scene) -> Bool {
         lhs.background == rhs.background &&
             lhs.children == rhs.children &&
-            lhs.cameras == rhs.cameras
+            lhs.cameras == rhs.cameras &&
+            lhs.warnings == rhs.warnings
     }
 }
 

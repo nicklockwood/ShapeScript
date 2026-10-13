@@ -149,6 +149,7 @@ extension DocumentProtocol {
             case let .success(scene):
                 error = nil
                 self.scene = scene
+                viewController?.checkDocumentWarnings()
                 viewController?.renderProgress = 1
                 // Flush progress animation before indicator is hidden
                 CATransaction.flush()
