@@ -71,6 +71,7 @@ The `import` command is not limited to loading `.shape` files, it can also load 
 Extension             | File Type
 :-------------------- | :------------------------------------------------
 abc                   | Alembic
+csg                   | OpenSCAD Constructive Solid Geometry
 dae                   | COLLADA Digital Asset Exchange
 obj                   | Wavefront Object
 off                   | Object File Format
@@ -107,6 +108,24 @@ define rocket {
     import "Rocket.obj"
 }
 ```
+
+### OpenSCAD CSG Files
+
+ShapeScript can import [CSG files](https://github.com/openscad/openscad/wiki/CSG-File-Format) exported from OpenSCAD:
+
+```swift
+import "Part.csg"
+```
+
+Export your model as a `.csg` file from OpenSCAD first. ShapeScript does not evaluate `.scad` source programs, so renaming a `.scad` file to `.csg` will not work in most cases. ShapeScript's [import options](#import-options) apply only to `.shape` files.
+
+The importer supports 3D primitives (`cube`, `sphere`, `cylinder`, and `polyhedron`), transforms, colors, and 3D operations such as `union`, `difference`, `intersection`, `hull`, and `minkowski`. It also supports 2D profiles (`square`, `circle`, and `polygon`), linear extrusion with twist, and full rotational extrusion. Imported 2D profiles can be used with ShapeScript's own [extrusion](builders.md#extrude) commands:
+
+```swift
+extrude import "Profile.csg"
+```
+
+Not all features of the CSG format are currently supported. Unsupported features include 2D boolean operations, tapered linear extrusions, partial rotational extrusions, rounded or chamfered offsets, and OpenSCAD's `import`, `surface`, `projection`, and `resize` operations. Basic `text` is supported on macOS and iOS, with limited text layout options and no support for font style descriptors. Unsupported operations or arguments produce an import error with a line and column in the CSG file.
 
 ## Text and Data
 
