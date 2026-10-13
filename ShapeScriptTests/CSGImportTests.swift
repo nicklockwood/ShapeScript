@@ -225,6 +225,34 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(sum.signedVolume, 8, accuracy: 0.000001)
     }
 
+    func testImportedGeometryUsesFlatNormals() throws {
+        for source in [
+            "cube(1);",
+            "sphere($fn=12);",
+            "cylinder(h=2,r=1,$fn=12);",
+            "hull() { cube(1); translate([2,1,1]) cube(1); }",
+            "hull() { sphere($fn=12); translate([2,0,0]) sphere($fn=12); }",
+            "minkowski() { cube(1); cube(1); }",
+            "difference() { sphere($fn=12); cube(1); }",
+            "multmatrix([[1,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) " +
+                "hull() { cube(1); translate([2,1,1]) cube(1); }",
+        ] {
+            let mesh = try mesh(source)
+            XCTAssertFalse(mesh.isEmpty, source)
+            XCTAssertTrue(mesh.polygons.allSatisfy { polygon in
+                polygon.vertices.allSatisfy { ($0.normal - polygon.plane.normal).length < 1e-8 }
+            }, source)
+        }
+    }
+
+    func testNativeGeometryStillPreservesSmoothNormals() throws {
+        let scene = try evaluate(parse("sphere"), delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertTrue(scene.geometry.merged().polygons.contains { polygon in
+            polygon.vertices.contains { ($0.normal - polygon.plane.normal).length > 1e-8 }
+        })
+    }
+
     func testIntersectionOfRotatedBoxes() throws {
         let result = try mesh("""
         intersection() {

@@ -38,13 +38,13 @@ public extension Geometry {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
-                smoothing: nil, children: [], sourceLocation: nil
+                smoothing: .zero, children: [], sourceLocation: nil
             )
             return
         }
         self.init(
             type: .group, name: nil, transform: .identity, material: .default,
-            smoothing: nil, children: shapes.map(\.geometry), sourceLocation: nil
+            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: nil
         )
     }
 }
@@ -454,7 +454,7 @@ private struct CSGImporter {
             name: nil,
             transform: transform,
             material: material,
-            smoothing: nil,
+            smoothing: .zero,
             children: children,
             sourceLocation: nil
         )
@@ -1003,7 +1003,7 @@ private struct CSGImporter {
             }
             let geometry = Geometry(
                 type: type, name: nil, transform: transform, material: source.material,
-                smoothing: nil, children: children, sourceLocation: nil
+                smoothing: .zero, children: children, sourceLocation: nil
             )
             if case .mesh = type, !geometry.build(isCancelled) {
                 throw CancellationError()
