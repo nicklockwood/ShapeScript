@@ -31,7 +31,10 @@ public extension Geometry {
         let importer = CSGImporter(isCancelled: isCancelled)
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
-        if !shapes.isEmpty, shapes.allSatisfy({ $0.paths != nil }) {
+        if !shapes.isEmpty, shapes.allSatisfy({ $0.paths != nil }),
+           !shapes
+           .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
+        {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
@@ -85,12 +88,17 @@ private enum CSGValue {
     }
 }
 
+private enum CSGModifier: Character {
+    case debug = "#", background = "%", focus = "!", hide = "*"
+}
+
 private struct CSGNode {
     let name: String
     let arguments: [String: CSGValue]
     let children: [CSGNode]
     let line: Int
     let column: Int
+    var modifiers: Set<CSGModifier> = []
 
     func error(_ message: String) -> CSGImportError {
         .init(message: message, line: line, column: column)
@@ -216,6 +224,11 @@ private struct CSGParser {
         guard depth < 256 else {
             throw error("CSG nesting is too deep")
         }
+        var modifiers = Set<CSGModifier>()
+        while case let .symbol(character) = token, let modifier = CSGModifier(rawValue: character) {
+            modifiers.insert(modifier)
+            try readToken()
+        }
         guard case let .identifier(name) = token else {
             throw error("Expected a CSG operation")
         }
@@ -262,7 +275,10 @@ private struct CSGParser {
         } else {
             try children.append(readNode(depth: depth + 1))
         }
-        return .init(name: name, arguments: arguments, children: children, line: line, column: column)
+        return .init(
+            name: name, arguments: arguments, children: children,
+            line: line, column: column, modifiers: modifiers
+        )
     }
 
     private mutating func readValue(depth: Int) throws -> CSGValue {
@@ -402,7 +418,7 @@ private struct CSGParser {
                 throw error("Invalid CSG string escape")
             }
             token = .string(string)
-        } else if "(){}[]=,;".contains(character) {
+        } else if "(){}[]=,;#%!*".contains(character) {
             token = .symbol(character)
             try readCharacter()
         } else {
@@ -473,7 +489,7 @@ private struct CSGImporter {
         guard children.allSatisfy({ $0.paths != nil }) else {
             throw node.error("'\(node.name)' requires 2D children")
         }
-        return children.flatMap { $0.paths ?? [] }
+        return children.filter { !$0.geometry.isHidden }.flatMap { $0.paths ?? [] }
     }
 
     private func fragments(_ values: [String: CSGValue], radius: Double, node: CSGNode) throws -> Int {
@@ -493,6 +509,21 @@ private struct CSGImporter {
     }
 
     func shape(_ node: CSGNode, material: Material) throws -> CSGShape {
+        let shape = try unmodifiedShape(node, material: material)
+        for modifier in node.modifiers {
+            switch modifier {
+            case .debug:
+                shape.geometry.debug = true
+            case .focus:
+                shape.geometry.isFocused = true
+            case .background, .hide:
+                shape.geometry.isHidden = true
+            }
+        }
+        return shape
+    }
+
+    private func unmodifiedShape(_ node: CSGNode, material: Material) throws -> CSGShape {
         try checkCancellation()
         let tessellation = ["$fn", "$fa", "$fs", "convexity"]
         switch node.name {
@@ -503,7 +534,10 @@ private struct CSGImporter {
                 guard node.name == "group" || node.name == "render" || children.count == 1 else {
                     throw node.error("2D '\(node.name)' is not supported by the CSG importer")
                 }
-                return try result(paths(children, node: node), material: material)
+                return try .init(
+                    geometry: geometry(.group, material: material, children: children.map(\.geometry)),
+                    paths: paths(children, node: node)
+                )
             }
             guard children.allSatisfy({ $0.paths == nil }) else {
                 throw node.error("Mixed 2D and 3D CSG children are unsupported")
@@ -915,22 +949,99 @@ private struct CSGImporter {
             return Vector(coordinates[0], coordinates[1], coordinates[2])
         }
         let shapes = try children(node, material: material)
+        let hasModifiers = shapes.contains {
+            $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden
+        }
+        let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) - matrix[0][1] *
+            (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) + matrix[0][2] *
+            (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
+
+        // Baking an entire subtree into one mesh would discard nested debug, hide, and focus flags.
+        func transformedGeometry(_ source: Geometry) throws -> Geometry {
+            try checkCancellation()
+            let type: GeometryType
+            var children = [Geometry]()
+            var transform = Transform.identity
+            switch source.type {
+            case .group, .union, .difference, .intersection, .xor, .stencil, .hull, .minkowski:
+                type = source.type
+                children = try source.children.map(transformedGeometry)
+                if type == .minkowski {
+                    // A translation applies once to the sum, not once per operand.
+                    let origin = try apply(source.worldTransform.translation)
+                    transform = .translation(origin * Double(1 - source.visibleChildren.count))
+                }
+            case let .path(path):
+                let path = path.transformed(by: source.worldTransform)
+                type = try .path(Path(subpaths: path.subpaths.map { subpath in
+                    try Path(subpath.points.map { point in
+                        var point = point
+                        point.position = try apply(point.position)
+                        return point
+                    })
+                }))
+            case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
+                 .extrude, .lathe, .loft, .fill, .mesh, .camera, .light:
+                let unmodified = geometry(source.type, material: source.material, transform: source.worldTransform)
+                guard unmodified.build(isCancelled) else {
+                    throw CancellationError()
+                }
+                let polygons = try unmodified.merged(isCancelled).polygons.map { polygon -> Polygon in
+                    try checkCancellation()
+                    let vertices = try polygon.vertices.map {
+                        try Vertex(apply($0.position), texcoord: $0.texcoord, color: $0.color)
+                    }
+                    guard let polygon = Polygon(
+                        determinant < 0 ? Array(vertices.reversed()) : vertices,
+                        material: polygon.material
+                    ) else {
+                        throw node.error("Degenerate CSG transform")
+                    }
+                    return polygon
+                }
+                type = .mesh(Mesh(polygons))
+            }
+            let geometry = Geometry(
+                type: type, name: nil, transform: transform, material: source.material,
+                smoothing: nil, children: children, sourceLocation: nil
+            )
+            if case .mesh = type, !geometry.build(isCancelled) {
+                throw CancellationError()
+            }
+            geometry.debug = source.debug
+            geometry.isFocused = source.isFocused
+            geometry.isHidden = source.isHidden
+            return geometry
+        }
         if shapes.allSatisfy({ $0.paths != nil }) {
             let paths = try paths(shapes, node: node).map { path in
                 try Path(subpaths: path.subpaths.map { subpath in
                     try Path(subpath.points.map { point in try .point(apply(point.position), color: point.color) })
                 })
             }
+            if hasModifiers {
+                return try .init(
+                    geometry: geometry(.group, material: material, children: shapes.map {
+                        try transformedGeometry($0.geometry)
+                    }),
+                    paths: paths
+                )
+            }
             return result(paths, material: material)
         }
         guard shapes.allSatisfy({ $0.paths == nil }) else {
             throw node.error("Mixed 2D and 3D CSG children are unsupported")
         }
-        let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) - matrix[0][1] *
-            (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) + matrix[0][2] *
-            (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
         guard determinant.isFinite, abs(determinant) > Double.ulpOfOne else {
             throw node.error("Singular CSG transforms are unsupported")
+        }
+        if hasModifiers {
+            return try .init(
+                geometry: geometry(.group, material: material, children: shapes.map {
+                    try transformedGeometry($0.geometry)
+                }),
+                paths: nil
+            )
         }
         let polygons = try shapes.flatMap { shape -> [Polygon] in
             guard shape.geometry.build(isCancelled) else {
