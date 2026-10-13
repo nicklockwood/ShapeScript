@@ -180,7 +180,7 @@ extension ShapeScriptCommand {
         @OptionGroup
         var cacheOptions: CacheOptions
 
-        @Argument(help: "Input .shape file.")
+        @Argument(help: "Input .shape or .csg file.")
         var inputPath: String
 
         @Argument(parsing: .postTerminator, help: "Top-level script options as --name value pairs.")
@@ -211,7 +211,7 @@ extension ShapeScriptCommand {
         @OptionGroup
         var cacheOptions: CacheOptions
 
-        @Argument(help: "Input .shape file.")
+        @Argument(help: "Input .shape or .csg file.")
         var inputPath: String
 
         @Argument(parsing: .postTerminator, help: "Top-level script options as --name value pairs.")
@@ -257,7 +257,7 @@ final class CLIRunner {
             }
             throw CLIError("File '\(inputPath)' not found")
         }
-        guard inputURL.pathExtension == "shape" else {
+        guard ["shape", "csg"].contains(inputURL.pathExtension.lowercased()) else {
             throw CLIError("Unsupported file type '\(inputURL.pathExtension)'")
         }
         self.inputURL = inputURL
@@ -284,16 +284,22 @@ final class CLIRunner {
         }
         do {
             printStatus("Loading file '\(inputURL.lastPathComponent)' ...")
-            let program = try parse(input)
             let cache = GeometryCache(diskCache: cacheOptions.noCache ? nil : .shared)
-            printStatus("Running script ...")
-            let scene = try evaluate(
-                program,
-                preview: preview,
-                options: scriptOptions,
-                delegate: self,
-                cache: cache
-            )
+            let scene: Scene
+            if inputURL.pathExtension.lowercased() == "csg" {
+                printStatus("Importing CSG ...")
+                scene = try Scene(csgString: input, at: inputURL, cache: cache, isCancelled: { false })
+            } else {
+                let program = try parse(input, at: inputURL)
+                printStatus("Running script ...")
+                scene = try evaluate(
+                    program,
+                    preview: preview,
+                    options: scriptOptions,
+                    delegate: self,
+                    cache: cache
+                )
+            }
             if buildGeometry {
                 printStatus("Building geometry ...")
                 _ = scene.build { false }

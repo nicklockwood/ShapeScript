@@ -1,7 +1,7 @@
 Command Line Tool
 ---
 
-The `shapescript` command-line tool is available as a separate download from the [ShapeScript GitHub releases page](https://github.com/nicklockwood/ShapeScript/releases), and is available for both macOS and Linux. It can check `.shape` files from Terminal, report script errors, and export models or images without opening a document window. This makes it useful for scripting workflows, bulk-exporting multiple files, and integrating ShapeScript into automated build pipelines.
+The `shapescript` command-line tool is available as a separate download from the [ShapeScript GitHub releases page](https://github.com/nicklockwood/ShapeScript/releases), and is available for both macOS and Linux. It can check `.shape` and `.csg` files from Terminal, report errors and warnings, and export models or images without opening a document window. This makes it useful for scripting workflows, bulk-exporting multiple files, and integrating ShapeScript into automated build pipelines.
 
 On Mac, exporting from the command-line tool requires an unlocked copy of the ShapeScript Mac app to be installed on the same machine. You can still use the command-line tool to check files and report errors without unlocking Export.
 
@@ -35,7 +35,7 @@ shapescript --version
 
 ## Usage
 
-Run `shapescript info` with a `.shape` file to display [scene info](getting-started.md#debugging-and-selection) and report any errors:
+Run `shapescript info` with a `.shape` or `.csg` file to display [scene info](getting-started.md#debugging-and-selection) and report any errors:
 
 ```bash
 shapescript info myfile.shape
@@ -45,6 +45,14 @@ To export the file, use `shapescript export` with an output path:
 
 ```bash
 shapescript export myfile.shape --output myfile.stl
+```
+
+OpenSCAD [CSG files](import.md#openscad-csg-files) can be passed directly to `check`, `info`, and `export`:
+
+```bash
+shapescript check Part.csg
+shapescript info Part.csg
+shapescript export Part.csg --output Part.stl
 ```
 
 Run `shapescript --help` to see the current command-line usage and available subcommands. For export-specific options, run `shapescript help export`.

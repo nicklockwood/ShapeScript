@@ -53,7 +53,8 @@ extension DocumentProtocol {
 
     var isEditable: Bool {
         documentFileURL.map {
-            FileManager.default.isWritableFile(atPath: $0.path) &&
+            $0.pathExtension.lowercased() == "shape" &&
+                FileManager.default.isWritableFile(atPath: $0.path) &&
                 !$0.path.hasPrefix(Bundle.main.bundlePath)
         } ?? false
     }
@@ -192,7 +193,8 @@ extension DocumentProtocol {
                 }
                 progress.setStatus(.partial(previousScene, 0))
 
-                let program = try parse(input, at: fileURL)
+                let isCSG = fileURL?.pathExtension.lowercased() == "csg"
+                let program = try isCSG ? nil : parse(input, at: fileURL)
                 let parsed = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))
                 if logCancelled() {
@@ -217,14 +219,23 @@ extension DocumentProtocol {
                         scheduleEvaluationProgressUpdate()
                     }
                 }
-                scheduleEvaluationProgressUpdate()
-                let (scene, error) = evaluate(
-                    program,
-                    preview: true,
-                    delegate: self,
-                    cache: cache,
-                    progress: evaluationProgress
-                )
+                let scene: Scene
+                let error: Error?
+                if let program {
+                    scheduleEvaluationProgressUpdate()
+                    (scene, error) = evaluate(
+                        program,
+                        preview: true,
+                        delegate: self,
+                        cache: cache,
+                        progress: evaluationProgress
+                    )
+                } else {
+                    scene = try Scene(csgString: input, at: fileURL, cache: cache, isCancelled: {
+                        progress.isCancelledOrFailed
+                    })
+                    error = nil
+                }
                 let evaluated = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "[\(progress.id)] evaluating: %.2fs", evaluated - parsed))
                 if logCancelled() {

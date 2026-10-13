@@ -1,4 +1,6 @@
 - [Getting Started](getting-started.md)
+    - [Creating a Document](getting-started.md#creating-a-document)
+    - [Opening Documents](getting-started.md#opening-documents)
     - [Viewing](getting-started.md#viewing)
     - [Editing](getting-started.md#editing)
     - [File Structure](getting-started.md#file-structure)
