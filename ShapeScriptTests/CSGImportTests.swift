@@ -902,7 +902,53 @@ final class CSGImportTests: XCTestCase {
             parse("import \"part.csg\""),
             delegate: TestDelegate(directory: directory)
         )) { error in
-            XCTAssertTrue(ProgramError(error).hint?.contains("Expected a CSG vector with 3 components") == true)
+            let error = ProgramError(error)
+            XCTAssertTrue(error.message.contains("Expected a CSG vector with 3 components"))
+            XCTAssertEqual(error.shapeFileURL(relativeTo: directory.appendingPathComponent("main.shape")), url)
+        }
+    }
+
+    func testImportedErrorsPointToTheOriginalCSGFileAndRange() throws {
+        final class Delegate: EvaluationDelegate {
+            let directory: URL
+            init(directory: URL) {
+                self.directory = directory
+            }
+
+            func resolveURL(for path: String) -> URL {
+                path.hasPrefix("/") ? URL(fileURLWithPath: path) : directory.appendingPathComponent(path)
+            }
+
+            func debugLog(_: [AnyHashable]) {}
+        }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileURL = directory.appendingPathComponent("part.CSG")
+        try "\n\nimport \"part.CSG\"".write(
+            to: directory.appendingPathComponent("parent.shape"),
+            atomically: true,
+            encoding: .utf8
+        )
+        let mainURL = directory.appendingPathComponent("main.shape")
+        for badLine in ["cubee(1);", "cube(size=\"big\");", "@"] {
+            let csgSource = "// 🐱\n\n    \(badLine)"
+            try csgSource.write(to: fileURL, atomically: true, encoding: .utf8)
+            for script in ["\nimport \"part.CSG\"", "\nimport \"parent.shape\""] {
+                XCTAssertThrowsError(try evaluate(parse(script), delegate: Delegate(directory: directory))) {
+                    let error = ProgramError($0)
+                    XCTAssertEqual(error.type, .evaluation)
+                    XCTAssertEqual(error.shapeFileURL(relativeTo: mainURL), fileURL, String(reflecting: error))
+                    guard let (range, source) = error.rangeAndSource(with: script) else {
+                        return XCTFail("Missing imported error range")
+                    }
+                    XCTAssertEqual(source, csgSource)
+                    let position = source.lineAndColumn(at: range.lowerBound)
+                    XCTAssertEqual(position.line, 3)
+                    XCTAssertEqual(position.column, 5)
+                    XCTAssertTrue(error.messageAndLocation(with: script).contains("on line 3"))
+                }
+            }
         }
     }
 }
