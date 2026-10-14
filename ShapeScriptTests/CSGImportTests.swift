@@ -14,6 +14,49 @@ import CoreText
 #endif
 
 final class CSGImportTests: XCTestCase {
+    func testImportedCSGPreservesDefinitionLocations() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileURL = directory.appendingPathComponent("part.csg")
+        let source = """
+        union() {
+            cube(1);
+            multmatrix([[1,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) {
+                cube(2);
+            }
+        }
+        """
+        try source.write(to: fileURL, atomically: true, encoding: .utf8)
+        let scene = try evaluate(parse("import \"part.csg\""), delegate: TestDelegate(directory: directory))
+        XCTAssertTrue(scene.build { false })
+        func descendants(_ geometry: Geometry) -> [Geometry] {
+            [geometry] + geometry.children.flatMap(descendants)
+        }
+        let geometries = descendants(scene.geometry)
+        let cube = try XCTUnwrap(geometries.first { $0.type == .cube })
+        XCTAssertEqual(cube.sourceLocation, SourceLocation(at: 2, in: fileURL))
+        let sheared = try XCTUnwrap(geometries.first { if case .mesh = $0.type { return true }; return false })
+        // A baked mesh is defined by the matrix operation that created it.
+        XCTAssertEqual(sheared.sourceLocation, SourceLocation(at: 3, in: fileURL))
+        XCTAssertTrue(geometries.dropFirst().allSatisfy { $0.sourceLocation?.file == fileURL })
+        let directlyOpened = try Scene(csgString: source, at: fileURL, isCancelled: { false })
+        XCTAssertEqual(
+            descendants(directlyOpened.geometry).first { $0.type == .cube }?.sourceLocation,
+            SourceLocation(at: 2, in: fileURL)
+        )
+        let tagged = try Scene(
+            csgString: source.replacingOccurrences(of: "cube(2)", with: "#cube(2)"),
+            at: fileURL,
+            isCancelled: { false }
+        )
+        let taggedMesh = try XCTUnwrap(descendants(tagged.geometry).first {
+            if case .mesh = $0.type { return true }
+            return false
+        })
+        XCTAssertEqual(taggedMesh.sourceLocation, SourceLocation(at: 4, in: fileURL))
+    }
+
     func testUnknownSymbolsAreErrorsWithLocations() {
         for source in [
             "cubee(1);", "hullz() { cube(1); }", "cube(szie=2);",
