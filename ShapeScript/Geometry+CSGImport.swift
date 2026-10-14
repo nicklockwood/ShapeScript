@@ -28,6 +28,7 @@ public extension Geometry {
     /// Imports an evaluated OpenSCAD CSG tree, not a SCAD program.
     convenience init(
         csgString: String,
+        at fileURL: URL? = nil,
         onWarning: ((String) -> Void)? = nil,
         isCancelled: @escaping CancellationHandler
     ) throws {
@@ -36,7 +37,11 @@ public extension Geometry {
         }
         var parser = CSGParser(csgString, isCancelled: isCancelled)
         let nodes = try parser.parse()
-        let importer = CSGImporter(isCancelled: isCancelled, onWarning: onWarning)
+        let importer = CSGImporter(isCancelled: isCancelled, onWarning: onWarning, fileURL: fileURL)
+        let line = nodes.first?.line ?? 1
+        let sourceLocation: (@Sendable () -> SourceLocation?)? = fileURL.map { url in
+            { SourceLocation(at: line, in: url) }
+        }
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
         if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }),
@@ -46,13 +51,13 @@ public extension Geometry {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
-                smoothing: .zero, children: [], sourceLocation: nil
+                smoothing: .zero, children: [], sourceLocation: sourceLocation
             )
             return
         }
         self.init(
             type: .group, name: nil, transform: .identity, material: .default,
-            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: nil
+            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation
         )
     }
 }
@@ -73,7 +78,7 @@ public extension Scene {
             try fileURL.validateFileSize(limit: FileSizeLimit.text)
         }
         var warnings = [String]()
-        let geometry = try Geometry(csgString: csgString, onWarning: { message in
+        let geometry = try Geometry(csgString: csgString, at: fileURL, onWarning: { message in
             let message = fileURL.map { "\($0.lastPathComponent): \(message)" } ?? message
             if !warnings.contains(message) {
                 warnings.append(message)
@@ -467,6 +472,19 @@ private enum CSGPathOperation: String {
 private struct CSGImporter {
     let isCancelled: CancellationHandler
     let onWarning: ((String) -> Void)?
+    let fileURL: URL?
+    private var location: SourceLocation?
+
+    init(isCancelled: @escaping CancellationHandler, onWarning: ((String) -> Void)?, fileURL: URL?) {
+        self.isCancelled = isCancelled
+        self.onWarning = onWarning
+        self.fileURL = fileURL
+    }
+
+    private var sourceLocation: (@Sendable () -> SourceLocation?)? {
+        guard let location else { return nil }
+        return { location }
+    }
 
     private func warn(_ message: String, at node: CSGNode) {
         onWarning?(node.error(message).localizedDescription)
@@ -495,7 +513,7 @@ private struct CSGImporter {
             material: material,
             smoothing: .zero,
             children: children,
-            sourceLocation: nil
+            sourceLocation: sourceLocation
         )
     }
 
@@ -584,7 +602,9 @@ private struct CSGImporter {
     }
 
     func shape(_ node: CSGNode, material: Material) throws -> CSGShape {
-        let shape = try unmodifiedShape(node, material: material)
+        var importer = self
+        importer.location = fileURL.map { SourceLocation(at: node.line, in: $0) }
+        let shape = try importer.unmodifiedShape(node, material: material)
         for modifier in node.modifiers {
             switch modifier {
             case .debug:
@@ -1202,7 +1222,8 @@ private struct CSGImporter {
             }
             let geometry = Geometry(
                 type: type, name: nil, transform: transform, material: source.material,
-                smoothing: .zero, children: children, sourceLocation: nil
+                smoothing: .zero, children: children,
+                sourceLocation: source.sourceLocation.map { location in { location } }
             )
             if case .mesh = type, !geometry.build(isCancelled) {
                 throw CancellationError()
