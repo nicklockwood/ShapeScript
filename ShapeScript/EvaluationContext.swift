@@ -726,6 +726,14 @@ extension EvaluationContext {
                     smoothing: state.smoothing,
                     sourceLocation: sourceLocation
                 ))
+            } catch let error as CSGImportError {
+                guard let source = try? String(contentsOf: url) else {
+                    throw RuntimeErrorType.fileParsingError(
+                        for: path, at: url, message: error.localizedDescription
+                    )
+                }
+                let error = ProgramError(error, in: source)
+                throw RuntimeErrorType.importError(error, for: url, in: source)
             } catch let error as ProgramError {
                 guard let source = try? String(contentsOf: url) else {
                     throw RuntimeErrorType.fileParsingError(

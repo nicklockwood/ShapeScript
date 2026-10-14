@@ -40,13 +40,12 @@ public extension Geometry {
         let importer = CSGImporter(isCancelled: isCancelled, onWarning: onWarning, fileURL: fileURL)
         let line = nodes.first?.line ?? 1
         let sourceLocation: (@Sendable () -> SourceLocation?)? = fileURL.map { url in
-            { SourceLocation(at: line, in: url) }
+            { @Sendable in SourceLocation(at: line, in: url) }
         }
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
-        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }),
-           !shapes
-           .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
+        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }), !shapes
+            .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
         {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
@@ -1223,7 +1222,7 @@ private struct CSGImporter {
             let geometry = Geometry(
                 type: type, name: nil, transform: transform, material: source.material,
                 smoothing: .zero, children: children,
-                sourceLocation: source.sourceLocation.map { location in { location } }
+                sourceLocation: source.sourceLocation.map { location in { @Sendable in location } }
             )
             if case .mesh = type, !geometry.build(isCancelled) {
                 throw CancellationError()

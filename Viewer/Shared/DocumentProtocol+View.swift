@@ -232,9 +232,13 @@ extension DocumentProtocol {
                         progress: evaluationProgress
                     )
                 } else {
-                    scene = try Scene(csgString: input, at: fileURL, cache: cache, isCancelled: {
-                        progress.isCancelledOrFailed
-                    })
+                    do {
+                        scene = try Scene(csgString: input, at: fileURL, cache: cache, isCancelled: {
+                            progress.isCancelledOrFailed
+                        })
+                    } catch let error as CSGImportError {
+                        throw ProgramError(error, in: input)
+                    }
                     error = nil
                 }
                 let evaluated = CFAbsoluteTimeGetCurrent()
