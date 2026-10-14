@@ -509,8 +509,8 @@ extension EvaluationContext {
                 url = newURL
             }
         }
-        switch url.pathExtension.lowercased() {
-        case "csg":
+        switch ImportType(url) {
+        case .csg:
             try url.validateFileSize(limit: FileSizeLimit.text)
             return try Geometry(csgString: String(contentsOf: url), at: url, onWarning: { [importCache] message in
                 let message = "\(url.lastPathComponent): \(message)"
@@ -518,7 +518,7 @@ extension EvaluationContext {
                     importCache.warnings.append(message)
                 }
             }, isCancelled: isCancelled)
-        case "stl", "stla", "obj", "off":
+        case .stereolithography, .wavefront, .object:
             let mesh = try loadMesh(at: url) {
                 switch $0 {
                 case let color as Color:
@@ -540,7 +540,7 @@ extension EvaluationContext {
                 children: [],
                 sourceLocation: nil
             )
-        default:
+        case .shape, .text, .json, .image, .font, .model, .unknown:
             break
         }
         #if canImport(SceneKit)
@@ -585,8 +585,8 @@ extension EvaluationContext {
         if case let .value(value) = importCache.store[url] {
             return value
         }
-        switch url.pathExtension.lowercased() {
-        case "shape":
+        switch ImportType(url) {
+        case .shape:
             if importStack.contains(url) {
                 throw RuntimeErrorType.circularImport(for: url)
             }
@@ -632,7 +632,7 @@ extension EvaluationContext {
                     in: program.source
                 )
             }
-        case "txt":
+        case .text:
             do {
                 try url.validateFileSize(limit: FileSizeLimit.text)
                 let value = try Value.string(String(contentsOf: url))
@@ -645,7 +645,7 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        case "json":
+        case .json:
             do {
                 try url.validateFileSize(limit: FileSizeLimit.json)
                 let value = try Value(jsonData: Data(contentsOf: url))
@@ -665,7 +665,7 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        case _ where url.isImageFile:
+        case .image:
             do {
                 let value = try Value.texture(.file(name: path, url: url))
                 importCache.store[url] = .value(value)
@@ -677,7 +677,7 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        case _ where url.isFontFile:
+        case .font:
             do {
                 #if canImport(CoreGraphics) && canImport(CoreText)
                 guard let dataProvider = CGDataProvider(url: url as CFURL) else {
@@ -705,7 +705,7 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        default: // Assume that it's a model file
+        case .csg, .wavefront, .stereolithography, .object, .model, .unknown:
             do {
                 let geometry: Geometry
                 if case let .geometry(entry) = importCache.store[url] {

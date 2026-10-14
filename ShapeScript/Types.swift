@@ -1044,10 +1044,13 @@ extension Expression {
             default:
                 break
             }
-            switch file?.components(separatedBy: ".").last?.lowercased() ?? "" {
-            case "txt": return .string
-            case "shape", "json", "": return .any
-            default: return .mesh
+            guard let file else { return .any }
+            switch ImportType(URL(fileURLWithPath: file)) {
+            case .text: return .string
+            case .shape, .json, .unknown: return .any
+            case .image: return .texture
+            case .font: return .font
+            case .csg, .wavefront, .stereolithography, .object, .model: return .mesh
             }
         case let .ifelse(_, body, else: elseBody):
             var type: ValueType = .void
