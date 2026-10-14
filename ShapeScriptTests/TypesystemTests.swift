@@ -88,6 +88,37 @@ private func evaluate(
 }
 
 final class TypesystemTests: XCTestCase {
+    func testImportTypesFromURLs() {
+        let cases: [(String, ImportType)] = [
+            ("source.SHAPE", .shape), ("data.TXT", .text), ("data.json", .json),
+            ("image.png", .image), ("image.JPG", .image), ("font.OTF", .font),
+            ("font.ttf", .font), ("model.CSG", .csg), ("model.obj", .wavefront),
+            ("model.stl", .stereolithography), ("model.STLA", .stereolithography),
+            ("model.off", .object), ("model.dae", .model), ("model.custom", .model),
+            ("folder.with.dot/file", .unknown),
+        ]
+        for (path, expected) in cases {
+            XCTAssertEqual(ImportType(URL(fileURLWithPath: path)), expected, path)
+        }
+    }
+
+    func testImportedFileStaticTypes() throws {
+        for file in ["image.png", "image.JPG", "image.heic"] {
+            XCTAssertEqual(try expressionType("import \"\(file)\""), .texture, file)
+        }
+        for file in ["font.ttf", "font.OTF", "font.ttc"] {
+            XCTAssertEqual(try expressionType("import \"\(file)\""), .font, file)
+        }
+        for file in ["model.csg", "model.stl", "model.obj", "model.off"] {
+            XCTAssertEqual(try expressionType("import \"\(file)\""), .mesh, file)
+        }
+        XCTAssertEqual(try expressionType("import \"file.TXT\""), .string)
+        for file in ["file.shape", "file.json", "folder.with.dot/file"] {
+            XCTAssertEqual(try expressionType("import \"\(file)\""), .any, file)
+        }
+        XCTAssertEqual(try expressionType("define path \"font.ttf\"\nimport path"), .any)
+    }
+
     // MARK: Value helpers
 
     func testUnpretransformedPreservesTupleStructure() {
