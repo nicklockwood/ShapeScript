@@ -512,7 +512,7 @@ extension EvaluationContext {
         switch url.pathExtension.lowercased() {
         case "csg":
             try url.validateFileSize(limit: FileSizeLimit.text)
-            return try Geometry(csgString: String(contentsOf: url), onWarning: { [importCache] message in
+            return try Geometry(csgString: String(contentsOf: url), at: url, onWarning: { [importCache] message in
                 let message = "\(url.lastPathComponent): \(message)"
                 if !importCache.warnings.contains(message) {
                     importCache.warnings.append(message)
