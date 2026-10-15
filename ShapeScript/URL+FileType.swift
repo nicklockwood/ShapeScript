@@ -14,11 +14,7 @@ import UniformTypeIdentifiers
 public extension URL {
     var isImageFile: Bool {
         #if canImport(UniformTypeIdentifiers)
-        if let contentType = try? resourceValues(
-            forKeys: [.contentTypeKey]
-        ).contentType ?? UTType(
-            filenameExtension: pathExtension
-        ) {
+        if let contentType {
             return contentType.conforms(to: .image)
         }
         #endif
@@ -38,14 +34,40 @@ public extension URL {
 
     var isFontFile: Bool {
         #if canImport(UniformTypeIdentifiers)
-        if let contentType = try? resourceValues(
-            forKeys: [.contentTypeKey]
-        ).contentType ?? UTType(
-            filenameExtension: pathExtension
-        ) {
+        if let contentType {
             return contentType.conforms(to: .font)
         }
         #endif
         return ["otf", "ttf", "ttc"].contains(pathExtension.lowercased())
     }
+
+    var isShapeFile: Bool {
+        #if canImport(UniformTypeIdentifiers)
+        if let contentType {
+            return contentType.conforms(to: .shape)
+        }
+        #endif
+        return pathExtension.lowercased() == "shape"
+    }
+
+    var isCSGFile: Bool {
+        #if canImport(UniformTypeIdentifiers)
+        if let contentType {
+            return contentType.conforms(to: .csg)
+        }
+        #endif
+        return pathExtension.lowercased() == "csg"
+    }
+}
+
+private extension URL {
+    #if canImport(UniformTypeIdentifiers)
+    var contentType: UTType? {
+        try? resourceValues(
+            forKeys: [.contentTypeKey]
+        ).contentType ?? UTType(
+            filenameExtension: pathExtension
+        )
+    }
+    #endif
 }

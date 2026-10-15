@@ -20,6 +20,7 @@ typealias OSTextView = UITextView
 
 let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)/ios/")!
 let editorHelpURL = onlineHelpURL.appendingPathComponent("editor-help")
+let csgHelpURL = URL(string: "https://github.com/openscad/openscad/wiki/CSG-File-Format")!
 
 @MainActor func loadRTF(_ file: String) throws -> NSAttributedString {
     let file = Bundle.main.url(forResource: file, withExtension: "rtf")!
