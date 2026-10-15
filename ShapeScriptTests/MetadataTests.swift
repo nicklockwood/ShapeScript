@@ -42,7 +42,7 @@ private let examplesDirectory: URL = projectDirectory
 private let exampleURLs: [URL] = try! FileManager.default
     .contentsOfDirectory(atPath: examplesDirectory.path)
     .map { URL(fileURLWithPath: $0, relativeTo: examplesDirectory) }
-    .filter { $0.pathExtension == "shape" }
+    .filter(\.isShapeFile)
 
 private let projectVersion: SemanticVersion = {
     let string = try! String(contentsOf: projectURL)

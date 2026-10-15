@@ -17,14 +17,14 @@ private let exampleURLs: [URL] = try! FileManager.default
         at: projectDirectory.appendingPathComponent("Examples"),
         includingPropertiesForKeys: nil
     )
-    .filter { $0.pathExtension == "shape" }
+    .filter(\.isShapeFile)
 
 private let testShapesURLs: [URL] = try! FileManager.default
     .contentsOfDirectory(
         at: testsDirectory.appendingPathComponent("TestShapes"),
         includingPropertiesForKeys: nil
     )
-    .filter { $0.pathExtension == "shape" }
+    .filter(\.isShapeFile)
     .filter {
         #if os(iOS)
         return !$0.deletingPathExtension().lastPathComponent.hasSuffix("-mac")

@@ -283,7 +283,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
 
 private extension SourceViewController {
     @objc func openHelp(_: Any?) {
-        presentHelp(editorHelpURL)
+        presentHelp(document?.fileURL.isCSGFile == true ? csgHelpURL : editorHelpURL)
     }
 
     func shareSource() {
@@ -765,7 +765,7 @@ extension Token {
 
 extension SourceViewController: TokenViewDelegate {
     func tokens(for input: String) -> [TokenView.Token] {
-        guard document?.documentFileURL?.pathExtension.lowercased() != "csg" else {
+        guard document?.fileURL.isShapeFile == true else {
             return []
         }
         var stack = [Set<String>()]
