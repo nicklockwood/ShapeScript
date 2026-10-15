@@ -53,7 +53,7 @@ extension DocumentProtocol {
 
     var isEditable: Bool {
         documentFileURL.map {
-            $0.pathExtension.lowercased() == "shape" &&
+            ($0.isShapeFile || $0.isCSGFile) &&
                 FileManager.default.isWritableFile(atPath: $0.path) &&
                 !$0.path.hasPrefix(Bundle.main.bundlePath)
         } ?? false
@@ -194,7 +194,7 @@ extension DocumentProtocol {
                 }
                 progress.setStatus(.partial(previousScene, 0))
 
-                let isCSG = fileURL?.pathExtension.lowercased() == "csg"
+                let isCSG = fileURL?.isCSGFile ?? false
                 let program = try isCSG ? nil : parse(input, at: fileURL)
                 let parsed = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "[\(progress.id)] parsing: %.2fs", parsed - start))

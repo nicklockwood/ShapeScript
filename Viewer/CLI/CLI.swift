@@ -257,7 +257,7 @@ final class CLIRunner {
             }
             throw CLIError("File '\(inputPath)' not found")
         }
-        guard ["shape", "csg"].contains(inputURL.pathExtension.lowercased()) else {
+        guard inputURL.isShapeFile || inputURL.isCSGFile else {
             throw CLIError("Unsupported file type '\(inputURL.pathExtension)'")
         }
         self.inputURL = inputURL
@@ -286,7 +286,7 @@ final class CLIRunner {
             printStatus("Loading file '\(inputURL.lastPathComponent)' ...")
             let cache = GeometryCache(diskCache: cacheOptions.noCache ? nil : .shared)
             let scene: Scene
-            if inputURL.pathExtension.lowercased() == "csg" {
+            if inputURL.isCSGFile {
                 printStatus("Importing CSG ...")
                 scene = try Scene(csgString: input, at: inputURL, cache: cache, isCancelled: { false })
             } else {
