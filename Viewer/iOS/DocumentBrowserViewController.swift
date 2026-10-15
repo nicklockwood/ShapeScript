@@ -288,21 +288,20 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
             if pathExtension.isEmpty {
                 fileName += fileName.hasSuffix(".") ? "shape" : ".shape"
                 pathExtension = "shape"
-            } else {
-                guard pathExtension.lowercased() == "shape" else {
-                    self?.presentError(
-                        "ShapeScript cannot open .\(fileName.pathExtension) files.",
-                        onOK: { self?.presentNewFileAlert(fileName, completion) }
-                    )
-                    return
-                }
             }
             let fileURL = URL(fileURLWithPath: NSTemporaryDirectory())
                 .appendingPathComponent(fileName)
+            guard fileURL.isShapeFile || fileURL.isCSGFile else {
+                self?.presentError(
+                    "ShapeScript cannot open .\(fileName.pathExtension) files.",
+                    onOK: { self?.presentNewFileAlert(fileName, completion) }
+                )
+                return
+            }
             do {
                 let data: Data = if let templateURL = Bundle.main.url(
                     forResource: "Untitled",
-                    withExtension: "shape"
+                    withExtension: fileURL.pathExtension.lowercased()
                 ) {
                     try Data(contentsOf: templateURL)
                 } else {

@@ -1,0 +1,14 @@
+// OpenSCAD CSG document
+
+color([1, 0, 0])
+    translate([-1.5, 0, 0])
+    cube(size = 1, center = true);
+
+color([0, 1, 0])
+    rotate([-90, 0, 0])
+    sphere(r = 0.5, $fn = 32);
+
+color([0, 0, 1])
+    translate([1.5, 0, 0])
+    rotate([-90, 0, 0])
+    cylinder(h = 1, r1 = 0.5, r2 = 0, center = true, $fn = 32);

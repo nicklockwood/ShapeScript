@@ -98,7 +98,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
     let dialog = NSSavePanel()
     dialog.title = "New Document"
     dialog.showsHiddenFiles = true
-    dialog.allowedContentTypes = [.shape]
+    dialog.allowedContentTypes = [.shape, .csg]
     dialog.nameFieldStringValue = "Untitled.shape"
     dialog.begin { response in
         guard response == .OK, let url = dialog.url else {
@@ -107,7 +107,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
         do {
             let data: Data = if let templateURL = Bundle.main.url(
                 forResource: "Untitled",
-                withExtension: "shape"
+                withExtension: url.pathExtension.lowercased()
             ) {
                 try Data(contentsOf: templateURL)
             } else {
