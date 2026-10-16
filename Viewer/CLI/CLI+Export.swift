@@ -95,7 +95,7 @@ extension CLIRunner {
         if options.camera != nil, url.pathExtension.lowercased() != "bmp" {
             throw CLIError("Image export options cannot be used with .\(url.pathExtension.lowercased()) output")
         }
-        let scene = try loadScene()
+        let scene = try loadScene().with(zUp: inputURL.isCSGFile)
         printStatus("Exporting to '\(url.lastPathComponent)' ...")
         let geometry = scene.geometry
         if url.pathExtension.lowercased() == "bmp" {
@@ -104,8 +104,8 @@ extension CLIRunner {
             return
         }
         var mesh = geometry.merged()
-        if options.convertToZUp {
-            mesh.rotate(by: .pitch(.degrees(-90)))
+        if scene.geometryRotation(for: options) != .identity {
+            mesh.rotate(by: scene.geometryRotation(for: options))
         }
         switch url.pathExtension.lowercased() {
         case "stl":

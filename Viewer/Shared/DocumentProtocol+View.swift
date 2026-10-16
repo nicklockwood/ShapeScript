@@ -103,11 +103,11 @@ extension DocumentProtocol {
             viewController.renderProgress = loadingIndicatorProgress
         }
         viewController.background = camera.background ?? scene?.background
-        viewController.geometry = geometry
         viewController.setError(error, message: errorMessage)
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
+        viewController.geometry = geometry
     }
 
     func didUpdateSource() {
@@ -144,11 +144,11 @@ extension DocumentProtocol {
                 }
             case let .partial(scene, _):
                 error = nil
-                self.scene = scene
+                self.scene = scene.with(zUp: zUp)
                 viewController?.renderProgress = loadingIndicatorProgress
             case let .success(scene):
                 error = nil
-                self.scene = scene
+                self.scene = scene.with(zUp: zUp)
                 viewController?.checkDocumentWarnings()
                 viewController?.renderProgress = 1
                 // Flush progress animation before indicator is hidden
@@ -309,6 +309,10 @@ extension DocumentProtocol {
 
     // MARK: Camera
 
+    var zUp: Bool {
+        documentFileURL?.isCSGFile ?? false
+    }
+
     var showWireframe: Bool {
         get { settings.value(for: #function, in: self) ?? false }
         set {
@@ -338,7 +342,9 @@ extension DocumentProtocol {
     var camera: Camera {
         get {
             let type: CameraType? = settings.value(for: #function, in: self)
-            return cameras.first(where: { $0.type == type }) ?? .default
+            var camera = cameras.first(where: { $0.type == type }) ?? .default
+            camera.zUp = zUp
+            return camera
         }
         set {
             settings.set(newValue.type, for: #function, in: self)
@@ -381,9 +387,9 @@ extension DocumentProtocol {
         if !customCameras.isEmpty || loadingProgress?.didSucceed != false {
             let oldCameras = cameras
             cameras = CameraType.allCases.map {
-                Camera(type: $0)
+                Camera(type: $0, zUp: zUp)
             } + customCameras.enumerated().map { i, geometry in
-                Camera(geometry: geometry, index: i)
+                Camera(geometry: geometry, index: i, zUp: zUp)
             }
             if !oldCameras.isEmpty {
                 var didUpdateCamera = false
