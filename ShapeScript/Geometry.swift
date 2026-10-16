@@ -1645,7 +1645,7 @@ private extension Geometry {
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
     func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
-        if !hasMesh {
+        if !hasMesh || type == .group {
             mesh = .empty
             return !isCancelled()
         }
