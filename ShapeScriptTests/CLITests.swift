@@ -8,9 +8,34 @@
 
 #if os(macOS) || os(Linux)
 
+import Euclid
 import XCTest
 
 final class CLITests: XCTestCase {
+    func testExportUpAxisUsesInputFileType() throws {
+        for fileExtension in ["shape", "SHAPE", "csg", "CSG"] {
+            let isCSG = fileExtension.lowercased() == "csg"
+            try withTemporaryFile(named: "model.\(fileExtension)") { directory, inputURL in
+                let source = isCSG ? "cube([2,4,10],true);" : "cube { size 2 4 10 }"
+                try source.write(to: inputURL, atomically: true, encoding: .utf8)
+                for outputExtension in ["stl", "stla"] {
+                    for zUp in [false, true] {
+                        let outputURL = directory.appendingPathComponent("output.\(outputExtension)")
+                        var arguments = ["export", inputURL.lastPathComponent, "--output", outputURL.lastPathComponent]
+                        if zUp {
+                            arguments.append("--z-up")
+                        }
+                        let result = try runExecutable(arguments, in: directory)
+                        XCTAssertEqual(result.status, 0, result.failureMessage)
+                        let mesh = try XCTUnwrap(Mesh(stlData: Data(contentsOf: outputURL)))
+                        let expected = !isCSG && zUp ? Vector(2, 10, 4) : Vector(2, 4, 10)
+                        XCTAssertEqual(mesh.bounds.size, expected, arguments.joined(separator: " "))
+                    }
+                }
+            }
+        }
+    }
+
     func testCSGWarningsArePrintedWithoutFailing() throws {
         try withTemporaryFile(named: "model.csg") { directory, inputURL in
             try "color(\"red\") cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)

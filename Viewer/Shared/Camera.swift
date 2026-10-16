@@ -17,14 +17,14 @@ extension Scene {
         camera cameraOverride: Camera?
     ) throws -> ShapeScript.Camera {
         let selectedCamera = try cameraOverride ?? options.camera.map(camera(named:)) ?? cameras.first.map {
-            Camera(geometry: $0, index: 0)
-        } ?? .default
+            Camera(geometry: $0, index: 0, zUp: zUp)
+        } ?? Camera(type: .front, zUp: zUp)
         let outputSize = options.outputSize(fallbackSize: fallbackSize, camera: selectedCamera)
         let width = outputSize.width
         let height = outputSize.height
         let aspectRatio = Double(height) / Double(width)
         let bounds = visibleBounds
-        let size = bounds.size
+        let size = selectedCamera.framingSize(bounds.size)
         let center = bounds.center
 
         let distance: Double
@@ -48,7 +48,8 @@ extension Scene {
         scale /= 1.8
 
         var orientation = Rotation.identity
-        var position = center - selectedCamera.direction * distance + offset
+        var position = center - selectedCamera.direction * distance +
+            offset.rotated(by: selectedCamera.axisRotation)
         if let geometry = selectedCamera.geometry {
             let transform = geometry.worldTransform
             orientation = transform.rotation
@@ -62,7 +63,8 @@ extension Scene {
         }
 
         if !selectedCamera.hasOrientation {
-            orientation = Rotation(from: -.unitZ, to: center - position)
+            orientation = selectedCamera.geometry == nil ? selectedCamera.orientation :
+                selectedCamera.lookOrientation(towards: center - position)
         }
         var camera = selectedCamera.settings
         camera.position = position
@@ -77,9 +79,9 @@ extension Scene {
 
     func camera(named name: String) throws -> Camera {
         let cameras = CameraType.allCases.map {
-            Camera(type: $0)
+            Camera(type: $0, zUp: zUp)
         } + self.cameras.enumerated().map { index, geometry in
-            Camera(geometry: geometry, index: index)
+            Camera(geometry: geometry, index: index, zUp: zUp)
         }
         let matches = cameras.filter {
             $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
@@ -122,18 +124,21 @@ extension CameraType: CaseIterable {
 struct Camera {
     var type: CameraType
     var geometry: Geometry?
+    var zUp: Bool
 }
 
 extension Camera: Equatable {
     static let `default` = Self(type: .front)
 
-    init(type: CameraType) {
+    init(type: CameraType, zUp: Bool = false) {
         self.type = type
+        self.zUp = zUp
     }
 
-    init(geometry: Geometry, index: Int) {
+    init(geometry: Geometry, index: Int, zUp: Bool = false) {
         self.geometry = geometry
         self.type = .custom(index)
+        self.zUp = zUp
     }
 
     var name: String {
@@ -144,8 +149,31 @@ extension Camera: Equatable {
         Vector(0, 0, -1).rotated(by: orientation)
     }
 
+    var axisRotation: Rotation {
+        zUp ? .pitch(-.halfPi) : .identity
+    }
+
+    var upVector: Vector {
+        zUp ? .unitZ : .unitY
+    }
+
+    func framingSize(_ size: Vector) -> Vector {
+        zUp ? Vector(size.x, size.z, size.y) : size
+    }
+
+    func lookOrientation(towards direction: Vector) -> Rotation {
+        let alignment = Rotation(from: -.unitZ, to: direction)
+        let up = upVector
+        let forward = direction.normalized()
+        let projectedUp = (up - forward * up.dot(forward)).normalized()
+        guard projectedUp.lengthSquared > 0 else { return alignment }
+        let currentUp = Vector.unitY.rotated(by: alignment)
+        let angle = atan2(forward.dot(currentUp.cross(projectedUp)), currentUp.dot(projectedUp))
+        return (Rotation(axis: forward, angle: .radians(-angle)) ?? .identity) * alignment
+    }
+
     var orientation: Rotation {
-        switch type {
+        let orientation: Rotation = switch type {
         case .front: .identity
         case .back: .yaw(.pi)
         case .left: .yaw(.halfPi)
@@ -154,6 +182,7 @@ extension Camera: Equatable {
         case .bottom: .pitch(-.halfPi)
         default: geometry?.transform.rotation ?? .identity
         }
+        return geometry == nil ? axisRotation * orientation : orientation
     }
 
     var hasPosition: Bool {

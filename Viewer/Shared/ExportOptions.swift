@@ -5,6 +5,7 @@
 //  Created by Nick Lockwood on 11/08/2026.
 //
 
+import Euclid
 import ShapeScript
 
 struct ExportOptions {
@@ -60,6 +61,13 @@ extension ExportOptions {
         case (nil, nil):
             return originalSize
         }
+    }
+}
+
+extension Scene {
+    /// Converts Y-up scenes to Z-up, leaving scenes that are already Z-up unchanged.
+    func geometryRotation(for options: ExportOptions) -> Rotation {
+        options.convertToZUp && !zUp ? .pitch(-.halfPi) : .identity
     }
 }
 

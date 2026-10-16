@@ -16,12 +16,14 @@ public final class Scene: Sendable {
     public let lights: [Geometry]
     public let cache: GeometryCache?
     public let warnings: [String]
+    public let zUp: Bool
 
     public init(
         background: MaterialProperty,
         children: [Geometry],
         cache: GeometryCache?,
-        warnings: [String] = []
+        warnings: [String] = [],
+        zUp: Bool = false
     ) {
         self.background = background
         self.children = children
@@ -29,6 +31,7 @@ public final class Scene: Sendable {
         self.lights = children.flatMap(\._lights)
         self.cache = cache
         self.warnings = warnings
+        self.zUp = zUp
         children.forEach { $0.cache = cache }
     }
 }
@@ -38,7 +41,8 @@ extension Scene: Equatable {
         lhs.background == rhs.background &&
             lhs.children == rhs.children &&
             lhs.cameras == rhs.cameras &&
-            lhs.warnings == rhs.warnings
+            lhs.warnings == rhs.warnings &&
+            lhs.zUp == rhs.zUp
     }
 }
 
@@ -69,6 +73,16 @@ public extension Scene {
         return Bounds(children.map {
             $0.overestimatedBoundsForFocus(focus: focus)
         })
+    }
+
+    func with(zUp: Bool) -> Scene {
+        self.zUp == zUp ? self : Scene(
+            background: background,
+            children: children,
+            cache: cache,
+            warnings: warnings,
+            zUp: zUp
+        )
     }
 
     func build(progress: RenderProgress? = nil) -> Bool {
