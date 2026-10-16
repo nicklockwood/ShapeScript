@@ -12,6 +12,23 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testSceneGeometryHasStableIdentityAndParents() throws {
+        let scene = try evaluate(parse("group { cube\nsphere }"), delegate: nil)
+        let root = scene.geometry
+        let group = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(scene.geometry === root)
+        XCTAssertTrue(group.parent === root)
+        XCTAssertTrue(group.children.allSatisfy { $0.parent === group })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertTrue(scene.geometry === root)
+        XCTAssertTrue(group.parent === root)
+
+        let zUpScene = scene.with(zUp: true)
+        XCTAssertTrue(zUpScene.geometry === root)
+        XCTAssertTrue(zUpScene.children.first === group)
+        XCTAssertTrue(group.parent === root)
+    }
+
     func testCameraDimensionsUseIntegerPixels() throws {
         let scene = try evaluate(parse("camera { width 80.6\nheight 40.4 }"), delegate: nil)
         let camera = try XCTUnwrap(scene.cameras.first?.camera)

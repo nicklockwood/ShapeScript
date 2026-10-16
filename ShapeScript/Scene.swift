@@ -11,28 +11,52 @@ import Foundation
 
 public final class Scene: Sendable {
     public let background: MaterialProperty
-    public let children: [Geometry]
+    public let geometry: Geometry
     public let cameras: [Geometry]
     public let lights: [Geometry]
     public let cache: GeometryCache?
     public let warnings: [String]
     public let zUp: Bool
 
-    public init(
+    public convenience init(
         background: MaterialProperty,
         children: [Geometry],
         cache: GeometryCache?,
         warnings: [String] = [],
         zUp: Bool = false
     ) {
+        self.init(
+            background: background,
+            geometry: Geometry(
+                type: .group,
+                name: nil,
+                transform: .identity,
+                material: .default,
+                smoothing: nil,
+                children: children,
+                sourceLocation: nil
+            ),
+            cache: cache,
+            warnings: warnings,
+            zUp: zUp
+        )
+    }
+
+    private init(
+        background: MaterialProperty,
+        geometry: Geometry,
+        cache: GeometryCache?,
+        warnings: [String],
+        zUp: Bool
+    ) {
         self.background = background
-        self.children = children
-        self.cameras = children.flatMap(\._cameras)
-        self.lights = children.flatMap(\._lights)
+        self.geometry = geometry // The raw scene geometry, including unfocused geometry
+        self.cameras = geometry.children.flatMap(\._cameras)
+        self.lights = geometry.children.flatMap(\._lights)
         self.cache = cache
         self.warnings = warnings
         self.zUp = zUp
-        children.forEach { $0.cache = cache }
+        geometry.cache = cache
     }
 }
 
@@ -49,17 +73,8 @@ extension Scene: Equatable {
 public extension Scene {
     static let empty = Scene(background: .color(.clear), children: [], cache: nil)
 
-    /// Returns the raw scene geometry, including unfocused geometry.
-    var geometry: Geometry {
-        Geometry(
-            type: .group,
-            name: nil,
-            transform: .identity,
-            material: .default,
-            smoothing: nil,
-            children: children,
-            sourceLocation: nil
-        )
+    var children: [Geometry] {
+        geometry.children
     }
 
     /// Returns the visible scene geometry, excluding unfocused geometry if any child is focused.
@@ -78,7 +93,7 @@ public extension Scene {
     func with(zUp: Bool) -> Scene {
         self.zUp == zUp ? self : Scene(
             background: background,
-            children: children,
+            geometry: geometry,
             cache: cache,
             warnings: warnings,
             zUp: zUp
