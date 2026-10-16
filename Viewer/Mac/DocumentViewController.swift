@@ -222,7 +222,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     var showAxes = false {
         didSet {
             if showAxes != oldValue {
-                updateAxesAndCamera()
+                refreshAxesAndCamera()
             }
         }
     }
@@ -238,7 +238,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     var camera: Camera = .default {
         didSet {
             if camera != oldValue {
-                updateAxesAndCamera()
+                refreshAxesAndCamera()
                 resetView()
             }
         }
@@ -249,14 +249,6 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         set {
             newValue?.configureProperty(scnScene.background)
             renderProgressView.color = interfaceColor
-        }
-    }
-
-    var geometry: Geometry? {
-        didSet {
-            if geometry !== oldValue {
-                refreshGeometry()
-            }
         }
     }
 
@@ -385,7 +377,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         scnView.backgroundColor = .clear
         scnView.pointOfView = cameraNode
         document?.updateViews()
-        refreshGeometry()
+        refreshScene()
 
         // add a click gesture recognizer
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
@@ -610,7 +602,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             lastLayoutBackgroundColor = backgroundColor
             document?.rerender()
         }
-        updateAxesAndCamera()
+        refreshAxesAndCamera()
         if !cameraHasMoved {
             resetView()
         }
@@ -618,11 +610,6 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     @objc func resetCamera(_: Any?) {
         resetCamera()
-    }
-
-    func resetCamera() {
-        updateAxesAndCamera()
-        resetView()
     }
 
     func copyCamera() {
