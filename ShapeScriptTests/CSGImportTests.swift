@@ -9,6 +9,10 @@
 import Euclid
 import XCTest
 
+#if canImport(CoreText)
+import CoreText
+#endif
+
 final class CSGImportTests: XCTestCase {
     func testUnknownSymbolsAreErrorsWithLocations() {
         for source in [
@@ -39,12 +43,14 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
-    func testDefaultTextAlignmentWarnsInsteadOfFailing() throws {
+    func testDefaultTextAlignmentUsesLeftBaseline() throws {
         let scene = try Scene(
             csgString: "text(\"Hi\", halign=\"default\", valign=\"default\");",
             isCancelled: { false }
         )
-        XCTAssertTrue(scene.warnings.contains { $0.contains("halign, valign") })
+        let baseline = try Scene(csgString: "text(\"Hi\");", isCancelled: { false })
+        XCTAssertEqual(scene.geometry, baseline.geometry)
+        XCTAssertEqual(scene.warnings, baseline.warnings)
     }
 
     func testUnsupportedLeavesAreSkippedAndWrappersPreserveChildren() throws {
@@ -156,13 +162,65 @@ final class CSGImportTests: XCTestCase {
         let source = "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2, language=\"fr\");"
         let scene = try Scene(csgString: source, isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertTrue(scene.warnings[0].contains("halign"))
+        XCTAssertFalse(scene.warnings[0].contains("halign"))
         XCTAssertTrue(scene.warnings[0].contains("spacing"))
         XCTAssertTrue(scene.warnings[0].contains("language"))
         XCTAssertTrue(scene.warnings[0].contains("line 1, column 1"))
-        let fallback = try Scene(csgString: "text(\"Hi\", font=\"Helvetica\");", isCancelled: { false })
+        let fallback = try Scene(
+            csgString: "text(\"Hi\", font=\"Helvetica\", halign=\"center\");",
+            isCancelled: { false }
+        )
         XCTAssertEqual(scene.geometry, fallback.geometry)
         XCTAssertTrue(fallback.warnings.isEmpty)
+    }
+
+    func testTextAlignment() throws {
+        let font = CTFontCreateWithName("Helvetica" as CFString, 1, nil)
+        // Include whitespace, side bearings and descenders to distinguish advances
+        // from visible bounds and glyph bounds from nominal font metrics.
+        for text in ["Hi", "jgy", "  Hi  "] {
+            let attributedString = NSAttributedString(string: text, attributes: [.font: font])
+            let line = CTLineCreateWithAttributedString(attributedString)
+            let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+            let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+            let original = TextPath(
+                text: [TextValue(string: text, font: "Helvetica")],
+                wrapWidth: nil,
+                detail: 4,
+                isCancelled: { false }
+            ).paths
+            for (halign, x) in [("left", 0.0), ("center", -width / 2), ("right", -width)] {
+                for (valign, y) in [
+                    ("baseline", 0.0), ("top", -Double(bounds.maxY)),
+                    ("center", -Double(bounds.midY)), ("bottom", -Double(bounds.minY)),
+                ] {
+                    let geometry = try Geometry(
+                        csgString: """
+                        text("\(text)", size=3, font="Helvetica", $fn=32, halign="\(halign)", valign="\(valign)");
+                        """,
+                        onWarning: { XCTFail($0) },
+                        isCancelled: { false }
+                    )
+                    let actual = Bounds(geometry.paths(pretransformed: true))
+                    let expected = Bounds(original.translated(by: [x, y, 0]).scaled(by: 3))
+                    XCTAssertEqual(actual.min.x, expected.min.x, accuracy: 1e-8)
+                    XCTAssertEqual(actual.min.y, expected.min.y, accuracy: 1e-8)
+                    XCTAssertEqual(actual.max.x, expected.max.x, accuracy: 1e-8)
+                    XCTAssertEqual(actual.max.y, expected.max.y, accuracy: 1e-8)
+                }
+            }
+        }
+    }
+
+    func testEmptyAlignedText() throws {
+        for text in ["", "   "] {
+            let geometry = try Geometry(
+                csgString: "text(\"\(text)\", halign=\"center\", valign=\"center\");",
+                onWarning: { XCTFail($0) },
+                isCancelled: { false }
+            )
+            XCTAssertTrue(geometry.paths(pretransformed: true).allSatisfy(\.isEmpty))
+        }
     }
 
     func testUnsupportedFontStyleWarnsAndUsesBaseFont() throws {
@@ -486,6 +544,167 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func test2DBooleansProducePathsAndExtrudeWithoutWarnings() throws {
+        for (operation, area) in [("union", 6.0), ("difference", 2.0), ("intersection", 2.0)] {
+            let source = "\(operation)() { square(2); translate([1,0,0]) square(2); }"
+            var warnings = [String]()
+            let geometry = try Geometry(csgString: source, onWarning: { warnings.append($0) }, isCancelled: { false })
+            let path = try XCTUnwrap(geometry.path)
+            XCTAssertTrue(path.isClosed)
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8)
+            XCTAssertTrue(warnings.isEmpty, warnings.joined(separator: "\n"))
+            let extruded = try mesh("linear_extrude(height=3) \(source)")
+            XCTAssertEqual(extruded.signedVolume, area * 3, accuracy: 1e-8)
+            XCTAssertTrue(extruded.isWatertight)
+        }
+    }
+
+    func test2DBooleanGroupsAreSingleOperands() throws {
+        let group = "group() { square(2); translate([1,0,0]) square(2); }"
+        for (operation, cutter, area) in [
+            ("difference", "translate([2,0,0]) square(1);", 5.0),
+            ("intersection", "translate([2,0,0]) square(2);", 2.0),
+        ] {
+            let result = try mesh("linear_extrude(height=1) \(operation)() { \(group) \(cutter) }")
+            XCTAssertEqual(result.signedVolume, area, accuracy: 1e-8)
+        }
+    }
+
+    func test2DHullAndMinkowskiProduceExtrudablePaths() throws {
+        for (operation, area) in [("hull", 10.0), ("minkowski", 16.0)] {
+            let source = "\(operation)() { square(2,true); translate([3,0,0]) square(2,true); }"
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            XCTAssertTrue(scene.warnings.isEmpty, scene.warnings.joined(separator: "\n"))
+            let path = try XCTUnwrap(scene.children.first?.path)
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8)
+            let result = try mesh("linear_extrude(height=2) \(source)")
+            XCTAssertEqual(result.signedVolume, area * 2, accuracy: 1e-8)
+            XCTAssertTrue(result.isWatertight)
+        }
+    }
+
+    func testMinkowskiAcceptsConvexityHint() throws {
+        for primitive in ["square(1,true);", "cube(1,true);"] {
+            let scene = try Scene(
+                csgString: "minkowski(convexity=10) { \(primitive) \(primitive) }", isCancelled: { false }
+            )
+            XCTAssertTrue(scene.warnings.isEmpty)
+            if let path = scene.children.first?.path {
+                XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, 4, accuracy: 1e-8)
+            } else {
+                XCTAssertTrue(scene.build { false })
+                XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
+            }
+        }
+        XCTAssertThrowsError(try Geometry(csgString: "minkowski(convexcity=10) square(1);", isCancelled: { false }))
+    }
+
+    func test2DHullAndMinkowskiWithConcavitiesAndHoles() throws {
+        let lShape = "polygon([[0,0],[2,0],[2,1],[1,1],[1,2],[0,2]]);"
+        XCTAssertEqual(try mesh("linear_extrude(height=1) hull() { \(lShape) }").signedVolume, 3.5, accuracy: 1e-8)
+        XCTAssertEqual(
+            try mesh("linear_extrude(height=1) minkowski() { \(lShape) square(1,true); }").signedVolume,
+            8, accuracy: 1e-8
+        )
+        let ring = "difference() { square(4,true); square(2,true); }"
+        XCTAssertEqual(
+            try mesh("linear_extrude(height=1) minkowski() { \(ring) square(1,true); }").signedVolume,
+            24, accuracy: 1e-8
+        )
+        let grouped = "group() { square(1); translate([3,0,0]) square(1); }"
+        XCTAssertEqual(
+            try mesh("linear_extrude(height=1) minkowski() { \(grouped) square(1); }").signedVolume,
+            8, accuracy: 1e-8
+        )
+    }
+
+    func testNonCoplanar2DHullAndMinkowskiWarn() throws {
+        for operation in ["hull", "minkowski"] {
+            let scene = try Scene(
+                csgString: "\(operation)() { square(2); translate([0,0,1]) square(2); }", isCancelled: { false }
+            )
+            XCTAssertEqual(scene.warnings.count, 1)
+            XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D '\(operation)'"))
+            XCTAssertEqual(try XCTUnwrap(scene.children.first?.path).subpaths.count, 2)
+        }
+    }
+
+    func test2DBooleanHolesAndDisconnectedRegions() throws {
+        let ring = "difference() { square(4,true); square(2,true); }"
+        let geometry = try Geometry(csgString: ring, isCancelled: { false })
+        XCTAssertEqual(try XCTUnwrap(geometry.path).subpaths.count, 2)
+        XCTAssertEqual(try mesh("linear_extrude(height=2) \(ring)").signedVolume, 24, accuracy: 1e-8)
+        XCTAssertEqual(
+            try mesh("linear_extrude(height=1) union() { \(ring) square(2,true); }").signedVolume,
+            16, accuracy: 1e-8
+        )
+        let disconnected = try Geometry(
+            csgString: "union() { square(1); translate([3,0,0]) square(1); }", isCancelled: { false }
+        )
+        XCTAssertEqual(try XCTUnwrap(disconnected.path).subpaths.count, 2)
+    }
+
+    func test2DBooleanEmptyOperandsAndHiddenModifiers() throws {
+        let empty = "intersection() { square(1); translate([3,0,0]) square(1); }"
+        for source in [
+            "difference() { \(empty) square(2); }",
+            "intersection() { square(2); group(); }",
+            "intersection() { square(2); \(empty) }",
+            "difference() { group(); square(2); }",
+        ] {
+            XCTAssertTrue(try mesh("linear_extrude(height=1) \(source)").isEmpty, source)
+        }
+        for modifier in ["%", "*"] {
+            XCTAssertTrue(try mesh("linear_extrude(height=1) difference() { \(modifier)square(2); square(1); }")
+                .isEmpty)
+            for operation in ["union", "difference", "intersection"] {
+                let result = try mesh("linear_extrude(height=1) \(operation)() { square(2); \(modifier)square(1); }")
+                XCTAssertEqual(result.signedVolume, 4, accuracy: 1e-8)
+            }
+        }
+    }
+
+    func test2DBooleanTransformsColoursAndModifiers() throws {
+        let source = "difference() { color([1,0,0]) square(4,true); #square(2,true); }"
+        let geometry = try Geometry(csgString: source, isCancelled: { false })
+        XCTAssertTrue(geometry.childDebug)
+        let extruded = try mesh("linear_extrude(height=2) \(source)")
+        XCTAssertEqual(extruded.signedVolume, 24, accuracy: 1e-8)
+        XCTAssertTrue(extruded.polygons.contains { polygon in polygon.vertices.contains { $0.color == .red } })
+        let tilted = try Geometry(
+            csgString: "union() { rotate([45,0,0]) square(2); rotate([45,0,0]) translate([1,0,0]) square(2); }",
+            isCancelled: { false }
+        )
+        XCTAssertEqual(try Mesh.fill(XCTUnwrap(tilted.path), faces: .front).surfaceArea, 6, accuracy: 1e-8)
+        let mirrored =
+            try mesh("linear_extrude(height=1) difference() { mirror([1,0,0]) square(4,true); square(2,true); }")
+        XCTAssertEqual(mirrored.signedVolume, 12, accuracy: 1e-8)
+    }
+
+    func testNonCoplanar2DBooleansWarnAndKeepProfiles() throws {
+        let scene = try Scene(
+            csgString: "union() { square(2); translate([0,0,1]) square(2); }", isCancelled: { false }
+        )
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D 'union'"))
+        let path = try XCTUnwrap(scene.children.first?.path)
+        XCTAssertEqual(path.subpaths.count, 2)
+        XCTAssertEqual(path.bounds.size, Vector(2, 2, 1))
+    }
+
+    func test2DBooleanResultCanBeOffsetAndImportedAsAProfile() throws {
+        let source = "union() { square(2); translate([1,0,0]) square(2); }"
+        let offset = try mesh("linear_extrude(height=1) offset(delta=1) \(source)")
+        XCTAssertEqual(offset.signedVolume, 20, accuracy: 1e-8)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try source.write(to: directory.appendingPathComponent("profile.csg"), atomically: true, encoding: .utf8)
+        let scene = try evaluate(parse("extrude import \"profile.csg\""), delegate: TestDelegate(directory: directory))
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 6, accuracy: 1e-8)
+    }
+
     func testTransformedPolygonHolesSurviveExtrusion() throws {
         let result = try mesh("""
         linear_extrude(height = 2) translate([1,2,3]) polygon(
@@ -580,7 +799,7 @@ final class CSGImportTests: XCTestCase {
             "import(file=\"a.stl\");", "resize([2,3,4]) cube(1);",
             "linear_extrude(height=2, scale=0.5) square(1);",
             "rotate_extrude(angle=90) square(1);",
-            "difference() { square(2); circle(1); }",
+            "hull() { square(2); translate([0,0,1]) square(2); }",
         ] {
             let scene = try Scene(csgString: "\n\(source)", isCancelled: { false })
             XCTAssertFalse(scene.warnings.isEmpty, source)

@@ -125,7 +125,7 @@ import AppKit
 #endif
 
 #if canImport(CoreText)
-private extension NSAttributedString {
+extension NSAttributedString {
     convenience init(string: String, font: String?, color: Color?, linespacing: Double?) {
         var fontName = (font ?? "Helvetica") as CFString
         #if canImport(CoreGraphics)

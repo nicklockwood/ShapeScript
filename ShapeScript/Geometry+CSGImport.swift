@@ -8,6 +8,10 @@
 import Euclid
 import Foundation
 
+#if canImport(CoreText)
+import CoreText
+#endif
+
 // MARK: Public interface
 
 public struct CSGImportError: Error, LocalizedError, Equatable, Sendable {
@@ -446,6 +450,20 @@ private struct CSGShape {
     var isEmpty: Bool { geometry.type == .group && geometry.children.isEmpty }
 }
 
+private enum CSGPathOperation: String {
+    case union, difference, intersection, hull, minkowski
+
+    func apply(_ paths: [Path], isCancelled: CancellationHandler) -> Path? {
+        switch self {
+        case .union: Path.union(paths, isCancelled: isCancelled)
+        case .difference: Path.difference(paths, isCancelled: isCancelled)
+        case .intersection: Path.intersection(paths, isCancelled: isCancelled)
+        case .hull: Path.convexHull(of: paths, isCancelled: isCancelled)
+        case .minkowski: Path.minkowskiSum(of: paths, isCancelled: isCancelled)
+        }
+    }
+}
+
 private struct CSGImporter {
     let isCancelled: CancellationHandler
     let onWarning: ((String) -> Void)?
@@ -513,6 +531,42 @@ private struct CSGImporter {
         return children.filter { !$0.geometry.isHidden }.flatMap { $0.paths ?? [] }
     }
 
+    private func pathOperation(
+        _ operation: CSGPathOperation,
+        children: [CSGShape],
+        material: Material
+    ) throws -> CSGShape? {
+        if operation == .difference, children.first?.geometry.isHidden == true {
+            return result([], material: material)
+        }
+        var operands = [Path]()
+        for child in children where !child.geometry.isHidden {
+            let profiles = child.paths ?? []
+            // A group is one operand, not a separate operand for each of its profiles.
+            let operand = profiles.count == 1 ? profiles.first : Path.union(profiles, isCancelled: isCancelled)
+            try checkCancellation()
+            guard let operand else { return nil }
+            operands.append(operand)
+        }
+        let path = operation.apply(operands, isCancelled: isCancelled)
+        try checkCancellation()
+        guard let path else { return nil }
+        let shape = result(path.isEmpty ? [] : [path], material: material)
+
+        func modifierGeometry(_ geometry: Geometry) -> [Geometry] {
+            if geometry.debug || geometry.isFocused || geometry.isHidden {
+                return [geometry]
+            }
+            return geometry.children.flatMap(modifierGeometry)
+        }
+        let modifiers = children.flatMap { modifierGeometry($0.geometry) }
+        guard !modifiers.isEmpty else { return shape }
+        return .init(
+            geometry: geometry(.group, material: material, children: shape.geometry.children + modifiers),
+            paths: shape.paths
+        )
+    }
+
     private func fragments(_ values: [String: CSGValue], radius: Double, node: CSGNode) throws -> Int {
         let fn = try node.number(values, "$fn", default: 0)
         let fa = try node.number(values, "$fa", default: 12)
@@ -549,11 +603,14 @@ private struct CSGImporter {
         let tessellation = ["$fn", "$fa", "$fs", "convexity"]
         switch node.name {
         case "group", "union", "difference", "intersection", "hull", "minkowski", "render":
-            _ = try validate(node, node.name == "render" ? ["convexity"] : [])
+            _ = try validate(node, ["render", "minkowski"].contains(node.name) ? ["convexity"] : [])
             let children = try children(node, material: material)
             if children.contains(where: { $0.paths != nil }), children.allSatisfy({ $0.paths != nil || $0.isEmpty }) {
-                if node.name != "group", node.name != "render", children.filter({ !$0.isEmpty }).count > 1 {
-                    warn("2D '\(node.name)' is unsupported; using grouped profiles", at: node)
+                if let operation = CSGPathOperation(rawValue: node.name) {
+                    if let shape = try pathOperation(operation, children: children, material: material) {
+                        return shape
+                    }
+                    warn("Non-coplanar 2D '\(node.name)' is unsupported; using grouped profiles", at: node)
                 }
                 return try .init(
                     geometry: geometry(.group, material: material, children: children.map(\.geometry)),
@@ -869,7 +926,7 @@ private struct CSGImporter {
                 guard allowed.isEmpty || allowed.contains(value) else {
                     throw node.error("Invalid CSG text '\(name)' value '\(value)'")
                 }
-                if value != fallback {
+                if value != fallback, name != "halign", name != "valign" {
                     unsupported.append(name)
                 }
             }
@@ -897,12 +954,28 @@ private struct CSGImporter {
             }
             let detail = try fragments(values, radius: size, node: node)
             #if canImport(CoreText)
-            let paths = TextPath(
-                text: [TextValue(string: text, font: font, color: material.color)],
-                wrapWidth: nil,
+            let attributedString = NSAttributedString(string: text, font: font, color: material.color, linespacing: nil)
+            let line = CTLineCreateWithAttributedString(attributedString)
+            let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+            let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+            var offset = Vector.zero
+            // Horizontal alignment uses the advance, not the visible glyph bounds.
+            switch try node.string(values, "halign", default: "left") {
+            case "center": offset.x = -width / 2
+            case "right": offset.x = -width
+            default: break // left or default (validated above)
+            }
+            switch try node.string(values, "valign", default: "baseline") {
+            case "top": offset.y = -Double(bounds.maxY)
+            case "center": offset.y = -Double(bounds.midY)
+            case "bottom": offset.y = -Double(bounds.minY)
+            default: break // baseline or default (validated above)
+            }
+            let paths = [Path].text(
+                attributedString,
                 detail: max(1, detail / 8),
                 isCancelled: isCancelled
-            ).paths.scaled(by: size)
+            ).translated(by: offset).scaled(by: size)
             try checkCancellation()
             return result(paths, material: material)
             #else

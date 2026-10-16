@@ -115,17 +115,17 @@ ShapeScript can import [CSG files](https://github.com/openscad/openscad/wiki/CSG
 import "Part.csg"
 ```
 
-ShapeScript does not evaluate `.scad` source programs, so renaming a `.scad` file to `.csg` will not work in most cases. ShapeScript's [import options](#import-options) apply only to `.shape` files.
+ShapeScript does not evaluate `.scad` source programs, so renaming a `.scad` file to `.csg` will not work in most cases. [Import options](#import-options) apply only to `.shape` files.
 
-The importer supports 3D primitives (`cube`, `sphere`, `cylinder`, and `polyhedron`), transforms, colors, and 3D operations such as `union`, `difference`, `intersection`, `hull`, and `minkowski`. It also supports 2D profiles (`square`, `circle`, and `polygon`), linear extrusion with twist, and full rotational extrusion. Imported 2D profiles can be used with ShapeScript's own [extrusion](builders.md#extrude) commands:
+Both 2D and 3D geometry can be imported and are mapped to [paths](paths.md) and [meshes](meshes.md) respectively, and can then be used with ShapeScript's own geometry commands. For example, this code extrudes a 2D path defined in a CSG file:
 
 ```swift
 extrude import "Profile.csg"
 ```
 
-Not all features of the CSG format are currently supported. Unsupported features include 2D boolean operations, tapered linear extrusions, partial rotational extrusions, rounded or chamfered offsets, text styling and layout modifiers, and OpenSCAD's `import`, `surface`, `projection`, and `resize` operations. When opening or importing a CSG file, unsupported operations or arguments produce warnings with a line and column in the file.
+Not every feature of the CSG format is supported. ShapeScript may approximate or skip unsupported geometry features, and the resulting model may differ from the OpenSCAD original. Unknown or unsupported features will produce warnings or errors:
 
-ShapeScript may skip geometry, ignore an argument, or use child shapes without applying the unsupported operation, so the resulting model may differ from the OpenSCAD original. Invalid CSG syntax still produces an error.
+![Imported CSG file with warning](../images/csg-import-warning.png)
 
 **Note:** ShapeScript can also open CSG files directly in the viewer, or via the [command-line tool](cli.md). See [Getting Started](getting-started.md#opening-documents) for how to open a CSG document.
 
