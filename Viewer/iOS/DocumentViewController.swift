@@ -204,8 +204,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     var showAxes = false {
         didSet {
             if showAxes != oldValue {
-                updateAxesAndCamera()
-                rebuildMenu()
+                refreshAxesAndCamera()
             }
         }
     }
@@ -214,7 +213,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         didSet {
             if isOrthographic != oldValue {
                 refreshOrthographic()
-                rebuildMenu()
             }
         }
     }
@@ -222,9 +220,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     var camera: Camera = .default {
         didSet {
             if camera != oldValue {
-                updateAxesAndCamera()
+                refreshAxesAndCamera()
                 resetView()
-                rebuildMenu()
             }
         }
     }
@@ -306,13 +303,20 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         isBrightBackground ? .darkContent : .lightContent
     }
 
-    var geometry: Geometry? {
-        didSet {
-            if geometry !== oldValue {
-                refreshGeometry()
-                rebuildMenu()
-            }
-        }
+    func didRefreshScene() {
+        rebuildMenu()
+    }
+
+    func didRefreshCamera() {
+        rebuildMenu()
+    }
+
+    func didRefreshOrthographic() {
+        rebuildMenu()
+    }
+
+    func didResetView() {
+        rebuildMenu()
     }
 
     weak var selectedGeometry: Geometry?
@@ -417,7 +421,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         )
         updateInterfaceColor()
         if !cameraHasMoved {
-            updateAxesAndCamera()
+            refreshAxesAndCamera()
             resetView()
         }
         #if os(visionOS)
@@ -457,7 +461,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         updateInterfaceColor()
         updateEditButton()
         document?.updateViews()
-        refreshGeometry()
+        refreshScene()
 
         // configure camera menu
         rebuildMenu()
@@ -1129,12 +1133,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
         openSourceFile(fileURL, in: viewController)
         presentModalHidingConsole(navigationController)
-    }
-
-    func resetCamera() {
-        updateAxesAndCamera()
-        resetView()
-        rebuildMenu()
     }
 
     func copyCamera() {

@@ -12,6 +12,15 @@ import ShapeScript
 
 @MainActor
 extension DocumentViewControllerProtocol {
+    var geometry: Geometry? {
+        document?.scene?.geometry
+    }
+
+    func didRefreshScene() {}
+    func didRefreshCamera() {}
+    func didRefreshOrthographic() {}
+    func didResetView() {}
+
     var backgroundColor: OSColor {
         Document.backgroundColor
     }
@@ -149,6 +158,12 @@ extension DocumentViewControllerProtocol {
         scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.antialiasingMode = camera.settings.antialiased ? .multisampling4X : .none
         refreshView()
+        didResetView()
+    }
+
+    func resetCamera() {
+        refreshAxesAndCamera()
+        resetView()
     }
 
     func refreshView() {
@@ -165,11 +180,13 @@ extension DocumentViewControllerProtocol {
         renderTimer = timer
     }
 
-    func refreshGeometry() {
+    func refreshScene() {
+        defer { didRefreshScene() }
         guard let geometry else {
+            selectedGeometry = nil
             scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
             scnView.allowsCameraControl = showAxes
-            updateAxesAndCamera()
+            refreshAxesAndCamera()
             resetView()
             return
         }
@@ -193,7 +210,7 @@ extension DocumentViewControllerProtocol {
         selectGeometry(selectedGeometry?.scnNode)
 
         // update camera
-        updateAxesAndCamera()
+        refreshAxesAndCamera()
         scnView.allowsCameraControl = true
         scnView.autoenablesDefaultLighting = true
         if !cameraHasMoved {
@@ -255,9 +272,10 @@ extension DocumentViewControllerProtocol {
         cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
         scnView.pointOfView?.camera?.usesOrthographicProjection = usesOrthographicProjection
         refreshView()
+        didRefreshOrthographic()
     }
 
-    func updateAxes() {
+    func refreshAxes() {
         axesNode?.removeFromParentNode()
         if showAxes, !isQuickLook {
             let axesNode = SCNNode(Axes(
@@ -270,7 +288,7 @@ extension DocumentViewControllerProtocol {
         }
     }
 
-    func updateCamera() {
+    func refreshCamera() {
         let bounds = visibleBounds
         let axisScale = axesSize * 2.2
         let size = camera.framingSize(bounds.size)
@@ -319,11 +337,12 @@ extension DocumentViewControllerProtocol {
         scnView.defaultCameraController.worldUp = SCNVector3(camera.upVector)
         cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
         cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
+        didRefreshCamera()
     }
 
-    func updateAxesAndCamera() {
-        updateAxes()
-        updateCamera()
+    func refreshAxesAndCamera() {
+        refreshAxes()
+        refreshCamera()
     }
 }
 

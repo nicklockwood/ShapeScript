@@ -107,7 +107,7 @@ extension DocumentProtocol {
         viewController.showAxes = showAxes
         viewController.isOrthographic = isOrthographic
         viewController.camera = camera
-        viewController.geometry = geometry
+        viewController.refreshScene()
     }
 
     func didUpdateSource() {

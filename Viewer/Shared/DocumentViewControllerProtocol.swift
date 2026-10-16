@@ -32,7 +32,6 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     var isOrthographic: Bool { get set }
     var camera: Camera { get set }
     var background: MaterialProperty? { get set }
-    var geometry: Geometry? { get set }
     var selectedGeometry: Geometry? { get set }
     var warningPresentation: WarningQueue.Presentation? { get set }
 
@@ -49,6 +48,8 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     func appendLog(_ text: String)
     func updateModals()
     func copyCamera()
-    func resetCamera()
-    func refreshView()
+    func didRefreshScene()
+    func didRefreshCamera()
+    func didRefreshOrthographic()
+    func didResetView()
 }
