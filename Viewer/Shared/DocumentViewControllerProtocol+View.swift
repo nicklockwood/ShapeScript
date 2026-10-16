@@ -145,6 +145,7 @@ extension DocumentViewControllerProtocol {
 
     func resetView() {
         scnView.pointOfView = cameraNode
+        scnView.defaultCameraController.worldUp = SCNVector3(camera.upVector)
         scnView.defaultCameraController.target = SCNVector3(viewCenter)
         scnView.antialiasingMode = camera.settings.antialiased ? .multisampling4X : .none
         refreshView()
@@ -272,19 +273,19 @@ extension DocumentViewControllerProtocol {
     func updateCamera() {
         let bounds = visibleBounds
         let axisScale = axesSize * 2.2
-        let size = bounds.size
+        let size = camera.framingSize(bounds.size)
         var distance, scale: Double
         let aspectRatio = Double(scnView.bounds.height / scnView.bounds.width)
         var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
         switch camera.type {
         case .front, .back:
-            distance = max(size.x * aspectRatio, size.y) + bounds.size.z / 2
+            distance = max(size.x * aspectRatio, size.y) + size.z / 2
             scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
         case .left, .right:
-            distance = max(size.z * aspectRatio, size.y) + bounds.size.x / 2
+            distance = max(size.z * aspectRatio, size.y) + size.x / 2
             scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
         case .top, .bottom:
-            distance = max(size.x * aspectRatio, size.z) + bounds.size.y / 2
+            distance = max(size.x * aspectRatio, size.z) + size.y / 2
             scale = max(size.x * aspectRatio, size.y * aspectRatio, size.z)
             offset = Vector(0, 0, 0.000001)
         default:
@@ -297,7 +298,8 @@ extension DocumentViewControllerProtocol {
         }
         scale /= 1.8
         let orientation: Rotation
-        var position = viewCenter - camera.direction * distance + offset
+        var position = viewCenter - camera.direction * distance +
+            offset.rotated(by: camera.axisRotation)
         if let geometry = camera.geometry {
             orientation = geometry.worldTransform.rotation
             if camera.hasPosition {
@@ -308,14 +310,13 @@ extension DocumentViewControllerProtocol {
                 scale = max(v.x, v.y, v.z)
             }
         } else {
-            orientation = .identity
+            orientation = camera.orientation
         }
         cameraNode.camera?.orthographicScale = scale
         cameraNode.position = SCNVector3(position)
-        cameraNode.orientation = SCNQuaternion(orientation)
-        if !camera.hasOrientation {
-            cameraNode.look(at: SCNVector3(viewCenter))
-        }
+        cameraNode.orientation = SCNQuaternion(!camera.hasOrientation && camera.geometry != nil ?
+            camera.lookOrientation(towards: viewCenter - position) : orientation)
+        scnView.defaultCameraController.worldUp = SCNVector3(camera.upVector)
         cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
         cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
     }

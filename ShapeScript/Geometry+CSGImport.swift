@@ -83,7 +83,7 @@ public extension Scene {
                 warnings.append(message)
             }
         }, isCancelled: isCancelled)
-        self.init(background: .color(.clear), children: [geometry], cache: cache, warnings: warnings)
+        self.init(background: .color(.clear), children: [geometry], cache: cache, warnings: warnings, zUp: true)
     }
 }
 
