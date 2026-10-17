@@ -63,10 +63,6 @@ extension DocumentProtocol {
         documentFileURL.flatMap { error?.shapeFileURL(relativeTo: $0) }
     }
 
-    var errorMessage: NSAttributedString? {
-        error?.message(with: sourceString)
-    }
-
     var geometry: Geometry {
         (scene ?? .empty).geometry
     }
@@ -111,6 +107,11 @@ extension DocumentProtocol {
     }
 
     func didUpdateSource() {
+        // Keep evaluation errors and their original source excerpt visible until
+        // the new evaluation succeeds or supplies a replacement error.
+        if error?.type == .fileAccess {
+            error = nil
+        }
         linkedResources.removeAll()
         if let progress = loadingProgress, progress.inProgress {
             Swift.print("[\(progress.id)] cancelling...")
@@ -126,12 +127,12 @@ extension DocumentProtocol {
             guard let self else {
                 return
             }
-            if !status.isCancelledOrFailed, input != sourceString {
-                didUpdateSource()
+            if input != sourceString {
+                if !status.isCancelledOrFailed {
+                    didUpdateSource()
+                }
                 return
             }
-            let wasEvaluationError = error?.type == .evaluation
-            error = nil // Error is invalid if sourceString has changed
             switch status {
             case .waiting:
                 if let viewController {
@@ -139,11 +140,8 @@ extension DocumentProtocol {
                     viewController.showConsole = false
                     viewController.clearLog()
                 }
-                if !wasEvaluationError {
-                    updateViews()
-                }
+                updateViews()
             case let .partial(scene, _):
-                error = nil
                 self.scene = scene.with(zUp: zUp)
                 viewController?.renderProgress = loadingIndicatorProgress
             case let .success(scene):

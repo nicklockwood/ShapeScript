@@ -27,6 +27,7 @@ protocol DocumentProtocol: AnyObject, EvaluationDelegate, Sendable {
     var exportProgress: LoadingProgress? { get set }
     var sourceString: String { get set }
     var error: ProgramError? { get set }
+    var errorMessage: NSAttributedString? { get }
     @MainActor var warningQueue: WarningQueue { get }
     var cameras: [Camera] { get set }
 }
