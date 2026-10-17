@@ -9,7 +9,7 @@ import Cocoa
 import Quartz
 import SceneKit
 
-final class PreviewViewController: NSViewController, QLPreviewingController {
+final class PreviewViewController: NSViewController, @preconcurrency QLPreviewingController {
     private var document: Document?
     private var documentViewController: DocumentViewController!
 
@@ -19,7 +19,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     func preparePreviewOfFile(
         at url: URL,
-        completionHandler handler: @escaping @Sendable (Error?) -> Void
+        completionHandler handler: @escaping (Error?) -> Void
     ) {
         do {
             let document = try Document(contentsOf: url, ofType: url.pathExtension.lowercased())

@@ -501,7 +501,9 @@ final class ViewTests: XCTestCase {
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
 
-        document.sourceString = "sphere {"
+        // Use valid source so a background parse failure cannot make progress
+        // terminal before this test injects its replacement error.
+        document.sourceString = "sphere {}"
         document.didUpdateSource()
         let progress = try XCTUnwrap(document.loadingProgress)
         progress.setStatus(.partial(.empty, 0.1))
@@ -516,7 +518,7 @@ final class ViewTests: XCTestCase {
         progress.setStatus(.failure(replacementError))
         XCTAssertEqual(document.error, replacementError)
         XCTAssertEqual(viewController.errorMessage, replacementError.message(with: document.sourceString))
-        XCTAssertTrue(try XCTUnwrap(viewController.errorMessage).string.contains("sphere {\n^"))
+        XCTAssertTrue(try XCTUnwrap(viewController.errorMessage).string.contains("sphere {}\n^"))
         XCTAssertNotEqual(viewController.errorMessage, originalMessage)
     }
 
@@ -580,6 +582,15 @@ final class ViewTests: XCTestCase {
         controller.setError(nil, message: nil)
         XCTAssertNil(controller.errorMessage)
         XCTAssertTrue(try XCTUnwrap(controller.errorTextView.enclosingScrollView).isHidden)
+    }
+
+    func testLoadingProgressRunsDispatchedTasksInOrder() async {
+        let progress = LoadingProgress { _ in }
+        let completed = (0 ..< 32).map { expectation(description: "Task \($0) finishes") }
+        for expectation in completed {
+            progress.dispatch { _ in expectation.fulfill() }
+        }
+        await fulfillment(of: completed, timeout: 5, enforceOrder: true)
     }
 
     func testLoadingProgressFinalUpdateWaitsForScheduledUpdate() async {
