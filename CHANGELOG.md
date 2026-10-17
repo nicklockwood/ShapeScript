@@ -1,5 +1,36 @@
 # Change Log
 
+## [1.12.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.0) (2026-10-17)
+
+- Raised minimum supported OS versions to macOS 12, iOS 15, tvOS 15, watchOS 9 and visionOS 1.3
+- Added support for importing, opening, creating and editing OpenSCAD CSG files
+- Added SVG imports with named groups, open paths and element selection
+- Added named geometry selection with `#name` fragments for ShapeScript and model imports
+- Added `name` support to paths and path primitives, including text
+- Added CSS named color support to ShapeScript color strings and CSG imports
+- Missing fonts and textures now produce non-blocking warnings instead of errors
+- Added top-level script options that can be overridden via import blocks or the CLI
+- Added `preview` symbol for using different geometry and detail settings when viewing and exporting
+- Added `hide` command and improved focus and selection behavior
+- Added `letterspacing` option for text blocks
+- Added support for single-line `if` statements without braces
+- Added `lathe` along a path
+- Added path length, point orientation and evenly spaced point interpolation in path loops
+- Added `length` option to path blocks
+- Added persistent geometry disk cache shared between app, CLI and Quick Look
+- Added progress indicators for script evaluation, geometry generation and export
+- Enhanced CLI with `check`, `info` and `export` subcommands, improved argument validation and error messages
+- Added CLI `--preview`, `--no-cache` and `--camera` options
+- Added software rendering and image export for the CLI
+- Improved `minkowski` and `union` performance
+- Fixed block options leaking into nested receivers and tuple-to-point casting in path blocks
+- Fixed path material color preservation and underestimated sphere bounds
+- Fixed renamed files losing security-scoped access
+- Fixed stale errors being shown against updated source and a potential rendering crash
+- Fixed console flicker on file reload
+- Added `SemanticVersion` and removed deprecated APIs
+- Bumped Euclid to version 0.10.0
+
 ## [1.11.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.6) (2026-09-26)
 
 - Fixed Quick Look preview framing
