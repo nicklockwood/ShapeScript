@@ -762,6 +762,33 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(result.isWatertight)
     }
 
+    func testCachedFinalMeshSkipsOperandsButPreservesDebugOverlays() throws {
+        let cache = GeometryCache(diskCache: nil)
+        let source = "difference() { cube(4,true); sphere(r=2,$fn=8); }"
+        let first = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        XCTAssertTrue(first.build { false })
+        let second = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        let difference = try XCTUnwrap(second.children.first?.children.first)
+        let progress = RenderProgress()
+        XCTAssertTrue(second.build(progress: progress))
+        XCTAssertTrue(progress.isFinished)
+        XCTAssertEqual(progress.fractionCompleted, 1)
+        XCTAssertTrue(difference.children.allSatisfy { $0.mesh == nil })
+        XCTAssertTrue(second.geometry.hasBuiltMeshes)
+        XCTAssertEqual(first.geometry.merged(), second.geometry.merged())
+
+        let debug = try Scene(
+            csgString: source.replacingOccurrences(of: "sphere", with: "#sphere"),
+            cache: cache,
+            isCancelled: { false }
+        )
+        let debugDifference = try XCTUnwrap(debug.children.first?.children.first)
+        XCTAssertTrue(debug.build { false })
+        XCTAssertTrue(debugDifference.children.allSatisfy { $0.mesh != nil })
+        XCTAssertTrue(debugDifference.childDebug)
+        XCTAssertFalse(debugDifference.renderedChildren.isEmpty)
+    }
+
     func testEvaluatedProfilesUseDeferredMeshCache() throws {
         let source = "linear_extrude(height=2) difference() { square(4,true); offset(delta=-0.5) square(4,true); }"
         let cache = GeometryCache(diskCache: nil)
