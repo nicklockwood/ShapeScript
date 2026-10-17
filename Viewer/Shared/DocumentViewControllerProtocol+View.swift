@@ -40,7 +40,7 @@ extension DocumentViewControllerProtocol {
     }
 
     func checkDocumentWarnings(_ warnings: [String]? = nil) {
-        guard !isQuickLook, let document else {
+        guard let document else {
             return
         }
         var messages = warnings ?? document.scene?.warnings ?? []
@@ -56,7 +56,7 @@ extension DocumentViewControllerProtocol {
     }
 
     private func presentQueuedWarning() {
-        guard !isQuickLook, let document else {
+        guard let document else {
             return
         }
         guard document.error == nil, errorMessage == nil else {

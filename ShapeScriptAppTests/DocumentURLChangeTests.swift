@@ -220,6 +220,30 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertEqual(viewController.warningMessages.count, 4)
     }
 
+    func testQuickLookWarningsCycleDismissAndYieldToErrors() throws {
+        let (document, viewController) = queuedWarningDocument()
+        viewController.isQuickLook = true
+        document.scene = try Scene(
+            csgString: "import(file=\"part.dxf\"); resize([2,2,2]) cube(1);",
+            isCancelled: { false }
+        )
+        let warnings = try XCTUnwrap(document.scene?.warnings)
+        XCTAssertEqual(warnings.count, 2)
+        viewController.checkDocumentWarnings()
+        XCTAssertEqual(viewController.warningPresentation?.message, warnings[0])
+        viewController.onNextWarning?()
+        XCTAssertEqual(viewController.warningPresentation?.message, warnings[1])
+        viewController.setError(nil, message: NSAttributedString(string: "Error"))
+        XCTAssertNil(viewController.warningPresentation)
+        XCTAssertNil(viewController.onNextWarning)
+        viewController.setError(nil, message: nil)
+        XCTAssertEqual(viewController.warningPresentation?.message, warnings[1])
+        viewController.onDismissWarnings?()
+        viewController.checkDocumentWarnings()
+        XCTAssertNil(viewController.warningPresentation)
+        XCTAssertNil(document.warningQueue.current)
+    }
+
     func testClosingWarningDismissesEntireQueueButNewWarningsStillAppear() {
         let (document, viewController) = queuedWarningDocument()
         viewController.checkDocumentWarnings(["First", "Second", "Third"])
@@ -396,7 +420,8 @@ final class DocumentURLChangeTests: XCTestCase {
 
         viewController.isQuickLook = true
         viewController.checkDocumentWarnings(["Another warning"])
-        XCTAssertEqual(viewController.warningMessages.count, 2)
+        XCTAssertEqual(viewController.warningMessages.count, 3)
+        XCTAssertEqual(viewController.warningMessages.last, "Another warning")
     }
 
     func testVersionWarningDismissalIsAlsoSessionOnly() throws {
@@ -478,6 +503,22 @@ final class DocumentURLChangeTests: XCTestCase {
         textView.completeMouseInteraction(with: click, mouseUpLocation: click.locationInWindow)
         try await Task.sleep(nanoseconds: UInt64((NSEvent.doubleClickInterval + 0.1) * 1_000_000_000))
         XCTAssertEqual(actions.next, 1)
+    }
+
+    func testQuickLookDisplaysNativeWarningBanner() throws {
+        let document = Document()
+        document.scene = try Scene(csgString: "import(file=\"part.dxf\");", isCancelled: { false })
+        let warning = try XCTUnwrap(document.scene?.warnings.first)
+        let viewController = DocumentViewController()
+        viewController.document = document
+        viewController.isQuickLook = true
+        viewController.view.frame = CGRect(x: 0, y: 0, width: 640, height: 480)
+        viewController.checkDocumentWarnings()
+        viewController.view.layoutSubtreeIfNeeded()
+        let banner = try XCTUnwrap(viewController.view.subviews.last as? NSVisualEffectView)
+        let label = try XCTUnwrap(banner.subviews.compactMap { $0 as? WarningTextView }.first)
+        XCTAssertEqual(label.string, warning)
+        XCTAssertGreaterThan(banner.frame.height, 0)
     }
 
     func testNativeCSGTextWarningsAdvance() async throws {
