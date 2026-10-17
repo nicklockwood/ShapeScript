@@ -1600,10 +1600,8 @@ private extension Geometry {
         guard progress.enter(.buildingFinal) else {
             return false
         }
-        for child in finalBuildChildren {
-            if !child.buildFinal(progress, plan: plan) {
-                return false
-            }
+        for child in finalBuildChildren where !child.buildFinal(progress, plan: plan) {
+            return false
         }
         let unitCount = isLeaf ? 1 : plan.unitCount(for: self)
         guard progress.beginUnit(.buildingFinal, unitCount: unitCount) else {

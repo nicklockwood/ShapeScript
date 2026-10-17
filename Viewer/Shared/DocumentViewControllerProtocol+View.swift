@@ -242,10 +242,10 @@ extension DocumentViewControllerProtocol {
             guard let geometry = root.geometry(for: hit.node) else {
                 continue
             }
-            for geometry in geometry.selectionMenuPath(root: root) {
-                if !geometries.contains(where: { $0 === geometry }) {
-                    geometries.append(geometry)
-                }
+            for geometry in geometry.selectionMenuPath(root: root)
+                where !geometries.contains(where: { $0 === geometry })
+            {
+                geometries.append(geometry)
             }
         }
         return geometries

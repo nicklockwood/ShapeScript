@@ -414,10 +414,8 @@ extension TextView: UITextViewDelegate {
         } else {
             if currentAction == nil {
                 // Check for period insertion
-                if disableDoubleSpacePeriodShortcut,
-                   let lastSpaceIndex,
-                   textView.textStorage.mutableString
-                   .character(at: lastSpaceIndex) == ".".utf16.first
+                if disableDoubleSpacePeriodShortcut, let lastSpaceIndex,
+                   textView.textStorage.mutableString.character(at: lastSpaceIndex) == ".".utf16.first
                 {
                     textView.textStorage.mutableString.replaceCharacters(in: NSRange(
                         location: lastSpaceIndex,
@@ -688,12 +686,10 @@ extension TextView: @MainActor NSLayoutManagerDelegate {
             }
         )
         // Calculate final line rect, which may be missing or wrong
-        if text.isEmpty {
-            if let textContainer = layoutManager.textContainers.first {
-                var rect = layoutManager.usedRect(for: textContainer)
-                rect.origin.y = textView.textContainerInset.top
-                gutterView.indexRects[1] = rect
-            }
+        if text.isEmpty, let textContainer = layoutManager.textContainers.first {
+            var rect = layoutManager.usedRect(for: textContainer)
+            rect.origin.y = textView.textContainerInset.top
+            gutterView.indexRects[1] = rect
         }
         gutterView.setNeedsLayout()
     }
