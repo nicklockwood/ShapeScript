@@ -291,8 +291,12 @@ extension DocumentProtocol {
 
                 let done = CFAbsoluteTimeGetCurrent()
                 Swift.print(String(format: "[\(progress.id)] geometry: %.2fs", done - evaluated))
-                progress.setStatus(.partial(scene, .geometryBuilt))
-                scene.scnBuild(with: options)
+                // A preview update may still be converting the same meshes. Finish
+                // on its serial queue so SceneKit conversion never overlaps.
+                progress.performUpdate {
+                    progress.setStatus(.partial(scene, .geometryBuilt))
+                    scene.scnBuild(with: options)
+                }
 
                 // Show error
                 if let error {

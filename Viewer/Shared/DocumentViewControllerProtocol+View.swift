@@ -361,7 +361,7 @@ extension Geometry {
 
     func select(with scnNode: SCNNode?) -> Geometry? {
         let isSelected = (scnNode != nil && self.scnNode === scnNode)
-        if isSelected {
+        if isSelected, self.scnNode?.geometry != nil {
             let g = scnGeometry.copy() as! SCNGeometry
             g.materials = scnGeometry.materials.map {
                 let material = $0.copy() as! SCNMaterial
@@ -370,7 +370,7 @@ extension Geometry {
                 return material
             }
             self.scnNode?.geometry = g
-        } else {
+        } else if self.scnNode?.geometry != nil {
             self.scnNode?.geometry = scnGeometry
         }
         var selected = isSelected ? self : nil
