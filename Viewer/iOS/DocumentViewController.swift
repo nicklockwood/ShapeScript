@@ -133,6 +133,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 
+    var hasLog: Bool { consoleViewController.hasLog }
+
     func clearLog() {
         consoleViewController.clearLog()
     }

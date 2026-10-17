@@ -67,8 +67,6 @@ final class MockDocument<ViewController: DocumentViewControllerProtocol>: Docume
     func resolveURL(for path: String) -> URL {
         URL(fileURLWithPath: path)
     }
-
-    func debugLog(_: [AnyHashable]) {}
 }
 
 func evaluate(

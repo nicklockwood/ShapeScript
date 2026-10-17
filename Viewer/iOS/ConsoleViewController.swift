@@ -55,6 +55,8 @@ final class ConsoleViewController: UIViewController {
         hideDimmingView()
     }
 
+    var hasLog: Bool { logLength > 0 }
+
     func clearLog() {
         logLength = 0
         log.mutableString.setString("")
