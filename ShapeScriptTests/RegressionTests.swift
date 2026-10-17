@@ -1120,10 +1120,10 @@ private extension Collection<Euclid.Polygon> {
     var containsIntersections: Bool {
         let polygons = Array(self)
         for i in polygons.indices {
-            for j in polygons.indices.dropFirst(i + 1) {
-                if polygons[i].hasInteriorIntersection(with: polygons[j]) {
-                    return true
-                }
+            for j in polygons.indices.dropFirst(i + 1)
+                where polygons[i].hasInteriorIntersection(with: polygons[j])
+            {
+                return true
             }
         }
         return false

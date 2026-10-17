@@ -1000,10 +1000,7 @@ final class GeometryTests: XCTestCase {
         }
         let counterIndex = try XCTUnwrap(subpaths.indices.first { index in
             subpathPolygons.indices.contains { otherIndex in
-                guard otherIndex != index else {
-                    return false
-                }
-                guard let polygon = subpathPolygons[otherIndex] else {
+                guard otherIndex != index, let polygon = subpathPolygons[otherIndex] else {
                     return false
                 }
                 let insideCount = subpathPoints[index].filter {

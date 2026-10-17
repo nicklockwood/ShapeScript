@@ -158,10 +158,8 @@ extension Texture {
             return nil
         }
         #else
-        guard let cgImage = image
-            .cgImage(forProposedRect: nil, context: nil, hints: nil),
-            let data = NSBitmapImageRep(cgImage: cgImage)
-            .representation(using: .png, properties: [:])
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let data = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:])
         else {
             return nil
         }

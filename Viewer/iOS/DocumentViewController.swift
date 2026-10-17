@@ -908,7 +908,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         while let current = viewController {
             if let navController = current as? UINavigationController,
                let sourceViewController = navController.viewControllers
-               .first(where: { $0 is SourceViewController }) as? SourceViewController
+                   .first(where: { $0 is SourceViewController }) as? SourceViewController
             {
                 return sourceViewController
             }
