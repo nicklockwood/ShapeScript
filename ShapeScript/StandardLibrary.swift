@@ -241,14 +241,11 @@ extension Symbols {
             }
             // Slow path, each calculated separately, no reuse
             return .tuple(context.paths.map {
-                let vector = $0.faceNormal / 2
-                let along = Path.line(-vector, vector)
-                    .withDetail(context.state.detail, forTwist: twist)
-                return .mesh(Geometry(type: .extrude([$0], .init(
-                    along: [along],
+                .mesh(Geometry(type: .extrude([$0], .init(
+                    normal: $0.faceNormal,
                     twist: twist,
-                    align: align,
-                    miterLimit: nil
+                    detail: context.state.detail,
+                    align: align
                 )), in: context, children: []))
             })
         },

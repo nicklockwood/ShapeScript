@@ -68,6 +68,25 @@ public struct ExtrudeOptions: Hashable, Sendable, Codable {
         self.align = (along.isEmpty ? nil : align) ?? .default
         self.miterLimit = miterLimit ?? .infinity
     }
+
+    init(
+        depth: Double = 1,
+        normal: Vector = .unitZ,
+        twist: Angle = .zero,
+        sections: Int? = nil,
+        detail: Int = 16,
+        align: Path.Alignment = .default
+    ) {
+        let vector = normal * depth / 2
+        let along: Path
+        if let sections {
+            let sections = max(1, sections)
+            along = Path((0 ... sections).map { .point(vector * (2 * Double($0) / Double(sections) - 1)) })
+        } else {
+            along = Path.line(-vector, vector).withDetail(detail, forTwist: twist)
+        }
+        self.init(along: [along], twist: twist, align: align, miterLimit: nil)
+    }
 }
 
 public struct TextPath: Hashable, Sendable, Codable {

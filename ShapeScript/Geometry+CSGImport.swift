@@ -780,14 +780,10 @@ private struct CSGImporter {
                 .point(r2, height / 2),
                 .point(0, height / 2),
             ])
-            let mesh = Mesh.lathe(profile, slices: detail, material: material, isCancelled: isCancelled)
-                .rotated(by: axis).translated(by: center ? .zero : Vector(
-                    0,
-                    0,
-                    height / 2
-                ))
-            try checkCancellation()
-            return try result(mesh, material: material)
+            return .init(geometry: geometry(
+                .lathe([profile], .init(segments: detail)), material: material,
+                transform: .init(rotation: axis, translation: center ? .zero : Vector(0, 0, height / 2))
+            ), paths: nil)
         case "polygon", "polyhedron":
             if !node.children.isEmpty {
                 warn("CSG primitives cannot have children; children ignored", at: node)
@@ -901,17 +897,11 @@ private struct CSGImporter {
                 guard profiles.reduce(0, { $0 + $1.points.count }) <= 1_000_000 / sections else {
                     throw node.error("CSG extrusion tessellation is too large")
                 }
-                let mesh = Mesh.extrude(
-                    profiles,
-                    depth: height,
-                    twist: .degrees(twist),
-                    sections: sections,
+                return .init(geometry: geometry(
+                    .extrude(profiles, .init(depth: height, twist: .degrees(twist), sections: sections)),
                     material: material,
-                    isCancelled: isCancelled
-                )
-                .translated(by: center ? .zero : Vector(0, 0, height / 2))
-                try checkCancellation()
-                return try result(mesh, material: material)
+                    transform: .translation(center ? .zero : Vector(0, 0, height / 2))
+                ), paths: nil)
             }
             let angle = try node.number(values, "angle", default: 360)
             let start = try node.number(values, "start", default: 0)
@@ -920,13 +910,11 @@ private struct CSGImporter {
             }
             let radius = profiles.flatMap(\.points).map { abs($0.position.x) }.max() ?? 0
             let detail = try fragments(values, radius: radius, node: node)
-            let mesh = Mesh.union(
-                profiles.map { Mesh.lathe($0, slices: detail, material: material, isCancelled: isCancelled) },
-                isCancelled: isCancelled
-            )
-            .rotated(by: Rotation(from: .unitY, to: .unitZ))
-            try checkCancellation()
-            return try result(mesh, material: material)
+            return .init(geometry: geometry(
+                .lathe(profiles, .init(segments: detail)),
+                material: material,
+                transform: .rotation(Rotation(from: .unitY, to: .unitZ))
+            ), paths: nil)
         case "text":
             if !node.children.isEmpty {
                 warn("CSG primitives cannot have children; children ignored", at: node)
