@@ -833,6 +833,53 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(deferred, eager)
     }
 
+    func testTransformsDoNotBuildTheirOperandsDuringImport() throws {
+        for transform in [
+            "translate([2,3,4])",
+            "rotate([20,30,40])",
+            "scale([2,3,4])",
+            "mirror([1,2,3])",
+        ] {
+            for modifier in ["", "#", "%", "!"] {
+                let scene = try Scene(
+                    csgString: "\(transform) \(modifier)hull() { sphere($fn=8); translate([3,0,0]) sphere($fn=8); }",
+                    cache: GeometryCache(diskCache: nil),
+                    isCancelled: { false }
+                )
+                func check(_ geometry: Geometry) {
+                    XCTAssertNil(geometry.mesh, "\(transform) \(modifier)")
+                    geometry.children.forEach(check)
+                }
+                check(scene.geometry)
+                XCTAssertTrue(scene.build { false })
+                XCTAssertEqual(scene.geometry.merged().isEmpty, modifier == "%")
+            }
+        }
+    }
+
+    func testShearIsBakedDuringImport() throws {
+        func imported(_ shear: Double) throws -> Scene {
+            try Scene(
+                csgString: "multmatrix([[1,\(shear),0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) cube(1);",
+                isCancelled: { false }
+            )
+        }
+        let first = try imported(0.5)
+        let second = try imported(0.75)
+        let geometry = try XCTUnwrap(first.children.first?.children.first)
+        guard case .mesh = geometry.type else {
+            return XCTFail("Shear should be baked into a mesh during import")
+        }
+        XCTAssertNotNil(geometry.mesh)
+        XCTAssertNotEqual(
+            first.children.first?.children.first?.cacheKey,
+            second.children.first?.children.first?.cacheKey
+        )
+        XCTAssertTrue(first.build { false })
+        XCTAssertEqual(first.geometry.merged().bounds.max.x, 1.5, accuracy: 0.000001)
+        XCTAssertEqual(first.geometry.merged().signedVolume, 1, accuracy: 0.000001)
+    }
+
     func testShearedProfileIsEvaluatedBeforeExtrusion() throws {
         let scene = try Scene(
             csgString: """
