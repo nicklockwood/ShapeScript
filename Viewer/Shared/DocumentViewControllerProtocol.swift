@@ -44,6 +44,7 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     )
     func hideWarning()
 
+    var hasLog: Bool { get }
     func clearLog()
     func appendLog(_ text: String)
     func updateModals()

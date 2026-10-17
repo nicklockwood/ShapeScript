@@ -52,8 +52,9 @@ private final class ModelInfoMockViewController: DocumentViewControllerProtocol,
 
     func hideWarning() {}
 
-    func clearLog() {}
-    func appendLog(_: String) {}
+    var hasLog = false
+    func clearLog() { hasLog = false }
+    func appendLog(_ text: String) { hasLog = hasLog || !text.isEmpty }
     func updateModals() {}
     func copyCamera() {}
 }
