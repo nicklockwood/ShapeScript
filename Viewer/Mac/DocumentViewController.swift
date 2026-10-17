@@ -512,9 +512,9 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         view.addSubview(banner, positioned: .above, relativeTo: nil)
         warningView = banner
 
-        // Wrapping text needs a preferred width; otherwise the toast can collapse to its icons.
-        let preferredWidth = banner.widthAnchor.constraint(equalToConstant: 640)
-        preferredWidth.priority = .defaultHigh
+        // Fill the available width without making the banner dictate the window's minimum size.
+        let preferredWidth = banner.widthAnchor.constraint(equalTo: view.widthAnchor, constant: -40)
+        preferredWidth.priority = .init(rawValue: NSLayoutConstraint.Priority.windowSizeStayPut.rawValue - 1)
         NSLayoutConstraint.activate([
             preferredWidth,
             tintView.leadingAnchor.constraint(equalTo: banner.leadingAnchor),
