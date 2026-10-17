@@ -134,6 +134,12 @@ extension LoadingProgress {
         progressQueue.asyncAfter(deadline: .now() + delay, execute: block)
     }
 
+    /// Runs an update after any in-flight scheduled update has completed.
+    /// Must not be called from a scheduled update itself.
+    nonisolated func performUpdate(_ block: () -> Void) {
+        progressQueue.sync(execute: block)
+    }
+
     nonisolated func setStatus(_ status: Status) {
         enum ObserverAction {
             case notify(Status)
