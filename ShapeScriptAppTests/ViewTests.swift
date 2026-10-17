@@ -277,7 +277,9 @@ final class ViewTests: XCTestCase {
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
 
-        document.sourceString = "sphere {"
+        // Use valid source so a background parse failure cannot make progress
+        // terminal before this test injects its replacement error.
+        document.sourceString = "sphere {}"
         document.didUpdateSource()
         let progress = try XCTUnwrap(document.loadingProgress)
         progress.setStatus(.partial(.empty, 0.1))
@@ -310,6 +312,15 @@ final class ViewTests: XCTestCase {
         document.updateViews()
         XCTAssertEqual(document.error, originalError)
         XCTAssertEqual(viewController.errorMessage, originalMessage)
+    }
+
+    func testLoadingProgressRunsDispatchedTasksInOrder() async {
+        let progress = LoadingProgress { _ in }
+        let completed = (0 ..< 32).map { expectation(description: "Task \($0) finishes") }
+        for expectation in completed {
+            progress.dispatch { _ in expectation.fulfill() }
+        }
+        await fulfillment(of: completed, timeout: 5, enforceOrder: true)
     }
 
     func testLoadingProgressFinalUpdateWaitsForScheduledUpdate() async {

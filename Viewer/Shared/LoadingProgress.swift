@@ -199,7 +199,8 @@ extension LoadingProgress {
         assert(Thread.isMainThread)
         assert(!status.isCancelledOrFailed)
         queue.append(block)
-        if thread?.isExecuting == true {
+        // A newly started thread may not report isExecuting yet.
+        if thread != nil {
             return
         }
         resume()
@@ -232,14 +233,18 @@ private nonisolated extension LoadingProgress {
         guard !queue.isEmpty else { return }
         self.queue.removeAll()
         thread = Thread { [weak self] in
+            defer {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    thread = nil
+                    guard !status.isCancelledOrFailed else { return }
+                    resume()
+                }
+            }
             do {
                 for task in queue {
                     guard let self, !self.status.isCancelledOrFailed else { return }
                     try task(self)
-                }
-                DispatchQueue.main.async { [weak self] in
-                    guard let self, !self.status.isCancelledOrFailed else { return }
-                    resume()
                 }
             } catch {
                 self?.setStatus(.failure(ProgramError(error)))
