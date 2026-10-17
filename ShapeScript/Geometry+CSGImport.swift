@@ -1072,7 +1072,7 @@ private struct CSGImporter {
         }
     }
 
-    private func transformed(_ node: CSGNode, material: Material) throws -> CSGShape {
+    private func matrix(_ node: CSGNode) throws -> [[Double]] {
         let matrix: [[Double]]
         switch node.name {
         case "multmatrix":
@@ -1152,6 +1152,29 @@ private struct CSGImporter {
         default:
             throw node.error("Invalid CSG transform '\(node.name)'")
         }
+        return matrix
+    }
+
+    /// Decompose only matrices that the existing scale/rotation/translation model can reproduce.
+    private func transform(_ matrix: [[Double]]) -> Transform? {
+        let x = Vector(matrix[0][0], matrix[1][0], matrix[2][0])
+        let y = Vector(matrix[0][1], matrix[1][1], matrix[2][1])
+        let z = Vector(matrix[0][2], matrix[1][2], matrix[2][2])
+        let determinant = x.dot(y.cross(z))
+        let scale = Vector(x.length * (determinant < 0 ? -1 : 1), y.length, z.length)
+        guard abs(scale.x) > 0, scale.y > 0, scale.z > 0,
+              let rotation = Rotation(forward: z, up: y)
+        else { return nil }
+        let basis = [Vector.unitX, .unitY, .unitZ].map { $0.scaled(by: scale).rotated(by: rotation) }
+        guard zip(basis, [x, y, z]).allSatisfy({ ($0 - $1).length < 1e-10 }) else { return nil }
+        return Transform(
+            scale: scale, rotation: rotation,
+            translation: Vector(matrix[0][3], matrix[1][3], matrix[2][3])
+        )
+    }
+
+    private func transformed(_ node: CSGNode, material: Material) throws -> CSGShape {
+        let matrix = try matrix(node)
         func apply(_ p: Vector) throws -> Vector {
             let coordinates = matrix.prefix(3).map { $0[0] * p.x + $0[1] * p.y + $0[2] * p.z + $0[3] }
             guard coordinates.allSatisfy(\.isFinite) else {
@@ -1193,7 +1216,11 @@ private struct CSGImporter {
                 }))
             case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
                  .extrude, .lathe, .loft, .fill, .mesh, .camera, .light:
-                let unmodified = geometry(source.type, material: source.material, transform: source.worldTransform)
+                let unmodified = geometry(
+                    source.type, material: source.material,
+                    children: source.children.map { $0.transformed(by: .identity) },
+                    transform: source.worldTransform
+                )
                 guard unmodified.build(isCancelled) else {
                     throw CancellationError()
                 }
@@ -1251,6 +1278,16 @@ private struct CSGImporter {
         guard abs(determinant) > Double.ulpOfOne else {
             warn("Singular CSG transforms are unsupported; geometry skipped", at: node)
             return .init(geometry: geometry(.group, material: material), paths: nil)
+        }
+        // Preserve ordinary transforms without tessellating their operands.
+        // Matrices containing shear fall back to baking a mesh below.
+        if !hasPaths, let transform = transform(matrix) {
+            for point in shapes.flatMap(\.geometry.overestimatedBounds.corners) {
+                _ = try apply(point)
+            }
+            return .init(geometry: geometry(
+                .group, material: material, children: shapes.map(\.geometry), transform: transform
+            ), paths: nil)
         }
         if hasModifiers || hasPaths {
             return try .init(
