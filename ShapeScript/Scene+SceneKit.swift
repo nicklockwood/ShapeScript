@@ -21,6 +21,10 @@ typealias OSImage = NSImage
 #endif
 
 private extension SCNGeometry {
+    var nonEmpty: SCNGeometry? {
+        sources(for: .vertex).contains { $0.vectorCount > 0 } ? self : nil
+    }
+
     convenience init(_ mesh: Mesh, for geometry: Geometry, writesToDepthBuffer: Bool) {
         self.init(mesh, materialLookup: {
             let material = $0 as? Material ?? geometry.material
@@ -37,7 +41,7 @@ private extension SCNGeometry {
 
 public extension SCNNode {
     convenience init(_ geometry: Geometry) {
-        self.init(geometry: geometry.scnGeometry)
+        self.init(geometry: geometry.scnGeometry.nonEmpty)
         setTransform(geometry.transform)
         geometry.scnNode = self
         name = geometry.name
@@ -70,7 +74,7 @@ public extension SCNNode {
     }
 
     func update(with geometry: Geometry) {
-        self.geometry = geometry.scnGeometry
+        self.geometry = geometry.scnGeometry.nonEmpty
         setTransform(geometry.transform)
         geometry.scnNode = self
         name = geometry.name

@@ -29,6 +29,24 @@ final class PlatformTests: XCTestCase {
 
     // MARK: SceneKit conversion
 
+    func testEmptyGroupGeometryDoesNotExpandSceneKitBounds() throws {
+        let scene = try evaluate(parse("group { position 10\ncube }"), delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+        let node = SCNNode(scene.geometry)
+        XCTAssertNil(node.geometry)
+        XCTAssertNil(node.childNodes.first?.geometry)
+        XCTAssertEqual(Bounds(node.boundingBox).min.x, 9.5, accuracy: 1e-6)
+        XCTAssertEqual(Bounds(node.boundingBox).max.x, 10.5, accuracy: 1e-6)
+
+        let cube = try XCTUnwrap(scene.children.first?.children.first)
+        let updated = SCNNode(cube)
+        XCTAssertNotNil(updated.geometry)
+        updated.update(with: scene.geometry)
+        XCTAssertNil(updated.geometry)
+        XCTAssertEqual(Bounds(updated.boundingBox).min.x, 9.5, accuracy: 1e-6)
+    }
+
     func testMaterialDepthBufferWrites() {
         let opaque = SCNMaterial(Material(color: .red), isOpaque: true)
         let opaqueWithinTransparentGeometry = SCNMaterial(
