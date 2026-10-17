@@ -750,9 +750,13 @@ private func cacheFileData(at url: URL) throws -> (keyData: Data, payloadData: D
     let cacheFileHeader = Data([0x53, 0x53, 0x44, 0x43, 0x46, 0x31])
     let uncompressedData: Data
     if data.starts(with: compressedDataHeader) {
+        #if canImport(Darwin)
         let compressedData = data.dropFirst(compressedDataHeader.count)
         uncompressedData = try (Data(compressedData) as NSData)
             .decompressed(using: .zlib) as Data
+        #else
+        throw CocoaError(.fileReadCorruptFile)
+        #endif
     } else {
         uncompressedData = data
     }
