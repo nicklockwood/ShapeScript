@@ -37,8 +37,12 @@
 		01D435A52E807CFB008B915E /* SVGPath.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01D435A62E807CFB008B915E /* Euclid.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		01D435A72E807CFB008B915E /* ShapeScript.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A71018000000000000000014 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
+		A71018000000000000000015 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
+		A71018000000000000000016 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
+		A71018000000000000000017 /* SVGPath.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D84B2E806BCF00C53A29 /* SVGPath.framework */; };
 		EADF1C4E2EE6EE200055F8D1 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */; platformFilters = (macos, ); };
-		EADF1C5A2EE6EE200055F8D1 /* Preview (Mac).appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EADF1C5A2EE6EE200055F8D1 /* ShapeScript Viewer Preview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EADF1C4C2EE6EE1F0055F8D1 /* ShapeScript Viewer Preview.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EADF1C762EE6F0E00055F8D1 /* ShapeScript.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D9682E8072C400C53A29 /* ShapeScript.framework */; };
 		EADF1C772EE6F0E00055F8D1 /* Euclid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D83E2E806BB600C53A29 /* Euclid.framework */; };
 		EADF1C782EE6F0E00055F8D1 /* LRUCache.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0158D8562E806BEE00C53A29 /* LRUCache.framework */; };
@@ -80,6 +84,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = 012B51E02E80984A00D69BA4;
 			remoteInfo = CLI;
+		};
+		015254843083913700EDB7F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0158DA762E8077C700C53A29;
+			remoteInfo = "Viewer (Mac)";
+		};
+		015254853083913700EDB7F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0158D6BD2E80480900C53A29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 012B51112E80923400D69BA4;
+			remoteInfo = "Viewer (iOS)";
 		};
 		0158D83D2E806BB600C53A29 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -198,7 +216,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				EADF1C5A2EE6EE200055F8D1 /* Preview (Mac).appex in Embed Foundation Extensions */,
+				EADF1C5A2EE6EE200055F8D1 /* ShapeScript Viewer Preview.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -206,7 +224,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		012B51122E80923400D69BA4 /* ShapeScript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShapeScript.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		012B51122E80923400D69BA4 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		012B51B62FF0000000000001 /* ContextMenu.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ContextMenu.xcodeproj; path = ContextMenu/ContextMenu.xcodeproj; sourceTree = "<group>"; };
 		012B51BF2E8094B000D69BA4 /* Help */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Help; path = Viewer/iOS/Help; sourceTree = SOURCE_ROOT; };
 		012B51E12E80984A00D69BA4 /* CLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CLI; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -217,7 +235,8 @@
 		0158D9702E8072C400C53A29 /* ShapeScriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShapeScriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ShapeScript Viewer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		01D435A22E807CBA008B915E /* Examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Examples; sourceTree = SOURCE_ROOT; };
-		EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Preview (Mac).appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A71018000000000000000002 /* ShapeScriptAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShapeScriptAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EADF1C4C2EE6EE1F0055F8D1 /* ShapeScript Viewer Preview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "ShapeScript Viewer Preview.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF1C4D2EE6EE1F0055F8D1 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -235,6 +254,7 @@
 				AppIcon.icon,
 				Assets.xcassets,
 				Licenses.rtf,
+				Untitled.csg,
 				Untitled.shape,
 			);
 			target = EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */;
@@ -316,6 +336,11 @@
 			path = CLI;
 			sourceTree = "<group>";
 		};
+		A71018000000000000000003 /* ShapeScriptAppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ShapeScriptAppTests;
+			sourceTree = "<group>";
+		};
 		EADF1C4F2EE6EE200055F8D1 /* Preview */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -380,6 +405,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A71018000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A71018000000000000000014 /* ShapeScript.framework in Frameworks */,
+				A71018000000000000000015 /* Euclid.framework in Frameworks */,
+				A71018000000000000000016 /* LRUCache.framework in Frameworks */,
+				A71018000000000000000017 /* SVGPath.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EADF1C492EE6EE1F0055F8D1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -416,6 +452,7 @@
 			children = (
 				0158D9692E8072C400C53A29 /* ShapeScript */,
 				0158D9742E8072C400C53A29 /* ShapeScriptTests */,
+				A71018000000000000000003 /* ShapeScriptAppTests */,
 				0158DB302E80783500C53A29 /* Viewer */,
 				EADF1C4F2EE6EE200055F8D1 /* Preview */,
 				0158D8352E806BB500C53A29 /* Frameworks */,
@@ -428,10 +465,11 @@
 			children = (
 				0158D9682E8072C400C53A29 /* ShapeScript.framework */,
 				0158D9702E8072C400C53A29 /* ShapeScriptTests.xctest */,
+				A71018000000000000000002 /* ShapeScriptAppTests.xctest */,
 				0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */,
-				012B51122E80923400D69BA4 /* ShapeScript.app */,
+				012B51122E80923400D69BA4 /* ShapeScript Viewer.app */,
 				012B51E12E80984A00D69BA4 /* CLI */,
-				EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */,
+				EADF1C4C2EE6EE1F0055F8D1 /* ShapeScript Viewer Preview.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -522,7 +560,7 @@
 			packageProductDependencies = (
 			);
 			productName = Viewer;
-			productReference = 012B51122E80923400D69BA4 /* ShapeScript.app */;
+			productReference = 012B51122E80923400D69BA4 /* ShapeScript Viewer.app */;
 			productType = "com.apple.product-type.application";
 		};
 		012B51E02E80984A00D69BA4 /* CLI */ = {
@@ -628,6 +666,28 @@
 			productReference = 0158DA772E8077C700C53A29 /* ShapeScript Viewer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A71018000000000000000001 /* ShapeScriptAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A71018000000000000000004 /* Build configuration list for PBXNativeTarget "ShapeScriptAppTests" */;
+			buildPhases = (
+				A71018000000000000000008 /* Sources */,
+				A71018000000000000000009 /* Frameworks */,
+				A7101800000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A7101800000000000000000B /* PBXTargetDependency */,
+				A7101800000000000000000C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A71018000000000000000003 /* ShapeScriptAppTests */,
+			);
+			name = ShapeScriptAppTests;
+			productName = ShapeScriptAppTests;
+			productReference = A71018000000000000000002 /* ShapeScriptAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EADF1C5F2EE6EE200055F8D1 /* Build configuration list for PBXNativeTarget "Preview (Mac)" */;
@@ -649,7 +709,7 @@
 			packageProductDependencies = (
 			);
 			productName = Preview;
-			productReference = EADF1C4C2EE6EE1F0055F8D1 /* Preview (Mac).appex */;
+			productReference = EADF1C4C2EE6EE1F0055F8D1 /* ShapeScript Viewer Preview.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -719,6 +779,7 @@
 			targets = (
 				0158D9672E8072C400C53A29 /* ShapeScript Lib */,
 				0158D96F2E8072C400C53A29 /* ShapeScriptTests */,
+				A71018000000000000000001 /* ShapeScriptAppTests */,
 				0158DA762E8077C700C53A29 /* Viewer (Mac) */,
 				012B51112E80923400D69BA4 /* Viewer (iOS) */,
 				012B51E02E80984A00D69BA4 /* CLI */,
@@ -787,6 +848,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				01D435A32E807CDD008B915E /* Examples in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A7101800000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -914,6 +982,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A71018000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EADF1C482EE6EE1F0055F8D1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -972,6 +1047,23 @@
 			target = 0158D9672E8072C400C53A29 /* ShapeScript Lib */;
 			targetProxy = 01D435962E807C0F008B915E /* PBXContainerItemProxy */;
 		};
+		A7101800000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilters = (
+				macos,
+			);
+			target = 0158DA762E8077C700C53A29 /* Viewer (Mac) */;
+			targetProxy = 015254843083913700EDB7F5 /* PBXContainerItemProxy */;
+		};
+		A7101800000000000000000C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilters = (
+				ios,
+				xros,
+			);
+			target = 012B51112E80923400D69BA4 /* Viewer (iOS) */;
+			targetProxy = 015254853083913700EDB7F5 /* PBXContainerItemProxy */;
+		};
 		EADF1C592EE6EE200055F8D1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = EADF1C4B2EE6EE1F0055F8D1 /* Preview (Mac) */;
@@ -1009,7 +1101,7 @@
 				MARKETING_VERSION = 1.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
-				PRODUCT_NAME = ShapeScript;
+				PRODUCT_NAME = "ShapeScript Viewer";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
@@ -1046,7 +1138,7 @@
 				MARKETING_VERSION = 1.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
 				PRODUCT_MODULE_NAME = Viewer;
-				PRODUCT_NAME = ShapeScript;
+				PRODUCT_NAME = "ShapeScript Viewer";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
@@ -1463,6 +1555,345 @@
 			};
 			name = Release;
 		};
+		A71017000002000000000001 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Viewer/iOS/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.11.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewer;
+				PRODUCT_MODULE_NAME = Viewer;
+				PRODUCT_NAME = ShapeScript;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,3,7";
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000002 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000003 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "xrsimulator xros watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TVOS_DEPLOYMENT_TARGET = 15.0;
+				VERSIONING_SYSTEM = "apple-generic";
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+				XROS_DEPLOYMENT_TARGET = 1.3;
+				__DIAGNOSE_INVALID_DEPLOYMENT_TARGET_AS_ERROR = NO;
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000004 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.11.6;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptLib;
+				PRODUCT_NAME = ShapeScript;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "$(AVAILABLE_PLATFORMS)";
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_MODULE = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,3,4,6,7";
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000005 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,6,7";
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000006 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				ASSETCATALOG_COMPILER_STANDALONE_ICON_BEHAVIOR = default;
+				CODE_SIGN_ENTITLEMENTS = Viewer/Mac/Viewer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Viewer/Mac/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2018-2026 Nick Lockwood. All rights reserved.";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.11.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer;
+				PRODUCT_MODULE_NAME = Viewer;
+				PRODUCT_NAME = "ShapeScript Viewer";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Debug Tests";
+		};
+		A71017000002000000000007 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Preview/Preview.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Preview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Preview;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.11.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer.Preview;
+				PRODUCT_NAME = "ShapeScript Viewer Preview";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 6;
+			};
+			name = "Debug Tests";
+		};
+		A71018000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShapeScript Viewer";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/Contents/MacOS/ShapeScript Viewer";
+			};
+			name = Debug;
+		};
+		A71018000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShapeScript Viewer";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/Contents/MacOS/ShapeScript Viewer";
+			};
+			name = Release;
+		};
+		A71018000000000000000007 /* Debug Tests */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8VQKF583ED;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptViewerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShapeScript Viewer";
+				"TEST_HOST[sdk=macosx*]" = "$(BUILT_PRODUCTS_DIR)/ShapeScript Viewer.app/Contents/MacOS/ShapeScript Viewer";
+			};
+			name = "Debug Tests";
+		};
 		EADF1C5C2EE6EE200055F8D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1485,7 +1916,7 @@
 				);
 				MARKETING_VERSION = 1.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer.Preview;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "ShapeScript Viewer Preview";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1523,7 +1954,7 @@
 				);
 				MARKETING_VERSION = 1.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.ShapeScriptMacViewer.Preview;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "ShapeScript Viewer Preview";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1546,6 +1977,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				012B51252E80923400D69BA4 /* Debug */,
+				A71017000002000000000001 /* Debug Tests */,
 				012B51262E80923400D69BA4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1555,6 +1987,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				012B51E62E80984A00D69BA4 /* Debug */,
+				A71017000002000000000002 /* Debug Tests */,
 				012B51E72E80984A00D69BA4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1564,6 +1997,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0158D6E72E80480B00C53A29 /* Debug */,
+				A71017000002000000000003 /* Debug Tests */,
 				0158D6E82E80480B00C53A29 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1573,6 +2007,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0158D9782E8072C400C53A29 /* Debug */,
+				A71017000002000000000004 /* Debug Tests */,
 				0158D9792E8072C400C53A29 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1582,6 +2017,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0158D97B2E8072C400C53A29 /* Debug */,
+				A71017000002000000000005 /* Debug Tests */,
 				0158D97C2E8072C400C53A29 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1591,7 +2027,18 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0158DA832E8077C900C53A29 /* Debug */,
+				A71017000002000000000006 /* Debug Tests */,
 				0158DA842E8077C900C53A29 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A71018000000000000000004 /* Build configuration list for PBXNativeTarget "ShapeScriptAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A71018000000000000000005 /* Debug */,
+				A71018000000000000000007 /* Debug Tests */,
+				A71018000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1600,6 +2047,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				EADF1C5C2EE6EE200055F8D1 /* Debug */,
+				A71017000002000000000007 /* Debug Tests */,
 				EADF1C5D2EE6EE200055F8D1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;

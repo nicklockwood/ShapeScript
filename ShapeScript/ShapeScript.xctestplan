@@ -16,6 +16,14 @@
       "parallelizable" : true,
       "target" : {
         "containerPath" : "container:ShapeScript.xcodeproj",
+        "identifier" : "A71018000000000000000001",
+        "name" : "ShapeScriptAppTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:ShapeScript.xcodeproj",
         "identifier" : "0158D96F2E8072C400C53A29",
         "name" : "ShapeScriptTests"
       }
