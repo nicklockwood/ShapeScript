@@ -349,7 +349,8 @@ extension DocumentProtocol {
     var camera: Camera {
         get {
             let type: CameraType? = settings.value(for: #function, in: self)
-            var camera = cameras.first(where: { $0.type == type }) ?? .default
+            var camera = cameras.first(where: { $0.type == type }) ??
+                Camera(bounds: scene?.visibleBounds ?? .empty, zUp: zUp)
             camera.zUp = zUp
             return camera
         }
@@ -420,7 +421,7 @@ extension DocumentProtocol {
         }
         let camera = cameras[index]
         if camera == self.camera {
-            updateViews()
+            self.camera = camera
             viewController?.resetCamera()
         } else {
             self.camera = camera

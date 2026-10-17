@@ -130,6 +130,68 @@ final class DocumentURLChangeTests: XCTestCase {
         )
     }
 
+    func testDefaultCameraLooksDownOnFlatModelsInEitherUpAxis() {
+        for zUp in [false, true] {
+            for (size, expected) in [
+                (Vector(10, 0, 20), CameraType.top),
+                (Vector(10, 0.5, 20), .top),
+                (Vector(10, 1, 20), .top),
+                (Vector(10, 1.99, 20), .top),
+                (Vector(10, 2, 20), .front),
+                (Vector(10, 2.01, 20), .front),
+                (Vector(10, 10, 10), .front),
+                (Vector(100, 1, 0.1), .front),
+                (Vector(10, 0, 0), .front),
+            ] {
+                let size = zUp ? Vector(size.x, size.z, size.y) : size
+                let camera = Viewer.Camera(bounds: Bounds(.zero, size), zUp: zUp)
+                XCTAssertEqual(camera.type, expected)
+                XCTAssertEqual(camera.zUp, zUp)
+            }
+            XCTAssertEqual(Viewer.Camera(bounds: .empty, zUp: zUp).type, .front)
+        }
+    }
+
+    func testFlatDocumentDefaultsRespectExplicitCameraSelections() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).csg")
+        let document = URLChangeMockDocument(fileURL: url)
+        document.scene = try Scene(csgString: "cube([10,20,0.5]);", isCancelled: { false })
+        document.updateCameras()
+        XCTAssertEqual(document.camera.type, .top)
+        XCTAssertTrue(document.camera.zUp)
+        let frontIndex = try XCTUnwrap(document.cameras.firstIndex { $0.type == .front })
+        XCTAssertTrue(document.selectCamera(at: frontIndex))
+        document.updateCameras()
+        XCTAssertEqual(document.camera.type, .front)
+        let topIndex = try XCTUnwrap(document.cameras.firstIndex { $0.type == .top })
+        XCTAssertTrue(document.selectCamera(at: topIndex))
+        // Selecting the current automatic default should also persist that choice.
+        let other = URLChangeMockDocument(fileURL: url.deletingPathExtension().appendingPathExtension("shape"))
+        other.scene = try evaluate(parse("cube { size 10 0.5 20 }"), delegate: nil)
+        other.updateCameras()
+        XCTAssertEqual(other.camera.type, .top)
+        XCTAssertTrue(other.selectCamera(at: topIndex))
+        other.scene = try evaluate(parse("cube"), delegate: nil)
+        other.updateCameras()
+        XCTAssertEqual(other.camera.type, .top)
+    }
+
+    func testFlatSceneExportUsesTopUnlessCameraIsSpecified() throws {
+        let scene = try Scene(csgString: "cube([10,20,0.5]); %cube(100);", isCancelled: { false })
+        let options = ExportOptions(convertToZUp: false, camera: nil, width: nil, height: nil)
+        let automatic = try scene.exportCamera(with: options, fallbackSize: (200, 200), camera: nil)
+        XCTAssertEqual(automatic.orientation, Viewer.Camera(type: .top, zUp: true).orientation)
+        let front = Viewer.Camera(type: .front, zUp: true)
+        let explicit = try scene.exportCamera(with: options, fallbackSize: (200, 200), camera: front)
+        XCTAssertEqual(explicit.orientation, front.orientation)
+        let namedOptions = ExportOptions(convertToZUp: false, camera: "Front", width: nil, height: nil)
+        let named = try scene.exportCamera(with: namedOptions, fallbackSize: (200, 200), camera: nil)
+        XCTAssertEqual(named.orientation, front.orientation)
+        let custom = try evaluate(parse("camera { orientation 10 20 30 }\ncube { size 10 0.5 20 }"), delegate: nil)
+        let customExport = try custom.exportCamera(with: options, fallbackSize: (200, 200), camera: nil)
+        XCTAssertEqual(customExport.orientation, custom.cameras.first?.worldTransform.rotation)
+    }
+
     func testCameraUpAxisContextPreservesCustomOrientation() throws {
         let scene = try evaluate(parse("camera { orientation 10 20 30 }\ncube"), delegate: nil)
         let geometry = try XCTUnwrap(scene.cameras.first)

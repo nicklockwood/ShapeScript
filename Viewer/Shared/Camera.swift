@@ -18,7 +18,7 @@ extension Scene {
     ) throws -> ShapeScript.Camera {
         let selectedCamera = try cameraOverride ?? options.camera.map(camera(named:)) ?? cameras.first.map {
             Camera(geometry: $0, index: 0, zUp: zUp)
-        } ?? Camera(type: .front, zUp: zUp)
+        } ?? Camera(bounds: visibleBounds, zUp: zUp)
         let outputSize = options.outputSize(fallbackSize: fallbackSize, camera: selectedCamera)
         let width = outputSize.width
         let height = outputSize.height
@@ -129,6 +129,14 @@ struct Camera {
 
 extension Camera: Equatable {
     static let `default` = Self(type: .front)
+
+    init(bounds: Bounds, zUp: Bool) {
+        let size = zUp ? Vector(bounds.size.x, bounds.size.z, bounds.size.y) : bounds.size
+        // Prefer looking down on flat models, but not long, narrow or empty ones.
+        let isFlat = !bounds.isEmpty && size.components.allSatisfy(\.isFinite) &&
+            size.y < min(size.x, size.z) * 0.2
+        self.init(type: isFlat ? .top : .front, zUp: zUp)
+    }
 
     init(type: CameraType, zUp: Bool = false) {
         self.type = type
