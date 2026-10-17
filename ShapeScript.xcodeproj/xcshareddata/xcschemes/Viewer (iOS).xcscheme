@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "012B51112E80923400D69BA4"
-               BuildableName = "ShapeScript.app"
+               BuildableName = "ShapeScript Viewer.app"
                BlueprintName = "Viewer (iOS)"
                ReferencedContainer = "container:ShapeScript.xcodeproj">
             </BuildableReference>
@@ -60,7 +60,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "012B51112E80923400D69BA4"
-            BuildableName = "ShapeScript.app"
+            BuildableName = "ShapeScript Viewer.app"
             BlueprintName = "Viewer (iOS)"
             ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
@@ -77,7 +77,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "012B51112E80923400D69BA4"
-            BuildableName = "ShapeScript.app"
+            BuildableName = "ShapeScript Viewer.app"
             BlueprintName = "Viewer (iOS)"
             ReferencedContainer = "container:ShapeScript.xcodeproj">
          </BuildableReference>
