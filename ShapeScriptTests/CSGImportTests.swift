@@ -713,7 +713,9 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(geometry.childDebug)
         let extruded = try mesh("linear_extrude(height=2) \(source)")
         XCTAssertEqual(extruded.signedVolume, 24, accuracy: 1e-8)
-        XCTAssertTrue(extruded.polygons.contains { polygon in polygon.vertices.contains { $0.color == .red } })
+        XCTAssertTrue(extruded.polygons.contains { polygon in
+            (polygon.material as? Material)?.color == .red || polygon.vertices.contains { $0.color == .red }
+        })
         let tilted = try Geometry(
             csgString: "union() { rotate([45,0,0]) square(2); rotate([45,0,0]) translate([1,0,0]) square(2); }",
             isCancelled: { false }
@@ -758,6 +760,124 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(result.signedVolume, 24, accuracy: 0.000001)
         XCTAssertEqual(result.bounds.min.z, 0, accuracy: 0.000001)
         XCTAssertTrue(result.isWatertight)
+    }
+
+    func testEvaluatedProfilesUseDeferredMeshCache() throws {
+        let source = "linear_extrude(height=2) difference() { square(4,true); offset(delta=-0.5) square(4,true); }"
+        let cache = GeometryCache(diskCache: nil)
+        let scene = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        let geometry = try XCTUnwrap(scene.children.first?.children.first)
+        guard case let .extrude(paths, _) = geometry.type else { return XCTFail("Expected extrusion") }
+        XCTAssertFalse(paths.isEmpty)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertEqual(cache.count, 0)
+        let encoded = try JSONEncoder().encode(geometry.type)
+        XCTAssertEqual(try JSONDecoder().decode(GeometryType.self, from: encoded), geometry.type)
+
+        XCTAssertTrue(scene.build { false })
+        let expected = try XCTUnwrap(geometry.mesh)
+        let reload = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        let reloaded = try XCTUnwrap(reload.children.first?.children.first)
+        XCTAssertEqual(geometry.cacheKey, reloaded.cacheKey)
+        XCTAssertTrue(reload.build { false })
+        XCTAssertEqual(reloaded.mesh, expected)
+        let changed = try Scene(
+            csgString: source.replacingOccurrences(of: "-0.5", with: "-1"),
+            cache: cache,
+            isCancelled: { false }
+        )
+        let different = try XCTUnwrap(changed.children.first?.children.first)
+        XCTAssertNotEqual(geometry.cacheKey, different.cacheKey)
+        XCTAssertNil(cache[mesh: different])
+    }
+
+    func testExtrudedProfilesPersistAcrossCacheInstances() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let disk = DiskCache(capacity: 10_000_000, directory: directory)
+        let cache = GeometryCache(diskCache: disk, diskWritePolicy: .init { _ in -.infinity })
+        let source = "linear_extrude(height=2) difference() { square(4,true); offset(delta=-0.5) square(4,true); }"
+        let scene = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        cache.flushPendingDiskWrites()
+        let reopenedCache = GeometryCache(diskCache: DiskCache(capacity: 10_000_000, directory: directory))
+        let reopened = try Scene(csgString: source, cache: reopenedCache, isCancelled: { false })
+        let geometry = try XCTUnwrap(reopened.children.first?.children.first)
+        XCTAssertNil(geometry.mesh)
+        XCTAssertNotNil(reopenedCache[mesh: geometry])
+        XCTAssertTrue(reopened.build { false })
+        XCTAssertEqual(scene.geometry.merged(), reopened.geometry.merged())
+    }
+
+    func testExtrusionBoundsContainSharpOffsets() throws {
+        for source in [
+            "linear_extrude(height=2) offset(delta=1) polygon([[0,0],[10,0],[0.1,0.1]]);",
+            "linear_extrude(height=2,twist=90,slices=8) difference() { square(4,true); offset(delta=-0.5) square(4,true); }",
+            "rotate_extrude($fn=16) translate([5,0,0]) offset(delta=0.5) square(1);",
+        ] {
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            let bounds = scene.geometry.overestimatedBounds
+            XCTAssertTrue(scene.build { false })
+            let result = scene.geometry.merged()
+            XCTAssertTrue(
+                result.polygons.flatMap(\.vertices).allSatisfy { bounds.intersects(Bounds($0.position, $0.position)) },
+                source
+            )
+        }
+    }
+
+    func testDeferredRevolutionUsesEvaluatedRadiusForAutomaticDetail() throws {
+        let profile = "difference() { square([20,3]); translate([2,-1,0]) square([30,5]); }"
+        let deferred = try mesh("rotate_extrude() \(profile)")
+        let eager = try mesh("rotate_extrude() #\(profile)")
+        XCTAssertEqual(deferred, eager)
+    }
+
+    func testShearedProfileIsEvaluatedBeforeExtrusion() throws {
+        let scene = try Scene(
+            csgString: """
+            linear_extrude(height=2)
+            multmatrix([[-1,0.5,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+            difference() { square(4,true); square(2,true); }
+            """,
+            isCancelled: { false }
+        )
+        let geometry = try XCTUnwrap(scene.children.first?.children.first)
+        guard case let .extrude(paths, _) = geometry.type,
+              !paths.isEmpty
+        else {
+            return XCTFail("Sheared profiles should be evaluated during import")
+        }
+        XCTAssertNil(geometry.mesh)
+        XCTAssertTrue(scene.build { false })
+        let result = scene.geometry.merged()
+        XCTAssertEqual(result.signedVolume, 24, accuracy: 0.000001)
+        XCTAssertEqual(result.bounds.min.x, -3, accuracy: 0.000001)
+        XCTAssertEqual(result.bounds.max.x, 3, accuracy: 0.000001)
+        XCTAssertTrue(result.isWatertight)
+    }
+
+    func testExtrusionAndRevolutionAreDeferredAndCached() throws {
+        for source in [
+            "linear_extrude(height=4, twist=90, slices=4) square(1);",
+            "rotate_extrude($fn=16) translate([2,0,0]) square(1);",
+            "cylinder(h=3, r1=2, r2=1, $fn=16);",
+        ] {
+            let cache = GeometryCache(diskCache: nil)
+            let first = try Scene(csgString: source, cache: cache, isCancelled: { false })
+            let geometry = try XCTUnwrap(first.children.first?.children.first)
+            XCTAssertNil(geometry.mesh, source)
+            XCTAssertEqual(cache.count, 0)
+            XCTAssertTrue(first.build { false })
+            XCTAssertGreaterThan(cache.count, 0)
+            let second = try Scene(csgString: source, cache: cache, isCancelled: { false })
+            let reloaded = try XCTUnwrap(second.children.first?.children.first)
+            XCTAssertNil(reloaded.mesh, source)
+            XCTAssertEqual(geometry.cacheKey, reloaded.cacheKey)
+            XCTAssertNotNil(cache[mesh: reloaded])
+            XCTAssertTrue(second.build { false })
+            XCTAssertEqual(first.geometry.merged(), second.geometry.merged(), source)
+        }
     }
 
     func testStraightExtrusionDefaultsToOneSection() throws {
