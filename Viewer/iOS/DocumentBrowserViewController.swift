@@ -191,9 +191,8 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
     func presentDocument(at documentURL: URL) {
         guard !openingDocument else { return }
 
-        if let viewController = rootNavigationController?
-            .viewControllers.first as? DocumentViewController,
-            let document = viewController.document
+        if let viewController = rootNavigationController?.viewControllers.first as? DocumentViewController,
+           let document = viewController.document
         {
             if document.fileURL != documentURL {
                 viewController.closeDocument { closed in

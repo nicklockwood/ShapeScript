@@ -184,17 +184,15 @@ private func directoriesEqual(_ lhs: URL, _ rhs: URL) throws -> Bool {
             return url
         }
         let target = try fm.destinationOfSymbolicLink(atPath: url.path)
-        return URL(fileURLWithPath: target, relativeTo: url.deletingLastPathComponent())
-            .standardizedFileURL
+        return URL(fileURLWithPath: target, relativeTo: url.deletingLastPathComponent()).standardizedFileURL
     }
 
     let lhs = try resolvedDirectoryURL(for: lhs)
     let rhs = try resolvedDirectoryURL(for: rhs)
     var isDir = ObjCBool(false)
-    guard fm.fileExists(atPath: lhs.path, isDirectory: &isDir), isDir.boolValue else {
-        return false
-    }
-    guard fm.fileExists(atPath: rhs.path, isDirectory: &isDir), isDir.boolValue else {
+    guard fm.fileExists(atPath: lhs.path, isDirectory: &isDir), isDir.boolValue,
+          fm.fileExists(atPath: rhs.path, isDirectory: &isDir), isDir.boolValue
+    else {
         return false
     }
     let lhsItems = try Set(fm.subpathsOfDirectory(atPath: lhs.path).filter {
