@@ -80,14 +80,14 @@ final class LRUDiskCacheTests: XCTestCase {
 
     func testDiskCachePersistsLongKeysAcrossCacheInstances() throws {
         let key = String(repeating: "long-cache-key/", count: 100)
-        var cache: LRUDiskCache<String, String>? = makeCache()
+        var cache: LRUDiskCache<String, String>? = makeCache(capacity: .max)
         try cache?.setValue("value", forKey: key)
         cache = nil
 
         let filenames = try FileManager.default.contentsOfDirectory(atPath: directory.path)
         XCTAssertTrue(filenames.allSatisfy { $0.count <= 255 })
 
-        let restoredCache = makeStringCache()
+        let restoredCache = makeStringCache(capacity: .max)
         XCTAssertEqual(restoredCache.value(forKey: key), "value")
     }
 
@@ -336,16 +336,20 @@ final class LRUDiskCacheTests: XCTestCase {
         XCTAssertEqual(cache.value(forKey: "key"), "value")
     }
 
-    func testDiskCacheCompressesStoredData() throws {
+    func testDiskCachePersistsCompressibleData() throws {
         let value = String(repeating: "compressible-value-", count: 100)
-        var cache: LRUDiskCache<String, String>? = makeCache()
+        var cache: LRUDiskCache<String, String>? = makeCache(capacity: .max)
         try cache?.setValue(value, forKey: "key")
 
         let diskUsage = try XCTUnwrap(cache?.currentUsage)
+        #if canImport(Darwin)
         XCTAssertLessThan(diskUsage, value.utf8.count)
+        #else
+        XCTAssertGreaterThan(diskUsage, value.utf8.count)
+        #endif
         cache = nil
 
-        let restoredCache = makeStringCache()
+        let restoredCache = makeStringCache(capacity: .max)
         XCTAssertEqual(restoredCache.value(forKey: "key"), value)
     }
 
@@ -482,8 +486,12 @@ final class LRUDiskCacheTests: XCTestCase {
         guard data.starts(with: compressedDataHeader) else {
             return data
         }
+        #if canImport(Darwin)
         let compressedData = data.dropFirst(compressedDataHeader.count)
         return try (Data(compressedData) as NSData).decompressed(using: .zlib) as Data
+        #else
+        throw CocoaError(.fileReadCorruptFile)
+        #endif
     }
 
     private static let pngData = Data([

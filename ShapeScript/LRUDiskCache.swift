@@ -23,14 +23,15 @@ public enum LRUDiskCacheError: Error {
 
 /// A thread-safe least-recently-used cache backed by disk.
 ///
-/// `LRUDiskCache` persists compressed data on disk when doing so reduces the
-/// stored byte size. Values are evicted least-recently-used first when the
+/// `LRUDiskCache` persists compressed data on Apple platforms when doing so
+/// reduces the stored byte size, and uncompressed data on other platforms.
+/// Values are evicted least-recently-used first when the
 /// disk capacity is exceeded. Reading a value with `value(forKey:)` updates
 /// its recency, while `hasValue(forKey:)` does not.
 ///
 /// Keys must conform to `Codable`. Caches can be created when `Value` conforms
 /// to `Codable` or `LRUDiskCacheDataConvertible`. Disk cost is calculated from
-/// the compressed stored byte size.
+/// the actual stored byte size.
 ///
 /// - Parameters:
 ///   - Key: The type used to identify cached values.
@@ -670,17 +671,22 @@ private final class DiskStore {
     ])
 
     private static func storedData(_ data: Data) -> Data {
+        #if canImport(Darwin)
         let shouldCompress = data.starts(with: compressedDataHeader)
         guard let compressedData = try? (data as NSData).compressed(using: .zlib) as Data else {
             return data
         }
         let storedData = compressedDataHeader + compressedData
         return shouldCompress || storedData.count < data.count ? storedData : data
+        #else
+        return data
+        #endif
     }
 
     private static func data(fromStoredData storedData: Data) -> Data? {
         let data: Data
         if storedData.starts(with: compressedDataHeader) {
+            #if canImport(Darwin)
             let compressedData = storedData.dropFirst(compressedDataHeader.count)
             guard let decompressed = try? (Data(compressedData) as NSData)
                 .decompressed(using: .zlib) as Data
@@ -688,6 +694,10 @@ private final class DiskStore {
                 return nil
             }
             data = decompressed
+            #else
+            // Compressed entries from Apple platforms are treated as cache misses.
+            return nil
+            #endif
         } else {
             data = storedData
         }
