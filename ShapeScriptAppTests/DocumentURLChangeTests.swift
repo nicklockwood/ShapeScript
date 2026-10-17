@@ -521,6 +521,40 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertGreaterThan(banner.frame.height, 0)
     }
 
+    func testWarningBannerAllowsWindowToShrinkAndWrapsText() throws {
+        for isQuickLook in [false, true] {
+            let document = Document()
+            let viewController = DocumentViewController()
+            viewController.document = document
+            viewController.isQuickLook = isQuickLook
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+                styleMask: [.titled, .resizable], backing: .buffered, defer: false
+            )
+            window.isReleasedWhenClosed = false
+            defer { window.close() }
+            window.contentViewController = viewController
+            viewController.checkDocumentWarnings(["This document contains unsupported geometry and may be incomplete."])
+            let presentation = try XCTUnwrap(viewController.warningPresentation)
+            let banner = try XCTUnwrap(viewController.view.subviews.last as? NSVisualEffectView)
+            let label = try XCTUnwrap(banner.subviews.compactMap { $0 as? WarningTextView }.first)
+            viewController.view.layoutSubtreeIfNeeded()
+            let wideHeight = label.frame.height
+            window.setContentSize(NSSize(width: 200, height: 480))
+            viewController.view.layoutSubtreeIfNeeded()
+            XCTAssertEqual(viewController.view.bounds.width, 200, accuracy: 1)
+            XCTAssertLessThanOrEqual(banner.frame.width, 160)
+            XCTAssertFalse(banner.isHidden)
+            XCTAssertGreaterThan(label.frame.height, wideHeight)
+            XCTAssertEqual(viewController.warningPresentation, presentation)
+            XCTAssertEqual(document.warningQueue.current, presentation)
+            window.setContentSize(NSSize(width: 900, height: 480))
+            viewController.view.layoutSubtreeIfNeeded()
+            XCTAssertEqual(viewController.view.bounds.width, 900, accuracy: 1)
+            XCTAssertEqual(banner.frame.width, 640, accuracy: 1)
+        }
+    }
+
     func testNativeCSGTextWarningsAdvance() async throws {
         let source = (0 ..< 6).map { "text(\"\($0)\", spacing=2);" }.joined(separator: "\n")
         let document = Document()
