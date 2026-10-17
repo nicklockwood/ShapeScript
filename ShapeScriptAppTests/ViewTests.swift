@@ -29,7 +29,15 @@ private final class MockViewController: DocumentViewControllerProtocol, @uncheck
     var errorMessage: NSAttributedString?
     var isLoading = false
     var renderProgress: Double?
-    var showConsole = false
+    var consoleVisibilityChanges = [Bool]()
+    var showConsole = false {
+        didSet {
+            if showConsole != oldValue {
+                consoleVisibilityChanges.append(showConsole)
+            }
+        }
+    }
+
     var showAxes = false
     var isOrthographic = false
     var camera = Viewer.Camera.default
@@ -75,8 +83,14 @@ private final class MockViewController: DocumentViewControllerProtocol, @uncheck
 
     func hideWarning() {}
 
-    func clearLog() {}
-    func appendLog(_: String) {}
+    var hasLog = false
+    var consoleWasVisibleWhenCleared: Bool?
+    func clearLog() {
+        consoleWasVisibleWhenCleared = showConsole
+        hasLog = false
+    }
+
+    func appendLog(_ text: String) { hasLog = hasLog || !text.isEmpty }
     func updateModals() {}
     func copyCamera() {}
 }
@@ -185,6 +199,39 @@ final class ViewTests: XCTestCase {
         XCTAssertNil(viewController.geometry)
         XCTAssertNil(viewController.selectedGeometry)
         XCTAssertTrue(viewController.scnScene.rootNode.childNodes.isEmpty)
+    }
+
+    func testReloadRetainsConsoleUntilNewOutputIsKnown() async throws {
+        for (source, hasOutput) in [
+            ("print \"hello\"\ncube", true),
+            ("cube", false),
+            ("print \"\"\ncube", false),
+        ] {
+            let viewController = MockViewController()
+            let document = ViewMockDocument(viewController: viewController)
+            viewController.document = document
+            viewController.showConsole = true
+            viewController.appendLog("Previous output")
+            viewController.consoleVisibilityChanges = []
+            document.sourceString = source
+            document.didUpdateSource()
+
+            // Complete on the main queue after the queued log and status updates.
+            let progress = try XCTUnwrap(document.loadingProgress)
+            let completed = expectation(description: "Reload finishes")
+            progress.dispatch { _ in
+                DispatchQueue.main.async {
+                    completed.fulfill()
+                }
+            }
+            await fulfillment(of: [completed], timeout: 5)
+
+            XCTAssertTrue(progress.didSucceed, source)
+            XCTAssertEqual(viewController.consoleWasVisibleWhenCleared, true, source)
+            XCTAssertEqual(viewController.hasLog, hasOutput, source)
+            XCTAssertEqual(viewController.showConsole, hasOutput, source)
+            XCTAssertEqual(viewController.consoleVisibilityChanges, hasOutput ? [] : [false], source)
+        }
     }
 
     func testSourceUpdatePreservesOriginalErrorUntilSuccess() async throws {

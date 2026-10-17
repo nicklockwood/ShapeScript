@@ -129,6 +129,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     private var logLength: Int = 0
 
+    var hasLog: Bool { logLength > 0 }
+
     func clearLog() {
         logLength = 0
         consoleTextView.textStorage?.setAttributedString(NSAttributedString(string: ""))

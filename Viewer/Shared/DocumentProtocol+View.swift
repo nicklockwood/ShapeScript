@@ -137,7 +137,6 @@ extension DocumentProtocol {
             case .waiting:
                 if let viewController {
                     viewController.renderProgress = loadingIndicatorProgress
-                    viewController.showConsole = false
                     viewController.clearLog()
                 }
                 updateViews()
@@ -145,6 +144,9 @@ extension DocumentProtocol {
                 self.scene = scene.with(zUp: zUp)
                 viewController?.renderProgress = loadingIndicatorProgress
             case let .success(scene):
+                if let viewController, !viewController.hasLog {
+                    viewController.showConsole = false
+                }
                 error = nil
                 self.scene = scene.with(zUp: zUp)
                 viewController?.checkDocumentWarnings()
@@ -164,6 +166,9 @@ extension DocumentProtocol {
                     viewController?.renderProgress = nil
                 }
             case let .failure(error):
+                if let viewController, !viewController.hasLog {
+                    viewController.showConsole = false
+                }
                 viewController?.renderProgress = nil
                 self.error = error
                 updateViews()
