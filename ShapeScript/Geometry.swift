@@ -1527,11 +1527,26 @@ private extension Geometry {
         }
     }
 
+    /// A final mesh replaces its operands unless they are needed for overlays.
+    var canReuseBuiltSubtree: Bool {
+        !isLeaf && mesh != nil && !childDebug && !childIsFocused
+    }
+
+    func finalSubtreeUnitCount(plan: GeometryBuildProgressPlan) -> Int {
+        (isLeaf ? 1 : plan.unitCount(for: self)) + finalBuildChildren.reduce(0) {
+            $0 + $1.finalSubtreeUnitCount(plan: plan)
+        }
+    }
+
     /// Build all geometries that don't have dependencies
     /// - Returns: false if cancelled or true when completed
     func buildLeaves(_ progress: RenderProgress, plan: GeometryBuildProgressPlan) -> Bool {
         guard progress.enter(.buildingLeaves) else {
             return false
+        }
+        if !isLeaf, !childDebug, !childIsFocused, let cached = cache?[mesh: self] {
+            mesh = cached
+            return progress.completeUnit(.buildingLeaves, by: leafProgressUnitCount)
         }
         let unitCount = isLeaf ? plan.unitCount(for: self) : 1
         guard progress.beginUnit(.buildingLeaves, unitCount: unitCount) else {
@@ -1566,6 +1581,9 @@ private extension Geometry {
         guard progress.enter(.buildingPreview) else {
             return false
         }
+        if canReuseBuiltSubtree {
+            return progress.completeUnit(.buildingPreview, by: previewProgressUnitCount)
+        }
         for child in visibleChildren where !child.buildPreview(progress) {
             return false
         }
@@ -1599,6 +1617,9 @@ private extension Geometry {
     func buildFinal(_ progress: RenderProgress, plan: GeometryBuildProgressPlan) -> Bool {
         guard progress.enter(.buildingFinal) else {
             return false
+        }
+        if canReuseBuiltSubtree {
+            return progress.completeUnit(.buildingFinal, by: finalSubtreeUnitCount(plan: plan))
         }
         for child in finalBuildChildren where !child.buildFinal(progress, plan: plan) {
             return false
@@ -2142,6 +2163,7 @@ public extension Geometry {
     /// Returns `true` if this geometry and all descendants have any required meshes built.
     /// This can be used to inspect geometry without triggering additional mesh generation.
     var hasBuiltMeshes: Bool {
+        if canReuseBuiltSubtree { return true }
         switch type {
         case .camera, .light, .circle, .square, .text, .path, .group:
             break
