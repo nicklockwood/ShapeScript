@@ -172,6 +172,31 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(singular.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
 
+    func testTransformsOfEmptyGeometryDoNotOverflow() throws {
+        for child in [
+            "group() {}",
+            "linear_extrude(height=100) {}",
+            "rotate_extrude() {}",
+            "linear_extrude(height=100) import(file=\"example007.dxf\", layer=\"cutout1\");",
+        ] {
+            let scene = try Scene(
+                csgString: """
+                rotate([90,0,0])
+                multmatrix([[1,0,0,0],[0,1,0,0],[0,0,1,-50],[0,0,0,1]]) {
+                    \(child)
+                    cube(1);
+                }
+                """,
+                isCancelled: { false }
+            )
+            XCTAssertTrue(scene.build { false }, child)
+            let result = scene.geometry.merged()
+            XCTAssertEqual(result.signedVolume, 1, accuracy: 1e-8, child)
+            XCTAssertEqual(result.bounds.min.y, 49, accuracy: 1e-8, child)
+            XCTAssertEqual(result.bounds.max.y, 50, accuracy: 1e-8, child)
+        }
+    }
+
     func testPrimitiveChildrenAreIgnoredWithWarnings() throws {
         let scene = try Scene(csgString: "cube(size=2) { sphere(1); }", isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)

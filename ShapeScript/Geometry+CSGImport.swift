@@ -1282,8 +1282,12 @@ private struct CSGImporter {
         // Preserve ordinary transforms without tessellating their operands.
         // Matrices containing shear fall back to baking a mesh below.
         if !hasPaths, let transform = transform(matrix) {
-            for point in shapes.flatMap(\.geometry.overestimatedBounds.corners) {
-                _ = try apply(point)
+            for shape in shapes {
+                let bounds = shape.geometry.overestimatedBounds
+                guard !bounds.isEmpty else { continue }
+                for point in bounds.corners {
+                    _ = try apply(point)
+                }
             }
             return .init(geometry: geometry(
                 .group, material: material, children: shapes.map(\.geometry), transform: transform
