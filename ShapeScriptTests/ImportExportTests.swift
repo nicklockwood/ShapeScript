@@ -181,6 +181,28 @@ final class ImportExportTests: XCTestCase {
         }
     }
 
+    func testImportsWithoutDelegateResolveAbsoluteRelativeAndFinderPaths() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("foo:bar.txt")
+        try "contents".write(to: url, atomically: true, encoding: .utf8)
+        let context = EvaluationContext(source: "", delegate: nil)
+        context.state.baseURL = directory.appendingPathComponent("main.shape")
+
+        XCTAssertEqual(try context.importFile(at: url.path), "contents")
+        XCTAssertEqual(try context.importFile(at: "foo:bar.txt"), "contents")
+        XCTAssertEqual(try context.importFile(at: "foo/bar.txt"), "contents")
+        XCTAssertThrowsError(try context.importFile(at: "missing.txt")) { error in
+            guard case let RuntimeErrorType.fileNotFound(path, url) = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+            XCTAssertEqual(path, "missing.txt")
+            XCTAssertEqual(url, directory.appendingPathComponent("missing.txt"))
+        }
+    }
+
     func testImportFileWithFinderSlashInName() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

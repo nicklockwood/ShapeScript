@@ -399,12 +399,13 @@ extension EvaluationContext {
                 URL(fileURLWithPath: expandedPath, relativeTo: $0).path
             } ?? expandedPath
         }
-        guard let firstPath = paths.first,
-              let firstURL = delegate?.resolveURL(for: firstPath)
-        else {
-            // TODO: should this be a different error type, like "delegate not available"?
+        func resolve(_ path: String) -> URL {
+            delegate?.resolveURL(for: path) ?? URL(fileURLWithPath: path)
+        }
+        guard let firstPath = paths.first else {
             throw RuntimeErrorType.fileNotFound(for: path, at: nil)
         }
+        let firstURL = resolve(firstPath)
         let url: URL = if firstURL.isUndownloadedUbiquitousFile || fileManager.fileExists(atPath: firstURL.path) {
             firstURL
         } else {
@@ -413,9 +414,7 @@ extension EvaluationContext {
                     return false
                 }
                 return url.isUndownloadedUbiquitousFile || fileManager.fileExists(atPath: url.path)
-            }.flatMap {
-                delegate?.resolveURL(for: $0)
-            } ?? firstURL
+            }.map(resolve) ?? firstURL
         }
 //        try? fileManager.evictUbiquitousItem(at: url) // Handy for testing
         // TODO: move this logic out of EvaluationContext into delegate
@@ -511,13 +510,18 @@ extension EvaluationContext {
         }
         switch ImportType(url) {
         case .csg:
+            guard !importStack.contains(url) else {
+                throw RuntimeErrorType.circularImport(for: url)
+            }
+            importStack.append(url)
+            defer { importStack.removeLast() }
             try url.validateFileSize(limit: FileSizeLimit.text)
             return try Geometry(csgString: String(contentsOf: url), at: url, onWarning: { [importCache] message in
                 let message = "\(url.lastPathComponent): \(message)"
                 if !importCache.warnings.contains(message) {
                     importCache.warnings.append(message)
                 }
-            }, isCancelled: isCancelled)
+            }, context: self)
         case .stereolithography, .wavefront, .object:
             let mesh = try loadMesh(at: url) {
                 switch $0 {
@@ -580,6 +584,10 @@ extension EvaluationContext {
 
     func importFile(at path: String, options: [String: Value] = [:]) throws -> Value {
         let url = try resolveURL(for: path)
+        return try importFile(at: url, named: path, options: options)
+    }
+
+    func importFile(at url: URL, named path: String, options: [String: Value] = [:]) throws -> Value {
         evaluationProgress?.beginImport()
         defer { evaluationProgress?.completeUnit() }
         if case let .value(value) = importCache.store[url] {
@@ -742,6 +750,7 @@ extension EvaluationContext {
                 }
                 throw RuntimeErrorType.importError(error, for: url, in: source)
             } catch {
+                if isCancelled() { throw CancellationError() }
                 throw RuntimeErrorType.fileError(error, for: path, at: url)
             }
         }

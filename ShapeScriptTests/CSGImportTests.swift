@@ -177,7 +177,6 @@ final class CSGImportTests: XCTestCase {
             "group() {}",
             "linear_extrude(height=100) {}",
             "rotate_extrude() {}",
-            "linear_extrude(height=100) import(file=\"example007.dxf\", layer=\"cutout1\");",
         ] {
             let scene = try Scene(
                 csgString: """
@@ -1113,7 +1112,7 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
             "offset(r=1) circle(1);", "projection() cube(1);", "surface(file=\"a.dat\");",
-            "import(file=\"a.stl\");", "resize([2,3,4]) cube(1);",
+            "resize([2,3,4]) cube(1);",
             "linear_extrude(height=2, scale=0.5) square(1);",
             "rotate_extrude(angle=90) square(1);",
             "hull() { square(2); translate([0,0,1]) square(2); }",
@@ -1154,6 +1153,151 @@ final class CSGImportTests: XCTestCase {
             "linear_extrude(height=1,slices=100000) circle($fn=1000);",
         ] {
             XCTAssertThrowsError(try mesh(source))
+        }
+    }
+
+    func testModelImportsUseRelativePathsTransformsAndMaterials() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let rootURL = directory.appendingPathComponent("main.csg")
+        for ext in ["stl", "obj", "off"] {
+            let url = directory.appendingPathComponent("part.\(ext)")
+            try Mesh.cube(size: 2).write(to: url)
+            let source = """
+            color([1,0,0]) translate([10,0,0]) import("part.\(ext)", convexity=10);
+            """
+            try source.write(to: rootURL, atomically: true, encoding: .utf8)
+            let scene = try Scene(csgString: source, at: rootURL, isCancelled: { false })
+            XCTAssertTrue(scene.build { false })
+            let mesh = scene.geometry.merged()
+            XCTAssertEqual(mesh.signedVolume, 8, accuracy: 1e-6)
+            XCTAssertEqual(mesh.bounds.center, Vector(10, 0, 0))
+            func importedMeshes(in geometry: Geometry) -> [Geometry] {
+                if case .mesh = geometry.type { return [geometry] }
+                return geometry.children.flatMap { importedMeshes(in: $0) }
+            }
+            let imported = try XCTUnwrap(importedMeshes(in: scene.geometry).first)
+            XCTAssertEqual(imported.material.color, .red)
+        }
+    }
+
+    func testNestedCSGImportsResolveRelativeToTheirOwnFile() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let subdirectory = directory.appendingPathComponent("parts", isDirectory: true)
+        try FileManager.default.createDirectory(at: subdirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Mesh.cube(size: 2).write(to: subdirectory.appendingPathComponent("part.stl"))
+        try "import(\"part.stl\");".write(
+            to: subdirectory.appendingPathComponent("nested.csg"), atomically: true, encoding: .utf8
+        )
+        let source = "import(\"parts/nested.csg\");"
+        let rootURL = directory.appendingPathComponent("main.csg")
+        try source.write(to: rootURL, atomically: true, encoding: .utf8)
+        let scene = try Scene(csgString: source, at: rootURL, isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-6)
+
+        // The same chain must also work when entered from a ShapeScript import.
+        let script = try evaluate(
+            parse("import \"\(rootURL.path)\""), delegate: nil
+        )
+        XCTAssertTrue(script.build { false })
+        XCTAssertEqual(script.geometry.merged().signedVolume, 8, accuracy: 1e-6)
+    }
+
+    func testCSGImportsUseDelegateAndReuseLoadedGeometry() throws {
+        final class Delegate: EvaluationDelegate {
+            var imports = [URL]()
+            var denyAccess = false
+            func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
+            func debugLog(_: [AnyHashable]) {}
+            func importGeometry(for url: URL) throws -> Geometry? {
+                imports.append(url)
+                if denyAccess {
+                    throw RuntimeErrorType.fileAccessRestricted(for: url.path, at: url.deletingLastPathComponent())
+                }
+                return try Geometry(csgString: "cube(1);", isCancelled: { false })
+            }
+        }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let partURL = directory.appendingPathComponent("part.stl")
+        try "loaded by delegate".write(to: partURL, atomically: true, encoding: .utf8)
+        let rootURL = directory.appendingPathComponent("main.csg")
+        let source = """
+        import("part.stl");
+        translate([2,0,0]) import("part.stl");
+        """
+        try source.write(to: rootURL, atomically: true, encoding: .utf8)
+        let delegate = Delegate()
+        let scene = try Scene(csgString: source, at: rootURL, delegate: delegate, isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 2, accuracy: 1e-6)
+        XCTAssertEqual(delegate.imports, [partURL])
+
+        delegate.denyAccess = true
+        XCTAssertThrowsError(try Scene(csgString: source, at: rootURL, delegate: delegate, isCancelled: { false })) {
+            XCTAssertEqual(ProgramError($0).type, .fileAccess)
+        }
+    }
+
+    func testImportedCSGProfilesCanBeExtrudedAndForwardWarnings() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try "roof() square(2);".write(
+            to: directory.appendingPathComponent("profile.csg"), atomically: true, encoding: .utf8
+        )
+        let rootURL = directory.appendingPathComponent("main.csg")
+        let source = "linear_extrude(height=3) import(\"profile.csg\");"
+        try source.write(to: rootURL, atomically: true, encoding: .utf8)
+        let scene = try Scene(csgString: source, at: rootURL, isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 12, accuracy: 1e-6)
+        XCTAssertTrue(scene.warnings.contains { $0.contains("profile.csg") && $0.contains("roof") })
+    }
+
+    func testCSGImportFailuresRemainErrorsWithSourceLocations() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let rootURL = directory.appendingPathComponent("main.csg")
+        for name in ["unsupported.foo", "unsupported.dxf", "script.shape"] {
+            try "not a model".write(
+                to: directory.appendingPathComponent(name), atomically: true, encoding: .utf8
+            )
+        }
+        for name in ["unsupported.foo", "unsupported.dxf", "script.shape", "missing.stl"] {
+            let source = "\nimport(\"\(name)\");"
+            try source.write(to: rootURL, atomically: true, encoding: .utf8)
+            XCTAssertThrowsError(try Scene(csgString: source, at: rootURL, isCancelled: { false })) {
+                let error = ProgramError($0)
+                XCTAssertTrue(error.message.contains(name), error.message)
+                XCTAssertTrue(error.messageAndLocation(with: source).contains("on line 2"))
+                if name == "missing.stl" {
+                    XCTAssertTrue(error.message.contains("not found"))
+                } else {
+                    XCTAssertTrue(
+                        error.hint?.contains("unsupported") == true ||
+                            error.hint?.contains("not supported") == true,
+                        error.hint ?? "Missing hint"
+                    )
+                }
+            }
+        }
+    }
+
+    func testCircularCSGImportsAreRejected() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("loop.csg")
+        let source = "import(\"loop.csg\");"
+        try source.write(to: url, atomically: true, encoding: .utf8)
+        XCTAssertThrowsError(try Scene(csgString: source, at: url, isCancelled: { false })) {
+            XCTAssertTrue(ProgramError($0).message.contains("Circular import"), String(describing: $0))
         }
     }
 
