@@ -31,12 +31,21 @@ public extension Geometry {
         at fileURL: URL? = nil,
         onWarning: ((String) -> Void)? = nil,
         delegate: EvaluationDelegate? = nil,
+        progress: EvaluationProgress? = nil,
         isCancelled: @escaping CancellationHandler
     ) throws {
-        let context = EvaluationContext(source: csgString, delegate: delegate, isCancelled: isCancelled)
+        progress?.beginTracking(isCancelled: isCancelled)
+        defer { progress?.endTracking() }
+        let cancellationHandler: CancellationHandler = { progress?.isCancelled ?? isCancelled() }
+        let context = EvaluationContext(
+            source: csgString, delegate: delegate, evaluationProgress: progress, isCancelled: cancellationHandler
+        )
         defer { withExtendedLifetime(delegate) {} }
         try self.init(csgString: csgString, at: fileURL, onWarning: onWarning, context: context)
         context.warnings.forEach { onWarning?($0) }
+        if cancellationHandler() { throw CancellationError() }
+        progress?.completeUnit()
+        progress?.finish()
     }
 }
 
@@ -53,6 +62,7 @@ extension Geometry {
         }
         var parser = CSGParser(csgString, isCancelled: isCancelled)
         let nodes = try parser.parse()
+        context.discoveredImports(count: nodes.reduce(0) { $0 + $1.importCount })
         let importer = CSGImporter(context: context, source: csgString, onWarning: onWarning, fileURL: fileURL)
         let line = nodes.first?.line ?? 1
         let sourceLocation: (@Sendable () -> SourceLocation?)? = fileURL.map { url in
@@ -85,6 +95,7 @@ public extension Scene {
         at fileURL: URL? = nil,
         cache: GeometryCache? = nil,
         delegate: EvaluationDelegate? = nil,
+        progress: EvaluationProgress? = nil,
         isCancelled: @escaping CancellationHandler
     ) throws {
         if isCancelled() {
@@ -99,7 +110,7 @@ public extension Scene {
             if !warnings.contains(message) {
                 warnings.append(message)
             }
-        }, delegate: delegate, isCancelled: isCancelled)
+        }, delegate: delegate, progress: progress, isCancelled: isCancelled)
         self.init(background: .color(.clear), children: [geometry], cache: cache, warnings: warnings, zUp: true)
     }
 }
@@ -137,6 +148,10 @@ private struct CSGNode {
 
     func error(_ message: String) -> CSGImportError {
         .init(message: message, line: line, column: column)
+    }
+
+    var importCount: Int {
+        (name == "import" ? 1 : 0) + children.reduce(0) { $0 + $1.importCount }
     }
 
     func validate(_ names: [String], positional: [String] = []) throws -> [String: CSGValue] {

@@ -225,8 +225,8 @@ extension DocumentProtocol {
                 }
                 let scene: Scene
                 let error: Error?
+                scheduleEvaluationProgressUpdate()
                 if let program {
-                    scheduleEvaluationProgressUpdate()
                     (scene, error) = evaluate(
                         program,
                         preview: true,
@@ -236,9 +236,16 @@ extension DocumentProtocol {
                     )
                 } else {
                     do {
-                        scene = try Scene(csgString: input, at: fileURL, cache: cache, delegate: self, isCancelled: {
-                            progress.isCancelledOrFailed
-                        })
+                        scene = try Scene(
+                            csgString: input,
+                            at: fileURL,
+                            cache: cache,
+                            delegate: self,
+                            progress: evaluationProgress,
+                            isCancelled: {
+                                progress.isCancelledOrFailed
+                            }
+                        )
                     } catch let error as CSGImportError {
                         throw ProgramError(error, in: input)
                     }

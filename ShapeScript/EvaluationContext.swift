@@ -494,6 +494,10 @@ extension EvaluationContext {
         #endif
     }
 
+    func discoveredImports(count: Int) {
+        evaluationProgress?.discoveredImports(count: count)
+    }
+
     func importGeometry(at url: URL) throws -> Geometry? {
         if let geometry = try delegate?.importGeometry(for: url) {
             // Allow delegate to implement alternative loading mechanism, e.g. hard-coded geometry for testing
