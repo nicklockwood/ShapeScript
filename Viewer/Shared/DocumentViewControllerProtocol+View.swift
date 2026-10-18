@@ -112,7 +112,7 @@ extension DocumentViewControllerProtocol {
             grantAccessButton.isHidden = true
         case .fileAccess:
             errorTextView.backgroundColor = OSColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1)
-            grantAccessButton.isHidden = isQuickLook
+            grantAccessButton.isHidden = false
         }
         errorMessage = message
         if error != nil || message != nil {

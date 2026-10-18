@@ -211,7 +211,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         dialog.showsHiddenFiles = false
         dialog.directoryURL = error?.accessErrorURL
         dialog.canChooseDirectories = true
-        showSheet(dialog, in: windowForSheet) { response in
+        showSheet(dialog, in: viewController?.view.window ?? windowForSheet) { response in
             guard response == .OK, let fileURL = self.fileURL, let url = dialog.url else {
                 return
             }

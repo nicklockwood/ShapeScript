@@ -597,6 +597,31 @@ final class DocumentURLChangeTests: XCTestCase {
         }
     }
 
+    func testQuickLookShowsGrantAccessOnlyForFileAccessErrors() {
+        let document = Document()
+        let viewController = DocumentViewController()
+        viewController.document = document
+        viewController.isQuickLook = true
+        _ = viewController.view
+        let source = "import \"part.stl\""
+        let error = ProgramError.runtimeError(RuntimeError(
+            .fileAccessRestricted(for: "part.stl", at: FileManager.default.temporaryDirectory),
+            at: source.startIndex ..< source.endIndex
+        ))
+
+        viewController.setError(error, message: NSAttributedString(string: error.message))
+        XCTAssertFalse(viewController.grantAccessButton.isHidden)
+        XCTAssertTrue(viewController.grantAccessButton.isEnabled)
+        XCTAssertTrue(viewController.grantAccessButton.target === document)
+        XCTAssertEqual(viewController.grantAccessButton.action, #selector(Document.grantAccess(_:)))
+
+        viewController.setError(.unknownError("Invalid model"), message: NSAttributedString(string: "Invalid model"))
+        XCTAssertTrue(viewController.grantAccessButton.isHidden)
+        viewController.setError(error, message: NSAttributedString(string: error.message))
+        viewController.setError(nil, message: nil)
+        XCTAssertTrue(viewController.grantAccessButton.isHidden)
+    }
+
     func testQuickLookDisplaysNativeWarningBanner() throws {
         let document = Document()
         document.scene = try Scene(csgString: "surface(file=\"part.dat\");", isCancelled: { false })
