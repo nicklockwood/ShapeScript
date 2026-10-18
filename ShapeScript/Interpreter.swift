@@ -876,6 +876,7 @@ extension RuntimeErrorType {
     }
 
     static func fileError(_ error: Error, for path: String, at url: URL) -> RuntimeErrorType {
+        if let error = error as? RuntimeErrorType { return error }
         var error = error
         while let nsError = error as NSError? {
             if nsError.domain == NSCocoaErrorDomain, nsError.code == CocoaError.fileReadCorruptFile.rawValue {

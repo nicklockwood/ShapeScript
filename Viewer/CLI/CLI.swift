@@ -288,7 +288,7 @@ final class CLIRunner {
             let scene: Scene
             if inputURL.isCSGFile {
                 printStatus("Importing CSG ...")
-                scene = try Scene(csgString: input, at: inputURL, cache: cache, isCancelled: { false })
+                scene = try Scene(csgString: input, at: inputURL, cache: cache, delegate: self, isCancelled: { false })
             } else {
                 let program = try parse(input, at: inputURL)
                 printStatus("Running script ...")

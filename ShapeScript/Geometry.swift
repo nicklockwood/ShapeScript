@@ -1917,7 +1917,7 @@ private extension Geometry {
             m.metallicity = material.metallicity ?? m.metallicity
             m.roughness = material.roughness ?? m.roughness
             // Note: this only replaces the mesh base material, not merged mesh materials
-            type = .mesh(mesh.replacing(self.material, with: m))
+            type = .mesh(mesh.replacing(self.material, with: m).replacing(nil, with: m))
         }
         var transform = transform.map { self.transform * $0 } ?? self.transform
         var childTransform = Transform.identity

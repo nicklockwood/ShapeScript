@@ -30,14 +30,30 @@ public extension Geometry {
         csgString: String,
         at fileURL: URL? = nil,
         onWarning: ((String) -> Void)? = nil,
+        delegate: EvaluationDelegate? = nil,
         isCancelled: @escaping CancellationHandler
     ) throws {
+        let context = EvaluationContext(source: csgString, delegate: delegate, isCancelled: isCancelled)
+        defer { withExtendedLifetime(delegate) {} }
+        try self.init(csgString: csgString, at: fileURL, onWarning: onWarning, context: context)
+        context.warnings.forEach { onWarning?($0) }
+    }
+}
+
+extension Geometry {
+    convenience init(
+        csgString: String,
+        at fileURL: URL?,
+        onWarning: ((String) -> Void)?,
+        context: EvaluationContext
+    ) throws {
+        let isCancelled = context.isCancelled
         if isCancelled() {
             throw CancellationError()
         }
         var parser = CSGParser(csgString, isCancelled: isCancelled)
         let nodes = try parser.parse()
-        let importer = CSGImporter(isCancelled: isCancelled, onWarning: onWarning, fileURL: fileURL)
+        let importer = CSGImporter(context: context, source: csgString, onWarning: onWarning, fileURL: fileURL)
         let line = nodes.first?.line ?? 1
         let sourceLocation: (@Sendable () -> SourceLocation?)? = fileURL.map { url in
             { @Sendable in SourceLocation(at: line, in: url) }
@@ -68,6 +84,7 @@ public extension Scene {
         csgString: String,
         at fileURL: URL? = nil,
         cache: GeometryCache? = nil,
+        delegate: EvaluationDelegate? = nil,
         isCancelled: @escaping CancellationHandler
     ) throws {
         if isCancelled() {
@@ -82,7 +99,7 @@ public extension Scene {
             if !warnings.contains(message) {
                 warnings.append(message)
             }
-        }, isCancelled: isCancelled)
+        }, delegate: delegate, isCancelled: isCancelled)
         self.init(background: .color(.clear), children: [geometry], cache: cache, warnings: warnings, zUp: true)
     }
 }
@@ -469,13 +486,16 @@ private enum CSGPathOperation: String {
 }
 
 private struct CSGImporter {
-    let isCancelled: CancellationHandler
+    let context: EvaluationContext
+    let source: String
+    var isCancelled: CancellationHandler { context.isCancelled }
     let onWarning: ((String) -> Void)?
     let fileURL: URL?
     private var location: SourceLocation?
 
-    init(isCancelled: @escaping CancellationHandler, onWarning: ((String) -> Void)?, fileURL: URL?) {
-        self.isCancelled = isCancelled
+    init(context: EvaluationContext, source: String, onWarning: ((String) -> Void)?, fileURL: URL?) {
+        self.context = context
+        self.source = source
         self.onWarning = onWarning
         self.fileURL = fileURL
     }
@@ -1049,6 +1069,35 @@ private struct CSGImporter {
                     break
                 case .array, .number, .string, .undefined:
                     throw node.error("CSG resize 'auto' must be a boolean or 3 booleans")
+                }
+            }
+            if node.name == "import" {
+                let path = try node.string(values, "file", default: node.string(values, "filename", default: ""))
+                let resolvedPath = path.isEmpty ? path : URL(fileURLWithPath: path, relativeTo: fileURL).path
+                do {
+                    try checkCancellation()
+                    let url = try context.resolveURL(for: resolvedPath)
+                    switch ImportType(url) {
+                    case .csg, .wavefront, .stereolithography, .object, .model, .unknown:
+                        break
+                    case .shape, .text, .json, .image, .font:
+                        throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
+                    }
+                    guard case let .mesh(imported) = try context.importFile(at: url, named: path) else {
+                        throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
+                    }
+                    try checkCancellation()
+                    let geometry = imported.with(
+                        transform: .identity, material: material, smoothing: .zero,
+                        sourceLocation: sourceLocation ?? { nil }
+                    )
+                    return .init(
+                        geometry: geometry,
+                        paths: geometry.path.map { _ in geometry.paths(pretransformed: true) }
+                    )
+                } catch let error as RuntimeErrorType {
+                    let range = ProgramError(node.error(""), in: source).range ?? source.startIndex ..< source.endIndex
+                    throw ProgramError.runtimeError(RuntimeError(error, at: range))
                 }
             }
             warn(

@@ -236,7 +236,7 @@ extension DocumentProtocol {
                     )
                 } else {
                     do {
-                        scene = try Scene(csgString: input, at: fileURL, cache: cache, isCancelled: {
+                        scene = try Scene(csgString: input, at: fileURL, cache: cache, delegate: self, isCancelled: {
                             progress.isCancelledOrFailed
                         })
                     } catch let error as CSGImportError {

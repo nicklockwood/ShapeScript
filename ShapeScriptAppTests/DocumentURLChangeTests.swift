@@ -286,7 +286,7 @@ final class DocumentURLChangeTests: XCTestCase {
         let (document, viewController) = queuedWarningDocument()
         viewController.isQuickLook = true
         document.scene = try Scene(
-            csgString: "import(file=\"part.dxf\"); resize([2,2,2]) cube(1);",
+            csgString: "surface(file=\"part.dat\"); resize([2,2,2]) cube(1);",
             isCancelled: { false }
         )
         let warnings = try XCTUnwrap(document.scene?.warnings)
@@ -599,7 +599,7 @@ final class DocumentURLChangeTests: XCTestCase {
 
     func testQuickLookDisplaysNativeWarningBanner() throws {
         let document = Document()
-        document.scene = try Scene(csgString: "import(file=\"part.dxf\");", isCancelled: { false })
+        document.scene = try Scene(csgString: "surface(file=\"part.dat\");", isCancelled: { false })
         let warning = try XCTUnwrap(document.scene?.warnings.first)
         let viewController = DocumentViewController()
         viewController.document = document
