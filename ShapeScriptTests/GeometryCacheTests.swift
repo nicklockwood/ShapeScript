@@ -126,6 +126,32 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertGreaterThan(restoredCache.count, 0)
     }
 
+    func testDocumentLoadFindsFinalMeshWrittenAfterCacheWasCreated() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+        let reader = makeCache(directory: directory)
+        let writer = makeCache(directory: directory, diskWritePolicy: alwaysStoreDiskPolicy)
+        let program = try parse("""
+        difference {
+            cube
+            sphere { size 1.2 }
+        }
+        """)
+        let scene = try evaluate(program, delegate: nil, cache: writer)
+        XCTAssertTrue(scene.build { false })
+        writer.flushPendingDiskWrites()
+        let expectedMesh = try XCTUnwrap(scene.children.first?.mesh)
+
+        try reader.withRefresh(false) {
+            let loaded = try evaluate(program, delegate: nil, cache: reader)
+            XCTAssertTrue(loaded.build { false })
+            let difference = try XCTUnwrap(loaded.children.first)
+            XCTAssertEqual(difference.mesh?.polygons.count, expectedMesh.polygons.count)
+            XCTAssertFalse(difference.children.isEmpty)
+            XCTAssertTrue(difference.children.allSatisfy { $0.mesh == nil })
+        }
+    }
+
     func testGeometryCachePersistsGeneratedMeshesBetweenInstances() throws {
         let directory = makeTemporaryCacheDirectory()
         defer { removeTemporaryCacheDirectory(directory) }

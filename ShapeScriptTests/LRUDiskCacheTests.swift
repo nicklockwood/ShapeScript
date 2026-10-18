@@ -63,6 +63,34 @@ final class LRUDiskCacheTests: XCTestCase {
         XCTAssertEqual(restoredCache.value(forKey: "b"), "two")
     }
 
+    func testSynchronizeMakesValuesWrittenByAnotherInstanceAvailable() throws {
+        let reader = makeStringCache()
+        let writer = makeStringCache()
+        XCTAssertNil(reader.value(forKey: "a"))
+
+        try writer.setValue("one", forKey: "a")
+        try writer.setValue("two", forKey: "b")
+
+        XCTAssertNil(reader.value(forKey: "a"))
+        XCTAssertFalse(reader.hasValue(forKey: "b"))
+        reader.synchronize()
+
+        XCTAssertEqual(reader.value(forKey: "a"), "one")
+        XCTAssertTrue(reader.hasValue(forKey: "b"))
+        XCTAssertEqual(reader.value(forKey: "b"), "two")
+        XCTAssertEqual(reader.currentUsage, writer.currentUsage)
+    }
+
+    func testDisabledCacheDoesNotReadValuesWrittenByAnotherInstance() throws {
+        let reader = makeStringCache(capacity: 0)
+        let writer = makeStringCache()
+        try writer.setValue("one", forKey: "a")
+
+        XCTAssertFalse(reader.hasValue(forKey: "a"))
+        XCTAssertNil(reader.value(forKey: "a"))
+        XCTAssertTrue(reader.isEmpty)
+    }
+
     func testSynchronizeCleansOverflowingValuesWrittenByOtherCacheInstances() throws {
         let firstCache = makeStringCache(capacity: 1)
         let secondCache = makeStringCache(capacity: 1024)
