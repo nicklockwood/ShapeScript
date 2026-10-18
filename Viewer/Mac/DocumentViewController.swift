@@ -367,6 +367,13 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         // create view
         scnView = SCNView(frame: splitView.bounds)
         scnView.autoresizingMask = [.width, .height]
+        scnView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sceneViewDidResize),
+            name: NSView.frameDidChangeNotification,
+            object: scnView
+        )
         splitView.insertArrangedSubview(scnView, at: 0)
 
         // set view background color
@@ -604,6 +611,11 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             lastLayoutBackgroundColor = backgroundColor
             document?.rerender()
         }
+        sceneViewDidResize()
+    }
+
+    @objc private func sceneViewDidResize() {
+        // Split view layout can resize SceneKit after the controller's layout callbacks.
         refreshAxesAndCamera()
         if !cameraHasMoved {
             resetView()
