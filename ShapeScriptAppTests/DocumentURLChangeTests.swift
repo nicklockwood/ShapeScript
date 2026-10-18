@@ -567,6 +567,36 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertEqual(actions.next, 1)
     }
 
+    func testQuickLookResizeFramesCameraBeforeNextLoadingUpdate() throws {
+        let document = Document()
+        document.scene = try Scene(csgString: "cube([40, 20, 10]);", isCancelled: { false })
+        let viewController = DocumentViewController()
+        viewController.document = document
+        viewController.isQuickLook = true
+        viewController.isLoading = true
+        let window = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 640, height: 480),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        window.contentViewController = viewController
+        viewController.view.layoutSubtreeIfNeeded()
+        viewController.refreshScene()
+
+        for size in [NSSize(width: 300, height: 600), NSSize(width: 800, height: 400)] {
+            window.setContentSize(size)
+            viewController.view.layoutSubtreeIfNeeded()
+            let position = viewController.cameraNode.position
+            let scale = viewController.cameraNode.camera?.orthographicScale
+            viewController.refreshScene()
+            XCTAssertEqual(viewController.cameraNode.position.x, position.x, accuracy: 0.001)
+            XCTAssertEqual(viewController.cameraNode.position.y, position.y, accuracy: 0.001)
+            XCTAssertEqual(viewController.cameraNode.position.z, position.z, accuracy: 0.001)
+            XCTAssertEqual(viewController.cameraNode.camera?.orthographicScale, scale)
+        }
+    }
+
     func testQuickLookDisplaysNativeWarningBanner() throws {
         let document = Document()
         document.scene = try Scene(csgString: "import(file=\"part.dxf\");", isCancelled: { false })
