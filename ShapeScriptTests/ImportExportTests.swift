@@ -141,6 +141,46 @@ final class ImportExportTests: XCTestCase {
         }
     }
 
+    #if canImport(SceneKit)
+    func testUnsupportedAndCorruptModelImportsExplainInvalidFormat() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: "", delegate: delegate)
+
+        for name in ["Bool2D.foo", "Invalid.scn"] {
+            let url = directory.appendingPathComponent(name)
+            try "invalid model data".write(to: url, atomically: true, encoding: .utf8)
+            XCTAssertThrowsError(try context.importFile(at: name)) { error in
+                guard case let RuntimeErrorType.fileParsingError(path, errorURL, message) = error else {
+                    return XCTFail("Unexpected error: \(error)")
+                }
+                XCTAssertEqual(path, name)
+                XCTAssertEqual(errorURL, url)
+                XCTAssertEqual(
+                    message,
+                    "The file format is unsupported, or the file contains invalid 3D model data."
+                )
+            }
+        }
+    }
+    #endif
+
+    func testMissingUnsupportedFileStillReportsFileNotFound() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: "", delegate: delegate)
+        XCTAssertThrowsError(try context.importFile(at: "Missing.foo")) { error in
+            guard case let RuntimeErrorType.fileNotFound(path, _) = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+            XCTAssertEqual(path, "Missing.foo")
+        }
+    }
+
     func testImportFileWithFinderSlashInName() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

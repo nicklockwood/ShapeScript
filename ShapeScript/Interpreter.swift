@@ -878,9 +878,11 @@ extension RuntimeErrorType {
     static func fileError(_ error: Error, for path: String, at url: URL) -> RuntimeErrorType {
         var error = error
         while let nsError = error as NSError? {
-            if nsError.domain == NSCocoaErrorDomain, nsError.code == 259 {
-                // Not a recognized model file format
-                break
+            if nsError.domain == NSCocoaErrorDomain, nsError.code == CocoaError.fileReadCorruptFile.rawValue {
+                return .fileParsingError(
+                    for: path, at: url,
+                    message: "The file format is unsupported, or the file contains invalid 3D model data."
+                )
             }
             #if !os(Linux)
             let underlyingError = nsError.underlyingErrors.first
