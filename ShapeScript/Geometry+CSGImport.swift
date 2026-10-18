@@ -947,14 +947,7 @@ private struct CSGImporter {
                 )
             }
             let text = try node.string(values, "text", default: "")
-            var font = try node.string(values, "font", default: "Liberation Sans")
-            if let colon = font.firstIndex(of: ":") {
-                warn("OpenSCAD font style descriptors are unsupported; using the base font", at: node)
-                font = String(font[..<colon])
-                if font.isEmpty {
-                    font = "Liberation Sans"
-                }
-            }
+            let font = try fontName(node.string(values, "font", default: "Liberation Sans"), node: node)
             let size = try node.number(values, "size", default: 10)
             guard size > 0 else {
                 throw node.error("CSG text size must be positive")
@@ -1070,6 +1063,64 @@ private struct CSGImporter {
         default:
             throw node.error("Unknown CSG operation '\(node.name)'")
         }
+    }
+
+    private func fontName(_ pattern: String, node: CSGNode) -> String {
+        let components = pattern.components(separatedBy: ":")
+        guard components.count > 1 else { return pattern }
+        let family = components[0].isEmpty ? "Liberation Sans" : components[0]
+        var style: String?
+        var unsupported = [String]()
+        for component in components.dropFirst() {
+            let parts = component.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            if parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "style" {
+                style = parts[1].trimmingCharacters(in: .whitespaces)
+            } else {
+                unsupported.append(component)
+            }
+        }
+        if !unsupported.isEmpty {
+            warn(
+                "Unsupported OpenSCAD font descriptors: \(unsupported.joined(separator: ", ")); ignoring these descriptors",
+                at: node
+            )
+        }
+        guard let style, !style.isEmpty else { return family }
+        #if canImport(CoreText)
+        let base = CTFontCreateWithName(family as CFString, 1, nil)
+        let descriptor = CTFontDescriptorCreateWithAttributes([
+            kCTFontFamilyNameAttribute: CTFontCopyFamilyName(base),
+        ] as CFDictionary)
+        let matches = CTFontDescriptorCreateMatchingFontDescriptors(
+            descriptor, [kCTFontFamilyNameAttribute as String] as Set as CFSet
+        ) as? [CTFontDescriptor] ?? []
+        func normalized(_ name: String) -> String {
+            name.lowercased().filter { !$0.isWhitespace && $0 != "-" }
+        }
+        let normalizedStyle = normalized(style)
+        for match in matches {
+            if let name = CTFontDescriptorCopyAttribute(match, kCTFontStyleNameAttribute) as? String,
+               normalized(name) == normalizedStyle
+            {
+                return CTFontCopyPostScriptName(CTFontCreateWithFontDescriptor(match, 1, nil)) as String
+            }
+        }
+        // Font families differ in whether a slanted face is called Italic or Oblique.
+        let traits: CTFontSymbolicTraits? = switch normalizedStyle {
+        case "regular", "normal", "roman": []
+        case "bold": .traitBold
+        case "italic", "oblique": .traitItalic
+        case "bolditalic", "boldoblique": [.traitBold, .traitItalic]
+        default: nil
+        }
+        if let traits, let font = CTFontCreateCopyWithSymbolicTraits(
+            base, 1, nil, traits, [.traitBold, .traitItalic]
+        ) {
+            return CTFontCopyPostScriptName(font) as String
+        }
+        #endif
+        warn("Unsupported OpenSCAD font style '\(style)'; using the base font", at: node)
+        return family
     }
 
     private func matrix(_ node: CSGNode) throws -> [[Double]] {
