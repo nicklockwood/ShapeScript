@@ -291,12 +291,67 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testFontStylesSelectMatchingFacesAndPreserveAlignment() throws {
+        for (style, face) in [
+            ("Regular", "Helvetica"), ("bold", "Helvetica-Bold"),
+            ("Italic", "Helvetica-Oblique"), ("Oblique", "Helvetica-Oblique"),
+            ("Bold Italic", "Helvetica-BoldOblique"), ("Bold Oblique", "Helvetica-BoldOblique"),
+        ] {
+            let source = "text(\"Style\", size=3, font=\"Helvetica:style=\(style)\", halign=\"center\", valign=\"top\");"
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            let expected = try Scene(
+                csgString: source.replacingOccurrences(of: "Helvetica:style=\(style)", with: face),
+                isCancelled: { false }
+            )
+            XCTAssertTrue(scene.warnings.isEmpty, style)
+            XCTAssertEqual(scene.geometry, expected.geometry, style)
+        }
+    }
+
+    func testNamedFontStyleSelectsInstalledFace() throws {
+        let scene = try Scene(
+            csgString: "text(\"Style\", font=\"Helvetica Neue:style=Light\");",
+            isCancelled: { false }
+        )
+        let expected = try Scene(csgString: "text(\"Style\", font=\"HelveticaNeue-Light\");", isCancelled: { false })
+        XCTAssertTrue(scene.warnings.isEmpty)
+        XCTAssertEqual(scene.geometry, expected.geometry)
+    }
+
+    func testFontStyleAppliesToFallbackFamily() throws {
+        let regular = try Scene(csgString: "text(\"Style\", font=\"MissingCSGFontFamily\");", isCancelled: { false })
+        let bold = try Scene(
+            csgString: "text(\"Style\", font=\"MissingCSGFontFamily:style=Bold\");",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(bold.warnings.isEmpty)
+        XCTAssertNotEqual(regular.geometry, bold.geometry)
+        let defaultFamily = try Scene(csgString: "text(\"Style\", font=\":style=Bold\");", isCancelled: { false })
+        let explicitFamily = try Scene(
+            csgString: "text(\"Style\", font=\"Liberation Sans:style=Bold\");",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(defaultFamily.warnings.isEmpty)
+        XCTAssertEqual(defaultFamily.geometry, explicitFamily.geometry)
+    }
+
     func testUnsupportedFontStyleWarnsAndUsesBaseFont() throws {
-        let scene = try Scene(csgString: "text(\"Hi\", font=\"Helvetica:style=Bold\");", isCancelled: { false })
+        let scene = try Scene(
+            csgString: "text(\"Hi\", font=\"Helvetica:style=MissingCSGStyle\");",
+            isCancelled: { false }
+        )
         XCTAssertEqual(scene.warnings.count, 1)
         XCTAssertTrue(scene.warnings[0].contains("base font"))
         let fallback = try Scene(csgString: "text(\"Hi\", font=\"Helvetica\");", isCancelled: { false })
         XCTAssertEqual(scene.geometry, fallback.geometry)
+    }
+
+    func testUnsupportedFontDescriptorsDoNotDiscardSupportedStyle() throws {
+        let scene = try Scene(csgString: "text(\"Hi\", font=\"Helvetica:style=Bold:lang=fr\");", isCancelled: { false })
+        XCTAssertEqual(scene.warnings.count, 1)
+        XCTAssertTrue(scene.warnings[0].contains("lang=fr"))
+        let expected = try Scene(csgString: "text(\"Hi\", font=\"Helvetica-Bold\");", isCancelled: { false })
+        XCTAssertEqual(scene.geometry, expected.geometry)
     }
     #endif
 
