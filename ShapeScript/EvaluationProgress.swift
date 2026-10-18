@@ -58,8 +58,12 @@ extension EvaluationProgress {
         program: Program,
         isCancelled: @escaping CancellationHandler
     ) {
+        beginTracking(importCount: program.importCount, isCancelled: isCancelled)
+    }
+
+    func beginTracking(importCount: Int = 0, isCancelled: @escaping CancellationHandler) {
         lock.lock()
-        estimatedUnitCount = 1 + program.importCount
+        estimatedUnitCount = 1 + importCount
         startedImportCount = 0
         completedUnitCount = 0
         _fractionCompleted = 0
@@ -84,8 +88,12 @@ extension EvaluationProgress {
     }
 
     func discoveredImports(in program: Program) {
+        discoveredImports(count: program.importCount)
+    }
+
+    func discoveredImports(count: Int) {
         lock.lock()
-        estimatedUnitCount += program.importCount
+        estimatedUnitCount += count
         lock.unlock()
     }
 

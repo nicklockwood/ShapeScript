@@ -1156,6 +1156,73 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testEvaluationProgressTracksNestedCSGImports() throws {
+        final class Delegate: EvaluationDelegate {
+            let progress: EvaluationProgress
+            var fractions = [Double?]()
+            var cancelOnImport = false
+            init(progress: EvaluationProgress) { self.progress = progress }
+            func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
+            func debugLog(_: [AnyHashable]) {}
+            func importGeometry(for url: URL) throws -> Geometry? {
+                guard url.pathExtension == "stl" else { return nil }
+                fractions.append(progress.fractionCompleted)
+                XCTAssertFalse(progress.isFinished)
+                if cancelOnImport { progress.cancel() }
+                return try Geometry(csgString: "cube(1);", isCancelled: { false })
+            }
+        }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        for file in ["a.stl", "b.stl", "c.stl"] {
+            try "delegate model".write(
+                to: directory.appendingPathComponent(file), atomically: true, encoding: .utf8
+            )
+        }
+        try "import(\"a.stl\"); import(\"b.stl\");".write(
+            to: directory.appendingPathComponent("nested.csg"), atomically: true, encoding: .utf8
+        )
+        let source = "import(\"nested.csg\"); import(\"c.stl\");"
+        let url = directory.appendingPathComponent("main.csg")
+        try source.write(to: url, atomically: true, encoding: .utf8)
+
+        for fromScript in [false, true] {
+            let progress = EvaluationProgress()
+            let delegate = Delegate(progress: progress)
+            if fromScript {
+                _ = try evaluate(
+                    parse("import \"\(url.path)\""), delegate: delegate, progress: progress
+                )
+            } else {
+                _ = try Scene(
+                    csgString: source, at: url, delegate: delegate, progress: progress, isCancelled: { false }
+                )
+            }
+            let total = fromScript ? 6.0 : 5.0
+            XCTAssertEqual(delegate.fractions, [0, 1 / total, 3 / total])
+            XCTAssertEqual(progress.fractionCompleted, 1)
+            XCTAssertTrue(progress.isFinished)
+        }
+
+        let cancelled = EvaluationProgress()
+        let delegate = Delegate(progress: cancelled)
+        delegate.cancelOnImport = true
+        XCTAssertThrowsError(try Scene(
+            csgString: source, at: url, delegate: delegate, progress: cancelled, isCancelled: { false }
+        )) { XCTAssertTrue($0 is CancellationError, String(describing: $0)) }
+        XCTAssertEqual(delegate.fractions.count, 1)
+        XCTAssertTrue(cancelled.isCancelled)
+        XCTAssertFalse(cancelled.isFinished)
+    }
+
+    func testCSGEvaluationProgressDoesNotFinishOnFailure() {
+        let progress = EvaluationProgress()
+        XCTAssertThrowsError(try Scene(csgString: "cube(", progress: progress, isCancelled: { false }))
+        XCTAssertEqual(progress.fractionCompleted, 0)
+        XCTAssertFalse(progress.isFinished)
+    }
+
     func testModelImportsUseRelativePathsTransformsAndMaterials() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
