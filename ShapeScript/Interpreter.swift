@@ -430,6 +430,7 @@ private func _evaluate(
     } ?? isCancelled
     let context = EvaluationContext(
         source: program.source,
+        fileURL: program.fileURL,
         preview: preview,
         delegate: delegate,
         evaluationProgress: progress,

@@ -56,6 +56,22 @@ final class ImportExportTests: XCTestCase {
         #endif
     }
 
+    func testMissingAssetWarningOmitsCurrentDocumentName() throws {
+        #if targetEnvironment(simulator) || !os(iOS)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let url = directory.appendingPathComponent("Main.shape")
+        let source = """
+        cube {
+            texture "Missing.png"
+        }
+        """
+        let scene = try evaluate(parse(source, at: url), delegate: nil)
+        XCTAssertEqual(scene.warnings, [
+            "Texture 'Missing.png' not found on line 2. Using no texture.",
+        ])
+        #endif
+    }
+
     func testMissingAssetWarningIncludesImportedFileAndLine() throws {
         #if targetEnvironment(simulator) || !os(iOS)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -69,7 +85,10 @@ final class ImportExportTests: XCTestCase {
             cube
         }
         """.write(to: url, atomically: true, encoding: .utf8)
-        let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+        let scene = try evaluate(
+            parse("import \"\(url.path)\"", at: directory.appendingPathComponent("Main.shape")),
+            delegate: nil
+        )
         XCTAssertEqual(scene.warnings, [
             "Child.shape: Texture 'Missing.png' not found on line 3. Using no texture.",
         ])

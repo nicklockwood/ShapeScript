@@ -94,13 +94,14 @@ final class EvaluationContext {
     var userSymbols: Symbols = [:]
     var options: Options = [:]
     private(set) var localOptionValues: [String: Value] = [:]
+    private let documentURL: URL?
     private let importCache: ImportCache
     private var importStack: [URL]
     var warnings: [String] { importCache.warnings }
 
     private func warn(_ message: String, fallback: String) {
         let location = sourceIndex.map { " on line \(source.line(at: $0))" } ?? ""
-        let file = state.baseURL.map { "\($0.lastPathComponent): " } ?? ""
+        let file = state.baseURL.flatMap {  $0 == documentURL ? nil : "\($0.lastPathComponent): " } ?? ""
         let message = "\(file)\(message)\(location). \(fallback)"
         if !importCache.warnings.contains(message) {
             importCache.warnings.append(message)
@@ -129,12 +130,14 @@ final class EvaluationContext {
 
     init(
         source: String,
+        fileURL: URL? = nil,
         preview: Bool = false,
         delegate: EvaluationDelegate?,
         evaluationProgress: EvaluationProgress? = nil,
         isCancelled: @escaping CancellationHandler = { false }
     ) {
         self.source = source
+        self.documentURL = fileURL
         self.preview = preview
         self.delegate = delegate
         self.evaluationProgress = evaluationProgress
@@ -148,6 +151,7 @@ final class EvaluationContext {
     private init(parent: EvaluationContext) {
         // preserve
         self.source = parent.source
+        self.documentURL = parent.documentURL
         self.sourceIndex = parent.sourceIndex
         self.preview = parent.preview
         self.state = parent.state
