@@ -97,6 +97,16 @@ final class EvaluationContext {
     private let importCache: ImportCache
     private var importStack: [URL]
     var warnings: [String] { importCache.warnings }
+
+    private func warn(_ message: String, fallback: String) {
+        let location = sourceIndex.map { " on line \(source.line(at: $0))" } ?? ""
+        let file = state.baseURL.map { "\($0.lastPathComponent): " } ?? ""
+        let message = "\(file)\(message)\(location). \(fallback)"
+        if !importCache.warnings.contains(message) {
+            importCache.warnings.append(message)
+        }
+    }
+
     let preview: Bool
     let isCancelled: CancellationHandler
 
@@ -481,7 +491,11 @@ extension EvaluationContext {
             guard lowercasedFullName == lowercasedName ||
                 lowercasedFullName.hasPrefix("\(lowercasedName) ")
             else {
-                throw RuntimeErrorType.unknownFont(name, options: fontNames)
+                guard !name.isEmpty else {
+                    throw RuntimeErrorType.unknownFont(name, options: fontNames)
+                }
+                warn("Unknown font '\(name)'", fallback: "Using the default font.")
+                return ""
             }
             return fullName
         }
@@ -587,7 +601,24 @@ extension EvaluationContext {
     }
 
     func importFile(at path: String, options: [String: Value] = [:]) throws -> Value {
-        let url = try resolveURL(for: path)
+        let url: URL
+        do {
+            url = try resolveURL(for: path)
+        } catch let error as RuntimeErrorType {
+            guard case .fileNotFound = error else { throw error }
+            evaluationProgress?.beginImport()
+            defer { evaluationProgress?.completeUnit() }
+            switch ImportType(URL(fileURLWithPath: path)) {
+            case .image:
+                warn("Texture '\(path)' not found", fallback: "Using no texture.")
+                return .texture(nil)
+            case .font:
+                warn("Font file '\(path)' not found", fallback: "Using the default font.")
+                return .font("")
+            default:
+                throw error
+            }
+        }
         return try importFile(at: url, named: path, options: options)
     }
 
