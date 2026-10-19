@@ -1196,6 +1196,23 @@ final class TypesystemTests: XCTestCase {
         XCTAssertEqual(try evaluate("\"#f00\"", as: .color), .color(.red))
     }
 
+    func testCastNamedColors() throws {
+        for (name, hex) in [
+            ("red", "#FF0000"), ("GREEN", "#008000"), ("lime", "#00FF00"),
+            ("RebeccaPurple", "#663399"), ("cornflowerblue", "#6495ED"),
+            ("gray", "#808080"), ("grey", "#808080"),
+            ("darkslategrey", "#2F4F4F"), ("darkslategray", "#2F4F4F"),
+            ("cyan", "#00FFFF"), ("aqua", "#00FFFF"),
+            ("transparent", "#00000000"),
+        ] {
+            let expected = try XCTUnwrap(Color(hexString: hex))
+            XCTAssertEqual(try evaluate("\"\(name)\"", as: .color), .color(expected), name)
+        }
+        XCTAssertEqual(try evaluate("\"red\" 0.5", as: .color), .color(Color.red.withAlphaComponent(0.5)))
+        XCTAssertNil(Value.string("notacolor").as(.color))
+        XCTAssertNil(Value.string("currentColor").as(.color))
+    }
+
     func testCastObjectToColor() {
         let type = ValueType.color
         let value = Value.object([

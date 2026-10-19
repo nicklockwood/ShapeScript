@@ -561,8 +561,7 @@ extension Value {
             default: return nil
             }
         case (.string, .color):
-            // TODO: support named colors
-            return Color(hexString: stringValue).map { .color($0) }
+            return Color(string: stringValue).map { .color($0) }
         case let (.texture(texture), .string) where texture?.name != nil:
             fallthrough
         case (.boolean, .string), (.number, .string), (.font, .string):

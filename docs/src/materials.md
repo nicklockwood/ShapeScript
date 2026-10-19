@@ -142,6 +142,17 @@ And you can add a fourth digit to specify alpha:
 color #F006 // equivalent to #FF000066
 ```
 
+### Named Colors
+
+Color strings accept the [CSS named colors](https://www.w3.org/TR/css-color-4/#named-colors), including `rebeccapurple` and `transparent`. Names are case-insensitive, and the same names are supported in imported CSG files:
+
+```swift
+color "CornflowerBlue"
+color "rebeccapurple" 0.5 // 50% opacity
+```
+
+Named color strings use CSS values, which can differ from the built-in constants below. For example, `"green"` is `#008000`, while the `green` constant and `"lime"` are `#00FF00`.
+
 ### Predefined Colors
 
 ShapeScript defines some built-in color constants for you to use:
