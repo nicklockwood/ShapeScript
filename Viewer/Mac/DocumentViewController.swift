@@ -117,14 +117,26 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     var errorMessage: NSAttributedString? {
         didSet {
-            guard let errorMessage else {
+            errorLayoutWidth = nil
+            guard errorMessage != nil else {
                 errorScrollView.isHidden = true
                 return
             }
             errorTextView.textContainerInset = CGSize(width: 20, height: 20)
-            errorTextView.textStorage?.setAttributedString(errorMessage)
+            layoutErrorMessage()
             errorScrollView.isHidden = false
         }
+    }
+
+    private var errorLayoutWidth: CGFloat?
+
+    @objc private func layoutErrorMessage() {
+        guard let errorMessage else { return }
+        let width = errorTextView.bounds.width - 2 * errorTextView.textContainerInset.width -
+            2 * (errorTextView.textContainer?.lineFragmentPadding ?? 0)
+        guard width > 0, errorLayoutWidth != width else { return }
+        errorLayoutWidth = width
+        errorTextView.textStorage?.setAttributedString(errorMessage.wrappingErrorExcerpt(toWidth: width))
     }
 
     private var logLength: Int = 0
@@ -286,6 +298,13 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             alpha: 0.8
         )
         errorTextView.autoresizingMask = [.width, .height]
+        errorTextView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(layoutErrorMessage),
+            name: NSView.frameDidChangeNotification,
+            object: errorTextView
+        )
         errorScrollView.documentView = errorTextView
         rootView.addSubview(errorScrollView)
 
