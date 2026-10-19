@@ -99,11 +99,11 @@ final class EvaluationContext {
     private var importStack: [URL]
     var warnings: [String] { importCache.warnings }
 
-    func warn(_ message: String, fallback: String, at location: SourceLocation? = nil) {
+    func warn(_ message: String, at location: SourceLocation? = nil) {
         let location = location ?? sourceLocation()
         let line = location.map { " on line \($0.line)" } ?? ""
         let file = location?.file.flatMap { $0 == documentURL ? nil : "\($0.lastPathComponent): " } ?? ""
-        let message = "\(file)\(message)\(line). \(fallback)"
+        let message = "\(file)\(message)\(line)."
         if !importCache.warnings.contains(message) {
             importCache.warnings.append(message)
         }
@@ -499,7 +499,7 @@ extension EvaluationContext {
                 guard !name.isEmpty else {
                     throw RuntimeErrorType.unknownFont(name, options: fontNames)
                 }
-                warn("Unknown font '\(name)'", fallback: "Using the default font.")
+                warn("Unknown font '\(name)'")
                 return ""
             }
             return fullName
@@ -610,10 +610,10 @@ extension EvaluationContext {
             defer { evaluationProgress?.completeUnit() }
             switch ImportType(URL(fileURLWithPath: path)) {
             case .image:
-                warn("Texture '\(path)' not found", fallback: "Using no texture.")
+                warn("Texture '\(path)' not found")
                 return .texture(nil)
             case .font:
-                warn("Font file '\(path)' not found", fallback: "Using the default font.")
+                warn("Font file '\(path)' not found")
                 return .font("")
             default:
                 throw error

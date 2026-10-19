@@ -1952,7 +1952,7 @@ final class InterpreterTests: XCTestCase {
         #if targetEnvironment(simulator) || !os(iOS)
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1. Using no texture."])
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1."])
         #else
         let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
@@ -2193,7 +2193,7 @@ final class InterpreterTests: XCTestCase {
         #if targetEnvironment(simulator) || !os(iOS)
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1. Using no texture."])
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1."])
         #else
         let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
@@ -2220,7 +2220,7 @@ final class InterpreterTests: XCTestCase {
         #if targetEnvironment(simulator) || !os(iOS)
         let delegate = TestDelegate()
         let scene = try evaluate(parse(program), delegate: delegate)
-        XCTAssertEqual(scene.warnings, ["Texture 'Nope1.jpg' not found on line 1. Using no texture."])
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope1.jpg' not found on line 1."])
         #else
         let range = try XCTUnwrap(program.range(of: "\"Nope\" 1 \".jpg\""))
         let delegate = TestDelegate()
@@ -2407,7 +2407,7 @@ final class InterpreterTests: XCTestCase {
         let program = try parse("font \"foo\"")
         let context = EvaluationContext(source: program.source, delegate: nil)
         try program.evaluate(in: context)
-        XCTAssertEqual(context.warnings, ["Unknown font 'foo' on line 1. Using the default font."])
+        XCTAssertEqual(context.warnings, ["Unknown font 'foo' on line 1."])
         XCTAssertEqual(context.state.font, "")
         #endif
     }

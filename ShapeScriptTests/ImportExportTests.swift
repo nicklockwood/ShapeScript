@@ -46,10 +46,10 @@ final class ImportExportTests: XCTestCase {
         """
         let scene = try evaluate(parse(source), delegate: nil)
         XCTAssertEqual(scene.warnings, [
-            "Texture '\(image)' not found on line 1. Using no texture.",
-            "Texture '\(image)' not found on line 2. Using no texture.",
-            "Font file '\(font)' not found on line 3. Using the default font.",
-            "Font file '\(font)' not found on line 4. Using the default font.",
+            "Texture '\(image)' not found on line 1.",
+            "Texture '\(image)' not found on line 2.",
+            "Font file '\(font)' not found on line 3.",
+            "Font file '\(font)' not found on line 4.",
         ])
         XCTAssertEqual(scene.children.count, 1)
         XCTAssertNil(scene.children.first?.material.texture)
@@ -67,7 +67,7 @@ final class ImportExportTests: XCTestCase {
         """
         let scene = try evaluate(parse(source, at: url), delegate: nil)
         XCTAssertEqual(scene.warnings, [
-            "Texture 'Missing.png' not found on line 2. Using no texture.",
+            "Texture 'Missing.png' not found on line 2.",
         ])
         #endif
     }
@@ -90,7 +90,7 @@ final class ImportExportTests: XCTestCase {
             delegate: nil
         )
         XCTAssertEqual(scene.warnings, [
-            "Child.shape: Texture 'Missing.png' not found on line 3. Using no texture.",
+            "Child.shape: Texture 'Missing.png' not found on line 3.",
         ])
         XCTAssertEqual(scene.children.count, 2)
         #endif
