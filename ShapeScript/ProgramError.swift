@@ -188,15 +188,20 @@ public extension ProgramError {
         }
         let clampedLowerBound = min(max(range.lowerBound, source.startIndex), source.endIndex)
         let clampedUpperBound = min(max(range.upperBound, clampedLowerBound), source.endIndex)
-        let lineRange = source.lineRange(
+        var lineRange = source.lineRange(
             at: clampedLowerBound,
             includingIndent: includingIndent
         )
+        if lineRange.isEmpty, clampedLowerBound == source.endIndex,
+           let lastContent = source.lastIndex(where: { !$0.isWhitespace })
+        {
+            lineRange = source.lineRange(at: lastContent, includingIndent: includingIndent)
+        }
         if lineRange.isEmpty {
             return nil
         }
         let sourceLine = String(source[lineRange])
-        let lowerBound = max(clampedLowerBound, lineRange.lowerBound)
+        let lowerBound = min(max(clampedLowerBound, lineRange.lowerBound), lineRange.upperBound)
         let upperBound = min(max(clampedUpperBound, lowerBound), lineRange.upperBound)
         let offset = source.distance(from: lineRange.lowerBound, to: lowerBound)
         let length = source.distance(from: lowerBound, to: upperBound)

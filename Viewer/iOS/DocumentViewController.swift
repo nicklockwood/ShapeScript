@@ -118,19 +118,32 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
     var errorMessage: NSAttributedString? {
         didSet {
-            guard let errorMessage else {
+            errorLayoutWidth = nil
+            guard errorMessage != nil else {
                 errorTextView.isHidden = true
                 navigationBar?.tintColor = interfaceColor
                 cameraButton.isEnabled = true
                 exportButton.isEnabled = true
                 return
             }
-            errorTextView.attributedText = errorMessage
+            layoutErrorMessage()
             errorTextView.isHidden = false
             navigationBar?.tintColor = .white
             cameraButton.isEnabled = false
             exportButton.isEnabled = false
         }
+    }
+
+    private var errorLayoutWidth: CGFloat?
+
+    private func layoutErrorMessage() {
+        guard let errorMessage else { return }
+        let insets = errorTextView.textContainerInset
+        let width = errorTextView.bounds.width - insets.left - insets.right -
+            2 * errorTextView.textContainer.lineFragmentPadding
+        guard width > 0, errorLayoutWidth != width else { return }
+        errorLayoutWidth = width
+        errorTextView.attributedText = errorMessage.wrappingErrorExcerpt(toWidth: width)
     }
 
     var hasLog: Bool { consoleViewController.hasLog }
@@ -421,6 +434,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             bottom: view.safeAreaInsets.bottom + 20,
             right: max(view.safeAreaInsets.right + 15, 20)
         )
+        layoutErrorMessage()
         updateInterfaceColor()
         if !cameraHasMoved {
             refreshAxesAndCamera()

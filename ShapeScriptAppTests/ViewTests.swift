@@ -28,7 +28,15 @@ private final class MockViewController: DocumentViewControllerProtocol, @uncheck
     var axesNode: SCNNode?
     var errorMessage: NSAttributedString?
     var isLoading = false
-    var renderProgress: Double?
+    var onRenderComplete: (() -> Void)?
+    var renderProgress: Double? {
+        didSet {
+            if renderProgress == 1 {
+                onRenderComplete?()
+            }
+        }
+    }
+
     var consoleVisibilityChanges = [Bool]()
     var showConsole = false {
         didSet {
@@ -235,17 +243,11 @@ final class ViewTests: XCTestCase {
             viewController.showConsole = true
             viewController.appendLog("Previous output")
             viewController.consoleVisibilityChanges = []
+            let completed = expectation(description: "Reload finishes")
+            viewController.onRenderComplete = { completed.fulfill() }
             document.sourceString = source
             document.didUpdateSource()
-
-            // Complete on the main queue after the queued log and status updates.
             let progress = try XCTUnwrap(document.loadingProgress)
-            let completed = expectation(description: "Reload finishes")
-            progress.dispatch { _ in
-                DispatchQueue.main.async {
-                    completed.fulfill()
-                }
-            }
             await fulfillment(of: [completed], timeout: 5)
 
             XCTAssertTrue(progress.didSucceed, source)
@@ -271,6 +273,8 @@ final class ViewTests: XCTestCase {
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
 
+        let completed = expectation(description: "Corrected source finishes rendering")
+        viewController.onRenderComplete = { completed.fulfill() }
         document.sourceString = "cube {}"
         document.didUpdateSource()
         document.updateViews()
@@ -279,8 +283,6 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(document.errorMessage, originalMessage)
 
         let progress = try XCTUnwrap(document.loadingProgress)
-        let completed = expectation(description: "Corrected source finishes rendering")
-        progress.dispatch { _ in completed.fulfill() }
         await fulfillment(of: [completed], timeout: 5)
         document.updateViews()
         XCTAssertTrue(progress.didSucceed)
@@ -294,7 +296,10 @@ final class ViewTests: XCTestCase {
         let document = ViewMockDocument(viewController: viewController)
         viewController.document = document
         document.sourceString = "cube {"
-        let originalError = ProgramError(CSGImportError(message: "Original error", line: 1, column: 1))
+        let originalError = ProgramError(
+            CSGImportError(message: "Original error", line: 1, column: 1),
+            in: document.sourceString
+        )
         document.error = originalError
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
@@ -307,10 +312,14 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(document.error, originalError)
         XCTAssertEqual(viewController.errorMessage, originalMessage)
 
-        let replacementError = ProgramError(CSGImportError(message: "Replacement error", line: 1, column: 1))
+        let replacementError = ProgramError(
+            CSGImportError(message: "Replacement error", line: 1, column: 1),
+            in: document.sourceString
+        )
         progress.setStatus(.failure(replacementError))
         XCTAssertEqual(document.error, replacementError)
         XCTAssertEqual(viewController.errorMessage, replacementError.message(with: document.sourceString))
+        XCTAssertTrue(try XCTUnwrap(viewController.errorMessage).string.contains("sphere {\n^"))
         XCTAssertNotEqual(viewController.errorMessage, originalMessage)
     }
 
@@ -319,7 +328,10 @@ final class ViewTests: XCTestCase {
         let document = ViewMockDocument(viewController: viewController)
         viewController.document = document
         document.sourceString = "cube {"
-        let originalError = ProgramError(CSGImportError(message: "Original error", line: 1, column: 1))
+        let originalError = ProgramError(
+            CSGImportError(message: "Original error", line: 1, column: 1),
+            in: document.sourceString
+        )
         document.error = originalError
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
@@ -327,11 +339,50 @@ final class ViewTests: XCTestCase {
         let progress = try XCTUnwrap(document.loadingProgress)
 
         document.sourceString = "cube {}"
-        let outdatedError = ProgramError(CSGImportError(message: "Outdated error", line: 1, column: 1))
+        let outdatedError = ProgramError(CSGImportError(message: "Outdated error", line: 1, column: 1), in: "cube {")
         progress.setStatus(.failure(outdatedError))
         document.updateViews()
         XCTAssertEqual(document.error, originalError)
         XCTAssertEqual(viewController.errorMessage, originalMessage)
+    }
+
+    func testErrorOverlayReflowsWhenTextViewResizes() {
+        let controller = DocumentViewController()
+        _ = controller.view
+        let source = String(repeating: "x", count: 60)
+        let error = ProgramError.runtimeError(RuntimeError(
+            .custom("Invalid expression"), at: source.startIndex ..< source.endIndex
+        ))
+        controller.errorTextView.setFrameSize(NSSize(width: 220, height: 400))
+        controller.errorMessage = error.message(with: source)
+        let narrow = controller.errorTextView.string
+        controller.errorTextView.setFrameSize(NSSize(width: 700, height: 400))
+        let wide = controller.errorTextView.string
+        XCTAssertNotEqual(narrow, wide)
+        XCTAssertTrue(wide.contains(source))
+        controller.errorTextView.setFrameSize(NSSize(width: 220, height: 400))
+        XCTAssertEqual(controller.errorTextView.string, narrow)
+    }
+
+    func testErrorOverlayReplacesExcerptAtSameWidth() throws {
+        let controller = DocumentViewController()
+        _ = controller.view
+        controller.errorTextView.setFrameSize(NSSize(width: 240, height: 400))
+        for symbol in ["firstUnknown", "secondUnknown"] {
+            let source = String(repeating: "cube ", count: 20) + symbol
+            let range = try XCTUnwrap(source.range(of: symbol))
+            let error = ProgramError.runtimeError(RuntimeError(.custom("Invalid expression"), at: range))
+            controller.setError(error, message: error.message(with: source))
+            let rendered = controller.errorTextView.string
+            XCTAssertTrue(rendered.contains(symbol))
+            XCTAssertTrue(rendered.contains("^"))
+            if symbol == "secondUnknown" {
+                XCTAssertFalse(rendered.contains("firstUnknown"))
+            }
+        }
+        controller.setError(nil, message: nil)
+        XCTAssertNil(controller.errorMessage)
+        XCTAssertTrue(try XCTUnwrap(controller.errorTextView.enclosingScrollView).isHidden)
     }
 
     func testLoadingProgressFinalUpdateWaitsForScheduledUpdate() async {
