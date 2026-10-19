@@ -102,8 +102,8 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings.count, 2)
-        XCTAssertTrue(scene.warnings.contains { $0.contains("geometry skipped") })
-        XCTAssertTrue(scene.warnings.contains { $0.contains("using children") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Geometry skipped") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Using children") })
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
     }
@@ -118,13 +118,13 @@ final class CSGImportTests: XCTestCase {
             XCTAssertEqual(scene.warnings.count, 1)
             XCTAssertEqual(
                 scene.warnings.first,
-                "Unsupported CSG operation 'roof'; using children without this operation (line 1, column 1)"
+                "Unsupported CSG operation 'roof' on line 1. Using children without this operation."
             )
             XCTAssertEqual(scene.geometry, expected.geometry)
             XCTAssertTrue(scene.build { false })
         }
         let empty = try Scene(csgString: "roof(); cube(1);", isCancelled: { false })
-        XCTAssertTrue(empty.warnings.contains { $0.contains("geometry skipped") })
+        XCTAssertTrue(empty.warnings.contains { $0.contains("Geometry skipped") })
         XCTAssertTrue(empty.build { false })
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
@@ -232,7 +232,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertFalse(scene.warnings[0].contains("halign"))
         XCTAssertTrue(scene.warnings[0].contains("spacing"))
         XCTAssertTrue(scene.warnings[0].contains("language"))
-        XCTAssertTrue(scene.warnings[0].contains("line 1, column 1"))
+        XCTAssertTrue(scene.warnings[0].contains("on line 1."))
         let fallback = try Scene(
             csgString: "text(\"Hi\", font=\"Helvetica\", halign=\"center\");",
             isCancelled: { false }
@@ -261,13 +261,14 @@ final class CSGImportTests: XCTestCase {
                     ("baseline", 0.0), ("top", -Double(bounds.maxY)),
                     ("center", -Double(bounds.midY)), ("bottom", -Double(bounds.minY)),
                 ] {
-                    let geometry = try Geometry(
+                    let scene = try Scene(
                         csgString: """
                         text("\(text)", size=3, font="Helvetica", $fn=32, halign="\(halign)", valign="\(valign)");
                         """,
-                        onWarning: { XCTFail($0) },
                         isCancelled: { false }
                     )
+                    XCTAssertTrue(scene.warnings.isEmpty)
+                    let geometry = try XCTUnwrap(scene.children.first)
                     let actual = Bounds(geometry.paths(pretransformed: true))
                     let expected = Bounds(original.translated(by: [x, y, 0]).scaled(by: 3))
                     XCTAssertEqual(actual.min.x, expected.min.x, accuracy: 1e-8)
@@ -281,11 +282,12 @@ final class CSGImportTests: XCTestCase {
 
     func testEmptyAlignedText() throws {
         for text in ["", "   "] {
-            let geometry = try Geometry(
+            let scene = try Scene(
                 csgString: "text(\"\(text)\", halign=\"center\", valign=\"center\");",
-                onWarning: { XCTFail($0) },
                 isCancelled: { false }
             )
+            XCTAssertTrue(scene.warnings.isEmpty)
+            let geometry = try XCTUnwrap(scene.children.first)
             XCTAssertTrue(geometry.paths(pretransformed: true).allSatisfy(\.isEmpty))
         }
     }
@@ -387,7 +389,7 @@ final class CSGImportTests: XCTestCase {
             csgString: String(contentsOf: url), at: url, isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings, directlyOpened.warnings.map { "warning.csg: \($0)" })
-        XCTAssertTrue(directlyOpened.warnings[0].contains("line 1, column 1"))
+        XCTAssertTrue(directlyOpened.warnings[0].contains("on line 1."))
         let exportOnly = try evaluate(
             parse("if preview { cube } else { \(importStatement) }"),
             preview: true,
@@ -505,6 +507,7 @@ final class CSGImportTests: XCTestCase {
             let error = $0 as? CSGImportError
             XCTAssertEqual(error?.line, 2)
             XCTAssertEqual(error?.column, 3)
+            XCTAssertEqual(error?.errorDescription, error.map { "\($0.message) on line 2." })
         }
     }
 
@@ -674,12 +677,12 @@ final class CSGImportTests: XCTestCase {
     func test2DBooleansProducePathsAndExtrudeWithoutWarnings() throws {
         for (operation, area) in [("union", 6.0), ("difference", 2.0), ("intersection", 2.0)] {
             let source = "\(operation)() { square(2); translate([1,0,0]) square(2); }"
-            var warnings = [String]()
-            let geometry = try Geometry(csgString: source, onWarning: { warnings.append($0) }, isCancelled: { false })
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            let geometry = try XCTUnwrap(scene.children.first)
             let path = try XCTUnwrap(geometry.path)
             XCTAssertTrue(path.isClosed)
             XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8)
-            XCTAssertTrue(warnings.isEmpty, warnings.joined(separator: "\n"))
+            XCTAssertTrue(scene.warnings.isEmpty, scene.warnings.joined(separator: "\n"))
             let extruded = try mesh("linear_extrude(height=3) \(source)")
             XCTAssertEqual(extruded.signedVolume, area * 3, accuracy: 1e-8)
             XCTAssertTrue(extruded.isWatertight)
@@ -1329,7 +1332,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 12, accuracy: 1e-6)
         XCTAssertEqual(scene.warnings, [
-            "profile.csg: Unsupported CSG operation 'roof'; using children without this operation (line 1, column 1)",
+            "profile.csg: Unsupported CSG operation 'roof' on line 1. Using children without this operation.",
         ])
     }
 
