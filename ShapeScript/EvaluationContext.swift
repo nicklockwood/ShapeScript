@@ -99,10 +99,11 @@ final class EvaluationContext {
     private var importStack: [URL]
     var warnings: [String] { importCache.warnings }
 
-    private func warn(_ message: String, fallback: String) {
-        let location = sourceIndex.map { " on line \(source.line(at: $0))" } ?? ""
-        let file = state.baseURL.flatMap {  $0 == documentURL ? nil : "\($0.lastPathComponent): " } ?? ""
-        let message = "\(file)\(message)\(location). \(fallback)"
+    func warn(_ message: String, fallback: String, at location: SourceLocation? = nil) {
+        let location = location ?? sourceLocation()
+        let line = location.map { " on line \($0.line)" } ?? ""
+        let file = location?.file.flatMap { $0 == documentURL ? nil : "\($0.lastPathComponent): " } ?? ""
+        let message = "\(file)\(message)\(line). \(fallback)"
         if !importCache.warnings.contains(message) {
             importCache.warnings.append(message)
         }
@@ -538,12 +539,7 @@ extension EvaluationContext {
             importStack.append(url)
             defer { importStack.removeLast() }
             try url.validateFileSize(limit: FileSizeLimit.text)
-            return try Geometry(csgString: String(contentsOf: url), at: url, onWarning: { [importCache] message in
-                let message = "\(url.lastPathComponent): \(message)"
-                if !importCache.warnings.contains(message) {
-                    importCache.warnings.append(message)
-                }
-            }, context: self)
+            return try Geometry(csgString: String(contentsOf: url), at: url, context: self)
         case .stereolithography, .wavefront, .object:
             let mesh = try loadMesh(at: url) {
                 switch $0 {

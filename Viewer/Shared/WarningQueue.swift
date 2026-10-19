@@ -101,7 +101,7 @@ final class WarningQueue {
 
     private static func key(for message: String) -> String {
         // Moving an existing diagnostic to another line does not introduce a new warning.
-        if let range = message.range(of: #" \(line \d+, column \d+\)$"#, options: .regularExpression) {
+        if let range = message.range(of: #" on line \d+\.$"#, options: .regularExpression) {
             return String(message[..<range.lowerBound])
         }
         return message

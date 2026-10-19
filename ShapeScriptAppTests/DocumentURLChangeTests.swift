@@ -370,11 +370,11 @@ final class DocumentURLChangeTests: XCTestCase {
 
     func testReloadUpdatesWarningQueueWithoutRestartingIt() {
         let (document, viewController) = queuedWarningDocument()
-        viewController.checkDocumentWarnings(["First (line 1, column 1)", "Second"])
+        viewController.checkDocumentWarnings(["First on line 1.", "Second"])
         viewController.onNextWarning?()
-        viewController.checkDocumentWarnings(["First (line 8, column 3)", "Second"])
+        viewController.checkDocumentWarnings(["First on line 8.", "Second"])
         XCTAssertEqual(viewController.warningMessages.count, 2)
-        viewController.checkDocumentWarnings(["New", "First (line 8, column 3)", "Second"])
+        viewController.checkDocumentWarnings(["New", "First on line 8.", "Second"])
         XCTAssertEqual(viewController.warningMessages.last, "2/3 Second")
         viewController.onNextWarning?()
         XCTAssertEqual(viewController.warningMessages.last, "3/3 New")
@@ -384,28 +384,28 @@ final class DocumentURLChangeTests: XCTestCase {
     func testRepeatedWarningsRemainSeparateAcrossReloads() {
         let (document, viewController) = queuedWarningDocument()
         viewController.checkDocumentWarnings([
-            "Repeated (line 1, column 1)", "Repeated (line 2, column 1)",
+            "Repeated on line 1.", "Repeated on line 2.",
         ])
         XCTAssertEqual(document.warningQueue.current?.total, 2)
         viewController.onNextWarning?()
         viewController.checkDocumentWarnings([
-            "Repeated (line 8, column 1)", "Repeated (line 9, column 1)",
+            "Repeated on line 8.", "Repeated on line 9.",
         ])
-        XCTAssertEqual(document.warningQueue.current?.message, "Repeated (line 9, column 1)")
+        XCTAssertEqual(document.warningQueue.current?.message, "Repeated on line 9.")
         XCTAssertEqual(document.warningQueue.current?.position, 2)
         viewController.onNextWarning?()
         viewController.checkDocumentWarnings([
-            "Repeated (line 8, column 1)", "Repeated (line 9, column 1)",
-            "Repeated (line 10, column 1)",
+            "Repeated on line 8.", "Repeated on line 9.",
+            "Repeated on line 10.",
         ])
-        XCTAssertEqual(document.warningQueue.current?.message, "Repeated (line 8, column 1)")
+        XCTAssertEqual(document.warningQueue.current?.message, "Repeated on line 8.")
         viewController.onNextWarning?()
         viewController.onNextWarning?()
-        XCTAssertEqual(document.warningQueue.current?.message, "Repeated (line 10, column 1)")
+        XCTAssertEqual(document.warningQueue.current?.message, "Repeated on line 10.")
         viewController.onDismissWarnings?()
         viewController.checkDocumentWarnings([
-            "Repeated (line 11, column 1)", "Repeated (line 12, column 1)",
-            "Repeated (line 13, column 1)",
+            "Repeated on line 11.", "Repeated on line 12.",
+            "Repeated on line 13.",
         ])
         XCTAssertNil(document.warningQueue.current)
     }
@@ -450,7 +450,7 @@ final class DocumentURLChangeTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("model.csg")
-        try "color(\"red\") cube(1);".write(to: url, atomically: true, encoding: .utf8)
+        try "color(\"notacolor\") cube(1);".write(to: url, atomically: true, encoding: .utf8)
         let viewController = URLChangeMockViewController()
         let document = URLChangeMockDocument(fileURL: url, viewController: viewController)
         viewController.document = document
@@ -463,7 +463,8 @@ final class DocumentURLChangeTests: XCTestCase {
         viewController.checkDocumentWarnings()
         XCTAssertEqual(viewController.warningMessages.count, 1)
         let original = try XCTUnwrap(document.scene?.warnings.first)
-        let moved = original.replacingOccurrences(of: "line 1, column 1", with: "line 8, column 3")
+        let moved = original.replacingOccurrences(of: "on line 1.", with: "on line 8.")
+        XCTAssertNotEqual(moved, original)
         viewController.checkDocumentWarnings([moved])
         XCTAssertEqual(viewController.warningMessages.count, 1)
         viewController.checkDocumentWarnings([moved, "New warning"])
