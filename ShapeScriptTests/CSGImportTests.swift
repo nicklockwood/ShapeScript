@@ -383,6 +383,11 @@ final class CSGImportTests: XCTestCase {
         let scene = try evaluate(parse("group { \(importStatement) }\n\(importStatement)"), delegate: delegate)
         XCTAssertEqual(scene.warnings.count, 1)
         XCTAssertTrue(scene.warnings[0].hasPrefix("warning.csg:"))
+        let directlyOpened = try Scene(
+            csgString: String(contentsOf: url), at: url, isCancelled: { false }
+        )
+        XCTAssertEqual(scene.warnings, directlyOpened.warnings.map { "warning.csg: \($0)" })
+        XCTAssertTrue(directlyOpened.warnings[0].contains("line 1, column 1"))
         let exportOnly = try evaluate(
             parse("if preview { cube } else { \(importStatement) }"),
             preview: true,
@@ -1323,7 +1328,9 @@ final class CSGImportTests: XCTestCase {
         let scene = try Scene(csgString: source, at: rootURL, isCancelled: { false })
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 12, accuracy: 1e-6)
-        XCTAssertTrue(scene.warnings.contains { $0.contains("profile.csg") && $0.contains("roof") })
+        XCTAssertEqual(scene.warnings, [
+            "profile.csg: Unsupported CSG operation 'roof'; using children without this operation (line 1, column 1)",
+        ])
     }
 
     func testCSGImportFailuresRemainErrorsWithSourceLocations() throws {

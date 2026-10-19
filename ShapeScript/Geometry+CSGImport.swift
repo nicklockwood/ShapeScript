@@ -38,7 +38,8 @@ public extension Geometry {
         defer { progress?.endTracking() }
         let cancellationHandler: CancellationHandler = { progress?.isCancelled ?? isCancelled() }
         let context = EvaluationContext(
-            source: csgString, delegate: delegate, evaluationProgress: progress, isCancelled: cancellationHandler
+            source: csgString, fileURL: fileURL, delegate: delegate,
+            evaluationProgress: progress, isCancelled: cancellationHandler
         )
         defer { withExtendedLifetime(delegate) {} }
         try self.init(csgString: csgString, at: fileURL, onWarning: onWarning, context: context)
@@ -106,7 +107,6 @@ public extension Scene {
         }
         var warnings = [String]()
         let geometry = try Geometry(csgString: csgString, at: fileURL, onWarning: { message in
-            let message = fileURL.map { "\($0.lastPathComponent): \(message)" } ?? message
             if !warnings.contains(message) {
                 warnings.append(message)
             }

@@ -42,7 +42,7 @@ final class CLITests: XCTestCase {
             let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertTrue(
-                result.output.contains("Warning: model.csg: Named CSG colors are unsupported"),
+                result.output.contains("Warning: Named CSG colors are unsupported"),
                 result.failureMessage
             )
         }
