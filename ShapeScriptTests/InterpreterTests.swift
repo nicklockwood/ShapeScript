@@ -1949,6 +1949,11 @@ final class InterpreterTests: XCTestCase {
         texture "Nope.jpg"
         print texture
         """
+        #if targetEnvironment(simulator) || !os(iOS)
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1. Using no texture."])
+        #else
         let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
@@ -1963,6 +1968,7 @@ final class InterpreterTests: XCTestCase {
             ), at: range))
             #endif
         }
+        #endif
     }
 
     func testTextureInvalidInCircle() {
@@ -2184,6 +2190,11 @@ final class InterpreterTests: XCTestCase {
         background "Nope.jpg"
         print background
         """
+        #if targetEnvironment(simulator) || !os(iOS)
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope.jpg' not found on line 1. Using no texture."])
+        #else
         let range = try XCTUnwrap(program.range(of: "\"Nope.jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
@@ -2198,6 +2209,7 @@ final class InterpreterTests: XCTestCase {
             ), at: range))
             #endif
         }
+        #endif
     }
 
     func testSetBackgroundTextureWithNonExistentInterpolatedPath() throws {
@@ -2205,6 +2217,11 @@ final class InterpreterTests: XCTestCase {
         background "Nope" 1 ".jpg"
         print background
         """
+        #if targetEnvironment(simulator) || !os(iOS)
+        let delegate = TestDelegate()
+        let scene = try evaluate(parse(program), delegate: delegate)
+        XCTAssertEqual(scene.warnings, ["Texture 'Nope1.jpg' not found on line 1. Using no texture."])
+        #else
         let range = try XCTUnwrap(program.range(of: "\"Nope\" 1 \".jpg\""))
         let delegate = TestDelegate()
         XCTAssertThrowsError(try evaluate(parse(program), delegate: delegate)) { error in
@@ -2220,6 +2237,7 @@ final class InterpreterTests: XCTestCase {
             #endif
             XCTAssertEqual(error?.range, range)
         }
+        #endif
     }
 
     func testSetBackgroundTextureToEmptyString() throws {
@@ -2387,17 +2405,9 @@ final class InterpreterTests: XCTestCase {
     func testSetInvalidFont() throws {
         #if canImport(CoreGraphics)
         let program = try parse("font \"foo\"")
-        let range = try XCTUnwrap(program.source.range(of: "\"foo\""))
         let context = EvaluationContext(source: program.source, delegate: nil)
-        XCTAssertThrowsError(try program.evaluate(in: context)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unknown font 'foo'")
-            XCTAssertEqual(error?.range, range)
-            guard case .unknownFont("foo", options: _)? = error?.type else {
-                XCTFail()
-                return
-            }
-        }
+        try program.evaluate(in: context)
+        XCTAssertEqual(context.warnings, ["Unknown font 'foo' on line 1. Using the default font."])
         XCTAssertEqual(context.state.font, "")
         #endif
     }

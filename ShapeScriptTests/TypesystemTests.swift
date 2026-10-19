@@ -716,11 +716,12 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testErrorThrowingArgumentHasCorrectRange() throws {
-        let name = "Nope.jpg"
+        #if canImport(CoreGraphics) && canImport(CoreText)
+        let name = ""
         let program = try parse("""
         define foo(bar baz) {
             if baz {
-                texture bar
+                font bar
             }
         }
         foo("\(name)" true)
@@ -729,9 +730,12 @@ final class TypesystemTests: XCTestCase {
         let context = EvaluationContext(source: "", delegate: nil)
         XCTAssertThrowsError(try program.evaluate(in: context)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.type, .fileNotFound(for: name, at: nil))
+            guard case .unknownFont("", options: _)? = error?.type else {
+                return XCTFail("Expected a blank font error")
+            }
             XCTAssertEqual(error?.range, range)
         }
+        #endif
     }
 
     func testFunctionWithForwardReferenceToConstant() throws {

@@ -32,6 +32,84 @@ final class ImportExportTests: XCTestCase {
         try body(url)
     }
 
+    func testMissingAssetsWarnAndAllowGeometryCreation() throws {
+        #if targetEnvironment(simulator) || !os(iOS)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let image = directory.appendingPathComponent("Missing.png").path
+        let font = directory.appendingPathComponent("Missing.ttf").path
+        let source = """
+        texture "\(image)"
+        normals import "\(image)"
+        font "\(font)"
+        font import "\(font)"
+        cube
+        """
+        let scene = try evaluate(parse(source), delegate: nil)
+        XCTAssertEqual(scene.warnings, [
+            "Texture '\(image)' not found on line 1. Using no texture.",
+            "Texture '\(image)' not found on line 2. Using no texture.",
+            "Font file '\(font)' not found on line 3. Using the default font.",
+            "Font file '\(font)' not found on line 4. Using the default font.",
+        ])
+        XCTAssertEqual(scene.children.count, 1)
+        XCTAssertNil(scene.children.first?.material.texture)
+        #endif
+    }
+
+    func testMissingAssetWarningIncludesImportedFileAndLine() throws {
+        #if targetEnvironment(simulator) || !os(iOS)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Child.shape")
+        try """
+        // Missing texture in an imported document
+        for 1 to 2 {
+            texture "Missing.png"
+            cube
+        }
+        """.write(to: url, atomically: true, encoding: .utf8)
+        let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+        XCTAssertEqual(scene.warnings, [
+            "Child.shape: Texture 'Missing.png' not found on line 3. Using no texture.",
+        ])
+        XCTAssertEqual(scene.children.count, 2)
+        #endif
+    }
+
+    func testAssetPermissionErrorsRemainErrors() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        for (command, fileExtension) in [("texture", "png"), ("font", "ttf")] {
+            let url = directory.appendingPathComponent("Restricted.\(fileExtension)")
+            try Data().write(to: url)
+            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: url.path)
+            defer {
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            }
+            guard !FileManager.default.isReadableFile(atPath: url.path) else {
+                throw XCTSkip("This environment can read files without read permission")
+            }
+            let program = try parse("\(command) \"\(url.path)\"")
+            let context = EvaluationContext(source: program.source, delegate: nil)
+            XCTAssertThrowsError(try program.evaluate(in: context)) { error in
+                guard let error = error as? RuntimeError,
+                      case .fileAccessRestricted = error.type
+                else {
+                    return XCTFail("Expected a file access error, got \(error)")
+                }
+            }
+            XCTAssertTrue(context.warnings.isEmpty)
+        }
+    }
+
+    func testMissingModelRemainsAnError() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathExtension("stl").path
+        XCTAssertThrowsError(try evaluate(parse("import \"\(path)\""), delegate: nil))
+    }
+
     // MARK: Geometry
 
     func testCog() throws {
