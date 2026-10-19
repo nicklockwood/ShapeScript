@@ -102,8 +102,8 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings.count, 2)
-        XCTAssertTrue(scene.warnings.contains { $0.contains("Geometry skipped") })
-        XCTAssertTrue(scene.warnings.contains { $0.contains("Using children") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'surface'") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'resize'") })
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
     }
@@ -118,13 +118,13 @@ final class CSGImportTests: XCTestCase {
             XCTAssertEqual(scene.warnings.count, 1)
             XCTAssertEqual(
                 scene.warnings.first,
-                "Unsupported CSG operation 'roof' on line 1. Using children without this operation."
+                "Unsupported CSG operation 'roof' on line 1."
             )
             XCTAssertEqual(scene.geometry, expected.geometry)
             XCTAssertTrue(scene.build { false })
         }
         let empty = try Scene(csgString: "roof(); cube(1);", isCancelled: { false })
-        XCTAssertTrue(empty.warnings.contains { $0.contains("Geometry skipped") })
+        XCTAssertTrue(empty.warnings.contains { $0.contains("Unsupported CSG operation 'roof'") })
         XCTAssertTrue(empty.build { false })
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
@@ -132,7 +132,7 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedExtrusionOptionsHaveExplicitFallbacks() throws {
         let tapered = try Scene(csgString: "linear_extrude(height=2, scale=0.5) square(1);", isCancelled: { false })
         XCTAssertEqual(tapered.warnings.count, 1)
-        XCTAssertTrue(tapered.warnings[0].contains("untapered"))
+        XCTAssertTrue(tapered.warnings[0].contains("Tapered CSG linear_extrude"))
         XCTAssertTrue(tapered.build { false })
         XCTAssertEqual(tapered.geometry.merged().signedVolume, 2, accuracy: 1e-8)
         let partial = try Scene(
@@ -140,7 +140,7 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertEqual(partial.warnings.count, 1)
-        XCTAssertTrue(partial.warnings[0].contains("full revolution"))
+        XCTAssertTrue(partial.warnings[0].contains("Partial CSG rotate_extrude"))
         XCTAssertTrue(partial.build { false })
         XCTAssertEqual(partial.geometry.merged(), try mesh("rotate_extrude($fn=16) translate([2,0,0]) square(1);"))
     }
@@ -148,13 +148,13 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedOffsetOptionsHaveExplicitFallbacks() throws {
         let rounded = try Scene(csgString: "offset(r=1, chamfer=true) square(2,true);", isCancelled: { false })
         XCTAssertEqual(rounded.warnings.count, 1)
-        XCTAssertTrue(rounded.warnings[0].contains("sharp offset"))
+        XCTAssertTrue(rounded.warnings[0].contains("Rounded or chamfered"))
         XCTAssertEqual(rounded.geometry.overestimatedBounds, Bounds([-2, -2, 0], [2, 2, 0]))
         let multiple = try Scene(
             csgString: "offset(delta=1) group() { square(1); translate([4,0,0]) square(1); }",
             isCancelled: { false }
         )
-        XCTAssertTrue(multiple.warnings.contains { $0.contains("separately") })
+        XCTAssertTrue(multiple.warnings.contains { $0.contains("multiple profiles") })
         XCTAssertEqual(try XCTUnwrap(multiple.children.first?.path).subpaths.count, 2)
     }
 
@@ -163,7 +163,7 @@ final class CSGImportTests: XCTestCase {
             csgString: "multmatrix([[1,0,0,2],[0,1,0,0],[0,0,1,0],[0,0,0.1,1]]) cube(1);",
             isCancelled: { false }
         )
-        XCTAssertTrue(projective.warnings.contains { $0.contains("affine part") })
+        XCTAssertTrue(projective.warnings.contains { $0.contains("Projective") })
         XCTAssertTrue(projective.build { false })
         XCTAssertEqual(projective.geometry.merged().bounds, Bounds([2, 0, 0], [3, 1, 1]))
         let singular = try Scene(csgString: "cube(1); scale([0,1,1]) cube(4);", isCancelled: { false })
@@ -342,7 +342,7 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertTrue(scene.warnings[0].contains("base font"))
+        XCTAssertTrue(scene.warnings[0].contains("Unsupported OpenSCAD font style"))
         let fallback = try Scene(csgString: "text(\"Hi\", font=\"Helvetica\");", isCancelled: { false })
         XCTAssertEqual(scene.geometry, fallback.geometry)
     }
@@ -359,7 +359,7 @@ final class CSGImportTests: XCTestCase {
     func testNamedColorWarnsAndUsesInheritedColor() throws {
         let scene = try Scene(csgString: "color([1,0,0]) color(\"blue\") cube(1);", isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertTrue(scene.warnings[0].contains("inherited color"))
+        XCTAssertTrue(scene.warnings[0].contains("Named CSG colors"))
         XCTAssertTrue(scene.build { false })
         XCTAssertTrue(scene.geometry.merged().polygons.allSatisfy { ($0.material as? Material)?.color == .red })
     }
@@ -1332,7 +1332,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 12, accuracy: 1e-6)
         XCTAssertEqual(scene.warnings, [
-            "profile.csg: Unsupported CSG operation 'roof' on line 1. Using children without this operation.",
+            "profile.csg: Unsupported CSG operation 'roof' on line 1.",
         ])
     }
 
