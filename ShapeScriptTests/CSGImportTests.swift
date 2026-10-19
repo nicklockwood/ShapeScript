@@ -356,10 +356,39 @@ final class CSGImportTests: XCTestCase {
     }
     #endif
 
-    func testNamedColorWarnsAndUsesInheritedColor() throws {
-        let scene = try Scene(csgString: "color([1,0,0]) color(\"blue\") cube(1);", isCancelled: { false })
+    func testStringColorsMatchShapeScript() throws {
+        for name in [
+            "red",
+            "GREEN",
+            "lime",
+            "RebeccaPurple",
+            "cornflowerblue",
+            "grey",
+            "transparent",
+            "#369",
+            "#12345678",
+        ] {
+            guard case let .color(expected)? = Value.string(name).as(.color) else {
+                return XCTFail("Expected a color for \(name)")
+            }
+            for alpha in [Double?.none, 0.25] {
+                let argument = alpha.map { ", alpha=\($0)" } ?? ""
+                let source = "color([1,0,0]) color(\"\(name)\"\(argument)) cube(1);"
+                let scene = try Scene(csgString: source, isCancelled: { false })
+                XCTAssertTrue(scene.warnings.isEmpty, name)
+                XCTAssertTrue(scene.build { false })
+                let polygons = scene.geometry.merged().polygons
+                XCTAssertFalse(polygons.isEmpty)
+                let color = alpha.map { expected.withAlphaComponent($0) } ?? expected
+                XCTAssertTrue(polygons.allSatisfy { ($0.material as? Material)?.color == color }, name)
+            }
+        }
+    }
+
+    func testUnknownColorWarnsAndUsesInheritedColor() throws {
+        let scene = try Scene(csgString: "color([1,0,0]) color(\"notacolor\") cube(1);", isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertTrue(scene.warnings[0].contains("Named CSG colors"))
+        XCTAssertTrue(scene.warnings[0].contains("Unknown CSG color 'notacolor'"))
         XCTAssertTrue(scene.build { false })
         XCTAssertTrue(scene.geometry.merged().polygons.allSatisfy { ($0.material as? Material)?.color == .red })
     }
@@ -379,7 +408,7 @@ final class CSGImportTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("warning.csg")
-        try "color(\"red\") cube(1);".write(to: url, atomically: true, encoding: .utf8)
+        try "color(\"notacolor\") cube(1);".write(to: url, atomically: true, encoding: .utf8)
         let importStatement = "import \"warning.csg\""
         let delegate = TestDelegate(directory: directory)
         let scene = try evaluate(parse("group { \(importStatement) }\n\(importStatement)"), delegate: delegate)

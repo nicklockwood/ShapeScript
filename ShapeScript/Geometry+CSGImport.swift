@@ -699,21 +699,29 @@ private struct CSGImporter {
             return .init(geometry: geometry(type, material: material, children: children.map(\.geometry)), paths: nil)
         case "color":
             let values = try validate(node, ["c", "alpha"], positional: ["c", "alpha"])
-            if case .string? = values["c"] {
+            let components: [Double]
+            if case let .string(name)? = values["c"] {
                 guard try (0 ... 1).contains(node.number(values, "alpha", default: 1)) else {
                     throw node.error("Invalid CSG color")
                 }
-                warn("Named CSG colors are unsupported", at: node)
-                return try shape(
-                    .init(name: "group", arguments: [:], children: node.children, line: node.line, column: node.column),
-                    material: material
-                )
-            }
-            let components: [Double]
-            if let numbers = values["c"]?.numbers, numbers.count == 3 || numbers.count == 4 {
+                guard case let .color(color)? = Value.string(name).as(.color) else {
+                    warn("Unknown CSG color '\(name)'", at: node)
+                    return try shape(
+                        .init(
+                            name: "group",
+                            arguments: [:],
+                            children: node.children,
+                            line: node.line,
+                            column: node.column
+                        ),
+                        material: material
+                    )
+                }
+                components = color.components
+            } else if let numbers = values["c"]?.numbers, numbers.count == 3 || numbers.count == 4 {
                 components = numbers
             } else {
-                throw node.error("CSG colors must be RGB or RGBA vectors")
+                throw node.error("CSG colors must be names, hex strings, or RGB or RGBA vectors")
             }
             let alpha = try node.number(values, "alpha", default: components.count == 4 ? components[3] : 1)
             guard components.allSatisfy({ (0 ... 1).contains($0) }), (0 ... 1).contains(alpha) else {

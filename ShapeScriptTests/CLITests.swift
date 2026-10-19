@@ -38,11 +38,11 @@ final class CLITests: XCTestCase {
 
     func testCSGWarningsArePrintedWithoutFailing() throws {
         try withTemporaryFile(named: "model.csg") { directory, inputURL in
-            try "color(\"red\") cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)
+            try "color(\"notacolor\") cube(1);".write(to: inputURL, atomically: true, encoding: .utf8)
             let result = try runExecutable(["check", inputURL.lastPathComponent], in: directory)
             XCTAssertEqual(result.status, 0, result.failureMessage)
             XCTAssertTrue(
-                result.output.contains("Warning: Named CSG colors are unsupported"),
+                result.output.contains("Warning: Unknown CSG color 'notacolor'"),
                 result.failureMessage
             )
         }
