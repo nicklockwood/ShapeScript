@@ -440,6 +440,31 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(sphere.isRenderedInScene(focus: false))
     }
 
+    func testMeshBooleanOperandsBuildWithoutPreviewMesh() {
+        for type in [GeometryType.difference, .stencil] {
+            let operand = Geometry(
+                type: .mesh(.cube(size: 0.5)), name: nil, transform: .identity,
+                material: .default, smoothing: nil, children: [], sourceLocation: nil
+            )
+            let base = Geometry(
+                type: .cube, name: nil, transform: .identity,
+                material: .default, smoothing: nil, children: [], sourceLocation: nil
+            )
+            let geometry = Geometry(
+                type: type, name: nil, transform: .identity,
+                material: .default, smoothing: nil, children: [base, operand], sourceLocation: nil
+            )
+            XCTAssertNil(operand.mesh)
+            XCTAssertTrue(geometry.build { false })
+            XCTAssertNotNil(operand.mesh)
+            XCTAssertEqual(
+                geometry.merged().signedVolume,
+                type == .difference ? 0.875 : 1,
+                accuracy: 1e-6
+            )
+        }
+    }
+
     func testUnionRendersChildrenForPreview() throws {
         let scene = try evaluate(parse("""
         union {
