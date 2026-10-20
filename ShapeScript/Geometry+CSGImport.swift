@@ -1200,10 +1200,19 @@ private struct CSGImporter {
 
     #endif
 
-    private func fontName(_ pattern: String, node: CSGNode) -> String {
+    private func fontName(_ pattern: String, node: CSGNode) throws -> String {
         let components = pattern.components(separatedBy: ":")
-        guard components.count > 1 else { return pattern }
-        let family = components[0].isEmpty ? "Liberation Sans" : components[0]
+        let requestedFamily = components[0].isEmpty ? "Liberation Sans" : components[0]
+        let resolvedFamily: String
+        do {
+            resolvedFamily = try context.resolveFont(
+                requestedFamily, at: SourceLocation(at: node.line, in: fileURL)
+            )
+        } catch let error as RuntimeErrorType {
+            let range = ProgramError(node.error(""), in: source).range ?? source.startIndex ..< source.endIndex
+            throw ProgramError.runtimeError(RuntimeError(error, at: range))
+        }
+        let family = resolvedFamily.isEmpty ? "Helvetica" : resolvedFamily
         var style: String?
         var unsupported = [String]()
         for component in components.dropFirst() {

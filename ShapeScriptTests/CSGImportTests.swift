@@ -336,7 +336,7 @@ final class CSGImportTests: XCTestCase {
     func testEmptyAlignedText() throws {
         for text in ["", "   "] {
             let scene = try Scene(
-                csgString: "text(\"\(text)\", halign=\"center\", valign=\"center\", spacing=2);",
+                csgString: "text(\"\(text)\", font=\"Helvetica\", halign=\"center\", valign=\"center\", spacing=2);",
                 isCancelled: { false }
             )
             XCTAssertTrue(scene.warnings.isEmpty)
@@ -378,15 +378,40 @@ final class CSGImportTests: XCTestCase {
             csgString: "text(\"Style\", font=\"MissingCSGFontFamily:style=Bold\");",
             isCancelled: { false }
         )
-        XCTAssertTrue(bold.warnings.isEmpty)
+        XCTAssertEqual(regular.warnings, ["Unknown font 'MissingCSGFontFamily' on line 1."])
+        XCTAssertEqual(bold.warnings, regular.warnings)
         XCTAssertNotEqual(regular.geometry, bold.geometry)
         let defaultFamily = try Scene(csgString: "text(\"Style\", font=\":style=Bold\");", isCancelled: { false })
         let explicitFamily = try Scene(
             csgString: "text(\"Style\", font=\"Liberation Sans:style=Bold\");",
             isCancelled: { false }
         )
-        XCTAssertTrue(defaultFamily.warnings.isEmpty)
+        XCTAssertEqual(defaultFamily.warnings, explicitFamily.warnings)
         XCTAssertEqual(defaultFamily.geometry, explicitFamily.geometry)
+    }
+
+    func testMissingFontWarningsRetainCSGSourceLocation() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("labels.csg")
+        let source = "\ntext(\"Label\", font=\"MissingCSGFontFamily:style=Bold\");"
+        try source.write(to: url, atomically: true, encoding: .utf8)
+        let direct = try Scene(csgString: source, at: url, isCancelled: { false })
+        XCTAssertEqual(direct.warnings, ["Unknown font 'MissingCSGFontFamily' on line 2."])
+        let root = directory.appendingPathComponent("main.csg")
+        let importedSource = "import(\"labels.csg\");"
+        try importedSource.write(to: root, atomically: true, encoding: .utf8)
+        let imported = try Scene(csgString: importedSource, at: root, isCancelled: { false })
+        XCTAssertEqual(imported.warnings, ["labels.csg: Unknown font 'MissingCSGFontFamily' on line 2."])
+        XCTAssertTrue(imported.build { false })
+    }
+
+    func testInstalledPostScriptFontNamesDoNotWarn() throws {
+        for font in ["Helvetica-Bold", "HelveticaNeue-Light"] {
+            let scene = try Scene(csgString: "text(\"Hi\", font=\"\(font)\");", isCancelled: { false })
+            XCTAssertTrue(scene.warnings.isEmpty, font)
+        }
     }
 
     func testUnsupportedFontStyleWarnsAndUsesBaseFont() throws {
