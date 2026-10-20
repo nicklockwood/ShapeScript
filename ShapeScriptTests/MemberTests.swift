@@ -94,6 +94,20 @@ final class MemberTests: XCTestCase {
         #endif
     }
 
+    func testTupleBoundsBuildBooleanGeometry() throws {
+        let delegate = TestDelegate()
+        _ = try evaluate(parse("""
+        define model difference {
+            cube { size 2 }
+            sphere
+        }
+        print (model model).bounds
+        """), delegate: delegate, cache: nil)
+        let bounds = try XCTUnwrap(delegate.log.first as? Bounds)
+        XCTAssertEqual(bounds.min, [-1, -1, -1])
+        XCTAssertEqual(bounds.max, [1, 1, 1])
+    }
+
     func testEmptyBoundsAreValid() {
         XCTAssert(Value.bounds(.empty).isFinite)
     }

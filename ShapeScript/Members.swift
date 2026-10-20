@@ -440,9 +440,7 @@ private extension TupleMemberProperties {
                 case let bounded as Bounded:
                     bounded.bounds
                 case let geometry as Geometry:
-                    geometry.exactBounds(with: geometry.transform) {
-                        !isCancelled()
-                    }
+                    geometry.exactBounds(with: geometry.transform, isCancelled)
                 default:
                     nil
                 }
