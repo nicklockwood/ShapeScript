@@ -552,7 +552,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
         let tintView = UIView()
         tintView.translatesAutoresizingMaskIntoConstraints = false
-        tintView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.22)
+        tintView.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.5)
         banner.contentView.addSubview(tintView)
 
         let imageView = UIImageView(
