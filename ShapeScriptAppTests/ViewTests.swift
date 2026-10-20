@@ -115,6 +115,64 @@ private final class PivotResettingSCNView: SCNView {
 
 @MainActor
 final class ViewTests: XCTestCase {
+    @available(macOS 13.0, *)
+    func testRerenderAfterFailurePreservesErrorWithoutEvaluatingSource() async throws {
+        let partialScene = try evaluate(parse("cube"), delegate: nil)
+        XCTAssertTrue(partialScene.build { false })
+        for scene in [Scene.empty, partialScene] {
+            let viewController = MockViewController()
+            let document = ViewMockDocument(viewController: viewController)
+            viewController.document = document
+            document.sourceString = "print \"Should not run\"\nsphere"
+            document.scene = scene
+            let error = ProgramError(CSGImportError(message: "Original error", line: 1, column: 1))
+            document.error = error
+            let progress = LoadingProgress { _ in }
+            progress.setStatus(.failure(error))
+            document.loadingProgress = progress
+            document.updateViews()
+
+            // Appearance changes and display settings both use this path.
+            document.rerender()
+            for _ in 0 ..< 200 {
+                if document.loadingProgress?.inProgress == false { break }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            document.updateViews()
+            XCTAssertTrue(document.loadingProgress?.isCancelledOrFailed == true)
+            XCTAssertEqual(document.error, error)
+            XCTAssertTrue(document.scene === scene)
+            XCTAssertFalse(viewController.hasLog)
+            XCTAssertNil(viewController.consoleWasVisibleWhenCleared)
+            XCTAssertFalse(viewController.isLoading)
+            XCTAssertNil(viewController.renderProgress)
+        }
+    }
+
+    @available(macOS 13.0, *)
+    func testLoadingFailureHidesProgressIndicator() async throws {
+        let document = Document()
+        let controller = DocumentViewController()
+        document.addWindowController(NSWindowController(window: NSWindow(contentViewController: controller)))
+        defer { document.close() }
+        XCTAssertTrue(document.viewController === controller)
+        let indicator = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? ProgressView }.first)
+        for source in ["cube {", "cube\nunknownSymbol", "import \"missing.shape\""] {
+            document.error = nil
+            document.sourceString = source
+            for _ in 0 ..< 200 {
+                if document.error != nil { break }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            XCTAssertNotNil(document.error)
+            XCTAssertFalse(controller.isLoading)
+            XCTAssertNil(controller.renderProgress)
+            XCTAssertFalse(indicator.isActive)
+            try await Task.sleep(for: .milliseconds(600))
+            XCTAssertTrue(indicator.isHidden)
+        }
+    }
+
     func testBackgroundColorRemainsResolvedAcrossAppearanceChanges() throws {
         let originalAppearance = NSApp.appearance
         defer { NSApp.appearance = originalAppearance }
