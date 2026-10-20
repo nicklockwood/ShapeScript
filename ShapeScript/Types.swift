@@ -696,7 +696,8 @@ extension Value {
                 material: .default, // not used for paths
                 smoothing: nil,
                 children: [],
-                sourceLocation: context?.sourceLocation
+                sourceLocation: context?.sourceLocation,
+                cache: context?.geometryCache
             ))
         case let (.mesh(geometry), .path):
             return geometry.path(pretransformed: true).map { .path($0) }

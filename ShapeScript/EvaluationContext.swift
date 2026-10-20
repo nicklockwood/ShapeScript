@@ -110,6 +110,7 @@ final class EvaluationContext {
     }
 
     let preview: Bool
+    let geometryCache: GeometryCache?
     let isCancelled: CancellationHandler
 
     var source: String
@@ -135,10 +136,12 @@ final class EvaluationContext {
         preview: Bool = false,
         delegate: EvaluationDelegate?,
         evaluationProgress: EvaluationProgress? = nil,
+        geometryCache: GeometryCache? = nil,
         isCancelled: @escaping CancellationHandler = { false }
     ) {
         self.source = source
         self.documentURL = fileURL
+        self.geometryCache = geometryCache
         self.preview = preview
         self.delegate = delegate
         self.evaluationProgress = evaluationProgress
@@ -154,6 +157,7 @@ final class EvaluationContext {
         self.source = parent.source
         self.documentURL = parent.documentURL
         self.sourceIndex = parent.sourceIndex
+        self.geometryCache = parent.geometryCache
         self.preview = parent.preview
         self.state = parent.state
         self.delegate = parent.delegate
@@ -768,6 +772,7 @@ extension EvaluationContext {
                         expected: nil
                     )
                 }
+                geometry.cache = geometryCache
                 return .mesh(geometry.with(
                     transform: .identity,
                     material: state.material,

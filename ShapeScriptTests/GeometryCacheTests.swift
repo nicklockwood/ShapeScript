@@ -64,6 +64,77 @@ final class GeometryCacheTests: XCTestCase {
         try? FileManager.default.removeItem(at: directory)
     }
 
+    func testBoundsBuildsPopulateCacheDuringEvaluation() throws {
+        let cache = makeCache()
+        let source = """
+        define model {
+            difference {
+                cube { size 2 }
+                sphere
+            }
+        }
+        define dimensions model.bounds.size
+        model
+        """
+        let scene = try evaluate(parse(source), delegate: nil, cache: cache)
+        // No Scene.build call: the bounds query must populate the shared cache itself.
+        XCTAssertGreaterThan(cache.count, 0)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertTrue(geometry.cache === cache)
+        XCTAssertNotNil(cache[mesh: geometry])
+        XCTAssertTrue(geometry.transformed(by: .translation([1, 2, 3])).cache === cache)
+        XCTAssertTrue(geometry.with(transform: .identity, material: .default, smoothing: nil, sourceLocation: { nil })
+            .cache === cache)
+    }
+
+    func testImportedBoundsUseEvaluationCache() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for (name, content, importStatement) in [
+            ("model.shape", "define model { difference { cube\nsphere } }", "import "),
+            ("model.csg", "difference() { cube(1); sphere(r=0.5); }", "define model import "),
+        ] {
+            let url = directory.appendingPathComponent(name)
+            try content.write(to: url, atomically: true, encoding: .utf8)
+            let source = importStatement + "\"\(url.path)\"\ncube { size model.bounds.size }"
+            let cache = makeCache()
+            _ = try evaluate(parse(source), delegate: nil, cache: cache)
+            XCTAssertGreaterThan(cache.count, 0, name)
+        }
+    }
+
+    func testBoundsDuringEvaluationReuseDiskAndMemoryCache() throws {
+        let directory = makeTemporaryCacheDirectory()
+        defer { removeTemporaryCacheDirectory(directory) }
+        let definition = """
+        define model {
+            difference {
+                cube { size 2 }
+                sphere
+            }
+        }
+        """
+        let uncached = try evaluate(parse(definition + "\nmodel"), delegate: nil, cache: nil)
+        let geometry = try XCTUnwrap(uncached.children.first)
+        XCTAssertNil(geometry.cache)
+        // Distinct bounds prove the query reads the cached mesh rather than rebuilding.
+        let cachedMesh = Mesh.cube(size: [7, 8, 9])
+        let diskCache = LRUDiskCache<GeometryCache.Key, Data>(
+            capacity: DiskCache.defaultCapacity, directory: directory
+        )
+        try diskCache.setValue(JSONEncoder().encode(CachedMesh(cachedMesh)), forKey: geometry.cacheKey)
+        let cache = makeCache(directory: directory)
+        let program = try parse(definition + "\ncube { size model.bounds.size }")
+        XCTAssertEqual(cache.count, 0)
+        for _ in 0 ..< 2 {
+            let scene = try evaluate(program, delegate: nil, cache: cache)
+            let cube = try XCTUnwrap(scene.children.first)
+            XCTAssertEqual(cube.exactBounds(with: cube.transform).size, [7, 8, 9])
+            XCTAssertGreaterThan(cache.count, 0)
+        }
+    }
+
     // MARK: Sub-object caching
 
     func testFilledCharacterCaching() throws {

@@ -76,13 +76,14 @@ extension Geometry {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
-                smoothing: .zero, children: [], sourceLocation: sourceLocation
+                smoothing: .zero, children: [], sourceLocation: sourceLocation, cache: context.geometryCache
             )
             return
         }
         self.init(
             type: .group, name: nil, transform: .identity, material: .default,
-            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation
+            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
+            cache: context.geometryCache
         )
     }
 }
@@ -109,7 +110,7 @@ public extension Scene {
         let cancellationHandler: CancellationHandler = { progress?.isCancelled ?? isCancelled() }
         let context = EvaluationContext(
             source: csgString, fileURL: fileURL, delegate: delegate,
-            evaluationProgress: progress, isCancelled: cancellationHandler
+            evaluationProgress: progress, geometryCache: cache, isCancelled: cancellationHandler
         )
         defer { withExtendedLifetime(delegate) {} }
         let geometry = try Geometry(csgString: csgString, at: fileURL, context: context)
@@ -550,7 +551,8 @@ private struct CSGImporter {
             material: material,
             smoothing: .zero,
             children: children,
-            sourceLocation: sourceLocation
+            sourceLocation: sourceLocation,
+            cache: context.geometryCache
         )
     }
 
