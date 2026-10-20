@@ -1028,7 +1028,8 @@ private struct CSGImporter {
                 attributedString, spacing: spacing, detail: max(1, detail / 8)
             )
             try checkCancellation()
-            return result(paths.translated(by: offset).scaled(by: size), material: material)
+            // OpenSCAD uses 100 DPI for 72-point font units
+            return result(paths.translated(by: offset).scaled(by: size * 100 / 72), material: material)
             #else
             warn("CSG text requires platform font support", at: node)
             return result([], material: material)
