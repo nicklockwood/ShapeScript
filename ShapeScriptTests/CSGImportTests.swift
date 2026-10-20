@@ -230,11 +230,11 @@ final class CSGImportTests: XCTestCase {
         let scene = try Scene(csgString: source, isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)
         XCTAssertFalse(scene.warnings[0].contains("halign"))
-        XCTAssertTrue(scene.warnings[0].contains("spacing"))
+        XCTAssertFalse(scene.warnings[0].contains("spacing"))
         XCTAssertTrue(scene.warnings[0].contains("language"))
         XCTAssertTrue(scene.warnings[0].contains("on line 1."))
         let fallback = try Scene(
-            csgString: "text(\"Hi\", font=\"Helvetica\", halign=\"center\");",
+            csgString: "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2);",
             isCancelled: { false }
         )
         XCTAssertEqual(scene.geometry, fallback.geometry)
@@ -280,10 +280,45 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testTextSpacingPreservesGlyphsAndUsesSpacedAdvanceForAlignment() throws {
+        let font = CTFontCreateWithName("Helvetica" as CFString, 1, nil)
+        func width(_ text: String) -> Double {
+            CTLineGetTypographicBounds(CTLineCreateWithAttributedString(
+                NSAttributedString(string: text, attributes: [.font: font])
+            ), nil, nil, nil)
+        }
+        let glyph = Bounds(TextPath(
+            text: [TextValue(string: "H", font: "Helvetica")],
+            wrapWidth: nil, detail: 4, isCancelled: { false }
+        ).paths)
+        for spacing in [-1.0, 0, 0.5, 1, 2] {
+            for (alignment, factor) in [("left", 0.0), ("center", -0.5), ("right", -1)] {
+                let scene = try Scene(
+                    csgString: """
+                    text("H H ", font="Helvetica", size=3, spacing=\(spacing), halign="\(alignment)", $fn=32);
+                    """,
+                    isCancelled: { false }
+                )
+                XCTAssertTrue(scene.warnings.isEmpty)
+                let geometry = try XCTUnwrap(scene.children.first)
+                let paths = geometry.paths(pretransformed: true).flatMap(\.subpaths)
+                XCTAssertEqual(paths.count, 2)
+                for (path, prefix) in zip(paths, ["", "H "]) {
+                    let offset = (width(prefix) + width("H H ") * factor) * spacing
+                    let bounds = path.bounds
+                    XCTAssertEqual(bounds.min.x, (glyph.min.x + offset) * 3, accuracy: 1e-8)
+                    XCTAssertEqual(bounds.max.x, (glyph.max.x + offset) * 3, accuracy: 1e-8)
+                    XCTAssertEqual(bounds.min.y, glyph.min.y * 3, accuracy: 1e-8)
+                    XCTAssertEqual(bounds.max.y, glyph.max.y * 3, accuracy: 1e-8)
+                }
+            }
+        }
+    }
+
     func testEmptyAlignedText() throws {
         for text in ["", "   "] {
             let scene = try Scene(
-                csgString: "text(\"\(text)\", halign=\"center\", valign=\"center\");",
+                csgString: "text(\"\(text)\", halign=\"center\", valign=\"center\", spacing=2);",
                 isCancelled: { false }
             )
             XCTAssertTrue(scene.warnings.isEmpty)
