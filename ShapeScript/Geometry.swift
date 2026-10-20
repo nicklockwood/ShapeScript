@@ -216,7 +216,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
         sourceLocation: (@Sendable () -> SourceLocation?)?,
         debug: Bool = false,
         isFocused: Bool = false,
-        isHidden: Bool = false
+        isHidden: Bool = false,
+        cache: GeometryCache? = nil
     ) {
         var material = material
         var useMaterialForCache = false
@@ -519,6 +520,12 @@ public final class Geometry: Hashable, @unchecked Sendable {
             self._overestimatedBounds = .empty
         }
 
+        self.cache = cache
+        if let cache {
+            for child in children where child.cache !== cache {
+                child.cache = cache
+            }
+        }
         // Must be set after all other properties
         children.forEach { $0.parent = self }
     }
@@ -637,7 +644,8 @@ public extension Geometry {
             sourceLocation: _sourceLocation,
             debug: debug,
             isFocused: isFocused,
-            isHidden: isHidden
+            isHidden: isHidden,
+            cache: cache
         )
     }
 
@@ -660,7 +668,8 @@ public extension Geometry {
                 smoothing: smoothing,
                 children: children,
                 sourceLocation: sourceLocation,
-                debug: debug
+                debug: debug,
+                cache: cache
             )
         }
 
@@ -1961,7 +1970,8 @@ private extension Geometry {
             sourceLocation: _sourceLocation ?? sourceLocation,
             debug: withoutDebug ? false : debug,
             isFocused: isFocused,
-            isHidden: isHidden
+            isHidden: isHidden,
+            cache: cache
         )
         copy.mesh = isRemovingUnfocusedChildren || isRemovingHiddenGeometry ? nil : mesh
         return copy

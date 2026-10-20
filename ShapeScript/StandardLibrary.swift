@@ -883,7 +883,8 @@ extension Geometry {
             material: context.state.material,
             smoothing: context.state.smoothing,
             children: children ?? context.state.children.compactMap { $0.value as? Geometry },
-            sourceLocation: context.sourceLocation
+            sourceLocation: context.sourceLocation,
+            cache: context.geometryCache
         )
     }
 }

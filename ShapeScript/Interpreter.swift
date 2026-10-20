@@ -434,6 +434,7 @@ private func _evaluate(
         preview: preview,
         delegate: delegate,
         evaluationProgress: progress,
+        geometryCache: cache,
         isCancelled: isCancelled
     )
     let result = Result { try program.evaluate(in: context, options: scriptOptions) }
@@ -590,7 +591,8 @@ final class UserBlock: @unchecked Sendable {
                             material: .default,
                             smoothing: nil,
                             children: [],
-                            sourceLocation: context.sourceLocation
+                            sourceLocation: context.sourceLocation,
+                            cache: context.geometryCache
                         ))
                     }
                     return .path(path.transformed(by: context.state.transform))
@@ -607,7 +609,8 @@ final class UserBlock: @unchecked Sendable {
                         sourceLocation: context.sourceLocation,
                         debug: geometry.debug,
                         isFocused: geometry.isFocused,
-                        isHidden: geometry.isHidden
+                        isHidden: geometry.isHidden,
+                        cache: context.geometryCache
                     ))
                 case let .polygon(polygon):
                     return .polygon(polygon.transformed(by: context.state.transform))
@@ -654,7 +657,8 @@ final class UserBlock: @unchecked Sendable {
                             material: .default,
                             smoothing: nil,
                             children: [],
-                            sourceLocation: context.sourceLocation
+                            sourceLocation: context.sourceLocation,
+                            cache: context.geometryCache
                         )
                     case let .mesh(geometry):
                         return geometry
@@ -665,7 +669,8 @@ final class UserBlock: @unchecked Sendable {
                         )
                     }
                 },
-                sourceLocation: context.sourceLocation
+                sourceLocation: context.sourceLocation,
+                cache: context.geometryCache
             ))
         } catch let request as CallRequest {
             throw request
