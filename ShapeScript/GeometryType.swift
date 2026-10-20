@@ -206,46 +206,44 @@ public extension GeometryType {
         }
     }
 
-    /// Returns the exact bounds, not including the effects of transform or child shapes
-    /// - Note: may be expensive to calculate for shapes containing complex paths
+    /// Returns the exact bounds, not including the effects of transform or child shapes.
     var bounds: Bounds {
+        bounds(with: .identity)
+    }
+
+    /// Returns the exact bounds with a transform, excluding child shapes.
+    func bounds(with transform: Transform) -> Bounds {
         switch self {
-        case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
-            return .empty
-        case .cube:
-            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
-        case let .circle(segments):
-            return Path.circle(segments: segments).bounds
-        case .square:
-            return .init(min: [-0.5, -0.5], max: [0.5, 0.5])
-        case let .text(text):
-            return .init(text.paths.map(\.bounds))
-        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
-            let bounds = Path.circle(segments: segments).bounds
+        case let .lathe(paths, options) where options.along.isEmpty:
+            var linearTransform = transform
+            linearTransform.translation = .zero
+            // All rings share the same angular samples. Transform their bounds once,
+            // then scale by each profile radius and translate along the transformed axis
+            let ring = Bounds(Path.circle(segments: options.segments)
                 .rotated(by: .roll(-.halfPi))
-            return Bounds(
-                min: .init(bounds.min.x, -0.5, bounds.min.y),
-                max: .init(bounds.max.x, 0.5, bounds.max.y)
-            )
-        case .icosphere:
-            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
-        case let .extrude(paths, options) where options.along.isEmpty:
-            return paths.reduce(into: .empty) { bounds, path in
-                let offset = path.faceNormal / 2
-                let pathBounds = path.bounds
-                bounds.formUnion(pathBounds.translated(by: offset))
-                bounds.formUnion(pathBounds.translated(by: -offset))
+                .rotated(by: .pitch(.halfPi))
+                .pointPositions.transformed(by: linearTransform))
+            var bounds = Bounds.empty
+            for path in paths {
+                for point in path.latheProfile.pointPositions {
+                    // Match Path.scaled(by:) at the axis, including its minimum scale
+                    let diameter = Transform(scale: abs(point.x) * 2).scale.x
+                    let center = (point.y * Vector.unitY).transformed(by: transform)
+                    bounds.formUnion(Bounds(
+                        min: ring.min * diameter + center,
+                        max: ring.max * diameter + center
+                    ))
+                }
             }
-        case .extrude, .lathe:
-            return .init(representativePoints)
-        case let .loft(paths), let .fill(paths):
-            return .init(paths.map(\.bounds))
-        case let .hull(vertices):
-            return .init(vertices.map(\.position))
-        case let .path(path):
-            return path.bounds
-        case let .mesh(mesh):
-            return mesh.bounds
+            return bounds
+        case let .fill(paths) where transform.rotation != .identity,
+             let .loft(paths) where transform.rotation != .identity:
+            return Bounds(paths.transformed(by: transform))
+        default:
+            if transform.rotation != .identity {
+                return Bounds(representativePoints.transformed(by: transform))
+            }
+            return untransformedBounds.transformed(by: transform)
         }
     }
 }
@@ -354,6 +352,48 @@ extension GeometryType {
             return path.pointPositions
         case let .mesh(mesh):
             return mesh.vertexPositions
+        }
+    }
+
+    /// Fast paths for bounds without rotation
+    private var untransformedBounds: Bounds {
+        switch self {
+        case .union, .xor, .difference, .intersection, .stencil, .group, .minkowski, .camera, .light:
+            return .empty
+        case .cube:
+            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
+        case let .circle(segments):
+            return Path.circle(segments: segments).bounds
+        case .square:
+            return .init(min: [-0.5, -0.5], max: [0.5, 0.5])
+        case let .text(text):
+            return .init(text.paths.map(\.bounds))
+        case let .cone(segments), let .cylinder(segments), let .sphere(segments):
+            let bounds = Path.circle(segments: segments).bounds
+                .rotated(by: .roll(-.halfPi))
+            return Bounds(
+                min: .init(bounds.min.x, -0.5, bounds.min.y),
+                max: .init(bounds.max.x, 0.5, bounds.max.y)
+            )
+        case .icosphere:
+            return .init(min: .init(size: -0.5), max: .init(size: 0.5))
+        case let .extrude(paths, options) where options.along.isEmpty:
+            return paths.reduce(into: .empty) { bounds, path in
+                let offset = path.faceNormal / 2
+                let pathBounds = path.bounds
+                bounds.formUnion(pathBounds.translated(by: offset))
+                bounds.formUnion(pathBounds.translated(by: -offset))
+            }
+        case .extrude, .lathe:
+            return .init(representativePoints)
+        case let .loft(paths), let .fill(paths):
+            return .init(paths.map(\.bounds))
+        case let .hull(vertices):
+            return .init(vertices.map(\.position))
+        case let .path(path):
+            return path.bounds
+        case let .mesh(mesh):
+            return mesh.bounds
         }
     }
 }
