@@ -152,6 +152,28 @@ text {
 
 ![+50% Line spacing](../images/linespacing-decreased.png)
 
+## Letter Spacing
+
+Use `letterspacing` inside a `text` block to add a fixed amount of space between characters. The value is measured in the text's local units, before `size` and other transforms are applied. The default is `0`, which preserves the font's normal spacing. For text of size 1, `letterspacing 0.1` adds 0.1 units between characters:
+
+```swift
+text {
+    letterspacing 0.1
+    "Hello, World!"
+}
+```
+
+As with `linespacing`, you can change `letterspacing` between lines within the same `text` block:
+
+```swift
+text {
+    letterspacing 0.1
+    "Wide spacing"
+    letterspacing -0.05
+    "Tight spacing"
+}
+```
+
 ## Position and Orientation
 
 To adjust the text position and orientation, use the [position](transforms.md#position) and [orientation](transforms.md#orientation) commands:

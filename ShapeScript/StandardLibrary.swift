@@ -500,6 +500,7 @@ extension Symbols {
             "font": .font,
             "wrapwidth": .number,
             "linespacing": .number,
+            "letterspacing": .number,
         ], .text, .list(.path))) { context in
             let width = context.value(for: "wrapwidth")?.doubleValue
             let text = context.state.children.compactMap { value -> TextValue? in
