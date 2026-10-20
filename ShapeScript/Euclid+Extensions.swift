@@ -126,13 +126,22 @@ import AppKit
 
 #if canImport(CoreText)
 extension NSAttributedString {
-    convenience init(string: String, font: String?, color: Color?, linespacing: Double?) {
+    convenience init(
+        string: String,
+        font: String?,
+        color: Color?,
+        linespacing: Double?,
+        letterspacing: Double? = nil
+    ) {
         var fontName = (font ?? "Helvetica") as CFString
         #if canImport(CoreGraphics)
         fontName = CGFont(fontName)?.postScriptName ?? fontName
         #endif
         let font = CTFontCreateWithName(fontName as CFString, 1, nil)
         var attributes = [NSAttributedString.Key.font: font as Any]
+        if let letterspacing, letterspacing != 0 {
+            attributes[NSAttributedString.Key(kCTTrackingAttributeName as String)] = letterspacing
+        }
         #if canImport(AppKit) || canImport(UIKit)
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = CGFloat(linespacing ?? 0)
@@ -163,7 +172,8 @@ extension Path {
                 string: string,
                 font: text.font,
                 color: text.color,
-                linespacing: text.linespacing
+                linespacing: text.linespacing,
+                letterspacing: text.letterspacing
             ))
         }
         return [Path].text(

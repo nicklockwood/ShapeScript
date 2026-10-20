@@ -131,12 +131,20 @@ public struct TextValue: Hashable, Sendable, Codable {
     public var font: String?
     public var color: Color?
     public var linespacing: Double?
+    public var letterspacing: Double?
 
-    public init(string: String, font: String? = nil, color: Color? = nil, linespacing: Double? = nil) {
+    public init(
+        string: String,
+        font: String? = nil,
+        color: Color? = nil,
+        linespacing: Double? = nil,
+        letterspacing: Double? = nil
+    ) {
         self.string = string
         self.font = font
         self.color = color
         self.linespacing = linespacing
+        self.letterspacing = letterspacing
     }
 }
 
@@ -183,7 +191,8 @@ extension Value {
         case let .rotation(rotation):
             rotation.isFinite
         case let .text(text):
-            text.linespacing?.isFinite != false && text.color?.isFinite != false
+            text.linespacing?.isFinite != false && text.letterspacing?.isFinite != false &&
+                text.color?.isFinite != false
         case let .point(point):
             point.position.isFinite
         case let .tuple(values):

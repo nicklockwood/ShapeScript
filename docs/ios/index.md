@@ -67,6 +67,7 @@
         - [Wrap Width](text.md#wrap-width)
         - [Size and Line Height](text.md#size-and-line-height)
         - [Line Spacing](text.md#line-spacing)
+        - [Letter Spacing](text.md#letter-spacing)
         - [Position and Orientation](text.md#position-and-orientation)
         - [Fonts](text.md#fonts)
     - [Builders](builders.md)

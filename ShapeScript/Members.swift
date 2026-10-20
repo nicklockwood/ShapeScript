@@ -357,6 +357,10 @@ private extension MemberProperties {
             guard case let .text(text) = value else { return nil }
             return text.linespacing.map { .number($0) } ?? .void
         },
+        "letterspacing": .init(.optional(.number)) { value, _ in
+            guard case let .text(text) = value else { return nil }
+            return text.letterspacing.map { .number($0) } ?? .void
+        },
     ]
 }
 

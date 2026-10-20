@@ -973,6 +973,7 @@ private extension RuntimeError {
         "wrap": ["wrapwidth"],
         "wrapwidth": ["wrapwidth"],
         "linespacing": ["linespacing"],
+        "letterspacing": ["letterspacing"],
         "leading": ["linespacing"],
         "elif": ["else if"],
         "elsif": ["else if"],
@@ -1367,7 +1368,8 @@ extension EvaluationContext {
                         string: value.stringValue,
                         font: self.value(for: "font")?.stringValue ?? state.font,
                         color: state.material.color,
-                        linespacing: self.value(for: "linespacing")?.doubleValue
+                        linespacing: self.value(for: "linespacing")?.doubleValue,
+                        letterspacing: self.value(for: "letterspacing")?.doubleValue
                     ))
                 default:
                     return value

@@ -12,6 +12,63 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    #if canImport(CoreText)
+    func testTextLetterspacingIsAdditiveAndCanChangeBetweenLines() throws {
+        let scene = try evaluate(parse("""
+        text {
+            font "Helvetica"
+            letterspacing 0.2
+            "WiW"
+            letterspacing -0.1
+            "WiW"
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        guard case let .text(text) = geometry.type else {
+            return XCTFail("Expected text geometry")
+        }
+        XCTAssertEqual(text.text.map(\.letterspacing), [0.2, -0.1])
+        let normal = Path.text(
+            text.text.map { TextValue(string: $0.string, font: $0.font) },
+            detail: text.detail, isCancelled: { false }
+        )
+        XCTAssertEqual(text.paths.count, 6)
+        for (index, pair) in zip(normal, text.paths).enumerated() {
+            let (original, actual) = pair
+            let spacing = index < 3 ? 0.2 : -0.1
+            let shift = Double(index % 3) * spacing
+            XCTAssertEqual(actual.bounds.min.x, original.bounds.min.x + shift, accuracy: 1e-8)
+            XCTAssertEqual(actual.bounds.max.x, original.bounds.max.x + shift, accuracy: 1e-8)
+            XCTAssertEqual(actual.bounds.min.y, original.bounds.min.y, accuracy: 1e-8)
+            XCTAssertEqual(actual.bounds.max.y, original.bounds.max.y, accuracy: 1e-8)
+        }
+    }
+
+    func testTextLetterspacingPreservesDefaultLayoutAndAffectsWrapping() {
+        let original = TextValue(string: "WiWi WiWi", font: "Helvetica")
+        let normal = Path.text([original], isCancelled: { false })
+        var text = original
+        text.letterspacing = 0
+        XCTAssertEqual(Path.text([text], isCancelled: { false }), normal)
+        let width = Bounds(normal).size.x + 0.1
+        XCTAssertEqual(Path.text([text], width: width, isCancelled: { false }), normal)
+        text.letterspacing = 0.3
+        let wrapped = Path.text([text], width: width, isCancelled: { false })
+        XCTAssertGreaterThan(Bounds(wrapped).size.y, Bounds(normal).size.y)
+        XCTAssertLessThanOrEqual(Bounds(wrapped).size.x, width)
+    }
+
+    #endif
+
+    func testTextLetterspacingSerializationAndValidation() throws {
+        let text = TextValue(string: "Hello", letterspacing: 0.2)
+        XCTAssertEqual(try JSONDecoder().decode(TextValue.self, from: JSONEncoder().encode(text)), text)
+        let legacy = try JSONDecoder().decode(TextValue.self, from: Data(#"{"string":"Hello"}"#.utf8))
+        XCTAssertNil(legacy.letterspacing)
+        XCTAssertFalse(Value.text(TextValue(string: "Hello", letterspacing: .infinity)).isFinite)
+        XCTAssertFalse(Value.text(TextValue(string: "Hello", letterspacing: .nan)).isFinite)
+    }
+
     func testSceneGeometryHasStableIdentityAndParents() throws {
         let scene = try evaluate(parse("group { cube\nsphere }"), delegate: nil)
         let root = scene.geometry
