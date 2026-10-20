@@ -8,8 +8,10 @@
 import Euclid
 import Foundation
 
-#if canImport(CoreText)
-import CoreText
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
 #endif
 
 // MARK: Public interface
@@ -990,9 +992,7 @@ private struct CSGImporter {
                     unsupported.append(name)
                 }
             }
-            if try node.number(values, "spacing", default: 1) != 1 {
-                unsupported.append("spacing")
-            }
+            let spacing = try node.number(values, "spacing", default: 1)
             if !unsupported.isEmpty {
                 warn(
                     "Unsupported CSG text options: \(unsupported.joined(separator: ", "))",
@@ -1009,7 +1009,7 @@ private struct CSGImporter {
             #if canImport(CoreText)
             let attributedString = NSAttributedString(string: text, font: font, color: material.color, linespacing: nil)
             let line = CTLineCreateWithAttributedString(attributedString)
-            let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+            let width = CTLineGetTypographicBounds(line, nil, nil, nil) * spacing
             let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
             var offset = Vector.zero
             // Horizontal alignment uses the advance, not the visible glyph bounds.
@@ -1024,13 +1024,11 @@ private struct CSGImporter {
             case "bottom": offset.y = -Double(bounds.minY)
             default: break // baseline or default (validated above)
             }
-            let paths = [Path].text(
-                attributedString,
-                detail: max(1, detail / 8),
-                isCancelled: isCancelled
-            ).translated(by: offset).scaled(by: size)
+            let paths = textPaths(
+                attributedString, spacing: spacing, detail: max(1, detail / 8)
+            )
             try checkCancellation()
-            return result(paths, material: material)
+            return result(paths.translated(by: offset).scaled(by: size), material: material)
             #else
             warn("CSG text requires platform font support", at: node)
             return result([], material: material)
@@ -1145,6 +1143,61 @@ private struct CSGImporter {
             throw node.error("Unknown CSG operation '\(node.name)'")
         }
     }
+
+    #if canImport(CoreText)
+
+    /// Creates text paths with multiplied glyph advances, without stretching glyphs.
+    private func textPaths(_ text: NSAttributedString, spacing: Double, detail: Int) -> [Path] {
+        guard !isCancelled() else { return [] }
+        if spacing == 1 {
+            return [Path].text(text, detail: detail, isCancelled: isCancelled)
+        }
+        let framesetter = CTFramesetterCreateWithAttributedString(text)
+        let range = CFRange(location: 0, length: 0)
+        let constraints = CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+        let size = CTFramesetterSuggestFrameSizeWithConstraints(framesetter, range, nil, constraints, nil)
+        let frame = CTFramesetterCreateFrame(
+            framesetter, range, CGPath(rect: CGRect(origin: .zero, size: size), transform: nil), nil
+        )
+        let lines = CTFrameGetLines(frame) as! [CTLine]
+        var origins = Array(repeating: CGPoint.zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, range, &origins)
+        var paths = [Path]()
+        for (line, origin) in zip(lines, origins) {
+            var advance = CGPoint.zero
+            for run in CTLineGetGlyphRuns(line) as! [CTRun] {
+                let attributes = CTRunGetAttributes(run) as! [NSAttributedString.Key: Any]
+                let font = attributes[.font] as! CTFont
+                let color = (attributes[.foregroundColor] as? OSColor).map(Color.init)
+                for index in 0 ..< CTRunGetGlyphCount(run) {
+                    guard !isCancelled() else { return [] }
+                    let range = CFRange(location: index, length: 1)
+                    var glyph = CGGlyph()
+                    var position = CGPoint.zero
+                    var glyphAdvance = CGSize.zero
+                    CTRunGetGlyphs(run, range, &glyph)
+                    CTRunGetPositions(run, range, &position)
+                    CTRunGetAdvances(run, range, &glyphAdvance)
+                    if let outline = CTFontCreatePathForGlyph(font, glyph, nil) {
+                        // Scale advances, preserving glyph outlines and shaping offsets.
+                        let transform = CGAffineTransform(
+                            translationX: origin.x + position.x + advance.x * (spacing - 1),
+                            y: origin.y - (origins.first?.y ?? 0) + position.y + advance.y * (spacing - 1)
+                        )
+                        let cgPath = CGMutablePath()
+                        cgPath.addPath(outline, transform: transform)
+                        let path = Path(cgPath, detail: detail, color: color)
+                        paths.append(path.faceNormal.dot(.unitZ) > 0 ? path.inverted() : path)
+                    }
+                    advance.x += glyphAdvance.width
+                    advance.y += glyphAdvance.height
+                }
+            }
+        }
+        return paths
+    }
+
+    #endif
 
     private func fontName(_ pattern: String, node: CSGNode) -> String {
         let components = pattern.components(separatedBy: ":")
