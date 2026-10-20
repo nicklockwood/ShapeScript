@@ -477,7 +477,7 @@ extension EvaluationContext {
         return Array(Set(options)).sorted()
     }
 
-    func resolveFont(_ name: String) throws -> String {
+    func resolveFont(_ name: String, at location: SourceLocation? = nil) throws -> String {
         let name = name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\t", with: " ")
@@ -494,17 +494,18 @@ extension EvaluationContext {
             let lowercasedFullName = fullName.lowercased()
             let lowercasedName = name.lowercased()
             guard lowercasedFullName == lowercasedName ||
+                (CTFontCopyPostScriptName(font) as String).lowercased() == lowercasedName ||
                 lowercasedFullName.hasPrefix("\(lowercasedName) ")
             else {
                 guard !name.isEmpty else {
                     throw RuntimeErrorType.unknownFont(name, options: fontNames)
                 }
-                warn("Unknown font '\(name)'")
+                warn("Unknown font '\(name)'", at: location)
                 return ""
             }
             return fullName
         }
-        guard case let .font(fullName) = try importFile(at: name) else {
+        guard case let .font(fullName) = try importFile(at: name, warningLocation: location) else {
             preconditionFailure()
         }
         return fullName
@@ -600,7 +601,11 @@ extension EvaluationContext {
         }
     }
 
-    func importFile(at path: String, options: [String: Value] = [:]) throws -> Value {
+    func importFile(
+        at path: String,
+        options: [String: Value] = [:],
+        warningLocation: SourceLocation? = nil
+    ) throws -> Value {
         let url: URL
         do {
             url = try resolveURL(for: path)
@@ -610,10 +615,10 @@ extension EvaluationContext {
             defer { evaluationProgress?.completeUnit() }
             switch ImportType(URL(fileURLWithPath: path)) {
             case .image:
-                warn("Texture '\(path)' not found")
+                warn("Texture '\(path)' not found", at: warningLocation)
                 return .texture(nil)
             case .font:
-                warn("Font file '\(path)' not found")
+                warn("Font file '\(path)' not found", at: warningLocation)
                 return .font("")
             default:
                 throw error
