@@ -225,6 +225,24 @@ final class CSGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+    func testTextSizeUsesOpenSCADFontScale() throws {
+        let scene = try Scene(
+            csgString: "text(\"Open\", size=72, font=\"Helvetica-Bold\", $fn=32);",
+            isCancelled: { false }
+        )
+        let geometry = try XCTUnwrap(scene.children.first)
+        let font = CTFontCreateWithName("Helvetica-Bold" as CFString, 100, nil)
+        let expected = Bounds([Path].text(
+            NSAttributedString(string: "Open", attributes: [.font: font]),
+            detail: 4, isCancelled: { false }
+        ))
+        let actual = Bounds(geometry.paths(pretransformed: true))
+        XCTAssertEqual(actual.min.x, expected.min.x, accuracy: 1e-6)
+        XCTAssertEqual(actual.min.y, expected.min.y, accuracy: 1e-6)
+        XCTAssertEqual(actual.max.x, expected.max.x, accuracy: 1e-6)
+        XCTAssertEqual(actual.max.y, expected.max.y, accuracy: 1e-6)
+    }
+
     func testUnsupportedTextOptionsWarnAndUseDefaults() throws {
         let source = "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2, language=\"fr\");"
         let scene = try Scene(csgString: source, isCancelled: { false })
@@ -270,7 +288,7 @@ final class CSGImportTests: XCTestCase {
                     XCTAssertTrue(scene.warnings.isEmpty)
                     let geometry = try XCTUnwrap(scene.children.first)
                     let actual = Bounds(geometry.paths(pretransformed: true))
-                    let expected = Bounds(original.translated(by: [x, y, 0]).scaled(by: 3))
+                    let expected = Bounds(original.translated(by: [x, y, 0]).scaled(by: 3 * 100.0 / 72))
                     XCTAssertEqual(actual.min.x, expected.min.x, accuracy: 1e-8)
                     XCTAssertEqual(actual.min.y, expected.min.y, accuracy: 1e-8)
                     XCTAssertEqual(actual.max.x, expected.max.x, accuracy: 1e-8)
@@ -306,10 +324,10 @@ final class CSGImportTests: XCTestCase {
                 for (path, prefix) in zip(paths, ["", "H "]) {
                     let offset = (width(prefix) + width("H H ") * factor) * spacing
                     let bounds = path.bounds
-                    XCTAssertEqual(bounds.min.x, (glyph.min.x + offset) * 3, accuracy: 1e-8)
-                    XCTAssertEqual(bounds.max.x, (glyph.max.x + offset) * 3, accuracy: 1e-8)
-                    XCTAssertEqual(bounds.min.y, glyph.min.y * 3, accuracy: 1e-8)
-                    XCTAssertEqual(bounds.max.y, glyph.max.y * 3, accuracy: 1e-8)
+                    XCTAssertEqual(bounds.min.x, (glyph.min.x + offset) * (3 * 100.0 / 72), accuracy: 1e-8)
+                    XCTAssertEqual(bounds.max.x, (glyph.max.x + offset) * (3 * 100.0 / 72), accuracy: 1e-8)
+                    XCTAssertEqual(bounds.min.y, glyph.min.y * (3 * 100.0 / 72), accuracy: 1e-8)
+                    XCTAssertEqual(bounds.max.y, glyph.max.y * (3 * 100.0 / 72), accuracy: 1e-8)
                 }
             }
         }
