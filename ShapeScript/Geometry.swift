@@ -2256,31 +2256,17 @@ public extension Geometry {
             return .empty
         case .lathe([], _) where visibleChildren.contains(where: { $0.path != nil }),
              .extrude([], _) where visibleChildren.contains(where: { $0.path != nil }):
-            return mesh(isCancelled)?.transformed(by: transform).bounds ?? .empty
+            return mesh(isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
         case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
             return Bounds(visibleChildren.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
             })
         case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square,
-             .text, .path, .extrude, .lathe:
+             .text, .path, .extrude, .lathe, .fill, .loft:
             assert(children.isEmpty)
-            if transform.rotation == .identity {
-                return type.bounds.transformed(by: transform)
-            }
-            return Bounds(type.representativePoints.transformed(by: transform))
-        case let .fill(paths), let .loft(paths):
-            assert(children.isEmpty)
-            if transform.rotation == .identity {
-                return type.bounds.transformed(by: transform)
-            }
-            return Bounds(paths.transformed(by: transform))
+            return type.bounds(with: transform)
         case .hull, .mesh:
-            let bounds: Bounds = if transform.rotation == .identity {
-                type.bounds.transformed(by: transform)
-            } else {
-                Bounds(type.representativePoints.transformed(by: transform))
-            }
-            return visibleChildren.reduce(bounds) {
+            return visibleChildren.reduce(type.bounds(with: transform)) {
                 $0.union($1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .minkowski:
@@ -2288,10 +2274,7 @@ public extension Geometry {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .xor, .difference, .intersection:
-            if transform.rotation == .identity {
-                return mesh(isCancelled)?.bounds.transformed(by: transform) ?? .empty
-            }
-            return mesh(isCancelled)?.transformed(by: transform).bounds ?? .empty
+            return mesh(isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
         case .stencil:
             return visibleChildren.first.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)

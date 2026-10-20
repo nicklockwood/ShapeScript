@@ -1255,6 +1255,76 @@ final class GeometryTests: XCTestCase {
         XCTAssertEqual(shape.exactBounds(with: shape.transform), shape.overestimatedBounds)
     }
 
+    func testTransformedBoundsForFilledAndStoredGeometry() {
+        let paths: [Path] = [
+            .square().translated(by: [1, 2, 0]),
+            .square().scaled(by: 0.5).translated(by: [-1, 3, 2]),
+        ]
+        let types: [GeometryType] = [
+            .fill(paths), .loft(paths),
+            .hull(paths.flatMap(\.points).map { Vertex($0.position) }),
+            .mesh(.cube().translated(by: [1, 2, 3])),
+        ]
+        for type in types {
+            let geometry = Geometry(type: type, in: EvaluationContext(source: "", delegate: nil))
+            for transform in [
+                Transform.identity,
+                .init(scale: [-2, 3, 0.5], translation: [1, -2, 3]),
+                .init(scale: [-2, 3, 0.5], rotation: .pitch(.pi / 3), translation: [1, -2, 3]),
+            ] {
+                let expected = Bounds(type.representativePoints.transformed(by: transform))
+                let actual = type.bounds(with: transform)
+                XCTAssertEqual(actual.min, expected.min, accuracy: epsilon)
+                XCTAssertEqual(actual.max, expected.max, accuracy: epsilon)
+                let geometryBounds = geometry.exactBounds(with: transform)
+                XCTAssertEqual(geometryBounds.min, expected.min, accuracy: epsilon)
+                XCTAssertEqual(geometryBounds.max, expected.max, accuracy: epsilon)
+            }
+        }
+    }
+
+    func testLatheBoundsMatchSampledRings() {
+        let profiles: [[Path]] = [
+            [],
+            [.empty],
+            [.square()],
+            [.circle(radius: 0.5).translated(by: [0, 1, 0])],
+            [Path([.point(0, -2), .point(3, -1), .point(1, 4), .point(0, -2)])],
+            [.square().translated(by: [-2, 0, 0]), .square().translated(by: [1, 3, 0])],
+        ]
+        let transforms: [Transform] = [
+            .identity,
+            .translation([1, 2, 3]),
+            .scale([-2, 3, 0.5]),
+            .rotation(.roll(.halfPi)),
+            .init(scale: [-2, 3, 0.5], rotation: .pitch(.pi / 3) * .roll(.pi / 5), translation: [1, -2, 3]),
+        ]
+        for paths in profiles {
+            for segments in [3, 4, 7, 16, 127] {
+                let type = GeometryType.lathe(paths, .init(segments: segments))
+                let points = type.representativePoints
+                let shape = Geometry(type: type, in: EvaluationContext(source: "", delegate: nil))
+                for transform in transforms {
+                    let expected = Bounds(points.transformed(by: transform))
+                    let actual = shape.exactBounds(with: transform)
+                    if expected.isEmpty {
+                        XCTAssertTrue(actual.isEmpty)
+                    } else {
+                        XCTAssertEqual(actual.min, expected.min, accuracy: epsilon)
+                        XCTAssertEqual(actual.max, expected.max, accuracy: epsilon)
+                    }
+                }
+                let expected = Bounds(points)
+                if expected.isEmpty {
+                    XCTAssertTrue(type.bounds.isEmpty)
+                } else {
+                    XCTAssertEqual(type.bounds.min, expected.min, accuracy: epsilon)
+                    XCTAssertEqual(type.bounds.max, expected.max, accuracy: epsilon)
+                }
+            }
+        }
+    }
+
     func testLatheAlongStraightAxisMatchesOrdinaryLathe() throws {
         let profile = """
         path {
