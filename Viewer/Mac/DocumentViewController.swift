@@ -469,7 +469,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         let tintView = NSView()
         tintView.translatesAutoresizingMaskIntoConstraints = false
         tintView.wantsLayer = true
-        tintView.layer?.backgroundColor = NSColor.systemYellow.withAlphaComponent(0.22).cgColor
+        tintView.layer?.backgroundColor = NSColor.systemYellow.withAlphaComponent(0.5).cgColor
         banner.addSubview(tintView, positioned: .below, relativeTo: nil)
 
         let symbol = NSImage(
