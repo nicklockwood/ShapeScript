@@ -68,6 +68,26 @@ extension DocumentProtocol {
     }
 
     func rerender() {
+        if case let .failure(error) = loadingProgress?.status {
+            // Appearance and display settings can change after evaluation fails.
+            // Redraw the partial scene without retrying the script or clearing its error.
+            guard let scene, !scene.children.isEmpty else { return }
+            let options = scene.outputOptions(
+                for: camera.settings,
+                backgroundColor: Color(Self.backgroundColor),
+                wireframe: showWireframe && viewController?.isQuickLook != true
+            )
+            let progress = LoadingProgress { [weak self] _ in
+                self?.updateViews()
+            }
+            loadingProgress = progress
+            progress.dispatch { progress in
+                progress.setStatus(.partial(scene, .geometryBuilt))
+                scene.scnBuild(with: options)
+                progress.setStatus(.failure(error))
+            }
+            return
+        }
         guard let loadingProgress, loadingProgress.didSucceed else {
             didUpdateSource()
             return
