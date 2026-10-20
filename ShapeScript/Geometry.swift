@@ -1656,10 +1656,8 @@ private extension Geometry {
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
             mesh = nil
-        case .mesh where children.isEmpty:
-            assert(mesh != nil) // Already built by buildLeaves
         case .mesh:
-            break // Children-only or mesh + children
+            break // Difference and stencil may not be built yet
         case .group, .circle, .square, .text, .path,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill:

@@ -1364,6 +1364,30 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testImportedMeshCanBeUsedAsSubtractionOperand() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Mesh.cube(size: 1).write(to: directory.appendingPathComponent("part.stl"))
+        let source = """
+        difference() {
+            cube([2,2,2], center=true);
+            import("part.stl");
+        }
+        """
+        let url = directory.appendingPathComponent("main.csg")
+        try source.write(to: url, atomically: true, encoding: .utf8)
+        let cache = GeometryCache(diskCache: nil)
+        for _ in 0 ..< 2 {
+            let scene = try Scene(
+                csgString: source, at: url,
+                cache: cache, isCancelled: { false }
+            )
+            XCTAssertTrue(scene.build { false })
+            XCTAssertEqual(scene.geometry.merged().signedVolume, 7, accuracy: 1e-6)
+        }
+    }
+
     func testNestedCSGImportsResolveRelativeToTheirOwnFile() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let subdirectory = directory.appendingPathComponent("parts", isDirectory: true)
