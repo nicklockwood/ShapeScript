@@ -35,7 +35,7 @@ Script options can be overridden when running a file from the [command-line tool
 
 ## Name
 
-The `name` option allows you to assign a name to a given shape or group, for example:
+The `name` option assigns a name to a shape, path, or group, for example:
 
 ```swift
 cylinder {
@@ -46,7 +46,7 @@ cylinder {
 
 The name can contain spaces or punctuation, and is wrapped in double quotes to prevent ambiguity with other symbols (see [literals](literals.md) for details).
 
-The name can be useful for identifying distinct shape components when [selecting them](getting-started.md#debugging-and-selection) in the viewer, or when importing a model exported from ShapeScript into another application (see the [export](export.md) section for details).
+Names can be useful for identifying distinct shape components when [selecting them](getting-started.md#debugging-and-selection) in the viewer. They can also be used when importing a file using a fragment, such as `import "Vehicle.shape#Wheel"`. See [named geometry imports](import.md#named-geometry) for details.
 
 ## Detail
 

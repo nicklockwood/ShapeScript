@@ -1147,20 +1147,3 @@ private func svgStroke(
     }
     return Path.union(pieces, isCancelled: isCancelled) ?? .empty
 }
-
-/// A fragment belongs to the SVG selection, not the filesystem path.
-struct SVGFileReference {
-    let path: String
-    let id: String?
-
-    init(_ path: String) {
-        if let hash = path.firstIndex(of: "#"), path[..<hash].lowercased().hasSuffix(".svg") {
-            self.path = String(path[..<hash])
-            let fragment = String(path[path.index(after: hash)...])
-            self.id = fragment.isEmpty ? nil : fragment.removingPercentEncoding ?? fragment
-        } else {
-            self.path = path
-            self.id = nil
-        }
-    }
-}

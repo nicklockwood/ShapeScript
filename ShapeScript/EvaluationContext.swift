@@ -546,7 +546,27 @@ extension EvaluationContext {
             defer { importStack.removeLast() }
             try url.validateFileSize(limit: FileSizeLimit.text)
             return try Geometry(csgString: String(contentsOf: url), at: url, context: self)
-        case .stereolithography, .wavefront, .object:
+        case .wavefront:
+            try url.validateFileSize(limit: FileSizeLimit.mesh)
+            let source = try String(contentsOf: url)
+            func loadMaterials() -> [String: Material] {
+                var materials = [String: Material]()
+                #if canImport(SceneKit)
+                if let scene = try? SCNScene(url: url, options: [.flattenScene: false]) {
+                    scene.rootNode.enumerateChildNodes { node, _ in
+                        for material in node.geometry?.materials ?? [] {
+                            if let name = material.name { materials[name] = Material(material) }
+                        }
+                    }
+                }
+                #endif
+                return materials
+            }
+            if let geometry = try Geometry.namedOBJ(source, materials: loadMaterials(), isCancelled: isCancelled) {
+                return geometry
+            }
+            fallthrough
+        case .stereolithography, .object:
             let mesh = try loadMesh(at: url) {
                 switch $0 {
                 case let color as Color:
@@ -651,12 +671,47 @@ extension EvaluationContext {
         }
     }
 
+    private func selectGeometry(named name: String, in roots: [Geometry], fileURL: URL) throws -> Geometry {
+        if isCancelled() { throw CancellationError() }
+        var matches = [Geometry]()
+        var names = Set<String>()
+        func visit(_ geometry: Geometry, parentTransform: Transform) throws {
+            if isCancelled() { throw CancellationError() }
+            if let candidate = geometry.name, !candidate.isEmpty {
+                names.insert(candidate)
+                if candidate == name {
+                    matches.append(geometry.transformed(by: parentTransform))
+                }
+            }
+            let transform = geometry.transform * parentTransform
+            for child in geometry.children {
+                try visit(child, parentTransform: transform)
+            }
+        }
+        for root in roots {
+            try visit(root, parentTransform: .identity)
+        }
+        guard let selected = matches.first else {
+            let hint = name.bestMatches(in: names.sorted()).first.map { "Did you mean '#\($0)'?" }
+            throw RuntimeErrorType.custom(
+                "Geometry '#\(name)' not found in file '\(fileURL.lastPathComponent)'", hint: hint
+            )
+        }
+        guard matches.count == 1 else {
+            throw RuntimeErrorType.custom(
+                "Geometry '#\(name)' is ambiguous in file '\(fileURL.lastPathComponent)'",
+                hint: "More than one geometry has this name. Give each geometry a unique name."
+            )
+        }
+        return selected
+    }
+
     func importFile(
         at path: String,
         options: [String: Value] = [:],
         warningLocation: SourceLocation? = nil
     ) throws -> Value {
-        let reference = SVGFileReference(path)
+        let reference = ImportFileReference(path)
         let url: URL
         do {
             url = try resolveURL(for: reference.path)
@@ -678,10 +733,28 @@ extension EvaluationContext {
         if ImportType(url) == .svg {
             return try .mesh(importSVG(at: url, options: .init(id: reference.id, detail: state.detail)))
         }
-        return try importFile(at: url, named: path, options: options)
+        return try importFile(at: url, named: reference.path, options: options, fragment: reference.id)
     }
 
-    func importFile(at url: URL, named path: String, options: [String: Value] = [:]) throws -> Value {
+    func importFile(
+        at url: URL,
+        named path: String,
+        options: [String: Value] = [:],
+        fragment: String? = nil
+    ) throws -> Value {
+        if let fragment {
+            let roots: [Geometry]
+            if ImportType(url) == .shape {
+                let context = push(.group)
+                _ = try context.importFile(at: url, named: path, options: options)
+                roots = context.state.children.compactMap { $0.value as? Geometry }
+            } else if case let .mesh(geometry) = try importFile(at: url, named: path, options: options) {
+                roots = [geometry]
+            } else {
+                throw RuntimeErrorType.custom("File '\(url.lastPathComponent)' does not contain named geometry")
+            }
+            return try .mesh(selectGeometry(named: fragment, in: roots, fileURL: url))
+        }
         evaluationProgress?.beginImport()
         defer { evaluationProgress?.completeUnit() }
         if case let .value(value) = importCache.store[url] {

@@ -21,8 +21,8 @@ enum ImportType: Equatable, Sendable {
     case model
     case unknown
 
-    init(_ url: URL) {
-        let url = URL(fileURLWithPath: SVGFileReference(url.path).path)
+    init(_ url: URL, resolveFragment: Bool = true) {
+        let url = resolveFragment ? URL(fileURLWithPath: ImportFileReference(url.path).path) : url
         switch url.pathExtension.lowercased() {
         case "shape": self = .shape
         case "txt": self = .text
@@ -37,5 +37,27 @@ enum ImportType: Equatable, Sendable {
         case _ where url.isFontFile: self = .font
         default: self = .model
         }
+    }
+}
+
+struct ImportFileReference {
+    let path: String
+    let id: String?
+
+    init(_ path: String) {
+        if let hash = path.firstIndex(of: "#") {
+            let file = String(path[..<hash])
+            switch ImportType(URL(fileURLWithPath: file), resolveFragment: false) {
+            case .shape, .svg, .csg, .wavefront, .stereolithography, .object, .model:
+                self.path = file
+                let fragment = String(path[path.index(after: hash)...])
+                self.id = fragment.isEmpty ? nil : fragment.removingPercentEncoding ?? fragment
+                return
+            case .text, .json, .image, .font, .unknown:
+                break
+            }
+        }
+        self.path = path
+        self.id = nil
     }
 }
