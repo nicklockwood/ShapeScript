@@ -634,6 +634,12 @@ extension EvaluationContext {
                 let hint = id.bestMatches(in: options).first.map { "Did you mean '#\($0)'?" }
                 throw RuntimeErrorType.custom("\(error.message) in file '\(url.lastPathComponent)'", hint: hint)
             }
+            if case let .invalidDocument(message, hint, line, column) = error,
+               let source = try? String(contentsOf: url)
+            {
+                let error = ProgramError(message: message, hint: hint, line: line, column: column, in: source)
+                throw RuntimeErrorType.importError(error, for: url, in: source)
+            }
             throw RuntimeErrorType.fileParsingError(
                 for: url.lastPathComponent,
                 at: url,

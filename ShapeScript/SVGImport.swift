@@ -23,11 +23,11 @@ struct SVGImportOptions {
 }
 
 enum SVGImportError: Error, LocalizedError {
-    case invalidDocument(message: String, line: Int)
+    case invalidDocument(message: String, hint: String?, line: Int, column: Int)
     case missingElement(String, options: [String])
 
-    init(message: String, line: Int) {
-        self = .invalidDocument(message: message, line: line)
+    init(message: String, hint: String? = nil, line: Int, column: Int = 1) {
+        self = .invalidDocument(message: message, hint: hint, line: line, column: column)
     }
 
     // XMLParser reports libxml2 codes, but older swift-corelibs-foundation releases
@@ -53,11 +53,13 @@ enum SVGImportError: Error, LocalizedError {
     init(parser: XMLParser, error: Error?) {
         let error = error as NSError?
         let message: String
+        var hint: String?
         switch error.flatMap({ XMLSyntaxErrorCode(rawValue: $0.code) }) {
         case .emptyDocumentError:
             message = "SVG document is empty"
         case .prematureDocumentEndError, .unfinishedTagError:
-            message = "Unexpected end of SVG document; a tag may be incomplete or missing its closing tag"
+            message = "Unexpected end of SVG document"
+            hint = "A tag may be incomplete or missing its closing tag."
         case .tagNameMismatchError:
             message = "SVG opening and closing tags do not match"
         case .attributeNotStartedError, .stringNotStartedError:
@@ -69,9 +71,11 @@ enum SVGImportError: Error, LocalizedError {
         case .attributeRedefinedError:
             message = "SVG element has a duplicate attribute"
         case .undeclaredEntityError:
-            message = "Unknown XML entity in SVG; use &amp; for a literal '&'"
+            message = "Unknown XML entity in SVG"
+            hint = "Use &amp; for a literal '&'."
         case .entityReferenceWithoutNameError, .entityReferenceMissingSemiError:
-            message = "Invalid XML entity in SVG; use &amp; for a literal '&'"
+            message = "Invalid XML entity in SVG"
+            hint = "Use &amp; for a literal '&'."
         case .commentNotFinishedError:
             message = "SVG comment is missing its closing '-->'"
         case .gtRequiredError:
@@ -81,19 +85,26 @@ enum SVGImportError: Error, LocalizedError {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             message = detail.flatMap { $0.isEmpty ? nil : "Invalid SVG XML: " + $0 } ?? "Invalid SVG XML syntax"
         }
-        self.init(message: message, line: parser.lineNumber)
+        self.init(message: message, hint: hint, line: parser.lineNumber, column: parser.columnNumber)
     }
 
     var message: String {
         switch self {
-        case let .invalidDocument(message, _): message
+        case let .invalidDocument(message, _, _, _): message
         case let .missingElement(id, _): "SVG element '#\(id)' not found"
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case let .invalidDocument(_, hint, _, _): hint
+        case .missingElement: nil
         }
     }
 
     var errorDescription: String? {
         switch self {
-        case let .invalidDocument(message, line): "\(message) on line \(line)."
+        case let .invalidDocument(message, _, line, _): "\(message) on line \(line)."
         case .missingElement: message
         }
     }

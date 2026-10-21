@@ -215,6 +215,26 @@ final class ImportExportTests: XCTestCase {
         XCTAssertEqual(value["seventh"]?["foo"], 2)
     }
 
+    func testMalformedJSONImportOpensJSONFile() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("broken.json")
+        try "{\"value\": }".write(to: url, atomically: true, encoding: .utf8)
+        let source = "import \"\(url.path)\""
+        XCTAssertThrowsError(try evaluate(parse(source), delegate: nil)) { error in
+            let error = ProgramError(error)
+            let mainURL = directory.appendingPathComponent("main.shape")
+            XCTAssertEqual(error.shapeFileURL(relativeTo: mainURL), url)
+            let nested = ProgramError.runtimeError(RuntimeError(
+                .importError(error, for: directory.appendingPathComponent("child.shape"), in: source),
+                at: source.startIndex ..< source.endIndex
+            ))
+            XCTAssertEqual(nested.shapeFileURL(relativeTo: mainURL), url)
+        }
+    }
+
     func testMalformedJSON() throws {
         let json = """
         [

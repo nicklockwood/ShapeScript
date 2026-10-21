@@ -190,19 +190,39 @@ final class SVGImportTests: XCTestCase {
     }
 
     func testXMLSyntaxErrorsHaveReadableMessagesAndOriginalLineNumbers() throws {
-        let cases = [
-            ("<svg>\n<g></svg>", "SVG opening and closing tags do not match"),
-            ("<svg>\n<rect width=foo/></svg>", "SVG attribute values must be enclosed in quotes"),
-            ("<svg>\n<g>", "Unexpected end of SVG document; a tag may be incomplete or missing its closing tag"),
-            ("<svg>\n&bad;</svg>", "Unknown XML entity in SVG; use &amp; for a literal '&'"),
+        let cases: [(String, String, String?)] = [
+            ("<svg>\n<g></svg>", "SVG opening and closing tags do not match", nil),
+            ("<svg>\n<rect width=foo/></svg>", "SVG attribute values must be enclosed in quotes", nil),
+            ("<svg>\n<g>", "Unexpected end of SVG document", "A tag may be incomplete or missing its closing tag."),
+            ("<svg>\n&bad;</svg>", "Unknown XML entity in SVG", "Use &amp; for a literal '&'."),
+            ("<svg>\n&amp </svg>", "Invalid XML entity in SVG", "Use &amp; for a literal '&'."),
+            ("<svg>\n<rect width=\"-1\" height=\"2\"/>\n</svg>", "SVG dimensions must be non-negative", nil),
         ]
-        for (source, message) in cases {
+        for (source, message, hint) in cases {
             XCTAssertThrowsError(try load(source)) { error in
                 XCTAssertEqual(error.localizedDescription, message + " on line 2.")
+                XCTAssertEqual((error as? LocalizedError)?.recoverySuggestion, hint)
             }
             try withSVG(source) { url in
                 XCTAssertThrowsError(try evaluate(parse("import \"\(url.path)\""), delegate: nil)) { error in
-                    XCTAssertEqual(ProgramError(error).hint, message + " on line 2.")
+                    let error = ProgramError(error)
+                    XCTAssertEqual(
+                        error.messageAndLocation(with: ""),
+                        "Error in imported file 'drawing.svg': " + message + " on line 2."
+                    )
+                    XCTAssertEqual(error.hint, hint)
+                    XCTAssertEqual(error.rangeAndSource(with: "")?.source, source)
+                    XCTAssertEqual(error.errorLineAndRange(with: "")?.line, String(source.split(separator: "\n")[1]))
+                    XCTAssertEqual(error.shapeFileURL(relativeTo: url.deletingLastPathComponent()), url)
+                }
+                let csg = "import(file=\"\(url.path)\");"
+                XCTAssertThrowsError(try Scene(csgString: csg, isCancelled: { false })) { error in
+                    let error = ProgramError(error)
+                    XCTAssertEqual(error.underlyingError.message, message)
+                    XCTAssertEqual(error.hint, hint)
+                    XCTAssertEqual(error.rangeAndSource(with: csg)?.source, source)
+                    XCTAssertEqual(error.errorLineAndRange(with: csg)?.line, String(source.split(separator: "\n")[1]))
+                    XCTAssertEqual(error.shapeFileURL(relativeTo: url.deletingLastPathComponent()), url)
                 }
             }
         }

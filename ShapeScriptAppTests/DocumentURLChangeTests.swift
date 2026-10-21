@@ -894,7 +894,12 @@ final class DocumentURLChangeTests: XCTestCase {
             ("model.shape", true),
             ("model.csg", true),
             ("model.CSG", true),
+            ("model.svg", true),
+            ("model.SVG", true),
+            ("data.json", true),
+            ("data.JSON", true),
             ("model.stl", false),
+            ("image.png", false),
         ] {
             let url = directory.appendingPathComponent(name)
             try "".write(to: url, atomically: true, encoding: .utf8)
