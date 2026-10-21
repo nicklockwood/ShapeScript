@@ -564,6 +564,21 @@ public extension Geometry {
         path(pretransformed: false)
     }
 
+    /// Returns if geometry consists entirely of paths (without constructing those paths)
+    var isPath: Bool {
+        switch type {
+        case .circle, .square, .text, .path:
+            true
+        case .group:
+            visibleChildren.allSatisfy(\.isPath)
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .mesh, .camera, .light:
+            false
+        }
+    }
+
     /// Returns the path represented by this geometry, optionally with the geometry transform baked in.
     /// Semantic path primitives include the geometry's material color either way.
     func path(pretransformed: Bool) -> Path? {
@@ -580,7 +595,12 @@ public extension Geometry {
         case let .path(path):
             let path = path.materialToVertexColors(material: material)
             return pretransformed ? path.transformed(by: transform) : path
-        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+        case .group:
+            let children = visibleChildren
+            guard children.allSatisfy(\.isPath) else { return nil }
+            let path = Path(subpaths: children.flatMap { $0.paths(pretransformed: true) })
+            return pretransformed ? path.transformed(by: transform) : path
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .mesh, .camera, .light:
@@ -590,7 +610,9 @@ public extension Geometry {
 
     /// Paths represented by a primitive, preserving individual text glyphs for caching.
     func paths(pretransformed: Bool) -> [Path] {
-        let paths: [Path] = if case let .text(text) = type {
+        let paths: [Path] = if case .group = type, visibleChildren.allSatisfy(\.isPath) {
+            visibleChildren.flatMap { $0.paths(pretransformed: true) }
+        } else if case let .text(text) = type {
             text.paths.map { $0.materialToVertexColors(material: material) }
         } else {
             path.map { [$0] } ?? []
@@ -708,7 +730,7 @@ public extension Geometry {
             ]
         }
 
-        if !children.isEmpty, children.allSatisfy({ $0.path != nil }) {
+        if !children.isEmpty, children.allSatisfy(\.isPath) {
             let paths = children.flatMap { $0.paths(pretransformed: true) }
             let builderType: GeometryType? = switch type {
             case let .extrude([], options): .extrude(paths, options)

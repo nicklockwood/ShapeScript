@@ -1332,7 +1332,7 @@ extension EvaluationContext {
         if ValueType.path.isSubtype(of: state.childTypes),
            !ValueType.mesh.isSubtype(of: state.childTypes)
         {
-            if case let .mesh(geometry) = value, geometry.type.path != nil {
+            if case let .mesh(geometry) = value, geometry.isPath {
                 let geometry = geometry.transformed(by: state.childTransform)
                 geometry.gatherNamedObjects(&namedObjects)
                 state.children.append(.mesh(geometry))
@@ -1766,7 +1766,7 @@ extension Expression {
                 guard coerceBlockReturn else {
                     return value
                 }
-                if case let .mesh(geometry) = value, geometry.type.path != nil {
+                if case let .mesh(geometry) = value, geometry.isPath {
                     return value
                 }
                 return try value.as(type.returnType, in: context) ?? value
@@ -1810,7 +1810,7 @@ extension Expression {
                 guard coerceBlockReturn else {
                     return value
                 }
-                if case let .mesh(geometry) = value, geometry.type.path != nil {
+                if case let .mesh(geometry) = value, geometry.isPath {
                     return value
                 }
                 if case let .tuple(values) = value,

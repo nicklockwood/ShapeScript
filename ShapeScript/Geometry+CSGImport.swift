@@ -1112,6 +1112,22 @@ private struct CSGImporter {
                     try checkCancellation()
                     let url = try context.resolveURL(for: resolvedPath)
                     switch ImportType(url) {
+                    case .svg:
+                        let id = try node.string(values, "id", default: "")
+                        let layer = try node.string(
+                            values,
+                            "layer",
+                            default: node.string(values, "layername", default: "")
+                        )
+                        let imported = try context.importSVG(at: url, options: .init(
+                            id: id.isEmpty ? nil : id, layer: layer.isEmpty ? nil : layer,
+                            center: node.boolean(values, "center", default: false),
+                            dpi: node.number(values, "dpi", default: 96),
+                            detail: fragments(values, radius: 10, node: node), csg: true,
+                            segments: { try fragments(values, radius: $0, node: node) }
+                        ))
+                        try checkCancellation()
+                        return result(imported.paths(pretransformed: true), material: material)
                     case .csg, .wavefront, .stereolithography, .object, .model, .unknown:
                         break
                     case .shape, .text, .json, .image, .font:

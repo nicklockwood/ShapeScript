@@ -78,6 +78,7 @@ off                   | Object File Format
 ply                   | Polygon File Format
 scn / scnz            | SceneKit Scene
 stl / stla            | Stereolithography
+svg                   | Scalable Vector Graphics
 usd / usdz            | Universal Scene Description
 
 <br/>
@@ -128,6 +129,22 @@ extrude import "Profile.csg"
 Not all features of the CSG format are currently supported. Unsupported operations or options produce warnings. ShapeScript may approximate or skip geometry, ignore an argument, or use child shapes without applying the unsupported operation, so the resulting model may differ from the OpenSCAD original. Unknown or misspelled functions or malformed CSG syntax produce errors rather than warnings.
 
 **Note:** ShapeScript can also open CSG files directly in the viewer, or via the [command-line tool](cli.md). See [Getting Started](getting-started.md#opening-documents) for how to open a CSG document.
+
+### SVG Files
+
+SVG files can be imported as a path or group of paths, using element IDs as geometry names. Both open and closed paths are supported. Add a fragment ID to the filename to load just a specific element or group, including its ancestor transforms:
+
+```swift
+import "Drawing.svg"
+fill import "Drawing.svg#outline"
+extrude import "Drawing.svg#part"
+```
+
+The importer supports paths, rectangles, circles, ellipses, polygons, polylines, lines, transforms and local `<use>` references. Document dimensions and `viewBox` determine the scale, with physical units converted to millimeters and the SVG Y axis flipped to point upwards. Imports retain their document positions after coordinate conversion, including when selecting individual elements or groups. Separately imported fragments therefore remain aligned with each other. Selecting a fragment ID that does not exist produces an error. SVG colors and other visual styling are not imported; use ShapeScript materials to style the paths.
+
+When an SVG is imported from a CSG file, closed shapes are filled and open paths are converted to closed outlines using their stroke width, caps and joins. Overlapping shapes are combined. CSG imports support `id`, `layer`, `center`, `dpi` and tessellation options, and retain document coordinates unless `center=true`.
+
+Text, embedded images, external references, clipping and masks are not supported and produce warnings. Convert text to paths in an SVG editor before importing it.
 
 ## Text and Data
 
