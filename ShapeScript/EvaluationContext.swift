@@ -672,25 +672,7 @@ extension EvaluationContext {
     }
 
     private func selectGeometry(named name: String, in roots: [Geometry], fileURL: URL) throws -> Geometry {
-        if isCancelled() { throw CancellationError() }
-        var matches = [Geometry]()
-        var names = Set<String>()
-        func visit(_ geometry: Geometry, parentTransform: Transform) throws {
-            if isCancelled() { throw CancellationError() }
-            if let candidate = geometry.name, !candidate.isEmpty {
-                names.insert(candidate)
-                if candidate == name {
-                    matches.append(geometry.transformed(by: parentTransform))
-                }
-            }
-            let transform = geometry.transform * parentTransform
-            for child in geometry.children {
-                try visit(child, parentTransform: transform)
-            }
-        }
-        for root in roots {
-            try visit(root, parentTransform: .identity)
-        }
+        let (matches, names) = try Geometry.findNamedElements(name, in: roots, isCancelled: isCancelled)
         guard let selected = matches.first else {
             let hint = name.bestMatches(in: names.sorted()).first.map { "Did you mean '#\($0)'?" }
             throw RuntimeErrorType.custom(

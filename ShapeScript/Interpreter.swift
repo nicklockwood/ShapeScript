@@ -2133,15 +2133,17 @@ extension Expression {
                 throw RuntimeErrorType.custom(message)
             }
         case let .member(expression, member):
-            let value = try expression.evaluate(in: context).materializedPathValue
-            if let memberValue = value[member.name, context.isCancelled] {
-                assert([.void, .number(0)].contains(memberValue) || value.hasMember(member.name))
+            let value = try expression.evaluate(in: context)
+            if let memberValue = try RuntimeError.wrap(
+                value.member(member.name, isCancelled: context.isCancelled), at: member.range
+            ) {
                 return memberValue
             }
             // TODO: if hasMember() == true, should we return void instead of an error?
             throw RuntimeError(.unknownMember(member.name, of: value), at: member.range)
         case let .subscript(lhs, rhs):
-            let value = try lhs.evaluate(in: context).materializedPathValue
+            let originalValue = try lhs.evaluate(in: context)
+            let value = originalValue.materializedPathValue
             let indexType = ValueType.union([.number, .range, .partialRange, .string])
             let index = try rhs.evaluate(as: indexType, for: "index", in: context)
             switch index {
@@ -2169,7 +2171,9 @@ extension Expression {
                     return member
                 })
             default:
-                if let member = value[index.stringValue, context.isCancelled] {
+                if let member = try RuntimeError.wrap(
+                    originalValue.member(index.stringValue, isCancelled: context.isCancelled), at: rhs.range
+                ) {
                     return member
                 }
                 throw RuntimeError(.unknownMember(index.logDescription, of: value), at: rhs.range)

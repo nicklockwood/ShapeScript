@@ -816,6 +816,37 @@ extension Value {
             .altNames[name].map { members.contains($0) } ?? false
     }
 
+    func member(_ name: String, isCancelled: @escaping CancellationHandler) throws -> Value? {
+        if case let .pretransformed(value) = self {
+            return try value.member(name, isCancelled: isCancelled).map { .pretransformed($0) }
+        }
+        let materialized = materializedPathValue
+        if let member = materialized[name, isCancelled] {
+            return member
+        }
+        if case let .tuple(values) = self, values.count == 1 {
+            return try values[0].member(name, isCancelled: isCancelled)
+        }
+        guard case let .mesh(geometry) = self else { return nil }
+        // Path materialization discards the geometry name, but it remains accessible.
+        if name == "name" { return .string(geometry.name ?? "") }
+        let (matches, names) = try Geometry.findNamedElements(
+            name, in: [geometry], isCancelled: isCancelled
+        )
+        guard let selected = matches.first else {
+            throw RuntimeErrorType.unknownMember(
+                name, of: errorDescription, options: materialized.members + names.sorted()
+            )
+        }
+        guard matches.count == 1 else {
+            throw RuntimeErrorType.custom(
+                "Geometry '\(name)' is ambiguous",
+                hint: "More than one geometry has this name. Give each geometry a unique name."
+            )
+        }
+        return .mesh(selected)
+    }
+
     subscript(name: String) -> Value? {
         self[name, { false }]
     }

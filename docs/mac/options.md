@@ -46,7 +46,9 @@ cylinder {
 
 The name can contain spaces or punctuation, and is wrapped in double quotes to prevent ambiguity with other symbols (see [literals](literals.md) for details).
 
-Names can be useful for identifying distinct shape components when [selecting them](getting-started.md#debugging-and-selection) in the viewer. They can also be used when importing a file using a fragment, such as `import "Vehicle.shape#Wheel"`. See [named geometry imports](import.md#named-geometry) for details.
+Names can be useful for identifying distinct shape components when [selecting them](getting-started.md#debugging-and-selection) in the viewer and when [looking up named geometry](expressions.md#named-geometry) in a script, using expressions such as `vehicle.Wheel` or `vehicle["Wheel"]`.
+
+You can also select named geometry when importing a file using a fragment, such as `import "Vehicle.shape#Wheel"`. See [named geometry imports](import.md#named-geometry) for details.
 
 ## Detail
 

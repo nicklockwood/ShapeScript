@@ -123,6 +123,8 @@ Model fragments select named objects or groups. OBJ object and group names are p
 
 The selected geometry retains its descendants, materials and position in the original scene. Ancestor transforms are applied without including the ancestor groups. Referencing an unknown or ambiguous/duplicate name produces an error. Names containing spaces or special characters can be percent-encoded, for example `#front%20wheel`.
 
+To select named elements from a geometry value after import, use [named geometry lookup](expressions.md#named-geometry).
+
 ### OpenSCAD CSG Files
 
 ShapeScript can import [CSG files](https://github.com/openscad/openscad/wiki/CSG-File-Format) exported from OpenSCAD:

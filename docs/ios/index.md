@@ -119,6 +119,7 @@
         - [Partial Ranges](expressions.md#partial-ranges)
         - [Members](expressions.md#members)
         - [Subscripting](expressions.md#subscripting)
+        - [Named Geometry](expressions.md#named-geometry)
     - [Functions](functions.md)
         - [Arithmetic](functions.md#arithmetic)
         - [Linear Algebra](functions.md#linear-algebra)

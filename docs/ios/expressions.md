@@ -379,7 +379,6 @@ for point in triangle.points {
 
 To access members via a computed name or index, see the [subscripting](#subscripting) section below. For more information about the members that are available to access on various data types, see [structured data](literals.md#structured-data).
 
-
 ## Subscripting
 
 As discussed in the [members](#members) and [structured data](literals.md#structured-data) sections, you can decompose a tuple or other compound value using the dot operator followed by the name or ordinal index of the element you wish to retrieve.
@@ -393,7 +392,7 @@ define vector 1 2 3
 print vector["y"] // prints 2 - equivalent to vector.y
 ```
 
-To access an member by its ordinal position, you can use a numeric subscript value instead of a string:
+To access a member by its ordinal position, you can use a numeric subscript value instead of a string:
 
 ```swift
 define vector 1 2 3
@@ -439,6 +438,29 @@ print foo[0 to 2] // prints 1 2 3
 print foo[1 to 3] // prints 2 3 4
 print foo[from 2] // prints 3 4 5
 ```
+
+## Named Geometry
+
+Geometry values support lookup of elements named with the [`name` option](options.md#name), using either the dot operator or a string subscript:
+
+```swift
+define assembly group {
+    cube { name "body" }
+    circle { name "front wheel" }
+}
+
+assembly.body
+assembly["front wheel"]
+```
+
+Use subscripts for names containing spaces or punctuation, or when the name needs to be computed at runtime:
+
+```swift
+define part "front wheel"
+assembly[part]
+```
+
+Lookup searches all descendants of the target geometry. The returned geometry retains its inherited transform and materials. An unknown or ambiguous/duplicate name produces an error.
 
 ---
 [Index](index.md) | Next: [Functions](functions.md)

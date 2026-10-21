@@ -11,6 +11,93 @@
 import XCTest
 
 final class MemberTests: XCTestCase {
+    func testNamedGeometryLookupPreservesTransformsAndMaterials() throws {
+        for lookup in ["model.wheel", "model[\"wheel\"]", "model.assembly.wheel"] {
+            let scene = try evaluate(parse("""
+            define model group {
+                position 10 0
+                size 2
+                color red
+                group {
+                    name "assembly"
+                    position 3 0
+                    cube { name "wheel" }
+                    sphere { name "other" }
+                }
+            }
+            \(lookup)
+            """), delegate: nil)
+            let selected = try XCTUnwrap(scene.children.first)
+            XCTAssertEqual(scene.children.count, 1)
+            XCTAssertEqual(selected.name, "wheel")
+            XCTAssertEqual(selected.material.color, .red)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertEqual(scene.geometry.merged().bounds.center, [16, 0, 0], lookup)
+            XCTAssertEqual(scene.geometry.merged().bounds.size, [2, 2, 2], lookup)
+        }
+    }
+
+    func testNamedPathLookupAndComputedNames() throws {
+        let scene = try evaluate(parse("""
+        define model group {
+            position 3 0
+            circle { name "round hole" }
+            path {
+                name "outline"
+                square
+            }
+        }
+        define key "round hole"
+        extrude model[key]
+        extrude model.outline
+        """), delegate: nil)
+        XCTAssertEqual(scene.children.count, 2)
+        XCTAssertTrue(scene.build { false })
+        for geometry in scene.children {
+            XCTAssertEqual(geometry.children.count, 1)
+            XCTAssertEqual(geometry.children.first?.transform.translation, [3, 0, 0])
+        }
+    }
+
+    func testGeometryLookupMissingAndDuplicateNames() throws {
+        for lookup in ["model.whee", "model[\"whee\"]"] {
+            XCTAssertThrowsError(try evaluate(parse("""
+            define model group { cube { name "wheel" } }
+            \(lookup)
+            """), delegate: nil)) { error in
+                XCTAssertEqual(ProgramError(error).hint, "Did you mean 'wheel'?")
+            }
+        }
+        for lookup in ["model.wheel", "model[\"wheel\"]"] {
+            XCTAssertThrowsError(try evaluate(parse("""
+            define model group {
+                cube { name "wheel" }
+                sphere { name "wheel" }
+            }
+            \(lookup)
+            """), delegate: nil)) { error in
+                XCTAssertTrue(ProgramError(error).message.contains("ambiguous"))
+            }
+        }
+    }
+
+    func testGeometryPropertiesTakePrecedenceOverNames() throws {
+        let delegate = TestDelegate()
+        _ = try evaluate(parse("""
+        define model group {
+            name "assembly"
+            cube { name "name" }
+            cube { name "bounds" }
+        }
+        print model.name
+        print model["name"]
+        print model.bounds.size
+        define profile circle { name "outline" }
+        print profile.name
+        """), delegate: delegate)
+        XCTAssertEqual(delegate.log, ["assembly", "assembly", Vector.one, "outline"])
+    }
+
     // MARK: member access
 
     func testTupleVectorLookup() {

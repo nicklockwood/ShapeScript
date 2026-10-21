@@ -1003,6 +1003,34 @@ extension Geometry {
         isHidden || children.contains(where: \.childIsHidden)
     }
 
+    /// Finds named geometry while flattening ancestor transforms onto each match.
+    static func findNamedElements(
+        _ name: String,
+        in roots: [Geometry],
+        isCancelled: CancellationHandler
+    ) throws -> (matches: [Geometry], names: Set<String>) {
+        if isCancelled() { throw CancellationError() }
+        var matches = [Geometry]()
+        var names = Set<String>()
+        func visit(_ geometry: Geometry, parentTransform: Transform) throws {
+            if isCancelled() { throw CancellationError() }
+            if let candidate = geometry.name, !candidate.isEmpty {
+                names.insert(candidate)
+                if candidate == name {
+                    matches.append(geometry.transformed(by: parentTransform))
+                }
+            }
+            let transform = geometry.transform * parentTransform
+            for child in geometry.children {
+                try visit(child, parentTransform: transform)
+            }
+        }
+        for root in roots {
+            try visit(root, parentTransform: .identity)
+        }
+        return (matches, names)
+    }
+
     /// Gathers all the named descendents of the receiver (including itself, potentially) into a dictionary
     func gatherNamedObjects(_ dictionary: inout [String: Geometry]) {
         if let name {
