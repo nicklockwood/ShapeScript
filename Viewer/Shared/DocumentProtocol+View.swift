@@ -53,7 +53,7 @@ extension DocumentProtocol {
 
     var isEditable: Bool {
         documentFileURL.map {
-            ($0.isShapeFile || $0.isCSGFile) &&
+            $0.isEditableFile &&
                 FileManager.default.isWritableFile(atPath: $0.path) &&
                 !$0.path.hasPrefix(Bundle.main.bundlePath)
         } ?? false

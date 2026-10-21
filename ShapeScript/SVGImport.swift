@@ -23,11 +23,11 @@ struct SVGImportOptions {
 }
 
 enum SVGImportError: Error, LocalizedError {
-    case invalidDocument(message: String, line: Int)
+    case invalidDocument(message: String, line: Int, column: Int)
     case missingElement(String, options: [String])
 
-    init(message: String, line: Int) {
-        self = .invalidDocument(message: message, line: line)
+    init(message: String, line: Int, column: Int = 1) {
+        self = .invalidDocument(message: message, line: line, column: column)
     }
 
     init(parser: XMLParser, error: Error?) {
@@ -61,19 +61,19 @@ enum SVGImportError: Error, LocalizedError {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             message = detail.flatMap { $0.isEmpty ? nil : "Invalid SVG XML: " + $0 } ?? "Invalid SVG XML syntax"
         }
-        self.init(message: message, line: parser.lineNumber)
+        self.init(message: message, line: parser.lineNumber, column: parser.columnNumber)
     }
 
     var message: String {
         switch self {
-        case let .invalidDocument(message, _): message
+        case let .invalidDocument(message, _, _): message
         case let .missingElement(id, _): "SVG element '#\(id)' not found"
         }
     }
 
     var errorDescription: String? {
         switch self {
-        case let .invalidDocument(message, line): "\(message) on line \(line)."
+        case let .invalidDocument(message, line, _): "\(message) on line \(line)."
         case .missingElement: message
         }
     }

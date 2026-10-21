@@ -27,14 +27,18 @@ public enum ErrorType: Equatable {
 
 public extension ProgramError {
     init(_ error: CSGImportError, in source: String) {
-        let lineRange = source.range(ofLine: error.line)
+        self.init(message: error.message, line: error.line, column: error.column, in: source)
+    }
+
+    internal init(message: String, line: Int, column: Int, in source: String) {
+        let lineRange = source.range(ofLine: line)
         let start = source.index(
             lineRange.lowerBound,
-            offsetBy: max(0, error.column - 1),
+            offsetBy: max(0, column - 1),
             limitedBy: lineRange.upperBound
         ) ?? lineRange.upperBound
         let end = start < lineRange.upperBound ? source.index(after: start) : start
-        self = .runtimeError(RuntimeError(.custom(error.message), at: start ..< end))
+        self = .runtimeError(RuntimeError(.custom(message), at: start ..< end))
     }
 
     init(_ error: Error) {
@@ -117,7 +121,7 @@ public extension ProgramError {
         case let .runtimeError(runtimeError):
             switch runtimeError.type {
             case let .importError(error, url, _):
-                guard let url, url.isShapeFile || url.isCSGFile else {
+                guard let url, url.isEditableFile else {
                     return baseURL
                 }
                 return error.shapeFileURL(relativeTo: url)

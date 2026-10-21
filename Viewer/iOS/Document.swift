@@ -165,7 +165,7 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     }
 
     private func updateAutosaveState(for url: URL) {
-        autosaveEnabled = (url.isShapeFile || url.isCSGFile) && !url.isOnNetworkVolume
+        autosaveEnabled = url.isEditableFile && !url.isOnNetworkVolume
     }
 
     @MainActor @objc private func autosaveModeDidChange() {

@@ -58,6 +58,11 @@ public extension URL {
         #endif
         return pathExtension.lowercased() == "csg"
     }
+
+    /// Whether the file format supports editing as source text in the editor
+    var isEditableFile: Bool {
+        isShapeFile || isCSGFile || ["svg", "json"].contains(pathExtension.lowercased())
+    }
 }
 
 private extension URL {
