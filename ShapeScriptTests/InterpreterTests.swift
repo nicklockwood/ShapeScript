@@ -638,36 +638,10 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
-    func testNameInvalidInCircle() {
-        let input = """
-        circle { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
-        }
-    }
-
-    func testNameInvalidInPath() {
-        let input = """
-        path { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
-        }
-    }
-
-    func testNameInvalidInText() {
-        let input = """
-        text { name "Foo" }
-        """
-        let delegate = TestDelegate()
-        XCTAssertThrowsError(try evaluate(parse(input), delegate: delegate)) { error in
-            let error = try? XCTUnwrap(error as? RuntimeError)
-            XCTAssertEqual(error?.message, "Unexpected symbol 'name'")
+    func testNamesInPathsAndPrimitives() throws {
+        for primitive in ["circle", "path", "text"] {
+            let scene = try evaluate(parse("\(primitive) { name \"Foo\" }"), delegate: nil)
+            XCTAssertEqual(scene.children.map(\.name), ["Foo"], primitive)
         }
     }
 

@@ -431,9 +431,9 @@ extension Symbols {
                 subpaths = [Path(subpaths: subpaths)]
             }
             let path = length.map { subpaths[0].withLength($0) } ?? subpaths[0]
-            return .path(path.transformed(by: context.state.transform))
+            return context.pathValue(path)
         },
-        "arc": .block(.init(.polygon, [
+        "arc": .block(.init(_merge(.polygon, .name), [
             "angle": .halfturns,
         ], .void, .list(.point))) { context in
             let angle = context.value(for: "angle")?.angleValue ?? .pi
@@ -447,12 +447,12 @@ extension Symbols {
             default:
                 segments = Swift.max(3, segments)
             }
-            return .path(Path.arc(
+            return context.pathValue(Path.arc(
                 angle: angle,
                 segments: segments,
                 color: context.state.material.color,
                 isCancelled: context.isCancelled
-            ).transformed(by: context.state.transform))
+            ))
         },
         "circle": .block(.pathShape) { context in
             .mesh(Geometry(type: .circle(segments: context.state.detail), in: context))
@@ -460,7 +460,7 @@ extension Symbols {
         "square": .block(.pathShape) { context in
             .mesh(Geometry(type: .square, in: context))
         },
-        "polygon": .block(.init(.polygon, [
+        "polygon": .block(.init(_merge(.polygon, .name), [
             "sides": .number,
         ], .optional(.point), .union([.path, .list(.polygon)]))) { context in
             let sides = context.value(for: "sides")?.intValue
@@ -469,17 +469,21 @@ extension Symbols {
                 if sides != nil {
                     throw RuntimeErrorType.custom("Polygon cannot have both sides and points")
                 }
-                let path = Path(points).transformed(by: context.state.transform)
+                let path = Path(points)
+                    .transformed(by: context.state.name.isEmpty ? context.state.transform : .identity)
                 let polygons = path.closed().facePolygons(
                     material: context.state.material,
                     isCancelled: context.isCancelled
                 )
+                if !context.state.name.isEmpty {
+                    return .mesh(Geometry(type: .mesh(Mesh(polygons)), in: context, children: []))
+                }
                 return .tuple(polygons.map { .polygon($0) })
             }
-            return .path(Path.polygon(
+            return context.pathValue(Path.polygon(
                 sides: sides ?? 5,
                 color: context.state.material.color
-            ).transformed(by: context.state.transform))
+            ))
         },
         "roundrect": .block(.init(.pathShape, [
             "radius": .number,
@@ -488,13 +492,13 @@ extension Symbols {
             let size = context.value(for: "size")?.value as? Vector ?? .one
             let scale = Swift.min(size.x, size.y)
             let radius = (context.value(for: "radius")?.doubleValue ?? 0.25) * scale
-            return .path(Path.roundedRectangle(
+            return context.pathValue(Path.roundedRectangle(
                 width: size.x,
                 height: size.y,
                 radius: radius,
                 detail: context.state.detail / 4,
                 color: context.state.material.color
-            ).transformed(by: context.state.transform))
+            ))
         },
         "text": .block(.init(.pathShape, [
             "font": .font,
@@ -522,11 +526,11 @@ extension Symbols {
             } catch let error as SVGError {
                 throw RuntimeErrorType.custom(error.message)
             }
-            return .path(Path(
+            return context.pathValue(Path(
                 svgPath,
                 detail: context.state.detail / 4,
                 color: context.state.material.color
-            ).transformed(by: context.state.transform))
+            ))
         },
         "inset": .function(
             .tuple([.list(.union([.path, .mesh])), .number]),
@@ -845,13 +849,20 @@ extension Symbols {
     static let hull: Symbols = _merge(group, points)
     static let polygon: Symbols = _merge(transform, childTransform, points, color)
     static let mesh: Symbols = _merge(node, smoothing, miterLimit, color, childTransform, polygons)
-    static let pathShape: Symbols = _merge(transform, detail, color, background)
+    static let pathShape: Symbols = _merge(node, detail, color)
     static let path: Symbols = _merge(pathShape, childTransform, font, pathPoints)
     static let definition: Symbols = _merge(root, pathPoints)
     static let all: Symbols = _merge(definition, shape, path)
 }
 
 extension EvaluationContext {
+    func pathValue(_ path: Path) -> Value {
+        if !state.name.isEmpty {
+            return .mesh(Geometry(type: .path(path), in: self, children: []))
+        }
+        return .path(path.transformed(by: state.transform))
+    }
+
     var paths: [Path] {
         state.children.flatMap { value -> [Path] in
             switch value {

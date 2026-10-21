@@ -49,6 +49,37 @@ final class ImportFragmentTests: XCTestCase {
         }
     }
 
+    func testShapeFragmentsSelectNamedPaths() throws {
+        try withDirectory { directory in
+            let url = directory.appendingPathComponent("profiles.shape")
+            try """
+            group {
+                position 10 0
+                path {
+                    name "outline"
+                    position 2 0
+                    square
+                }
+                circle { name "hole" }
+                text {
+                    name "label"
+                    "Hello"
+                }
+            }
+            """.write(to: url, atomically: true, encoding: .utf8)
+            for name in ["outline", "hole", "label"] {
+                let scene = try evaluate(parse("import \"\(url.path)#\(name)\""), delegate: nil)
+                let geometry = try XCTUnwrap(scene.children.first)
+                XCTAssertEqual(scene.children.count, 1)
+                XCTAssertEqual(geometry.name, name)
+                XCTAssertTrue(geometry.isPath)
+                if name == "outline" {
+                    XCTAssertEqual(geometry.paths(pretransformed: true).first?.bounds.center, [12, 0, 0])
+                }
+            }
+        }
+    }
+
     func testShapeFragmentsRespectOptionsAndDoNotMixCachedSelections() throws {
         try withDirectory { directory in
             let url = directory.appendingPathComponent("parts.shape")
