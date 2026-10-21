@@ -72,6 +72,7 @@ final class EvaluationContext {
         enum Import {
             case program(Program)
             case geometry(Geometry)
+            case svg(SVGDocument)
             case value(Value)
         }
 
@@ -567,7 +568,7 @@ extension EvaluationContext {
                 children: [],
                 sourceLocation: nil
             )
-        case .shape, .text, .json, .image, .font, .model, .unknown:
+        case .svg, .shape, .text, .json, .image, .font, .model, .unknown:
             break
         }
         #if canImport(SceneKit)
@@ -605,14 +606,54 @@ extension EvaluationContext {
         }
     }
 
+    func importSVG(at url: URL, options: SVGImportOptions, trackProgress: Bool = true) throws -> Geometry {
+        if trackProgress { evaluationProgress?.beginImport() }
+        defer { if trackProgress { evaluationProgress?.completeUnit() } }
+        do {
+            let document: SVGDocument
+            if case let .svg(cached) = importCache.store[url] {
+                document = cached
+            } else {
+                try url.validateFileSize(limit: FileSizeLimit.text)
+                document = try SVGDocument(data: Data(contentsOf: url), isCancelled: isCancelled)
+                importCache.store[url] = .svg(document)
+            }
+            let geometry = try document.geometry(
+                options: options,
+                fileURL: url,
+                isCancelled: isCancelled
+            ) {
+                warn($0, at: SourceLocation(at: $1, in: url))
+            }
+            return options.csg ? geometry : geometry.with(
+                transform: .identity, material: state.material, smoothing: state.smoothing,
+                sourceLocation: sourceLocation
+            )
+        } catch let error as SVGImportError {
+            if case let .missingElement(id, options) = error {
+                let hint = id.bestMatches(in: options).first.map { "Did you mean '#\($0)'?" }
+                throw RuntimeErrorType.custom("\(error.message) in file '\(url.lastPathComponent)'", hint: hint)
+            }
+            throw RuntimeErrorType.fileParsingError(
+                for: url.lastPathComponent,
+                at: url,
+                message: error.localizedDescription
+            )
+        } catch {
+            if isCancelled() { throw CancellationError() }
+            throw RuntimeErrorType.fileError(error, for: url.lastPathComponent, at: url)
+        }
+    }
+
     func importFile(
         at path: String,
         options: [String: Value] = [:],
         warningLocation: SourceLocation? = nil
     ) throws -> Value {
+        let reference = SVGFileReference(path)
         let url: URL
         do {
-            url = try resolveURL(for: path)
+            url = try resolveURL(for: reference.path)
         } catch let error as RuntimeErrorType {
             guard case .fileNotFound = error else { throw error }
             evaluationProgress?.beginImport()
@@ -628,6 +669,9 @@ extension EvaluationContext {
                 throw error
             }
         }
+        if ImportType(url) == .svg {
+            return try .mesh(importSVG(at: url, options: .init(id: reference.id, detail: state.detail)))
+        }
         return try importFile(at: url, named: path, options: options)
     }
 
@@ -638,6 +682,12 @@ extension EvaluationContext {
             return value
         }
         switch ImportType(url) {
+        case .svg:
+            return try .mesh(importSVG(
+                at: url,
+                options: .init(detail: state.detail),
+                trackProgress: false
+            ))
         case .shape:
             if importStack.contains(url) {
                 throw RuntimeErrorType.circularImport(for: url)

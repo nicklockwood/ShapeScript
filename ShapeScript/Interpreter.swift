@@ -622,7 +622,7 @@ final class UserBlock: @unchecked Sendable {
                       // or mix geometry with other values
                       !children.contains(where: {
                           if case let .mesh(geometry) = $0.unpretransformed() {
-                              return geometry.type.path == nil
+                              return !geometry.isPath
                           }
                           return false
                       }) ||
@@ -636,7 +636,9 @@ final class UserBlock: @unchecked Sendable {
                         .mesh(geometry.transformed(by: context.state.transform))
                     case let .polygon(polygon):
                         .polygon(polygon.transformed(by: context.state.transform))
-                    default:
+                    case .color, .texture, .material, .boolean, .number, .radians,
+                         .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                         .point, .tuple, .range, .bounds, .object, .pretransformed:
                         $0
                     }
                 })
@@ -662,7 +664,9 @@ final class UserBlock: @unchecked Sendable {
                         )
                     case let .mesh(geometry):
                         return geometry
-                    default:
+                    case .color, .texture, .material, .boolean, .number, .radians,
+                         .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                         .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
                         throw RuntimeErrorType.custom(
                             "Blocks that return \(aOrAn($0.errorDescription)) " +
                                 "value cannot be assigned a name"
@@ -1332,7 +1336,7 @@ extension EvaluationContext {
         if ValueType.path.isSubtype(of: state.childTypes),
            !ValueType.mesh.isSubtype(of: state.childTypes)
         {
-            if case let .mesh(geometry) = value, geometry.type.path != nil {
+            if case let .mesh(geometry) = value, geometry.isPath {
                 let geometry = geometry.transformed(by: state.childTransform)
                 geometry.gatherNamedObjects(&namedObjects)
                 state.children.append(.mesh(geometry))
@@ -1766,7 +1770,7 @@ extension Expression {
                 guard coerceBlockReturn else {
                     return value
                 }
-                if case let .mesh(geometry) = value, geometry.type.path != nil {
+                if case let .mesh(geometry) = value, geometry.isPath {
                     return value
                 }
                 return try value.as(type.returnType, in: context) ?? value
@@ -1810,7 +1814,7 @@ extension Expression {
                 guard coerceBlockReturn else {
                     return value
                 }
-                if case let .mesh(geometry) = value, geometry.type.path != nil {
+                if case let .mesh(geometry) = value, geometry.isPath {
                     return value
                 }
                 if case let .tuple(values) = value,

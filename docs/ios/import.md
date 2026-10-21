@@ -76,6 +76,7 @@ off                   | Object File Format
 ply                   | Polygon File Format
 scn / scnz            | SceneKit Scene
 stl / stla            | Stereolithography
+svg                   | Scalable Vector Graphics
 usd / usdz            | Universal Scene Description
 
 <br/>
@@ -128,6 +129,20 @@ Not every feature of the CSG format is supported. ShapeScript may approximate or
 ![Imported CSG file with warning](../images/csg-import-warning.png)
 
 **Note:** ShapeScript can also open CSG files directly in the viewer, or via the [command-line tool](cli.md). See [Getting Started](getting-started.md#opening-documents) for how to open a CSG document.
+
+### SVG Files
+
+SVG files can be imported as a path or group of paths, using element IDs as geometry names. Both open and closed paths are supported. Add a [fragment identifier](https://en.wikipedia.org/wiki/URI_fragment) to the filename to load just a specific element or group:
+
+```swift
+import "Drawing.svg"
+fill import "Drawing.svg#outline"
+extrude import "Drawing.svg#part"
+```
+
+The SVG importer supports paths, rectangles, circles, ellipses, polygons, polylines, lines, transforms and local `<use>` references. The imported scale is determined by the SVG document dimensions and `viewBox`. The SVG Y axis is flipped to point upwards for consistency with the ShapeScript coordinate system. Imported shapes retain their original positions. Colors and other visual styling are not imported.
+
+Text, images, external references, clipping and masks are not currently supported. Convert text to paths in an SVG editor before importing it.
 
 ## Text and Data
 

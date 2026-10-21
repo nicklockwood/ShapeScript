@@ -684,7 +684,7 @@ extension Value {
                 values[key] = value
             }
             return try type.instance(with: values)
-        case let (.mesh(geometry), .list(.path)) where geometry.type.path != nil:
+        case let (.mesh(geometry), .list(.path)) where geometry.isPath:
             return .tuple(geometry.paths(pretransformed: true).map(Value.path))
         case let (_, .list(type)):
             return try self.as(type, in: context).map { [$0] }
@@ -1050,7 +1050,7 @@ extension Expression {
             case .shape, .json, .unknown: return .any
             case .image: return .texture
             case .font: return .font
-            case .csg, .wavefront, .stereolithography, .object, .model: return .mesh
+            case .csg, .svg, .wavefront, .stereolithography, .object, .model: return .mesh
             }
         case let .ifelse(_, body, else: elseBody):
             var type: ValueType = .void

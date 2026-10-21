@@ -262,7 +262,7 @@ extension Value {
     var materializedPathValue: Value {
         switch self {
         case let .mesh(geometry):
-            guard geometry.type.path != nil else { return self }
+            guard geometry.isPath else { return self }
             if case .text = geometry.type {
                 return .tuple(geometry.paths(pretransformed: true).map(Value.path))
             }

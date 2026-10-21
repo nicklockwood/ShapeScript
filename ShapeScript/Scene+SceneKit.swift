@@ -400,7 +400,7 @@ private extension Geometry {
         }
         let accumulatedTransform = transform * parentTransform
         var result = [(geometry: Geometry, bounds: Bounds)]()
-        if !focus || isFocused, path != nil || mesh != nil || debug && light != nil {
+        if !focus || isFocused, isPath || mesh != nil || debug && light != nil {
             let bounds = overestimatedBounds.transformed(by: parentTransform)
             if !bounds.isEmpty {
                 result.append((self, bounds))
