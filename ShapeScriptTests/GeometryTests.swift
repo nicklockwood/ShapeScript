@@ -117,6 +117,41 @@ final class GeometryTests: XCTestCase {
         #endif
     }
 
+    func testNamedPathsAndPrimitivesPreserveGeometry() throws {
+        let primitives = [
+            ("path", "square"),
+            ("circle", ""),
+            ("square", ""),
+            ("text", "\"Hello\""),
+            ("roundrect", "radius 0.1"),
+            ("svgpath", "\"M0 0 L1 0 L1 1 Z\""),
+            ("arc", "angle 0.5"),
+            ("polygon", "sides 6"),
+            ("polygon", "point 0 0\npoint 1 0\npoint 0 1"),
+        ]
+        for (primitive, body) in primitives {
+            let source = "\(primitive) {\nposition 2 3\nsize 2\n\(body)\n}"
+            let namedSource = "\(primitive) {\nname \"profile\"\nposition 2 3\nsize 2\n\(body)\n}"
+            let scene = try evaluate(parse(namedSource), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first, primitive)
+            XCTAssertEqual(scene.children.count, 1, primitive)
+            XCTAssertEqual(geometry.name, "profile", primitive)
+            XCTAssertTrue(geometry.children.isEmpty, primitive)
+            for builder in ["", "fill ", "extrude "] {
+                // Point-based polygons are faces, not extrusion profiles.
+                if body.hasPrefix("point"), !builder.isEmpty { continue }
+                let unnamedSource = body.hasPrefix("point") ? "mesh {\n\(source)\n}" : builder + source
+                let unnamed = try evaluate(parse(unnamedSource), delegate: nil)
+                let named = try evaluate(parse(builder + namedSource), delegate: nil)
+                let expected = try XCTUnwrap(unnamed.children.first)
+                let actual = try XCTUnwrap(named.children.first)
+                XCTAssertTrue(expected.build { false })
+                XCTAssertTrue(actual.build { false })
+                XCTAssertEqual(named.geometry.merged(), unnamed.geometry.merged(), primitive)
+            }
+        }
+    }
+
     func testPathPrimitivesSurviveDefinitions() throws {
         for primitive in ["circle", "square", "text \"Hello\""] {
             let direct = try evaluate(parse(primitive), delegate: nil)
