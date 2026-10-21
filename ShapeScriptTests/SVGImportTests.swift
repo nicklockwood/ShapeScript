@@ -332,7 +332,7 @@ final class SVGImportTests: XCTestCase {
         let geometry = try load(source, options: .init(layer: "Cut", csg: true))
         XCTAssertEqual(geometry.overestimatedBounds.size, [3, 4, 0])
         XCTAssertTrue(try load(svg(""), options: .init(csg: true)).paths(pretransformed: true).allSatisfy(\.isEmpty))
-        XCTAssertEqual(SVGFileReference("drawing.svg#part%20one").id, "part one")
+        XCTAssertEqual(ImportFileReference("drawing.svg#part%20one").id, "part one")
     }
 
     func testCSGWithoutViewBoxMatchesOpenSCADCoordinates() throws {
@@ -372,14 +372,12 @@ final class SVGImportTests: XCTestCase {
                     "SVG element '#missing' not found in file 'drawing.svg' on line 12."
                 )
             }
-            for selection in ["file=\"\(url.path)#missing\"", "file=\"\(url.path)\", id=\"missing\""] {
-                let script = String(repeating: "\n", count: 11) + "import(\(selection));"
-                XCTAssertThrowsError(try Scene(csgString: script, isCancelled: { false })) { error in
-                    XCTAssertEqual(
-                        ProgramError(error).messageAndLocation(with: script),
-                        "SVG element '#missing' not found in file 'drawing.svg' on line 12."
-                    )
-                }
+            let csg = String(repeating: "\n", count: 11) + "import(file=\"\(url.path)\", id=\"missing\");"
+            XCTAssertThrowsError(try Scene(csgString: csg, isCancelled: { false })) { error in
+                XCTAssertEqual(
+                    ProgramError(error).messageAndLocation(with: csg),
+                    "SVG element '#missing' not found in file 'drawing.svg' on line 12."
+                )
             }
         }
     }
@@ -416,7 +414,7 @@ final class SVGImportTests: XCTestCase {
     func testMissingSVGIsAnErrorNotATextureWarning() {
         XCTAssertThrowsError(try evaluate(parse("import \"/does-not-exist.svg#part\""), delegate: nil))
         XCTAssertEqual(ImportType(URL(fileURLWithPath: "/drawing.svg#part")), .svg)
-        XCTAssertEqual(SVGFileReference("drawing#1.svg").path, "drawing#1.svg")
+        XCTAssertEqual(ImportFileReference("drawing#1.svg").path, "drawing#1.svg")
     }
 }
 

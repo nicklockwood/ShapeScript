@@ -110,6 +110,21 @@ define rocket {
 }
 ```
 
+### Named Geometry
+
+Append `#name` to a ShapeScript or model filename to import just the geometry with that name:
+
+```swift
+import "Assembly.shape#wheel"
+import "Assembly.obj#wheel"
+```
+
+In ShapeScript files, fragments select geometry named with the `name` property, rather than script variables. The complete script is evaluated, including its imports and options, before selection. Only the selected geometry is added to the calling scene, and the imported script's symbols remain local to that import.
+
+Model fragments select named objects or groups. OBJ object and group names are preserved. Other model formats depend on the names provided by their importer. Formats that don't support named geometry, such as STL, cannot provide a matching fragment.
+
+The selected geometry retains its descendants, materials and position in the original scene. Ancestor transforms are applied without including the ancestor groups. Referencing an unknown or ambiguous/duplicate name produces an error. Names containing spaces or special characters can be percent-encoded, for example `#front%20wheel`.
+
 ### OpenSCAD CSG Files
 
 ShapeScript can import [CSG files](https://github.com/openscad/openscad/wiki/CSG-File-Format) exported from OpenSCAD:
