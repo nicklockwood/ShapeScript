@@ -10,7 +10,7 @@
 import AppKit
 
 private typealias OSLoadingIndicator = NSProgressIndicator
-private let progressViewSize: CGFloat = 24
+private let progressViewSize: CGFloat = 18
 
 private extension NSProgressIndicator {
     func startAnimating() { startAnimation(nil) }
@@ -56,6 +56,8 @@ final class ProgressView: OSView {
 
     private let loadingIndicator: OSLoadingIndicator = .init()
     private let progressIndicator: CircularProgressView = .init()
+    private var initialSpinnerTask: Task<Void, Never>?
+    private var isShowingInitialSpinner = false
     private var lastProgress: Double?
     private var stallTask: Task<Void, Never>?
     private var isShowingStalledSpinner = false
@@ -107,6 +109,7 @@ private extension ProgressView {
         loadingIndicator.isDisplayedWhenStopped = true
         loadingIndicator.usesThreadedAnimation = true
         #else
+        loadingIndicator.style = .medium
         loadingIndicator.hidesWhenStopped = false
         #endif
         loadingIndicator.alpha = 0
@@ -134,6 +137,9 @@ private extension ProgressView {
 
     func updateProgress() {
         guard isActive else {
+            initialSpinnerTask?.cancel()
+            initialSpinnerTask = nil
+            isShowingInitialSpinner = false
             stallTask?.cancel()
             stallTask = nil
             transitionTask?.cancel()
@@ -144,14 +150,23 @@ private extension ProgressView {
             return
         }
 
+        if lastProgress == nil {
+            isShowingInitialSpinner = true
+            initialSpinnerTask = delayedTask(after: 2) { view in
+                view.initialSpinnerTask = nil
+                view.isShowingInitialSpinner = false
+                view.updateProgress()
+            }
+        }
         setVisible(true)
         let progress = progress ?? progressIndicator.minValue
 
         updateStallState(for: progress)
-        if isShowingStalledSpinner {
+        let showSpinner = isShowingInitialSpinner || isShowingStalledSpinner
+        if showSpinner {
             loadingIndicator.startAnimating()
         }
-        transitionIndicators(showProgress: true, showSpinner: isShowingStalledSpinner)
+        transitionIndicators(showProgress: !showSpinner, showSpinner: showSpinner)
         setProgressIndicatorValue(progress, animated: true)
     }
 
@@ -176,7 +191,7 @@ private extension ProgressView {
         setIndicatorVisibility(showProgress: showProgress, showSpinner: showSpinner)
         guard !showSpinner else { return }
         transitionTask = delayedTask(after: animationDuration) { view in
-            guard view.isActive, !view.isShowingStalledSpinner else { return }
+            guard view.isActive, !view.isShowingInitialSpinner, !view.isShowingStalledSpinner else { return }
             view.loadingIndicator.stopAnimating()
         }
     }
@@ -198,17 +213,15 @@ private extension ProgressView {
         lastProgress = progress
         isShowingStalledSpinner = false
         stallTask?.cancel()
-        stallTask = delayedTask(after: 5) { view in
+        stallTask = delayedTask(after: 10) { view in
             guard view.isActive,
-                  view.progress.map({
-                      abs($0 - progress) < view.visibleProgressThreshold
-                  }) == true
+                  abs((view.progress ?? view.progressIndicator.minValue) - progress) < view.visibleProgressThreshold
             else {
                 return
             }
             view.isShowingStalledSpinner = true
             view.loadingIndicator.startAnimating()
-            view.transitionIndicators(showProgress: true, showSpinner: true)
+            view.transitionIndicators(showProgress: false, showSpinner: true)
         }
     }
 
@@ -274,8 +287,6 @@ private extension ProgressView {
             options: [.beginFromCurrentState, .curveEaseInOut]
         ) {
             self.loadingIndicator.alpha = showSpinner ? 1 : 0
-            self.loadingIndicator.transform = showProgress && showSpinner ?
-                CGAffineTransform(scaleX: 0.7, y: 0.7) : .identity
             self.progressIndicator.alpha = showProgress ? 1 : 0
         }
         #endif

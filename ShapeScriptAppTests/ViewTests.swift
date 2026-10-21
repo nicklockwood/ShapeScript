@@ -150,6 +150,62 @@ final class ViewTests: XCTestCase {
     }
 
     @available(macOS 13.0, *)
+    func testLoadingIndicatorTransitionsBetweenSpinnerAndProgress() async throws {
+        let indicator = ProgressView(frame: .zero)
+        let spinner = try XCTUnwrap(indicator.subviews.compactMap { $0 as? NSProgressIndicator }.first)
+        let ring = try XCTUnwrap(indicator.subviews.compactMap { $0 as? CircularProgressView }.first)
+        defer { indicator.isActive = false }
+        indicator.isActive = true
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertEqual(spinner.controlSize, .small)
+        XCTAssertEqual(spinner.alphaValue, 1)
+        XCTAssertEqual(ring.alphaValue, 0)
+
+        // Progress updates must not shorten or restart the initial spinner interval.
+        indicator.progress = 0.2
+        try await Task.sleep(for: .milliseconds(2000))
+        XCTAssertEqual(spinner.alphaValue, 0)
+        XCTAssertEqual(ring.alphaValue, 1)
+
+        try await Task.sleep(for: .seconds(4))
+        XCTAssertEqual(spinner.alphaValue, 0)
+        XCTAssertEqual(ring.alphaValue, 1)
+
+        try await Task.sleep(for: .seconds(5))
+        XCTAssertEqual(spinner.alphaValue, 1)
+        XCTAssertEqual(ring.alphaValue, 0)
+
+        indicator.progress = 0.4
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertEqual(spinner.alphaValue, 0)
+        XCTAssertEqual(ring.alphaValue, 1)
+        indicator.isActive = false
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertTrue(indicator.isHidden)
+    }
+
+    @available(macOS 13.0, *)
+    func testShortLoadingIndicatorFadesOutAndRestartsWithSpinner() async throws {
+        let indicator = ProgressView(frame: .zero)
+        let spinner = try XCTUnwrap(indicator.subviews.compactMap { $0 as? NSProgressIndicator }.first)
+        let ring = try XCTUnwrap(indicator.subviews.compactMap { $0 as? CircularProgressView }.first)
+        defer { indicator.isActive = false }
+        indicator.isActive = true
+        try await Task.sleep(for: .milliseconds(600))
+        indicator.isActive = false
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertTrue(indicator.isHidden)
+        XCTAssertEqual(ring.alphaValue, 0)
+
+        indicator.isActive = true
+        try await Task.sleep(for: .milliseconds(1200))
+        // The previous load's timer must not switch this load to progress early.
+        XCTAssertFalse(indicator.isHidden)
+        XCTAssertEqual(spinner.alphaValue, 1)
+        XCTAssertEqual(ring.alphaValue, 0)
+    }
+
+    @available(macOS 13.0, *)
     func testLoadingFailureHidesProgressIndicator() async throws {
         let document = Document()
         let controller = DocumentViewController()
