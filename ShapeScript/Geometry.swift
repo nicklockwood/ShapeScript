@@ -89,14 +89,14 @@ public final class Geometry: Hashable, @unchecked Sendable {
                 if childDebug || childIsFocused {
                     children
                 } else {
-                    mesh == nil ? Array(children.prefix(1)) : []
+                    cachedMesh == nil ? Array(children.prefix(1)) : []
                 }
             case .loft, .union, .xor, .extrude, .fill, .hull, .mesh:
-                mesh == nil || childDebug || childIsFocused ? children : []
+                cachedMesh == nil || childDebug || childIsFocused ? children : []
             case .minkowski:
                 if childDebug || childIsFocused {
                     children
-                } else if mesh == nil {
+                } else if cachedMesh == nil {
                     children.filter { !$0.isHidden }.max {
                         $0.overestimatedBounds.size < $1.overestimatedBounds.size
                     }.map { [$0] } ?? []
@@ -124,7 +124,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .difference, .stencil, .intersection, .lathe, .minkowski:
             childDebug || childIsFocused
         case .loft, .union, .xor, .extrude, .fill, .hull:
-            (mesh != nil || isPath) && (childDebug || childIsFocused)
+            (cachedMesh != nil || isPath) && (childDebug || childIsFocused)
         case .group,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .text, .path, .mesh, .camera, .light:
@@ -174,9 +174,9 @@ public final class Geometry: Hashable, @unchecked Sendable {
     private let meshLock: NSLock = .init()
     private var _mesh: Mesh?
 
-    /// Returns the pre-built mesh
-    /// If the mesh has not yet been built, this will return nil
-    private(set) var mesh: Mesh? {
+    /// The local mesh already held by this geometry, without building or loading it.
+    /// Returns nil until a mesh has been built or retrieved from the shared cache.
+    private(set) var cachedMesh: Mesh? {
         get {
             meshLock.lock()
             defer { meshLock.unlock() }
@@ -190,20 +190,30 @@ public final class Geometry: Hashable, @unchecked Sendable {
         }
     }
 
+    /// Compatibility alias for `cachedMesh`. Use `mesh()` to build on demand.
+    @available(*, deprecated, renamed: "cachedMesh")
+    private(set) var mesh: Mesh? {
+        get { cachedMesh }
+        set { cachedMesh = newValue }
+    }
+
     private let pathLock = NSLock()
     private var _path: Path??
 
-    /// The resolved path, if path classification or evaluation has already run.
+    /// The memoized boolean path result, without evaluating it.
+    /// The outer nil means unevaluated; .some(nil) means evaluation found no path.
+    /// Primitive paths are generated directly and do not populate this cache.
     var cachedPath: Path?? {
         pathLock.lock()
         defer { pathLock.unlock() }
         return _path
     }
 
-    /// The path represented by this geometry, if any, in local coordinates.
-    /// Semantic path primitives include the geometry's material color.
+    /// Compatibility alias for `path()`. Access may evaluate boolean operations.
+    /// Prefer `path()` to make evaluation explicit, or `cachedPath` to inspect stored results.
+    @available(*, deprecated, renamed: "path(pretransformed:isCancelled:)")
     public var path: Path? {
-        path(pretransformed: false)
+        path()
     }
 
     private var _associatedData: Any?
@@ -593,6 +603,17 @@ public extension Geometry {
         }
     }
 
+    /// Builds the receiver's mesh if needed and returns the built local mesh.
+    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available.
+    /// - Note: Does not include the receiver's transform. Use `merged()` or `flattened()`
+    ///         for transform/material-applied output including descendants.
+    func mesh(isCancelled: @escaping CancellationHandler = { false }) -> Mesh? {
+        if cachedMesh == nil, !build(isCancelled) {
+            return nil
+        }
+        return cachedMesh
+    }
+
     internal var estimatedPathPointCount: Int {
         (type.path?.points.count ?? 0) + visibleChildren.reduce(0) { $0 + $1.estimatedPathPointCount }
     }
@@ -635,7 +656,7 @@ public extension Geometry {
         case .group:
             visibleChildren.allSatisfy(\.isPath)
         case .union, .difference, .intersection, .xor, .hull, .minkowski:
-            cachedPath.map { $0 != nil } ?? (hasClosedXYPaths || path != nil)
+            cachedPath.map { $0 != nil } ?? (hasClosedXYPaths || path() != nil)
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .stencil,
              .mesh, .camera, .light:
@@ -643,9 +664,10 @@ public extension Geometry {
         }
     }
 
-    /// Returns the path represented by this geometry, optionally with the geometry transform baked in.
-    /// Semantic path primitives include the geometry's material color either way.
-    func path(pretransformed: Bool, isCancelled: CancellationHandler = { false }) -> Path? {
+    /// Computes the path if needed, reusing any memoized boolean result.
+    /// Returns local coordinates unless `pretransformed` is true.
+    /// Semantic path primitives include the geometry's material color.
+    func path(pretransformed: Bool = false, isCancelled: CancellationHandler = { false }) -> Path? {
         guard !isCancelled() else { return nil }
         switch type {
         case let .circle(segments):
@@ -693,7 +715,7 @@ public extension Geometry {
         } else if case let .text(text) = type {
             text.paths.map { $0.materialToVertexColors(material: material) }
         } else {
-            path.map { [$0] } ?? []
+            path().map { [$0] } ?? []
         }
         return pretransformed ? paths.transformed(by: transform) : paths
     }
@@ -774,7 +796,7 @@ public extension Geometry {
         }
 
         func insetMesh() -> Geometry {
-            let sourceMesh = mesh(isCancelled) ?? .empty
+            let sourceMesh = mesh(isCancelled: isCancelled) ?? .empty
             var mesh = sourceMesh.inset(by: distance, isCancelled: isCancelled)
             if material != .default {
                 if sourceMesh.materials.contains(where: { $0 != nil }) {
@@ -890,7 +912,7 @@ public extension Geometry {
             return copy(type: .fill([paths[0].inset(by: distance, isCancelled: isCancelled)]))
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
             if distance > 0 {
-                if mesh(isCancelled)?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
+                if mesh(isCancelled: isCancelled)?.inset(by: distance, isCancelled: isCancelled).isEmpty == true {
                     return copy(type: .mesh(.empty))
                 }
             }
@@ -1064,7 +1086,7 @@ public extension Geometry {
         guard !isHidden else {
             return .empty
         }
-        var result = mesh ?? .empty
+        var result = cachedMesh ?? .empty
         if type.isLeaf {
             result = result.merge(mergedChildren(isCancelled))
         }
@@ -1123,17 +1145,6 @@ extension Geometry {
             dictionary[name] = self
         }
         children.forEach { $0.gatherNamedObjects(&dictionary) }
-    }
-
-    /// Builds the receiver's mesh if needed and returns the built local mesh.
-    /// Built meshes will be stored in the cache. Already-cached meshes will be re-used if available.
-    /// - Note: Does not include the receiver's transform. Use `merged()` or `flattened()`
-    ///         for transform/material-applied output including descendants.
-    func mesh(_ isCancelled: @escaping CancellationHandler = { false }) -> Mesh? {
-        if mesh == nil, !build(isCancelled) {
-            return nil
-        }
-        return mesh
     }
 }
 
@@ -1494,7 +1505,7 @@ private extension Geometry {
             }
         }
 
-        if let mesh {
+        if let mesh = cachedMesh {
             return bounded(mesh.polygons.count)
         }
         switch type {
@@ -1756,7 +1767,7 @@ private extension Geometry {
             return []
         }
         var meshes = [Mesh]()
-        if let mesh, mesh != .empty {
+        if let mesh = cachedMesh, mesh != .empty {
             meshes.append(mesh)
         }
         if type.isLeaf {
@@ -1773,7 +1784,7 @@ private extension Geometry {
 
     /// A final mesh replaces its operands unless they are needed for overlays.
     var canReuseBuiltSubtree: Bool {
-        !isLeaf && mesh != nil && !childDebug && !childIsFocused
+        !isLeaf && cachedMesh != nil && !childDebug && !childIsFocused
     }
 
     func finalSubtreeUnitCount(plan: GeometryBuildProgressPlan) -> Int {
@@ -1789,7 +1800,7 @@ private extension Geometry {
             return false
         }
         if !isLeaf, !childDebug, !childIsFocused, let cached = cache?[mesh: self] {
-            mesh = cached
+            cachedMesh = cached
             return progress.completeUnit(.buildingLeaves, by: leafProgressUnitCount)
         }
         let unitCount = isLeaf ? plan.unitCount(for: self) : 1
@@ -1832,7 +1843,7 @@ private extension Geometry {
             return false
         }
         if let mesh = cache?[mesh: self] {
-            self.mesh = mesh
+            cachedMesh = mesh
             return progress.completeUnit(.buildingPreview)
         }
         guard progress.beginUnit(.buildingPreview, unitCount: 1) else {
@@ -1840,7 +1851,7 @@ private extension Geometry {
         }
         switch type {
         case .extrude([], _), .lathe([], _), .fill([]):
-            mesh = nil
+            cachedMesh = nil
         case .mesh:
             break // Difference and stencil may not be built yet
         case .group, .circle, .square, .text, .path,
@@ -1849,7 +1860,7 @@ private extension Geometry {
             assert(isLeaf) // Leaves
         case .union, .xor, .intersection, .stencil, .difference,
              .hull, .minkowski, .camera, .light:
-            mesh = nil
+            cachedMesh = nil
         }
         return progress.completeUnit(.buildingPreview)
     }
@@ -1870,7 +1881,7 @@ private extension Geometry {
         guard progress.beginUnit(.buildingFinal, unitCount: unitCount) else {
             return false
         }
-        if !isLeaf || mesh == nil {
+        if !isLeaf || cachedMesh == nil {
             let isCancelled: CancellationHandler = { progress.isCancelled }
             if !buildMesh(isCancelled) {
                 return false
@@ -1910,17 +1921,17 @@ private extension Geometry {
             let path = path(pretransformed: false, isCancelled: isCancelled)
             guard !isCancelled() else { return false }
             if path != nil {
-                mesh = .empty
+                cachedMesh = .empty
                 return true
             }
         }
         if !hasMesh || type == .group {
-            mesh = .empty
+            cachedMesh = .empty
             return !isCancelled()
         }
         return cache?.buildMesh(for: self) { mesh in
             if let mesh {
-                self.mesh = mesh
+                self.cachedMesh = mesh
                 return !isCancelled()
             }
             return buildUncachedMesh(isCancelled)
@@ -1934,21 +1945,21 @@ private extension Geometry {
         guard !isCancelled() else { return false }
         switch type {
         case .group, .circle, .square, .text, .path, .camera, .light:
-            mesh = .empty
+            cachedMesh = .empty
         case let .cone(segments):
-            mesh = .cone(slices: segments, isCancelled: isCancelled)
+            cachedMesh = .cone(slices: segments, isCancelled: isCancelled)
         case let .cylinder(segments):
-            mesh = .cylinder(slices: segments, isCancelled: isCancelled)
+            cachedMesh = .cylinder(slices: segments, isCancelled: isCancelled)
         case let .icosphere(subdivisions):
-            mesh = .icosphere(subdivisions: subdivisions, isCancelled: isCancelled)
+            cachedMesh = .icosphere(subdivisions: subdivisions, isCancelled: isCancelled)
         case let .sphere(segments):
-            mesh = .sphere(slices: segments, isCancelled: isCancelled)
+            cachedMesh = .sphere(slices: segments, isCancelled: isCancelled)
         case .cube:
-            mesh = .cube()
+            cachedMesh = .cube()
         case let .extrude(paths, options) where paths.count == 1 && options.along.isEmpty:
-            mesh = .extrude(paths[0], isCancelled: isCancelled)
+            cachedMesh = .extrude(paths[0], isCancelled: isCancelled)
         case let .extrude(paths, options) where paths.count == 1 && options.along.count == 1:
-            mesh = .extrude(
+            cachedMesh = .extrude(
                 paths[0].materialToVertexColors(material: material),
                 along: options.along[0].materialToVertexColors(material: material).predividedBy(material),
                 twist: options.twist,
@@ -1957,9 +1968,9 @@ private extension Geometry {
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case let .lathe(paths, options) where paths.count == 1 && options.along.isEmpty:
-            mesh = .lathe(paths[0], slices: options.segments, isCancelled: isCancelled)
+            cachedMesh = .lathe(paths[0], slices: options.segments, isCancelled: isCancelled)
         case let .lathe(paths, options) where paths.count == 1 && options.along.count == 1:
-            mesh = .lathe(
+            cachedMesh = .lathe(
                 paths[0].materialToVertexColors(material: material),
                 along: options.along[0].materialToVertexColors(material: material).predividedBy(material),
                 slices: options.segments,
@@ -1967,21 +1978,21 @@ private extension Geometry {
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case let .fill(paths) where paths.count == 1:
-            mesh = .fill(paths[0], isCancelled: isCancelled)
+            cachedMesh = .fill(paths[0], isCancelled: isCancelled)
         case let .loft(paths):
-            mesh = .loft(paths, isCancelled: isCancelled)
+            cachedMesh = .loft(paths, isCancelled: isCancelled)
         case let .hull(vertices):
             let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
             let meshes = ([base] + childMeshes(isCancelled) + childPathMeshes(isCancelled)).map {
                 $0.materialToVertexColors(material: material)
             }
-            mesh = .convexHull(of: meshes, isCancelled: isCancelled)
+            cachedMesh = .convexHull(of: meshes, isCancelled: isCancelled)
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
         case .minkowski:
             func minkowskiSum(replacing union: Geometry? = nil, with replacement: Mesh? = nil) -> Mesh {
                 var children = ArraySlice(children.enumerated().sorted {
-                    switch ($0.1.path, $1.1.path) {
+                    switch ($0.1.path(), $1.1.path()) {
                     case let (a?, b?):
                         // Put closed paths before open paths
                         if a.isClosed != b.isClosed {
@@ -2067,7 +2078,7 @@ private extension Geometry {
             } else {
                 sum = minkowskiSum()
             }
-            mesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil)
+            cachedMesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case .union, .lathe, .extrude, .fill:
             let meshes = visibleChildren.compactMap { child -> Mesh? in
                 let paths = child.paths(pretransformed: true)
@@ -2102,30 +2113,30 @@ private extension Geometry {
                 guard builder.build(isCancelled) else { return nil }
                 return builder.flattened(with: material, isCancelled)
             }
-            mesh = .union(meshes, isCancelled: isCancelled)
+            cachedMesh = .union(meshes, isCancelled: isCancelled)
         case .xor:
-            mesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
+            cachedMesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
         case .difference:
             let first = flattenedFirstChild(isCancelled)
             let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
-            mesh = .difference(meshes, isCancelled: isCancelled)
+            cachedMesh = .difference(meshes, isCancelled: isCancelled)
         case .intersection:
             let meshes = flattenedChildren(isCancelled)
-            mesh = .intersection(meshes, isCancelled: isCancelled)
+            cachedMesh = .intersection(meshes, isCancelled: isCancelled)
         case .stencil:
             let first = flattenedFirstChild(isCancelled)
             let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
-            mesh = .stencil(meshes, isCancelled: isCancelled)
+            cachedMesh = .stencil(meshes, isCancelled: isCancelled)
         case let .mesh(mesh):
-            self.mesh = .merge([mesh] + childMeshes(isCancelled))
+            cachedMesh = .merge([mesh] + childMeshes(isCancelled))
         }
         if !isCancelled() {
-            mesh = mesh?.makeWatertight(isCancelled: isCancelled)
+            cachedMesh = cachedMesh?.makeWatertight(isCancelled: isCancelled)
             if shouldDetessellate {
-                mesh = mesh?.detessellate(isCancelled: isCancelled)
+                cachedMesh = cachedMesh?.detessellate(isCancelled: isCancelled)
             }
             if let smoothing {
-                mesh = mesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
+                cachedMesh = cachedMesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
             return true
         }
@@ -2214,7 +2225,7 @@ private extension Geometry {
             isHidden: isHidden,
             cache: cache
         )
-        copy.mesh = isRemovingUnfocusedChildren || isRemovingHiddenGeometry ? nil : mesh
+        copy.cachedMesh = isRemovingUnfocusedChildren || isRemovingHiddenGeometry ? nil : cachedMesh
         return copy
     }
 
@@ -2404,13 +2415,13 @@ public extension Geometry {
         switch type {
         case .camera, .light, .circle, .square, .text, .path, .group:
             break
-        case .union where parent?.distributableMinkowskiUnion === self && parent?.mesh != nil:
+        case .union where parent?.distributableMinkowskiUnion === self && parent?.cachedMesh != nil:
             break
         case .cone, .cylinder, .icosphere, .sphere, .cube,
              .extrude, .lathe, .loft, .fill, .hull, .minkowski,
              .union, .difference, .intersection, .xor, .stencil,
              .mesh:
-            guard mesh != nil else {
+            guard cachedMesh != nil else {
                 return false
             }
         }
@@ -2456,7 +2467,7 @@ public extension Geometry {
         case .group:
             return visibleChildren.reduce(into: []) { $0 += $1.polygons(isCancelled) }
         default:
-            return mesh(isCancelled)?.polygons ?? []
+            return mesh(isCancelled: isCancelled)?.polygons ?? []
         }
     }
 
@@ -2478,7 +2489,7 @@ public extension Geometry {
         case .group:
             return visibleChildren.allSatisfy { $0.isWatertight(isCancelled) }
         default:
-            return mesh(isCancelled)?.isWatertight ?? true
+            return mesh(isCancelled: isCancelled)?.isWatertight ?? true
         }
     }
 
@@ -2496,7 +2507,7 @@ public extension Geometry {
             return .empty
         case .lathe([], _) where visibleChildren.contains(where: \.isPath),
              .extrude([], _) where visibleChildren.contains(where: \.isPath):
-            return mesh(isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
+            return mesh(isCancelled: isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
         case .group, .union, .lathe([], _), .extrude([], _), .fill([]):
             return Bounds(visibleChildren.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
@@ -2514,7 +2525,7 @@ public extension Geometry {
                 $0.minkowskiSum(with: $1.exactBounds(with: $1.transform * transform, isCancelled))
             }
         case .xor, .difference, .intersection:
-            return mesh(isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
+            return mesh(isCancelled: isCancelled).map { GeometryType.mesh($0).bounds(with: transform) } ?? .empty
         case .stencil:
             return visibleChildren.first.map {
                 $0.exactBounds(with: $0.transform * transform, isCancelled)
@@ -2538,7 +2549,7 @@ public extension Geometry {
         case .group:
             children.reduce(0) { $0 + $1.volume(with: $1.transform, isCancelled) } * scaleFactor
         default:
-            (mesh(isCancelled)?.signedVolume ?? 0) * scaleFactor
+            (mesh(isCancelled: isCancelled)?.signedVolume ?? 0) * scaleFactor
         }
     }
 }

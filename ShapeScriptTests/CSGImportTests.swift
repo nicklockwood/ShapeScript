@@ -34,10 +34,10 @@ final class CSGImportTests: XCTestCase {
             let container = try XCTUnwrap(descendants(geometry).first {
                 $0.type == type && $0.children.count == 2
             }, operation)
-            XCTAssertNotNil(container.path)
-            XCTAssertTrue(container.children.allSatisfy { $0.path != nil || !$0.children.isEmpty })
+            XCTAssertNotNil(container.path())
+            XCTAssertTrue(container.children.allSatisfy { $0.path() != nil || !$0.children.isEmpty })
             XCTAssertEqual(container.sourceLocation, SourceLocation(at: 2, in: url))
-            XCTAssertEqual(try XCTUnwrap(geometry.path).bounds.center, [3, 4, 5])
+            XCTAssertEqual(try XCTUnwrap(geometry.path()).bounds.center, [3, 4, 5])
         }
     }
 
@@ -50,13 +50,13 @@ final class CSGImportTests: XCTestCase {
             }
             """
             let original = try Geometry(csgString: source, isCancelled: { false })
-            let profile = try XCTUnwrap(original.path)
+            let profile = try XCTUnwrap(original.path())
             let transformed = try Geometry(csgString: """
             multmatrix([[-1,0.5,0,7],[0,1,0,11],[0,0,1,0],[0,0,0,1]]) {
                 \(source)
             }
             """, isCancelled: { false })
-            let result = try XCTUnwrap(transformed.path, operation)
+            let result = try XCTUnwrap(transformed.path(), operation)
             let expected = Path(subpaths: profile.subpaths.map { subpath in
                 Path(subpath.points.map { point in
                     var point = point
@@ -220,7 +220,7 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertTrue(multiple.warnings.contains { $0.contains("multiple profiles") })
-        XCTAssertEqual(try XCTUnwrap(multiple.children.first?.path).subpaths.count, 2)
+        XCTAssertEqual(try XCTUnwrap(multiple.children.first?.path()).subpaths.count, 2)
     }
 
     func testUnsupportedMatrixOptionsWarnWithoutLosingOtherGeometry() throws {
@@ -853,7 +853,7 @@ final class CSGImportTests: XCTestCase {
             let source = "\(operation)() { square(2); translate([1,0,0]) square(2); }"
             let scene = try Scene(csgString: source, isCancelled: { false })
             let geometry = try XCTUnwrap(scene.children.first)
-            let path = try XCTUnwrap(geometry.path)
+            let path = try XCTUnwrap(geometry.path())
             XCTAssertTrue(path.isClosed)
             XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8)
             XCTAssertTrue(scene.warnings.isEmpty, scene.warnings.joined(separator: "\n"))
@@ -879,7 +879,7 @@ final class CSGImportTests: XCTestCase {
             let source = "\(operation)() { square(2,true); translate([3,0,0]) square(2,true); }"
             let scene = try Scene(csgString: source, isCancelled: { false })
             XCTAssertTrue(scene.warnings.isEmpty, scene.warnings.joined(separator: "\n"))
-            let path = try XCTUnwrap(scene.children.first?.path)
+            let path = try XCTUnwrap(scene.children.first?.path())
             XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8)
             let result = try mesh("linear_extrude(height=2) \(source)")
             XCTAssertEqual(result.signedVolume, area * 2, accuracy: 1e-8)
@@ -893,7 +893,7 @@ final class CSGImportTests: XCTestCase {
                 csgString: "minkowski(convexity=10) { \(primitive) \(primitive) }", isCancelled: { false }
             )
             XCTAssertTrue(scene.warnings.isEmpty)
-            if let path = scene.children.first?.path {
+            if let path = scene.children.first?.path() {
                 XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, 4, accuracy: 1e-8)
             } else {
                 XCTAssertTrue(scene.build { false })
@@ -929,14 +929,14 @@ final class CSGImportTests: XCTestCase {
             )
             XCTAssertEqual(scene.warnings.count, 1)
             XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D '\(operation)'"))
-            XCTAssertEqual(try XCTUnwrap(scene.children.first?.path).subpaths.count, 2)
+            XCTAssertEqual(try XCTUnwrap(scene.children.first?.path()).subpaths.count, 2)
         }
     }
 
     func test2DBooleanHolesAndDisconnectedRegions() throws {
         let ring = "difference() { square(4,true); square(2,true); }"
         let geometry = try Geometry(csgString: ring, isCancelled: { false })
-        XCTAssertEqual(try XCTUnwrap(geometry.path).subpaths.count, 2)
+        XCTAssertEqual(try XCTUnwrap(geometry.path()).subpaths.count, 2)
         XCTAssertEqual(try mesh("linear_extrude(height=2) \(ring)").signedVolume, 24, accuracy: 1e-8)
         XCTAssertEqual(
             try mesh("linear_extrude(height=1) union() { \(ring) square(2,true); }").signedVolume,
@@ -945,7 +945,7 @@ final class CSGImportTests: XCTestCase {
         let disconnected = try Geometry(
             csgString: "union() { square(1); translate([3,0,0]) square(1); }", isCancelled: { false }
         )
-        XCTAssertEqual(try XCTUnwrap(disconnected.path).subpaths.count, 2)
+        XCTAssertEqual(try XCTUnwrap(disconnected.path()).subpaths.count, 2)
     }
 
     func test2DBooleanEmptyOperandsAndHiddenModifiers() throws {
@@ -981,7 +981,7 @@ final class CSGImportTests: XCTestCase {
             csgString: "union() { rotate([45,0,0]) square(2); rotate([45,0,0]) translate([1,0,0]) square(2); }",
             isCancelled: { false }
         )
-        XCTAssertEqual(try Mesh.fill(XCTUnwrap(tilted.path), faces: .front).surfaceArea, 6, accuracy: 1e-8)
+        XCTAssertEqual(try Mesh.fill(XCTUnwrap(tilted.path()), faces: .front).surfaceArea, 6, accuracy: 1e-8)
         let mirrored =
             try mesh("linear_extrude(height=1) difference() { mirror([1,0,0]) square(4,true); square(2,true); }")
         XCTAssertEqual(mirrored.signedVolume, 12, accuracy: 1e-8)
@@ -993,7 +993,7 @@ final class CSGImportTests: XCTestCase {
         )
         XCTAssertEqual(scene.warnings.count, 1)
         XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D 'union'"))
-        let path = try XCTUnwrap(scene.children.first?.path)
+        let path = try XCTUnwrap(scene.children.first?.path())
         XCTAssertEqual(path.subpaths.count, 2)
         XCTAssertEqual(path.bounds.size, Vector(2, 2, 1))
     }
@@ -1034,7 +1034,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(second.build(progress: progress))
         XCTAssertTrue(progress.isFinished)
         XCTAssertEqual(progress.fractionCompleted, 1)
-        XCTAssertTrue(difference.children.allSatisfy { $0.mesh == nil })
+        XCTAssertTrue(difference.children.allSatisfy { $0.cachedMesh == nil })
         XCTAssertTrue(second.geometry.hasBuiltMeshes)
         XCTAssertEqual(first.geometry.merged(), second.geometry.merged())
 
@@ -1045,7 +1045,7 @@ final class CSGImportTests: XCTestCase {
         )
         let debugDifference = try XCTUnwrap(debug.children.first?.children.first)
         XCTAssertTrue(debug.build { false })
-        XCTAssertTrue(debugDifference.children.allSatisfy { $0.mesh != nil })
+        XCTAssertTrue(debugDifference.children.allSatisfy { $0.cachedMesh != nil })
         XCTAssertTrue(debugDifference.childDebug)
         XCTAssertFalse(debugDifference.renderedChildren.isEmpty)
     }
@@ -1098,18 +1098,18 @@ final class CSGImportTests: XCTestCase {
         guard case let .extrude(paths, _) = geometry.type else { return XCTFail("Expected extrusion") }
         XCTAssertTrue(paths.isEmpty)
         XCTAssertFalse(geometry.children.isEmpty)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
         XCTAssertEqual(cache.count, 0)
         let encoded = try JSONEncoder().encode(geometry.type)
         XCTAssertEqual(try JSONDecoder().decode(GeometryType.self, from: encoded), geometry.type)
 
         XCTAssertTrue(scene.build { false })
-        let expected = try XCTUnwrap(geometry.mesh)
+        let expected = try XCTUnwrap(geometry.cachedMesh)
         let reload = try Scene(csgString: source, cache: cache, isCancelled: { false })
         let reloaded = try XCTUnwrap(reload.children.first?.children.first)
         XCTAssertEqual(geometry.cacheKey, reloaded.cacheKey)
         XCTAssertTrue(reload.build { false })
-        XCTAssertEqual(reloaded.mesh, expected)
+        XCTAssertEqual(reloaded.cachedMesh, expected)
         let changed = try Scene(
             csgString: source.replacingOccurrences(of: "-0.5", with: "-1"),
             cache: cache,
@@ -1132,7 +1132,7 @@ final class CSGImportTests: XCTestCase {
         let reopenedCache = GeometryCache(diskCache: DiskCache(capacity: 10_000_000, directory: directory))
         let reopened = try Scene(csgString: source, cache: reopenedCache, isCancelled: { false })
         let geometry = try XCTUnwrap(reopened.children.first?.children.first)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
         XCTAssertNotNil(reopenedCache[mesh: geometry])
         XCTAssertTrue(reopened.build { false })
         XCTAssertEqual(scene.geometry.merged(), reopened.geometry.merged())
@@ -1176,7 +1176,7 @@ final class CSGImportTests: XCTestCase {
                     isCancelled: { false }
                 )
                 func check(_ geometry: Geometry) {
-                    XCTAssertNil(geometry.mesh, "\(transform) \(modifier)")
+                    XCTAssertNil(geometry.cachedMesh, "\(transform) \(modifier)")
                     geometry.children.forEach(check)
                 }
                 check(scene.geometry)
@@ -1199,7 +1199,7 @@ final class CSGImportTests: XCTestCase {
         guard case .mesh = geometry.type else {
             return XCTFail("Shear should be baked into a mesh during import")
         }
-        XCTAssertNotNil(geometry.mesh)
+        XCTAssertNotNil(geometry.cachedMesh)
         XCTAssertNotEqual(
             first.children.first?.children.first?.cacheKey,
             second.children.first?.children.first?.cacheKey
@@ -1224,7 +1224,7 @@ final class CSGImportTests: XCTestCase {
         else {
             return XCTFail("Sheared profiles should remain extrusion children")
         }
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
         XCTAssertTrue(scene.build { false })
         let result = scene.geometry.merged()
         XCTAssertEqual(result.signedVolume, 24, accuracy: 0.000001)
@@ -1242,13 +1242,13 @@ final class CSGImportTests: XCTestCase {
             let cache = GeometryCache(diskCache: nil)
             let first = try Scene(csgString: source, cache: cache, isCancelled: { false })
             let geometry = try XCTUnwrap(first.children.first?.children.first)
-            XCTAssertNil(geometry.mesh, source)
+            XCTAssertNil(geometry.cachedMesh, source)
             XCTAssertEqual(cache.count, 0)
             XCTAssertTrue(first.build { false })
             XCTAssertGreaterThan(cache.count, 0)
             let second = try Scene(csgString: source, cache: cache, isCancelled: { false })
             let reloaded = try XCTUnwrap(second.children.first?.children.first)
-            XCTAssertNil(reloaded.mesh, source)
+            XCTAssertNil(reloaded.cachedMesh, source)
             XCTAssertEqual(geometry.cacheKey, reloaded.cacheKey)
             XCTAssertNotNil(cache[mesh: reloaded])
             XCTAssertTrue(second.build { false })
@@ -1325,7 +1325,7 @@ final class CSGImportTests: XCTestCase {
             csgString: "text(\"Hi \\\"CSG\\\"\", size=2, font=\"Helvetica\", halign=\"left\", valign=\"baseline\");",
             isCancelled: { false }
         )
-        XCTAssertNotNil(geometry.path)
+        XCTAssertNotNil(geometry.path())
         XCTAssertFalse(geometry.paths(pretransformed: true).isEmpty)
         let result = try mesh("linear_extrude(height=1) text(\"Hi\", font=\"Helvetica\");")
         XCTAssertFalse(result.isEmpty)

@@ -124,7 +124,7 @@ private extension Geometry {
         }
         if !focus || isFocused {
             let children = visibleChildren
-            if mesh == nil, children.count != self.children.count {
+            if cachedMesh == nil, children.count != self.children.count {
                 return Bounds(children.map {
                     $0.overestimatedBoundsForFocus(focus: focus)
                 }).transformed(by: transform)

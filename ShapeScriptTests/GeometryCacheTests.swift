@@ -146,7 +146,7 @@ final class GeometryCacheTests: XCTestCase {
         #if canImport(CoreText)
         // Cache should have only 8 entries as the 'o' and 'l' are repeated
         XCTAssertEqual(cache.count, 8)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 1)
         #endif
     }
@@ -160,7 +160,7 @@ final class GeometryCacheTests: XCTestCase {
         #if canImport(CoreText)
         // Cache should have only 8 entries as the 'o' and 'l' are repeated
         XCTAssertEqual(cache.count, 8)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 1)
         #endif
     }
@@ -182,7 +182,7 @@ final class GeometryCacheTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil, cache: cache)
         _ = scene.build { false }
         cache.flushPendingDiskWrites()
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
         XCTAssertGreaterThan(cache.count, 0)
 
         let restoredCache = makeCache(
@@ -192,7 +192,7 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertEqual(restoredCache.count, 0)
         let restoredScene = try evaluate(program, delegate: nil, cache: restoredCache)
         _ = restoredScene.build { false }
-        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.mesh)
+        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.cachedMesh)
         XCTAssertEqual(restoredMesh.polygons.count, mesh.polygons.count)
         XCTAssertGreaterThan(restoredCache.count, 0)
     }
@@ -211,15 +211,15 @@ final class GeometryCacheTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil, cache: writer)
         XCTAssertTrue(scene.build { false })
         writer.flushPendingDiskWrites()
-        let expectedMesh = try XCTUnwrap(scene.children.first?.mesh)
+        let expectedMesh = try XCTUnwrap(scene.children.first?.cachedMesh)
 
         try reader.withRefresh(false) {
             let loaded = try evaluate(program, delegate: nil, cache: reader)
             XCTAssertTrue(loaded.build { false })
             let difference = try XCTUnwrap(loaded.children.first)
-            XCTAssertEqual(difference.mesh?.polygons.count, expectedMesh.polygons.count)
+            XCTAssertEqual(difference.cachedMesh?.polygons.count, expectedMesh.polygons.count)
             XCTAssertFalse(difference.children.isEmpty)
-            XCTAssertTrue(difference.children.allSatisfy { $0.mesh == nil })
+            XCTAssertTrue(difference.children.allSatisfy { $0.cachedMesh == nil })
         }
     }
 
@@ -241,7 +241,7 @@ final class GeometryCacheTests: XCTestCase {
         let scene = try evaluate(program, delegate: nil, cache: cache)
         _ = scene.build { false }
         cache.flushPendingDiskWrites()
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
         XCTAssertGreaterThan(cache.count, 0)
 
         let restoredCache = makeCache(
@@ -250,7 +250,7 @@ final class GeometryCacheTests: XCTestCase {
         )
         let restoredScene = try evaluate(program, delegate: nil, cache: restoredCache)
         _ = restoredScene.build { false }
-        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.mesh)
+        let restoredMesh = try XCTUnwrap(restoredScene.children.first?.cachedMesh)
         XCTAssertEqual(restoredMesh.polygons.count, mesh.polygons.count)
         XCTAssertGreaterThan(restoredCache.count, 0)
     }
@@ -323,7 +323,7 @@ final class GeometryCacheTests: XCTestCase {
         )
         let scene = try evaluate(program, delegate: nil, cache: cache)
         _ = scene.build { false }
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
 
         XCTAssertEqual(mesh.polygons.count, Mesh.cube().polygons.count)
         XCTAssertNotEqual(mesh.polygons.count, staleMesh.polygons.count)
@@ -353,7 +353,7 @@ final class GeometryCacheTests: XCTestCase {
         )
         let scene = try evaluate(program, delegate: nil, cache: cache)
         _ = scene.build { false }
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
 
         XCTAssertEqual(mesh.polygons.count, futureMesh.polygons.count)
         XCTAssertNotEqual(mesh.polygons.count, Mesh.cube().polygons.count)
@@ -405,7 +405,7 @@ final class GeometryCacheTests: XCTestCase {
         )
         let staleScene = try evaluate(program, delegate: nil, cache: cache)
         _ = staleScene.build { false }
-        XCTAssertEqual(staleScene.children.first?.mesh?.polygons.count, staleMesh.polygons.count)
+        XCTAssertEqual(staleScene.children.first?.cachedMesh?.polygons.count, staleMesh.polygons.count)
 
         XCTAssertGreaterThan(diskCache.currentUsage, 0)
         let reloadedScene = try cache.withRefresh {
@@ -414,7 +414,7 @@ final class GeometryCacheTests: XCTestCase {
             return scene
         }
         let cubePolygonCount = Mesh.cube().polygons.count
-        XCTAssertEqual(reloadedScene.children.first?.mesh?.polygons.count, cubePolygonCount)
+        XCTAssertEqual(reloadedScene.children.first?.cachedMesh?.polygons.count, cubePolygonCount)
         XCTAssertNotEqual(cubePolygonCount, staleMesh.polygons.count)
 
         cache.flushPendingDiskWrites()
@@ -423,7 +423,7 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertGreaterThan(diskCache.currentUsage, 0)
         let restoredScene = try evaluate(program, delegate: nil, cache: cache)
         _ = restoredScene.build { false }
-        XCTAssertEqual(restoredScene.children.first?.mesh?.polygons.count, cubePolygonCount)
+        XCTAssertEqual(restoredScene.children.first?.cachedMesh?.polygons.count, cubePolygonCount)
     }
 
     func testGeometryCacheDoesNotPersistEmptyMeshes() throws {
@@ -536,7 +536,7 @@ final class GeometryCacheTests: XCTestCase {
             }
             """), delegate: nil, cache: cache)
             _ = scene.build { false }
-            return try XCTUnwrap(scene.children.first?.mesh)
+            return try XCTUnwrap(scene.children.first?.cachedMesh)
         }
 
         let greenHull = try hullMesh(sphereColor: "green")
@@ -621,7 +621,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have only 2 entries: the extrusion and the hull
         XCTAssertEqual(cache.count, 2)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Meshes should not have baked materials, as they are recolorable
         XCTAssertEqual(meshes.first?.materials, [nil])
@@ -646,7 +646,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have 4 entries: cube, extrusion, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // First mesh has a mix of colors, so these are baked into the vertices
         XCTAssertEqual(meshes.first?.materials, [Material(color: .white)])
@@ -684,7 +684,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have 4 entries: extrusion1, extrusion2, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Meshes both have non-uniform vertex colors so material color must be baked
         XCTAssertEqual(meshes.first?.materials, [Material(color: .white)])
@@ -722,7 +722,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have only 2 entries: extrusion and hull
         XCTAssertEqual(cache.count, 2)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Even though meshes have non-uniform vertex colors, override color is same for both so cache hits
         XCTAssertEqual(meshes.first, meshes.last)
@@ -756,7 +756,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have 4 entries: extrusion1, extrusion2, hull1 and hull2
         XCTAssertEqual(cache.count, 4)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Even though override colors are the same, each mesh has different random vertex colors
         XCTAssertEqual(meshes.first?.materials, [Material(color: .white)])
@@ -788,7 +788,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have only 1 entry: path
         XCTAssertEqual(cache.count, 1)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Mesh colors are uniform, so neither has any baked material
         XCTAssertEqual(meshes.first?.materials, [nil])
@@ -813,7 +813,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have only 1 entry: extrude
         XCTAssertEqual(cache.count, 1)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Mesh colors are uniform, so neither has any baked material
         XCTAssertEqual(meshes.first?.materials, [nil])
@@ -847,7 +847,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Cache should have only 3 entries: cube, sphere and union
         XCTAssertEqual(cache.count, 3)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         XCTAssertEqual(scene.children.first?.material, Material(color: .red))
         XCTAssertEqual(scene.children.last?.material, Material(color: .green))
@@ -884,7 +884,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Path primitives have no mesh to cache: only sphere and minkowski are cached.
         XCTAssertEqual(cache.count, 2)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Mesh colors are uniform, so neither has any baked material
         XCTAssertEqual(meshes.first?.materials, [nil])
@@ -922,7 +922,7 @@ final class GeometryCacheTests: XCTestCase {
         _ = scene.build { false }
         // Path primitives have no mesh to cache: sphere, minkowski1 and minkowski2.
         XCTAssertEqual(cache.count, 3)
-        let meshes = scene.children.compactMap(\.mesh)
+        let meshes = scene.children.compactMap(\.cachedMesh)
         XCTAssertEqual(meshes.count, 2)
         // Even though override colors are the same, each mesh has different random vertex colors
         XCTAssertEqual(meshes.first?.materials, [Material(color: .white)])

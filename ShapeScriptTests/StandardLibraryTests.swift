@@ -134,7 +134,7 @@ final class StandardLibraryTests: XCTestCase {
         try program.evaluate(in: context)
 
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.subpaths.count, 3)
         XCTAssertEqual(path.subpaths.map(\.isClosed), [false, true, false])
         XCTAssertEqual(path.subpaths[0].points.map(\.position), [
@@ -162,7 +162,7 @@ final class StandardLibraryTests: XCTestCase {
         try program.evaluate(in: context)
 
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertFalse(path.isClosed)
         XCTAssertEqual(path.points.map(\.position), [
@@ -188,7 +188,7 @@ final class StandardLibraryTests: XCTestCase {
         try program.evaluate(in: context)
 
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertFalse(path.isClosed)
         XCTAssertEqual(path.points.map(\.position), [
@@ -1171,7 +1171,7 @@ final class StandardLibraryTests: XCTestCase {
             try program.evaluate(in: context)
 
             let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-            return try XCTUnwrap(geometry.path)
+            return try XCTUnwrap(geometry.path())
         }
 
         XCTAssertEqual(try pathFor("arc { angle 2 }").points.count - 1, 16)
@@ -1199,7 +1199,7 @@ final class StandardLibraryTests: XCTestCase {
         try program.evaluate(in: context)
 
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.points.map(\.isCurved), [
             false, true, true, true, true, true, false,
         ])
@@ -1226,7 +1226,7 @@ final class StandardLibraryTests: XCTestCase {
         try program.evaluate(in: context)
 
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertTrue(path.isClosed)
         XCTAssertEqual(path.subpaths.count, 1)
         XCTAssertEqual(path.points.first?.position, path.points.last?.position)

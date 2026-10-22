@@ -309,9 +309,9 @@ final class PlatformTests: XCTestCase {
         let didObserveUnbuiltUnion = Flag()
 
         XCTAssertTrue(scene.build {
-            guard union.mesh == nil,
+            guard union.cachedMesh == nil,
                   !union.children.isEmpty,
-                  union.children.allSatisfy({ $0.mesh != nil })
+                  union.children.allSatisfy({ $0.cachedMesh != nil })
             else {
                 return false
             }
@@ -340,7 +340,7 @@ final class PlatformTests: XCTestCase {
 
         XCTAssertTrue(cube.build { false })
         XCTAssertTrue(sphere.build { false })
-        XCTAssertNil(union.mesh)
+        XCTAssertNil(union.cachedMesh)
         scene.scnBuild(with: .default)
 
         XCTAssertGreaterThan(cube.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)
@@ -360,7 +360,7 @@ final class PlatformTests: XCTestCase {
 
         XCTAssertTrue(cube.build { false })
         XCTAssertTrue(sphere.build { false })
-        XCTAssertNil(union.mesh)
+        XCTAssertNil(union.cachedMesh)
         scene.scnBuild(with: .default)
 
         XCTAssertGreaterThan(cube.scnGeometry.sources(for: .vertex).first?.vectorCount ?? 0, 0)

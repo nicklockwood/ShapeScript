@@ -1740,7 +1740,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.points.first?.color, .red)
         XCTAssertEqual(path.points.last?.color, .blue)
     }
@@ -1763,7 +1763,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.points.first?.position, Vector(0, 1))
         XCTAssertEqual(path.points.first?.color, .red)
         XCTAssertTrue(path.points.first?.isCurved ?? false)
@@ -1784,7 +1784,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.points.first?.position, Vector(0, 1))
         XCTAssertEqual(path.points.first?.color, .red)
         XCTAssertFalse(path.points.first?.isCurved ?? true)
@@ -1801,7 +1801,7 @@ final class InterpreterTests: XCTestCase {
             1 2 3
         }
         """), delegate: nil)
-        let path = try XCTUnwrap(scene.children.first?.path)
+        let path = try XCTUnwrap(scene.children.first?.path())
         XCTAssertEqual(path.points.map(\.position), [.zero, [0, 0.6, 0], [1, 2, 3]])
     }
 
@@ -1817,7 +1817,7 @@ final class InterpreterTests: XCTestCase {
         let context = EvaluationContext(source: program.source, delegate: nil)
         XCTAssertNoThrow(try program.evaluate(in: context))
         let geometry = try XCTUnwrap(context.state.children.first?.value as? Geometry)
-        let path = try XCTUnwrap(geometry.path)
+        let path = try XCTUnwrap(geometry.path())
         XCTAssertEqual(path.subpaths.first?.points.first?.color, .red)
         XCTAssertEqual(path.subpaths.last?.points.first?.color, .green)
     }

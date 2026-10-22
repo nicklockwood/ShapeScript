@@ -1160,7 +1160,7 @@ private struct CSGImporter {
                     )
                     return .init(
                         geometry: geometry,
-                        paths: geometry.path.map { _ in geometry.paths(pretransformed: true) }
+                        paths: geometry.path().map { _ in geometry.paths(pretransformed: true) }
                     )
                 } catch let error as RuntimeErrorType {
                     let range = ProgramError(node.error(""), in: source).range ?? source.startIndex ..< source.endIndex

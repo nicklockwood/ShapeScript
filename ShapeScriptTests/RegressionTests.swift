@@ -178,7 +178,7 @@ final class RegressionTests: XCTestCase {
         let path = try XCTUnwrap(paths.first)
         XCTAssertEqual(paths.count, 1)
         XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetExtrudedPrimitiveRewritesPathAndDepth() throws {
@@ -193,7 +193,7 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
         XCTAssertEqual(path.bounds.min.z, -0.4, accuracy: epsilon)
         XCTAssertEqual(paths.last?.bounds.max.z ?? 0, 0.4, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetNonAxisAlignedExtrusionRewritesAsLoft() throws {
@@ -211,7 +211,7 @@ final class RegressionTests: XCTestCase {
             return XCTFail("Expected loft geometry, got \(geometry.type)")
         }
         XCTAssertEqual(paths.count, 2)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
 
         let mesh = try XCTUnwrap(geometry.mesh())
         let path = Path.square().rotated(by: rotation).inset(by: distance)
@@ -242,7 +242,7 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
         XCTAssertEqual(start.position.z, 0.1, accuracy: epsilon)
         XCTAssertEqual(end.position.z, 1.9, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testExtrudePassesMiterLimitToMeshGeneration() throws {
@@ -285,8 +285,8 @@ final class RegressionTests: XCTestCase {
         let path = try XCTUnwrap(paths.first)
 
         XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
-        XCTAssertNil(child.mesh)
+        XCTAssertNil(geometry.cachedMesh)
+        XCTAssertNil(child.cachedMesh)
     }
 
     func testInsetGroupRewritesSiblingAndMeshInsetsFallbackChild() throws {
@@ -335,9 +335,9 @@ final class RegressionTests: XCTestCase {
             return XCTFail("Expected mesh fallback child, got \(fallback.type)")
         }
         XCTAssertFalse(mesh.isEmpty)
-        XCTAssertNil(geometry.mesh)
-        XCTAssertNil(fill.mesh)
-        XCTAssertNil(fallback.mesh)
+        XCTAssertNil(geometry.cachedMesh)
+        XCTAssertNil(fill.cachedMesh)
+        XCTAssertNil(fallback.cachedMesh)
     }
 
     func testInsetGroupPreservesCameraAndLightChildren() {
@@ -427,8 +427,8 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(path.bounds.size.x, 0.8, accuracy: epsilon)
         XCTAssertEqual(start.position.z, 0.1, accuracy: epsilon)
         XCTAssertEqual(end.position.z, 1.9, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
-        XCTAssertNil(child.mesh)
+        XCTAssertNil(geometry.cachedMesh)
+        XCTAssertNil(child.cachedMesh)
     }
 
     func testInsetDifferenceRewritesSubtractiveChildrenWithOppositeInset() throws {
@@ -457,9 +457,9 @@ final class RegressionTests: XCTestCase {
         let radiusScale = 1 + 0.1 / (0.5 * cos(.pi / 16))
         XCTAssertEqual(solid.transform.scale, .init(size: 0.8), accuracy: epsilon)
         XCTAssertEqual(subtractive.transform.scale, [radiusScale, 1.2, radiusScale], accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
-        XCTAssertNil(solid.mesh)
-        XCTAssertNil(subtractive.mesh)
+        XCTAssertNil(geometry.cachedMesh)
+        XCTAssertNil(solid.cachedMesh)
+        XCTAssertNil(subtractive.cachedMesh)
     }
 
     func testInsetCubeRewritesScale() throws {
@@ -471,7 +471,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, .init(size: 0.8), accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testNegativeInsetCubeMatchesMeshInsetBounds() throws {
@@ -481,7 +481,7 @@ final class RegressionTests: XCTestCase {
         )
         XCTAssertEqual(primitive.exactBounds(with: primitive.transform).size, .init(size: 1.8), accuracy: epsilon)
         XCTAssertEqual(primitive.flattened().bounds.size, .init(size: 1.8), accuracy: epsilon)
-        XCTAssertNotNil(mesh.mesh)
+        XCTAssertNotNil(mesh.cachedMesh)
     }
 
     func testNegativeInsetScaledSphereRewritesScale() throws {
@@ -507,7 +507,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, expectedScale, accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testNegativeInsetScaledIcosphereRewritesScale() throws {
@@ -529,7 +529,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testNegativeInsetCylinderMatchesMeshInsetBounds() throws {
@@ -587,7 +587,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, expectedScale, accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetIcosphereRewritesScale() throws {
@@ -605,7 +605,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetCylinderRewritesScale() throws {
@@ -625,7 +625,7 @@ final class RegressionTests: XCTestCase {
             accuracy: epsilon
         )
         XCTAssertEqual(geometry.transform.translation, .zero, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetConeRewritesScaleAndOffset() throws {
@@ -643,7 +643,7 @@ final class RegressionTests: XCTestCase {
 
         XCTAssertEqual(geometry.transform.scale, Vector(size: expectedScale), accuracy: epsilon)
         XCTAssertEqual(geometry.transform.translation, .unitY * expectedOffset, accuracy: epsilon)
-        XCTAssertNil(geometry.mesh)
+        XCTAssertNil(geometry.cachedMesh)
     }
 
     func testInsetExtrudedTextIsNotMirrored() throws {
@@ -912,7 +912,7 @@ final class RegressionTests: XCTestCase {
         let scene = try evaluate(parse(program), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)
         XCTAssertTrue(geometry.build { false })
-        let mesh = try XCTUnwrap(geometry.mesh)
+        let mesh = try XCTUnwrap(geometry.cachedMesh)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertEqual(mesh.submeshes.filter { $0.signedVolume < 0 }.count, 4)
         #endif
@@ -973,7 +973,7 @@ final class RegressionTests: XCTestCase {
             XCTAssertEqual(scene.children.count, 1)
             XCTAssertTrue(scene.build { false })
             let geometry = try XCTUnwrap(scene.children.first)
-            let mesh = try XCTUnwrap(geometry.mesh)
+            let mesh = try XCTUnwrap(geometry.cachedMesh)
             XCTAssertTrue(mesh.isWatertight)
             XCTAssertLessThan(mesh.polygons.count, 5_000)
         }

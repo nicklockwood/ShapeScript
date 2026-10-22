@@ -47,8 +47,8 @@ final class SVGImportTests: XCTestCase {
             geometry.children.map(\.name),
             ["box", "circle", "ellipse", "polygon", "polyline", "line", "curve"]
         )
-        XCTAssertEqual(geometry.children.map { $0.path?.isClosed }, [true, true, true, true, false, false, false])
-        let box = try XCTUnwrap(geometry.children.first?.path)
+        XCTAssertEqual(geometry.children.map { $0.path()?.isClosed }, [true, true, true, true, false, false, false])
+        let box = try XCTUnwrap(geometry.children.first?.path())
         XCTAssertEqual(box.bounds.min, [10, 40, 0])
         XCTAssertEqual(box.bounds.max, [40, 80, 0])
     }
@@ -138,7 +138,7 @@ final class SVGImportTests: XCTestCase {
                 svg("<path d=\"M10 10 L20 10\" stroke-width=\"2\" stroke-linecap=\"\(cap)\"/>"),
                 options: .init(csg: true)
             )
-            let path = try XCTUnwrap(geometry.path)
+            let path = try XCTUnwrap(geometry.path())
             XCTAssertTrue(path.isClosed)
             XCTAssertEqual(path.bounds.size, [width, 2, 0], accuracy: 1e-8)
         }
@@ -146,7 +146,7 @@ final class SVGImportTests: XCTestCase {
             svg("<rect width=\"10\" height=\"20\" fill=\"none\" stroke-width=\"8\"/>"),
             options: .init(csg: true)
         )
-        XCTAssertEqual(geometry.path?.bounds.size, [10, 20, 0])
+        XCTAssertEqual(geometry.path()?.bounds.size, [10, 20, 0])
     }
 
     func testCSGUnionsOverlappingElementsAndPreservesHoles() throws {
@@ -154,10 +154,10 @@ final class SVGImportTests: XCTestCase {
             svg("<rect width=\"10\" height=\"10\"/><rect x=\"5\" width=\"10\" height=\"10\"/>"),
             options: .init(csg: true)
         )
-        XCTAssertEqual(union.path?.subpaths.count, 1)
-        XCTAssertEqual(union.path?.bounds.size, [15, 10, 0])
+        XCTAssertEqual(union.path()?.subpaths.count, 1)
+        XCTAssertEqual(union.path()?.bounds.size, [15, 10, 0])
         let hole = try load(svg("<path d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), options: .init(csg: true))
-        XCTAssertEqual(hole.path?.subpaths.count, 2)
+        XCTAssertEqual(hole.path()?.subpaths.count, 2)
     }
 
     func testRoundedRectAndAllPathCommands() throws {
@@ -690,7 +690,7 @@ final class SVGImportTests: XCTestCase {
             scene.geometry.gatherNamedObjects(&named)
             XCTAssertNotNil(named["edge"])
             XCTAssertNil(named["part"])
-            XCTAssertFalse(try XCTUnwrap(named["edge"]?.path).isClosed)
+            XCTAssertFalse(try XCTUnwrap(named["edge"]?.path()).isClosed)
         }
     }
 
@@ -792,7 +792,7 @@ final class SVGImportTests: XCTestCase {
                     csgString: "import(file=\"\(url.path)\", id=\"\(id)\", $fa=1, $fs=1);",
                     isCancelled: { false }
                 )
-                try counts.append(XCTUnwrap(scene.geometry.children.first?.path).points.count)
+                try counts.append(XCTUnwrap(scene.geometry.children.first?.path()).points.count)
             }
             XCTAssertGreaterThan(counts[1], counts[0])
         }

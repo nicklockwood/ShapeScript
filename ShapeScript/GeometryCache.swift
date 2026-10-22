@@ -325,7 +325,7 @@ extension GeometryCache {
 
         let start = CFAbsoluteTimeGetCurrent()
         let succeeded = build(nil)
-        if succeeded, let mesh = geometry.mesh {
+        if succeeded, let mesh = geometry.cachedMesh {
             storeBuiltMesh(
                 mesh,
                 for: geometry,

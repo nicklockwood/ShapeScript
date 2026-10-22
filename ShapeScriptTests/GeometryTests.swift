@@ -86,12 +86,12 @@ final class GeometryTests: XCTestCase {
             let scene = try evaluate(parse(source), delegate: nil)
             let geometry = try XCTUnwrap(scene.children.first)
             XCTAssertEqual(geometry.children.map(\.type), [.square, .square])
-            let path = try XCTUnwrap(geometry.path, operation)
+            let path = try XCTUnwrap(geometry.path(), operation)
             XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, operation)
             XCTAssertFalse(geometry.hasMesh, operation)
             XCTAssertTrue(geometry.renderedChildren.isEmpty, operation)
             XCTAssertTrue(scene.build { false })
-            XCTAssertTrue(try XCTUnwrap(geometry.mesh).isEmpty, operation)
+            XCTAssertTrue(try XCTUnwrap(geometry.cachedMesh).isEmpty, operation)
             XCTAssertTrue(geometry.renderedChildren.isEmpty, operation)
             XCTAssertEqual(geometry.exactBounds(with: .identity), path.bounds)
 
@@ -163,7 +163,7 @@ final class GeometryTests: XCTestCase {
             cancellation.isCancelled()
         }))
         func area() throws -> Double {
-            try Mesh.fill(XCTUnwrap(geometry.path), faces: .front).surfaceArea
+            try Mesh.fill(XCTUnwrap(geometry.path()), faces: .front).surfaceArea
         }
         XCTAssertEqual(try area(), 13, accuracy: 1e-8)
         geometry.children[0].children[1].isHidden = true
@@ -208,7 +208,7 @@ final class GeometryTests: XCTestCase {
         let glyphs = text.paths(pretransformed: true)
         XCTAssertEqual(glyphs.count, 2)
         let expected = try XCTUnwrap(Path.union(glyphs))
-        let actual = try XCTUnwrap(geometry.path)
+        let actual = try XCTUnwrap(geometry.path())
         XCTAssertEqual(
             Mesh.fill(actual, faces: .front).surfaceArea,
             Mesh.fill(expected, faces: .front).surfaceArea,
@@ -259,7 +259,7 @@ final class GeometryTests: XCTestCase {
         let geometry = try XCTUnwrap(scene.children.first)
         let cutter = geometry.children[1]
         func area() throws -> Double {
-            try Mesh.fill(XCTUnwrap(geometry.path), faces: .front).surfaceArea
+            try Mesh.fill(XCTUnwrap(geometry.path()), faces: .front).surfaceArea
         }
         XCTAssertEqual(try area(), 12, accuracy: 1e-8)
         cutter.isHidden = true
@@ -281,7 +281,7 @@ final class GeometryTests: XCTestCase {
             let source = "hull {\n\(body.replacingOccurrences(of: ";", with: "\n"))\n}"
             let scene = try evaluate(parse(source), delegate: nil)
             let geometry = try XCTUnwrap(scene.children.first)
-            let path = try XCTUnwrap(geometry.path, body)
+            let path = try XCTUnwrap(geometry.path(), body)
             XCTAssertTrue(path.isClosed, body)
             XCTAssertFalse(geometry.hasMesh, body)
             XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, body)
@@ -296,7 +296,7 @@ final class GeometryTests: XCTestCase {
             point 0 1 0
         }
         """.replacingOccurrences(of: ";", with: "\n")), delegate: nil)
-        let path = try XCTUnwrap(tilted.children.first?.path)
+        let path = try XCTUnwrap(tilted.children.first?.path())
         XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, sqrt(8), accuracy: 1e-8)
     }
 
@@ -308,7 +308,7 @@ final class GeometryTests: XCTestCase {
             point 0 0 0
         }
         """), delegate: nil)
-        let path = try XCTUnwrap(scene.children.first?.path)
+        let path = try XCTUnwrap(scene.children.first?.path())
         XCTAssertFalse(path.isClosed)
         XCTAssertEqual(path.bounds, Bounds(min: .zero, max: [2, 4, 6]))
         XCTAssertEqual(path.length, sqrt(56), accuracy: 1e-8)
@@ -323,7 +323,7 @@ final class GeometryTests: XCTestCase {
             point 0 0 1
         }
         """), delegate: nil)
-        XCTAssertNil(scene.children.first?.path)
+        XCTAssertNil(scene.children.first?.path())
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 1.0 / 6, accuracy: 1e-8)
     }
@@ -333,9 +333,9 @@ final class GeometryTests: XCTestCase {
         let geometry = try XCTUnwrap(scene.children.first)
         XCTAssertEqual(geometry.type, .hull([]))
         XCTAssertEqual(geometry.children.count, 1)
-        XCTAssertNotNil(geometry.children.first?.path)
-        XCTAssertNotNil(geometry.path)
-        XCTAssertEqual(geometry.path?.faceNormal, geometry.children.first?.path?.faceNormal)
+        XCTAssertNotNil(geometry.children.first?.path())
+        XCTAssertNotNil(geometry.path())
+        XCTAssertEqual(geometry.path()?.faceNormal, geometry.children.first?.path()?.faceNormal)
     }
 
     func testDefinedPathCSGProfilesRetainTheirOperations() throws {
@@ -363,9 +363,9 @@ final class GeometryTests: XCTestCase {
         ] {
             let scene = try evaluate(parse(source), delegate: nil)
             let geometry = try XCTUnwrap(scene.children.first)
-            XCTAssertNil(geometry.path)
+            XCTAssertNil(geometry.path())
             XCTAssertTrue(scene.build { false })
-            XCTAssertFalse(try XCTUnwrap(geometry.mesh).isEmpty)
+            XCTAssertFalse(try XCTUnwrap(geometry.cachedMesh).isEmpty)
             XCTAssertTrue(geometry.hasMesh)
         }
     }
@@ -381,13 +381,13 @@ final class GeometryTests: XCTestCase {
         }
         """), delegate: nil)
         let geometry = try XCTUnwrap(scene.children.first)
-        let local = try XCTUnwrap(geometry.path)
+        let local = try XCTUnwrap(geometry.path())
         XCTAssertEqual(local.subpaths.count, 2)
         XCTAssertTrue(local.points.allSatisfy { $0.color == .red })
         XCTAssertEqual(geometry.path(pretransformed: true), local.transformed(by: geometry.transform))
         XCTAssertNil(geometry.path(pretransformed: true, isCancelled: { true }))
         let empty = try evaluate(parse("intersection { square\nsquare { position 3 0 } }"), delegate: nil)
-        XCTAssertTrue(try XCTUnwrap(empty.children.first?.path).isEmpty)
+        XCTAssertTrue(try XCTUnwrap(empty.children.first?.path()).isEmpty)
     }
 
     func testSceneGeometryHasStableIdentityAndParents() throws {
@@ -480,7 +480,7 @@ final class GeometryTests: XCTestCase {
             let directScene = try evaluate(parse("extrude \(primitive)"), delegate: nil)
             let directExtrusion = try XCTUnwrap(directScene.children.first)
             XCTAssertTrue(directExtrusion.build { false })
-            let expectedMesh = try XCTUnwrap(directExtrusion.mesh)
+            let expectedMesh = try XCTUnwrap(directExtrusion.cachedMesh)
             #if canImport(CoreText)
             XCTAssertFalse(expectedMesh.isEmpty, primitive)
             #else
@@ -492,7 +492,7 @@ final class GeometryTests: XCTestCase {
                 let extrusion = try XCTUnwrap(scene.children.first)
                 XCTAssertEqual(extrusion.children.map(\.type), [expectedType])
                 XCTAssertTrue(extrusion.build { false })
-                XCTAssertEqual(extrusion.mesh, expectedMesh, definition)
+                XCTAssertEqual(extrusion.cachedMesh, expectedMesh, definition)
             }
         }
     }
@@ -504,7 +504,7 @@ final class GeometryTests: XCTestCase {
                 let geometry = try XCTUnwrap(scene.children.first)
                 let child = try XCTUnwrap(geometry.children.first)
                 XCTAssertEqual(geometry.children.count, 1)
-                XCTAssertNotNil(child.path)
+                XCTAssertNotNil(child.path())
                 let paths = child.paths(pretransformed: true)
                 let expectedType: GeometryType = switch builder {
                 case "fill": .fill(paths)
@@ -515,7 +515,7 @@ final class GeometryTests: XCTestCase {
                 let expected = Geometry(type: expectedType, in: context)
                 XCTAssertTrue(geometry.build { false })
                 XCTAssertTrue(expected.build { false })
-                XCTAssertEqual(geometry.mesh?.bounds, expected.mesh?.bounds)
+                XCTAssertEqual(geometry.cachedMesh?.bounds, expected.cachedMesh?.bounds)
                 XCTAssertEqual(geometry.volume { false }, expected.volume { false }, accuracy: 0.000001)
                 let bounds = geometry.exactBounds(with: .identity)
                 let expectedBounds = expected.exactBounds(with: .identity)
@@ -541,8 +541,8 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil)
         let geometry = try XCTUnwrap(scene.children.first)
         XCTAssertTrue(geometry.build { false })
-        XCTAssertEqual(geometry.mesh?.bounds.min, [-2.5, -0.5, -0.5])
-        XCTAssertEqual(geometry.mesh?.bounds.max, [3, 1, 0.5])
+        XCTAssertEqual(geometry.cachedMesh?.bounds.min, [-2.5, -0.5, -0.5])
+        XCTAssertEqual(geometry.cachedMesh?.bounds.max, [3, 1, 0.5])
         XCTAssertGreaterThan(geometry.volume { false }, 2.7)
     }
 
@@ -756,7 +756,7 @@ final class GeometryTests: XCTestCase {
         let cube = try XCTUnwrap(difference.children.first)
         let sphere = try XCTUnwrap(difference.children.last)
 
-        XCTAssertNil(difference.mesh)
+        XCTAssertNil(difference.cachedMesh)
         XCTAssertTrue(cube.isRenderedInScene(focus: false))
         XCTAssertFalse(sphere.isRenderedInScene(focus: false))
     }
@@ -775,9 +775,9 @@ final class GeometryTests: XCTestCase {
                 type: type, name: nil, transform: .identity,
                 material: .default, smoothing: nil, children: [base, operand], sourceLocation: nil
             )
-            XCTAssertNil(operand.mesh)
+            XCTAssertNil(operand.cachedMesh)
             XCTAssertTrue(geometry.build { false })
-            XCTAssertNotNil(operand.mesh)
+            XCTAssertNotNil(operand.cachedMesh)
             XCTAssertEqual(
                 geometry.merged().signedVolume,
                 type == .difference ? 0.875 : 1,
@@ -798,7 +798,7 @@ final class GeometryTests: XCTestCase {
         let cube = try XCTUnwrap(union.children.first)
         let sphere = try XCTUnwrap(union.children.last)
 
-        XCTAssertNil(union.mesh)
+        XCTAssertNil(union.cachedMesh)
         XCTAssertTrue(cube.isRenderedInScene(focus: false))
         XCTAssertTrue(sphere.isRenderedInScene(focus: false))
     }
@@ -892,7 +892,7 @@ final class GeometryTests: XCTestCase {
 
         let union = try XCTUnwrap(scene.children.first)
 
-        XCTAssertNil(union.mesh)
+        XCTAssertNil(union.cachedMesh)
         XCTAssertEqual(union.renderedChildren, union.children)
     }
 
@@ -907,11 +907,11 @@ final class GeometryTests: XCTestCase {
 
         let minkowski = try XCTUnwrap(scene.children.first)
 
-        XCTAssertNil(minkowski.mesh)
+        XCTAssertNil(minkowski.cachedMesh)
         XCTAssertEqual(minkowski.renderedChildren, [minkowski.children[2]])
 
         XCTAssertTrue(scene.build { false })
-        XCTAssertNotNil(minkowski.mesh)
+        XCTAssertNotNil(minkowski.cachedMesh)
         XCTAssertTrue(minkowski.renderedChildren.isEmpty)
     }
 
@@ -925,7 +925,7 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil)
 
         XCTAssertTrue(scene.build { false })
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
         let texturedPolygons = mesh.polygons.filter {
             ($0.material as? Material)?.texture == .checkerboard
         }
@@ -946,7 +946,7 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil)
 
         XCTAssertTrue(scene.build { false })
-        let mesh = try XCTUnwrap(scene.children.first?.mesh)
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
         let texturedPolygons = mesh.polygons.filter {
             ($0.material as? Material)?.texture == .checkerboard
         }
@@ -970,7 +970,7 @@ final class GeometryTests: XCTestCase {
         let union = try XCTUnwrap(minkowski.children.first)
 
         XCTAssertTrue(scene.build { false })
-        XCTAssertNil(union.mesh)
+        XCTAssertNil(union.cachedMesh)
         XCTAssertTrue(minkowski.hasBuiltMeshes)
 
         let kernel = minkowski.children[1].flattened()
@@ -980,7 +980,7 @@ final class GeometryTests: XCTestCase {
         let expected = Mesh.union(components.map {
             $0.minkowskiSum(with: kernel)
         }).makeWatertight().detessellate()
-        XCTAssertEqual(minkowski.mesh, expected)
+        XCTAssertEqual(minkowski.cachedMesh, expected)
     }
 
     func testMinkowskiDistributesOverOverlappingUnion() throws {
@@ -1005,8 +1005,8 @@ final class GeometryTests: XCTestCase {
         let union = try XCTUnwrap(minkowski.children.first)
 
         XCTAssertTrue(scene.build { false })
-        XCTAssertNil(union.mesh)
-        XCTAssertNotNil(minkowski.mesh)
+        XCTAssertNil(union.cachedMesh)
+        XCTAssertNotNil(minkowski.cachedMesh)
     }
 
     func testMinkowskiDoesNotDistributeOverDifference() throws {
@@ -1024,8 +1024,8 @@ final class GeometryTests: XCTestCase {
         let difference = try XCTUnwrap(minkowski.children.first)
 
         XCTAssertTrue(scene.build { false })
-        XCTAssertNotNil(difference.mesh)
-        XCTAssertNotNil(minkowski.mesh)
+        XCTAssertNotNil(difference.cachedMesh)
+        XCTAssertNotNil(minkowski.cachedMesh)
     }
 
     func testDifferenceRenderedChildrenDependOnDebugState() throws {
@@ -1249,19 +1249,44 @@ final class GeometryTests: XCTestCase {
                 return checks >= 4
             })
             XCTAssertLessThan(checks, 10, "\(type)")
-            XCTAssertLessThan(shape.mesh?.polygons.count ?? .max, 256 * 2)
+            XCTAssertLessThan(shape.cachedMesh?.polygons.count ?? .max, 256 * 2)
         }
     }
 
     func testMeshFunctionBuildsPrimitiveOnDemand() throws {
         let context = EvaluationContext(source: "", delegate: nil)
         let shape = Geometry(type: .cube, in: context)
-        XCTAssertNil(shape.mesh)
+        XCTAssertNil(shape.cachedMesh)
 
         let mesh = try XCTUnwrap(shape.mesh())
 
         XCTAssertEqual(mesh, Mesh.cube())
-        XCTAssertEqual(shape.mesh, mesh)
+        XCTAssertEqual(shape.cachedMesh, mesh)
+    }
+
+    func testPathFunctionEvaluatesOnDemandAndReusesCachedResult() throws {
+        let geometry = try Geometry(
+            csgString: "difference() { square(4,true); square(2,true); }",
+            isCancelled: { false }
+        )
+        XCTAssertTrue(geometry.cachedPath == nil)
+        let path = try XCTUnwrap(geometry.path())
+        XCTAssertEqual(geometry.cachedPath, .some(.some(path)))
+        XCTAssertEqual(geometry.path(), path)
+        XCTAssertEqual(geometry.path(pretransformed: false), path)
+    }
+
+    func testCachedPathDistinguishesUnevaluatedFromNonPathGeometry() {
+        let context = EvaluationContext(source: "", delegate: nil)
+        let difference = Geometry(
+            type: .difference, name: nil, transform: .identity,
+            material: .default, smoothing: nil,
+            children: [Geometry(type: .cube, in: context)], sourceLocation: nil
+        )
+        XCTAssertTrue(difference.cachedPath == nil)
+        XCTAssertNil(difference.path())
+        XCTAssertEqual(difference.cachedPath, .some(nil))
+        XCTAssertNil(difference.cachedMesh)
     }
 
     func testTransformedCubeBounds() {
@@ -1600,7 +1625,7 @@ final class GeometryTests: XCTestCase {
             geometry.build { false }
         }
         let buildSucceeded = build.result
-        let mesh = try XCTUnwrap(geometry.mesh)
+        let mesh = try XCTUnwrap(geometry.cachedMesh)
         XCTAssertTrue(buildSucceeded)
         XCTAssertFalse(mesh.isEmpty)
         XCTAssertTrue(mesh.isWatertight)
@@ -2052,11 +2077,11 @@ final class GeometryTests: XCTestCase {
         """), delegate: nil)
         XCTAssertEqual(a.visibleBounds, b.visibleBounds)
         XCTAssertEqual(a.children.count, b.children.count)
-        XCTAssertEqual(a.children.map(\.mesh), b.children.map(\.mesh))
+        XCTAssertEqual(a.children.map(\.cachedMesh), b.children.map(\.cachedMesh))
         XCTAssertEqual(a.children.map {
-            $0.mesh?.polygons.count ?? 0
+            $0.cachedMesh?.polygons.count ?? 0
         }, b.children.map {
-            $0.mesh?.polygons.count ?? 0
+            $0.cachedMesh?.polygons.count ?? 0
         })
     }
 }
