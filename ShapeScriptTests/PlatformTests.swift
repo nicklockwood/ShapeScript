@@ -47,6 +47,33 @@ final class PlatformTests: XCTestCase {
         XCTAssertEqual(Bounds(updated.boundingBox).min.x, 9.5, accuracy: 1e-6)
     }
 
+    func testPreviewDoesNotEvaluateDeferredProfile() throws {
+        let scene = try Scene(
+            csgString: "sphere(r=1); linear_extrude(height=2) difference() { square(4,true); square(2,true); }",
+            isCancelled: { false }
+        )
+        func difference(in geometry: Geometry) -> Geometry? {
+            if geometry.type == .difference { return geometry }
+            return geometry.children.lazy.compactMap { difference(in: $0) }.first
+        }
+        let extrusion = try XCTUnwrap(scene.children.first?.children.last)
+        let profile = try XCTUnwrap(difference(in: extrusion))
+        XCTAssertTrue(profile.cachedPath == nil)
+        scene.scnBuild(with: .default)
+        XCTAssertTrue(profile.cachedPath == nil)
+        XCTAssertNil(extrusion.cachedMesh)
+        // Cancellation checks also run while the path builder holds its lock.
+        // Preview conversion must not wait for that in-flight result.
+        XCTAssertNotNil(profile.path(isCancelled: {
+            scene.scnBuild(with: .default)
+            return false
+        }))
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+        XCTAssertNotNil(extrusion.cachedMesh)
+        XCTAssertFalse(profile.cachedPath == nil)
+    }
+
     func testMaterialDepthBufferWrites() {
         let opaque = SCNMaterial(Material(color: .red), isOpaque: true)
         let opaqueWithinTransparentGeometry = SCNMaterial(

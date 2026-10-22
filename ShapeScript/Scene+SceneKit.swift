@@ -270,7 +270,7 @@ private extension Geometry {
                 scnData[key] = geometry
                 scnGeometry = geometry
             }
-        } else if let path = path() {
+        } else if let path = previewPath {
             if options.wireframe {
                 let wireframe = SCNGeometry(.stroke(
                     path.withColor(nil),
@@ -400,7 +400,7 @@ private extension Geometry {
         }
         let accumulatedTransform = transform * parentTransform
         var result = [(geometry: Geometry, bounds: Bounds)]()
-        if !focus || isFocused, isPath || cachedMesh != nil || debug && light != nil {
+        if !focus || isFocused, previewPath != nil || cachedMesh != nil || debug && light != nil {
             let bounds = overestimatedBounds.transformed(by: parentTransform)
             if !bounds.isEmpty {
                 result.append((self, bounds))

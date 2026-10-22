@@ -79,7 +79,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
     /// The children currently rendered in place of, or in addition to, this geometry.
     func renderedChildren(focus: Bool) -> [Geometry] {
-        let rendered: [Geometry] = if !isLeaf, isPath {
+        let rendered: [Geometry] = if !isLeaf, hasClosedXYPaths || previewPath != nil {
             childDebug || childIsFocused ? children : []
         } else {
             switch type {
@@ -124,7 +124,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .difference, .stencil, .intersection, .lathe, .minkowski:
             childDebug || childIsFocused
         case .loft, .union, .xor, .extrude, .fill, .hull:
-            (cachedMesh != nil || isPath) && (childDebug || childIsFocused)
+            (cachedMesh != nil || previewPath != nil) && (childDebug || childIsFocused)
         case .group,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .text, .path, .mesh, .camera, .light:
@@ -207,6 +207,21 @@ public final class Geometry: Hashable, @unchecked Sendable {
         pathLock.lock()
         defer { pathLock.unlock() }
         return _path
+    }
+
+    /// A path available for display without evaluating operations or waiting for a build.
+    /// Groups are displayed through their children rather than combining their paths.
+    var previewPath: Path? {
+        switch type {
+        case .circle, .square, .text, .path:
+            return path()
+        case .union, .difference, .intersection, .xor, .hull, .minkowski:
+            guard pathLock.try() else { return nil }
+            defer { pathLock.unlock() }
+            return _path ?? nil
+        default:
+            return nil
+        }
     }
 
     /// Compatibility alias for `path()`. Access may evaluate boolean operations.
