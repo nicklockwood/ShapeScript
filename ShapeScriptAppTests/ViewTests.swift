@@ -263,13 +263,10 @@ final class ViewTests: XCTestCase {
         let document = ViewMockDocument(viewController: viewController)
         viewController.document = document
         document.sourceString = "cube {"
-        do {
-            _ = try parse("cube {")
-            XCTFail("Expected a missing-brace error")
-            return
-        } catch {
-            document.error = ProgramError(error)
-        }
+        document.error = .runtimeError(RuntimeError(
+            .custom("Original evaluation error"),
+            at: document.sourceString.startIndex ..< document.sourceString.endIndex
+        ))
         document.updateViews()
         let originalMessage = try XCTUnwrap(viewController.errorMessage)
 
@@ -289,6 +286,49 @@ final class ViewTests: XCTestCase {
         XCTAssertNil(document.error)
         XCTAssertNil(viewController.errorMessage)
         XCTAssertNotNil(document.scene)
+    }
+
+    func testSourceUpdateClearsSyntaxErrorsAfterParsing() throws {
+        for source in ["cube {", "\""] {
+            let viewController = MockViewController()
+            let document = ViewMockDocument(viewController: viewController)
+            viewController.document = document
+            document.sourceString = source
+            XCTAssertThrowsError(try parse(source)) { error in
+                document.error = ProgramError(error)
+            }
+            document.updateViews()
+            let originalMessage = try XCTUnwrap(viewController.errorMessage)
+
+            document.sourceString = ""
+            XCTAssertNotNil(document.error)
+            XCTAssertEqual(viewController.errorMessage, originalMessage)
+
+            document.didParseSource()
+            XCTAssertNil(document.error)
+            XCTAssertNil(document.errorMessage)
+            XCTAssertNil(viewController.errorMessage)
+        }
+    }
+
+    func testParsingSuccessPreservesImportedSyntaxErrors() throws {
+        let viewController = MockViewController()
+        let document = ViewMockDocument(viewController: viewController)
+        viewController.document = document
+        document.sourceString = "import \"example.shape\""
+        let source = "cube {"
+        XCTAssertThrowsError(try parse(source)) { error in
+            document.error = .runtimeError(RuntimeError(
+                .importError(ProgramError(error), for: nil, in: source),
+                at: document.sourceString.startIndex ..< document.sourceString.endIndex
+            ))
+        }
+        document.updateViews()
+        let originalError = try XCTUnwrap(document.error)
+        let originalMessage = try XCTUnwrap(viewController.errorMessage)
+        document.didParseSource()
+        XCTAssertEqual(document.error, originalError)
+        XCTAssertEqual(viewController.errorMessage, originalMessage)
     }
 
     func testSourceUpdatePreservesErrorDuringProgressAndReplacesItOnFailure() throws {

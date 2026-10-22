@@ -106,9 +106,18 @@ extension DocumentProtocol {
         viewController.refreshScene()
     }
 
+    func didParseSource() {
+        switch error {
+        case .lexerError, .parserError:
+            error = nil
+            viewController?.setError(nil, message: nil)
+        default:
+            break
+        }
+    }
+
     func didUpdateSource() {
-        // Keep evaluation errors and their original source excerpt visible until
-        // the new evaluation succeeds or supplies a replacement error.
+        // Keep errors visible until relevant stage succeeds or new error is thrown
         if error?.type == .fileAccess {
             error = nil
         }
@@ -140,7 +149,10 @@ extension DocumentProtocol {
                     viewController.clearLog()
                 }
                 updateViews()
-            case let .partial(scene, _):
+            case let .partial(scene, fraction):
+                if fraction >= .parsed {
+                    didParseSource()
+                }
                 self.scene = scene.with(zUp: zUp)
                 viewController?.renderProgress = loadingIndicatorProgress
             case let .success(scene):
