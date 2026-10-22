@@ -5,6 +5,8 @@ A path is a sequence of line segments or curves joined end-to-end. The points of
 
 Paths are not typically used directly as part of a scene (except possibly for something like a thin rope or antenna), but they can be used to define the contours or profile of a 3D shape (see [builders](builders.md) for details).
 
+Closed paths on the same plane can also be combined using `union`, `difference`, `intersection`, and `xor`. See [CSG path operations](csg.md#path-operations) for details.
+
 ## Points
 
 As with the [polygons](meshes.md#polygons-and-points) in a mesh, you define a path using a series of points. A path must have at least two points to be visible. The following path defines a short, horizontal line along the X axis.

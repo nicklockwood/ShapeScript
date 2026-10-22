@@ -551,6 +551,59 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertNotEqual(greenHull, blueHull)
     }
 
+    func testHullOfRawPathsInheritsMaterial() throws {
+        let scene = try evaluate(parse("""
+        define profile path {
+            point -0.5 -0.5
+            point 0.5 -0.5
+            point 0.5 0.5
+            point -0.5 0.5
+            point -0.5 -0.5
+        }
+        define body {
+            hull {
+                profile { position 0 0 -0.5 }
+                profile { position 0 0 0.5 }
+            }
+        }
+        body {
+            color blue
+            metallicity 0.7
+            roughness 0.2
+        }
+        """), delegate: nil, cache: nil)
+        XCTAssertTrue(scene.build { false })
+        let hull = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(hull.material.color, .blue)
+        XCTAssertEqual(hull.cachedMesh?.materials, [nil])
+        XCTAssertFalse(try XCTUnwrap(hull.cachedMesh).hasVertexColors)
+    }
+
+    func testHullOfPathsPreservesPointColors() throws {
+        let scene = try evaluate(parse("""
+        define profile path {
+            color red
+            point -0.5 -0.5
+            point 0.5 -0.5
+            color blue
+            point 0.5 0.5
+            point -0.5 0.5
+            color red
+            point -0.5 -0.5
+        }
+        hull {
+            profile { position 0 0 -0.5 }
+            profile { position 0 0 0.5 }
+        }
+        """), delegate: nil, cache: nil)
+        XCTAssertTrue(scene.build { false })
+        let mesh = try XCTUnwrap(scene.children.first?.cachedMesh)
+        let colors = Set(mesh.polygons.flatMap { $0.vertices.map(\.color) })
+        XCTAssertTrue(colors.contains(.red))
+        XCTAssertTrue(colors.contains(.blue))
+        XCTAssertFalse(colors.contains(.white))
+    }
+
     func testHullColorCaching() throws {
         let cache = makeCache()
         let scene = try evaluate(parse("""

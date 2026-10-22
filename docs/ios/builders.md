@@ -335,11 +335,11 @@ smoothing 0.25
 
 ![Hull shape](../images/smoothed-hull.png)
 
+When all inputs are paths or points in the same plane, `hull` returns a path enclosing their convex hull. Paths may be open or closed, and may be mixed with individual points. Use `fill` or `extrude` to turn the resulting outline into a surface or solid. Collinear inputs produce an open path between their extreme points. Inputs spanning different planes, or including meshes, continue to produce a mesh.
+
 ## Minkowski
 
-The `minkowski` command performs [Minkowski Addition](https://en.wikipedia.org/wiki/Minkowski_addition) on two or more shapes.
-
-For example, the Minkowski sum of a circle and square is a rounded rectangle:
+The `minkowski` command performs [Minkowski Addition](https://en.wikipedia.org/wiki/Minkowski_addition) on two or more shapes. The Minkowski sum of a circle and square is a rounded rectangle path:
 
 ```swift
 minkowski {
@@ -348,20 +348,31 @@ minkowski {
 }
 ```
 
-![Minkowski sum](../images/minkowski-roundrect.png)
+![Minkowski sum](../images/roundrect.png)
 
-A smaller circle produces a rounded frame, since the sum of the radii no longer match the width of the square:
+Like the `hull` command, `minkowski` works with meshes as well as paths. If either path is filled, the result is a filled mesh surface instead of a path:
 
 ```swift
 minkowski {
-    circle { size 0.25 }
+    fill circle
+    square
+}
+```
+
+![Minkowski sum](../images/minkowski-roundrect.png)
+
+A smaller circle produces an open frame, since the sum of the radii no longer match the width of the square:
+
+```swift
+minkowski {
+    fill circle { size 0.25 }
     square
 }
 ```
 
 ![Minkowski sum](../images/minkowski-roundrect-frame.png)
 
-Like the `hull` command, `minkowski` works with meshes as well as paths. We can replace the circle with a sphere to bring the rounded rect into the third dimension:
+We can replace the circle with a sphere to bring the rounded rectangle into the third dimension:
 
 ```swift
 minkowski {
@@ -372,7 +383,7 @@ minkowski {
 
 ![Minkowski sum](../images/minkowski-sphere-rect.png)
 
-And if we also replace the square with a cube, we now get a rounded cube:
+And if we also replace the square with a cube, we now get a rounded cube instead:
 
 ```swift
 minkowski {

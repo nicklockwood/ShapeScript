@@ -274,15 +274,36 @@ extension Symbols {
                 switch child {
                 case let .point(point):
                     return [Vertex(point)]
-                case let .path(path):
-                    return path.subpaths.flatMap(\.edgeVertices)
-                case .mesh:
+                case .path, .mesh:
                     return []
-                default:
+                case .color, .texture, .material, .boolean, .number, .radians,
+                     .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                     .polygon, .tuple, .range, .bounds, .object, .pretransformed:
                     throw RuntimeErrorType.unexpectedChild(ofType: "\(child.type)", in: "hull")
                 }
             }
-            return .mesh(Geometry(type: .hull(vertices), in: context))
+            let children = context.state.children.compactMap { child -> Geometry? in
+                switch child {
+                case let .mesh(geometry):
+                    geometry
+                case let .path(path):
+                    Geometry(
+                        type: .path(path),
+                        name: nil,
+                        transform: .identity,
+                        material: context.state.material,
+                        smoothing: context.state.smoothing,
+                        children: [],
+                        sourceLocation: context.sourceLocation,
+                        cache: context.geometryCache
+                    )
+                case .color, .texture, .material, .boolean, .number, .radians,
+                     .halfturns, .vector, .size, .rotation, .string, .font, .text,
+                     .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
+                    nil
+                }
+            }
+            return .mesh(Geometry(type: .hull(vertices), in: context, children: children))
         },
         "minkowski": .block(.minkowski) { context in
             .mesh(Geometry(type: .minkowski, in: context))
@@ -866,8 +887,10 @@ extension EvaluationContext {
     var paths: [Path] {
         state.children.flatMap { value -> [Path] in
             switch value {
-            case let .path(path): [path]
-            case let .mesh(geometry): geometry.paths(pretransformed: true)
+            case let .path(path):
+                [path]
+            case let .mesh(geometry):
+                geometry.paths(pretransformed: true)
             case .color, .texture, .material, .boolean, .number, .radians,
                  .halfturns, .vector, .size, .rotation, .string, .font, .text,
                  .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:

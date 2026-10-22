@@ -79,32 +79,36 @@ public final class Geometry: Hashable, @unchecked Sendable {
 
     /// The children currently rendered in place of, or in addition to, this geometry.
     func renderedChildren(focus: Bool) -> [Geometry] {
-        let rendered: [Geometry] = switch type {
-        case .group:
-            children
-        case .difference, .stencil:
-            if childDebug || childIsFocused {
+        let rendered: [Geometry] = if !isLeaf, isPath {
+            childDebug || childIsFocused ? children : []
+        } else {
+            switch type {
+            case .group:
                 children
-            } else {
-                mesh == nil ? Array(children.prefix(1)) : []
-            }
-        case .loft, .union, .xor, .extrude, .fill, .hull, .mesh:
-            mesh == nil || childDebug || childIsFocused ? children : []
-        case .minkowski:
-            if childDebug || childIsFocused {
-                children
-            } else if mesh == nil {
-                children.filter { !$0.isHidden }.max {
-                    $0.overestimatedBounds.size < $1.overestimatedBounds.size
-                }.map { [$0] } ?? []
-            } else {
+            case .difference, .stencil:
+                if childDebug || childIsFocused {
+                    children
+                } else {
+                    mesh == nil ? Array(children.prefix(1)) : []
+                }
+            case .loft, .union, .xor, .extrude, .fill, .hull, .mesh:
+                mesh == nil || childDebug || childIsFocused ? children : []
+            case .minkowski:
+                if childDebug || childIsFocused {
+                    children
+                } else if mesh == nil {
+                    children.filter { !$0.isHidden }.max {
+                        $0.overestimatedBounds.size < $1.overestimatedBounds.size
+                    }.map { [$0] } ?? []
+                } else {
+                    []
+                }
+            case .intersection, .lathe:
+                childDebug || childIsFocused ? children : []
+            case .cone, .cylinder, .icosphere, .sphere, .cube,
+                 .circle, .square, .text, .path, .camera, .light:
                 []
             }
-        case .intersection, .lathe:
-            childDebug || childIsFocused ? children : []
-        case .cone, .cylinder, .icosphere, .sphere, .cube,
-             .circle, .square, .text, .path, .camera, .light:
-            []
         }
         guard focus, !isFocused else {
             return rendered.filter { !$0.isHidden }
@@ -120,7 +124,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .difference, .stencil, .intersection, .lathe, .minkowski:
             childDebug || childIsFocused
         case .loft, .union, .xor, .extrude, .fill, .hull:
-            mesh != nil && (childDebug || childIsFocused)
+            (mesh != nil || isPath) && (childDebug || childIsFocused)
         case .group,
              .cone, .cylinder, .icosphere, .sphere, .cube,
              .circle, .square, .text, .path, .mesh, .camera, .light:
@@ -149,6 +153,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
     /// Prevent geometry from being rendered
     public internal(set) var isHidden: Bool {
         didSet {
+            invalidatePath()
             if isHidden, type == .group {
                 children.forEach { $0.isHidden = true }
             }
@@ -166,23 +171,39 @@ public final class Geometry: Hashable, @unchecked Sendable {
         }
     }
 
-    private let lock: NSLock = .init()
+    private let meshLock: NSLock = .init()
     private var _mesh: Mesh?
 
     /// Returns the pre-built mesh
     /// If the mesh has not yet been built, this will return nil
     private(set) var mesh: Mesh? {
         get {
-            lock.lock()
-            defer { lock.unlock() }
+            meshLock.lock()
+            defer { meshLock.unlock() }
             return _mesh
         }
         set {
-            lock.lock()
-            defer { lock.unlock() }
+            meshLock.lock()
+            defer { meshLock.unlock() }
             _mesh = newValue
             _associatedData = nil
         }
+    }
+
+    private let pathLock = NSLock()
+    private var _path: Path??
+
+    /// The resolved path, if path classification or evaluation has already run.
+    var cachedPath: Path?? {
+        pathLock.lock()
+        defer { pathLock.unlock() }
+        return _path
+    }
+
+    /// The path represented by this geometry, if any, in local coordinates.
+    /// Semantic path primitives include the geometry's material color.
+    public var path: Path? {
+        path(pretransformed: false)
     }
 
     private var _associatedData: Any?
@@ -190,8 +211,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
     /// External data, e.g. SCNGeometry
     var associatedData: Any? {
         get {
-            lock.lock()
-            defer { lock.unlock() }
+            meshLock.lock()
+            defer { meshLock.unlock() }
             if let data = _associatedData {
                 return data
             }
@@ -200,8 +221,8 @@ public final class Geometry: Hashable, @unchecked Sendable {
         }
         set {
             cache?[associatedData: self] = newValue
-            lock.lock()
-            defer { lock.unlock() }
+            meshLock.lock()
+            defer { meshLock.unlock() }
             _associatedData = newValue
         }
     }
@@ -501,11 +522,11 @@ public final class Geometry: Hashable, @unchecked Sendable {
         case .union, .xor, .group:
             self._overestimatedBounds = Bounds(visibleChildren.map(\.overestimatedBounds))
         case let .extrude([], options):
-            let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
+            let paths = visibleChildren.flatMap(\.boundingPaths)
             self._overestimatedBounds = GeometryType.extrude(paths, options).bounds
                 .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
         case let .lathe([], options):
-            let paths = visibleChildren.flatMap { $0.paths(pretransformed: true) }
+            let paths = visibleChildren.flatMap(\.boundingPaths)
             self._overestimatedBounds = GeometryType.lathe(paths, options).bounds
                 .union(Bounds(visibleChildren.filter(\.hasMesh).map(\.overestimatedBounds)))
         case .lathe, .fill, .extrude, .loft, .mesh, .hull:
@@ -558,22 +579,65 @@ public extension Geometry {
         return light
     }
 
-    /// The path represented by this geometry, if any, in local coordinates.
-    /// Semantic path primitives include the geometry's material color.
-    var path: Path? {
-        path(pretransformed: false)
+    /// Returns if the geometry is a mesh type
+    /// - Note: this will return `true` even if mesh is empty has not been built yet
+    var hasMesh: Bool {
+        switch type {
+        case .camera, .light, .circle, .square, .text, .path:
+            false
+        case .cone, .cylinder, .icosphere, .sphere, .cube,
+             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
+             .union, .difference, .intersection, .xor, .stencil,
+             .group, .mesh:
+            !isPath // TODO: should group return false if it has no child meshes?
+        }
     }
 
-    /// Returns if geometry consists entirely of paths (without constructing those paths)
+    internal var estimatedPathPointCount: Int {
+        (type.path?.points.count ?? 0) + visibleChildren.reduce(0) { $0 + $1.estimatedPathPointCount }
+    }
+
+    /// A cheap sufficient check for closed planar operands, without performing
+    /// boolean operations. Other planes and open-path hulls use the general path check.
+    internal var hasClosedXYPaths: Bool {
+        let bounds = overestimatedBounds
+        guard bounds.isEmpty || (bounds.min.z == 0 && bounds.max.z == 0) else { return false }
+        switch type {
+        case .group, .union, .difference, .intersection, .xor, .minkowski, .hull([]):
+            return visibleChildren.allSatisfy(\.hasClosedXYPaths)
+        case .circle, .square, .text, .path:
+            guard let path = type.path else { return false }
+            return path.isEmpty || (path.isClosed && path.plane != nil)
+        default:
+            return false
+        }
+    }
+
+    /// A conservative profile for bounds calculations that must not evaluate CSG.
+    private var boundingPaths: [Path] {
+        guard type.path == nil, hasClosedXYPaths else { return paths(pretransformed: true) }
+        let bounds = overestimatedBounds
+        guard !bounds.isEmpty else { return [] }
+        return [Path([
+            .point(bounds.min),
+            .point(Vector(bounds.max.x, bounds.min.y)),
+            .point(bounds.max),
+            .point(Vector(bounds.min.x, bounds.max.y)),
+            .point(bounds.min),
+        ])]
+    }
+
+    /// Returns whether geometry consists entirely of paths.
     var isPath: Bool {
         switch type {
         case .circle, .square, .text, .path:
             true
         case .group:
             visibleChildren.allSatisfy(\.isPath)
+        case .union, .difference, .intersection, .xor, .hull, .minkowski:
+            cachedPath.map { $0 != nil } ?? (hasClosedXYPaths || path != nil)
         case .cone, .cylinder, .icosphere, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
+             .extrude, .lathe, .loft, .fill, .stencil,
              .mesh, .camera, .light:
             false
         }
@@ -581,7 +645,8 @@ public extension Geometry {
 
     /// Returns the path represented by this geometry, optionally with the geometry transform baked in.
     /// Semantic path primitives include the geometry's material color either way.
-    func path(pretransformed: Bool) -> Path? {
+    func path(pretransformed: Bool, isCancelled: CancellationHandler = { false }) -> Path? {
+        guard !isCancelled() else { return nil }
         switch type {
         case let .circle(segments):
             let path = Path.circle(segments: segments, color: material.color)
@@ -600,9 +665,22 @@ public extension Geometry {
             guard children.allSatisfy(\.isPath) else { return nil }
             let path = Path(subpaths: children.flatMap { $0.paths(pretransformed: true) })
             return pretransformed ? path.transformed(by: transform) : path
+        case .union, .difference, .intersection, .xor, .hull, .minkowski:
+            pathLock.lock()
+            defer { pathLock.unlock() }
+            let path: Path?
+            if let _path {
+                path = _path
+            } else {
+                path = pathOperands(isCancelled: isCancelled).flatMap {
+                    pathOperation($0, isCancelled: isCancelled)
+                }
+                guard !isCancelled() else { return nil }
+                _path = .some(path)
+            }
+            return pretransformed ? path?.transformed(by: transform) : path
         case .cone, .cylinder, .icosphere, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
+             .extrude, .lathe, .loft, .fill, .stencil,
              .mesh, .camera, .light:
             return nil
         }
@@ -728,6 +806,14 @@ public extension Geometry {
                 max(0, 1 - distance / apothems.y / abs(transform.scale.y)),
                 max(0, 1 - distance / apothems.z / abs(transform.scale.z)),
             ]
+        }
+
+        // Path operations must inset the resulting region, in the same coordinates as a raw path.
+        if !isLeaf, type != .group, let path = path(pretransformed: true, isCancelled: isCancelled) {
+            return copy(
+                type: .path(path.inset(by: distance, isCancelled: isCancelled)),
+                transform: .identity
+            )
         }
 
         if !children.isEmpty, children.allSatisfy(\.isPath) {
@@ -1112,6 +1198,41 @@ private extension Collection<Geometry> {
 }
 
 private extension Path {
+    /// Unlike filled-region operations, a hull can use open paths and individual points.
+    static func convexHull(
+        of vertices: [Vertex],
+        normal: Vector?,
+        isCancelled: CancellationHandler
+    ) -> Path? {
+        guard !isCancelled() else { return nil }
+        guard let first = vertices.first,
+              let start = vertices.max(by: {
+                  ($0.position - first.position).lengthSquared < ($1.position - first.position).lengthSquared
+              }),
+              let end = vertices.max(by: {
+                  ($0.position - start.position).lengthSquared < ($1.position - start.position).lengthSquared
+              })
+        else { return .empty }
+        let axis = end.position - start.position
+        let third = vertices.max {
+            axis.cross($0.position - start.position).lengthSquared <
+                axis.cross($1.position - start.position).lengthSquared
+        }
+        guard let third, let plane = Plane(
+            normal: axis.cross(third.position - start.position), pointOnPlane: start.position
+        ) else {
+            // Collinear points have an open hull between their extreme positions.
+            return Path([start, end].map { .point($0.position, color: $0.color) })
+        }
+        // Reject 3D inputs before doing any hull construction; the mesh builder handles them.
+        guard vertices.allSatisfy({ !isCancelled() && plane.intersects($0.position) }) else { return nil }
+        let mesh = Mesh.convexHull(of: vertices, isCancelled: isCancelled)
+        guard !isCancelled() else { return nil }
+        return Path.union(mesh.polygons.filter {
+            $0.plane.normal.dot(normal ?? plane.normal) > 0
+        }.map(Path.init), isCancelled: isCancelled)
+    }
+
     func trimmingEnds(by distance: Double) -> Path? {
         guard subpaths.count == 1, !isClosed else {
             return self
@@ -1200,6 +1321,73 @@ private extension Path {
 }
 
 private extension Geometry {
+    func invalidatePath() {
+        pathLock.lock()
+        _path = nil
+        pathLock.unlock()
+        parent?.invalidatePath()
+    }
+
+    /// Groups form a single filled operand, rather than one operand per child contour.
+    func pathOperand(isCancelled: CancellationHandler) -> Path? {
+        if case .text = type {
+            // Each glyph is a filled region, even when letterspacing makes glyphs overlap.
+            return .union(paths(pretransformed: false), isCancelled: isCancelled)?
+                .transformed(by: transform)
+        }
+        if type == .group {
+            var paths = [Path]()
+            for child in visibleChildren {
+                guard !isCancelled(),
+                      let path = child.pathOperand(isCancelled: isCancelled)
+                else { return nil }
+                paths.append(path)
+            }
+            return .union(paths, isCancelled: isCancelled)?.transformed(by: transform)
+        }
+        return path(pretransformed: true, isCancelled: isCancelled)
+    }
+
+    func pathOperands(isCancelled: CancellationHandler) -> [Path]? {
+        var paths = [Path]()
+        for child in visibleChildren {
+            guard !isCancelled() else { return nil }
+            let path: Path? = if case .hull = type {
+                child.path(pretransformed: true, isCancelled: isCancelled)
+            } else {
+                child.pathOperand(isCancelled: isCancelled)
+            }
+            guard let path else { return nil }
+            paths.append(path)
+        }
+        return paths
+    }
+
+    func pathOperation(_ paths: [Path], isCancelled: CancellationHandler) -> Path? {
+        switch type {
+        case .union:
+            .union(paths, isCancelled: isCancelled)
+        case .difference:
+            .difference(paths, isCancelled: isCancelled)
+        case .intersection:
+            .intersection(paths, isCancelled: isCancelled)
+        case .xor:
+            .symmetricDifference(paths, isCancelled: isCancelled)
+        case let .hull(vertices):
+            .convexHull(
+                of: vertices + paths.flatMap { $0.points.map(Vertex.init) },
+                normal: paths.first(where: { !$0.isEmpty })?.plane?.normal,
+                isCancelled: isCancelled
+            )
+        case .minkowski:
+            .minkowskiSum(of: paths, isCancelled: isCancelled)
+        case .group, .cone, .cylinder, .icosphere, .sphere, .cube,
+             .circle, .square, .text, .extrude, .lathe, .loft, .fill,
+             .path, .mesh, .camera, .light, .stencil:
+            nil
+        }
+    }
+
     static let maximumEstimatedPolygonCount = 100_000
     static let maximumCSGProgressUnitCount = 10_000_000
     // Union estimates are especially noisy because Euclid groups disjoint meshes before clipping.
@@ -1246,6 +1434,10 @@ private extension Geometry {
             max(1, paths.reduce(0) { $0 + $1.points.count })
         }
 
+        func profilePointCount(_ paths: [Path]) -> Int {
+            pathPointCount(paths) + visibleChildren.reduce(0) { $0 + $1.estimatedPathPointCount }
+        }
+
         switch type {
         case .group, .circle, .square, .text, .path, .camera, .light, .cube:
             return 1
@@ -1254,19 +1446,13 @@ private extension Geometry {
         case let .icosphere(subdivisions):
             return bounded(20 << min(max(0, subdivisions), 8))
         case let .extrude(paths, options):
-            let profileCount = pathPointCount(paths + visibleChildren.flatMap {
-                $0.paths(pretransformed: true)
-            })
+            let profileCount = profilePointCount(paths)
             let alongCount = pathPointCount(options.along)
             return bounded(profileCount * max(1, alongCount))
         case let .lathe(paths, options):
-            return bounded(pathPointCount(paths + visibleChildren.flatMap {
-                $0.paths(pretransformed: true)
-            }) * max(1, options.segments))
+            return bounded(profilePointCount(paths) * max(1, options.segments))
         case let .loft(paths), let .fill(paths):
-            return bounded(pathPointCount(paths + visibleChildren.flatMap {
-                $0.paths(pretransformed: true)
-            }))
+            return bounded(profilePointCount(paths))
         case let .hull(vertices):
             return bounded(vertices.count)
         case let .mesh(mesh):
@@ -1545,7 +1731,6 @@ private extension Geometry {
                 return nil
             }
             let vertices = path
-                .withColor(child.material.color)
                 .subpaths
                 .flatMap(\.edgeVertices)
             return .convexHull(
@@ -1721,6 +1906,14 @@ private extension Geometry {
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
     func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
+        if !isLeaf {
+            let path = path(pretransformed: false, isCancelled: isCancelled)
+            guard !isCancelled() else { return false }
+            if path != nil {
+                mesh = .empty
+                return true
+            }
+        }
         if !hasMesh || type == .group {
             mesh = .empty
             return !isCancelled()
@@ -2204,20 +2397,6 @@ extension Mesh {
 // MARK: Stats
 
 public extension Geometry {
-    /// Returns if the geometry is a mesh type
-    /// - Note: this will return `true` even if mesh is empty has not been built yet
-    var hasMesh: Bool {
-        switch type {
-        case .camera, .light, .circle, .square, .text, .path:
-            false
-        case .cone, .cylinder, .icosphere, .sphere, .cube,
-             .extrude, .lathe, .loft, .fill, .hull, .minkowski,
-             .union, .difference, .intersection, .xor, .stencil,
-             .group, .mesh:
-            true // TODO: should group return false if it has no child meshes?
-        }
-    }
-
     /// Returns `true` if this geometry and all descendants have any required meshes built.
     /// This can be used to inspect geometry without triggering additional mesh generation.
     var hasBuiltMeshes: Bool {
@@ -2309,6 +2488,9 @@ public extension Geometry {
         with transform: Transform,
         _ isCancelled: @escaping CancellationHandler = { false }
     ) -> Bounds {
+        if let path = path(pretransformed: false, isCancelled: isCancelled) {
+            return path.transformed(by: transform).bounds
+        }
         switch type {
         case .camera, .light:
             return .empty

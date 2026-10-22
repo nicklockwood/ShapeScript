@@ -69,6 +69,327 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(Value.text(TextValue(string: "Hello", letterspacing: .nan)).isFinite)
     }
 
+    func testPathCSGContainersPreserveChildrenAndProduceProfiles() throws {
+        for (operation, area) in [
+            ("union", 6.0), ("difference", 2.0), ("intersection", 2.0),
+            ("xor", 4.0), ("hull", 6.0), ("minkowski", 16.0),
+        ] {
+            let source = """
+            \(operation) {
+                square { size 2 }
+                square {
+                    size 2
+                    position 1 0
+                }
+            }
+            """
+            let scene = try evaluate(parse(source), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            XCTAssertEqual(geometry.children.map(\.type), [.square, .square])
+            let path = try XCTUnwrap(geometry.path, operation)
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, operation)
+            XCTAssertFalse(geometry.hasMesh, operation)
+            XCTAssertTrue(geometry.renderedChildren.isEmpty, operation)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertTrue(try XCTUnwrap(geometry.mesh).isEmpty, operation)
+            XCTAssertTrue(geometry.renderedChildren.isEmpty, operation)
+            XCTAssertEqual(geometry.exactBounds(with: .identity), path.bounds)
+
+            for builder in ["fill", "extrude"] {
+                let built = try evaluate(parse("\(builder) { \(source) }"), delegate: nil)
+                let parent = try XCTUnwrap(built.children.first)
+                XCTAssertEqual(parent.children.first?.type, geometry.type)
+                XCTAssertTrue(built.build { false })
+                let mesh = built.geometry.merged()
+                if builder == "fill" {
+                    XCTAssertEqual(mesh.surfaceArea, area * 2, accuracy: 1e-8, operation)
+                } else {
+                    XCTAssertEqual(mesh.signedVolume, area, accuracy: 1e-8, operation)
+                    XCTAssertTrue(mesh.isWatertight)
+                }
+            }
+        }
+    }
+
+    func testInsetPathOperationsMatchesInsetOfResult() throws {
+        for operation in ["union", "difference", "intersection", "xor", "hull", "minkowski"] {
+            let profile = """
+            \(operation) {
+                position 3 4
+                size 2 3
+                square { size 4 }
+                square { size 2 }
+            }
+            """
+            let scene = try evaluate(parse(profile), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            let path = try XCTUnwrap(geometry.path(pretransformed: true))
+            let expected = path.inset(by: 0.1)
+            let inset = try evaluate(parse("inset (\(profile)) 0.1"), delegate: nil)
+            let result = try XCTUnwrap(inset.children.first?.path(pretransformed: true), operation)
+            XCTAssertEqual(result.bounds, expected.bounds, operation)
+            XCTAssertEqual(
+                Mesh.fill(result, faces: .front).surfaceArea,
+                Mesh.fill(expected, faces: .front).surfaceArea,
+                accuracy: 1e-8, operation
+            )
+        }
+    }
+
+    func testNestedPathOperationCacheInvalidationAndCancellation() throws {
+        let scene = try evaluate(parse("""
+        union {
+            difference {
+                square { size 4 }
+                square { size 2 }
+            }
+            square { position 6 0 }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first).transformed(by: .identity)
+        final class CancellationState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var checks = 0
+
+            func isCancelled() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                checks += 1
+                return checks > 3
+            }
+        }
+        let cancellation = CancellationState()
+        XCTAssertNil(geometry.path(pretransformed: false, isCancelled: {
+            cancellation.isCancelled()
+        }))
+        func area() throws -> Double {
+            try Mesh.fill(XCTUnwrap(geometry.path), faces: .front).surfaceArea
+        }
+        XCTAssertEqual(try area(), 13, accuracy: 1e-8)
+        geometry.children[0].children[1].isHidden = true
+        XCTAssertEqual(try area(), 17, accuracy: 1e-8)
+        geometry.children[0].children[1].isHidden = false
+        XCTAssertEqual(try area(), 13, accuracy: 1e-8)
+    }
+
+    func testPathGroupsKeepChildrenIndividuallySelectable() throws {
+        let scene = try evaluate(parse("""
+        group {
+            circle { name "circle" }
+            difference {
+                name "frame"
+                square { size 4 }
+                square { size 2 }
+            }
+        }
+        """), delegate: nil)
+        let group = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(scene.geometry.renderedChildren, [group])
+        XCTAssertEqual(group.renderedChildren, group.children)
+        XCTAssertTrue(group.children.allSatisfy { $0.isRenderedInScene(focus: false) })
+        XCTAssertTrue(group.children[1].renderedChildren.isEmpty)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(group.renderedChildren, group.children)
+    }
+
+    #if canImport(CoreText)
+    func testPathOperationsUnionOverlappingTextGlyphs() throws {
+        let scene = try evaluate(parse("""
+        union {
+            text {
+                font "Helvetica"
+                letterspacing -0.3
+                "HH"
+            }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let text = try XCTUnwrap(geometry.children.first)
+        let glyphs = text.paths(pretransformed: true)
+        XCTAssertEqual(glyphs.count, 2)
+        let expected = try XCTUnwrap(Path.union(glyphs))
+        let actual = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(
+            Mesh.fill(actual, faces: .front).surfaceArea,
+            Mesh.fill(expected, faces: .front).surfaceArea,
+            accuracy: 1e-8
+        )
+    }
+    #endif
+
+    func testPathCSGGroupsAreSingleFilledOperands() throws {
+        for (operation, area) in [("difference", 4.0), ("intersection", 2.0)] {
+            let scene = try evaluate(parse("""
+            extrude {
+                \(operation) {
+                    group {
+                        square { size 2 }
+                        square {
+                            size 2
+                            position 1 0
+                        }
+                    }
+                    square {
+                        size 1 2
+                        position 1.5 0
+                    }
+                }
+            }
+            """), delegate: nil)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertEqual(scene.geometry.merged().signedVolume, area, accuracy: 1e-8, operation)
+        }
+    }
+
+    func testPathMinkowskiUsesFilledRegions() throws {
+        let scene = try evaluate(parse("""
+        extrude {
+            minkowski {
+                square { size 4 }
+                square
+            }
+        }
+        """), delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 25, accuracy: 1e-8)
+    }
+
+    func testPathCSGCacheTracksHiddenChildren() throws {
+        let scene = try evaluate(parse("difference { square { size 4 }\nsquare { size 2 } }"), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let cutter = geometry.children[1]
+        func area() throws -> Double {
+            try Mesh.fill(XCTUnwrap(geometry.path), faces: .front).surfaceArea
+        }
+        XCTAssertEqual(try area(), 12, accuracy: 1e-8)
+        cutter.isHidden = true
+        XCTAssertEqual(try area(), 16, accuracy: 1e-8)
+        cutter.isHidden = false
+        XCTAssertEqual(try area(), 12, accuracy: 1e-8)
+        geometry.children[0].isHidden = true
+        XCTAssertEqual(try area(), 0, accuracy: 1e-8)
+    }
+
+    func testCoplanarHullSupportsOpenPathsAndPoints() throws {
+        let sources = [
+            ("path { point 0 0; point 2 0; point 2 1 }\npoint 0 1", 2.0),
+            ("group { path { point 0 0; point 2 0 }; path { point 2 1; point 0 1 } }", 2.0),
+            ("point 1 0.5; point 0 0; point 2 1; point 2 0; point 0 1", 2.0),
+            ("square\npoint 1.5 0", 1.5),
+        ]
+        for (body, area) in sources {
+            let source = "hull {\n\(body.replacingOccurrences(of: ";", with: "\n"))\n}"
+            let scene = try evaluate(parse(source), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            let path = try XCTUnwrap(geometry.path, body)
+            XCTAssertTrue(path.isClosed, body)
+            XCTAssertFalse(geometry.hasMesh, body)
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, body)
+            let extrusion = try evaluate(parse("extrude " + source), delegate: nil)
+            XCTAssertTrue(extrusion.build { false })
+            XCTAssertEqual(extrusion.geometry.merged().signedVolume, area, accuracy: 1e-8, body)
+        }
+        let tilted = try evaluate(parse("""
+        hull {
+            path { point 0 0 0; point 2 0 2 }
+            point 2 1 2
+            point 0 1 0
+        }
+        """.replacingOccurrences(of: ";", with: "\n")), delegate: nil)
+        let path = try XCTUnwrap(tilted.children.first?.path)
+        XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, sqrt(8), accuracy: 1e-8)
+    }
+
+    func testHullOfCollinearPointsProducesOpenPath() throws {
+        let scene = try evaluate(parse("""
+        hull {
+            point 1 2 3
+            point 2 4 6
+            point 0 0 0
+        }
+        """), delegate: nil)
+        let path = try XCTUnwrap(scene.children.first?.path)
+        XCTAssertFalse(path.isClosed)
+        XCTAssertEqual(path.bounds, Bounds(min: .zero, max: [2, 4, 6]))
+        XCTAssertEqual(path.length, sqrt(56), accuracy: 1e-8)
+    }
+
+    func testNonCoplanarPointHullStillProducesMesh() throws {
+        let scene = try evaluate(parse("""
+        hull {
+            point 0 0 0
+            point 1 0 0
+            point 0 1 0
+            point 0 0 1
+        }
+        """), delegate: nil)
+        XCTAssertNil(scene.children.first?.path)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 1.0 / 6, accuracy: 1e-8)
+    }
+
+    func testRawPathHullRetainsItsProfileChild() throws {
+        let scene = try evaluate(parse("hull { path { square } }"), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(geometry.type, .hull([]))
+        XCTAssertEqual(geometry.children.count, 1)
+        XCTAssertNotNil(geometry.children.first?.path)
+        XCTAssertNotNil(geometry.path)
+        XCTAssertEqual(geometry.path?.faceNormal, geometry.children.first?.path?.faceNormal)
+    }
+
+    func testDefinedPathCSGProfilesRetainTheirOperations() throws {
+        let scene = try evaluate(parse("""
+        define profile {
+            difference {
+                square { size 4 }
+                square { size 2 }
+            }
+        }
+        extrude profile { position 2 3 }
+        """), delegate: nil)
+        let extrusion = try XCTUnwrap(scene.children.first)
+        XCTAssertEqual(extrusion.children.first?.type, .difference)
+        XCTAssertTrue(scene.build { false })
+        let mesh = scene.geometry.merged()
+        XCTAssertEqual(mesh.signedVolume, 12, accuracy: 1e-8)
+        XCTAssertEqual(mesh.bounds.center, [2, 3, 0])
+    }
+
+    func testNonCoplanarAndMixedHullsStillProduceMeshes() throws {
+        for source in [
+            "hull { square\nsquare { position 0 0 1 } }",
+            "hull { square\ncube }",
+        ] {
+            let scene = try evaluate(parse(source), delegate: nil)
+            let geometry = try XCTUnwrap(scene.children.first)
+            XCTAssertNil(geometry.path)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertFalse(try XCTUnwrap(geometry.mesh).isEmpty)
+            XCTAssertTrue(geometry.hasMesh)
+        }
+    }
+
+    func testPathCSGTransformsColoursAndEmptyResults() throws {
+        let scene = try evaluate(parse("""
+        color red
+        difference {
+            position 3 4 5
+            orientation 0.2 0.3 0.1
+            square { size 4 }
+            square { size 2 }
+        }
+        """), delegate: nil)
+        let geometry = try XCTUnwrap(scene.children.first)
+        let local = try XCTUnwrap(geometry.path)
+        XCTAssertEqual(local.subpaths.count, 2)
+        XCTAssertTrue(local.points.allSatisfy { $0.color == .red })
+        XCTAssertEqual(geometry.path(pretransformed: true), local.transformed(by: geometry.transform))
+        XCTAssertNil(geometry.path(pretransformed: true, isCancelled: { true }))
+        let empty = try evaluate(parse("intersection { square\nsquare { position 3 0 } }"), delegate: nil)
+        XCTAssertTrue(try XCTUnwrap(empty.children.first?.path).isEmpty)
+    }
+
     func testSceneGeometryHasStableIdentityAndParents() throws {
         let scene = try evaluate(parse("group { cube\nsphere }"), delegate: nil)
         let root = scene.geometry

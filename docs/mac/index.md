@@ -84,6 +84,7 @@
         - [Union](csg.md#union)
         - [XOR](csg.md#xor)
         - [Stencil](csg.md#stencil)
+        - [Path Operations](csg.md#path-operations)
     - [Groups](groups.md)
     - [Lights](lights.md)
         - [Ambient](lights.md#ambient)

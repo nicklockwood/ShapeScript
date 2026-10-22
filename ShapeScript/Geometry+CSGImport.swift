@@ -51,11 +51,7 @@ public extension Geometry {
 }
 
 extension Geometry {
-    convenience init(
-        csgString: String,
-        at fileURL: URL?,
-        context: EvaluationContext
-    ) throws {
+    convenience init(csgString: String, at fileURL: URL?, context: EvaluationContext) throws {
         let isCancelled = context.isCancelled
         if isCancelled() {
             throw CancellationError()
@@ -70,9 +66,19 @@ extension Geometry {
         }
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
-        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }), !shapes
+        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }), !shapes
             .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
         {
+            let container = importer.geometry(.union, material: .default, children: shapes.map(\.geometry))
+            if container.isPath {
+                self.init(
+                    type: .union, name: nil, transform: .identity, material: .default,
+                    smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
+                    cache: context.geometryCache
+                )
+                return
+            }
+            // Keep unsupported non-coplanar profiles viewable after warning about the operation.
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
@@ -487,31 +493,37 @@ private struct CSGParser {
 
 private struct CSGShape {
     let geometry: Geometry
-    let paths: [Path]?
+    let is2D: Bool
 
-    var isEmpty: Bool { geometry.type == .group && geometry.children.isEmpty }
-}
+    private let _paths: [Path]?
+    var paths: [Path]? {
+        _paths ?? (is2D ? geometry.paths(pretransformed: true) : nil)
+    }
 
-private enum CSGPathOperation: String {
-    case union, difference, intersection, hull, minkowski
+    var isEmpty: Bool {
+        geometry.type == .group && geometry.children.isEmpty
+    }
 
-    func apply(_ paths: [Path], isCancelled: CancellationHandler) -> Path? {
-        switch self {
-        case .union: Path.union(paths, isCancelled: isCancelled)
-        case .difference: Path.difference(paths, isCancelled: isCancelled)
-        case .intersection: Path.intersection(paths, isCancelled: isCancelled)
-        case .hull: Path.convexHull(of: paths, isCancelled: isCancelled)
-        case .minkowski: Path.minkowskiSum(of: paths, isCancelled: isCancelled)
-        }
+    init(geometry: Geometry, paths: [Path]?) {
+        self.geometry = geometry
+        self._paths = paths
+        self.is2D = paths != nil
+    }
+
+    init(deferredPaths geometry: Geometry) {
+        self.geometry = geometry
+        self._paths = nil
+        self.is2D = true
     }
 }
 
 private struct CSGImporter {
     let context: EvaluationContext
     let source: String
-    var isCancelled: CancellationHandler { context.isCancelled }
     let fileURL: URL?
     private var location: SourceLocation?
+
+    var isCancelled: CancellationHandler { context.isCancelled }
 
     init(context: EvaluationContext, source: String, fileURL: URL?) {
         self.context = context
@@ -528,7 +540,11 @@ private struct CSGImporter {
         context.warn(message, at: SourceLocation(at: node.line, in: fileURL))
     }
 
-    private func validate(_ node: CSGNode, _ names: [String], positional: [String] = []) throws -> [String: CSGValue] {
+    private func validate(
+        _ node: CSGNode,
+        _ names: [String],
+        positional: [String] = []
+    ) throws -> [String: CSGValue] {
         try node.validate(names, positional: positional)
     }
 
@@ -538,7 +554,7 @@ private struct CSGImporter {
         }
     }
 
-    private func geometry(
+    func geometry(
         _ type: GeometryType,
         material: Material,
         children: [Geometry] = [],
@@ -582,45 +598,47 @@ private struct CSGImporter {
     }
 
     private func paths(_ children: [CSGShape], node: CSGNode) throws -> [Path] {
-        if children.contains(where: { $0.paths == nil && !$0.isEmpty }) {
+        if children.contains(where: { !$0.is2D && !$0.isEmpty }) {
             warn("'\(node.name)' requires 2D children", at: node)
         }
         return children.filter { !$0.geometry.isHidden }.flatMap { $0.paths ?? [] }
     }
 
     private func pathOperation(
-        _ operation: CSGPathOperation,
+        _ type: GeometryType,
         children: [CSGShape],
         material: Material
     ) throws -> CSGShape? {
-        if operation == .difference, children.first?.geometry.isHidden == true {
-            return result([], material: material)
+        let geometry = geometry(type, material: material, children: children.map(\.geometry))
+        if geometry.hasClosedXYPaths {
+            return .init(deferredPaths: geometry)
         }
-        var operands = [Path]()
-        for child in children where !child.geometry.isHidden {
-            let profiles = child.paths ?? []
-            // A group is one operand, not a separate operand for each of its profiles.
-            let operand = profiles.count == 1 ? profiles.first : Path.union(profiles, isCancelled: isCancelled)
-            try checkCancellation()
-            guard let operand else { return nil }
-            operands.append(operand)
-        }
-        let path = operation.apply(operands, isCancelled: isCancelled)
+        let path = geometry.path(pretransformed: false, isCancelled: isCancelled)
         try checkCancellation()
         guard let path else { return nil }
-        let shape = result(path.isEmpty ? [] : [path], material: material)
+        return .init(geometry: geometry, paths: path.isEmpty ? [] : [path])
+    }
 
-        func modifierGeometry(_ geometry: Geometry) -> [Geometry] {
-            if geometry.debug || geometry.isFocused || geometry.isHidden {
-                return [geometry]
-            }
-            return geometry.children.flatMap(modifierGeometry)
+    // Projection commutes with planar booleans. Bake it into their primitive
+    // operands so extrusion can retain the operation tree without evaluating it.
+    private func projectedProfile(_ source: Geometry, transform: Transform = .identity) -> Geometry {
+        let transform = source.transform * transform
+        let type: GeometryType
+        let children: [Geometry]
+        if let path = source.type.path {
+            let path = path.transformed(by: transform)
+            type = .path(path.faceNormal.z < 0 ? path.inverted() : path)
+            children = []
+        } else {
+            type = source.type
+            children = source.children.map { projectedProfile($0, transform: transform) }
         }
-        let modifiers = children.flatMap { modifierGeometry($0.geometry) }
-        guard !modifiers.isEmpty else { return shape }
-        return .init(
-            geometry: geometry(.group, material: material, children: shape.geometry.children + modifiers),
-            paths: shape.paths
+        return Geometry(
+            type: type, name: source.name, transform: .identity,
+            material: source.material, smoothing: source.smoothing, children: children,
+            sourceLocation: source.sourceLocation.map { location in { @Sendable in location } },
+            debug: source.debug, isFocused: source.isFocused, isHidden: source.isHidden,
+            cache: context.geometryCache
         )
     }
 
@@ -664,41 +682,33 @@ private struct CSGImporter {
         case "group", "union", "difference", "intersection", "hull", "minkowski", "render":
             _ = try validate(node, ["render", "minkowski"].contains(node.name) ? ["convexity"] : [])
             let children = try children(node, material: material)
-            if children.contains(where: { $0.paths != nil }), children.allSatisfy({ $0.paths != nil || $0.isEmpty }) {
-                if let operation = CSGPathOperation(rawValue: node.name) {
-                    if let shape = try pathOperation(operation, children: children, material: material) {
+            let type: GeometryType
+            switch node.name {
+            case "group", "render": type = .group
+            case "union": type = .union
+            case "difference": type = .difference
+            case "intersection": type = .intersection
+            case "hull": type = .hull([])
+            case "minkowski": type = .minkowski
+            default: throw node.error("Invalid CSG operation '\(node.name)'")
+            }
+            if children.contains(where: \.is2D), children.allSatisfy({ $0.is2D || $0.isEmpty }) {
+                if type != .group {
+                    if let shape = try pathOperation(type, children: children, material: material) {
                         return shape
                     }
                     warn("Non-coplanar 2D '\(node.name)' is unsupported", at: node)
                 }
-                return try .init(
-                    geometry: geometry(.group, material: material, children: children.map(\.geometry)),
-                    paths: paths(children, node: node)
-                )
+                return .init(deferredPaths: geometry(
+                    .group, material: material, children: children.map(\.geometry)
+                ))
             }
-            if !children.allSatisfy({ $0.paths == nil }) {
+            if !children.allSatisfy({ !$0.is2D }) {
                 warn("Mixed 2D and 3D CSG children are unsupported", at: node)
                 return .init(
                     geometry: geometry(.group, material: material, children: children.map(\.geometry)),
                     paths: nil
                 )
-            }
-            let type: GeometryType
-            switch node.name {
-            case "group", "render":
-                type = .group
-            case "union":
-                type = .union
-            case "difference":
-                type = .difference
-            case "intersection":
-                type = .intersection
-            case "hull":
-                type = .hull([])
-            case "minkowski":
-                type = .minkowski
-            default:
-                throw node.error("Invalid CSG operation '\(node.name)'")
             }
             return .init(geometry: geometry(type, material: material, children: children.map(\.geometry)), paths: nil)
         case "color":
@@ -919,7 +929,11 @@ private struct CSGImporter {
                 positional: node.name == "linear_extrude" ? ["height"] : []
             )
             // OpenSCAD's extrusion operators project 2D children onto the XY plane.
-            let profiles = try paths(children(node, material: material), node: node).map { path in
+            let children = try children(node, material: material)
+            let deferProfiles = node.name == "linear_extrude" && children.allSatisfy {
+                $0.is2D && $0.geometry.hasClosedXYPaths
+            }
+            let profiles = try (deferProfiles ? [] : paths(children, node: node)).map { path in
                 let projected = Path(subpaths: path.subpaths.map { subpath in
                     Path(subpath.points.map { .point(Vector($0.position.x, $0.position.y), color: $0.color) })
                 })
@@ -948,12 +962,15 @@ private struct CSGImporter {
                     throw node.error("Invalid CSG extrusion slices")
                 }
                 let center = try node.boolean(values, "center", default: false)
-                guard profiles.reduce(0, { $0 + $1.points.count }) <= 1_000_000 / sections else {
+                let pointCount = deferProfiles ? children.reduce(0) { $0 + $1.geometry.estimatedPathPointCount } :
+                    profiles.reduce(0) { $0 + $1.points.count }
+                guard pointCount <= 1_000_000 / sections else {
                     throw node.error("CSG extrusion tessellation is too large")
                 }
                 return .init(geometry: geometry(
                     .extrude(profiles, .init(depth: height, twist: .degrees(twist), sections: sections)),
                     material: material,
+                    children: deferProfiles ? children.map { projectedProfile($0.geometry) } : [],
                     transform: .translation(center ? .zero : Vector(0, 0, height / 2))
                 ), paths: nil)
             }
@@ -1468,23 +1485,37 @@ private struct CSGImporter {
             geometry.isHidden = source.isHidden
             return geometry
         }
-        if shapes.contains(where: { $0.paths != nil }), shapes.allSatisfy({ $0.paths != nil || $0.isEmpty }) {
+        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }) {
+            if let transform = transform(matrix) {
+                for shape in shapes where !shape.geometry.overestimatedBounds.isEmpty {
+                    for point in shape.geometry.overestimatedBounds.corners {
+                        _ = try apply(point)
+                    }
+                }
+                let result = geometry(
+                    .group,
+                    material: material,
+                    children: shapes.map(\.geometry),
+                    transform: transform
+                )
+                if result.hasClosedXYPaths {
+                    return .init(deferredPaths: result)
+                }
+            }
+            let transformed = try geometry(.group, material: material, children: shapes.map {
+                try transformedGeometry($0.geometry)
+            })
+            if transformed.hasClosedXYPaths {
+                return .init(deferredPaths: transformed)
+            }
             let paths = try paths(shapes, node: node).map { path in
                 try Path(subpaths: path.subpaths.map { subpath in
                     try Path(subpath.points.map { point in try .point(apply(point.position), color: point.color) })
                 })
             }
-            if hasModifiers {
-                return try .init(
-                    geometry: geometry(.group, material: material, children: shapes.map {
-                        try transformedGeometry($0.geometry)
-                    }),
-                    paths: paths
-                )
-            }
-            return result(paths, material: material)
+            return .init(geometry: transformed, paths: paths)
         }
-        let hasPaths = shapes.contains { $0.paths != nil }
+        let hasPaths = shapes.contains { $0.is2D }
         if hasPaths {
             warn(
                 "Mixed 2D and 3D CSG children are unsupported",

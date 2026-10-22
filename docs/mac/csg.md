@@ -3,7 +3,7 @@ Constructive Solid Geometry
 
 Constructive Solid Geometry (CSG) is a process by which solid shapes can be combined or subtracted from one another to create shapes that would be hard to model directly.
 
-There are four basic types of CSG command in ShapeScript:
+ShapeScript provides the following CSG commands:
 
 ## Difference
 
@@ -69,7 +69,7 @@ xor {
 }
 ```
 
-![Eye-shaped Hole](../images/xor.png)
+![Eye-shaped hole](../images/xor.png)
 
 ## Stencil
 
@@ -95,6 +95,21 @@ stencil {
 **Note:** If the stencil shape has a texture applied to it (see [Materials](materials.md#texture)) then the texture wrapping will match the coordinates of the shape being painted, not the shape that the texture is taken from.
 
 If the child shapes both have the same color or texture, there will be no visible effect from using stencil.
+
+## Path Operations
+
+The `union`, `difference`, `intersection`, and `xor` commands also accept closed paths that lie on the same plane. They combine the filled regions enclosed by those paths and return a new path, which may contain holes or disconnected regions.
+
+For example, the following code subtracts a circle from a square:
+
+```swift
+difference {
+    square
+    circle { position 0.5 0.5 }
+}
+```
+
+![Circle subtracted from square](../images/circle-from-square.png)
 
 ---
 [Index](index.md) | Next: [Groups](groups.md)

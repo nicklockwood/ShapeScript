@@ -14,6 +14,71 @@ import CoreText
 #endif
 
 final class CSGImportTests: XCTestCase {
+    func test2DOperationsRetainTheirGeometryTrees() throws {
+        let url = URL(fileURLWithPath: "/tmp/profile.csg")
+        for (operation, type) in [
+            ("union", GeometryType.union), ("difference", .difference),
+            ("intersection", .intersection), ("hull", .hull([])), ("minkowski", .minkowski),
+        ] {
+            let geometry = try Geometry(csgString: """
+            translate([3,4,5]) {
+                \(operation)() {
+                    square(4,true);
+                    square(2,true);
+                }
+            }
+            """, at: url, isCancelled: { false })
+            func descendants(_ geometry: Geometry) -> [Geometry] {
+                [geometry] + geometry.children.flatMap(descendants)
+            }
+            let container = try XCTUnwrap(descendants(geometry).first {
+                $0.type == type && $0.children.count == 2
+            }, operation)
+            XCTAssertNotNil(container.path)
+            XCTAssertTrue(container.children.allSatisfy { $0.path != nil || !$0.children.isEmpty })
+            XCTAssertEqual(container.sourceLocation, SourceLocation(at: 2, in: url))
+            XCTAssertEqual(try XCTUnwrap(geometry.path).bounds.center, [3, 4, 5])
+        }
+    }
+
+    func testAffine2DOperationsRetainTreesAndMatchTransformedProfiles() throws {
+        for operation in ["union", "difference", "intersection", "hull", "minkowski"] {
+            let source = """
+            translate([2,3,0]) \(operation)() {
+                square(4,true);
+                translate([1,0,0]) square(2,true);
+            }
+            """
+            let original = try Geometry(csgString: source, isCancelled: { false })
+            let profile = try XCTUnwrap(original.path)
+            let transformed = try Geometry(csgString: """
+            multmatrix([[-1,0.5,0,7],[0,1,0,11],[0,0,1,0],[0,0,0,1]]) {
+                \(source)
+            }
+            """, isCancelled: { false })
+            let result = try XCTUnwrap(transformed.path, operation)
+            let expected = Path(subpaths: profile.subpaths.map { subpath in
+                Path(subpath.points.map { point in
+                    var point = point
+                    let p = point.position
+                    point.position = [-p.x + 0.5 * p.y + 7, p.y + 11, p.z]
+                    return point
+                })
+            })
+            XCTAssertLessThan((result.bounds.min - expected.bounds.min).length, 1e-8, operation)
+            XCTAssertLessThan((result.bounds.max - expected.bounds.max).length, 1e-8, operation)
+            XCTAssertEqual(
+                Mesh.fill(result, faces: .front).surfaceArea,
+                Mesh.fill(expected, faces: .front).surfaceArea,
+                accuracy: 1e-8, operation
+            )
+            func operations(_ geometry: Geometry) -> [Geometry] {
+                (geometry.children.count == 2 ? [geometry] : []) + geometry.children.flatMap(operations)
+            }
+            XCTAssertFalse(operations(transformed).isEmpty, operation)
+        }
+    }
+
     func testImportedCSGPreservesDefinitionLocations() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -319,7 +384,9 @@ final class CSGImportTests: XCTestCase {
                 )
                 XCTAssertTrue(scene.warnings.isEmpty)
                 let geometry = try XCTUnwrap(scene.children.first)
-                let paths = geometry.paths(pretransformed: true).flatMap(\.subpaths)
+                // Inspect the text operand, before the implicit root union merges overlapping glyphs.
+                let textGeometry = try XCTUnwrap(geometry.children.first)
+                let paths = textGeometry.paths(pretransformed: true).flatMap(\.subpaths)
                 XCTAssertEqual(paths.count, 2)
                 for (path, prefix) in zip(paths, ["", "H "]) {
                     let offset = (width(prefix) + width("H H ") * factor) * spacing
@@ -983,13 +1050,54 @@ final class CSGImportTests: XCTestCase {
         XCTAssertFalse(debugDifference.renderedChildren.isEmpty)
     }
 
-    func testEvaluatedProfilesUseDeferredMeshCache() throws {
+    func testPlanarBooleanProfilesAreNotEvaluatedBeforeBuildOrOnCacheHit() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        func makeCache() -> GeometryCache {
+            GeometryCache(
+                diskCache: DiskCache(capacity: 10_000_000, directory: directory),
+                diskWritePolicy: .init { _ in -.infinity }
+            )
+        }
+        let source = """
+        linear_extrude(height=2) translate([1,2,0]) difference() {
+            polygon([[0,0],[0,4],[4,4],[4,0]]);
+            translate([1,1,0]) square(2);
+        }
+        """
+        func difference(in geometry: Geometry) -> Geometry? {
+            if geometry.type == .difference { return geometry }
+            return geometry.children.lazy.compactMap { difference(in: $0) }.first
+        }
+        let cache = makeCache()
+        let first = try Scene(csgString: source, cache: cache, isCancelled: { false })
+        let profile = try XCTUnwrap(difference(in: first.geometry))
+        XCTAssertTrue(profile.cachedPath == nil)
+        XCTAssertTrue(first.build { false })
+        XCTAssertTrue(profile.cachedPath != nil)
+        let expected = first.geometry.merged()
+        XCTAssertEqual(expected.signedVolume, 24, accuracy: 0.000001)
+        XCTAssertTrue(expected.isWatertight)
+        cache.flushPendingDiskWrites()
+
+        for cache in [cache, makeCache()] {
+            let reopened = try Scene(csgString: source, cache: cache, isCancelled: { false })
+            let profile = try XCTUnwrap(difference(in: reopened.geometry))
+            XCTAssertTrue(profile.cachedPath == nil)
+            XCTAssertTrue(reopened.build { false })
+            XCTAssertTrue(profile.cachedPath == nil, "Cache hits must not evaluate the profile")
+            XCTAssertEqual(reopened.geometry.merged(), expected)
+        }
+    }
+
+    func testDeferredProfilesUseMeshCache() throws {
         let source = "linear_extrude(height=2) difference() { square(4,true); offset(delta=-0.5) square(4,true); }"
         let cache = GeometryCache(diskCache: nil)
         let scene = try Scene(csgString: source, cache: cache, isCancelled: { false })
         let geometry = try XCTUnwrap(scene.children.first?.children.first)
         guard case let .extrude(paths, _) = geometry.type else { return XCTFail("Expected extrusion") }
-        XCTAssertFalse(paths.isEmpty)
+        XCTAssertTrue(paths.isEmpty)
+        XCTAssertFalse(geometry.children.isEmpty)
         XCTAssertNil(geometry.mesh)
         XCTAssertEqual(cache.count, 0)
         let encoded = try JSONEncoder().encode(geometry.type)
@@ -1101,7 +1209,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(first.geometry.merged().signedVolume, 1, accuracy: 0.000001)
     }
 
-    func testShearedProfileIsEvaluatedBeforeExtrusion() throws {
+    func testShearedProfileUsesDeferredExtrusion() throws {
         let scene = try Scene(
             csgString: """
             linear_extrude(height=2)
@@ -1112,9 +1220,9 @@ final class CSGImportTests: XCTestCase {
         )
         let geometry = try XCTUnwrap(scene.children.first?.children.first)
         guard case let .extrude(paths, _) = geometry.type,
-              !paths.isEmpty
+              paths.isEmpty
         else {
-            return XCTFail("Sheared profiles should be evaluated during import")
+            return XCTFail("Sheared profiles should remain extrusion children")
         }
         XCTAssertNil(geometry.mesh)
         XCTAssertTrue(scene.build { false })
