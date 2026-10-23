@@ -122,7 +122,8 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                 errorScrollView.isHidden = true
                 return
             }
-            errorTextView.textContainerInset = CGSize(width: 20, height: 20)
+            // Leave room for the loading indicator while the previous error remains visible.
+            errorTextView.textContainerInset = CGSize(width: 20, height: 60)
             layoutErrorMessage()
             errorScrollView.isHidden = false
         }
