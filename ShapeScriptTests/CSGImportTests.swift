@@ -882,7 +882,113 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(sum.signedVolume, 8, accuracy: 0.000001)
     }
 
-    func testImportedGeometryUsesFlatNormals() throws {
+    func testImportedGeometryUsesDefaultPrimitiveNormals() throws {
+        for source in ["sphere($fn=12);", "cylinder(h=2,r=1,$fn=12);"] {
+            let context = EvaluationContext(source: source, delegate: nil) { false }
+            let geometry = try Geometry(csgString: source, at: nil, context: context)
+            XCTAssertTrue(descendants(geometry).allSatisfy { $0.smoothing == nil })
+            XCTAssertTrue(geometry.build { false })
+            XCTAssertTrue(geometry.merged().polygons.contains { polygon in
+                polygon.vertices.contains { ($0.normal - polygon.plane.normal).length > 1e-8 }
+            }, source)
+        }
+    }
+
+    func testDirectCSGLoadingUsesZeroSmoothing() throws {
+        let source = "sphere($fn=12);"
+        let geometry = try Geometry(csgString: source, isCancelled: { false })
+        let scene = try Scene(csgString: source, isCancelled: { false })
+        for root in [geometry] + scene.children {
+            XCTAssertTrue(descendants(root).allSatisfy { $0.smoothing == .zero })
+            XCTAssertTrue(root.build { false })
+            XCTAssertTrue(root.merged().polygons.allSatisfy { polygon in
+                polygon.vertices.allSatisfy { ($0.normal - polygon.plane.normal).length < 1e-8 }
+            })
+        }
+    }
+
+    func testNestedCSGImportsInheritRootSmoothing() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let rootURL = directory.appendingPathComponent("root.csg")
+        let childURL = directory.appendingPathComponent("child.csg")
+        let source = "import(\"child.csg\");"
+        try source.write(to: rootURL, atomically: true, encoding: .utf8)
+        try "sphere($fn=12);".write(to: childURL, atomically: true, encoding: .utf8)
+
+        let direct = try Scene(csgString: source, at: rootURL, isCancelled: { false })
+        let smooth = try evaluate(parse("import \"\(rootURL.path)\""), delegate: nil)
+        let flat = try evaluate(parse("smoothing 0\nimport \"\(rootURL.path)\""), delegate: nil)
+        for (scene, smoothing) in [(direct, Angle?.some(.zero)), (smooth, nil), (flat, .some(.zero))] {
+            XCTAssertTrue(scene.children.flatMap(descendants).allSatisfy { $0.smoothing == smoothing })
+            XCTAssertTrue(scene.build { false })
+            let hasSmoothNormals = scene.geometry.merged().polygons.contains { polygon in
+                polygon.vertices.contains { ($0.normal - polygon.plane.normal).length > 1e-8 }
+            }
+            XCTAssertEqual(hasSmoothNormals, smoothing == nil)
+        }
+    }
+
+    func testCSGSmoothingIsAppliedAfterGeometryGeneration() throws {
+        let smoothings: [Angle?] = [nil, .zero, .degrees(45)]
+        for smoothing in smoothings {
+            let context = EvaluationContext(source: "", delegate: nil) { false }
+            context.state.smoothing = smoothing
+            for source in [
+                "sphere($fn=12);",
+                "union() { sphere($fn=12); cube(1); }",
+                "%sphere($fn=12);",
+                "multmatrix([[1,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) sphere($fn=12);",
+            ] {
+                let geometry = try Geometry(csgString: source, at: nil, context: context)
+                XCTAssertTrue(descendants(geometry).allSatisfy { $0.smoothing == nil }, source)
+                let copy = geometry.with(
+                    transform: .identity, material: nil, smoothing: smoothing, sourceLocation: { nil }
+                )
+                XCTAssertTrue(descendants(copy).allSatisfy { $0.smoothing == smoothing }, source)
+                XCTAssertTrue(descendants(geometry).allSatisfy { $0.smoothing == nil }, source)
+            }
+        }
+    }
+
+    func testRepeatedCSGImportsRespectChangesToSmoothing() throws {
+        final class Delegate: EvaluationDelegate {
+            var importCount = 0
+            func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
+            func debugLog(_: [AnyHashable]) {}
+            func importGeometry(for _: URL) throws -> Geometry? {
+                importCount += 1
+                return nil
+            }
+        }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("sphere.csg")
+        try "sphere($fn=12);".write(to: url, atomically: true, encoding: .utf8)
+        let delegate = Delegate()
+        let scene = try evaluate(parse("""
+        smoothing 0
+        import "\(url.path)"
+        smoothing -1
+        import "\(url.path)"
+        smoothing 0
+        import "\(url.path)"
+        """), delegate: delegate)
+        XCTAssertEqual(delegate.importCount, 1)
+        XCTAssertEqual(scene.children.count, 3)
+        XCTAssertTrue(scene.build { false })
+        for (geometry, smoothing) in zip(scene.children, [Angle?.some(.zero), nil, .some(.zero)]) {
+            XCTAssertTrue(descendants(geometry).allSatisfy { $0.smoothing == smoothing })
+            let hasSmoothNormals = geometry.merged().polygons.contains { polygon in
+                polygon.vertices.contains { ($0.normal - polygon.plane.normal).length > 1e-8 }
+            }
+            XCTAssertEqual(hasSmoothNormals, smoothing == nil)
+        }
+    }
+
+    func testExplicitZeroSmoothingProducesFlatNormals() throws {
         for source in [
             "cube(1);",
             "sphere($fn=12);",
@@ -894,7 +1000,13 @@ final class CSGImportTests: XCTestCase {
             "multmatrix([[1,1,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) " +
                 "hull() { cube(1); translate([2,1,1]) cube(1); }",
         ] {
-            let mesh = try mesh(source)
+            let context = EvaluationContext(source: source, delegate: nil) { false }
+            context.state.smoothing = .zero
+            let geometry = try Geometry(csgString: source, at: nil, context: context).with(
+                transform: .identity, material: nil, smoothing: .zero, sourceLocation: { nil }
+            )
+            XCTAssertTrue(geometry.build { false }, source)
+            let mesh = geometry.merged()
             XCTAssertFalse(mesh.isEmpty, source)
             XCTAssertTrue(mesh.polygons.allSatisfy { polygon in
                 polygon.vertices.allSatisfy { ($0.normal - polygon.plane.normal).length < 1e-8 }

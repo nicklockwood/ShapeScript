@@ -12,6 +12,35 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testSmoothingOverrideDoesNotReuseBuiltMeshesWithDifferentNormals() {
+        let context = EvaluationContext(source: "", delegate: nil) { false }
+        for geometry in [
+            Geometry(type: .sphere(segments: 12), in: context),
+            Geometry(type: .mesh(.sphere(slices: 12)), in: context),
+            Geometry(type: .group, in: context, children: [Geometry(type: .sphere(segments: 12), in: context)]),
+        ] {
+            XCTAssertTrue(geometry.build { false })
+            let original = geometry.merged()
+            XCTAssertTrue(original.polygons.contains { polygon in
+                polygon.vertices.contains { ($0.normal - polygon.plane.normal).length > 1e-8 }
+            })
+            let copy = geometry.with(
+                transform: .identity, material: nil, smoothing: .zero, sourceLocation: { nil }
+            )
+            XCTAssertNotNil(copy.cachedMesh)
+            XCTAssertTrue(copy.build { false })
+            XCTAssertFalse(copy.merged().isEmpty)
+            XCTAssertTrue(copy.merged().polygons.allSatisfy { polygon in
+                polygon.vertices.allSatisfy { ($0.normal - polygon.plane.normal).length < 1e-8 }
+            })
+            let unchanged = copy.with(
+                transform: .identity, material: nil, smoothing: .zero, sourceLocation: { nil }
+            )
+            XCTAssertEqual(unchanged.cachedMesh, copy.cachedMesh)
+            XCTAssertEqual(geometry.merged(), original)
+        }
+    }
+
     func testRemovingHiddenOrBackgroundBaseDoesNotPromoteCutters() {
         for type in [GeometryType.difference, .stencil] {
             for background in [false, true] {

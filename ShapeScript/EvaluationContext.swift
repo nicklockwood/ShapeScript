@@ -545,7 +545,9 @@ extension EvaluationContext {
             importStack.append(url)
             defer { importStack.removeLast() }
             try url.validateFileSize(limit: FileSizeLimit.text)
-            return try Geometry(csgString: String(contentsOf: url), at: url, context: self)
+            let context = push(.group)
+            context.state.smoothing = nil
+            return try Geometry(csgString: String(contentsOf: url), at: url, context: context)
         case .wavefront:
             try url.validateFileSize(limit: FileSizeLimit.mesh)
             let source = try String(contentsOf: url)

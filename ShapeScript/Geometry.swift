@@ -2252,7 +2252,7 @@ private extension Geometry {
                     name: nil,
                     transform: childTransform,
                     material: material,
-                    smoothing: nil,
+                    smoothing: smoothing,
                     sourceLocation: sourceLocation,
                     removingLights: removingLights,
                     removingGroupTransform: removingGroupTransform,
@@ -2267,7 +2267,16 @@ private extension Geometry {
             isBackground: isBackground,
             cache: cache
         )
-        copy.cachedMesh = isRemovingUnfocusedChildren || isRemovingHiddenGeometry ? nil : cachedMesh
+        let isChangingSmoothing = smoothing != nil && copy.cacheKey != cacheKey
+        if isRemovingUnfocusedChildren || isRemovingHiddenGeometry {
+            copy.cachedMesh = nil
+        } else if isChangingSmoothing, let smoothing {
+            // Keep baked leaf meshes ready for use as boolean operands.
+            // Boolean containers must be rebuilt using their children's updated normals.
+            copy.cachedMesh = isLeaf ? cachedMesh?.smoothingNormals(forAnglesGreaterThan: smoothing) : nil
+        } else {
+            copy.cachedMesh = cachedMesh
+        }
         return copy
     }
 

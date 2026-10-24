@@ -43,7 +43,16 @@ public extension Geometry {
             evaluationProgress: progress, isCancelled: cancellationHandler
         )
         defer { withExtendedLifetime(delegate) {} }
-        try self.init(csgString: csgString, at: fileURL, context: context)
+        let geometry = try Geometry(csgString: csgString, at: fileURL, context: context).with(
+            transform: .identity, material: nil, smoothing: .zero, sourceLocation: { nil }
+        )
+        self.init(
+            type: geometry.type, name: geometry.name, transform: geometry.transform,
+            material: geometry.material, smoothing: geometry.smoothing, children: geometry.children,
+            sourceLocation: geometry.sourceLocation.map { location in { @Sendable in location } },
+            debug: geometry.debug, isFocused: geometry.isFocused, isHidden: geometry.isHidden,
+            isBackground: geometry.isBackground, cache: geometry.cache
+        )
         if cancellationHandler() { throw CancellationError() }
         progress?.completeUnit()
         progress?.finish()
@@ -70,7 +79,7 @@ extension Geometry {
         if !backgrounds.isEmpty {
             self.init(
                 type: .group, name: nil, transform: .identity, material: .default,
-                smoothing: .zero, children: shapes.map(\.geometry) + backgrounds,
+                smoothing: nil, children: shapes.map(\.geometry) + backgrounds,
                 sourceLocation: sourceLocation, cache: context.geometryCache
             )
             return
@@ -82,7 +91,7 @@ extension Geometry {
             if container.isPath {
                 self.init(
                     type: .union, name: nil, transform: .identity, material: .default,
-                    smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
+                    smoothing: nil, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
                     cache: context.geometryCache
                 )
                 return
@@ -91,13 +100,13 @@ extension Geometry {
             self.init(
                 type: .path(Path(subpaths: shapes.flatMap { $0.paths ?? [] })),
                 name: nil, transform: .identity, material: .default,
-                smoothing: .zero, children: [], sourceLocation: sourceLocation, cache: context.geometryCache
+                smoothing: nil, children: [], sourceLocation: sourceLocation, cache: context.geometryCache
             )
             return
         }
         self.init(
             type: .group, name: nil, transform: .identity, material: .default,
-            smoothing: .zero, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
+            smoothing: nil, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
             cache: context.geometryCache
         )
     }
@@ -128,7 +137,9 @@ public extension Scene {
             evaluationProgress: progress, geometryCache: cache, isCancelled: cancellationHandler
         )
         defer { withExtendedLifetime(delegate) {} }
-        let geometry = try Geometry(csgString: csgString, at: fileURL, context: context)
+        let geometry = try Geometry(csgString: csgString, at: fileURL, context: context).with(
+            transform: .identity, material: nil, smoothing: .zero, sourceLocation: { nil }
+        )
         if cancellationHandler() { throw CancellationError() }
         progress?.completeUnit()
         progress?.finish()
@@ -574,7 +585,7 @@ private struct CSGImporter {
             name: nil,
             transform: transform,
             material: material,
-            smoothing: .zero,
+            smoothing: nil,
             children: children,
             sourceLocation: sourceLocation,
             cache: context.geometryCache
@@ -1167,7 +1178,7 @@ private struct CSGImporter {
                     }
                     try checkCancellation()
                     let geometry = imported.with(
-                        transform: .identity, material: material, smoothing: .zero,
+                        transform: .identity, material: material, smoothing: nil,
                         sourceLocation: sourceLocation ?? { nil }
                     )
                     return .init(
@@ -1484,7 +1495,7 @@ private struct CSGImporter {
             }
             let geometry = Geometry(
                 type: type, name: nil, transform: transform, material: source.material,
-                smoothing: .zero, children: children,
+                smoothing: nil, children: children,
                 sourceLocation: source.sourceLocation.map { location in { @Sendable in location } }
             )
             if case .mesh = type, !geometry.build(isCancelled) {
