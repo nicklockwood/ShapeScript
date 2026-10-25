@@ -323,6 +323,7 @@ extension AppDelegate {
         viewMenu.addItem(item("Show Wireframe", action: #selector(Document.showWireframe(_:)), key: "W"))
         viewMenu.addItem(item("Show Axes", action: #selector(Document.showAxes(_:)), key: "A"))
         viewMenu.addItem(item("Copy Camera Settings", action: #selector(Document.copyCamera(_:)), key: "C"))
+        #if DEBUG
         viewMenu.addItem(.separator())
         viewMenu.addItem(item("Reload Scene", action: #selector(Document.reloadScene(_:)), key: "r"))
         let reloadIgnoringCacheItem = item(
@@ -333,6 +334,7 @@ extension AppDelegate {
         )
         reloadIgnoringCacheItem.isAlternate = true
         viewMenu.addItem(reloadIgnoringCacheItem)
+        #endif
         viewMenu.addItem(.separator())
         viewMenu
             .addItem(item("Model Info", action: #selector(Document.showModelInfo(_:)), key: "i"))
