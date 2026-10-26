@@ -34,9 +34,14 @@ extension DocumentProtocol {
 
     func bookmarkURL(_ url: URL) {
         _ = accessSecurityScopedURL(url)
-        // Create an app-scoped bookmark for the selected file or folder
+        #if os(macOS)
+        // Persist read access for imports, including in the read-only Quick Look extension.
+        let options: URL.BookmarkCreationOptions = [.withSecurityScope, .securityScopeAllowOnlyReadAccess]
+        #else
+        let options: URL.BookmarkCreationOptions = []
+        #endif
         if let data = try? url.bookmarkData(
-            options: [],
+            options: options,
             includingResourceValuesForKeys: nil,
             relativeTo: nil
         ) {
@@ -65,10 +70,15 @@ extension DocumentProtocol {
             let resolvedURL = directoryURL.appendingPathComponent(url.lastPathComponent)
             return accessSecurityScopedURL(resolvedURL) ? resolvedURL : nil
         }
+        #if os(macOS)
+        let options: URL.BookmarkResolutionOptions = [.withSecurityScope, .withoutUI]
+        #else
+        let options: URL.BookmarkResolutionOptions = .withoutUI
+        #endif
         var isStale = false
         guard let resolvedURL = try? URL(
             resolvingBookmarkData: data,
-            options: .withoutUI,
+            options: options,
             relativeTo: nil,
             bookmarkDataIsStale: &isStale
         ), accessSecurityScopedURL(resolvedURL) else {
