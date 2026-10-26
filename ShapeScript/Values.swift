@@ -261,8 +261,7 @@ extension Value {
     /// Extract outlines only when an operation needs path data rather than geometry.
     var materializedPathValue: Value {
         switch self {
-        case let .mesh(geometry):
-            guard geometry.isPath else { return self }
+        case let .mesh(geometry) where geometry.isPath:
             if case .text = geometry.type {
                 return .tuple(geometry.paths(pretransformed: true).map(Value.path))
             }
@@ -279,7 +278,7 @@ extension Value {
         case let .pretransformed(value):
             return .pretransformed(value.materializedPathValue)
         case .color, .texture, .material, .boolean, .number, .radians, .halfturns,
-             .vector, .size, .rotation, .string, .font, .text, .path,
+             .vector, .size, .rotation, .string, .font, .mesh, .text, .path,
              .polygon, .point, .range, .bounds, .object:
             return self
         }

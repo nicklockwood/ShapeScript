@@ -1942,7 +1942,7 @@ extension Expression {
             let rangeType = ValueType.union([.range, .partialRange, .path])
             let rangeValue = try lhs.evaluate(as: rangeType, for: "step", index: 0, in: context)
             let stepValue = try rhs.evaluate(as: .number, for: "step", index: 1, in: context)
-            if case let .path(path) = rangeValue {
+            if case let .path(path) = rangeValue.materializedPathValue.unpretransformed() {
                 let step = stepValue.doubleValue
                 guard step != 0, step.isFinite else {
                     throw RuntimeError(.custom("Step value must be finite and nonzero"), at: rhs.range)

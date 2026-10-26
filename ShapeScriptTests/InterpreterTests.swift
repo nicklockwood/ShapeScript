@@ -3987,6 +3987,32 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log as? [Vector], [[0, 0], [0.25, 0], [0.5, 0], [0.75, 0], [1, 0]])
     }
 
+    func testForLoopWithHullPathStep() throws {
+        let program = """
+        define outlineFor(radius) {
+            hull {
+                circle {
+                    position -1 0
+                    size radius * 2
+                }
+                circle {
+                    position 1 0
+                    size radius * 2
+                }
+            }
+        }
+        define outline outlineFor(0.5)
+        define samples for sample in outline step 0.2 { sample.position }
+        print samples.count
+        print outline.length
+        """
+        let delegate = TestDelegate()
+        _ = try evaluate(parse(program), delegate: delegate)
+        let count = try XCTUnwrap(delegate.log[0] as? Double)
+        let length = try XCTUnwrap(delegate.log[1] as? Double)
+        XCTAssertEqual(count, ceil(length / 0.2))
+    }
+
     func testForLoopWithNegativePathStep() throws {
         let program = """
         define p path {
