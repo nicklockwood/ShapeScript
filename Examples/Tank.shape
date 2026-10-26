@@ -1,0 +1,346 @@
+// ShapeScript document
+
+detail 32
+
+camera {
+    position 7.6 4.9 8.5
+    orientation 0 -0.2171 0.1
+    fov 0.17
+    width 1400
+    height 1000
+}
+
+define armor material {
+    color #626b43
+    metallicity 0.3
+    roughness 0.65
+}
+define steel material {
+    color #414343
+    metallicity 0.8
+    roughness 0.5
+}
+define rubber material {
+    color #232624
+    roughness 0.9
+}
+define highlight material {
+    color #92977c
+    metallicity 0.4
+    roughness 0.6
+}
+
+define trackOutline(radius) {
+    hull {
+        circle {
+            position -2.45 1.12
+            size radius * 2
+        }
+        circle {
+            position 2.45 1.12
+            size radius * 2
+        }
+        circle {
+            position -1.85 0.48
+            size radius * 2
+        }
+        circle {
+            position 1.85 0.48
+            size radius * 2
+        }
+    }
+}
+
+define outline trackOutline(0.36)
+
+define track {
+    group {
+        name "Track belt"
+        material rubber
+        extrude {
+            size 1 1 0.68
+            difference {
+                outline
+                trackOutline(0.25)
+            }
+        }
+    }
+    // Divide the track perimeter into a whole number of links
+    define pitch outline.length / ceil(outline.length / 0.19)
+    group {
+        name "Steel tread links"
+        material steel
+        for sample in outline step pitch {
+            group {
+                position sample.position
+                orientation sample.orientation
+                cube {
+                    size 0.82 0.09 (pitch * 0.88)
+                }
+                cube {
+                    material highlight
+                    position 0 0.055 0
+                    size 0.78 0.045 (pitch * 0.28)
+                }
+            }
+        }
+    }
+    // Axles point across the track, along Z
+    for x in -1.8 to 1.8 step 0.72 {
+        group {
+            name "Road wheel"
+            position x 0.53 0
+            orientation 0 0 0.5
+            cylinder {
+                material rubber
+                size 0.7 0.6
+            }
+            cylinder {
+                material armor
+                size 0.55 0.66
+            }
+            cylinder {
+                material steel
+                size 0.25 0.74
+            }
+            cylinder {
+                material highlight
+                size 0.13 0.78
+            }
+            for side in (-1 1) {
+                for angle in 0 to 1.99 step (1 / 3) {
+                    cylinder {
+                        material highlight
+                        position (sin(angle) * 0.2) (side * 0.345) (cos(angle) * 0.2)
+                        size 0.035 0.035
+                    }
+                }
+            }
+        }
+    }
+    for x in -1.4 to 1.4 step 1.4 {
+        cylinder {
+            name "Track return roller"
+            material rubber
+            position x 1.24 0
+            orientation 0 0 0.5
+            size 0.26 0.62
+        }
+    }
+    for x in (-2.45 2.45) {
+        group {
+            name "Drive and idler wheels"
+            position x 1.12 0
+            orientation 0 0 0.5
+            cylinder {
+                material steel
+                size 0.57 0.65
+            }
+            cylinder {
+                material armor
+                size 0.43 0.72
+            }
+            cylinder {
+                material highlight
+                size 0.16 0.78
+            }
+        }
+    }
+}
+
+for side in (-1 1) {
+    group {
+        name "Track assembly"
+        position 0 0 (side * 1.35)
+        track
+    }
+}
+
+cube {
+    name "Lower hull"
+    material armor
+    position 0 0.87 0
+    size 4.6 0.7 2.1
+}
+for x in -1.8 to 1.8 step 0.72 {
+    cylinder {
+        name "Suspension axle"
+        material steel
+        position x 0.53 0
+        orientation 0 0 0.5
+        size 0.16 2.8
+    }
+}
+
+// Extruded side profile supplies the sloping nose and rear armor
+extrude {
+    name "Armored hull"
+    material armor
+    size 1 1 2.15
+    path {
+        point -2.6 1.05
+        point 2.6 1.05
+        point 2.15 1.85
+        point -2.1 1.85
+        point -2.6 1.05
+    }
+}
+for side in (-1 1) {
+    cube {
+        name "Track fender"
+        material armor
+        position 0 1.62 (side * 1.38)
+        size 5.65 0.09 0.86
+    }
+    for x in -2 to 2 step 0.8 {
+        cube {
+            name "Fender reinforcement"
+            material highlight
+            position x 1.68 (side * 1.38)
+            size 0.045 0.035 0.8
+        }
+    }
+}
+
+// Rear engine deck grilles and cylindrical external fuel tanks
+for x in -1.95 to -0.95 step 0.13 {
+    cube {
+        name "Engine grille"
+        material steel
+        position x 1.87 0
+        size 0.065 0.04 1.35
+    }
+}
+for side in (-1 1) {
+    group {
+        name "External fuel tank"
+        position -1.65 1.97 (side * 0.9)
+        orientation 0.5 0 0
+        cylinder {
+            material armor
+            size 0.36 1.05
+        }
+        for y in (-0.34 0.34) {
+            cylinder {
+                material steel
+                position 0 y 0
+                size 0.38 0.055
+            }
+        }
+    }
+}
+
+cylinder {
+    name "Turret bearing"
+    material steel
+    position 0.25 1.88 0
+    size 1.65 0.18
+}
+hull {
+    name "Sloped turret"
+    material armor
+    cube {
+        position 0.1 2.02 0
+        size 2.15 0.12 1.9
+    }
+    cube {
+        position -0.15 2.65 0
+        size 1.65 0.12 1.35
+    }
+}
+cylinder {
+    name "Commander cupola"
+    material armor
+    position -0.45 2.79 0.22
+    size 0.65 0.2
+}
+cylinder {
+    name "Hatch lid"
+    material highlight
+    position -0.45 2.91 0.22
+    size 0.68 0.055
+}
+for angle in 0 to 1.99 step 0.25 {
+    group {
+        position -0.45 2.8 0.22
+        orientation 0 angle 0
+        cube {
+            material rubber
+            position 0 0 0.32
+            size 0.15 0.07 0.035
+        }
+    }
+}
+cube {
+    name "Gunner sight"
+    material steel
+    position 0.4 2.67 0.35
+    size 0.28 0.14 0.2
+}
+
+// Gun assembly points along positive X. A hollow muzzle makes the bore visible
+group {
+    name "Main gun"
+    position 1.05 2.35 0
+    orientation -0.5 0 0
+    material armor
+    cylinder {
+        size 0.62 0.46
+    }
+    cylinder {
+        position 0 -1.5 0
+        size 0.18 3
+    }
+    cylinder {
+        position 0 -0.6 0
+        size 0.26 0.6
+    }
+    cylinder {
+        position 0 -1.8 0
+        size 0.28 0.42
+    }
+    difference {
+        cube {
+            position 0 -3.03 0
+            size 0.32 0.42 0.3
+        }
+        cylinder {
+            position 0 -3.05 0
+            size 0.12 0.6
+        }
+        cube {
+            position 0 -3.04 0
+            size 0.5 0.09 0.14
+        }
+    }
+}
+
+// Stowage, aerial and front lamps provide small-scale details
+for side in (-1 1) {
+    cube {
+        name "Turret stowage box"
+        material armor
+        position -0.5 2.25 (side * 0.92)
+        size 0.9 0.3 0.25
+    }
+    group {
+        name "Headlamp"
+        position 2.39 1.47 (side * 0.8)
+        orientation -0.5 0 0
+        cylinder {
+            material steel
+            size 0.22 0.16
+        }
+        cylinder {
+            color #e9d9a8
+            position 0 -0.09 0
+            size 0.17 0.025
+        }
+    }
+}
+cylinder {
+    name "Radio aerial"
+    material steel
+    position -0.8 3.25 -0.48
+    size 0.025 1.3
+}

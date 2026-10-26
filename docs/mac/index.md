@@ -197,5 +197,6 @@
     - [Platonic Solids](examples.md#platonic-solids)
     - [Spirals](examples.md#spirals)
     - [Spring](examples.md#spring)
+    - [Tank](examples.md#tank)
     - [Train](examples.md#train)
 - [Glossary](glossary.md)

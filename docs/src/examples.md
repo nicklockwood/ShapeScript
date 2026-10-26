@@ -57,6 +57,12 @@ The Spring example demonstrates how to use the [loft](builders.md#loft) command 
 
 ![Spring](../images/spring.png)
 
+## Tank
+
+The Tank example demonstrates the use of [path CSG operations](csg.md#path-operations) and [path enumeration](control-flow.md#looping-over-paths). Each rounded trapezoidal track starts as the [hull](builders.md#hull) of four [circular paths](paths.md#circles). Stepped path enumeration is used to space links at regular distances around the track, using the interpolated point position and [orientation](paths.md#point-orientation) to follow the edge tangent.
+
+![Tank](../images/tank.png)
+
 ## Train
 
 The Train demonstrates a combination of modeling techniques, including using the [rnd](commands.md#random-numbers) command to generate pseudo-random coal.
