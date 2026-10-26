@@ -33,7 +33,7 @@ struct SelectionMenuContext {
     let lazySubmenus: Bool
 }
 
-private extension Double {
+extension Double {
     static let parsed = 0.1
     static let evaluated = 0.2
     static let geometryBuilt = 0.9

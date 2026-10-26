@@ -10,7 +10,7 @@
 import AppKit
 
 private typealias OSLoadingIndicator = NSProgressIndicator
-private let progressViewSize: CGFloat = 18
+private let progressViewSize: CGFloat = 20
 
 private extension NSProgressIndicator {
     func startAnimating() { startAnimation(nil) }
@@ -54,6 +54,11 @@ final class ProgressView: OSView {
         }
     }
 
+    #if os(macOS)
+    private let statusLabel = NSTextField(labelWithString: "")
+    private let estimateLabel = NSTextField(labelWithString: "")
+    #endif
+
     private let loadingIndicator: OSLoadingIndicator = .init()
     private let progressIndicator: CircularProgressView = .init()
     private var initialSpinnerTask: Task<Void, Never>?
@@ -91,6 +96,8 @@ private extension ProgressView {
         progressIndicator.color = color
         #if os(macOS)
         let isLight = (color.usingColorSpace(.deviceGray)?.whiteComponent ?? 0) > 0.5
+        statusLabel.textColor = color
+        estimateLabel.textColor = color.withAlphaComponent(0.5)
         loadingIndicator.appearance = NSAppearance(named: isLight ? .darkAqua : .aqua)
         #else
         loadingIndicator.color = color
@@ -123,15 +130,35 @@ private extension ProgressView {
         progressIndicator.alpha = 0
         addSubview(progressIndicator)
 
+        #if os(macOS)
+        for label in [statusLabel, estimateLabel] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            label.lineBreakMode = .byTruncatingTail
+            label.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+            addSubview(label)
+        }
+        estimateLabel.font = .monospacedDigitSystemFont(ofSize: NSFont.labelFontSize, weight: .regular)
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: progressViewSize),
-            heightAnchor.constraint(equalToConstant: progressViewSize),
-            loadingIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
+            statusLabel.leadingAnchor.constraint(equalTo: progressIndicator.trailingAnchor, constant: 10),
+            statusLabel.topAnchor.constraint(equalTo: topAnchor),
+            statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+            estimateLabel.leadingAnchor.constraint(equalTo: statusLabel.leadingAnchor),
+            estimateLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+            estimateLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor),
+            estimateLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        #else
+        widthAnchor.constraint(equalToConstant: progressViewSize).isActive = true
+        heightAnchor.constraint(equalToConstant: progressViewSize).isActive = true
+        #endif
+        NSLayoutConstraint.activate([
+            progressIndicator.widthAnchor.constraint(equalToConstant: progressViewSize),
+            progressIndicator.heightAnchor.constraint(equalToConstant: progressViewSize),
+            loadingIndicator.centerXAnchor.constraint(equalTo: progressIndicator.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: progressIndicator.centerYAnchor),
             progressIndicator.leadingAnchor.constraint(equalTo: leadingAnchor),
-            progressIndicator.trailingAnchor.constraint(equalTo: trailingAnchor),
-            progressIndicator.topAnchor.constraint(equalTo: topAnchor),
-            progressIndicator.bottomAnchor.constraint(equalTo: bottomAnchor),
+            progressIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
 
@@ -158,6 +185,23 @@ private extension ProgressView {
                 view.updateProgress()
             }
         }
+        #if os(macOS)
+        if let progress {
+            let phase = switch progress {
+            case ..<Double.parsed: "Parsing"
+            case ..<Double.evaluated: "Evaluating"
+            case ..<Double.geometryBuilt: "Building geometry"
+            default: "Rendering"
+            }
+            let percentage = Int(min(1, max(0, progress)) * 100)
+            statusLabel.stringValue = "\(phase)…"
+            estimateLabel.stringValue = "\(percentage)% complete"
+        } else if lastProgress == nil {
+            // Retain both rows while completion clears progress before deactivating the view.
+            statusLabel.stringValue = "Loading…"
+            estimateLabel.stringValue = ""
+        }
+        #endif
         setVisible(true)
         let progress = progress ?? progressIndicator.minValue
 

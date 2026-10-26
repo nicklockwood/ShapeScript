@@ -149,6 +149,49 @@ final class ViewTests: XCTestCase {
         }
     }
 
+    func testLoadingIndicatorDisplaysPhaseAndPercentage() throws {
+        let indicator = ProgressView(frame: .zero)
+        let labels = indicator.subviews.compactMap { $0 as? NSTextField }
+        XCTAssertEqual(labels.count, 2)
+        let label = try XCTUnwrap(labels.first)
+        let estimate = try XCTUnwrap(labels.last)
+        defer { indicator.isActive = false }
+        indicator.isActive = true
+        XCTAssertEqual(label.stringValue, "Loading…")
+        XCTAssertEqual(estimate.stringValue, "")
+        for (progress, text, percentage) in [
+            (0.0, "Parsing…", "0% complete"),
+            (Double.parsed, "Evaluating…", "10% complete"),
+            (Double.evaluated, "Building geometry…", "20% complete"),
+            (0.45, "Building geometry…", "45% complete"),
+            (Double.geometryBuilt, "Rendering…", "90% complete"),
+        ] {
+            indicator.progress = progress
+            XCTAssertEqual(label.stringValue, text)
+            XCTAssertEqual(estimate.stringValue, percentage)
+            indicator.setFrameSize(indicator.fittingSize)
+            indicator.layoutSubtreeIfNeeded()
+            XCTAssertGreaterThanOrEqual(estimate.frame.width, estimate.intrinsicContentSize.width)
+            XCTAssertGreaterThanOrEqual(label.frame.width, label.intrinsicContentSize.width)
+            XCTAssertEqual(label.frame.minX, estimate.frame.minX, accuracy: 0.5)
+        }
+        let ring = try XCTUnwrap(indicator.subviews.compactMap { $0 as? CircularProgressView }.first)
+        let textFrame = label.frame.union(estimate.frame)
+        XCTAssertEqual(textFrame.midY, ring.frame.midY, accuracy: 0.5)
+        XCTAssertLessThan(try XCTUnwrap(estimate.font).pointSize, try XCTUnwrap(label.font).pointSize)
+
+        // The controller clears progress before deactivating the indicator.
+        indicator.progress = nil
+        XCTAssertEqual(label.stringValue, "Rendering…")
+        XCTAssertEqual(estimate.stringValue, "90% complete")
+        indicator.isActive = false
+        XCTAssertEqual(label.stringValue, "Rendering…")
+        XCTAssertEqual(estimate.stringValue, "90% complete")
+        indicator.isActive = true
+        XCTAssertEqual(label.stringValue, "Loading…")
+        XCTAssertEqual(estimate.stringValue, "")
+    }
+
     @available(macOS 13.0, *)
     func testLoadingIndicatorTransitionsBetweenSpinnerAndProgress() async throws {
         let indicator = ProgressView(frame: .zero)

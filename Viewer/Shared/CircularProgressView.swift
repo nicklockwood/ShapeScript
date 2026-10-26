@@ -98,7 +98,11 @@ final class CircularProgressView: OSView {
     }
 
     private func updatePaths() {
+        #if os(macOS)
+        let lineWidth = 2 * min(bounds.width, bounds.height) / 18
+        #else
         let lineWidth: CGFloat = 2
+        #endif
         trackLayer.frame = bounds
         progressLayer.frame = bounds
         trackLayer.lineWidth = lineWidth

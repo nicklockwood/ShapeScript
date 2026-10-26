@@ -357,6 +357,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
             renderProgressView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 20),
             renderProgressView.topAnchor.constraint(equalTo: rootView.topAnchor, constant: 20),
+            renderProgressView.trailingAnchor.constraint(lessThanOrEqualTo: rootView.trailingAnchor, constant: -20),
 
             grantAccessButton.centerXAnchor.constraint(equalTo: rootView.centerXAnchor),
             grantAccessButton.bottomAnchor.constraint(equalTo: rootView.bottomAnchor, constant: -20),
