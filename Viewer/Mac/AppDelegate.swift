@@ -137,7 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
-        if NSApp.windows.allSatisfy({ !$0.isVisible }) {
+        if NSClassFromString("XCTestCase") == nil, NSApp.windows.allSatisfy({ !$0.isVisible }) {
             NSDocumentController.shared.openDocument(nil)
         }
         return false
