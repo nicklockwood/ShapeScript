@@ -316,7 +316,9 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                     with: &index
                 ) {
                     containsSelection = true
-                    menuItem.state = .mixed
+                    if menuItem.state != .on {
+                        menuItem.state = .mixed
+                    }
                 }
                 menuItem.submenu = submenu
             }

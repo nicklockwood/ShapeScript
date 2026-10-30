@@ -747,7 +747,9 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
                     for: entry.children,
                     lazySubmenus: lazySubmenus
                 ) {
-                    menuItem.state = .mixed
+                    if menuItem.state != .on {
+                        menuItem.state = .mixed
+                    }
                 }
                 menuItem.submenu = submenu
             }

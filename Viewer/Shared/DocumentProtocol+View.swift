@@ -16,6 +16,16 @@ struct SelectionMenuEntry {
     let title: String
     let isSelectable: Bool
     let children: [SelectionMenuEntry]
+
+    var submenuEntries: [SelectionMenuEntry] {
+        guard isSelectable else { return children }
+        return [SelectionMenuEntry(
+            geometry: geometry,
+            title: title,
+            isSelectable: true,
+            children: []
+        )] + children
+    }
 }
 
 struct SelectionMenuContext {
@@ -690,7 +700,10 @@ private extension Geometry {
 
 extension Geometry {
     func isSelectableInSelectionMenu(focus: Bool) -> Bool {
-        isSelectable(focus: focus) && isRenderedInScene(focus: focus)
+        if type == .group {
+            return !isHidden && children.contains { $0.isSelectableInSelectionMenu(focus: focus) }
+        }
+        return isSelectable(focus: focus) && isRenderedInScene(focus: focus)
     }
 
     func selectionMenuPath(root: Geometry) -> [Geometry] {

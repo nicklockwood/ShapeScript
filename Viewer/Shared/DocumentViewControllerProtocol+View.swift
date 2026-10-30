@@ -223,7 +223,7 @@ extension DocumentViewControllerProtocol {
     func selectGeometry(at location: CGPoint) {
         let focus = geometry?.childIsFocused ?? false
         let geometry = selectableGeometries(at: location).first {
-            $0.isSelectableInSelectionMenu(focus: focus)
+            $0.type != .group && $0.isSelectableInSelectionMenu(focus: focus)
         }
         selectGeometry(geometry?.scnNode)
     }
@@ -360,8 +360,13 @@ extension Geometry {
     }
 
     func select(with scnNode: SCNNode?) -> Geometry? {
+        select(with: scnNode, ancestorIsSelected: false)
+    }
+
+    private func select(with scnNode: SCNNode?, ancestorIsSelected: Bool) -> Geometry? {
         let isSelected = (scnNode != nil && self.scnNode === scnNode)
-        if isSelected, self.scnNode?.geometry != nil {
+        let highlight = isSelected || ancestorIsSelected
+        if highlight, self.scnNode?.geometry != nil {
             let g = scnGeometry.copy() as! SCNGeometry
             g.materials = scnGeometry.materials.map {
                 let material = $0.copy() as! SCNMaterial
@@ -375,7 +380,7 @@ extension Geometry {
         }
         var selected = isSelected ? self : nil
         for child in children {
-            selected = child.select(with: scnNode) ?? selected
+            selected = child.select(with: scnNode, ancestorIsSelected: highlight) ?? selected
         }
         return selected
     }

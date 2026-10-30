@@ -34,6 +34,42 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(node.boundingBox.max.x, 10.5, accuracy: 1e-6)
     }
 
+    func testSelectingGroupHighlightsDescendantsAndClearsPreviousSelection() throws {
+        let geometry = try evaluate("""
+        group {
+            cube
+            group { sphere }
+        }
+        cylinder
+        """)
+        XCTAssertTrue(geometry.build { false })
+        geometry.scnBuild(with: .default)
+        let root = SCNNode(geometry)
+        let group = geometry.children[0]
+        let cube = group.children[0]
+        let nestedGroup = group.children[1]
+        let sphere = nestedGroup.children[0]
+        let cylinder = geometry.children[1]
+        let groupNode = try XCTUnwrap(group.scnNode)
+        let cubeNode = try XCTUnwrap(cube.scnNode)
+        let sphereNode = try XCTUnwrap(sphere.scnNode)
+        let cylinderNode = try XCTUnwrap(cylinder.scnNode)
+
+        XCTAssertTrue(geometry.select(with: groupNode) === group)
+        XCTAssertNil(groupNode.geometry)
+        XCTAssertNil(nestedGroup.scnNode?.geometry)
+        XCTAssertFalse(cubeNode.geometry === cube.scnGeometry)
+        XCTAssertFalse(sphereNode.geometry === sphere.scnGeometry)
+        XCTAssertTrue(cylinderNode.geometry === cylinder.scnGeometry)
+        XCTAssertTrue(geometry.select(with: cylinderNode) === cylinder)
+        XCTAssertTrue(cubeNode.geometry === cube.scnGeometry)
+        XCTAssertTrue(sphereNode.geometry === sphere.scnGeometry)
+        XCTAssertFalse(cylinderNode.geometry === cylinder.scnGeometry)
+        XCTAssertNil(geometry.select(with: nil))
+        XCTAssertTrue(cylinderNode.geometry === cylinder.scnGeometry)
+        XCTAssertNil(root.geometry)
+    }
+
     private func document(for source: String) throws -> SelectionMockDocument {
         let document = SelectionMockDocument()
         let geometry = try evaluate(source)
@@ -151,8 +187,41 @@ final class SelectionTests: XCTestCase {
 
         XCTAssertFalse(focus)
         XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "cube", "group", "sphere"])
-        XCTAssertTrue(entries.allSatisfy(isEnabledInSelectionMenu))
+        XCTAssertTrue(entries.allSatisfy(\.isSelectable))
         XCTAssertEqual(document.selectableGeometries.map(\.type.logDescription), ["group", "cube", "group", "sphere"])
+    }
+
+    func testContextMenuCanSelectGroupAndItsChildren() throws {
+        let document = try document(for: """
+        group {
+            name "Assembly"
+            cube
+            sphere
+        }
+        """)
+        let group = try XCTUnwrap(document.geometry.children.first)
+        let cube = try XCTUnwrap(group.children.first)
+        let entries = document.selectionMenuEntries(for: cube.selectionMenuPath(root: document.geometry))
+        let entry = try XCTUnwrap(entries.first)
+        XCTAssertTrue(entry.geometry === group)
+        XCTAssertTrue(entry.isSelectable)
+        XCTAssertEqual(entry.children.count, 1)
+        XCTAssertTrue(entry.children[0].geometry === cube)
+        XCTAssertEqual(entry.submenuEntries.count, 2)
+        XCTAssertTrue(entry.submenuEntries[0].geometry === group)
+        XCTAssertTrue(entry.submenuEntries[0].children.isEmpty)
+        XCTAssertTrue(entry.submenuEntries.allSatisfy(\.isSelectable))
+    }
+
+    func testGroupContainingFocusedChildIsSelectable() throws {
+        let document = try document(for: """
+        group {
+            focus cube
+            sphere
+        }
+        """)
+        let entries = flattenedSelectionMenuEntries(for: document)
+        XCTAssertEqual(entries.map(\.isSelectable), [true, true, false])
     }
 
     func testSelectionMenuOmitsHiddenGeometry() throws {

@@ -1312,14 +1312,9 @@ extension DocumentViewController {
     private func selectionMenuElement(for entry: SelectionMenuEntry) -> UIMenuElement? {
         let geometry = entry.geometry
         let title = entry.title
-        let childElements = selectionMenuElements(for: entry.children)
-
-        if !childElements.isEmpty {
-            var children = [UIMenuElement]()
-            if entry.isSelectable {
-                children.append(selectionAction(for: geometry, title: title))
-            }
-            children.append(contentsOf: childElements)
+        if !entry.children.isEmpty {
+            let children = selectionMenuElements(for: entry.submenuEntries)
+            guard !children.isEmpty else { return nil }
             return UIMenu(title: title, children: children)
         }
 
@@ -1339,7 +1334,7 @@ extension DocumentViewController {
             identifier: nil,
             discoverabilityTitle: nil,
             attributes: [],
-            state: selectedGeometry === geometry ? .on : .off
+            state: (selectedGeometry === geometry) ? .on : .off
         ) { [weak self] _ in
             self?.selectGeometry(geometry.scnNode)
         }
