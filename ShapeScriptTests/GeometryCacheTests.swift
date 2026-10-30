@@ -426,6 +426,33 @@ final class GeometryCacheTests: XCTestCase {
         XCTAssertEqual(restoredScene.children.first?.cachedMesh?.polygons.count, cubePolygonCount)
     }
 
+    func testRefreshRemovesStaleDiskMeshesWhenReplacementsAreNotPersisted() throws {
+        for source in ["cube", "difference {\n cube\n cube\n }"] {
+            let directory = makeTemporaryCacheDirectory()
+            let program = try parse(source)
+            let expectedScene = try evaluate(program, delegate: nil, cache: nil)
+            XCTAssertTrue(expectedScene.build { false })
+            let geometry = try XCTUnwrap(expectedScene.children.first)
+            let expectedMesh = try XCTUnwrap(geometry.cachedMesh)
+            let diskCache = makeDiskCache(directory: directory)
+            try diskCache.setValue(CachedMesh(Mesh.sphere()), forKey: geometry.cacheKey)
+
+            let cache = makeCache(diskCache: diskCache, diskWritePolicy: neverStoreDiskPolicy)
+            try cache.withRefresh {
+                let scene = try evaluate(program, delegate: nil, cache: cache)
+                XCTAssertTrue(scene.build { false })
+                XCTAssertEqual(scene.children.first?.cachedMesh, expectedMesh)
+            }
+            cache.flushPendingDiskWrites()
+            XCTAssertNil(diskCache.value(forKey: geometry.cacheKey))
+
+            let restoredCache = makeCache(directory: directory)
+            let restoredScene = try evaluate(program, delegate: nil, cache: restoredCache)
+            XCTAssertTrue(restoredScene.build { false })
+            XCTAssertEqual(restoredScene.children.first?.cachedMesh, expectedMesh)
+        }
+    }
+
     func testGeometryCacheDoesNotPersistEmptyMeshes() throws {
         let directory = makeTemporaryCacheDirectory()
         defer { removeTemporaryCacheDirectory(directory) }
