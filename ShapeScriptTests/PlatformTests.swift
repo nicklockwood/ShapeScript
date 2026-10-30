@@ -74,6 +74,24 @@ final class PlatformTests: XCTestCase {
         XCTAssertFalse(profile.cachedPath == nil)
     }
 
+    func testCSGBackgroundUsesTranslucentGraySceneKitMaterial() throws {
+        let scene = try Scene(csgString: "%color([1,0,0]) cube(2,true);", isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+        let node = SCNNode(scene.geometry)
+        var materials = [SCNMaterial]()
+        node.enumerateChildNodes { child, _ in
+            materials += child.geometry?.materials ?? []
+        }
+        XCTAssertFalse(materials.isEmpty)
+        for material in materials {
+            let color = try XCTUnwrap(material.diffuse.contents as? OSColor)
+            XCTAssertEqual(Color(color), .gray)
+            XCTAssertEqual((material.transparent.contents as? NSNumber)?.doubleValue, 0.5)
+            XCTAssertFalse(material.writesToDepthBuffer)
+        }
+    }
+
     func testMaterialDepthBufferWrites() {
         let opaque = SCNMaterial(Material(color: .red), isOpaque: true)
         let opaqueWithinTransparentGeometry = SCNMaterial(

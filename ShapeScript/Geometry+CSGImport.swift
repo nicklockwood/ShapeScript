@@ -66,8 +66,17 @@ extension Geometry {
         }
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
-        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }), !shapes
-            .contains(where: { $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden })
+        let backgrounds = shapes.flatMap { $0.geometry.extractBackgrounds() }
+        if !backgrounds.isEmpty {
+            self.init(
+                type: .group, name: nil, transform: .identity, material: .default,
+                smoothing: .zero, children: shapes.map(\.geometry) + backgrounds,
+                sourceLocation: sourceLocation, cache: context.geometryCache
+            )
+            return
+        }
+        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }),
+           !shapes.contains(where: \.geometry.hasDisplayModifiers)
         {
             let container = importer.geometry(.union, material: .default, children: shapes.map(\.geometry))
             if container.isPath {
@@ -601,7 +610,7 @@ private struct CSGImporter {
         if children.contains(where: { !$0.is2D && !$0.isEmpty }) {
             warn("'\(node.name)' requires 2D children", at: node)
         }
-        return children.filter { !$0.geometry.isHidden }.flatMap { $0.paths ?? [] }
+        return children.filter { !$0.geometry.isHidden && !$0.geometry.isBackground }.flatMap { $0.paths ?? [] }
     }
 
     private func pathOperation(
@@ -638,6 +647,7 @@ private struct CSGImporter {
             material: source.material, smoothing: source.smoothing, children: children,
             sourceLocation: source.sourceLocation.map { location in { @Sendable in location } },
             debug: source.debug, isFocused: source.isFocused, isHidden: source.isHidden,
+            isBackground: source.isBackground,
             cache: context.geometryCache
         )
     }
@@ -668,7 +678,9 @@ private struct CSGImporter {
                 shape.geometry.debug = true
             case .focus:
                 shape.geometry.isFocused = true
-            case .background, .hide:
+            case .background:
+                shape.geometry.isBackground = true
+            case .hide:
                 shape.geometry.isHidden = true
             }
         }
@@ -1416,9 +1428,7 @@ private struct CSGImporter {
             return Vector(coordinates[0], coordinates[1], coordinates[2])
         }
         let shapes = try children(node, material: material)
-        let hasModifiers = shapes.contains {
-            $0.geometry.childDebug || $0.geometry.childIsFocused || $0.geometry.childIsHidden
-        }
+        let hasModifiers = shapes.contains(where: \.geometry.hasDisplayModifiers)
         let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) - matrix[0][1] *
             (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) + matrix[0][2] *
             (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
@@ -1483,6 +1493,7 @@ private struct CSGImporter {
             geometry.debug = source.debug
             geometry.isFocused = source.isFocused
             geometry.isHidden = source.isHidden
+            geometry.isBackground = source.isBackground
             return geometry
         }
         if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }) {
@@ -1571,5 +1582,36 @@ private struct CSGImporter {
         }
         try checkCancellation()
         return try result(Mesh(polygons), material: material)
+    }
+}
+
+private extension Geometry {
+    var hasDisplayModifiers: Bool {
+        childDebug || childIsFocused || childIsHidden || childIsBackground
+    }
+
+    // Lift preview overlays out of model operations while retaining ancestor transforms.
+    // Keep a hidden placeholder so a background first operand cannot turn a difference
+    // into a subtraction from its second operand.
+    func extractBackgrounds(parentTransform: Transform = .identity) -> [Geometry] {
+        guard !isHidden else { return [] }
+        let transform = transform * parentTransform
+        if isBackground {
+            let preview = backgroundCopy(transform: transform)
+            preview.isBackground = true
+            isHidden = true
+            return [preview]
+        }
+        return children.flatMap { $0.extractBackgrounds(parentTransform: transform) }
+    }
+
+    func backgroundCopy(transform: Transform? = nil) -> Geometry {
+        Geometry(
+            type: type, name: name, transform: transform ?? self.transform,
+            material: material, smoothing: smoothing,
+            children: children.map { $0.backgroundCopy() },
+            sourceLocation: sourceLocation.map { location in { @Sendable in location } },
+            debug: debug, isFocused: isFocused, isHidden: isHidden, cache: cache
+        )
     }
 }

@@ -12,6 +12,25 @@ import Euclid
 import XCTest
 
 final class CLITests: XCTestCase {
+    func testCSGImageExportIgnoresBackgroundGeometry() throws {
+        try withTemporaryFile(named: "model.csg") { directory, inputURL in
+            var images = [Data]()
+            for source in [
+                "cube(2,true);",
+                "cube(2,true); %translate([20,0,0]) cube(10,true);",
+            ] {
+                try source.write(to: inputURL, atomically: true, encoding: .utf8)
+                let result = try runExecutable([
+                    "export", inputURL.lastPathComponent, "--output", "model.bmp",
+                    "--width", "16", "--height", "16",
+                ], in: directory)
+                XCTAssertEqual(result.status, 0, result.failureMessage)
+                try images.append(Data(contentsOf: directory.appendingPathComponent("model.bmp")))
+            }
+            XCTAssertEqual(images[0], images[1])
+        }
+    }
+
     func testExportUpAxisUsesInputFileType() throws {
         for fileExtension in ["shape", "SHAPE", "csg", "CSG"] {
             let isCSG = fileExtension.lowercased() == "csg"

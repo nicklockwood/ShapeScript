@@ -122,6 +122,12 @@ private extension Geometry {
         if isHidden || (focus && !isFocused && !childIsFocused) {
             return .empty
         }
+        if !isBackground, childIsBackground {
+            let bounds = Bounds(children.map {
+                $0.overestimatedBoundsForFocus(focus: focus)
+            }).transformed(by: transform)
+            return !focus || isFocused ? overestimatedBounds.union(bounds) : bounds
+        }
         if !focus || isFocused {
             let children = visibleChildren
             if cachedMesh == nil, children.count != self.children.count {

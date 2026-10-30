@@ -115,6 +115,19 @@ private final class PivotResettingSCNView: SCNView {
 
 @MainActor
 final class ViewTests: XCTestCase {
+    func testExportCameraIgnoresCSGBackgroundGeometry() throws {
+        let options = ExportOptions(convertToZUp: false, camera: nil, width: nil, height: nil)
+        let model = try Scene(csgString: "cube(2,true);", isCancelled: { false })
+        let preview = try Scene(
+            csgString: "cube(2,true); %translate([20,0,0]) cube(10,true);",
+            isCancelled: { false }
+        )
+        XCTAssertNotEqual(model.visibleBounds, preview.visibleBounds)
+        let expected = try model.exportCamera(with: options, fallbackSize: (320, 320), camera: nil)
+        let actual = try preview.exportCamera(with: options, fallbackSize: (320, 320), camera: nil)
+        XCTAssertEqual(actual, expected)
+    }
+
     @available(macOS 13.0, *)
     func testRerenderAfterFailurePreservesErrorWithoutEvaluatingSource() async throws {
         let partialScene = try evaluate(parse("cube"), delegate: nil)

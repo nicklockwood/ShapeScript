@@ -576,6 +576,100 @@ final class CSGImportTests: XCTestCase {
         [geometry] + geometry.children.flatMap(descendants)
     }
 
+    func testBackgroundOverlaysPreserveTransformsWithoutChangingModel() throws {
+        let source = """
+        translate([10,0,0]) difference() {
+            cube(4,true);
+            %translate([2,0,0]) cube(2,true);
+        }
+        """
+        let cache = GeometryCache(diskCache: nil)
+        for _ in 0 ..< 2 {
+            let scene = try Scene(csgString: source, cache: cache, isCancelled: { false })
+            let root = try XCTUnwrap(scene.children.first)
+            let overlay = try XCTUnwrap(root.children.first(where: \.isBackground))
+            XCTAssertFalse(overlay.isHidden)
+            XCTAssertEqual(overlay.overestimatedBounds.center, [12, 0, 0])
+            XCTAssertTrue(root.renderedChildren.contains(where: { $0 === overlay }))
+            let progress = RenderProgress()
+            XCTAssertTrue(scene.build(progress: progress))
+            XCTAssertTrue(progress.isFinished)
+            XCTAssertTrue(scene.geometry.hasBuiltMeshes)
+            XCTAssertTrue(overlay.hasBuiltMeshes)
+            XCTAssertEqual(scene.geometry.merged().signedVolume, 64, accuracy: 1e-8)
+            XCTAssertEqual(scene.visibleGeometry.merged().signedVolume, 64, accuracy: 1e-8)
+            XCTAssertEqual(scene.visibleBounds.max.x, 13, accuracy: 1e-8)
+        }
+    }
+
+    func testBackgroundOnlyDocumentIsVisibleButExportsEmpty() throws {
+        let scene = try Scene(csgString: "%cube(4,true);", isCancelled: { false })
+        let root = try XCTUnwrap(scene.children.first)
+        let overlay = try XCTUnwrap(root.children.last)
+        XCTAssertTrue(overlay.isBackground)
+        XCTAssertEqual(root.renderedChildren.count, 1)
+        XCTAssertTrue(root.renderedChildren.first === overlay)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(overlay.cachedMesh, Mesh.cube())
+        XCTAssertEqual(scene.visibleBounds.size, [4, 4, 4])
+        XCTAssertTrue(scene.geometry.merged().isEmpty)
+        XCTAssertTrue(scene.visibleGeometry.merged().isEmpty)
+    }
+
+    func testHiddenAndNestedBackgroundModifiers() throws {
+        let scene = try Scene(csgString: """
+        %group() { cube(1); %translate([3,0,0]) cube(1); *cube(20); }
+        *%cube(30);
+        """, isCancelled: { false })
+        let root = try XCTUnwrap(scene.children.first)
+        let overlays = root.children.filter { $0.isBackground && !$0.isHidden }
+        XCTAssertEqual(overlays.count, 1)
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.visibleBounds.min, [0, 0, 0])
+        XCTAssertEqual(scene.visibleBounds.max, [4, 1, 1])
+        XCTAssertTrue(scene.geometry.merged().isEmpty)
+        XCTAssertTrue(overlays[0].children.filter { !$0.isHidden }.allSatisfy(\.hasBuiltMeshes))
+    }
+
+    func testBackgroundExtrusionReusesCachedMeshWithoutEvaluatingProfile() throws {
+        let cache = GeometryCache(diskCache: nil)
+        let source = "%linear_extrude(height=2) difference() { square(4,true); square(2,true); }"
+        func difference(in geometry: Geometry) -> Geometry? {
+            if geometry.type == .difference { return geometry }
+            return geometry.children.lazy.compactMap { difference(in: $0) }.first
+        }
+        for iteration in 0 ..< 2 {
+            let scene = try Scene(csgString: source, cache: cache, isCancelled: { false })
+            let overlay = try XCTUnwrap(scene.children.first?.children.last)
+            XCTAssertTrue(overlay.isBackground)
+            let profile = try XCTUnwrap(difference(in: overlay))
+            XCTAssertTrue(profile.cachedPath == nil)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertEqual(profile.cachedPath == nil, iteration > 0)
+            XCTAssertEqual(try XCTUnwrap(overlay.cachedMesh).signedVolume, 24, accuracy: 1e-8)
+            XCTAssertTrue(scene.geometry.merged().isEmpty)
+        }
+    }
+
+    func testFocusedBackgroundControlsVisibleBounds() throws {
+        let scene = try Scene(csgString: "cube(100,true); !%translate([10,0,0]) cube(2,true);", isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.visibleBounds, Bounds([9, -1, -1], [11, 1, 1]))
+        XCTAssertTrue(scene.visibleGeometry.merged().isEmpty)
+    }
+
+    func testBackgroundOperandsAreExcludedFromAllModelOperations() throws {
+        for operation in ["union", "difference", "intersection", "hull", "minkowski"] {
+            let scene = try Scene(
+                csgString: "\(operation)() { cube(2,true); %cube(1,true); }",
+                isCancelled: { false }
+            )
+            XCTAssertTrue(scene.build { false })
+            XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8, operation)
+            XCTAssertEqual(scene.geometry.volume { false }, 8, accuracy: 1e-8, operation)
+        }
+    }
+
     func testModifierMappings() throws {
         for (prefix, debug, hidden, focused) in [
             ("#", true, false, false), ("%", false, true, false),

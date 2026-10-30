@@ -16,14 +16,14 @@ extension Scene {
         fallbackSize: (width: Int, height: Int),
         camera cameraOverride: Camera?
     ) throws -> ShapeScript.Camera {
+        let bounds = geometry.withoutHiddenOrUnfocused().overestimatedBounds
         let selectedCamera = try cameraOverride ?? options.camera.map(camera(named:)) ?? cameras.first.map {
             Camera(geometry: $0, index: 0, zUp: zUp)
-        } ?? Camera(bounds: visibleBounds, zUp: zUp)
+        } ?? Camera(bounds: bounds, zUp: zUp)
         let outputSize = options.outputSize(fallbackSize: fallbackSize, camera: selectedCamera)
         let width = outputSize.width
         let height = outputSize.height
         let aspectRatio = Double(height) / Double(width)
-        let bounds = visibleBounds
         let size = selectedCamera.framingSize(bounds.size)
         let center = bounds.center
 

@@ -12,6 +12,40 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testRemovingHiddenOrBackgroundBaseDoesNotPromoteCutters() {
+        for type in [GeometryType.difference, .stencil] {
+            for background in [false, true] {
+                let context = EvaluationContext(source: "", delegate: nil) { false }
+                let base = Geometry(type: .cube, in: context)
+                base.isHidden = !background
+                base.isBackground = background
+                let cutter = Geometry(type: .sphere(segments: 8), in: context)
+                let geometry = Geometry(type: type, in: context, children: [base, cutter])
+                let copy = geometry.withoutHiddenOrUnfocused()
+                XCTAssertEqual(copy.type, .group)
+                XCTAssertTrue(copy.children.isEmpty)
+                XCTAssertTrue(copy.build { false })
+                XCTAssertTrue(copy.merged().isEmpty)
+                XCTAssertEqual(geometry.children.count, 2)
+            }
+        }
+    }
+
+    func testRemovingHiddenOrBackgroundRootRemovesChildren() {
+        for background in [false, true] {
+            let context = EvaluationContext(source: "", delegate: nil) { false }
+            let geometry = Geometry(type: .group, in: context, children: [
+                Geometry(type: .cube, in: context),
+            ])
+            geometry.isHidden = !background
+            geometry.isBackground = background
+            let copy = geometry.withoutHiddenOrUnfocused()
+            XCTAssertTrue(copy.children.isEmpty)
+            XCTAssertTrue(copy.build { false })
+            XCTAssertTrue(copy.merged().isEmpty)
+        }
+    }
+
     #if canImport(CoreText)
     func testTextLetterspacingIsAdditiveAndCanChangeBetweenLines() throws {
         let scene = try evaluate(parse("""

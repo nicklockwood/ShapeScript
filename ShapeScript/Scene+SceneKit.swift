@@ -138,6 +138,9 @@ public extension Scene {
             color: .green.withAlphaComponent(0.5)
         )
 
+        /// Internal rendering state inherited by background overlay descendants.
+        fileprivate var isBackground = false
+
         /// Should mesh be drawn using wireframe
         public var wireframe: Bool = false
 
@@ -227,6 +230,10 @@ private extension Geometry {
         with options: Scene.OutputOptions,
         disablingDepthBufferWritesFor geometries: Set<Geometry>
     ) {
+        var options = options
+        options.isBackground = options.isBackground || isBackground
+        let overlayMaterial = options.isBackground ? Material(color: .gray.withAlphaComponent(0.5)) :
+            (debug ? options.debugMaterial : nil)
         let focus = childIsFocused
         renderedChildren(focus: focus).scnBuild(
             with: options,
@@ -247,7 +254,7 @@ private extension Geometry {
             self.scnGeometry = scnGeometry
             return
         } else if let light {
-            if debug, let material = options.debugMaterial, !options.wireframe {
+            if let material = overlayMaterial, !options.wireframe {
                 let mesh: Mesh
                 switch (light.hasPosition, light.hasOrientation) {
                 case (false, _):
@@ -285,7 +292,7 @@ private extension Geometry {
                 scnGeometry = wireframe
             } else {
                 let geometry: SCNGeometry
-                if debug, let material = options.debugMaterial {
+                if let material = overlayMaterial {
                     geometry = SCNGeometry(.stroke(
                         path.withColor(nil),
                         width: options.lineWidth,
@@ -322,9 +329,10 @@ private extension Geometry {
                 scnGeometry = wireframe
             } else {
                 var geometry: SCNGeometry
-                if debug, let material = options.debugMaterial {
+                if let material = overlayMaterial {
                     let m = SCNMaterial(material, isOpaque: false)
-                    geometry = SCNGeometry(mesh.scaled(by: 1.001)) { _ in m }
+                    m.writesToDepthBuffer = !options.isBackground
+                    geometry = SCNGeometry(options.isBackground ? mesh : mesh.scaled(by: 1.001)) { _ in m }
                 } else {
                     geometry = SCNGeometry(
                         mesh,
