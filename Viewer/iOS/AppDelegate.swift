@@ -16,12 +16,25 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applyExternalCacheSettings),
+            name: UIScene.willEnterForegroundNotification,
+            object: nil
+        )
+        applyExternalCacheSettings()
         firstLaunchOfNewVersion = (Settings.shared.appVersion != appVersion)
         if firstLaunchOfNewVersion {
             Settings.shared.previousAppVersion = Settings.shared.appVersion
             Settings.shared.appVersion = appVersion
         }
         return true
+    }
+
+    @objc private func applyExternalCacheSettings() {
+        Task {
+            await Settings.shared.applyExternalCacheSettings()
+        }
     }
 
     func application(

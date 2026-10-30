@@ -25,11 +25,13 @@ extension Notification.Name {
 final class Settings: @unchecked Sendable {
     static let shared = Settings()
 
-    let defaults = UserDefaults.standard
-    let diskCache = DiskCache.shared
+    let defaults: UserDefaults
+    let diskCache: DiskCache
     var associatedData: [String: Any] = [:]
 
-    private init() {
+    init(defaults: UserDefaults = .standard, diskCache: DiskCache = .shared) {
+        self.defaults = defaults
+        self.diskCache = diskCache
         Task {
             await diskCache.setCapacity(diskCacheCapacity)
         }
@@ -158,6 +160,19 @@ final class Settings: @unchecked Sendable {
     func clearDiskCache() async {
         await diskCache.removeAll()
         NotificationCenter.default.post(name: .settingsUpdated, object: nil)
+    }
+
+    @MainActor
+    func applyExternalCacheSettings() async {
+        let shouldClear = defaults.bool(forKey: "clearDiskCache")
+        // Consume before suspending so simultaneous scene activations cannot clear twice.
+        if shouldClear {
+            defaults.set(false, forKey: "clearDiskCache")
+        }
+        await diskCache.setCapacity(diskCacheCapacity)
+        if shouldClear {
+            await clearDiskCache()
+        }
     }
 
     var diskCacheUsage: Int {

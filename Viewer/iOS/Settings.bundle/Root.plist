@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Cached geometry speeds up loading and rendering. Changes take effect when you next open ShapeScript.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Cache Size</string>
+			<key>Key</key>
+			<string>diskCacheCapacity</string>
+			<key>DefaultValue</key>
+			<integer>250000000</integer>
+			<key>Titles</key>
+			<array>
+				<string>Off</string>
+				<string>100 MB</string>
+				<string>250 MB</string>
+				<string>500 MB</string>
+				<string>1 GB</string>
+				<string>2 GB</string>
+				<string>4 GB</string>
+				<string>8 GB</string>
+				<string>16 GB</string>
+			</array>
+			<key>Values</key>
+			<array>
+				<integer>0</integer>
+				<integer>100000000</integer>
+				<integer>250000000</integer>
+				<integer>500000000</integer>
+				<integer>1000000000</integer>
+				<integer>2000000000</integer>
+				<integer>4000000000</integer>
+				<integer>8000000000</integer>
+				<integer>16000000000</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>FooterText</key>
+			<string>Clear the cache to reclaim disk space. Changes take effect when you next open ShapeScript.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Clear Cache</string>
+			<key>Key</key>
+			<string>clearDiskCache</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+	</array>
+</dict>
+</plist>
