@@ -239,7 +239,7 @@ final class EvaluationContext {
         for (name, value) in state.optionValues {
             define(name, as: .option(value))
         }
-        define("children", as: .constant(.tuple(state.children)))
+        define("children", as: .constant(.list(state.children)))
     }
 }
 

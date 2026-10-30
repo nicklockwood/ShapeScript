@@ -942,7 +942,7 @@ final class TypesystemTests: XCTestCase {
 
     func testCastNumberToNumberTuple() {
         XCTAssert(Value(1).isConvertible(to: .tuple([.number])))
-        XCTAssertEqual(try evaluate("1", as: .tuple([.number])), [.number(1)])
+        XCTAssertEqual(try evaluate("1", as: .tuple([.number])), .tuple([.number(1)]))
     }
 
     func testCastNumberToNumberList() {
@@ -998,8 +998,8 @@ final class TypesystemTests: XCTestCase {
         }
     }
 
-    func testCastEmptyTupleToColor() {
-        XCTAssertFalse(Value([]).isConvertible(to: .color))
+    func testCastVoidToColor() {
+        XCTAssertFalse(Value.void.isConvertible(to: .color))
         XCTAssertThrowsError(try evaluate("()", as: .color)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.type, .typeMismatch(
@@ -1050,13 +1050,13 @@ final class TypesystemTests: XCTestCase {
     func testCastNumericCoupletToNumberTuple() {
         let type = ValueType.tuple([.number, .number])
         XCTAssert(Value(1, 0.5).isConvertible(to: type))
-        XCTAssertEqual(try evaluate("1 0.5", as: type), [1, 0.5])
+        XCTAssertEqual(try evaluate("1 0.5", as: type), .tuple([1, 0.5]))
     }
 
     func testCastNumericCoupletToAnyTuple() {
         let type = ValueType.tuple([.any, .any])
         XCTAssert(Value(1, 0.5).isConvertible(to: type))
-        XCTAssertEqual(try evaluate("1 0.5", as: type), [1, 0.5])
+        XCTAssertEqual(try evaluate("1 0.5", as: type), .tuple([1, 0.5]))
     }
 
     func testCastMixedTupleToMixedTuple() {
@@ -1064,7 +1064,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
         XCTAssertEqual(
             try evaluate("\"foo\" 0.5 true", as: type),
-            ["foo", 0.5, true]
+            .tuple(["foo", 0.5, true])
         )
     }
 
@@ -1073,7 +1073,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value("foo", 0.5, true).isConvertible(to: type))
         XCTAssertEqual(
             try evaluate("\"foo\" 0.5 true", as: type),
-            ["foo", "0.5", "true"]
+            .tuple(["foo", "0.5", "true"])
         )
     }
 
@@ -1504,7 +1504,7 @@ final class TypesystemTests: XCTestCase {
         XCTAssert(Value(Value("foo", "bar"), "baz").isConvertible(to: type))
         XCTAssertEqual(
             try evaluate("(\"foo\" \"bar\") \"baz\"", as: type),
-            [["foo", "bar"], "baz"]
+            .tuple([["foo", "bar"], "baz"])
         )
     }
 
@@ -1519,21 +1519,21 @@ final class TypesystemTests: XCTestCase {
         let type = ValueType.list(.tuple([.string, .string]))
         let value = Value.object(["foo": "bar", "baz": "quux"])
         XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), [["baz", "quux"], ["foo", "bar"]])
+        XCTAssertEqual(value.as(type), [.tuple(["baz", "quux"]), .tuple(["foo", "bar"])])
     }
 
     func testCastObjectToStringNumberTupleList() {
         let type = ValueType.list(.tuple([.string, .number]))
         let value = Value.object(["foo": 1, "baz": 2])
         XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), [["baz", 2], ["foo", 1]])
+        XCTAssertEqual(value.as(type), [.tuple(["baz", 2]), .tuple(["foo", 1])])
     }
 
     func testCastObjectToTuple() {
         let type = ValueType.tuple([.tuple([.string, .boolean]), .tuple([.string, .number])])
         let value = Value.object(["foo": 1, "baz": true])
         XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), [["baz", true], ["foo", 1]])
+        XCTAssertEqual(value.as(type), .tuple([.tuple(["baz", true]), .tuple(["foo", 1])]))
     }
 
     func testCastValueToOptional() {
@@ -1556,7 +1556,7 @@ final class TypesystemTests: XCTestCase {
         let type = ValueType.tuple([.boolean, .optional(.string)])
         let value = Value.boolean(true)
         XCTAssert(value.isConvertible(to: type))
-        XCTAssertEqual(value.as(type), [true])
+        XCTAssertEqual(value.as(type), .tuple([true]))
     }
 
     func testCastSingleElementTupleToList() {

@@ -187,14 +187,14 @@ private extension MemberProperties {
             return geometry.hasMesh
         }) { value, isCancelled in
             guard case let .mesh(geometry) = value, geometry.hasMesh else { return nil }
-            return .tuple(geometry.polygons(isCancelled).map { .polygon($0) })
+            return .list(geometry.polygons(isCancelled).map { .polygon($0) })
         },
         "triangles": .init(.list(.polygon), isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
             return geometry.hasMesh
         }) { value, isCancelled in
             guard case let .mesh(geometry) = value, geometry.hasMesh else { return nil }
-            return .tuple(geometry.triangles(isCancelled).map { .polygon($0) })
+            return .list(geometry.triangles(isCancelled).map { .polygon($0) })
         },
         "material": .init(.material, isAvailable: {
             guard case let .mesh(geometry) = $0 else { return false }
@@ -223,7 +223,7 @@ private extension MemberProperties {
         },
         "points": .init(.list(.point)) { value, _ in
             guard case let .path(path) = value else { return nil }
-            return .tuple(path.points.map { .point($0) })
+            return .list(path.points.map { .point($0) })
         },
         "color": .init(.optional(.color)) { value, _ in
             guard case let .path(path) = value else { return nil }
@@ -242,11 +242,11 @@ private extension MemberProperties {
         },
         "points": .init(.list(.point)) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
-            return .tuple(polygon.vertices.map { .point(PathPoint($0)) })
+            return .list(polygon.vertices.map { .point(PathPoint($0)) })
         },
         "triangles": .init(.list(.polygon)) { value, isCancelled in
             guard case let .polygon(polygon) = value else { return nil }
-            return .tuple(polygon.triangulate(isCancelled: isCancelled).map { .polygon($0) })
+            return .list(polygon.triangulate(isCancelled: isCancelled).map { .polygon($0) })
         },
         "material": .init(.material) { value, _ in
             guard case let .polygon(polygon) = value else { return nil }
@@ -319,17 +319,17 @@ private extension MemberProperties {
     static let string: MemberProperties = [
         "lines": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
-            return .tuple(string.split { $0.isNewline }.map { .string("\($0)") })
+            return .list(string.split { $0.isNewline }.map { .string("\($0)") })
         },
         "words": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
-            return .tuple(string.split(omittingEmptySubsequences: true) {
+            return .list(string.split(omittingEmptySubsequences: true) {
                 $0.isWhitespace || $0.isNewline
             }.map { .string("\($0)") })
         },
         "characters": .init(.list(.string)) { value, _ in
             guard case let .string(string) = value else { return nil }
-            return .tuple(string.map { .string("\($0)") })
+            return .list(string.map { .string("\($0)") })
         },
     ]
 
@@ -407,18 +407,27 @@ private extension TupleMemberProperties {
         "last": .init(fallbackType: .any, type: { $0.last }, isAvailable: { !$0.isEmpty }) { _, values, _ in
             values.last
         },
-        "count": .init(.number) { _, values, _ in
-            .number(Double(values.unwrapped(recursive: true).count))
+        "count": .init(.number) { _, values, isCancelled in
+            if values.count == 1 {
+                let value = values[0].unwrapped(recursive: true)
+                switch value {
+                case .range, .list:
+                    return value["count", isCancelled]
+                default:
+                    break
+                }
+            }
+            return .number(Double(values.unwrapped(recursive: true).count))
         },
         "allButFirst": .init(fallbackType: .list(.any), type: { types in
-            .tuple(Swift.Array(types.dropFirst()))
+            .list(.union(Set(types.dropFirst())).simplified())
         }) { _, values, _ in
-            .tuple(Swift.Array(values.unwrapped(recursive: true).dropFirst()))
+            .list(Swift.Array(values.unwrapped(recursive: true).dropFirst()))
         },
         "allButLast": .init(fallbackType: .list(.any), type: { types in
-            .tuple(Swift.Array(types.dropLast()))
+            .list(.union(Set(types.dropLast())).simplified())
         }) { _, values, _ in
-            .tuple(Swift.Array(values.unwrapped(recursive: true).dropLast()))
+            .list(Swift.Array(values.unwrapped(recursive: true).dropLast()))
         },
     ]
 
@@ -454,7 +463,7 @@ private extension TupleMemberProperties {
                 value.type == .mesh || value.type == .polygon
             }
         }) { _, values, isCancelled in
-            .tuple(values.flattened(recursive: true).flatMap { value in
+            .list(values.flattened(recursive: true).flatMap { value in
                 switch value {
                 case let .mesh(geometry) where geometry.hasMesh:
                     let polygons = geometry.polygons(isCancelled)
@@ -472,7 +481,7 @@ private extension TupleMemberProperties {
                 value.type == .mesh || value.type == .polygon
             }
         }) { _, values, isCancelled in
-            .tuple(values.flattened(recursive: true).flatMap { value in
+            .list(values.flattened(recursive: true).flatMap { value in
                 switch value {
                 case let .mesh(geometry) where geometry.hasMesh:
                     let triangles = geometry.triangles(isCancelled)
@@ -727,7 +736,9 @@ extension ValueType {
     private func _memberType(_ name: String) -> ValueType? {
         switch self {
         case let .list(type):
-            return (name.isOrdinal || name == "last") ? type : type.memberType(name)
+            if name.isOrdinal || name == "last" { return type }
+            if name == "allButFirst" || name == "allButLast" { return self }
+            return TupleMemberProperties.all[name]?.type([type]) ?? type.memberType(name)
         case let .tuple(types):
             if let index = name.ordinalIndex {
                 return types.indices.contains(index) ? types[index] : nil
@@ -781,6 +792,15 @@ private extension [String] {
 extension Value {
     var members: [String] {
         switch self {
+        case let .list(values):
+            var members = Array(String.ordinals(upTo: values.count))
+            members.appendUnique(contentsOf: ["count", "allButFirst", "allButLast"])
+            if !values.isEmpty { members.appendUnique(contentsOf: ["last"]) }
+            members.appendUnique(contentsOf: TupleMemberProperties.all.compactMap {
+                $0.value.isAvailable(values) ? $0.key : nil
+            })
+            if values.count == 1 { members.appendUnique(contentsOf: values[0].members) }
+            return members
         case let .tuple(values):
             var members = Array(String.ordinals(upTo: values.count))
             members.appendUnique(contentsOf: TupleMemberProperties.all.compactMap {
@@ -824,8 +844,12 @@ extension Value {
         if let member = materialized[name, isCancelled] {
             return member
         }
-        if case let .tuple(values) = self, values.count == 1 {
+        switch self {
+        case let .tuple(values) where values.count == 1,
+             let .list(values) where values.count == 1:
             return try values[0].member(name, isCancelled: isCancelled)
+        default:
+            break
         }
         guard case let .mesh(geometry) = self else { return nil }
         // Path materialization discards the geometry name, but it remains accessible.
@@ -858,7 +882,23 @@ extension Value {
 
     private func _member(_ name: String, _ isCancelled: @escaping CancellationHandler) -> Value? {
         switch self {
+        case let .list(values):
+            switch name {
+            case "count": return .number(Double(values.count))
+            case "last": return values.last
+            case "allButFirst": return .list(Array(values.dropFirst()))
+            case "allButLast": return .list(Array(values.dropLast()))
+            default:
+                if let index = name.ordinalIndex {
+                    return values.indices.contains(index) ? values[index] : nil
+                }
+                return TupleMemberProperties.all[name]?.get(self, values, isCancelled) ??
+                    (values.count == 1 ? values[0][name, isCancelled] : nil)
+            }
         case let .tuple(values):
+            if values.count == 1, case .list = values[0].type {
+                return values[0][name, isCancelled]
+            }
             if let value = TupleMemberProperties.all[name]?.get(self, values, isCancelled) {
                 return value
             }
@@ -893,7 +933,7 @@ extension Value {
             return -3 ..< 3
         case .color:
             return -4 ..< 4
-        case let .tuple(values):
+        case let .tuple(values), let .list(values):
             return -values.endIndex ..< values.endIndex
         case let .range(range):
             guard let values = range.stride.map(Array.init) else { fallthrough }
@@ -923,6 +963,9 @@ extension Value {
             case 3: return .number(color.alpha)
             default: return nil
             }
+        case let .list(values):
+            let index = index < 0 ? values.count + index : index
+            return values.indices.contains(index) ? values[index] : nil
         case let .tuple(values):
             if values.count == 1, let result = values[0][index] { return result }
             let index = index < 0 ? values.count + index : index

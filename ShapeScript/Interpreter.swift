@@ -579,55 +579,62 @@ final class UserBlock: @unchecked Sendable {
                     try statement.evaluate(in: context)
                 }
             }
-            let children = context.state.children.unwrapped(recursive: true)
-            if children.count == 1 {
-                switch children[0].unpretransformed() {
-                case let .path(path):
-                    guard context.state.name.isEmpty else {
+            let children = context.state.name.isEmpty ?
+                context.state.children.unwrapped(recursive: true) :
+                context.state.children.flattened(recursive: true)
+            let flattenedChildren = children.flattened(recursive: true)
+            // Mesh outputs form a single CSG operand, including those returned in lists.
+            // Keep collection semantics for paths and values that are not geometry.
+            let shouldGroupGeometry = flattenedChildren.contains(where: {
+                if case let .mesh(geometry) = $0.unpretransformed() {
+                    return !geometry.isPath
+                }
+                return false
+            }) && flattenedChildren.allSatisfy { $0.isConvertible(to: .mesh) }
+            if children.count == 1, flattenedChildren.count <= 1 || !shouldGroupGeometry {
+                func transform(_ child: Value) -> Value {
+                    switch child.unpretransformed() {
+                    case let .list(values):
+                        return .list(values.map(transform))
+                    case let .path(path):
+                        guard context.state.name.isEmpty else {
+                            return .mesh(Geometry(
+                                type: .path(path),
+                                name: context.state.name,
+                                transform: context.state.transform,
+                                material: .default,
+                                smoothing: nil,
+                                children: [],
+                                sourceLocation: context.sourceLocation,
+                                cache: context.geometryCache
+                            ))
+                        }
+                        return .path(path.transformed(by: context.state.transform))
+                    case let .mesh(geometry):
+                        // TODO: why not just use `geometry.transformed(by: context.state.transform)`?
+                        // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
                         return .mesh(Geometry(
-                            type: .path(path),
-                            name: context.state.name,
-                            transform: context.state.transform,
-                            material: .default,
-                            smoothing: nil,
-                            children: [],
+                            type: geometry.type,
+                            name: context.state.name.isEmpty ? geometry.name : context.state.name,
+                            transform: geometry.transform * context.state.transform,
+                            material: geometry.material,
+                            smoothing: geometry.smoothing,
+                            children: geometry.children,
                             sourceLocation: context.sourceLocation,
+                            debug: geometry.debug,
+                            isFocused: geometry.isFocused,
+                            isHidden: geometry.isHidden,
                             cache: context.geometryCache
                         ))
+                    case let .polygon(polygon):
+                        return .polygon(polygon.transformed(by: context.state.transform))
+                    case let value:
+                        return value
                     }
-                    return .path(path.transformed(by: context.state.transform))
-                case let .mesh(geometry):
-                    // TODO: why not just use `geometry.transformed(by: context.state.transform)`?
-                    // TODO: why `context.sourceLocation` and not `geometry.sourceLocation`?
-                    return .mesh(Geometry(
-                        type: geometry.type,
-                        name: context.state.name.isEmpty ? geometry.name : context.state.name,
-                        transform: geometry.transform * context.state.transform,
-                        material: geometry.material,
-                        smoothing: geometry.smoothing,
-                        children: geometry.children,
-                        sourceLocation: context.sourceLocation,
-                        debug: geometry.debug,
-                        isFocused: geometry.isFocused,
-                        isHidden: geometry.isHidden,
-                        cache: context.geometryCache
-                    ))
-                case let .polygon(polygon):
-                    return .polygon(polygon.transformed(by: context.state.transform))
-                case let value:
-                    return value
                 }
-            } else if context.state.name.isEmpty,
-                      // Preserve tuple semantics for blocks that return paths
-                      // or mix geometry with other values
-                      !children.contains(where: {
-                          if case let .mesh(geometry) = $0.unpretransformed() {
-                              return !geometry.isPath
-                          }
-                          return false
-                      }) ||
-                      children.contains(where: { !$0.isConvertible(to: .mesh) })
-            {
+                return transform(children[0])
+            }
+            if context.state.name.isEmpty, !shouldGroupGeometry {
                 return .tuple(children.map {
                     switch $0.unwrapped(recursive: true).unpretransformed() {
                     case let .path(path):
@@ -636,6 +643,8 @@ final class UserBlock: @unchecked Sendable {
                         .mesh(geometry.transformed(by: context.state.transform))
                     case let .polygon(polygon):
                         .polygon(polygon.transformed(by: context.state.transform))
+                    case let .list(values):
+                        .list(values.map { $0.transformed(by: context.state.transform) })
                     case .color, .texture, .material, .boolean, .number, .radians,
                          .halfturns, .vector, .size, .rotation, .string, .font, .text,
                          .point, .tuple, .range, .bounds, .object, .pretransformed:
@@ -649,10 +658,10 @@ final class UserBlock: @unchecked Sendable {
                 transform: context.state.transform,
                 material: .default,
                 smoothing: context.state.smoothing,
-                children: children.map {
+                children: flattenedChildren.map {
                     switch $0.unpretransformed() {
                     case let .path(path):
-                        return Geometry(
+                        Geometry(
                             type: .path(path),
                             name: nil,
                             transform: .identity,
@@ -663,10 +672,10 @@ final class UserBlock: @unchecked Sendable {
                             cache: context.geometryCache
                         )
                     case let .mesh(geometry):
-                        return geometry
+                        geometry
                     case .color, .texture, .material, .boolean, .number, .radians,
                          .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                         .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
+                         .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed, .list:
                         throw RuntimeErrorType.custom(
                             "Blocks that return \(aOrAn($0.errorDescription)) " +
                                 "value cannot be assigned a name"
@@ -1022,13 +1031,13 @@ private extension RuntimeError {
 
     static let osName: String = {
         #if os(macOS) || targetEnvironment(macCatalyst)
-        return "macOS"
+        "macOS"
         #elseif os(tvOS)
-        return "tvOS"
+        "tvOS"
         #elseif os(iOS)
-        return "iOS"
+        "iOS"
         #else
-        return "system"
+        "system"
         #endif
     }()
 }
@@ -1179,7 +1188,7 @@ private func evaluateBlockParameters(
                     for: identifier.name,
                     index: j > 0 ? j : -1,
                     expected: j == 0 ? type.childTypes.errorDescriptionOrBlock : type.childTypes.errorDescription,
-                    got: child.type.errorDescription
+                    got: child.typeForError.errorDescription
                 ),
                 at: j < parameters.count ? parameters[j].range : range
             )
@@ -1216,9 +1225,9 @@ extension Definition {
         switch type {
         case let .expression(expression):
             let context = context.pushDefinition()
-            let value = try expression.evaluate(in: context)
-            switch value {
-            case .tuple:
+            let value = try expression.evaluate(in: context).unwrapped(recursive: true)
+            switch value.type {
+            case .tuple, .list:
                 return .constant(value)
             default:
                 // Wrap all definitions as a single-value tuple
@@ -1333,6 +1342,12 @@ extension EvaluationContext {
         guard value.isFinite else {
             throw RuntimeErrorType.nonFiniteValue
         }
+        if case let .list(values) = value, state.childTypes != .any,
+           !(ValueType.point.isSubtype(of: state.childTypes) && value.isConvertible(to: .point))
+        {
+            try values.forEach(addValue)
+            return
+        }
         if ValueType.path.isSubtype(of: state.childTypes),
            !ValueType.mesh.isSubtype(of: state.childTypes)
         {
@@ -1354,48 +1369,55 @@ extension EvaluationContext {
                 return
             }
         }
-        if let value = try value.as(state.childTypes, in: self) {
-            func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
-                switch value {
-                case let .tuple(values):
-                    let values = values.compactMap { valueForAdding($0, childTransform) }
-                    return values.isEmpty ? nil : .tuple(values)
-                case let .mesh(m):
-                    return .mesh(m.transformed(by: childTransform))
-                case let .vector(v):
-                    return .vector(v.transformed(by: childTransform))
-                case let .point(p):
-                    return .point(p.transformed(by: childTransform))
-                case let .polygon(p):
-                    return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: state.material))
-                case let .path(path):
-                    return .path(path.transformed(by: childTransform))
-                case let .pretransformed(value):
-                    return valueForAdding(value, .identity)
-                case _ where state.childTypes.subtypes.contains(.text):
-                    return .text(TextValue(
-                        string: value.stringValue,
-                        font: self.value(for: "font")?.stringValue ?? state.font,
-                        color: state.material.color,
-                        linespacing: self.value(for: "linespacing")?.doubleValue,
-                        letterspacing: self.value(for: "letterspacing")?.doubleValue
-                    ))
-                default:
-                    return value
-                }
+        guard let value = try value.as(state.childTypes, in: self) else {
+            switch value {
+            case let .tuple(values), let .list(values):
+                try values.forEach(addValue)
+            case let .pretransformed(.list(values)):
+                try addValue(.list(values.map { .pretransformed($0) }))
+            case let .pretransformed(.tuple(values)):
+                try addValue(.tuple(values.map { .pretransformed($0) }))
+            default:
+                throw RuntimeErrorType.unusedValue(type: value.type)
             }
-            valueForAdding(value, state.childTransform).map {
-                if case let .mesh(geometry) = $0 {
-                    geometry.gatherNamedObjects(&namedObjects)
-                }
-                state.children.append($0)
+            return
+        }
+        func valueForAdding(_ value: Value, _ childTransform: Transform) -> Value? {
+            switch value {
+            case let .list(values):
+                return .list(values.compactMap { valueForAdding($0, childTransform) })
+            case let .tuple(values):
+                let values = values.compactMap { valueForAdding($0, childTransform) }
+                return values.isEmpty ? nil : .tuple(values)
+            case let .mesh(m):
+                return .mesh(m.transformed(by: childTransform))
+            case let .vector(v):
+                return .vector(v.transformed(by: childTransform))
+            case let .point(p):
+                return .point(p.transformed(by: childTransform))
+            case let .polygon(p):
+                return .polygon(p.transformed(by: childTransform).vertexColorsToMaterial(material: state.material))
+            case let .path(path):
+                return .path(path.transformed(by: childTransform))
+            case let .pretransformed(value):
+                return valueForAdding(value, .identity)
+            case _ where state.childTypes.subtypes.contains(.text):
+                return .text(TextValue(
+                    string: value.stringValue,
+                    font: self.value(for: "font")?.stringValue ?? state.font,
+                    color: state.material.color,
+                    linespacing: self.value(for: "linespacing")?.doubleValue,
+                    letterspacing: self.value(for: "letterspacing")?.doubleValue
+                ))
+            default:
+                return value
             }
-        } else if case let .tuple(values) = value {
-            try values.forEach(addValue)
-        } else if case let .pretransformed(.tuple(values)) = value {
-            try addValue(.tuple(values.map { .pretransformed($0) }))
-        } else {
-            throw RuntimeErrorType.unusedValue(type: value.type)
+        }
+        valueForAdding(value, state.childTransform).map {
+            if case let .mesh(geometry) = $0 {
+                geometry.gatherNamedObjects(&namedObjects)
+            }
+            state.children.append($0)
         }
     }
 }
@@ -1592,7 +1614,7 @@ extension Statement {
             case .color, .texture, .material, .boolean, .number,
                  .radians, .halfturns, .vector, .size, .rotation,
                  .string, .font, .text, .path, .polygon, .point,
-                 .tuple, .range, .bounds, .object, .pretransformed:
+                 .tuple, .range, .bounds, .object, .pretransformed, .list:
                 break
             }
             try RuntimeError.wrap(context.addValue(value), at: range)
@@ -1723,7 +1745,7 @@ private func coerceOptionValue(
         for: identifier.name,
         index: 0,
         expected: type.errorDescription,
-        got: value.type.errorDescription
+        got: value.typeForError.errorDescription
     ), at: identifier.range)
 }
 
@@ -1827,11 +1849,11 @@ extension Expression {
                 }
                 return try value.as(type.returnType, in: context) ?? value
             case let .constant(value), let .option(value):
-                guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh)),
-                      case let .tuple(values) = value
+                guard let value = value.as(.list(.path)) ?? value.as(.list(.mesh))
                 else {
                     throw RuntimeError(.unexpectedArgument(for: name, max: 0), at: block.range)
                 }
+                let values = value.values
                 let sourceIndex = context.sourceIndex
                 let newContext = context.push(.init(.transform, [:], .mesh, value.type))
                 block.statements.gatherDefinitions(in: newContext)
@@ -1907,7 +1929,8 @@ extension Expression {
             context.define(optionName, as: .option(value))
             return .void
         case let .prefix(op, expression):
-            let value = try expression.evaluate(as: .numberOrVector, for: op.rawValue, in: context)
+            let evaluated = try expression.evaluate(as: .numberOrVector, for: op.rawValue, in: context)
+            let value: Value = if case let .list(values) = evaluated { .tuple(values) } else { evaluated }
             switch op {
             case .minus:
                 switch value {
@@ -1949,7 +1972,7 @@ extension Expression {
                 }
                 let length = path.length
                 guard length > 0 else {
-                    return .tuple(path.points.prefix(1).map { .point($0) })
+                    return .list(path.points.prefix(1).map { .point($0) })
                 }
                 let range = RangeValue(from: step > 0 ? 0 : length, to: step > 0 ? length : 0, step: step)!
                 var points = [Value]()
@@ -1967,7 +1990,7 @@ extension Expression {
                         break
                     }
                 }
-                return .tuple(points)
+                return .list(points)
             }
             let range = rangeValue.value as! RangeValue
             guard let value = RangeValue(
@@ -1980,12 +2003,13 @@ extension Expression {
             return .range(value)
         case let .infix(lhs, .in, rhs):
             let lhs = try lhs.evaluate(in: context)
-            let collectionType = ValueType.union([.partialRange, .sequence, .anyObject])
+            let collectionType = ValueType.union([.range, .partialRange, .list(.any), .anyObject])
             let rhs = try rhs.evaluate(as: collectionType, for: "in", index: 1, in: context)
             switch rhs {
             case let .range(range) where lhs.isConvertible(to: .number):
                 return .boolean(range.contains(lhs.doubleValue))
-            case let .tuple(values) where values.contains(lhs):
+            case let .tuple(values) where values.contains(where: { $0.value == lhs.value }),
+                 let .list(values) where values.contains(where: { $0.value == lhs.value }):
                 return .boolean(true)
             default:
                 return .boolean(rhs[lhs.stringValue, context.isCancelled] != nil)
@@ -2034,6 +2058,10 @@ extension Expression {
             }
             func apply(_ lhs: Value, _ rhs: Value, _ fn: (Double, Double) -> Double) -> Value {
                 switch (lhs, rhs, op) {
+                case let (.list(values), _, _):
+                    return apply(.tuple(values), rhs, fn)
+                case let (_, .list(values), _):
+                    return apply(lhs, .tuple(values), fn)
                 case let (.number(lhs), .radians(rhs), .plus), let (.number(lhs), .radians(rhs), .minus),
                      let (.radians(lhs), .number(rhs), .plus), let (.radians(lhs), .number(rhs), .minus),
                      let (.radians(lhs), .radians(rhs), .times), // TODO: should this be an error?
@@ -2063,8 +2091,10 @@ extension Expression {
                 }
             }
             func tupleApply(_ fn: (Double, Double) -> Double, widen: Bool) throws -> Value {
-                let lhs = try numberOrVectorValue(for: lhs)
-                let rhs = try numberOrVectorValue(for: rhs, at: 1)
+                let left = try numberOrVectorValue(for: lhs)
+                let right = try numberOrVectorValue(for: rhs, at: 1)
+                let lhs: Value = if case let .list(values) = left { .tuple(values) } else { left }
+                let rhs: Value = if case let .list(values) = right { .tuple(values) } else { right }
                 switch (apply(lhs, rhs, fn), lhs) {
                 case let (.tuple(values), .tuple(lhs)) where widen:
                     return .tuple(values + lhs[values.count...])
@@ -2163,7 +2193,7 @@ extension Expression {
                     through: range.stepIsPositive ? Double(indices.last ?? 0) : 0,
                     by: range.step ?? 1
                 )
-                return try .tuple(stride.map {
+                return try .list(stride.map {
                     let index = Int(truncating: $0 as NSNumber)
                     guard let member = value[index] else {
                         throw RuntimeError(.invalidIndex($0, range: indices), at: rhs.range)
@@ -2206,18 +2236,10 @@ extension Expression {
             return .pretransformed(Array(context.state.children[oldChildren.count...]))
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
-            // TODO: evaluate(as: .sequence, ...) should be enough to make the below check
-            // unnecessary, however because <type> can always be cast to .list(<type>)
-            // it isn't. Need to find a static solution for this (or abandon this check)
             guard let sequence = value.sequenceValue else {
-                throw RuntimeError(
-                    .typeMismatch(
-                        for: "loop bounds",
-                        expected: .sequence,
-                        got: value.type
-                    ),
-                    at: expression.range
-                )
+                throw RuntimeError(.typeMismatch(
+                    for: "loop bounds", expected: .sequence, got: value.type
+                ), at: expression.range)
             }
             let oldChildren = context.state.children
             defer { context.state.children = oldChildren }
@@ -2232,7 +2254,8 @@ extension Expression {
                     try block.evaluate(in: context)
                 }
             }
-            return .pretransformed(Array(context.state.children[oldChildren.count...]))
+            let values = Array(context.state.children[oldChildren.count...])
+            return .list(values.map { .pretransformed($0) })
         case let .switchcase(condition, cases, else: elseBody):
             let oldChildren = context.state.children
             defer { context.state.children = oldChildren }
@@ -2267,7 +2290,7 @@ extension Expression {
                             if !range.contains(value.doubleValue) {
                                 continue
                             }
-                        case let .tuple(values):
+                        case let .tuple(values), let .list(values):
                             if !values.contains(where: {
                                 $0.as(type) == value
                             }) {
@@ -2316,7 +2339,7 @@ extension Expression {
                                 for: name,
                                 index: $0.index,
                                 expected: $1,
-                                got: $0.value.type
+                                got: $0.value.typeForError
                             )
                         } catch let error as RuntimeErrorType {
                             throw RuntimeError(error, at: expressions[$0.index].range)
@@ -2385,7 +2408,7 @@ extension Expression {
                     for: name,
                     index: 0,
                     expected: .halfturns,
-                    got: values[0].value.type
+                    got: values[0].value.typeForError
                 ), at: expressions[0].range)
             }
             if let index = values.dropFirst().firstIndex(where: {
@@ -2395,7 +2418,7 @@ extension Expression {
                     for: name,
                     index: index,
                     expected: .number,
-                    got: values[index].value.type
+                    got: values[index].value.typeForError
                 ), at: expressions[index].range)
             }
             let axis = Vector(
@@ -2413,7 +2436,7 @@ extension Expression {
                 for: name,
                 index: index,
                 expected: type,
-                got: value.type
+                got: value.typeForError
             ), at: range)
         case let (.tuple(expressions), type) where ValueType.rotation.isSubtype(of: type):
             if let index = values.firstIndex(where: {
@@ -2423,14 +2446,14 @@ extension Expression {
                     for: name,
                     index: index,
                     expected: .halfturns,
-                    got: values[index].value.type
+                    got: values[index].value.typeForError
                 ), at: expressions[index].range)
             }
             throw RuntimeError(.typeMismatch(
                 for: name,
                 index: index,
                 expected: type,
-                got: value.type
+                got: value.typeForError
             ), at: range)
         case let (.tuple(expressions), type) where expressions.count > 1:
             var value = value
@@ -2456,7 +2479,7 @@ extension Expression {
                 for: name,
                 index: index,
                 expected: type,
-                got: value.type
+                got: value.typeForError
             ), at: range)
         case let (_, .tuple(types)) where types.count > 1 && !types[1].isOptional:
             throw RuntimeError(
@@ -2470,7 +2493,7 @@ extension Expression {
                 for: name,
                 index: index,
                 expected: type,
-                got: value.type
+                got: value.typeForError
             ), at: range)
         }
     }

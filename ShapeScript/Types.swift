@@ -411,6 +411,8 @@ extension Value {
             range.end == nil ? .partialRange : .range
         case let .tuple(values):
             .tuple(values.map(\.type))
+        case let .list(values):
+            .list(.union(Set(values.map(\.type))).simplified())
         case let .object(values):
             .object(values.mapValues { $0.type })
         case let .pretransformed(value):
@@ -430,6 +432,14 @@ extension Value {
     /// Note: context is used to verify that font or texture values exist. Errors are only thrown for
     /// non-existent font or texture and will never be thrown if context is nil.
     func `as`(_ type: ValueType, in context: EvaluationContext?) throws -> Value? {
+        guard let value = try converted(to: type, in: context) else { return nil }
+        if case .list = type {
+            return .list(value.values)
+        }
+        return value
+    }
+
+    private func converted(to type: ValueType, in context: EvaluationContext?) throws -> Value? {
         func numerify(
             _ values: [Value],
             as numericType: ValueType = .number,
@@ -516,11 +526,15 @@ extension Value {
                 throw error
             }
             return nil
+        case let (.list(values), type) where type != .any:
+            // A requested type provides the context needed to interpret a list as
+            // tuple arguments. Generic values and iteration retain the list boundary.
+            return try Value.tuple(values).as(type, in: context)
         case let (_, .list(type)) where self.type.isSubtype(of: type):
             return [self]
         case let (_, .tuple(types)) where
             types.count == 1 || types.count > 1 && types[1].isOptional:
-            return try self.as(types[0], in: context).map { [$0] }
+            return try self.as(types[0], in: context).map { .tuple([$0]) }
         case (_, .text):
             return try self.as(.string, in: context).flatMap {
                 .text(TextValue(string: $0.stringValue))
@@ -1022,8 +1036,19 @@ extension Expression {
         case let .member(expression, member):
             let type = try expression.staticType(in: context)
             return type.memberType(member.name) ?? .any
-        case let .subscript(lhs, _):
-            switch try lhs.staticType(in: context) {
+        case let .subscript(lhs, rhs):
+            let lhsType = try lhs.staticType(in: context)
+            let indexType = try rhs.staticType(in: context)
+            if indexType.isSubtype(of: .union([.range, .partialRange])) {
+                let elementType: ValueType = switch lhsType {
+                case let .list(type): type
+                case let .tuple(types): .union(Set(types)).simplified()
+                case .range, .partialRange, .vector, .size, .color: .number
+                default: .any
+                }
+                return .list(elementType)
+            }
+            switch lhsType {
             case let .list(type):
                 return type
             case let .tuple(types):
@@ -1128,7 +1153,7 @@ extension Block {
             for statement in statements {
                 statement.inferTypes(for: &childTypes, in: context)
             }
-            context.define("children", as: .placeholder(childTypes))
+            context.define("children", as: .placeholder(.list(childTypes)))
             for statement in statements {
                 if options != nil, case let .option(identifier, expression) = statement.type {
                     let type = try expression.staticType(in: context)

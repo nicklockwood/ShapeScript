@@ -423,7 +423,7 @@ extension Value: Loggable {
         case let .mesh(mesh): mesh
         case let .polygon(polygon): polygon
         case let .point(point): point
-        case let .tuple(tuple): tuple
+        case let .tuple(values), let .list(values): values
         case let .range(range): range
         case let .bounds(bounds): bounds
         case let .object(object): object

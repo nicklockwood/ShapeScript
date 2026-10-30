@@ -273,12 +273,12 @@ extension Symbols {
             let vertices = try context.state.children.flatMap { child -> [Vertex] in
                 switch child {
                 case let .point(point):
-                    return [Vertex(point)]
+                    [Vertex(point)]
                 case .path, .mesh:
-                    return []
+                    []
                 case .color, .texture, .material, .boolean, .number, .radians,
                      .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                     .polygon, .tuple, .range, .bounds, .object, .pretransformed:
+                     .polygon, .tuple, .range, .bounds, .object, .pretransformed, .list:
                     throw RuntimeErrorType.unexpectedChild(ofType: "\(child.type)", in: "hull")
                 }
             }
@@ -299,7 +299,7 @@ extension Symbols {
                     )
                 case .color, .texture, .material, .boolean, .number, .radians,
                      .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                     .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
+                     .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed, .list:
                     nil
                 }
             }
@@ -432,7 +432,7 @@ extension Symbols {
                         case let .path(path): !path.isClosed
                         case .color, .texture, .material, .boolean, .number, .radians,
                              .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                             .polygon, .mesh, .tuple, .range, .bounds, .object, .pretransformed:
+                             .polygon, .mesh, .tuple, .range, .bounds, .object, .pretransformed, .list:
                             false
                         }
                     }(), let point = path.points.last {
@@ -443,7 +443,7 @@ extension Symbols {
                     throw RuntimeErrorType.unexpectedChild(ofType: "tuple", in: "path")
                 case .color, .texture, .material, .boolean, .number, .radians,
                      .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                     .polygon, .mesh, .range, .bounds, .object, .pretransformed:
+                     .polygon, .mesh, .range, .bounds, .object, .pretransformed, .list:
                     throw RuntimeErrorType.unexpectedChild(ofType: child.errorDescription, in: "path")
                 }
             }
@@ -573,7 +573,7 @@ extension Symbols {
                         isCancelled: context.isCancelled
                     )
                     return [.mesh(geometry.transformed(by: context.state.transform))]
-                case let .tuple(values):
+                case let .tuple(values), let .list(values):
                     return values.flatMap(process)
                 default:
                     return []
@@ -604,7 +604,7 @@ extension Symbols {
     static let functions: Symbols = [
         // Debug
         "print": .command(.list(.any)) { value, context in
-            context.debugLog(value.materializedPathValue.tupleValue)
+            context.debugLog(ShapeScript.Value.tuple(value.values).materializedPathValue.tupleValue)
         },
         "assert": .command(.tuple([.boolean, .optional(.string)])) { value, _ in
             let values = value.tupleValue
@@ -660,7 +660,7 @@ extension Symbols {
             .number(value.doublesValue.min() ?? 0)
         },
         "sum": .function(.list(.list(.number)), .list(.number)) { value, _ in
-            let values = value.tupleValue as! [[Double]]
+            let values = value.values.map(\.doublesValue)
             if values.count == 1 {
                 return .number(values[0].reduce(0, +))
             }
@@ -707,7 +707,7 @@ extension Symbols {
         "pi": .constant(.radians(.pi)),
         // Linear algebra
         "dot": .function(.tuple([.list(.number), .list(.number)]), .number) { value, _ in
-            let values = value.tupleValue as! [[Double]]
+            let values = value.values.map(\.doublesValue)
             return .number(zip(values[0], values[1]).map { $0 * $1 }.reduce(0, +))
         },
         "cross": .function(.tuple([.vector, .vector]), .list(.number)) { value, _ in
@@ -730,18 +730,17 @@ extension Symbols {
         "split": .function(.tuple([.string, .string]), .list(.string)) { value, _ in
             let string = value.tupleValue[0] as! String
             let separator = value.tupleValue[1] as! String
-            return .tuple(string
+            return .list(string
                 .components(separatedBy: separator)
                 .map { .string($0) })
         },
         "join": .function(.tuple([.list(.any), .string]), .string) { value, _ in
             guard case let .tuple(args) = value, args.count == 2,
-                  case let .tuple(stringValues) = args[0],
                   case let .string(separator) = args[1]
             else {
                 throw RuntimeErrorType.custom("Invalid arguments to join function")
             }
-            let strings = stringValues.map(\.stringValue)
+            let strings = args[0].values.map(\.stringValue)
             return .string(strings.joined(separator: separator))
         },
         "trim": .function(.string, .string) { value, _ in
@@ -751,7 +750,7 @@ extension Symbols {
         },
         // Fonts
         "fonts": .function(.void, .list(.string)) { _, context in
-            .tuple(context.fontNames.map { .string($0) })
+            .list(context.fontNames.map { .string($0) })
         },
         // Object
         "object": .block(.init([:], ["*": .any], .void, .any)) { context in
@@ -893,7 +892,7 @@ extension EvaluationContext {
                 geometry.paths(pretransformed: true)
             case .color, .texture, .material, .boolean, .number, .radians,
                  .halfturns, .vector, .size, .rotation, .string, .font, .text,
-                 .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed:
+                 .polygon, .point, .tuple, .range, .bounds, .object, .pretransformed, .list:
                 []
             }
         }

@@ -205,7 +205,7 @@ final class ImportExportTests: XCTestCase {
             3,
             3.5,
             true,
-            [],
+            .void,
             [1, 2, 3],
             [
                 "bar": true,

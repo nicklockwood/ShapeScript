@@ -28,6 +28,7 @@ enum Value: Hashable, Sendable {
     case polygon(Polygon)
     case point(PathPoint)
     case tuple([Value])
+    case list([Value])
     case range(RangeValue)
     case bounds(Bounds)
     case object([String: Value])
@@ -58,11 +59,7 @@ extension Value: ExpressibleByBooleanLiteral {
 
 extension Value: ExpressibleByArrayLiteral {
     init(arrayLiteral elements: Value...) {
-        self.init(elements)
-    }
-
-    init(_ elements: [Value]) {
-        self = .tuple(elements)
+        self = .list(elements)
     }
 
     init(_ elements: Value...) {
@@ -195,7 +192,7 @@ extension Value {
                 text.color?.isFinite != false
         case let .point(point):
             point.position.isFinite
-        case let .tuple(values):
+        case let .tuple(values), let .list(values):
             values.allSatisfy(\.isFinite)
         case let .range(range):
             range.isFinite
@@ -207,6 +204,23 @@ extension Value {
             value.isFinite
         case .texture, .material, .boolean, .string, .font, .path, .mesh, .polygon:
             true
+        }
+    }
+
+    /// Describe the value that failed a contextual conversion, without exposing
+    /// a singleton collection wrapper used to pass block children or arguments.
+    var typeForError: ValueType {
+        switch self {
+        case let .tuple(values) where values.count == 1,
+             let .list(values) where values.count == 1:
+            values[0].typeForError
+        case let .pretransformed(value):
+            value.typeForError
+        case .color, .texture, .material, .boolean, .number,
+             .radians, .halfturns, .vector, .size, .rotation,
+             .string, .font, .text, .path, .mesh, .polygon, .point,
+             .bounds, .object, .range, .tuple, .list:
+            type
         }
     }
 
@@ -250,11 +264,23 @@ extension Value {
         case let .mesh(geometry): geometry
         case let .polygon(polygon): polygon
         case let .point(point): point
-        case let .tuple(values): values.map(\.value)
+        case let .tuple(values), let .list(values): values.map(\.value)
         case let .range(range): range
         case let .bounds(bounds): bounds
         case let .object(values): values.mapValues { $0.value }
         case let .pretransformed(value): value.value
+        }
+    }
+
+    var values: [Value] {
+        switch self {
+        case let .tuple(values), let .list(values): values
+        case let .pretransformed(value): value.values.map { .pretransformed($0) }
+        case .color, .texture, .material, .boolean, .number,
+             .radians, .halfturns, .vector, .size, .rotation,
+             .string, .font, .text, .path, .mesh, .polygon, .point,
+             .bounds, .object, .range:
+            [self]
         }
     }
 
@@ -266,6 +292,8 @@ extension Value {
                 return .tuple(geometry.paths(pretransformed: true).map(Value.path))
             }
             return geometry.path(pretransformed: true).map(Value.path) ?? self
+        case .list:
+            return self
         case let .tuple(values):
             return .tuple(values.flatMap { value -> [Value] in
                 if case let .mesh(geometry) = value.unpretransformed(),
@@ -291,7 +319,7 @@ extension Value {
 
     var doublesValue: [Double] {
         switch self {
-        case let .tuple(values):
+        case let .tuple(values), let .list(values):
             return values.map(\.doubleValue)
         case let .number(value):
             return [value]
@@ -328,7 +356,7 @@ extension Value {
 
     var stringValue: String {
         switch self {
-        case let .tuple(values):
+        case let .tuple(values), let .list(values):
             var spaceNeeded = false
             return values.map {
                 switch $0 {
@@ -350,21 +378,26 @@ extension Value {
     }
 
     var tupleValue: [AnyHashable] {
-        switch self {
-        case let .tuple(values):
-            values.map(\.value)
-        case let .pretransformed(value):
-            value.tupleValue
-        case .color, .texture, .material, .boolean, .number,
-             .radians, .halfturns, .vector, .size, .rotation,
-             .string, .font, .text, .path, .mesh, .polygon, .point,
-             .range, .bounds, .object:
-            [value]
-        }
+        values.map(\.value)
     }
 
     var objectValue: [String: AnyHashable] {
         value as? [String: AnyHashable] ?? [:]
+    }
+
+    func transformed(by transform: Transform) -> Value {
+        switch self {
+        case let .path(path): .path(path.transformed(by: transform))
+        case let .mesh(geometry): .mesh(geometry.transformed(by: transform))
+        case let .polygon(polygon): .polygon(polygon.transformed(by: transform))
+        case let .list(values): .list(values.map { $0.transformed(by: transform) })
+        case let .tuple(values): .tuple(values.map { $0.transformed(by: transform) })
+        case let .pretransformed(value): value.transformed(by: transform)
+        case .color, .texture, .material, .boolean, .number,
+             .radians, .halfturns, .vector, .size, .rotation,
+             .string, .font, .text, .point, .bounds, .object, .range:
+            self
+        }
     }
 
     var sequenceValue: AnySequence<Value>? {
@@ -395,11 +428,13 @@ extension Value {
                 }
                 return value
             })
+        case let .list(values):
+            return AnySequence(values.lazy.map { $0.unpretransformed() })
         case let .object(values):
             return AnySequence(values.sorted(by: {
                 $0.0 < $1.0
             }).map {
-                [.string($0), $1]
+                .tuple([.string($0), $1])
             })
         case .boolean, .vector, .size, .rotation, .color, .texture, .material,
              .number, .radians, .halfturns, .string, .font, .text,
@@ -431,7 +466,7 @@ extension Value {
             texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .number,
              .radians, .halfturns, .string, .font, .text, .path, .material, .mesh,
-             .polygon, .point, .bounds, .object, .pretransformed:
+             .polygon, .point, .bounds, .object, .pretransformed, .list:
             nil
         }
     }
@@ -444,7 +479,7 @@ extension Value {
             texture.map { .texture($0) }
         case .boolean, .vector, .size, .rotation, .range, .tuple, .color,
              .radians, .halfturns, .string, .font, .text, .path, .material,
-             .mesh, .polygon, .point, .bounds, .object, .pretransformed:
+             .mesh, .polygon, .point, .bounds, .object, .pretransformed, .list:
             nil
         }
     }
@@ -459,12 +494,12 @@ extension Value {
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
-             .range, .tuple, .bounds, .object, .pretransformed:
+             .range, .tuple, .list, .bounds, .object, .pretransformed:
             self
         }
     }
 
-    /// Recursively flatten nested tuples
+    /// Recursively flatten nested tuples and lists
     func flattened(recursive: Bool) -> [Value] {
         [self].flattened(recursive: recursive)
     }
@@ -476,6 +511,8 @@ extension Value {
             value.unpretransformed()
         case let .tuple(values):
             .tuple(values.map { $0.unpretransformed() })
+        case let .list(values):
+            .list(values.map { $0.unpretransformed() })
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
@@ -499,18 +536,18 @@ extension [Value] {
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
              .string, .font, .text, .path, .mesh, .polygon, .point,
-             .range, .bounds, .object, .pretransformed:
+             .range, .list, .bounds, .object, .pretransformed:
             return self
         }
     }
 
-    /// Recursively flatten nested tuples
+    /// Recursively flatten nested tuples and lists
     func flattened(recursive: Bool) -> [Value] {
         flatMap { value -> [Value] in
             switch value {
-            case let .tuple(values):
+            case let .tuple(values), let .list(values):
                 recursive ? values.flattened(recursive: true) : values
-            case let .pretransformed(.tuple(values)):
+            case let .pretransformed(.tuple(values)), let .pretransformed(.list(values)):
                 (recursive ? values.flattened(recursive: true) : values).map { .pretransformed($0) }
             case .color, .texture, .material, .boolean, .number,
                  .radians, .halfturns, .vector, .size, .rotation,

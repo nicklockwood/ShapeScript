@@ -12,7 +12,7 @@ extension Value {
     init(scriptOption value: Any) throws {
         switch value {
         case let array as [Any]:
-            self = try .tuple(array.map(Value.init(scriptOption:)))
+            self = try .list(array.map(Value.init(scriptOption:)))
         case let object as [String: Any]:
             self = try .object(object.mapValues(Value.init(scriptOption:)))
         case let string as String:
@@ -55,7 +55,7 @@ extension Value {
     init(json: Any) {
         switch json {
         case let array as [Any]:
-            self = .tuple(array.map(Value.init(json:)))
+            self = .list(array.map(Value.init(json:)))
         case let object as [String: Any]:
             self = .object(object.mapValues(Value.init(json:)))
         case let string as String:
