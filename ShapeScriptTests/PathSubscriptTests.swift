@@ -98,6 +98,22 @@ final class PathSubscriptTests: XCTestCase {
         XCTAssertEqual(delegate.log, [true, 7, 6, true, false, 3])
     }
 
+    func testPathErrorIncludesClosingSubscriptBracket() throws {
+        for expression in [
+            "vertical_wave_path[from 0]",
+            "vertical_wave_path[from 0   ]",
+            "vertical_wave_path[from 0 step 0.25]",
+            "vertical_wave_path[from 0][from 0.5]",
+        ] {
+            let source = "define vertical_wave_path square\nprint sqrt \(expression)"
+            XCTAssertThrowsError(try evaluate(parse(source), delegate: nil), source) { error in
+                let error = error as? RuntimeError
+                XCTAssertEqual(error?.message, "Type mismatch")
+                XCTAssertEqual(error.map { String(source[$0.range]) }, expression)
+            }
+        }
+    }
+
     func testInvalidSteps() throws {
         for source in [
             "square.points.allButLast step 0.5",

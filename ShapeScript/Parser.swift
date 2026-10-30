@@ -551,10 +551,11 @@ private extension ArraySlice<Token> {
             case .subscript:
                 removeFirst()
                 let rhs = try require(readExpression(), as: "expression")
+                let end = nextToken.range.upperBound
                 try requireToken(.rbracket)
                 expression = Expression(
                     type: .subscript(expression, rhs),
-                    range: expression.range.lowerBound ..< rhs.range.upperBound
+                    range: expression.range.lowerBound ..< end
                 )
             default:
                 break loop

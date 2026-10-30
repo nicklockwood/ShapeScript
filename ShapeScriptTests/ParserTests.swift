@@ -1239,7 +1239,7 @@ final class ParserTests: XCTestCase {
                                 range: ifRange.lowerBound ..< twoRange.upperBound
                             )
                         ),
-                        range: tupleRange.lowerBound ..< twoRange.upperBound
+                        range: tupleRange.lowerBound ..< bracketRange.upperBound
                     )))
                 ),
                 range: defineRange.lowerBound ..< bracketRange.upperBound
