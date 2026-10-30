@@ -63,23 +63,29 @@ define wheel {
 }
 
 for i in -1 to 1 {
+    define placement ("Rear" "Middle" "Front")[i + 1]
     group {
+        name placement " Wheels"
         translate 0 0 (0.7 * i)
         rotate 0.5 rnd
         translate 0 0.5 0
-        wheel
+        wheel { name placement "-Left wheel" }
         translate 0 -0.5 0
         material steel
-        cylinder { size 0.1 1 }
+        cylinder {
+            name placement " Axle"
+            size 0.1 1
+        }
         rotate 1
         translate 0 0.5 0
-        wheel
+        wheel { name placement "-Right wheel" }
     }
 }
 
 // base
 
 union {
+    name "Chassis"
     rotate 0 0.5 0
     translate -1 -0.06
     material matteBlack
@@ -114,6 +120,7 @@ union {
 // front
 
 lathe {
+    name "Smokebox"
     material steel
     position 0 0.8 1
     orientation 0 0 0.5
@@ -128,6 +135,7 @@ lathe {
 // chimney
 
 union {
+    name "Chimney"
     material matteBlack
     position 0 0.6 0.8
     cube { size 0.7 0.4 0.4 }
@@ -158,6 +166,7 @@ union {
 // body
 
 union {
+    name "Body"
     material bluePaint
     position 0 0.8 0.2
     orientation 0 0 0.5
@@ -201,6 +210,7 @@ union {
 // coal
 
 union {
+    name "Coal"
     material coal
     position 0 0.73 -0.84
     orientation 0 0 0.5

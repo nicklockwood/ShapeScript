@@ -23,13 +23,16 @@ You can also rotate and position the cube using the `orientation` and `position`
 
 ```swift
 cube {
+    name "Box"
     size 1 1 2
     position 1 0 0
     orientation 0.25
 }
 ```
 
-The `size`, `position` and `orientation` options are common to all shapes. For more information about these (and other) options, see the [options](options.md) section.
+The [name option](options.md#name) gives the box a label that appears when selecting it or viewing its information. Naming parts is especially useful in scenes with several similar shapes.
+
+The `name`, `size`, `position` and `orientation` options are common to all shapes. For more information about these (and other) options, see the [options](options.md) section.
 
 ## Sphere
 

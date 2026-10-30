@@ -75,12 +75,15 @@ Now we can use those options to create a star with 6 points if we choose:
 
 ```swift
 star {
+    name "Star"
     points 6
     radius 2
 }
 ```
 
 ![Star](../images/six-pointed-star.png)
+
+Blocks that return meshes or paths also accept the built-in [name option](options.md#name). In the example above, `name "Star"` labels the returned path so it is easier to identify in the viewer. Names can also be used for [named geometry lookup](expressions.md#named-geometry).
 
 ## Children
 

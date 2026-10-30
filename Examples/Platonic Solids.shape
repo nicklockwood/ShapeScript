@@ -2,13 +2,6 @@
 
 smoothing 0
 
-camera {
-    position 0.2 0.2629 4.1552
-    orientation 0 -0.0074 0.0373
-    width 1400
-    height 928
-}
-
 define label(name) {
     text {
         size 0.18
@@ -17,7 +10,6 @@ define label(name) {
 }
 
 define solid {
-    option name ""
     children
     color #111827
     translate -label(name).bounds.width/2 -1

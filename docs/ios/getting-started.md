@@ -124,6 +124,8 @@ To get info about a particular shape in the scene, tap on it in the viewer to se
 
 If multiple shapes overlap, long-press in the viewer to open a menu of selectable shapes under your finger. Shapes with selectable children appear as submenus. Long-pressing empty space shows all selectable shapes in the scene.
 
+Give a shape or group a [name](options.md#name), such as `cube { name "Chassis" }`, to make it easier to identify in the selection menu and information panel.
+
 **Note:** If you are having trouble identifying a particular shape from your `.shape` file, you can use the [debug command](debugging.md) to highlight it in the viewer, or the `focus` command to hide the rest of the scene.
 
 ---

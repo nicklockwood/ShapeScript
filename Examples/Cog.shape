@@ -24,6 +24,7 @@ define cog {
 }
 
 difference {
+    name "Cog"
     extrude {
         size 1 1 0.5
         cog { teeth 8 }
