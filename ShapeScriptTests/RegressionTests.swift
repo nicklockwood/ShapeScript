@@ -462,6 +462,60 @@ final class RegressionTests: XCTestCase {
         XCTAssertNil(subtractive.cachedMesh)
     }
 
+    func testInsetPrimitivesPreserveTranslationAndRotation() throws {
+        for primitive in ["cube", "sphere", "icosphere", "cylinder", "cone"] {
+            for distance in [0.08, -0.08] {
+                let source = "detail 8\n\(primitive) { size 0.8 }"
+                let scene = try evaluate(parse(source), delegate: TestDelegate())
+                let geometry = try XCTUnwrap(scene.children.first)
+                let placement = Transform(
+                    rotation: .pitch(.pi / 3),
+                    translation: [-0.5, 1, 2]
+                )
+                let expected = geometry.insetByRewritingPrimitives(
+                    by: distance, sourceLocation: { nil }
+                ).transformed(by: placement)
+                let actual = geometry.transformed(by: placement).insetByRewritingPrimitives(
+                    by: distance, sourceLocation: { nil }
+                )
+                XCTAssertEqual(
+                    actual.transform.translation,
+                    expected.transform.translation,
+                    accuracy: epsilon,
+                    primitive
+                )
+                XCTAssertEqual(actual.transform.scale, expected.transform.scale, accuracy: epsilon, primitive)
+                XCTAssertEqual(actual.transform.rotation, expected.transform.rotation)
+                XCTAssertTrue(actual.build { false })
+                XCTAssertTrue(expected.build { false })
+                XCTAssertEqual(
+                    actual.flattened().bounds.min,
+                    expected.flattened().bounds.min,
+                    accuracy: epsilon,
+                    primitive
+                )
+                XCTAssertEqual(
+                    actual.flattened().bounds.max,
+                    expected.flattened().bounds.max,
+                    accuracy: epsilon,
+                    primitive
+                )
+            }
+        }
+    }
+
+    func testInsetRotatedTranslatedConeMatchesMeshInset() throws {
+        for size in [0.8, -0.8] {
+            for distance in [0.08, -0.08] {
+                try assertInsetPrimitiveMatchesMeshBounds(
+                    "cone { size \(size)\norientation 0.2 0.3 0.4\nposition -0.5 1 2 }",
+                    by: distance,
+                    prefix: "detail 8"
+                )
+            }
+        }
+    }
+
     func testInsetCubeRewritesScale() throws {
         let scene = try evaluate(parse("inset cube 0.1"), delegate: TestDelegate())
         let geometry = try XCTUnwrap(scene.children.first)

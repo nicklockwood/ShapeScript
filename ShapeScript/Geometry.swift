@@ -894,13 +894,13 @@ public extension Geometry {
 
         switch type {
         case .cube:
-            return copy(transform: transform * .scale(insetScale(for: .init(size: 0.5))))
+            return copy(transform: transform.scaled(by: insetScale(for: .init(size: 0.5))))
         case let .sphere(segments):
             let radius = 0.5
             let stacks = max(2, segments / 2)
             let verticalApothem = radius * cos(.pi / Double(stacks * 2))
             let radialApothem = circularApothem(segments: segments, radius: verticalApothem)
-            return copy(transform: transform * .scale(insetScale(
+            return copy(transform: transform.scaled(by: insetScale(
                 for: [radialApothem, verticalApothem, radialApothem]
             )))
         case let .icosphere(subdivisions):
@@ -910,10 +910,10 @@ public extension Geometry {
                 isCancelled: isCancelled
             )
             let apothem = mesh.polygons.reduce(0.5) { Swift.min($0, abs($1.plane.w)) }
-            return copy(transform: transform * .scale(insetScale(for: .init(size: apothem))))
+            return copy(transform: transform.scaled(by: insetScale(for: .init(size: apothem))))
         case let .cylinder(segments):
             let radialApothem = circularApothem(segments: segments, radius: 0.5)
-            return copy(transform: transform * .scale(insetScale(
+            return copy(transform: transform.scaled(by: insetScale(
                 for: [radialApothem, 0.5, radialApothem]
             )))
         case let .cone(segments):
@@ -923,7 +923,9 @@ public extension Geometry {
             let sideLength = sqrt(apothem * apothem + height * height)
             let scale = max(0, 1 - distance * (sideLength / apothem + 1) / height)
             let offset = distance * (1 - sideLength / apothem) / 2
-            return copy(transform: transform * .scale(scale) * .translation(.unitY * offset))
+            return copy(transform: transform
+                .translated(by: .unitY * (offset / height))
+                .scaled(by: scale))
         case .group, .union, .xor:
             return copy(children: insetChildren())
         case .difference:

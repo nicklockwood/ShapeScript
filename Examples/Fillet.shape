@@ -35,12 +35,10 @@ define fillet(source radius) {
 define radius 0.08
 
 // Filleted cone
-group {
+fillet(cone {
     position -0.5
-    fillet(cone {
-        color #38bdf8
-    } radius)
-}
+    color #38bdf8
+} radius)
 
 // The same function can be reused with a more complex mesh. The union is
 // built first so that the shared edges are rounded as part of one shape.
@@ -56,9 +54,9 @@ define shape union {
     }
 }
 
-group {
+// Filleted union
+fillet(shape {
     position 0.5
     orientation 0.5
-    size 0.8
-    fillet(shape radius * 0.75)
-}
+    size 0.7
+} radius * 0.75)
