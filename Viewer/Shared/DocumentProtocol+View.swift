@@ -636,8 +636,12 @@ private extension Geometry {
             guard child.isVisibleInSelectionMenu else {
                 return []
             }
+            let selectable = child.isSelectableInSelectionMenu(focus: focus)
+            if !selectable, child.isNormallySelectableInSelectionMenu {
+                return [SelectionMenuEntry(geometry: child, title: "", isSelectable: false, children: [])]
+            }
             let childEntries = child.rawSelectionMenuEntries(focus: focus)
-            if child.isSelectableInSelectionMenu(focus: focus) {
+            if selectable {
                 return [SelectionMenuEntry(
                     geometry: child,
                     title: "",
@@ -645,18 +649,15 @@ private extension Geometry {
                     children: childEntries
                 )]
             }
-            return [SelectionMenuEntry(
-                geometry: child,
-                title: "",
-                isSelectable: false,
-                children: childEntries
-            )]
+            return childEntries
         }
     }
 
     func rawSelectionMenuEntries(for geometries: [Geometry]) -> [SelectionMenuEntry] {
         let focus = childIsFocused
-        let menuGeometries = geometries.filter(\.isVisibleInSelectionMenu)
+        let menuGeometries = geometries.filter {
+            $0.isVisibleInSelectionMenu && $0.isNormallySelectableInSelectionMenu
+        }
         return menuGeometries.compactMap { geometry in
             guard !menuGeometries.contains(where: { geometry.isDescendant(of: $0) }) else {
                 return nil
@@ -665,10 +666,10 @@ private extension Geometry {
         }
     }
 
-    private func selectionMenuEntry(
-        in geometries: [Geometry],
-        focus: Bool
-    ) -> SelectionMenuEntry? {
+    private func selectionMenuEntry(in geometries: [Geometry], focus: Bool) -> SelectionMenuEntry {
+        guard isSelectableInSelectionMenu(focus: focus) else {
+            return SelectionMenuEntry(geometry: self, title: "", isSelectable: false, children: [])
+        }
         let childGeometries = geometries.filter {
             $0 !== self && $0.isDescendant(of: self)
         }
@@ -678,21 +679,10 @@ private extension Geometry {
             }
             return geometry.selectionMenuEntry(in: childGeometries, focus: focus)
         }
-        if isVisibleInSelectionMenu, isSelectableInSelectionMenu(focus: focus) {
-            return SelectionMenuEntry(
-                geometry: self,
-                title: "",
-                isSelectable: true,
-                children: childEntries
-            )
-        }
-        guard isVisibleInSelectionMenu, !isSelectable(focus: focus), !childEntries.isEmpty else {
-            return nil
-        }
         return SelectionMenuEntry(
             geometry: self,
             title: "",
-            isSelectable: false,
+            isSelectable: true,
             children: childEntries
         )
     }
@@ -736,11 +726,16 @@ private extension Geometry {
         !isHidden && (!focus || isFocused || childIsFocused)
     }
 
-    var isVisibleInSelectionMenu: Bool {
-        guard !isHidden else {
-            return false
+    var isNormallySelectableInSelectionMenu: Bool {
+        guard isVisibleInSelectionMenu else { return false }
+        if type == .group {
+            return children.contains { $0.isNormallySelectableInSelectionMenu }
         }
-        return switch type {
+        return isRenderedInScene(focus: false, includeHidden: true)
+    }
+
+    var isVisibleInSelectionMenu: Bool {
+        switch type {
         case .camera, .light:
             false
         case .cone, .cylinder, .sphere, .icosphere, .cube, .mesh,

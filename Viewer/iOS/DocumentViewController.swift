@@ -1318,22 +1318,20 @@ extension DocumentViewController {
             return UIMenu(title: title, children: children)
         }
 
-        guard entry.isSelectable else {
-            return nil
-        }
-        return selectionAction(for: geometry, title: title)
+        return selectionAction(for: geometry, title: title, isSelectable: entry.isSelectable)
     }
 
     private func selectionAction(
         for geometry: Geometry,
-        title: String
+        title: String,
+        isSelectable: Bool
     ) -> UIAction {
         UIAction(
             title: title,
             image: nil,
             identifier: nil,
             discoverabilityTitle: nil,
-            attributes: [],
+            attributes: isSelectable ? [] : [.disabled],
             state: (selectedGeometry === geometry) ? .on : .off
         ) { [weak self] _ in
             self?.selectGeometry(geometry.scnNode)

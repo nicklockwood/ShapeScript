@@ -78,7 +78,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
     }
 
     /// The children currently rendered in place of, or in addition to, this geometry.
-    func renderedChildren(focus: Bool) -> [Geometry] {
+    func renderedChildren(focus: Bool, includeHidden: Bool = false) -> [Geometry] {
         let rendered: [Geometry] = if !isLeaf, hasClosedXYPaths || previewPath != nil {
             childDebug || childIsFocused ? children : []
         } else {
@@ -115,7 +115,7 @@ public final class Geometry: Hashable, @unchecked Sendable {
         }
         let displayed = rendered + overlays
         guard focus, !isFocused else {
-            return displayed.filter { !$0.isHidden }
+            return includeHidden ? displayed : displayed.filter { !$0.isHidden }
         }
         return displayed.filter {
             !$0.isHidden && ($0.isFocused || $0.childIsFocused)
@@ -757,14 +757,20 @@ public extension Geometry {
     }
 
     /// Returns `true` if this geometry is rendered as part of the scene
-    func isRenderedInScene(focus: Bool) -> Bool {
-        guard !isHidden, !focus || isFocused else {
+    func isRenderedInScene(focus: Bool, includeHidden: Bool = false) -> Bool {
+        guard includeHidden || !isHidden, !focus || isFocused else {
             return false
         }
         let target = self
         var geometry = self
+        var isOverlay = false
         while let parent = geometry.parent {
-            guard parent.renderedChildren(focus: focus).contains(where: { $0 === geometry }) ||
+            isOverlay = isOverlay || geometry.debug || geometry.isFocused || geometry.isBackground
+            if parent.rendersChildrenAsDebugOverlay, !isOverlay {
+                return false
+            }
+            guard parent.renderedChildren(focus: focus, includeHidden: includeHidden)
+                .contains(where: { $0 === geometry }) ||
                 (geometry === target && (geometry.debug || geometry.isFocused)) ||
                 (geometry !== target && (geometry.childDebug || geometry.childIsFocused))
             else {

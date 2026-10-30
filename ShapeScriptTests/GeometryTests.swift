@@ -803,7 +803,7 @@ final class GeometryTests: XCTestCase {
         XCTAssertFalse(cube.debug)
         XCTAssertTrue(sphere.debug)
         XCTAssertTrue(difference.isRenderedInScene(focus: false))
-        XCTAssertTrue(cube.isRenderedInScene(focus: false))
+        XCTAssertFalse(cube.isRenderedInScene(focus: false))
         XCTAssertTrue(sphere.isRenderedInScene(focus: false))
     }
 

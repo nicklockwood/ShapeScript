@@ -298,7 +298,7 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
                 action: entry.isSelectable ? #selector(selectShape(_:)) : nil,
                 keyEquivalent: ""
             )
-            menuItem.isEnabled = true
+            menuItem.isEnabled = entry.isSelectable
             if entry.isSelectable {
                 index += 1
                 menuItem.tag = index

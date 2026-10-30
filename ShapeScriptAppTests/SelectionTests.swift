@@ -97,11 +97,7 @@ final class SelectionTests: XCTestCase {
         return entries
     }
 
-    private func isEnabledInSelectionMenu(_ entry: SelectionMenuEntry) -> Bool {
-        entry.isSelectable || entry.children.contains(where: isEnabledInSelectionMenu)
-    }
-
-    func testSelectionMenuShowsButDisablesGroupsWithNoSelectableChildren() throws {
+    func testSelectionMenuOmitsGroupsWithNoSelectableChildren() throws {
         let document = try document(for: """
         group {
             group {
@@ -114,15 +110,12 @@ final class SelectionTests: XCTestCase {
         """)
         let entries = flattenedSelectionMenuEntries(for: document)
 
-        XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "group", "group", "cube"])
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[0]))
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[1]))
-        XCTAssertTrue(isEnabledInSelectionMenu(entries[2]))
-        XCTAssertTrue(isEnabledInSelectionMenu(entries[3]))
+        XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "cube"])
+        XCTAssertTrue(entries.allSatisfy(\.isSelectable))
         XCTAssertEqual(document.selectableGeometries.map(\.type.logDescription), ["group", "cube"])
     }
 
-    func testSelectionMenuDisablesUnfocusedGroupsWithSelectableChildren() throws {
+    func testSelectionMenuDisablesUnfocusedGroupsWithoutSubmenus() throws {
         let document = try document(for: """
         focus group {
             cube {
@@ -139,15 +132,13 @@ final class SelectionTests: XCTestCase {
         """)
         let entries = flattenedSelectionMenuEntries(for: document)
 
-        XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "cube", "group", "sphere"])
-        XCTAssertTrue(isEnabledInSelectionMenu(entries[0]))
-        XCTAssertTrue(entries[1].isSelectable)
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[2]))
-        XCTAssertFalse(entries[3].isSelectable)
+        XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "cube", "group"])
+        XCTAssertEqual(entries.map(\.isSelectable), [true, true, false])
+        XCTAssertTrue(entries[2].children.isEmpty)
         XCTAssertEqual(document.selectableGeometries.map(\.type.logDescription), ["group", "cube"])
     }
 
-    func testSelectionMenuKeepsUnfocusedBranchVisibleButUnselectable() throws {
+    func testSelectionMenuCollapsesUnfocusedBranch() throws {
         let document = try document(for: """
         focus group {
             group {
@@ -164,12 +155,10 @@ final class SelectionTests: XCTestCase {
 
         XCTAssertEqual(
             entries.map(\.geometry.type.logDescription),
-            ["group", "group", "sphere", "group", "group", "cube"]
+            ["group", "group", "sphere", "group"]
         )
-        XCTAssertTrue(entries[2].isSelectable)
-        XCTAssertFalse(entries[5].isSelectable)
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[3]))
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[4]))
+        XCTAssertEqual(entries.map(\.isSelectable), [true, true, true, false])
+        XCTAssertTrue(entries[3].children.isEmpty)
         XCTAssertEqual(document.selectableGeometries.map(\.type.logDescription), ["group", "group", "sphere"])
     }
 
@@ -224,7 +213,57 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(entries.map(\.isSelectable), [true, true, false])
     }
 
-    func testSelectionMenuOmitsHiddenGeometry() throws {
+    func testDebugOperandDoesNotMakeSiblingsSelectable() throws {
+        for operation in ["union", "difference", "intersection", "xor", "stencil"] {
+            let document = try document(for: "\(operation) { cube\ndebug sphere }")
+            XCTAssertTrue(document.geometry.build { false })
+            let entries = flattenedSelectionMenuEntries(for: document)
+            XCTAssertEqual(entries.map(\.geometry.type.logDescription), [operation, "sphere"])
+            let parent = try XCTUnwrap(document.geometry.children.first)
+            let contextEntries = document.selectionMenuEntries(for: [parent] + parent.children)
+            XCTAssertEqual(contextEntries.count, 1)
+            XCTAssertEqual(contextEntries[0].children.map(\.geometry.type.logDescription), ["sphere"])
+            XCTAssertFalse(parent.children[0].isSelectableInSelectionMenu(focus: false))
+            XCTAssertTrue(parent.children[1].isSelectableInSelectionMenu(focus: false))
+        }
+    }
+
+    func testBuiltBooleanOperationsHaveNoSubmenuForConsumedChildren() throws {
+        for operation in ["union", "difference", "intersection", "xor", "stencil"] {
+            let document = try document(for: "\(operation) { cube\nsphere }")
+            XCTAssertTrue(document.geometry.build { false })
+            let entry = try XCTUnwrap(document.selectionMenuEntries.first)
+            XCTAssertTrue(entry.isSelectable)
+            XCTAssertTrue(entry.children.isEmpty, operation)
+            let contextEntries = document.selectionMenuEntries(
+                for: [entry.geometry] + entry.geometry.children
+            )
+            XCTAssertEqual(contextEntries.count, 1, operation)
+            XCTAssertTrue(contextEntries[0].children.isEmpty, operation)
+        }
+    }
+
+    func testHiddenShapesAppearAsDisabledLeaves() throws {
+        let document = try document(for: """
+        group {
+            cube
+            hide sphere
+        }
+        hide group { cylinder }
+        """)
+        let entries = flattenedSelectionMenuEntries(for: document)
+        XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "cube", "sphere", "group"])
+        XCTAssertEqual(entries.map(\.isSelectable), [true, true, false, false])
+        XCTAssertTrue(entries[2].children.isEmpty)
+        XCTAssertTrue(entries[3].children.isEmpty)
+        let context = document.selectionMenuEntries(for: entries.map(\.geometry))
+        XCTAssertEqual(context.count, 2)
+        XCTAssertFalse(context[0].children[1].isSelectable)
+        XCTAssertFalse(context[1].isSelectable)
+        XCTAssertTrue(context[1].children.isEmpty)
+    }
+
+    func testSelectionMenuDisablesGroupWithOnlyHiddenChildren() throws {
         let document = try document(for: """
         group {
             hide cube
@@ -234,7 +273,8 @@ final class SelectionTests: XCTestCase {
         let entries = flattenedSelectionMenuEntries(for: document)
 
         XCTAssertEqual(entries.map(\.geometry.type.logDescription), ["group", "sphere"])
-        XCTAssertFalse(isEnabledInSelectionMenu(entries[0]))
+        XCTAssertFalse(entries[0].isSelectable)
+        XCTAssertTrue(entries[0].children.isEmpty)
         XCTAssertTrue(entries[1].isSelectable)
         XCTAssertEqual(document.selectableGeometries.map(\.type.logDescription), ["sphere"])
     }

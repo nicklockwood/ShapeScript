@@ -726,7 +726,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
             menuItem.representedObject = geometry
             menuItem.state = (selectedGeometry === geometry) ? .on : .off
         }
-        menuItem.isEnabled = true
+        menuItem.isEnabled = entry.isSelectable
 
         if !entry.children.isEmpty {
             if lazySubmenus {
