@@ -1201,6 +1201,14 @@ final class ParserTests: XCTestCase {
         ]))
     }
 
+    func testStepSubscriptRequiresRange() {
+        XCTAssertThrowsError(try parse("print square[step 0.1]")) { error in
+            XCTAssertTrue(error is ParserError)
+        }
+        XCTAssertNoThrow(try parse("print square[from 0 step 0.1]"))
+        XCTAssertNoThrow(try parse("print square[0 to 1 step 0.1]"))
+    }
+
     func testIfExpressionWithoutBracesInSubscript() throws {
         let input = "define value tuple[if true 1 else 2]"
         let defineRange = try XCTUnwrap(input.range(of: "define"))

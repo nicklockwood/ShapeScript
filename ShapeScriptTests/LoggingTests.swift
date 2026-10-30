@@ -423,8 +423,8 @@ final class LoggingTests: XCTestCase {
         XCTAssertEqual(input.nestedLogDescription, "(4 to 2)")
     }
 
-    func testRangeWithStep() {
-        let input = RangeValue(from: 0, to: 5, step: 2)
+    func testRangeWithStep() throws {
+        let input = try XCTUnwrap(RangeValue(from: 0, to: 5, step: 2))
         XCTAssertEqual(input.logDescription, "0 to 5 step 2")
         XCTAssertEqual(input.nestedLogDescription, "(0 to 5 step 2)")
     }

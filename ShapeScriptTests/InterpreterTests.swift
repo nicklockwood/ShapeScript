@@ -3716,11 +3716,11 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [RangeValue(from: 0.5, to: 1.5)])
     }
 
-    func testRangePrecedence() {
+    func testRangePrecedence() throws {
         let program = "print 1 + 2 to 5 * 3 step 1 + 1"
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [RangeValue(from: 3, to: 15, step: 2)])
+        XCTAssertEqual(delegate.log, try [XCTUnwrap(RangeValue(from: 3, to: 15, step: 2))])
     }
 
     func testRangeWithNonNumericStartValue() throws {
@@ -3779,24 +3779,24 @@ final class InterpreterTests: XCTestCase {
         }
     }
 
-    func testRangeExtendedByStepValue() {
+    func testRangeExtendedByStepValue() throws {
         let program = """
         define range 1 to 5
         print range step 2
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [RangeValue(from: 1, to: 5, step: 2)])
+        XCTAssertEqual(delegate.log, try [XCTUnwrap(RangeValue(from: 1, to: 5, step: 2))])
     }
 
-    func testRangeWithStepExtendedByDifferentStepValue() {
+    func testRangeWithStepExtendedByDifferentStepValue() throws {
         let program = """
         define range 1 to 5 step 3
         print range step 2
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [RangeValue(from: 1, to: 5, step: 2)])
+        XCTAssertEqual(delegate.log, try [XCTUnwrap(RangeValue(from: 1, to: 5, step: 2))])
     }
 
     // MARK: Partial ranges
@@ -3811,14 +3811,14 @@ final class InterpreterTests: XCTestCase {
         XCTAssertEqual(delegate.log, [RangeValue(from: 5, to: nil)])
     }
 
-    func testPartialRangeWithStep() {
+    func testPartialRangeWithStep() throws {
         let program = """
         define range from 5 step 2
         print range
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
-        XCTAssertEqual(delegate.log, [RangeValue(from: 5, to: nil, step: 2)])
+        XCTAssertEqual(delegate.log, try [XCTUnwrap(RangeValue(from: 5, to: nil, step: 2))])
     }
 
     func testPartialRangeWithNegativeStep() {
@@ -4039,7 +4039,7 @@ final class InterpreterTests: XCTestCase {
             point 0 1
             point 0 0
         }
-        for point in p step 1 { print point.position }
+        for point in p.points.allButLast step 1 { print point.position }
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
@@ -4064,7 +4064,7 @@ final class InterpreterTests: XCTestCase {
     func testForLoopWithZeroPathStep() {
         let program = "for point in (path { point 0 }) step 0 { print point }"
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
-            XCTAssertEqual((error as? RuntimeError)?.message, "Step value must be finite and nonzero")
+            XCTAssertEqual((error as? RuntimeError)?.message, "Step value must be nonzero")
         }
     }
 
@@ -4088,7 +4088,7 @@ final class InterpreterTests: XCTestCase {
     func testForLoopWithPathPrimitive() {
         let program = """
         for point in square { print point.position }
-        for point in square step 1 { print point.position }
+        for point in square.points.allButLast step 1 { print point.position }
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
@@ -4097,16 +4097,16 @@ final class InterpreterTests: XCTestCase {
 
     func testSteppedPathReturnsPointsWithOriginalOrientations() throws {
         let program = """
-        define samples square step 0.7
+        define samples square.points.allButLast step 2
         print samples.count
         for point in samples { print point }
         """
         let delegate = TestDelegate()
         _ = try evaluate(parse(program), delegate: delegate)
-        XCTAssertEqual(delegate.log.first, 6)
+        XCTAssertEqual(delegate.log.first, 2)
         let path = Path.square()
         for (index, value) in delegate.log.dropFirst().enumerated() {
-            XCTAssertEqual(value as? PathPoint, path.interpolatedPoint(at: Double(index) * 0.7))
+            XCTAssertEqual(value as? PathPoint, path.points[index * 2])
         }
     }
 
@@ -4159,7 +4159,8 @@ final class InterpreterTests: XCTestCase {
                 point 10 0
             }
         }
-        for point in p step 3 { print point.position }
+        define points for point in p { point }
+        for point in points step 3 { print point.position }
         """
         let delegate = TestDelegate()
         XCTAssertNoThrow(try evaluate(parse(program), delegate: delegate))
@@ -4174,7 +4175,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "list or range",
+                expected: "list, object, path, or range",
                 got: "number"
             ), at: range))
         }
@@ -4188,7 +4189,7 @@ final class InterpreterTests: XCTestCase {
             XCTAssertEqual(error?.message, "Type mismatch")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "list or range",
+                expected: "list, object, path, or range",
                 got: "string"
             ), at: range))
         }
@@ -4298,10 +4299,10 @@ final class InterpreterTests: XCTestCase {
         XCTAssertThrowsError(try evaluate(parse(program), delegate: nil)) { error in
             let error = try? XCTUnwrap(error as? RuntimeError)
             XCTAssertEqual(error?.message, "Type mismatch")
-            XCTAssertEqual(error?.hint, "The loop bounds should be a list or range, not a color.")
+            XCTAssertEqual(error?.hint, "The loop bounds should be a list, object, path, or range, not a color.")
             XCTAssertEqual(error, RuntimeError(.typeMismatch(
                 for: "loop bounds",
-                expected: "list or range",
+                expected: "list, object, path, or range",
                 got: "color"
             ), at: range))
         }

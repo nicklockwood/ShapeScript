@@ -390,12 +390,13 @@ extension Value {
         case let .path(path): .path(path.transformed(by: transform))
         case let .mesh(geometry): .mesh(geometry.transformed(by: transform))
         case let .polygon(polygon): .polygon(polygon.transformed(by: transform))
+        case let .point(point): .point(point.transformed(by: transform))
         case let .list(values): .list(values.map { $0.transformed(by: transform) })
         case let .tuple(values): .tuple(values.map { $0.transformed(by: transform) })
         case let .pretransformed(value): value.transformed(by: transform)
         case .color, .texture, .material, .boolean, .number,
              .radians, .halfturns, .vector, .size, .rotation,
-             .string, .font, .text, .point, .bounds, .object, .range:
+             .string, .font, .text, .bounds, .object, .range:
             self
         }
     }
@@ -410,6 +411,7 @@ extension Value {
                     .map { Value.point($0) }
             })
         case let .mesh(geometry):
+            guard geometry.isPath else { return nil }
             return geometry.path(pretransformed: true).flatMap { Value.path($0).sequenceValue }
         case let .pretransformed(value):
             return value.sequenceValue
@@ -418,6 +420,8 @@ extension Value {
                 if case .range = first {
                     // Special case to handle unbounded ranges
                     return first.sequenceValue
+                } else if case .mesh = first.unwrapped(recursive: true).unpretransformed(), first.sequenceValue == nil {
+                    return nil
                 } else if let sequenceValue = first.sequenceValue {
                     return sequenceValue
                 }

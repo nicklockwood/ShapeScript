@@ -403,7 +403,7 @@ private func validateLightCount(in scene: Scene, source: String) throws {
     }
 }
 
-private struct EvaluationCancelled: Error {}
+struct EvaluationCancelled: Error {}
 
 private func _evaluate(
     _ program: Program,
@@ -596,6 +596,8 @@ final class UserBlock: @unchecked Sendable {
                     switch child.unpretransformed() {
                     case let .list(values):
                         return .list(values.map(transform))
+                    case let .point(point):
+                        return .point(point.transformed(by: context.state.transform))
                     case let .path(path):
                         guard context.state.name.isEmpty else {
                             return .mesh(Geometry(
@@ -1275,9 +1277,9 @@ extension Definition {
             let sourceIndex = context.sourceIndex
             let baseURL = context.state.baseURL
             var symbols = Symbols.font // TODO: should this be supported?
-            if returnType.contains(where: { $0.isSubtype(of: .union([.mesh, .path, .polygon])) }) ||
-                childTypes == .any
-            {
+            if returnType.contains(where: {
+                $0.isSubtype(of: .union([.mesh, .path, .polygon, .point, .list(.point)]))
+            }) || childTypes == .any {
                 symbols.merge(.shape) { $1 }
             }
             if ValueType.mesh.isSubtype(of: childTypes) ||
@@ -1962,45 +1964,45 @@ extension Expression {
             let end = try rhs.evaluate(as: .number, for: "to", index: 1, in: context)
             return .range(RangeValue(from: start.doubleValue, to: end.doubleValue))
         case let .infix(lhs, .step, rhs):
-            let rangeType = ValueType.union([.range, .partialRange, .path])
-            let rangeValue = try lhs.evaluate(as: rangeType, for: "step", index: 0, in: context)
-            let stepValue = try rhs.evaluate(as: .number, for: "step", index: 1, in: context)
-            if case let .path(path) = rangeValue.materializedPathValue.unpretransformed() {
-                let step = stepValue.doubleValue
-                guard step != 0, step.isFinite else {
-                    throw RuntimeError(.custom("Step value must be finite and nonzero"), at: rhs.range)
-                }
-                let length = path.length
-                guard length > 0 else {
-                    return .list(path.points.prefix(1).map { .point($0) })
-                }
-                let range = RangeValue(from: step > 0 ? 0 : length, to: step > 0 ? length : 0, step: step)!
-                var points = [Value]()
-                for distance in range.stride! {
-                    if context.isCancelled() {
-                        throw EvaluationCancelled()
-                    }
-                    if path.isClosed, step > 0 ? distance >= length : distance <= 0 {
-                        break
-                    }
-                    if let point = path.interpolatedPoint(at: min(max(distance, 0), length)) {
-                        points.append(.point(point))
-                    }
-                    if step > 0 ? distance >= length : distance <= 0 {
-                        break
-                    }
-                }
-                return .list(points)
+            let source = try lhs.evaluate(in: context).unwrapped(recursive: true)
+            let step = try rhs.evaluate(as: .number, for: "step", index: 1, in: context).doubleValue
+            guard step.isFinite else {
+                throw RuntimeError(.nonFiniteValue, at: rhs.range)
             }
-            let range = rangeValue.value as! RangeValue
-            guard let value = RangeValue(
-                from: range.start,
-                to: range.end,
-                step: stepValue.doubleValue
-            ) else {
+            guard step != 0 else {
                 throw RuntimeError(.custom("Step value must be nonzero"), at: rhs.range)
             }
-            return .range(value)
+            if case let .range(range) = source {
+                return .range(RangeValue(from: range.start, to: range.end, step: step)!)
+            }
+            let value: Value = switch source.unpretransformed() {
+            case .path, .mesh: source.materializedPathValue.unwrapped(recursive: true)
+            default: source
+            }
+            if case let .path(path) = value.unpretransformed() {
+                let result = Value.path(path.interpolated(step: step, isCancelled: context.isCancelled))
+                if context.isCancelled() { throw EvaluationCancelled() }
+                if case .pretransformed = value { return .pretransformed(result) }
+                return result
+            }
+            guard !source.type.isSubtype(of: .anyObject), let elements = source.sequenceValue else {
+                throw RuntimeError(.typeMismatch(
+                    for: "step", index: 0, expected: .union([.range, .partialRange, .path, .list(.any)]),
+                    got: source.type
+                ), at: lhs.range)
+            }
+            guard step.rounded(.towardZero) == step else {
+                throw RuntimeError(.custom("Step value must be an integer"), at: rhs.range)
+            }
+            var values = [Value]()
+            for value in elements {
+                if context.isCancelled() { throw EvaluationCancelled() }
+                values.append(value)
+            }
+            if step < 0 { values.reverse() }
+            return .list(values.enumerated().compactMap {
+                Double($0.offset).truncatingRemainder(dividingBy: abs(step)) == 0 ? $0.element : nil
+            })
         case let .infix(lhs, .in, rhs):
             let lhs = try lhs.evaluate(in: context)
             let collectionType = ValueType.union([.range, .partialRange, .list(.any), .anyObject])
@@ -2176,6 +2178,31 @@ extension Expression {
             let value = originalValue.materializedPathValue
             let indexType = ValueType.union([.number, .range, .partialRange, .string])
             let index = try rhs.evaluate(as: indexType, for: "index", in: context)
+            if case let .path(path) = value.unwrapped(recursive: true).unpretransformed() {
+                switch index {
+                case let .number(distance):
+                    guard distance.isFinite else { throw RuntimeError(.nonFiniteValue, at: rhs.range) }
+                    guard let point = path.interpolatedPoint(at: distance) else {
+                        throw RuntimeError(.invalidIndex(distance, range: 0 ..< 0), at: rhs.range)
+                    }
+                    if case .pretransformed = value.unwrapped(recursive: true) {
+                        return .pretransformed(.point(point))
+                    }
+                    return .point(point)
+                case let .range(range):
+                    guard range.isFinite else { throw RuntimeError(.nonFiniteValue, at: rhs.range) }
+                    let result = Value.path(path.interpolated(
+                        from: range.start, to: range.end, step: range.step, isCancelled: context.isCancelled
+                    ))
+                    if context.isCancelled() { throw EvaluationCancelled() }
+                    if case .pretransformed = value.unwrapped(recursive: true) {
+                        return .pretransformed(result)
+                    }
+                    return result
+                default:
+                    break
+                }
+            }
             switch index {
             case let .number(number):
                 let index = Int(truncating: number as NSNumber)
@@ -2237,9 +2264,14 @@ extension Expression {
         case let .forloop(identifier, in: expression, block):
             let value = try expression.evaluate(in: context)
             guard let sequence = value.sequenceValue else {
-                throw RuntimeError(.typeMismatch(
-                    for: "loop bounds", expected: .sequence, got: value.type
-                ), at: expression.range)
+                throw RuntimeError(
+                    .typeMismatch(
+                        for: "loop bounds",
+                        expected: .iterable,
+                        got: value.type
+                    ),
+                    at: expression.range
+                )
             }
             let oldChildren = context.state.children
             defer { context.state.children = oldChildren }

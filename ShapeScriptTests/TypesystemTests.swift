@@ -342,12 +342,17 @@ final class TypesystemTests: XCTestCase {
     }
 
     func testPathStepReturnType() {
+        XCTAssertEqual(try expressionType("square step 0.1"), .path)
+        XCTAssertEqual(try expressionType("(union { square }) step 0.1"), .path)
+    }
+
+    func testPathPointsStepReturnType() {
         XCTAssertEqual(try expressionType("""
         define p path {
             point 0
             point 1
         }
-        p step 0.1
+        p.points step 2
         """), .list(.point))
     }
 
@@ -797,6 +802,16 @@ final class TypesystemTests: XCTestCase {
         """)
         XCTAssertEqual(type.childTypes, .any)
         XCTAssertEqual(type.returnType, .void)
+    }
+
+    func testBlockLoopingOverChildren() throws {
+        let type = try blockType(in: """
+        define foo {
+            for child in children { child }
+        }
+        """)
+        XCTAssertEqual(type.childTypes, .any)
+        XCTAssertEqual(type.returnType, .list(.any))
     }
 
     func testBlockWithChildMeshes() throws {

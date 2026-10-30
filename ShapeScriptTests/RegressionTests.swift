@@ -27,9 +27,9 @@ private let testShapesURLs: [URL] = try! FileManager.default
     .filter(\.isShapeFile)
     .filter {
         #if os(iOS)
-        return !$0.deletingPathExtension().lastPathComponent.hasSuffix("-mac")
+        !$0.deletingPathExtension().lastPathComponent.hasSuffix("-mac")
         #else
-        return !$0.deletingPathExtension().lastPathComponent.hasSuffix("-ios")
+        !$0.deletingPathExtension().lastPathComponent.hasSuffix("-ios")
         #endif
     }
 
@@ -1120,6 +1120,18 @@ final class RegressionTests: XCTestCase {
         XCTAssertEqual(scene.children.first?.isWatertight { false }, true)
         XCTAssertEqual(scene.children.first?.polygons { false }.count, 1330) // TODO: why isn't this 1140?
         XCTAssertEqual(delegate.log, [570.0, 6.0, 950.0])
+    }
+
+    func testStackExample() throws {
+        let url = testsDirectory.appendingPathComponent("TestShapes/Stack.shape")
+        let scene = try evaluate(parse(String(contentsOf: url)), delegate: nil)
+        XCTAssertTrue(scene.geometry.build())
+        let meshes = scene.geometry.meshes()
+        XCTAssertEqual(meshes.count, 3)
+        for (index, mesh) in meshes.enumerated() {
+            XCTAssertEqual(mesh.bounds.center.y, Double(index), accuracy: epsilon)
+            XCTAssertTrue(mesh.isWatertight)
+        }
     }
 
     func testExamples() throws {

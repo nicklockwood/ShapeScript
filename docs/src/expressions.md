@@ -377,6 +377,25 @@ for point in triangle.points {
 }
 ```
 
+Closed [Ranges](#ranges) have `start`, `end` and `count` members. [Partial ranges](#partial-ranges) only have `start`:
+
+```swift
+define limits 1 to 6
+print limits.start // 1
+print limits.end // 6
+print limits.count // 6
+```
+
+Ranges can also have a `step` member when an explicit step has been set. The `count` of a stepped range includes only the values reached by each increment:
+
+```swift
+define samples 1 to 6 step 2
+print samples.start // 1
+print samples.end // 6
+print samples.step // 2
+print samples.count // 3 (the values are 1, 3 and 5)
+```
+
 To access members via a computed name or index, see the [subscripting](#subscripting) section below. For more information about the members that are available to access on various data types, see [structured data](literals.md#structured-data).
 
 ## Subscripting
@@ -419,6 +438,20 @@ print foo[-1] // prints 4
 print foo[-2] // prints 3
 ```
 
+[Ranges](#ranges) also support indexing and slicing. Indices start at zero and refer to the enumerated values, taking the range's step into account. Slicing a range, list or tuple always returns a list, even when one or zero elements are selected.
+
+```swift
+define limits 1 to 6
+print limits[1] // 2
+print limits[-1] // 6
+print limits[1 to 3] // 2 3 4
+
+define samples limits step 2
+print samples[1] // 3
+print samples[-1] // 5
+print samples[0 to 1] // 1 3
+```
+
 Trying to access tuple elements outside the range `-count to count - 1` will result in an error, as will attempting to access a named member that does not exist. To avoid the error you can check if a given member exists by using the `in` operator, as follows:
 
 ```swift
@@ -429,7 +462,7 @@ if "red" in purple {
 }
 ```
 
-You can also use a [range](#ranges) or [partial range](#partial-ranges) of indices to access a subset of a tuple's values':
+You can use a [range](#ranges) or [partial range](#partial-ranges) of indices to access a subset of a tuple's values:
 
 ```swift
 define foo 1 2 3 4 5
@@ -437,7 +470,60 @@ define foo 1 2 3 4 5
 print foo[0 to 2] // prints 1 2 3
 print foo[1 to 3] // prints 2 3 4
 print foo[from 2] // prints 3 4 5
+print foo[0 to 4 step 2] // prints 1 3 5
 ```
+
+You can also use subscripting to sample points or ranges along a path. Path subscripts are specified by distance (in model units) along the path rather than point index. A numeric subscript returns an interpolated point at that position, and a range clips a section from the original path:
+
+```swift
+define track path { ... }
+
+track[0.4]                   // interpolated point at distance 0.4 along the path
+track[from 0.4]              // new path starting at distance 0.4 along the original
+track[0.4 to 0.8]            // section of path from distance 0.4 to 0.8
+```
+
+For a closed path, using `[from x]` inserts a new starting point at a distance of `x` from the original start (all original points are preserved). For an open path, `[from x]` discards the part of the path between the original start and `x`. You can specify both start and end position using `[a to b]`, in which case the part outside that range will be discarded. If `b` is less than `a`, the order of points in the selected section will be reversed. For paths with multiple subpaths, the subscript distances are applied for each subpath separately.
+
+The new path includes the original points between the selected endpoints and interpolates the endpoints themselves, including their colors and texture coordinates. Distances wrap around closed paths and clamp to the ends of open paths. If you slice the result again, distances are measured from the new starting point.
+
+To sample evenly-spaced points along a path, use the `step` operator. This returns a new path, so it can be used in a [loop](control-flow.md#looping-over-paths) or passed to a geometry builder:
+
+```swift
+track step 0.1              // Sample the whole path every 0.1 units
+track[0.5 to 0.8] step 0.1  // Sample a selected section
+```
+
+You can also use a stepped range inside the subscript brackets. Both forms have the same meaning:
+
+```swift
+track[from 0 step 0.1]      // Sample the whole path every 0.1 units
+track[from 0.5 step 0.1]     // Sample from distance 0.5
+track[0.5 to 0.8 step 0.1]   // Sample the selected section
+```
+
+`path step x` and `path[from 0 step x]` are equivalent. As with the `from` and `to` values, `step` is a distance in model units, not a fraction of the path length or a point index. It must be finite and nonzero. A negative step samples the selected path backwards from its end. For paths with multiple subpaths, each is sampled separately.
+
+Curved paths are sampled along their generated segments, so `detail` still controls how smoothly the source path is represented. Sampling fine-grained steps along a coarsely-detailed curve will not make it smoother, but larger steps may cut across corners and shorten the path.
+
+An open path includes its last point only if a step reaches it:
+
+```swift
+define samples square step 0.7
+path { samples } // Keeps the sampled path closed
+path { for point in samples { point } } // Omits the closing point, leaving the path open
+```
+
+Applying `step` again resamples the resulting path, including any changes to its corners and length. For example, `(track step 0.7) step 0.1` can differ from `track step 0.1`.
+
+Use `.points` to select existing points by index, as described under [looping over values](control-flow.md#looping-over-values):
+
+```swift
+track.points step 4              // Every fourth stored point
+(track step 0.1).points step 4    // Every fourth point of the resampled path
+```
+
+Unlike [looping directly over a closed path](control-flow.md#looping-over-paths), looping over `.points` includes the repeated closing point if the step reaches it. For a single closed path, use `.points.allButLast` to omit the duplicate point.
 
 ## Named Geometry
 

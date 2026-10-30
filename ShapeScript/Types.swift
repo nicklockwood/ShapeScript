@@ -98,7 +98,7 @@ extension ValueType: Comparable {
 
 extension ValueType {
     static let void: ValueType = .tuple([])
-    static let sequence: ValueType = .union([.range, .list(.any)])
+    static let iterable: ValueType = .union([.range, .list(.any), .path, .anyObject])
     static let anyObject: ValueType = .object(["*": .any])
     static let numberPair: ValueType = .tuple([.number, .number])
     static let colorOrTexture: ValueType = .union([.color, .texture])
@@ -789,7 +789,10 @@ extension Expression {
                 if case let .tuple(types) = lhs, types.count == 1 {
                     return concreteArithmeticType(types[0], rhs)
                 }
-                return lhs.isSubtype(of: .union([.path, .mesh, .polygon])) ? .list(.point) : .range
+                if lhs.isSubtype(of: .union([.path, .mesh, .polygon])) { return .path }
+                if case let .list(type) = lhs { return .list(type) }
+                if case let .tuple(types) = lhs { return .list(.union(Set(types)).simplified()) }
+                return lhs
             case .to:
                 return .range
             case .equal, .unequal, .lt, .gt, .lte, .gte, .and, .or, .in:
@@ -875,7 +878,7 @@ extension Expression {
             body.inferTypes(for: &params, in: context)
             elseBody?.inferTypes(for: &params, in: context)
         case let .forloop(_, in: expression, body):
-            expression.inferTypes(for: &params, in: context, with: .union([.sequence, .path]))
+            expression.inferTypes(for: &params, in: context, with: .any)
             body.inferTypes(for: &params, in: context)
         case let .switchcase(condition, cases, else: elseBody):
             condition.inferTypes(for: &params, in: context, with: .any)
@@ -885,7 +888,7 @@ extension Expression {
             }
             elseBody?.inferTypes(for: &params, in: context)
         case let .infix(lhs, .step, rhs):
-            lhs.inferTypes(for: &params, in: context, with: .union([.range, .partialRange, .path]))
+            lhs.inferTypes(for: &params, in: context, with: .union([.range, .partialRange, .path, .list(.any)]))
             rhs.inferTypes(for: &params, in: context, with: .number)
         case let .prefix(.minus, rhs), let .prefix(.plus, rhs):
             rhs.inferTypes(for: &params, in: context, with: .numberOrVector)
@@ -1040,6 +1043,7 @@ extension Expression {
             let lhsType = try lhs.staticType(in: context)
             let indexType = try rhs.staticType(in: context)
             if indexType.isSubtype(of: .union([.range, .partialRange])) {
+                if lhsType.isSubtype(of: .union([.path, .mesh])) { return .path }
                 let elementType: ValueType = switch lhsType {
                 case let .list(type): type
                 case let .tuple(types): .union(Set(types)).simplified()

@@ -159,6 +159,15 @@ private extension MemberProperties {
     ]
 
     static let range: MemberProperties = [
+        "count": .init(.number) { value, isCancelled in
+            guard let elements = value.sequenceValue else { return nil }
+            var count = 0
+            for _ in elements {
+                if isCancelled() { return nil }
+                count += 1
+            }
+            return .number(Double(count))
+        },
         "start": .init(.number) { value, _ in
             guard case let .range(range) = value else { return nil }
             return .number(range.start)
@@ -677,11 +686,11 @@ extension ValueType {
         switch self {
         case let .object(members):
             members
-        case .material, .color, .rotation, .mesh, .polygon, .point:
+        case .material, .color, .rotation, .mesh, .polygon, .point, .range, .partialRange:
             memberProperties.mapValues(\.type)
         case .texture, .boolean, .font, .number, .radians, .halfturns,
              .vector, .size, .string, .text, .path,
-             .range, .partialRange, .bounds, .union, .tuple, .list:
+             .bounds, .union, .tuple, .list:
             Self.knownMemberTypes
         case .any:
             [:]
@@ -933,7 +942,12 @@ extension Value {
             return -3 ..< 3
         case .color:
             return -4 ..< 4
-        case let .tuple(values), let .list(values):
+        case let .tuple(values):
+            if values.count == 1, case .range = values[0].unwrapped(recursive: true) {
+                return values[0].unwrapped(recursive: true).indices
+            }
+            return -values.endIndex ..< values.endIndex
+        case let .list(values):
             return -values.endIndex ..< values.endIndex
         case let .range(range):
             guard let values = range.stride.map(Array.init) else { fallthrough }

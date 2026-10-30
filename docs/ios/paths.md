@@ -5,7 +5,7 @@ A path is a sequence of line segments or curves joined end-to-end. The points of
 
 Paths are not typically used directly as part of a scene (except possibly for something like a thin rope or antenna), but they can be used to define the contours or profile of a 3D shape (see [builders](builders.md) for details).
 
-Closed paths on the same plane can also be combined using `union`, `difference`, `intersection`, and `xor`. See [CSG path operations](csg.md#path-operations) for details.
+Closed paths on the same plane can be combined using [CSG path operations](csg.md#path-operations). You can also use [subscripting](expressions.md#subscripting) to slice or subdivide a path, or [loop over individual path points](control-flow.md#looping-over-paths).
 
 ## Points
 
