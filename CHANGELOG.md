@@ -1,5 +1,56 @@
 # Change Log
 
+## [1.12.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.0) (2026-10-31)
+
+- Raised minimum supported OS versions to macOS 12, iOS 15, tvOS 15, watchOS 9 and visionOS 1.3
+- Added support for importing, opening, creating and editing OpenSCAD CSG files
+- Added support for `hull`, `minkowski` and boolean CSG operations on coplanar paths
+- Added SVG imports with named groups, open paths and element selection
+- Model import color and texture overrides now apply across all materials and vertex colors
+- Added named geometry selection with `#name` fragments for ShapeScript and model imports
+- Added named geometry lookup using dot or string subscript syntax
+- Added `name` support to paths and path primitives, including text
+- Added CSS named color support to ShapeScript color strings and CSG imports
+- Missing fonts and textures now produce non-blocking warnings instead of errors
+- Added top-level script options that can be overridden via import blocks or the CLI
+- Added `preview` symbol for using different geometry and detail settings when viewing and exporting
+- Added `hide` command and improved focus and selection behavior
+- Added group selection in menus, with selection highlighting for all children
+- Improved object selection menus to omit unselectable children
+- Added `letterspacing` option for text blocks
+- Added support for single-line `if` statements without braces
+- Added `lathe` along a path
+- Added path length and path point orientation
+- Added distance-based path subscripting, enumeration and resampling
+- Added `length` option to path blocks
+- Added persistent geometry disk cache shared between app, CLI and Quick Look
+- Added progress indicators for script evaluation, geometry generation and export
+- Enhanced CLI with `check`, `info` and `export` subcommands, improved argument validation and error messages
+- Added CLI `--preview`, `--no-cache` and `--camera` options
+- Added software rendering and image export for the CLI
+- Improved `minkowski` and `union` performance
+- Optimized lathe bounds and reused cached geometry during evaluation
+- Added automatic top camera selection for flat models
+- Added warning banners and file access permission controls in Quick Look
+- Fixed Quick Look camera framing jumps during loading and resizing
+- Fixed block options leaking into nested receivers and tuple-to-point casting in path blocks
+- Fixed path material color preservation and underestimated sphere bounds
+- Fixed `inset` command shifting positioned objects and incorrectly offsetting rotated/reflected cones
+- Fixed renamed files losing security-scoped access
+- Persisted granted file access using security-scoped bookmarks on macOS
+- Fixed stale errors being shown against updated source and a potential rendering crash
+- Improved error highlighting for wrapped lines and end-of-file errors
+- Cleared previous syntax errors as soon as parsing succeeds
+- Fixed loading indicator and error display behavior when changing appearance
+- Improved control overlay contrast in light and dark modes
+- Fixed flat end-cap shading on hulls of curved profiles
+- Fixed inverted faces and non-manifold edges introduced during mesh repair
+- Fixed console flicker on file reload
+- Added a Tank example demonstrating path hulls, extrusion and stepped path enumeration
+- Added `SemanticVersion` type and removed deprecated APIs
+- Added explicit computed geometry accessors and deprecated ambiguous `mesh` and `path` properties
+- Bumped Euclid to version 0.10.4
+
 ## [1.11.6](https://github.com/nicklockwood/ShapeScript/releases/tag/1.11.6) (2026-09-26)
 
 - Fixed Quick Look preview framing

@@ -5,6 +5,155 @@
 \paperw11900\paperh16840\margl1440\margr1440\vieww24140\viewh18420\viewkind0
 \deftab720
 
+\f0\b \cf2 ShapeScript 1.12.0 \'97 2026-10-31\
+\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0
+\f1\b0 \expnd0\expndtw0\kerning0   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Raised minimum supported OS versions to macOS 12, iOS 15, tvOS 15, watchOS 9 and visionOS 1.3.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added support for importing, opening, creating and editing OpenSCAD CSG files.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added support for `hull`, `minkowski` and boolean CSG operations on coplanar paths.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added SVG imports with named groups, open paths and element selection.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Model import color and texture overrides now apply across all materials and vertex colors.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added named geometry selection with `#name` fragments for ShapeScript and model imports.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added named geometry lookup using dot or string subscript syntax.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `name` support to paths and path primitives, including text.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added CSS named color support to ShapeScript color strings and CSG imports.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Missing fonts and textures now produce non-blocking warnings instead of errors.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added top-level script options that can be overridden via import blocks or the CLI.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `preview` symbol for using different geometry and detail settings when viewing and exporting.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `hide` command and improved focus and selection behavior.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added group selection in menus, with selection highlighting for all children.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Improved object selection menus to omit unselectable children.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `letterspacing` option for text blocks.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added support for single-line `if` statements without braces.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `lathe` along a path.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added path length and path point orientation.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added distance-based path subscripting, enumeration and resampling.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `length` option to path blocks.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added persistent geometry disk cache shared between app, CLI and Quick Look.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added progress indicators for script evaluation, geometry generation and export.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Enhanced CLI with `check`, `info` and `export` subcommands, improved argument validation and error messages.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added CLI `--preview`, `--no-cache` and `--camera` options.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added software rendering and image export for the CLI.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Improved `minkowski` and `union` performance.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Optimized lathe bounds and reused cached geometry during evaluation.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added automatic top camera selection for flat models.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added warning banners and file access permission controls in Quick Look.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed Quick Look camera framing jumps during loading and resizing.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed block options leaking into nested receivers and tuple-to-point casting in path blocks.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed path material color preservation and underestimated sphere bounds.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed `inset` command shifting positioned objects and incorrectly offsetting rotated/reflected cones.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed renamed files losing security-scoped access.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Persisted granted file access using security-scoped bookmarks on macOS.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed stale errors being shown against updated source and a potential rendering crash.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Improved error highlighting for wrapped lines and end-of-file errors.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Cleared previous syntax errors as soon as parsing succeeds.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed loading indicator and error display behavior when changing appearance.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Improved control overlay contrast in light and dark modes.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed flat end-cap shading on hulls of curved profiles.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed inverted faces and non-manifold edges introduced during mesh repair.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Fixed console flicker on file reload.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added a Tank example demonstrating path hulls, extrusion and stepped path enumeration.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added `SemanticVersion` type and removed deprecated APIs.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Added explicit computed geometry accessors and deprecated ambiguous `mesh` and `path` properties.\
+\   \'95
+\f1\b0 \expnd0\expndtw0\kerning0
+  Bumped Euclid to version 0.10.4.\
+\
 \f0\b \cf2 ShapeScript 1.11.6 \'97 2026-09-26\
 \
 \pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
