@@ -141,7 +141,7 @@ final class SVGDocument {
         options: SVGImportOptions,
         fileURL: URL? = nil,
         isCancelled: @escaping CancellationHandler,
-        warn: (String, Int) -> Void
+        warn: @escaping (String, Int) -> Void
     ) throws -> Geometry {
         guard options.dpi.isFinite, options.dpi > 0 else {
             throw SVGImportError(message: "SVG DPI must be positive", line: root.line)
@@ -151,6 +151,12 @@ final class SVGDocument {
             warn(message, element.line)
         }
         let page = try root.pageMatrix(dpi: options.dpi, csg: options.csg)
+        let clipping = SVGClipping(
+            elements: elementsByID,
+            detail: options.detail,
+            isCancelled: isCancelled,
+            warn: warning
+        )
         var hierarchy: [[Geometry]] = [[]]
         func visit(
             _ element: SVGElement, matrix parentMatrix: SVGMatrix, style inherited: [String: String],
@@ -176,145 +182,148 @@ final class SVGDocument {
                     ))
                 }
             }
-            var style = inherited
-            for key in [
-                "display",
-                "visibility",
-                "stroke-width",
-                "stroke-linecap",
-                "stroke-linejoin",
-                "fill-rule",
-                "font-family",
-                "font-size",
-                "font-weight",
-                "font-style",
-                "letter-spacing",
-                "text-anchor",
-                "xml:space",
-            ] {
-                if let value = a[key] { style[key] = value }
-            }
-            for declaration in (a["style"] ?? "").split(separator: ";") {
-                let parts = declaration.split(separator: ":", maxSplits: 1)
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                if parts.count == 2 { style[parts[0]] = parts[1] }
-            }
-            let inLayer = parentInLayer || (options.layer != nil && a["inkscape:label"] == options.layer)
-            var selected = parentSelected ||
-                (options.id != nil && a["id"] == options.id && (options.layer == nil || inLayer)) ||
-                (options.id == nil && options.layer != nil && inLayer)
-            includeInHierarchy = options.id == nil || selected
-            if selected { foundSelection = true }
-            if style["display"] == "none" || style["visibility"] == "hidden" { return }
-            let matrix = try parentMatrix * SVGMatrix.parse(a["transform"] ?? "", line: element.line)
-            if a["clip-path"] != nil || a["mask"] != nil || style["clip-path"] != nil || style["mask"] != nil {
-                warning("SVG clipping and masking are not supported", element)
-            }
-            switch element.name {
-            case "defs", "symbol":
-                // Definitions are instantiated by <use>, or explicitly selected by ID.
-                if references.isEmpty {
-                    guard let id = options.id else { return }
-                    selected = a["id"] == id
+            func build() throws {
+                let style = element.style(inheriting: inherited)
+                let inLayer = parentInLayer || (options.layer != nil && a["inkscape:label"] == options.layer)
+                var selected = parentSelected ||
+                    (options.id != nil && a["id"] == options.id && (options.layer == nil || inLayer)) ||
+                    (options.id == nil && options.layer != nil && inLayer)
+                includeInHierarchy = options.id == nil || selected
+                if selected { foundSelection = true }
+                if style["display"] == "none" || style["visibility"] == "hidden" { return }
+                let matrix = try parentMatrix * SVGMatrix.parse(a["transform"] ?? "", line: element.line)
+                if options.csg, style["clip-path"] != nil || style["mask"] != nil {
+                    warning("SVG clipping and masking are not supported", element)
+                } else if style["mask"] != nil {
+                    warning("SVG masking is not supported", element)
                 }
-            case "svg", "g", "a": break
-            case "title", "desc", "metadata": return
-            case "use":
-                guard selected else { return }
-                let href = a["href"] ?? a["xlink:href"] ?? ""
-                guard href.hasPrefix("#") else {
-                    warning("External SVG references are not supported", element)
-                    return
-                }
-                let id = String(href.dropFirst()).removingPercentEncoding ?? String(href.dropFirst())
-                guard !references.contains(id) else {
-                    throw SVGImportError(message: "Circular SVG reference '#\(id)'", line: element.line)
-                }
-                guard let target = elementsByID[id] else {
-                    warning("SVG element '#\(id)' not found", element)
-                    return
-                }
-                let offset = try SVGMatrix.translation(element.length("x"), element.length("y"))
-                try visit(
-                    target,
-                    matrix: matrix * offset,
-                    style: style,
-                    selected: true,
-                    inLayer: inLayer,
-                    references: references.union([id]),
-                    depth: depth + 1
-                )
-                return
-            case "text":
-                guard selected else { return }
-                guard !options.csg else {
-                    warning("Unsupported SVG element 'text'", element)
-                    return
-                }
-                #if canImport(CoreText)
-                shapePaths = try element.textPaths(
-                    style: style,
-                    detail: options.detail,
-                    isCancelled: isCancelled,
-                    warn: warning
-                ).map { path in
-                    let positions = path.points.map { matrix.apply($0.position) }
-                    guard positions.allSatisfy(\.isFinite) else {
-                        throw SVGImportError(message: "SVG transform overflow", line: element.line)
+                switch element.name {
+                case "defs", "symbol":
+                    // Definitions are instantiated by <use>, or explicitly selected by ID.
+                    if references.isEmpty {
+                        guard let id = options.id else { return }
+                        selected = a["id"] == id
                     }
-                    return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
-                }
-                #else
-                warning("SVG text is not supported on this platform", element)
-                #endif
-                return
-            case "path", "rect", "circle", "ellipse", "polygon", "polyline", "line":
-                guard selected else { return }
-                let path = try element.path(detail: options.detail, segments: options.segments)
-                let paths: [Path]
-                if options.csg {
-                    var closed = [Path]()
-                    for subpath in path.subpaths {
-                        if subpath.isClosed {
-                            closed.append(subpath)
-                        } else {
-                            let width = try SVGElement.length(style["stroke-width"] ?? "1", line: element.line)
-                            closed += try svgStroke(
-                                subpath,
-                                width: width < 0.01 ? 1 : width,
-                                cap: style["stroke-linecap"] ?? "butt",
-                                join: style["stroke-linejoin"] ?? "miter",
-                                detail: options.segments?(width / 2) ?? options.detail,
-                                isCancelled: isCancelled
-                            ).subpaths
+                case "svg", "g", "a": break
+                case "title", "desc", "metadata", "clipPath": return
+                case "use":
+                    guard selected else { return }
+                    let href = a["href"] ?? a["xlink:href"] ?? ""
+                    guard href.hasPrefix("#") else {
+                        warning("External SVG references are not supported", element)
+                        return
+                    }
+                    let id = String(href.dropFirst()).removingPercentEncoding ?? String(href.dropFirst())
+                    guard !references.contains(id) else {
+                        throw SVGImportError(message: "Circular SVG reference '#\(id)'", line: element.line)
+                    }
+                    guard let target = elementsByID[id] else {
+                        warning("SVG element '#\(id)' not found", element)
+                        return
+                    }
+                    let offset = try SVGMatrix.translation(element.length("x"), element.length("y"))
+                    try visit(
+                        target,
+                        matrix: matrix * offset,
+                        style: style,
+                        selected: true,
+                        inLayer: inLayer,
+                        references: references.union([id]),
+                        depth: depth + 1
+                    )
+                    return
+                case "text":
+                    guard selected else { return }
+                    guard !options.csg else {
+                        warning("Unsupported SVG element 'text'", element)
+                        return
+                    }
+                    #if canImport(CoreText)
+                    shapePaths = try element.textPaths(
+                        style: style,
+                        detail: options.detail,
+                        isCancelled: isCancelled,
+                        warn: warning
+                    ).map { path in
+                        let positions = path.points.map { matrix.apply($0.position) }
+                        guard positions.allSatisfy(\.isFinite) else {
+                            throw SVGImportError(message: "SVG transform overflow", line: element.line)
                         }
+                        return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
                     }
-                    paths = [Path(subpaths: closed)]
-                } else {
-                    paths = [path]
-                }
-                shapePaths = try paths.filter { !$0.isEmpty }.map { path in
-                    let positions = path.points.map { matrix.apply($0.position) }
-                    guard positions.allSatisfy(\.isFinite) else {
-                        throw SVGImportError(message: "SVG transform overflow", line: element.line)
+                    #else
+                    warning("SVG text is not supported on this platform", element)
+                    #endif
+                    return
+                case "path", "rect", "circle", "ellipse", "polygon", "polyline", "line":
+                    guard selected else { return }
+                    let path = try element.path(detail: options.detail, segments: options.segments)
+                    let paths: [Path]
+                    if options.csg {
+                        var closed = [Path]()
+                        for subpath in path.subpaths {
+                            if subpath.isClosed {
+                                closed.append(subpath)
+                            } else {
+                                let width = try SVGElement.length(style["stroke-width"] ?? "1", line: element.line)
+                                closed += try svgStroke(
+                                    subpath,
+                                    width: width < 0.01 ? 1 : width,
+                                    cap: style["stroke-linecap"] ?? "butt",
+                                    join: style["stroke-linejoin"] ?? "miter",
+                                    detail: options.segments?(width / 2) ?? options.detail,
+                                    isCancelled: isCancelled
+                                ).subpaths
+                            }
+                        }
+                        paths = [Path(subpaths: closed)]
+                    } else {
+                        paths = [path]
                     }
-                    return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
+                    shapePaths = try paths.filter { !$0.isEmpty }.map { path in
+                        let positions = path.points.map { matrix.apply($0.position) }
+                        guard positions.allSatisfy(\.isFinite) else {
+                            throw SVGImportError(message: "SVG transform overflow", line: element.line)
+                        }
+                        return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
+                    }
+                    return
+                default:
+                    if selected { warning("Unsupported SVG element '\(element.name)'", element) }
+                    return
                 }
-                return
-            default:
-                if selected { warning("Unsupported SVG element '\(element.name)'", element) }
-                return
+                for child in element.children {
+                    try visit(
+                        child,
+                        matrix: matrix,
+                        style: style,
+                        selected: selected,
+                        inLayer: inLayer,
+                        references: references,
+                        depth: depth + 1
+                    )
+                }
             }
-            for child in element.children {
-                try visit(
-                    child,
-                    matrix: matrix,
-                    style: style,
-                    selected: selected,
-                    inLayer: inLayer,
-                    references: references,
-                    depth: depth + 1
-                )
+            try build()
+            if !options.csg, element.name != "clipPath", shapePaths != nil || !hierarchy.last!.isEmpty {
+                let style = element.style(inheriting: inherited)
+                if let value = style["clip-path"], value != "none" {
+                    let localBounds = try Bounds(clipping.contents(
+                        element, style: style, references: references, depth: depth, applyClips: false
+                    ))
+                    if let boundary = try clipping.region(
+                        value,
+                        bounds: localBounds,
+                        element: element,
+                        references: references,
+                        depth: depth
+                    ) {
+                        let matrix = try parentMatrix * SVGMatrix.parse(a["transform"] ?? "", line: element.line)
+                        let boundary = try clipping.transformed(boundary, by: matrix, element: element)
+                        shapePaths = try shapePaths.map { try $0.map { try clipping.clip($0, to: boundary) } }
+                        hierarchy[hierarchy.count - 1] = try hierarchy.last!.map { try clipping.clip($0, to: boundary) }
+                    }
+                }
             }
         }
         try visit(root, matrix: page, style: [:], selected: foundSelection, inLayer: false, references: [], depth: 0)
@@ -350,10 +359,235 @@ final class SVGDocument {
     }
 }
 
+/// Resolves clip definitions separately from scene selection, so fragment imports retain
+/// ancestor clips and object bounds include unselected siblings.
+private struct SVGClipping {
+    let elements: [String: SVGElement]
+    let detail: Int
+    let isCancelled: CancellationHandler
+    let warn: (String, SVGElement) -> Void
+
+    func transformed(_ path: Path, by matrix: SVGMatrix, element: SVGElement) throws -> Path {
+        guard path.points.allSatisfy({ matrix.apply($0.position).isFinite }) else {
+            throw SVGImportError(message: "SVG transform overflow", line: element.line)
+        }
+        return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
+    }
+
+    func clip(_ path: Path, to boundary: Path) throws -> Path {
+        if isCancelled() { throw CancellationError() }
+        if boundary.isEmpty { return .empty }
+        let closed = Path(subpaths: path.subpaths.filter(\.isClosed))
+        let open = Path(subpaths: path.subpaths.filter { !$0.isClosed })
+        guard let region = closed.intersection(boundary, isCancelled: isCancelled),
+              let fragments = open.split(along: boundary, isCancelled: isCancelled)
+        else { throw SVGImportError(message: "Unable to clip SVG geometry", line: 1) }
+        return Path(subpaths: region.subpaths + fragments.inside.subpaths)
+    }
+
+    func clip(_ geometry: Geometry, to boundary: Path) throws -> Geometry {
+        let type: GeometryType = if case let .path(path) = geometry.type {
+            try .path(clip(path, to: boundary))
+        } else { geometry.type }
+        return try Geometry(
+            type: type, name: geometry.name, transform: geometry.transform,
+            material: geometry.material, smoothing: geometry.smoothing,
+            children: geometry.children.map { try clip($0, to: boundary) },
+            sourceLocation: { geometry.sourceLocation }
+        )
+    }
+
+    func region(
+        _ value: String,
+        bounds: Bounds,
+        element: SVGElement,
+        references: Set<String>,
+        depth: Int
+    ) throws -> Path? {
+        if isCancelled() { throw CancellationError() }
+        let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value == "none" { return nil }
+        guard value.hasPrefix("url("), value.hasSuffix(")") else {
+            warn("Unsupported SVG clip-path '\(value)'", element)
+            return nil
+        }
+        let reference = value.dropFirst(4).dropLast()
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "\"'")))
+        guard reference.hasPrefix("#") else {
+            warn("External SVG clip references are not supported", element)
+            return nil
+        }
+        let id = String(reference.dropFirst()).removingPercentEncoding ?? String(reference.dropFirst())
+        guard !references.contains(id) else {
+            throw SVGImportError(message: "Circular SVG clip reference '#\(id)'", line: element.line)
+        }
+        guard let target = elements[id], target.name == "clipPath" else {
+            warn("SVG clipPath '#\(id)' not found", element)
+            return nil
+        }
+        let units = target.attributes["clipPathUnits"] ?? "userSpaceOnUse"
+        let matrix: SVGMatrix
+        switch units {
+        case "userSpaceOnUse": matrix = .identity
+        case "objectBoundingBox":
+            // SVG ignores object-bounding-box effects on zero-width or zero-height geometry.
+            guard bounds.size.x > 0, bounds.size.y > 0 else { return nil }
+            matrix = SVGMatrix(a: bounds.size.x, d: bounds.size.y, e: bounds.min.x, f: bounds.min.y)
+        default:
+            warn("Unsupported SVG clipPathUnits '\(units)'", target)
+            return nil
+        }
+        var ancestors = [SVGElement]()
+        var parent = target.parent
+        while let element = parent {
+            ancestors.append(element)
+            parent = element.parent
+        }
+        let inherited = ancestors.reversed().reduce([String: String]()) { $1.style(inheriting: $0) }
+        let paths = try elementPaths(
+            target,
+            inherited: inherited,
+            references: references.union([id]),
+            depth: depth + 1,
+            applyClips: true
+        )
+        guard let path = Path.union(paths, isCancelled: isCancelled) else {
+            throw SVGImportError(message: "Unable to combine SVG clip shapes", line: target.line)
+        }
+        return try transformed(path, by: matrix, element: target)
+    }
+
+    func elementPaths(
+        _ element: SVGElement,
+        inherited: [String: String],
+        references: Set<String>,
+        depth: Int,
+        applyClips: Bool
+    ) throws -> [Path] {
+        let style = element.style(inheriting: inherited)
+        var paths = try contents(element, style: style, references: references, depth: depth, applyClips: applyClips)
+        if applyClips, let value = style["clip-path"],
+           let boundary = try region(
+               value,
+               bounds: Bounds(paths),
+               element: element,
+               references: references,
+               depth: depth
+           )
+        {
+            paths = try paths.map { try clip($0, to: boundary) }
+        }
+        let matrix = try SVGMatrix.parse(element.attributes["transform"] ?? "", line: element.line)
+        return try paths.map { try transformed($0, by: matrix, element: element) }
+    }
+
+    /// Local-space geometry before the element's own transform or clip.
+    func contents(
+        _ element: SVGElement,
+        style: [String: String],
+        references: Set<String>,
+        depth: Int,
+        applyClips: Bool
+    ) throws -> [Path] {
+        if isCancelled() { throw CancellationError() }
+        guard depth < 256 else { throw SVGImportError(message: "SVG nesting is too deep", line: element.line) }
+        if style["display"] == "none" || style["visibility"] == "hidden" { return [] }
+        switch element.name {
+        case "clipPath", "svg", "g", "a", "symbol":
+            return try element.children.flatMap { child in
+                // Clip definitions are resources, never visible child geometry.
+                if child.name == "clipPath" || child.name == "defs" { return [Path]() }
+                return try elementPaths(
+                    child,
+                    inherited: style,
+                    references: references,
+                    depth: depth + 1,
+                    applyClips: applyClips
+                )
+            }
+        case "use":
+            let href = element.attributes["href"] ?? element.attributes["xlink:href"] ?? ""
+            guard href.hasPrefix("#") else {
+                if applyClips { warn("External SVG references are not supported", element) }
+                return []
+            }
+            let id = String(href.dropFirst()).removingPercentEncoding ?? String(href.dropFirst())
+            guard !references.contains(id) else {
+                throw SVGImportError(message: "Circular SVG reference '#\(id)'", line: element.line)
+            }
+            guard let target = elements[id] else {
+                if applyClips { warn("SVG element '#\(id)' not found", element) }
+                return []
+            }
+            let paths = try elementPaths(
+                target,
+                inherited: style,
+                references: references.union([id]),
+                depth: depth + 1,
+                applyClips: applyClips
+            )
+            let matrix = try SVGMatrix.translation(element.length("x"), element.length("y"))
+            return try paths.map { try transformed($0, by: matrix, element: element) }
+        case "text":
+            #if canImport(CoreText)
+            return try element.textPaths(
+                style: style,
+                detail: detail,
+                isCancelled: isCancelled,
+                warn: applyClips ? warn : { _, _ in }
+            )
+            #else
+            if applyClips { warn("SVG text is not supported on this platform", element) }
+            return []
+            #endif
+        case "path", "rect", "circle", "ellipse", "polygon", "polyline", "line":
+            let path = try element.path(detail: detail, segments: nil)
+            return try applyClips ? [filledRegion(path, rule: style["clip-rule"] ?? "nonzero", element: element)] :
+                [path]
+        case "defs", "title", "desc", "metadata": return []
+        default:
+            if applyClips { warn("Unsupported SVG clip element '\(element.name)'", element) }
+            return []
+        }
+    }
+
+    func filledRegion(_ path: Path, rule: String, element: SVGElement) throws -> Path {
+        let contours = path.subpaths.map { $0.closed() }.filter { $0.points.count > 3 }
+        if rule == "evenodd" {
+            return Path.symmetricDifference(contours, isCancelled: isCancelled) ?? .empty
+        }
+        if rule != "nonzero" { warn("Unsupported SVG clip-rule '\(rule)'", element) }
+        // Track disjoint regions by winding count. A compound nonzero path is not
+        // simply the union (or XOR) of its contours: opposing windings cancel.
+        var regions = [(winding: Int, path: Path)]()
+        for contour in contours {
+            if isCancelled() { throw CancellationError() }
+            let points = contour.points.map(\.position)
+            let area = zip(points, points.dropFirst()).reduce(0.0) { $0 + $1.0.x * $1.1.y - $1.1.x * $1.0.y }
+            let sign = area < 0 ? -1 : 1
+            var remainder = contour
+            var next = [(winding: Int, path: Path)]()
+            for region in regions {
+                guard let inside = region.path.intersection(contour, isCancelled: isCancelled),
+                      let outside = region.path.subtracting(contour, isCancelled: isCancelled),
+                      let rest = remainder.subtracting(region.path, isCancelled: isCancelled)
+                else { throw SVGImportError(message: "Unable to resolve SVG clip region", line: element.line) }
+                if !outside.isEmpty { next.append((region.winding, outside)) }
+                if !inside.isEmpty { next.append((region.winding + sign, inside)) }
+                remainder = rest
+            }
+            if !remainder.isEmpty { next.append((sign, remainder)) }
+            regions = next
+        }
+        return Path.union(regions.filter { $0.winding != 0 }.map(\.path), isCancelled: isCancelled) ?? .empty
+    }
+}
+
 private final class SVGElement {
     let name: String
     let attributes: [String: String]
     let line: Int
+    weak var parent: SVGElement?
     var children = [SVGElement]()
     var content = [Content]()
 
@@ -366,6 +600,39 @@ private final class SVGElement {
         self.name = name.split(separator: ":").last.map(String.init) ?? name
         self.attributes = attributes
         self.line = line
+    }
+
+    func style(inheriting inherited: [String: String]) -> [String: String] {
+        var style = inherited
+        style.removeValue(forKey: "clip-path")
+        style.removeValue(forKey: "mask")
+        for key in ["clip-path", "mask"] {
+            if let value = attributes[key] { style[key] = value }
+        }
+        for key in [
+            "display",
+            "visibility",
+            "stroke-width",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "fill-rule",
+            "clip-rule",
+            "font-family",
+            "font-size",
+            "font-weight",
+            "font-style",
+            "letter-spacing",
+            "text-anchor",
+            "xml:space",
+        ] {
+            if let value = attributes[key] { style[key] = value }
+        }
+        for declaration in (attributes["style"] ?? "").split(separator: ";") {
+            let parts = declaration.split(separator: ":", maxSplits: 1)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count == 2 { style[parts[0]] = parts[1] }
+        }
+        return style
     }
 
     func length(_ name: String, default fallback: Double = 0) throws -> Double {
@@ -732,6 +999,7 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
         }
         let node = SVGElement(name: name, attributes: attributes, line: parser.lineNumber)
         if let parent = stack.last {
+            node.parent = parent
             parent.children.append(node)
             parent.content.append(.element(node))
         } else { root = node }

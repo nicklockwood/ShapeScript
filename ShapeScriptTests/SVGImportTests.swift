@@ -453,6 +453,159 @@ final class SVGImportTests: XCTestCase {
     }
     #endif
 
+    func testClippingClosedAndOpenPaths() throws {
+        let source = svg("""
+        <defs><clipPath id="clip"><rect x="2" y="3" width="4" height="5"/></clipPath></defs>
+        <rect width="10" height="10" clip-path="url(#clip)"/>
+        <path d="M0 5H10" style="clip-path: url('#clip')"/>
+        """)
+        let paths = try load(source).paths(pretransformed: true)
+        XCTAssertEqual(paths.count, 2)
+        XCTAssertTrue(paths[0].isClosed)
+        XCTAssertEqual(Bounds(paths[0]).min, [2, 92, 0], accuracy: 1e-8)
+        XCTAssertEqual(Bounds(paths[0]).size, [4, 5, 0], accuracy: 1e-8)
+        XCTAssertFalse(paths[1].isClosed)
+        XCTAssertEqual(paths[1].points.map(\.position), [Vector(2, 95), Vector(6, 95)])
+    }
+
+    func testClipChildrenUnionAndClipRuleHoles() throws {
+        func area(_ definition: String) throws -> Double {
+            let paths =
+                try load(
+                    svg(
+                        "<defs><clipPath id=\"clip\">\(definition)</clipPath></defs><rect width=\"10\" height=\"10\" clip-path=\"url(#clip)\"/>"
+                    )
+                )
+                .paths(pretransformed: true)
+            return Mesh.fill(Path(subpaths: paths), faces: .front).surfaceArea
+        }
+        XCTAssertEqual(
+            try area("<rect width=\"6\" height=\"6\"/><rect x=\"4\" width=\"6\" height=\"6\"/>"),
+            60,
+            accuracy: 1e-8
+        )
+        XCTAssertEqual(try area("<path d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), 100, accuracy: 1e-8)
+        XCTAssertEqual(try area("<path clip-rule=\"evenodd\" d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), 64, accuracy: 1e-8)
+        XCTAssertEqual(try area("<path d=\"M0 0H10V10H0Z M2 2V8H8V2Z\"/>"), 64, accuracy: 1e-8)
+        XCTAssertEqual(try area("<path d=\"M0 0H10V10H0\"/>"), 100, accuracy: 1e-8)
+    }
+
+    func testClipTransformsUseReferencesAndNestedClips() throws {
+        let source = svg("""
+        <defs>
+          <rect id="shape" width="8" height="8"/>
+          <clipPath id="inner"><rect width="5" height="5"/></clipPath>
+          <clipPath id="outer" transform="translate(1 2)" clip-path="url(#inner)">
+            <use href="#shape" x="2"/>
+          </clipPath>
+        </defs>
+        <g transform="translate(10 20) scale(2)">
+          <rect width="10" height="10" clip-path="url(#outer)"/>
+        </g>
+        """)
+        let bounds = try Bounds(load(source).paths(pretransformed: true))
+        XCTAssertEqual(bounds.min, [16, 66, 0], accuracy: 1e-8)
+        XCTAssertEqual(bounds.size, [6, 10, 0], accuracy: 1e-8)
+    }
+
+    func testGroupObjectBoundingBoxClipPreservesFragmentContext() throws {
+        let source = svg("""
+        <defs><clipPath id="clip" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath></defs>
+        <g id="group" transform="translate(10 20)" clip-path="url(#clip)">
+          <rect id="first" width="8" height="10"/>
+          <rect id="second" x="8" width="12" height="10"/>
+        </g>
+        """)
+        let all = try Bounds(load(source).paths(pretransformed: true))
+        XCTAssertEqual(all.min, [10, 70, 0], accuracy: 1e-8)
+        XCTAssertEqual(all.size, [10, 10, 0], accuracy: 1e-8)
+        let selected = try load(source, options: .init(id: "second"))
+        XCTAssertEqual(Bounds(selected.paths(pretransformed: true)).min, [18, 70, 0], accuracy: 1e-8)
+        XCTAssertEqual(Bounds(selected.paths(pretransformed: true)).size, [2, 10, 0], accuracy: 1e-8)
+    }
+
+    func testAncestorClipCannotBeDisabledByChild() throws {
+        let source = svg("""
+        <clipPath id="clip"><rect width="5" height="5"/></clipPath>
+        <g clip-path="url(#clip)"><rect width="10" height="10" clip-path="none"/></g>
+        """)
+        XCTAssertEqual(try Bounds(load(source).paths(pretransformed: true)).size, [5, 5, 0], accuracy: 1e-8)
+    }
+
+    func testBoundingBoxClipsIgnoreDegenerateBoundsAndInheritClipRules() throws {
+        let source = svg("""
+        <defs clip-rule="evenodd">
+          <clipPath id="hole"><path d="M0 0H10V10H0Z M2 2H8V8H2Z"/></clipPath>
+          <clipPath id="box" clipPathUnits="objectBoundingBox"><rect width="0.5" height="1"/></clipPath>
+        </defs>
+        <rect width="10" height="10" clip-path="url(#hole)"/>
+        <path d="M0 20H10" clip-path="url(#box)"/>
+        """)
+        let paths = try load(source).paths(pretransformed: true)
+        XCTAssertEqual(Mesh.fill(paths[0], faces: .front).surfaceArea, 64, accuracy: 1e-8)
+        XCTAssertEqual(paths[1].length, 10, accuracy: 1e-8)
+    }
+
+    func testEmptyAndHiddenClipShapesRemoveGeometry() throws {
+        for definition in ["", "<rect width=\"10\" height=\"10\" display=\"none\"/>"] {
+            let source =
+                svg(
+                    "<clipPath id=\"clip\">\(definition)</clipPath><rect width=\"10\" height=\"10\" clip-path=\"url(#clip)\"/>"
+                )
+            XCTAssertTrue(try load(source).paths(pretransformed: true).allSatisfy(\.isEmpty))
+        }
+    }
+
+    func testClipReferencesWarnOrRejectCycles() throws {
+        let document = try SVGDocument(data: Data(svg("""
+        <rect width="10" height="10" clip-path="url(#missing)"/>
+        <rect width="10" height="10" clip-path="url(other.svg#clip)"/>
+        """).utf8), isCancelled: { false })
+        var warnings = [String]()
+        let geometry = try document.geometry(options: .init(), isCancelled: { false }) { message, _ in
+            warnings.append(message)
+        }
+        XCTAssertEqual(warnings.count, 2)
+        XCTAssertEqual(Bounds(geometry.paths(pretransformed: true)).size, [10, 10, 0])
+        XCTAssertThrowsError(try load(svg("""
+        <clipPath id="a" clip-path="url(#b)"><rect width="10" height="10"/></clipPath>
+        <clipPath id="b" clip-path="url(#a)"><rect width="10" height="10"/></clipPath>
+        <rect width="10" height="10" clip-path="url(#a)"/>
+        """)))
+    }
+
+    func testCSGClippingRemainsUnsupported() throws {
+        let source = svg("""
+        <defs><clipPath id="clip"><rect width="5" height="5"/></clipPath></defs>
+        <rect width="10" height="10" clip-path="url(#clip)"/>
+        """)
+        let document = try SVGDocument(data: Data(source.utf8), isCancelled: { false })
+        var warnings = [String]()
+        let geometry = try document.geometry(options: .init(csg: true), isCancelled: { false }) { message, _ in
+            warnings.append(message)
+        }
+        XCTAssertEqual(warnings, ["SVG clipping and masking are not supported"])
+        XCTAssertEqual(Bounds(geometry.paths(pretransformed: true)).size, [10, 10, 0])
+    }
+
+    #if canImport(CoreText)
+    func testTextCanBeClippedAndUsedAsClipGeometry() throws {
+        let source = svg("""
+        <clipPath id="clip"><rect x="0" y="0" width="3" height="100"/></clipPath>
+        <text x="0" y="30" font-size="20" clip-path="url(#clip)">Hello</text>
+        """)
+        let paths = try load(source).paths(pretransformed: true)
+        XCTAssertFalse(paths.allSatisfy(\.isEmpty))
+        XCTAssertLessThanOrEqual(Bounds(paths).max.x, 3 + 1e-8)
+        let textClip = try load(svg("""
+        <clipPath id="clip"><text y="30" font-size="20">Hello</text></clipPath>
+        <rect width="100" height="100" clip-path="url(#clip)"/>
+        """)).paths(pretransformed: true)
+        let text = try load(svg("<text y=\"30\" font-size=\"20\">Hello</text>")).paths(pretransformed: true)
+        XCTAssertEqual(Bounds(textClip).size, Bounds(text).size, accuracy: 1e-8)
+    }
+    #endif
+
     func testWarningsAreDeliveredAfterXMLParsing() throws {
         let inner = Data(svg("<rect width=\"1\" height=\"1\"/>").utf8)
         let outer = try SVGDocument(
