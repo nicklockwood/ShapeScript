@@ -55,6 +55,56 @@ jobs:
             exit 1
           fi
 
+      - name: Install Developer ID provisioning profiles
+        env:
+          VIEWER_PROVISIONING_PROFILE_BASE64: ${{ secrets.VIEWER_PROVISIONING_PROFILE_BASE64 }}
+          PREVIEW_PROVISIONING_PROFILE_BASE64: ${{ secrets.PREVIEW_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          python3 - <<'PYTHON'
+          import base64
+          import datetime
+          import os
+          import pathlib
+          import plistlib
+          import subprocess
+          import tempfile
+          import uuid
+
+          profiles = (
+              ("VIEWER", "com.charcoaldesign.ShapeScriptMacViewer", "Viewer/Mac/Viewer.entitlements"),
+              ("PREVIEW", "com.charcoaldesign.ShapeScriptMacViewer.Preview", "Preview/Preview.entitlements"),
+          )
+          destination = pathlib.Path.home() / "Library/Developer/Xcode/UserData/Provisioning Profiles"
+          destination.mkdir(parents=True, exist_ok=True)
+          for target, bundle_id, entitlements_path in profiles:
+              secret = target + "_PROVISIONING_PROFILE_BASE64"
+              encoded = os.environ.get(secret, "")
+              if not encoded:
+                  raise SystemExit(f"ERROR: {secret} must contain a base64-encoded Developer ID provisioning profile")
+              data = base64.b64decode("".join(encoded.split()), validate=True)
+              with tempfile.NamedTemporaryFile() as source:
+                  source.write(data)
+                  source.flush()
+                  decoded = subprocess.check_output(["security", "cms", "-D", "-i", source.name])
+              profile = plistlib.loads(decoded)
+              entitlements = profile["Entitlements"]
+              expected_id = "8VQKF583ED." + bundle_id
+              if profile.get("TeamIdentifier") != ["8VQKF583ED"] or entitlements.get("com.apple.application-identifier") != expected_id:
+                  raise SystemExit(f"ERROR: {secret} does not match team 8VQKF583ED and {bundle_id}")
+              if profile["ExpirationDate"] <= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None):
+                  raise SystemExit(f"ERROR: {secret} has expired")
+              required = plistlib.loads(pathlib.Path(entitlements_path).read_bytes())
+              groups = required["com.apple.security.application-groups"]
+              if not set(groups).issubset(entitlements.get("com.apple.security.application-groups", [])):
+                  raise SystemExit(f"ERROR: {secret} does not authorize the target's App Groups")
+              # Validate the UUID, but preserve its spelling for Xcode profile lookup.
+              profile_id = profile["UUID"]
+              uuid.UUID(profile_id)
+              (destination / (profile_id + ".provisionprofile")).write_bytes(data)
+              with open(os.environ["GITHUB_ENV"], "a") as output:
+                  output.write(f"{target}_PROVISIONING_PROFILE={profile_id}\n")
+          PYTHON
+
       - name: Validate notarization credentials
         env:
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
@@ -69,6 +119,42 @@ jobs:
             exit 1
           fi
 
+      - name: Configure target provisioning profiles
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import subprocess
+
+          project_path = "ShapeScript.xcodeproj/project.pbxproj"
+          project = json.loads(subprocess.check_output([
+              "plutil", "-convert", "json", "-o", "-", project_path,
+          ]))
+          objects = project["objects"]
+          targets = {
+              "Viewer (Mac)": os.environ["VIEWER_PROVISIONING_PROFILE"],
+              "Preview (Mac)": os.environ["PREVIEW_PROVISIONING_PROFILE"],
+          }
+          # plutil cannot edit OpenStep files in place; Xcode also accepts XML plists.
+          subprocess.run(["plutil", "-convert", "xml1", project_path], check=True)
+          configured = set()
+          for target in objects.values():
+              if target.get("isa") != "PBXNativeTarget" or target.get("name") not in targets:
+                  continue
+              configurations = objects[target["buildConfigurationList"]]["buildConfigurations"]
+              for config_id in configurations:
+                  if objects[config_id]["name"] != "Release":
+                      continue
+                  subprocess.run([
+                      "plutil", "-replace",
+                      f"objects.{config_id}.buildSettings.PROVISIONING_PROFILE_SPECIFIER",
+                      "-string", targets[target["name"]], project_path,
+                  ], check=True)
+                  configured.add(target["name"])
+          if configured != set(targets):
+              raise SystemExit("ERROR: Could not configure both Release app targets")
+          PYTHON
+
       - name: Archive ShapeScript Viewer
         run: |
           ARCHIVE_PATH="build/ShapeScriptViewer.xcarchive"
@@ -80,7 +166,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             DEVELOPMENT_TEAM="8VQKF583ED" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
+            VIEWER_PROVISIONING_PROFILE="$VIEWER_PROVISIONING_PROFILE" \
+            PREVIEW_PROVISIONING_PROFILE="$PREVIEW_PROVISIONING_PROFILE" \
             OTHER_CODE_SIGN_FLAGS="--keychain $HOME/Library/Keychains/build.keychain-db" \
             archive
 
@@ -97,7 +184,6 @@ jobs:
           echo "app-path=$APP_PATH" >> $GITHUB_OUTPUT
 
           codesign --verify --deep --strict "$APP_PATH"
-          spctl -a -v "$APP_PATH"
 
       - name: Notarize app
         id: notarize
@@ -111,7 +197,9 @@ jobs:
           verbose: true
 
       - name: Staple notarization
-        run: xcrun stapler staple "${{ steps.export-app.outputs.app-path }}"
+        run: |
+          xcrun stapler staple "${{ steps.export-app.outputs.app-path }}"
+          spctl -a -v "${{ steps.export-app.outputs.app-path }}"
 
       - name: Get notarization logs
         if: failure() && steps.notarize.outcome == 'failure'
