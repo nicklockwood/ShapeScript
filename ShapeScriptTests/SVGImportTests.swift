@@ -171,10 +171,207 @@ final class SVGImportTests: XCTestCase {
         XCTAssertGreaterThan(paths[0].points.count, 8)
     }
 
+    #if canImport(CoreText)
+    func testTextPositionSizeAndOrientation() throws {
+        let original = try Bounds(load(svg("<text font-family=\"Helvetica\" font-size=\"10\">H</text>"))
+            .paths(pretransformed: true))
+        let moved =
+            try Bounds(
+                load(
+                    svg("<text x=\"20\" y=\"30\" dx=\"2\" dy=\"3\" font-family=\"Helvetica\" font-size=\"10\">H</text>")
+                )
+                .paths(pretransformed: true)
+            )
+        XCTAssertGreaterThan(original.size.x, 0)
+        XCTAssertGreaterThan(original.max.y, 100)
+        XCTAssertEqual(moved.min, original.min + Vector(22, -33, 0), accuracy: 1e-8)
+        let doubled = try Bounds(load(svg("<text font-family=\"Helvetica\" font-size=\"20\">H</text>"))
+            .paths(pretransformed: true))
+        XCTAssertEqual(doubled.size, original.size * 2, accuracy: 1e-8)
+    }
+
+    func testTextAnchoringAndStyledSpans() throws {
+        func bounds(_ anchor: String) throws -> Bounds {
+            try Bounds(load(svg("<text font-size=\"10\" text-anchor=\"\(anchor)\">Hello</text>"))
+                .paths(pretransformed: true))
+        }
+        let start = try bounds("start"), middle = try bounds("middle"), end = try bounds("end")
+        XCTAssertEqual(start.size, middle.size, accuracy: 1e-8)
+        XCTAssertEqual(middle.min.x - end.min.x, start.min.x - middle.min.x, accuracy: 1e-8)
+        XCTAssertLessThan(end.min.x, start.min.x)
+        let plain = try load(svg("<text font-size=\"10\">AB&amp;C</text>")).paths(pretransformed: true)
+        let spans = try load(svg("<text font-size=\"10\">A<tspan>B</tspan>&amp;<![CDATA[C]]></text>"))
+            .paths(pretransformed: true)
+        XCTAssertEqual(plain, spans)
+        let styled =
+            try load(
+                svg("<text font-size=\"10\">A<tspan style=\"font-size: 200%; font-weight: bold\">B</tspan>C</text>")
+            )
+            .paths(pretransformed: true)
+        XCTAssertGreaterThan(Bounds(styled).size.y, Bounds(plain).size.y)
+    }
+
+    func testTextWhitespaceVisibilityAndZeroSize() throws {
+        let plain = try load(svg("<text font-size=\"10\">AB C</text>")).paths(pretransformed: true)
+        let whitespace = try load(svg("<text font-size=\"10\">  A\nB  <tspan>C</tspan> </text>"))
+            .paths(pretransformed: true)
+        XCTAssertEqual(plain, whitespace)
+        let hidden = try load(svg("<text font-size=\"10\">AB<tspan display=\"none\">hidden</tspan> C</text>"))
+            .paths(pretransformed: true)
+        XCTAssertEqual(plain, hidden)
+        XCTAssertTrue(try load(svg("<text font-size=\"0\">Hidden</text>")).paths(pretransformed: true)
+            .allSatisfy(\.isEmpty))
+        XCTAssertThrowsError(try load(svg("<text font-size=\"-1\">Invalid</text>")))
+    }
+
+    func testPositionedTextSpansPreserveLineLayout() throws {
+        let source = """
+        <svg viewBox="0 0 500 160">
+            <text x="24" y="36" font-size="24">
+              <tspan x="24" dy="0">First line</tspan>
+              <tspan x="24" dy="32" fill="#dc2626" font-weight="700">
+                Second line in red
+              </tspan>
+            </text>
+        </svg>
+        """
+        let expected = """
+        <svg viewBox="0 0 500 160">
+          <text x="24" y="36" font-size="24">First line</text>
+          <text x="24" y="68" font-size="24" font-weight="700">Second line in red</text>
+        </svg>
+        """
+        let document = try SVGDocument(data: Data(source.utf8), isCancelled: { false })
+        var warnings = [String]()
+        let result = try document.geometry(options: .init(), isCancelled: { false }) { message, _ in
+            warnings.append(message)
+        }
+        let actual = result.paths(pretransformed: true).flatMap(\.subpaths)
+        let reference = try load(expected).paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(actual, reference)
+        XCTAssertTrue(warnings.isEmpty, warnings.joined(separator: "\n"))
+    }
+
+    func testTextSpanRelativePositionsAndContinuation() throws {
+        let baseline = try load(svg("<text font-family=\"Helvetica\" font-size=\"10\">ABC</text>"))
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        let moved =
+            try load(
+                svg("<text font-family=\"Helvetica\" font-size=\"10\">A<tspan dx=\"5\" dy=\"12\">B</tspan>C</text>")
+            )
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(moved.count, baseline.count)
+        XCTAssertEqual(Bounds(moved.suffix(1)).min.y, Bounds(baseline.suffix(1)).min.y - 12, accuracy: 1e-8)
+        XCTAssertGreaterThan(Bounds(moved).size.x, Bounds(baseline).size.x)
+        let absolute =
+            try load(
+                svg(
+                    "<text font-size=\"10\"><tspan x=\"20\" y=\"30\">A</tspan><tspan x=\"40\" y=\"50\">B</tspan></text>"
+                )
+            )
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        let expected =
+            try load(
+                svg(
+                    "<text x=\"20\" y=\"30\" font-size=\"10\">A</text><text x=\"40\" y=\"50\" font-size=\"10\">B</text>"
+                )
+            )
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(absolute, expected)
+    }
+
+    func testPositionedSpansAnchorEachLine() throws {
+        for anchor in ["middle", "end"] {
+            let actual =
+                try load(
+                    svg(
+                        "<text font-size=\"10\" text-anchor=\"\(anchor)\"><tspan x=\"50\" y=\"20\">First</tspan><tspan x=\"50\" dy=\"20\">Second</tspan></text>"
+                    )
+                )
+                .paths(pretransformed: true).flatMap(\.subpaths)
+            let expected =
+                try load(
+                    svg(
+                        "<text x=\"50\" y=\"20\" font-size=\"10\" text-anchor=\"\(anchor)\">First</text><text x=\"50\" y=\"40\" font-size=\"10\" text-anchor=\"\(anchor)\">Second</text>"
+                    )
+                )
+                .paths(pretransformed: true).flatMap(\.subpaths)
+            XCTAssertEqual(actual, expected)
+        }
+    }
+
+    func testTextFragmentAndTransforms() throws {
+        try withSVG(svg(
+            "<g transform=\"translate(10 20)\"><text id=\"label\" font-size=\"10\">Hello</text></g>"
+        )) { url in
+            let context = EvaluationContext(source: "", delegate: nil)
+            guard case let .mesh(geometry) = try context.importFile(at: url.path + "#label") else {
+                return XCTFail("Expected imported text geometry")
+            }
+            XCTAssertFalse(geometry.paths(pretransformed: true).isEmpty)
+            let plain = try Bounds(load(svg("<text font-size=\"10\">Hello</text>")).paths(pretransformed: true))
+            XCTAssertEqual(
+                Bounds(geometry.paths(pretransformed: true)).min,
+                plain.min + Vector(10, -20, 0),
+                accuracy: 1e-8
+            )
+        }
+    }
+    #endif
+
+    func testCSGStillRejectsSVGText() throws {
+        let document = try SVGDocument(
+            data: Data(svg("<text>Hello</text><rect width=\"2\" height=\"3\"/>").utf8),
+            isCancelled: { false }
+        )
+        var warnings = [String]()
+        let geometry = try document.geometry(options: .init(csg: true), isCancelled: { false }) { message, _ in
+            warnings.append(message)
+        }
+        XCTAssertEqual(warnings, ["Unsupported SVG element 'text'"])
+        XCTAssertEqual(Bounds(geometry.paths(pretransformed: true)).size, [2, 3, 0])
+    }
+
+    func testSVGWarningsPreserveDistinctLocationsAndDeduplicateRepeatedImports() throws {
+        try withSVG("""
+        <svg>
+          <image/><image/>
+          <image/>
+        </svg>
+        """) { url in
+            let context = EvaluationContext(source: "", delegate: nil)
+            _ = try context.importFile(at: url.path)
+            _ = try context.importFile(at: url.path)
+            XCTAssertEqual(context.warnings, [
+                "drawing.svg: Unsupported SVG element 'image' on line 2.",
+                "drawing.svg: Unsupported SVG element 'image' on line 3.",
+            ])
+        }
+    }
+
+    #if canImport(CoreText)
+    func testSVGFontWarningsOnlyAfterExhaustingFallbacks() throws {
+        try withSVG("""
+        <svg>
+          <text font-family="MissingSVGFont123, serif">Fallback</text>
+          <text font-family="MissingSVGFont123, MissingSVGFont456">Missing</text>
+          <text font-family="MissingSVGFont123, MissingSVGFont456">Also missing</text>
+        </svg>
+        """) { url in
+            let context = EvaluationContext(source: "", delegate: nil)
+            _ = try context.importFile(at: url.path)
+            XCTAssertEqual(context.warnings, [
+                "drawing.svg: Unknown SVG font 'MissingSVGFont123, MissingSVGFont456' on line 3.",
+                "drawing.svg: Unknown SVG font 'MissingSVGFont123, MissingSVGFont456' on line 4.",
+            ])
+        }
+    }
+    #endif
+
     func testWarningsAreDeliveredAfterXMLParsing() throws {
         let inner = Data(svg("<rect width=\"1\" height=\"1\"/>").utf8)
         let outer = try SVGDocument(
-            data: Data(svg("<text>Hello</text><image href=\"picture.png\"/>").utf8),
+            data: Data(svg("<foreignObject/><image href=\"picture.png\"/>").utf8),
             isCancelled: { false }
         )
         var messages = [String]()

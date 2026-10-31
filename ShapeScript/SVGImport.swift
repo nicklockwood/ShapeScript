@@ -8,6 +8,9 @@
 import Euclid
 import Foundation
 import SVGPath
+#if canImport(CoreText)
+import CoreText
+#endif
 #if canImport(FoundationXML)
 import FoundationXML
 #endif
@@ -144,9 +147,8 @@ final class SVGDocument {
             throw SVGImportError(message: "SVG DPI must be positive", line: root.line)
         }
         var foundSelection = options.id == nil && options.layer == nil
-        var warnings = Set<String>()
         func warning(_ message: String, _ element: SVGElement) {
-            if warnings.insert(message).inserted { warn(message, element.line) }
+            warn(message, element.line)
         }
         let page = try root.pageMatrix(dpi: options.dpi, csg: options.csg)
         var hierarchy: [[Geometry]] = [[]]
@@ -175,7 +177,21 @@ final class SVGDocument {
                 }
             }
             var style = inherited
-            for key in ["display", "visibility", "stroke-width", "stroke-linecap", "stroke-linejoin", "fill-rule"] {
+            for key in [
+                "display",
+                "visibility",
+                "stroke-width",
+                "stroke-linecap",
+                "stroke-linejoin",
+                "fill-rule",
+                "font-family",
+                "font-size",
+                "font-weight",
+                "font-style",
+                "letter-spacing",
+                "text-anchor",
+                "xml:space",
+            ] {
                 if let value = a[key] { style[key] = value }
             }
             for declaration in (a["style"] ?? "").split(separator: ";") {
@@ -228,6 +244,29 @@ final class SVGDocument {
                     references: references.union([id]),
                     depth: depth + 1
                 )
+                return
+            case "text":
+                guard selected else { return }
+                guard !options.csg else {
+                    warning("Unsupported SVG element 'text'", element)
+                    return
+                }
+                #if canImport(CoreText)
+                shapePaths = try element.textPaths(
+                    style: style,
+                    detail: options.detail,
+                    isCancelled: isCancelled,
+                    warn: warning
+                ).map { path in
+                    let positions = path.points.map { matrix.apply($0.position) }
+                    guard positions.allSatisfy(\.isFinite) else {
+                        throw SVGImportError(message: "SVG transform overflow", line: element.line)
+                    }
+                    return path.mapPoints { $0.withPosition(matrix.apply($0.position)) }
+                }
+                #else
+                warning("SVG text is not supported on this platform", element)
+                #endif
                 return
             case "path", "rect", "circle", "ellipse", "polygon", "polyline", "line":
                 guard selected else { return }
@@ -316,6 +355,12 @@ private final class SVGElement {
     let attributes: [String: String]
     let line: Int
     var children = [SVGElement]()
+    var content = [Content]()
+
+    enum Content {
+        case text(String)
+        case element(SVGElement)
+    }
 
     init(name: String, attributes: [String: String], line: Int) {
         self.name = name.split(separator: ":").last.map(String.init) ?? name
@@ -432,6 +477,173 @@ private final class SVGElement {
     }
 }
 
+#if canImport(CoreText)
+private extension SVGElement {
+    func textPaths(
+        style: [String: String], detail: Int, isCancelled: @escaping CancellationHandler,
+        warn: (String, SVGElement) -> Void
+    ) throws -> [Path] {
+        let text = NSMutableAttributedString(string: "")
+        var previousWasSpace = true
+        var x = 0.0, y = 0.0
+        var chunkStart = 0.0
+        var anchor = "start"
+        var paths = [Path]()
+        var chunk = [Path]()
+        var preserveSpace = false
+        func flushRun(trimTrailingSpace: Bool = false) {
+            if trimTrailingSpace, !preserveSpace, text.string.hasSuffix(" ") {
+                text.deleteCharacters(in: NSRange(location: text.length - 1, length: 1))
+            }
+            guard text.length > 0 else { return }
+            let line = CTLineCreateWithAttributedString(text)
+            let advance = CTLineGetTypographicBounds(line, nil, nil, nil)
+            chunk += Path.text(text, detail: max(1, detail / 8), isCancelled: isCancelled).map { path in
+                path.mapPoints { $0.withPosition([x + $0.position.x, y - $0.position.y, 0]) }
+            }
+            x += advance
+            text.deleteCharacters(in: NSRange(location: 0, length: text.length))
+        }
+        func flushChunk() {
+            flushRun(trimTrailingSpace: true)
+            let advance = x - chunkStart
+            let offset = anchor == "middle" ? advance / 2 : anchor == "end" ? advance : 0
+            paths += chunk.map { $0.translated(by: [-offset, 0, 0]) }
+            chunk.removeAll()
+        }
+        func append(_ node: SVGElement, style inherited: [String: String], size parentSize: Double) throws {
+            if isCancelled() { throw CancellationError() }
+            var style = inherited
+            for key in [
+                "font-family",
+                "font-size",
+                "font-weight",
+                "font-style",
+                "letter-spacing",
+                "xml:space",
+                "display",
+                "visibility",
+                "text-anchor",
+            ] {
+                if let value = node.attributes[key] { style[key] = value }
+            }
+            for declaration in (node.attributes["style"] ?? "").split(separator: ";") {
+                let parts = declaration.split(separator: ":", maxSplits: 1).map {
+                    $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                if parts.count == 2 { style[parts[0]] = parts[1] }
+            }
+            if style["display"] == "none" || style["visibility"] == "hidden" { return }
+            let absolutePosition = node.attributes["x"] != nil || node.attributes["y"] != nil
+            if absolutePosition || node === self {
+                flushChunk()
+                if node.attributes["x"] != nil { x = try node.length("x") }
+                if node.attributes["y"] != nil { y = try node.length("y") }
+                x += try node.length("dx")
+                y += try node.length("dy")
+                chunkStart = x
+                anchor = style["text-anchor"] ?? "start"
+                previousWasSpace = true
+            } else if node.attributes["dx"] != nil || node.attributes["dy"] != nil {
+                flushRun()
+                x += try node.length("dx")
+                y += try node.length("dy")
+            }
+            for key in ["rotate", "textLength", "lengthAdjust", "dominant-baseline", "alignment-baseline"] {
+                if node.attributes[key] != nil || style[key] != nil {
+                    warn("Unsupported SVG text attribute '\(key)'", node)
+                }
+            }
+            let size: Double = if let value = style["font-size"] {
+                if value.hasSuffix("%"), let percent = Double(value.dropLast()) {
+                    parentSize * percent / 100
+                } else if value.hasSuffix("em"), let factor = Double(value.dropLast(2)) {
+                    parentSize * factor
+                } else {
+                    try Self.length(value, line: node.line)
+                }
+            } else { parentSize }
+            guard size.isFinite, size >= 0 else {
+                throw SVGImportError(message: "Invalid SVG font size", line: node.line)
+            }
+            // Resolve relative sizes once before passing the computed style to children.
+            style["font-size"] = String(size)
+            let families = (style["font-family"] ?? "serif").split(separator: ",").map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "\"'")))
+            }
+            var font = CTFontCreateWithName("Times" as CFString, max(size, 0.001), nil)
+            var matchedFont = false
+            for family in families {
+                let name = ["serif": "Times", "sans-serif": "Helvetica", "monospace": "Courier"][family] ?? family
+                let descriptor = CTFontDescriptorCreateWithAttributes([kCTFontNameAttribute: name] as CFDictionary)
+                if let match = CTFontDescriptorCreateMatchingFontDescriptor(
+                    descriptor, [kCTFontNameAttribute as String] as Set as CFSet
+                ) {
+                    font = CTFontCreateWithFontDescriptor(match, max(size, 0.001), nil)
+                    matchedFont = true
+                    break
+                }
+            }
+            if !matchedFont {
+                warn("Unknown SVG font '\(families.joined(separator: ", "))'", node)
+            }
+            var traits: CTFontSymbolicTraits = []
+            if style["font-weight"] == "bold" || (Double(style["font-weight"] ?? "") ?? 400) >= 600 {
+                traits.insert(.traitBold)
+            }
+            if ["italic", "oblique"].contains(style["font-style"] ?? "") { traits.insert(.traitItalic) }
+            font = CTFontCreateCopyWithSymbolicTraits(
+                font,
+                max(size, 0.001),
+                nil,
+                traits,
+                [.traitBold, .traitItalic]
+            ) ?? font
+            var attributes: [NSAttributedString.Key: Any] = [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+            ]
+            if let spacing = style["letter-spacing"], spacing != "normal" {
+                attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = try Self.length(
+                    spacing,
+                    line: node.line
+                )
+            }
+            for item in node.content {
+                switch item {
+                case let .text(value):
+                    var value = value.replacingOccurrences(of: "\t", with: " ")
+                        .replacingOccurrences(of: "\n", with: style["xml:space"] == "preserve" ? " " : "")
+                        .replacingOccurrences(of: "\r", with: style["xml:space"] == "preserve" ? " " : "")
+                    if style["xml:space"] != "preserve" {
+                        value = String(value.filter { character in
+                            let space = character == " "
+                            defer { previousWasSpace = space }
+                            return !space || !previousWasSpace
+                        })
+                    } else if let last = value.last { previousWasSpace = last == " " }
+                    if size > 0, !value.isEmpty {
+                        text.append(NSAttributedString(string: value, attributes: attributes))
+                        preserveSpace = style["xml:space"] == "preserve"
+                    }
+                case let .element(child):
+                    guard child.name == "tspan" else {
+                        warn("Unsupported SVG text element '\(child.name)'", child)
+                        continue
+                    }
+                    if child.attributes["transform"] != nil {
+                        warn("SVG tspan transforms are not supported", child)
+                    }
+                    try append(child, style: style, size: size)
+                }
+            }
+        }
+        try append(self, style: style, size: 16)
+        flushChunk()
+        return paths
+    }
+}
+#endif
+
 private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
     let isCancelled: CancellationHandler
     var root: SVGElement?
@@ -457,9 +669,27 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
             return
         }
         let node = SVGElement(name: name, attributes: attributes, line: parser.lineNumber)
-        if let parent = stack.last { parent.children.append(node) } else { root = node }
+        if let parent = stack.last {
+            parent.children.append(node)
+            parent.content.append(.element(node))
+        } else { root = node }
         if let id = attributes["id"] { elementsByID[id] = node }
         stack.append(node)
+    }
+
+    func parser(_: XMLParser, foundCharacters string: String) {
+        guard let node = stack.last else { return }
+        if case let .text(previous)? = node.content.last {
+            node.content[node.content.count - 1] = .text(previous + string)
+        } else {
+            node.content.append(.text(string))
+        }
+    }
+
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        if let string = String(data: CDATABlock, encoding: .utf8) {
+            self.parser(parser, foundCharacters: string)
+        }
     }
 
     func parser(_ parser: XMLParser, parseErrorOccurred parseError: Error) {

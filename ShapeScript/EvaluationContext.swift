@@ -623,7 +623,7 @@ extension EvaluationContext {
                 fileURL: url,
                 isCancelled: isCancelled
             ) {
-                warn($0, at: SourceLocation(at: $1, in: url))
+                self.warn($0, at: SourceLocation(at: $1, in: url))
             }
             return options.csg ? geometry : geometry.with(
                 transform: .identity, material: state.material, smoothing: state.smoothing,

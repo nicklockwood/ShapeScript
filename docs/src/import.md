@@ -140,9 +140,9 @@ fill import "Drawing.svg#outline"
 extrude import "Drawing.svg#part"
 ```
 
-The SVG importer supports paths, rectangles, circles, ellipses, polygons, polylines, lines, transforms and local `<use>` references. The imported scale is determined by the SVG document dimensions and `viewBox`. The SVG Y axis is flipped to point upwards for consistency with the ShapeScript coordinate system. Imported shapes retain their original positions. Colors and other visual styling are not imported.
+The SVG importer supports paths, rectangles, circles, ellipses, polygons, polylines, lines, text, transforms and local `<use>` references. The imported scale is determined by the SVG document dimensions and `viewBox`. The SVG Y axis is flipped to point upwards for consistency with the ShapeScript coordinate system. Imported shapes retain their original positions. Colors and other visual styling are not imported.
 
-Text, images, external references, clipping and masks are not currently supported. Convert text to paths in an SVG editor before importing it.
+Images, external references, clipping, masks and some text formatting features are not currently supported. Convert these to ordinary paths in an SVG editor before import if precise results are required.
 
 ## Text and Data
 
