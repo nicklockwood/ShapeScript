@@ -121,3 +121,29 @@ extension Material {
         return alphaOpacity < 1 ? alphaOpacity : opacity.averageLuminance
     }
 }
+
+// Material overrides replace paint channels, but a numeric opacity scales the
+// source opacity independently of the alpha embedded in its color or texture.
+extension Material {
+    func withOverrides(_ override: Material) -> Material {
+        var result = self
+        if override.opacity != nil, opacityPropertyAverageOpacity == 1 {
+            result.opacity = override.opacity
+        } else if override.opacity?.color != nil {
+            let multiplier = override.opacityPropertyAverageOpacity
+            switch opacity ?? .color(.white) {
+            case .color:
+                let alpha = opacityPropertyAverageOpacity * multiplier
+                result.opacity = .color(.init(white: alpha, alpha: alpha))
+            case let .texture(texture):
+                result.opacity = .texture(texture.withIntensity(texture.intensity * multiplier))
+            }
+        }
+        result.albedo = override.albedo ?? albedo
+        result.normals = override.normals ?? normals
+        result.glow = override.glow ?? glow
+        result.metallicity = override.metallicity ?? metallicity
+        result.roughness = override.roughness ?? roughness
+        return result
+    }
+}

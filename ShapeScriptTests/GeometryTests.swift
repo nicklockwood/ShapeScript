@@ -12,6 +12,58 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testMeshPaintOverridesApplyToEveryMaterialAndInvalidateBuiltMesh() throws {
+        var red = Material(color: .red.withAlphaComponent(0.2))
+        red.opacity = .color(Color(white: 0.5))
+        red.roughness = .color(Color(white: 0.3))
+        var green = Material(color: .green.withAlphaComponent(0.4))
+        green.opacity = .color(Color(white: 0.25, alpha: 0.25))
+        green.roughness = .color(Color(white: 0.7))
+        let mesh = Mesh.cube(material: red).merge(Mesh.cube(center: [2, 0, 0], material: green))
+        let context = EvaluationContext(source: "", delegate: nil)
+        let geometry = Geometry(type: .mesh(mesh), in: context)
+        XCTAssertTrue(geometry.build { false })
+        var override = Material(color: .blue)
+        override.opacity = .color(Color(white: 0.5, alpha: 0.5))
+        let changed = geometry.with(transform: .identity, material: override, smoothing: nil, sourceLocation: { nil })
+        XCTAssertTrue(changed.build { false })
+        let materials = Set(changed.merged().polygons.compactMap { $0.material as? Material })
+        XCTAssertEqual(materials.count, 2)
+        XCTAssertTrue(materials.allSatisfy { $0.color == .blue })
+        XCTAssertEqual(Set(materials.map(\.opacityPropertyAverageOpacity)), [0.25, 0.125])
+        XCTAssertEqual(
+            Set(materials.compactMap(\.roughness)),
+            try [XCTUnwrap(red.roughness), XCTUnwrap(green.roughness)]
+        )
+        XCTAssertEqual(geometry.merged(), mesh)
+    }
+
+    func testMeshColorOverrideReplacesVertexAlphaButOpacityPreservesIt() {
+        let mesh = Mesh(Mesh.cube().polygons.flatMap { polygon in
+            polygon.mapVertices { $0.withColor(.red.withAlphaComponent(0.2)) }
+        })
+        let geometry = Geometry(type: .mesh(mesh), in: EvaluationContext(source: "", delegate: nil))
+        XCTAssertTrue(geometry.build { false })
+        let colored = geometry.with(
+            transform: .identity,
+            material: Material(color: .blue),
+            smoothing: nil,
+            sourceLocation: { nil }
+        )
+        XCTAssertTrue(colored.build { false })
+        XCTAssertFalse(colored.merged().hasVertexColors)
+        XCTAssertTrue(colored.merged().polygons.allSatisfy { ($0.material as? Material)?.color == .blue })
+        var fade = Material.default
+        fade.opacity = .color(Color(white: 0.5, alpha: 0.5))
+        let faded = geometry.with(transform: .identity, material: fade, smoothing: nil, sourceLocation: { nil })
+        XCTAssertTrue(faded.build { false })
+        XCTAssertTrue(faded.merged().hasVertexColors)
+        XCTAssertTrue(faded.merged().polygons.allSatisfy { polygon in
+            polygon.vertices.allSatisfy { $0.color.alpha == 0.2 } &&
+                (polygon.material as? Material)?.opacityPropertyAverageOpacity == 0.5
+        })
+    }
+
     func testSmoothingOverrideDoesNotReuseBuiltMeshesWithDifferentNormals() {
         let context = EvaluationContext(source: "", delegate: nil) { false }
         for geometry in [

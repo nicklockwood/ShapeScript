@@ -2206,25 +2206,12 @@ private extension Geometry {
         }
         var m = self.material
         if let material, case let .mesh(mesh) = type {
-            if m.opacityPropertyAverageOpacity == 1 {
-                m.opacity = material.opacity
-            } else if material.opacity?.color != nil {
-                let opacity = material.opacity?.averageOpacity ?? 1
-                switch m.opacity ?? .color(.white) {
-                case let .color(color):
-                    let opacity = color.alpha * opacity
-                    m.opacity = .color(.init(white: opacity, alpha: opacity))
-                case let .texture(texture):
-                    let opacity = texture.intensity * opacity
-                    m.opacity = .texture(texture.withIntensity(opacity))
-                }
-            }
-            m.albedo = material.albedo ?? m.albedo
-            m.glow = material.glow ?? m.glow
-            m.metallicity = material.metallicity ?? m.metallicity
-            m.roughness = material.roughness ?? m.roughness
-            // Note: this only replaces the mesh base material, not merged mesh materials
-            type = .mesh(mesh.replacing(self.material, with: m).replacing(nil, with: m))
+            m = m.withOverrides(material)
+            let recolored = material.albedo == nil ? mesh : mesh.withoutVertexColors()
+            type = .mesh(recolored.mapPolygons { polygon in
+                let sourceMaterial = polygon.material as? Material ?? self.material
+                return polygon.withMaterial(sourceMaterial.withOverrides(material))
+            })
         }
         var transform = transform.map { self.transform * $0 } ?? self.transform
         var childTransform = Transform.identity
@@ -2276,7 +2263,12 @@ private extension Geometry {
             cache: cache
         )
         let isChangingSmoothing = smoothing != nil && copy.cacheKey != cacheKey
-        if isRemovingUnfocusedChildren || isRemovingHiddenGeometry {
+        let isChangingMesh = if case let .mesh(original) = self.type, case let .mesh(updated) = type {
+            original != updated
+        } else {
+            false
+        }
+        if isRemovingUnfocusedChildren || isRemovingHiddenGeometry || isChangingMesh {
             copy.cachedMesh = nil
         } else if isChangingSmoothing, let smoothing {
             // Keep baked leaf meshes ready for use as boolean operands.

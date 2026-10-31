@@ -108,6 +108,8 @@ define rocket {
 }
 ```
 
+Imported model materials are preserved unless explicitly overridden. A ShapeScript color replaces the entire base color, including alpha, across all imported materials and vertex colors. A texture replaces the previous base color. Other material properties are preserved unless overridden.
+
 ### Named Geometry
 
 Append `#name` to a ShapeScript or model filename to import just the geometry with that name:
