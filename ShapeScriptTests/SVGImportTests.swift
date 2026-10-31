@@ -238,7 +238,7 @@ final class SVGImportTests: XCTestCase {
         let expected = """
         <svg viewBox="0 0 500 160">
           <text x="24" y="36" font-size="24">First line</text>
-          <text x="24" y="68" font-size="24" font-weight="700">Second line in red</text>
+          <text x="24" y="68" font-size="24" font-weight="700" fill="#dc2626">Second line in red</text>
         </svg>
         """
         let document = try SVGDocument(data: Data(source.utf8), isCancelled: { false })
@@ -603,6 +603,161 @@ final class SVGImportTests: XCTestCase {
         """)).paths(pretransformed: true)
         let text = try load(svg("<text y=\"30\" font-size=\"20\">Hello</text>")).paths(pretransformed: true)
         XCTAssertEqual(Bounds(textClip).size, Bounds(text).size, accuracy: 1e-8)
+    }
+    #endif
+
+    func testSolidPaintsChooseFillOrStrokeAndPreserveUnpaintedGeometry() throws {
+        let paths = try load(svg("""
+        <rect width="10" height="10" fill="red" stroke="blue"/>
+        <line y1="20" x2="10" y2="20" stroke="#00f"/>
+        <rect y="30" width="10" height="10" fill="none" stroke="blue"/>
+        <path d="M0 50H10" fill="none" stroke="none"/>
+        """)).paths(pretransformed: true)
+        XCTAssertEqual(paths.count, 4)
+        XCTAssertEqual(paths[0].uniformVertexColor, .red)
+        XCTAssertEqual(paths[1].uniformVertexColor, .blue)
+        XCTAssertEqual(paths[2].uniformVertexColor, .blue)
+        XCTAssertFalse(paths[3].hasColors)
+        XCTAssertEqual(paths[3].length, 10)
+    }
+
+    func testPaintInheritanceCurrentColorInlineStylesAndUse() throws {
+        let source = svg("""
+        <defs><rect id="shape" width="10" height="10"/></defs>
+        <g fill="red" color="blue">
+          <rect width="10" height="10"/>
+          <rect width="10" height="10" fill="red" style="fill: currentColor"/>
+          <use href="#shape" fill="currentColor"/>
+          <g color="red"><rect width="10" height="10" fill="currentColor"/></g>
+        </g>
+        """)
+        let colors = try load(source).paths(pretransformed: true).map(\.uniformVertexColor)
+        XCTAssertEqual(colors, [.red, .blue, .blue, .red])
+        XCTAssertEqual(
+            try load(source, options: .init(id: "shape")).paths(pretransformed: true).first?.uniformVertexColor,
+            .black
+        )
+    }
+
+    func testCSSSolidColorSyntaxAndOpacity() throws {
+        for paint in ["red", "#f00", "#ff0000", "rgb(255,0,0)", "rgb(100% 0% 0%)", "hsl(0 100% 50%)"] {
+            let paths = try load(svg("<rect width=\"10\" height=\"10\" fill=\"\(paint)\"/>"))
+                .paths(pretransformed: true)
+            XCTAssertEqual(paths.first?.uniformVertexColor, .red, paint)
+        }
+        let paths = try load(svg("""
+        <g opacity="0.5" fill-opacity="50%">
+          <rect width="10" height="10" fill="rgba(255,0,0,0.5)" opacity="0.5"/>
+          <line x2="10" stroke="blue" stroke-opacity="25%"/>
+        </g>
+        """)).paths(pretransformed: true)
+        XCTAssertEqual(try XCTUnwrap(paths[0].uniformVertexColor).alpha, 0.0625, accuracy: 1e-8)
+        XCTAssertEqual(try XCTUnwrap(paths[1].uniformVertexColor).alpha, 0.125, accuracy: 1e-8)
+    }
+
+    func testShapeScriptMaterialOverridesImportedPaintsWithoutTinting() throws {
+        try withSVG(svg("<rect id=\"part\" width=\"10\" height=\"10\" fill=\"red\" fill-opacity=\"0.5\"/>")) { url in
+            let context = EvaluationContext(source: "", delegate: nil)
+            guard case let .mesh(original) = try context.importFile(at: url.path) else {
+                return XCTFail("Expected geometry")
+            }
+            XCTAssertEqual(
+                original.paths(pretransformed: true).first?.uniformVertexColor,
+                Color(red: 1, green: 0, blue: 0, alpha: 0.5)
+            )
+            context.state.material = Material(color: .blue)
+            guard case let .mesh(overridden) = try context.importFile(at: url.path + "#part") else {
+                return XCTFail("Expected geometry")
+            }
+            XCTAssertEqual(
+                overridden.paths(pretransformed: true).first?.uniformVertexColor,
+                Color(red: 0, green: 0, blue: 1, alpha: 0.5)
+            )
+            for builder in ["fill", "extrude"] {
+                let scene = try evaluate(parse("color 0 0 1\n\(builder) import \"\(url.path)\""), delegate: nil)
+                XCTAssertTrue(scene.build { false })
+                let colors = scene.geometry.merged().polygons.map { ($0.material as? Material)?.color }
+                XCTAssertFalse(colors.isEmpty)
+                XCTAssertTrue(colors.allSatisfy { $0?.blue == 1 && $0?.red == 0 })
+            }
+        }
+    }
+
+    func testPaintOverridesReplaceAlphaButRetainIndependentOpacity() throws {
+        let source = svg("""
+        <g opacity="0.5">
+          <rect width="10" height="10" fill="rgba(255,0,0,0.2)" fill-opacity="0.5"/>
+          <line y1="20" x2="10" y2="20" stroke="rgba(255,0,0,0.2)" stroke-opacity="0.5"/>
+        </g>
+        """)
+        func colors(_ material: Material) throws -> [Color?] {
+            try load(source, options: .init(material: material)).paths(pretransformed: true).map(\.uniformVertexColor)
+        }
+        XCTAssertEqual(try colors(.default), Array(repeating: .red.withAlphaComponent(0.05), count: 2))
+        XCTAssertEqual(try colors(Material(color: .blue)), Array(repeating: .blue.withAlphaComponent(0.25), count: 2))
+        XCTAssertEqual(
+            try colors(Material(color: .blue.withAlphaComponent(0.5))),
+            Array(repeating: .blue.withAlphaComponent(0.125), count: 2)
+        )
+        var textured = Material.default
+        textured.albedo = .texture(Texture.data(Data()))
+        XCTAssertEqual(try colors(textured), Array(repeating: .white.withAlphaComponent(0.25), count: 2))
+    }
+
+    #if canImport(CoreText)
+    func testTextPaintOverridesReplaceAlphaButRetainSpanOpacity() throws {
+        let source = svg("""
+        <text y="30" font-size="20" fill="rgba(255,0,0,0.2)" opacity="0.5">H<tspan fill-opacity="0.5">H</tspan></text>
+        """)
+        let paths = try load(source, options: .init(material: Material(color: .blue)))
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(paths.map(\.uniformVertexColor), [.blue.withAlphaComponent(0.5), .blue.withAlphaComponent(0.25)])
+    }
+    #endif
+
+    func testClippingPreservesSolidPaintsAndIgnoresClipPaint() throws {
+        let source = svg("""
+        <clipPath id="clip"><rect width="5" height="100" fill="none" opacity="0"/></clipPath>
+        <g clip-path="url(#clip)" fill="red" opacity="0.5">
+          <rect width="10" height="10"/>
+          <line y1="20" x2="10" y2="20" stroke="blue"/>
+        </g>
+        """)
+        let paths = try load(source).paths(pretransformed: true)
+        XCTAssertEqual(
+            paths.map(\.uniformVertexColor),
+            [Color(red: 1, green: 0, blue: 0, alpha: 0.5), Color(red: 0, green: 0, blue: 1, alpha: 0.5)]
+        )
+        XCTAssertEqual(Bounds(paths).size.x, 5, accuracy: 1e-8)
+    }
+
+    func testCSGContinuesToIgnoreSVGPaints() throws {
+        let source = svg("<rect width=\"10\" height=\"10\" fill=\"red\" opacity=\"0\"/>")
+        let paths = try load(source, options: .init(csg: true)).paths(pretransformed: true)
+        XCTAssertFalse(paths.isEmpty)
+        XCTAssertTrue(paths.allSatisfy { !$0.hasColors })
+    }
+
+    func testUnsupportedPaintWarnsWithoutDroppingGeometry() throws {
+        let document = try SVGDocument(
+            data: Data(svg("<rect width=\"10\" height=\"10\" fill=\"url(#gradient)\"/>").utf8),
+            isCancelled: { false }
+        )
+        var warnings = [String]()
+        let geometry = try document
+            .geometry(options: .init(), isCancelled: { false }) { message, _ in warnings.append(message) }
+        XCTAssertEqual(warnings, ["Unsupported SVG paint 'url(#gradient)'"])
+        XCTAssertEqual(Bounds(geometry.paths(pretransformed: true)).size, [10, 10, 0])
+    }
+
+    #if canImport(CoreText)
+    func testTextSpanColorsSurviveClipping() throws {
+        let source = svg("""
+        <clipPath id="clip"><rect y="10" width="100" height="30"/></clipPath>
+        <text y="30" font-size="20" fill="red" clip-path="url(#clip)">H<tspan fill="blue" fill-opacity="0.5">H</tspan></text>
+        """)
+        let paths = try load(source).paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(paths.map(\.uniformVertexColor), [.red, Color(red: 0, green: 0, blue: 1, alpha: 0.5)])
     }
     #endif
 

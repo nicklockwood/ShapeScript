@@ -10,6 +10,11 @@ import Foundation
 import SVGPath
 #if canImport(CoreText)
 import CoreText
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 #endif
 #if canImport(FoundationXML)
 import FoundationXML
@@ -23,6 +28,7 @@ struct SVGImportOptions {
     var detail = 16
     var csg = false
     var segments: ((Double) throws -> Int)?
+    var material: Material = .default
 }
 
 enum SVGImportError: Error, LocalizedError {
@@ -177,7 +183,8 @@ final class SVGDocument {
                     let type = shapePaths.map { GeometryType.path(Path(subpaths: $0)) } ?? .group
                     let location = SourceLocation(at: element.line, in: fileURL)
                     hierarchy[hierarchy.count - 1].append(Geometry(
-                        type: type, name: a["id"], transform: .identity, material: .default,
+                        type: type, name: a["id"], transform: .identity,
+                        material: options.csg ? .default : options.material,
                         smoothing: .zero, children: children, sourceLocation: { location }
                     ))
                 }
@@ -243,6 +250,7 @@ final class SVGDocument {
                         style: style,
                         detail: options.detail,
                         isCancelled: isCancelled,
+                        material: options.material,
                         warn: warning
                     ).map { path in
                         let positions = path.points.map { matrix.apply($0.position) }
@@ -278,7 +286,15 @@ final class SVGDocument {
                         }
                         paths = [Path(subpaths: closed)]
                     } else {
-                        paths = [path]
+                        paths = [Path(subpaths: path.subpaths.map { subpath in
+                            subpath.withColor(SVGPaint.paint(
+                                style: style,
+                                closed: subpath.isClosed,
+                                element: element,
+                                material: options.material,
+                                warn: warning
+                            ))
+                        })]
                     }
                     shapePaths = try paths.filter { !$0.isEmpty }.map { path in
                         let positions = path.points.map { matrix.apply($0.position) }
@@ -377,17 +393,33 @@ private struct SVGClipping {
     func clip(_ path: Path, to boundary: Path) throws -> Path {
         if isCancelled() { throw CancellationError() }
         if boundary.isEmpty { return .empty }
+        if path.hasColors, path.uniformVertexColor == nil {
+            // Preserve distinct solid paints when clipping creates new boundary edges.
+            // Group matching contours so holes remain part of their filled region.
+            var groups = [(color: Color?, paths: [Path])]()
+            for subpath in path.subpaths {
+                let color = subpath.uniformVertexColor
+                if let index = groups.firstIndex(where: { $0.color == color }) {
+                    groups[index].paths.append(subpath)
+                } else { groups.append((color, [subpath])) }
+            }
+            if groups.count > 1 {
+                return try Path(subpaths: groups.map { try clip(Path(subpaths: $0.paths), to: boundary) })
+            }
+        }
         let closed = Path(subpaths: path.subpaths.filter(\.isClosed))
         let open = Path(subpaths: path.subpaths.filter { !$0.isClosed })
         guard let region = closed.intersection(boundary, isCancelled: isCancelled),
               let fragments = open.split(along: boundary, isCancelled: isCancelled)
         else { throw SVGImportError(message: "Unable to clip SVG geometry", line: 1) }
-        return Path(subpaths: region.subpaths + fragments.inside.subpaths)
+        let result = Path(subpaths: region.subpaths + fragments.inside.subpaths)
+        if path.hasColors, let color = path.uniformVertexColor { return result.withColor(color) }
+        return result
     }
 
     func clip(_ geometry: Geometry, to boundary: Path) throws -> Geometry {
         let type: GeometryType = if case let .path(path) = geometry.type {
-            try .path(clip(path, to: boundary))
+            try .path(clip(path.materialToVertexColors(material: geometry.material), to: boundary))
         } else { geometry.type }
         return try Geometry(
             type: type, name: geometry.name, transform: geometry.transform,
@@ -534,7 +566,7 @@ private struct SVGClipping {
                 style: style,
                 detail: detail,
                 isCancelled: isCancelled,
-                warn: applyClips ? warn : { _, _ in }
+                applyPaint: false, warn: applyClips ? warn : { _, _ in }
             )
             #else
             if applyClips { warn("SVG text is not supported on this platform", element) }
@@ -583,6 +615,88 @@ private struct SVGClipping {
     }
 }
 
+/// Solid paints only. Geometry import does not render separate fill/stroke layers.
+private enum SVGPaint {
+    static func opacity(_ value: String) -> Double? {
+        let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let percentage = value.hasSuffix("%")
+        guard let number = Double(percentage ? String(value.dropLast()) : value), number.isFinite else { return nil }
+        return min(1, max(0, number / (percentage ? 100 : 1)))
+    }
+
+    static func color(_ value: String) -> Color? {
+        let value = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let color = Color(string: value) { return color }
+        guard let start = value.firstIndex(of: "("), value.hasSuffix(")") else { return nil }
+        let name = String(value[..<start])
+        let components = value[value.index(after: start) ..< value.index(before: value.endIndex)]
+            .split { $0.isWhitespace || $0 == "," || $0 == "/" }.map(String.init)
+        guard components.count == 3 || components.count == 4,
+              let alpha = components.count == 4 ? opacity(components[3]) : 1 else { return nil }
+        if name == "rgb" || name == "rgba" {
+            let rgb = components.prefix(3).compactMap { value -> Double? in
+                if value.hasSuffix("%") { return opacity(value) }
+                guard let number = Double(value), number.isFinite else { return nil }
+                return min(1, max(0, number / 255))
+            }
+            guard rgb.count == 3 else { return nil }
+            return Color(red: rgb[0], green: rgb[1], blue: rgb[2], alpha: alpha)
+        }
+        if name == "hsl" || name == "hsla" {
+            var hue = components[0]
+            var divisor = 360.0
+            for (unit, scale) in [("deg", 360.0), ("grad", 400.0), ("rad", 2 * Double.pi), ("turn", 1.0)] {
+                if hue.hasSuffix(unit) { hue = String(hue.dropLast(unit.count)); divisor = scale; break }
+            }
+            guard let h = Double(hue), h.isFinite, components[1].hasSuffix("%"), components[2].hasSuffix("%"),
+                  let saturation = opacity(components[1]), let lightness = opacity(components[2])
+            else { return nil }
+            let normalized = (h / divisor).truncatingRemainder(dividingBy: 1)
+            let sector = (normalized < 0 ? normalized + 1 : normalized) * 6
+            let chroma = (1 - abs(2 * lightness - 1)) * saturation
+            let secondary = chroma * (1 - abs(sector.truncatingRemainder(dividingBy: 2) - 1))
+            let rgb: (Double, Double, Double) = switch sector {
+            case ..<1: (chroma, secondary, 0)
+            case ..<2: (secondary, chroma, 0)
+            case ..<3: (0, chroma, secondary)
+            case ..<4: (0, secondary, chroma)
+            case ..<5: (secondary, 0, chroma)
+            default: (chroma, 0, secondary)
+            }
+            let offset = lightness - chroma / 2
+            return Color(red: rgb.0 + offset, green: rgb.1 + offset, blue: rgb.2 + offset, alpha: alpha)
+        }
+        return nil
+    }
+
+    static func paint(
+        style: [String: String], closed: Bool, element: SVGElement,
+        material: Material = .default, warn: (String, SVGElement) -> Void
+    ) -> Color? {
+        var key = closed ? "fill" : "stroke"
+        if closed, style["fill"] == "none" { key = "stroke" }
+        var value = style[key] ?? (key == "fill" ? "black" : "none")
+        if value == "currentColor" { value = style["color"] ?? "black" }
+        var color: Color?
+        if value != "none" {
+            color = Self.color(value)
+            if color == nil { warn("Unsupported SVG paint '\(value)'", element) }
+        }
+        // Replace the complete source paint (including its alpha) before applying
+        // independent SVG opacity. A texture replaces source RGBA with a white tint.
+        if material.albedo != nil { color = material.color ?? .white }
+        let opacityKey = key + "-opacity"
+        let paintOpacity = opacity(style[opacityKey] ?? "1") ?? 1
+        for key in ["opacity", opacityKey] {
+            if let value = style[key], opacity(value) == nil { warn("Invalid SVG \(key) '\(value)'", element) }
+        }
+        let alpha = paintOpacity * (Double(style["_svgOpacity"] ?? "") ?? 1)
+        if color == nil, alpha < 1 { color = .white }
+        color?.alpha *= alpha
+        return color
+    }
+}
+
 private final class SVGElement {
     let name: String
     let attributes: [String: String]
@@ -606,7 +720,8 @@ private final class SVGElement {
         var style = inherited
         style.removeValue(forKey: "clip-path")
         style.removeValue(forKey: "mask")
-        for key in ["clip-path", "mask"] {
+        style.removeValue(forKey: "opacity")
+        for key in ["clip-path", "mask", "opacity"] {
             if let value = attributes[key] { style[key] = value }
         }
         for key in [
@@ -617,6 +732,7 @@ private final class SVGElement {
             "stroke-linejoin",
             "fill-rule",
             "clip-rule",
+            "fill", "stroke", "color", "fill-opacity", "stroke-opacity",
             "font-family",
             "font-size",
             "font-weight",
@@ -632,6 +748,12 @@ private final class SVGElement {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             if parts.count == 2 { style[parts[0]] = parts[1] }
         }
+        for (key, value) in style where value == "inherit" {
+            style[key] = inherited[key]
+        }
+        if style["color"] == "currentColor" { style["color"] = inherited["color"] }
+        let parentOpacity = Double(inherited["_svgOpacity"] ?? "") ?? 1
+        style["_svgOpacity"] = String(parentOpacity * (SVGPaint.opacity(style["opacity"] ?? "1") ?? 1))
         return style
     }
 
@@ -765,7 +887,7 @@ private extension SVGElement {
 
     func textPaths(
         style: [String: String], detail: Int, isCancelled: @escaping CancellationHandler,
-        warn: (String, SVGElement) -> Void
+        applyPaint: Bool = true, material: Material = .default, warn: (String, SVGElement) -> Void
     ) throws -> [Path] {
         let text = NSMutableAttributedString(string: "")
         var previousWasSpace = true
@@ -819,26 +941,7 @@ private extension SVGElement {
         }
         func append(_ node: SVGElement, style inherited: [String: String], size parentSize: Double) throws {
             if isCancelled() { throw CancellationError() }
-            var style = inherited
-            for key in [
-                "font-family",
-                "font-size",
-                "font-weight",
-                "font-style",
-                "letter-spacing",
-                "xml:space",
-                "display",
-                "visibility",
-                "text-anchor",
-            ] {
-                if let value = node.attributes[key] { style[key] = value }
-            }
-            for declaration in (node.attributes["style"] ?? "").split(separator: ";") {
-                let parts = declaration.split(separator: ":", maxSplits: 1).map {
-                    $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                if parts.count == 2 { style[parts[0]] = parts[1] }
-            }
+            var style = node === self ? inherited : node.style(inheriting: inherited)
             if style["display"] == "none" || style["visibility"] == "hidden" { return }
             var lists = [String: [Double]]()
             for key in ["x", "y", "dx", "dy", "rotate"] {
@@ -910,6 +1013,18 @@ private extension SVGElement {
                     line: node.line
                 )
             }
+            let color = applyPaint ? SVGPaint.paint(
+                style: style,
+                closed: true,
+                element: node,
+                material: material,
+                warn: warn
+            ) : nil
+            #if canImport(UIKit)
+            attributes[.foregroundColor] = color.map(UIColor.init)
+            #elseif canImport(AppKit)
+            attributes[.foregroundColor] = color.map(NSColor.init)
+            #endif
             for item in node.content {
                 switch item {
                 case let .text(value):
