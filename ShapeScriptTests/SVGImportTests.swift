@@ -300,6 +300,91 @@ final class SVGImportTests: XCTestCase {
         }
     }
 
+    func testTextCoordinateAndRotationLists() throws {
+        let source = """
+        <svg viewBox="0 0 500 160">
+            <text x="50 82 118 156" y="80" rotate="0 -10 8 0" font-size="42">
+              SVG!
+            </text>
+            <text x="40" y="140" dx="0 5 0 -3" font-size="28">Adjusted glyphs</text>
+        </svg>
+        """
+        let document = try SVGDocument(data: Data(source.utf8), isCancelled: { false })
+        var warnings = [String]()
+        let geometry = try document.geometry(options: .init(), isCancelled: { false }) { message, _ in
+            warnings.append(message)
+        }
+        XCTAssertFalse(geometry.paths(pretransformed: true).isEmpty)
+        XCTAssertTrue(warnings.isEmpty, warnings.joined(separator: "\n"))
+
+        let actual =
+            try load(svg("<text x=\"50 82 118 156\" y=\"80\" rotate=\"0 -10 8 0\" font-size=\"42\">SVG!</text>"))
+                .paths(pretransformed: true).flatMap(\.subpaths)
+        let expected = try load(svg("""
+        <text x="50" y="80" font-size="42">S</text>
+        <text x="82" y="80" font-size="42" transform="rotate(-10 82 80)">V</text>
+        <text x="118" y="80" font-size="42" transform="rotate(8 118 80)">G</text>
+        <text x="156" y="80" font-size="42">!</text>
+        """)).paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(actual.count, expected.count)
+        for (a, b) in zip(actual, expected) {
+            XCTAssertEqual(a.points.count, b.points.count)
+            for (p, q) in zip(a.points, b.points) {
+                XCTAssertEqual(p.position, q.position, accuracy: 1e-8)
+            }
+        }
+    }
+
+    func testTextRelativeListsAccumulateAndThenExpire() throws {
+        func paths(_ attributes: String) throws -> [Path] {
+            try load(svg("<text font-family=\"Courier\" font-size=\"20\" \(attributes)>LLLLL</text>"))
+                .paths(pretransformed: true).flatMap(\.subpaths)
+        }
+        let baseline = try paths("")
+        let adjusted = try paths("dx=\"0, 5, 0, -3\" dy=\"0 2 -1\"")
+        XCTAssertEqual(baseline.count, 5)
+        XCTAssertEqual(adjusted.count, 5)
+        let shifts = [Vector.zero, Vector(5, -2), Vector(5, -1), Vector(2, -1), Vector(2, -1)]
+        for (index, pair) in zip(baseline, adjusted).enumerated() {
+            XCTAssertEqual(Bounds(pair.1).min, Bounds(pair.0).min + shifts[index], accuracy: 1e-8)
+        }
+    }
+
+    func testTextPositionListsContinueThroughNestedSpans() throws {
+        let actual =
+            try load(
+                svg(
+                    "<text x=\"10 20 30 40\" y=\"20 30 40 50\" font-size=\"10\">L<tspan x=\"100\">L<tspan>L</tspan></tspan>L</text>"
+                )
+            )
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        let expected = try load(svg("""
+        <text x="10" y="20" font-size="10">L</text>
+        <text x="100" y="30" font-size="10">L</text>
+        <text x="30" y="40" font-size="10">L</text>
+        <text x="40" y="50" font-size="10">L</text>
+        """)).paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testTextRotationRepeatsAndPositionUnitsAreParsed() throws {
+        let actual = try load(svg("<text x=\"1in, 30mm 120px\" y=\"20\" rotate=\"0 90\" font-size=\"10\">LLL</text>"))
+            .paths(pretransformed: true).flatMap(\.subpaths)
+        let expected = try load(svg("""
+        <text x="96" y="20" font-size="10">L</text>
+        <text x="30mm" y="20" font-size="10" transform="rotate(90 113.38582677165356 20)">L</text>
+        <text x="120" y="20" font-size="10" transform="rotate(90 120 20)">L</text>
+        """)).paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(actual.count, expected.count)
+        for (a, b) in zip(actual, expected) {
+            XCTAssertEqual(Bounds(a).min, Bounds(b).min, accuracy: 1e-8)
+            XCTAssertEqual(Bounds(a).max, Bounds(b).max, accuracy: 1e-8)
+        }
+        for attributes in ["dx=\"0 nope\"", "x=\"1 2%\"", "rotate=\"0 nan\""] {
+            XCTAssertThrowsError(try load(svg("<text \(attributes)>Invalid</text>")))
+        }
+    }
+
     func testTextFragmentAndTransforms() throws {
         try withSVG(svg(
             "<g transform=\"translate(10 20)\"><text id=\"label\" font-size=\"10\">Hello</text></g>"

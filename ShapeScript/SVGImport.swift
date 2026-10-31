@@ -479,6 +479,23 @@ private final class SVGElement {
 
 #if canImport(CoreText)
 private extension SVGElement {
+    func textLengths(_ value: String) throws -> [Double] {
+        let scanner = Scanner(string: value)
+        scanner.locale = Locale(identifier: "en_US_POSIX")
+        scanner.charactersToBeSkipped = nil
+        let separators = CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: ","))
+        var values = [Double]()
+        while true {
+            _ = scanner.scanCharacters(from: separators)
+            if scanner.isAtEnd { return values }
+            guard let number = scanner.scanDouble(), number.isFinite else {
+                throw SVGImportError(message: "Invalid SVG text position list", line: line)
+            }
+            let unit = scanner.scanCharacters(from: .letters) ?? ""
+            try values.append(Self.length(String(number) + unit, line: line))
+        }
+    }
+
     func textPaths(
         style: [String: String], detail: Int, isCancelled: @escaping CancellationHandler,
         warn: (String, SVGElement) -> Void
@@ -487,10 +504,24 @@ private extension SVGElement {
         var previousWasSpace = true
         var x = 0.0, y = 0.0
         var chunkStart = 0.0
-        var anchor = "start"
+        var anchor = style["text-anchor"] ?? "start"
         var paths = [Path]()
         var chunk = [Path]()
         var preserveSpace = false
+        var rotation = 0.0
+        struct PositionList {
+            var values: [String: [Double]]
+            var index = 0
+        }
+        var positions = [PositionList]()
+        func position(_ name: String) -> Double? {
+            for list in positions.reversed() {
+                guard let values = list.values[name], !values.isEmpty else { continue }
+                if list.index < values.count { return values[list.index] }
+                if name == "rotate" { return values.last }
+            }
+            return nil
+        }
         func flushRun(trimTrailingSpace: Bool = false) {
             if trimTrailingSpace, !preserveSpace, text.string.hasSuffix(" ") {
                 text.deleteCharacters(in: NSRange(location: text.length - 1, length: 1))
@@ -499,7 +530,15 @@ private extension SVGElement {
             let line = CTLineCreateWithAttributedString(text)
             let advance = CTLineGetTypographicBounds(line, nil, nil, nil)
             chunk += Path.text(text, detail: max(1, detail / 8), isCancelled: isCancelled).map { path in
-                path.mapPoints { $0.withPosition([x + $0.position.x, y - $0.position.y, 0]) }
+                let angle = rotation * .pi / 180
+                return path.mapPoints {
+                    let p = $0.position
+                    return $0.withPosition([
+                        x + cos(angle) * p.x + sin(angle) * p.y,
+                        y + sin(angle) * p.x - cos(angle) * p.y,
+                        0,
+                    ])
+                }
             }
             x += advance
             text.deleteCharacters(in: NSRange(location: 0, length: text.length))
@@ -534,22 +573,18 @@ private extension SVGElement {
                 if parts.count == 2 { style[parts[0]] = parts[1] }
             }
             if style["display"] == "none" || style["visibility"] == "hidden" { return }
-            let absolutePosition = node.attributes["x"] != nil || node.attributes["y"] != nil
-            if absolutePosition || node === self {
-                flushChunk()
-                if node.attributes["x"] != nil { x = try node.length("x") }
-                if node.attributes["y"] != nil { y = try node.length("y") }
-                x += try node.length("dx")
-                y += try node.length("dy")
-                chunkStart = x
-                anchor = style["text-anchor"] ?? "start"
-                previousWasSpace = true
-            } else if node.attributes["dx"] != nil || node.attributes["dy"] != nil {
-                flushRun()
-                x += try node.length("dx")
-                y += try node.length("dy")
+            var lists = [String: [Double]]()
+            for key in ["x", "y", "dx", "dy", "rotate"] {
+                if let value = node.attributes[key] {
+                    lists[key] = try key == "rotate" ? svgNumbers(value, line: node.line) : node.textLengths(value)
+                }
             }
-            for key in ["rotate", "textLength", "lengthAdjust", "dominant-baseline", "alignment-baseline"] {
+            positions.append(PositionList(values: lists))
+            defer { positions.removeLast() }
+            if lists["x"]?.isEmpty == false || lists["y"]?.isEmpty == false {
+                previousWasSpace = true
+            }
+            for key in ["textLength", "lengthAdjust", "dominant-baseline", "alignment-baseline"] {
                 if node.attributes[key] != nil || style[key] != nil {
                     warn("Unsupported SVG text attribute '\(key)'", node)
                 }
@@ -621,9 +656,36 @@ private extension SVGElement {
                             return !space || !previousWasSpace
                         })
                     } else if let last = value.last { previousWasSpace = last == " " }
-                    if size > 0, !value.isEmpty {
-                        text.append(NSAttributedString(string: value, attributes: attributes))
-                        preserveSpace = style["xml:space"] == "preserve"
+                    for scalar in value.unicodeScalars {
+                        if isCancelled() { throw CancellationError() }
+                        let absoluteX = position("x"), absoluteY = position("y")
+                        let dx = position("dx"), dy = position("dy")
+                        let angle = position("rotate") ?? 0
+                        if absoluteX != nil || absoluteY != nil {
+                            flushChunk()
+                            if let absoluteX { x = absoluteX }
+                            if let absoluteY { y = absoluteY }
+                            x += dx ?? 0
+                            y += dy ?? 0
+                            chunkStart = x
+                            anchor = style["text-anchor"] ?? "start"
+                        } else if dx != nil || dy != nil || angle != 0 || rotation != 0 {
+                            // Keep unpositioned text in one shaped run. Explicit character
+                            // adjustments and rotations require a new glyph origin.
+                            flushRun()
+                            x += dx ?? 0
+                            y += dy ?? 0
+                        }
+                        rotation = angle
+                        if size > 0 {
+                            text.append(NSAttributedString(string: String(scalar), attributes: attributes))
+                            preserveSpace = style["xml:space"] == "preserve"
+                        }
+                        // Ancestor lists count descendant characters too.
+                        // Child values override only the corresponding entries in those lists
+                        for index in positions.indices {
+                            positions[index].index += 1
+                        }
                     }
                 case let .element(child):
                     guard child.name == "tspan" else {
