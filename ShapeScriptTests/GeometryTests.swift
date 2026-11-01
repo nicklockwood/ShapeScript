@@ -12,6 +12,34 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testWorldTransformAppliesLocalTransformBeforeAncestors() {
+        let transforms: [Transform] = [
+            .translation([3, 4, 5]),
+            .rotation(.pitch(.halfPi)),
+            .scale([2, 2, 2]),
+        ]
+        for local in transforms {
+            for parent in transforms {
+                let child = Geometry(
+                    type: .cube, name: nil, transform: local,
+                    material: .default, smoothing: nil, children: [], sourceLocation: nil
+                )
+                let root = Geometry(
+                    type: .group, name: nil, transform: parent,
+                    material: .default, smoothing: nil, children: [child], sourceLocation: nil
+                )
+                XCTAssertEqual(root.worldTransform, parent)
+                for point in [Vector.zero, Vector(1, 2, 3)] {
+                    let expected = point.transformed(by: local).transformed(by: root.transform)
+                    let actual = point.transformed(by: child.worldTransform)
+                    XCTAssertEqual(actual.x, expected.x, accuracy: 1e-8)
+                    XCTAssertEqual(actual.y, expected.y, accuracy: 1e-8)
+                    XCTAssertEqual(actual.z, expected.z, accuracy: 1e-8)
+                }
+            }
+        }
+    }
+
     func testMeshPaintOverridesApplyToEveryMaterialAndInvalidateBuiltMesh() throws {
         var red = Material(color: .red.withAlphaComponent(0.2))
         red.opacity = .color(Color(white: 0.5))

@@ -783,7 +783,7 @@ public extension Geometry {
 
     /// The absolute geometry transform relative to the world/scene
     var worldTransform: Transform {
-        (parent?.worldTransform ?? .identity) * transform
+        transform * (parent?.worldTransform ?? .identity)
     }
 
     /// Return a copy of the geometry with the specified transform applied
