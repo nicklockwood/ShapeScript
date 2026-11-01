@@ -290,9 +290,7 @@ private enum HelpIndex {
             forResource: "index",
             withExtension: "html",
             subdirectory: "Help"
-        ),
-            let html = try? String(contentsOf: url)
-        else {
+        ), let html = try? String(contentsOf: url) else {
             return []
         }
         return parseItems(in: html, relativeTo: url)

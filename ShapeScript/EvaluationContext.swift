@@ -350,11 +350,11 @@ enum FileError: Error, LocalizedError {
 extension URL {
     var isUndownloadedUbiquitousFile: Bool {
         #if os(macOS) || os(iOS)
-        return (try? resourceValues(forKeys: [
+        (try? resourceValues(forKeys: [
             .ubiquitousItemDownloadingStatusKey,
         ]).ubiquitousItemDownloadingStatus) == .notDownloaded
         #else
-        return false
+        false
         #endif
     }
 
@@ -572,13 +572,13 @@ extension EvaluationContext {
             let mesh = try loadMesh(at: url) {
                 switch $0 {
                 case let color as Color:
-                    return Material(color: color)
+                    Material(color: color)
                 #if canImport(SceneKit)
                 case let scnMaterial as SCNMaterial:
-                    return Material(scnMaterial)
+                    Material(scnMaterial)
                 #endif
                 default:
-                    return nil
+                    nil
                 }
             }
             return Geometry(
