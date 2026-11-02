@@ -890,7 +890,7 @@ final class DocumentURLChangeTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        for (name, editable) in [
+        for (index, (name, editable)) in [
             ("model.shape", true),
             ("model.csg", true),
             ("model.CSG", true),
@@ -900,12 +900,15 @@ final class DocumentURLChangeTests: XCTestCase {
             ("data.JSON", true),
             ("model.stl", false),
             ("image.png", false),
-        ] {
-            let url = directory.appendingPathComponent(name)
+        ].enumerated() {
+            // Keep names that differ only by case separate on case-insensitive filesystems.
+            let caseDirectory = directory.appendingPathComponent(String(index), isDirectory: true)
+            try FileManager.default.createDirectory(at: caseDirectory, withIntermediateDirectories: true)
+            let url = caseDirectory.appendingPathComponent(name)
             try "".write(to: url, atomically: true, encoding: .utf8)
             XCTAssertTrue(FileManager.default.isWritableFile(atPath: url.path))
             let document = URLChangeMockDocument(fileURL: url)
-            XCTAssertEqual(document.isEditable, editable)
+            XCTAssertEqual(document.isEditable, editable, name)
         }
     }
 

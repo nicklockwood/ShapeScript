@@ -960,7 +960,7 @@ final class StandardLibraryTests: XCTestCase {
         let delegate = TestDelegate()
         let context = EvaluationContext(source: program.source, delegate: delegate)
         XCTAssertNoThrow(try program.evaluate(in: context))
-        #if os(iOS)
+        #if os(iOS) || os(tvOS) || os(visionOS)
         XCTAssertEqual(delegate.log, ["Times New Roman"])
         #elseif os(macOS)
         XCTAssertEqual(delegate.log, ["Times Roman"])

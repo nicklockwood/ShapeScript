@@ -7,8 +7,12 @@
 
 @testable import ShapeScript
 @testable import Viewer
-import Cocoa
 import XCTest
+#if canImport(UIKit)
+import UIKit
+#else
+import Cocoa
+#endif
 
 final class ProgramErrorFormattingTests: XCTestCase {
     func testLongSourceLineStopsAfterLastHighlightedFragment() throws {
@@ -18,7 +22,7 @@ final class ProgramErrorFormattingTests: XCTestCase {
         let message = error.message(with: source)
         XCTAssertTrue(message.string.contains(source))
         let excerpt = ErrorExcerpt(line: source, range: range)
-        let font = try XCTUnwrap(NSFont(name: "Courier", size: 15))
+        let font = try XCTUnwrap(OSFont(name: "Courier", size: 15))
         let wrapped = excerpt.layout(width: 180, attributes: [.font: font])
         let lines = wrapped.string.split(separator: "\n")
         let sourceLines = lines.filter { !$0.allSatisfy { $0 == "^" } }
@@ -36,7 +40,7 @@ final class ProgramErrorFormattingTests: XCTestCase {
     func testTruncationKeepsWholeFragmentAfterHighlight() throws {
         let source = "unknown tail " + String(repeating: "extra ", count: 20)
         let range = try XCTUnwrap(source.range(of: "unknown"))
-        let font = try XCTUnwrap(NSFont(name: "Courier", size: 15))
+        let font = try XCTUnwrap(OSFont(name: "Courier", size: 15))
         let excerpt = ErrorExcerpt(line: source, range: range)
         let lines = excerpt.layout(width: 140, attributes: [.font: font]).string.split(separator: "\n")
         XCTAssertEqual(lines.count, 2)
@@ -64,7 +68,7 @@ final class ProgramErrorFormattingTests: XCTestCase {
     func testWrappedErrorHasCaretsUnderEveryAffectedFragment() throws {
         let source = String(repeating: "x", count: 50)
         let excerpt = ErrorExcerpt(line: source, range: source.startIndex ..< source.endIndex)
-        let font = try XCTUnwrap(NSFont(name: "Courier", size: 15))
+        let font = try XCTUnwrap(OSFont(name: "Courier", size: 15))
         let output = excerpt.layout(width: 90, attributes: [.font: font])
         let lines = output.string.split(separator: "\n")
         XCTAssertGreaterThan(lines.count, 2)
@@ -80,7 +84,7 @@ final class ProgramErrorFormattingTests: XCTestCase {
         let source = "print \"🌍\" " + String(repeating: "1 ", count: 40) + "unknown"
         let range = try XCTUnwrap(source.range(of: "unknown"))
         let excerpt = ErrorExcerpt(line: source, range: range)
-        let font = try XCTUnwrap(NSFont(name: "Courier", size: 15))
+        let font = try XCTUnwrap(OSFont(name: "Courier", size: 15))
         let lines = excerpt.layout(width: 160, attributes: [.font: font]).string.split(separator: "\n")
         XCTAssertTrue(lines[lines.count - 2].contains("unknown"))
         XCTAssertEqual(lines.last, "^^^^^^^")

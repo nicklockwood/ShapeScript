@@ -149,6 +149,8 @@ final class ViewTests: XCTestCase {
         }
     }
 
+    #if os(macOS)
+
     func testLoadingIndicatorDisplaysPhaseAndPercentage() throws {
         let indicator = ProgressView(frame: .zero)
         let labels = indicator.subviews.compactMap { $0 as? NSTextField }
@@ -293,6 +295,8 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(Color(Document.backgroundColor), lightComponents)
         XCTAssertEqual(Color(dark), darkComponents)
     }
+
+    #endif
 
     func testRefreshHooksRunAfterSharedRenderingWork() {
         let viewController = MockViewController()
@@ -545,6 +549,8 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(viewController.errorMessage, originalMessage)
     }
 
+    #if os(macOS)
+
     func testErrorOverlayReflowsWhenTextViewResizes() {
         let controller = DocumentViewController()
         _ = controller.view
@@ -583,6 +589,8 @@ final class ViewTests: XCTestCase {
         XCTAssertNil(controller.errorMessage)
         XCTAssertTrue(try XCTUnwrap(controller.errorTextView.enclosingScrollView).isHidden)
     }
+
+    #endif
 
     func testLoadingProgressRunsDispatchedTasksInOrder() async {
         let progress = LoadingProgress { _ in }
