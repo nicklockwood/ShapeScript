@@ -364,14 +364,14 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     override func close(completionHandler: (@Sendable (Bool) -> Void)? = nil) {
         loadingProgress?.cancel()
         exportProgress?.cancel()
-        super.close { success in
+        super.close { [warningQueue] success in
             for resource in self.securityScopedResources {
                 resource.stopAccessingSecurityScopedResource()
             }
             self.stopAccessingPrimarySecurityScopedResource()
             Task { @MainActor in
                 if success {
-                    self.warningQueue.reset()
+                    warningQueue.reset()
                 }
                 completionHandler?(success)
             }
