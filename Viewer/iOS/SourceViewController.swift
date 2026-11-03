@@ -27,6 +27,7 @@ final class SourceViewController: UIViewController, @unchecked Sendable {
     private var textView: TokenView = .init()
     private var didNotifyDismissal = false
     private var ownsDocument = false
+    private var duplicateExport: DocumentDuplicateExport?
 
     var showsCloseButton = true
     var onDismiss: (() -> Void)?
@@ -538,10 +539,23 @@ extension SourceViewController {
     }
 
     override func duplicate(_: Any?) {
-        guard let fileURL = document?.documentFileURL else {
-            return
+        guard let document, presentedViewController == nil else { return }
+        duplicateExport = nil
+        do {
+            let export = try document.makeDuplicateExport()
+            duplicateExport = export
+            let picker = UIDocumentPickerViewController(forExporting: [export.fileURL], asCopy: false)
+            picker.delegate = self
+            present(picker, animated: true)
+        } catch {
+            let alert = UIAlertController(
+                title: "Error",
+                message: error.localizedDescription,
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
         }
-        present(UIDocumentPickerViewController(forExporting: [fileURL], asCopy: true), animated: true)
     }
 
     override func move(_: Any?) {
@@ -618,7 +632,9 @@ extension SourceViewController: UINavigationItemRenameDelegate {
             case let .failure(error):
                 updateDocumentTitle()
                 updateSceneTitle()
-                presentRenameError(error)
+                if !(error as NSError).isHandledRenameError {
+                    presentRenameError(error)
+                }
             }
         }
     }
@@ -878,5 +894,15 @@ extension SourceViewController: UIScrollViewDelegate {
             appearance.configureWithTransparentBackground()
         }
         navigationBar?.scrollEdgeAppearance = appearance
+    }
+}
+
+extension SourceViewController: UIDocumentPickerDelegate {
+    func documentPickerWasCancelled(_: UIDocumentPickerViewController) {
+        duplicateExport = nil
+    }
+
+    func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt _: [URL]) {
+        duplicateExport = nil
     }
 }

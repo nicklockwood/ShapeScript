@@ -65,6 +65,8 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
     private var isAutosaving = false
     private var autosaveQueued = false
     private var saveErrorAlertIsVisible = false
+    @MainActor private var pendingReloads: [(url: URL, completion: (@Sendable (Bool) -> Void)?)] = []
+    @MainActor private var isReloading = false
 
     var sourceString: String = "" {
         didSet {
@@ -355,6 +357,47 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
             return
         }
         super.autosave(completionHandler: completionHandler)
+    }
+
+    override func revert(toContentsOf url: URL, completionHandler: (@Sendable (Bool) -> Void)? = nil) {
+        // UIKit and file-presenter callbacks can request reloads concurrently.
+        // Do not block the presenter queue while the coordinated read waits.
+        let request = DocumentReloadRequest(document: self, url: url, completion: completionHandler)
+        Task { @MainActor in
+            request.document.enqueueReload(request.url, completion: request.completion)
+        }
+    }
+
+    @MainActor private func enqueueReload(_ url: URL, completion: (@Sendable (Bool) -> Void)?) {
+        pendingReloads.append((url, completion))
+        performNextReload()
+    }
+
+    @MainActor private func performNextReload() {
+        guard !isReloading, !pendingReloads.isEmpty else { return }
+        isReloading = true
+        let pending = pendingReloads.removeFirst()
+        let request = DocumentReloadRequest(document: self, url: pending.url, completion: pending.completion)
+        super.revert(toContentsOf: request.url) { success in
+            Task { @MainActor in
+                request.document.finishReload(success, completion: request.completion)
+            }
+        }
+    }
+
+    @MainActor private func finishReload(_ success: Bool, completion: (@Sendable (Bool) -> Void)?) {
+        completion?(success)
+        isReloading = false
+        performNextReload()
+    }
+
+    @MainActor func makeDuplicateExport() throws -> DocumentDuplicateExport {
+        // Imported binary models must retain their original bytes; source files
+        // should include current edits without changing the original's save state.
+        try DocumentDuplicateExport(
+            fileURL: fileURL,
+            contents: fileURL.isEditableFile ? Data(sourceString.utf8) : nil
+        )
     }
 
     override func contents(forType _: String) throws -> Any {

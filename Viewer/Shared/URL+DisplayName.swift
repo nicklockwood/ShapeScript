@@ -15,4 +15,20 @@ extension URL {
     var displayBaseName: String {
         deletingPathExtension().displayName
     }
+
+    var duplicateFileName: String {
+        let baseName = deletingPathExtension().lastPathComponent
+        let numberedName = if let separator = baseName.lastIndex(of: " "),
+                              separator != baseName.startIndex,
+                              case let suffix = baseName[baseName.index(after: separator)...],
+                              !suffix.isEmpty,
+                              suffix.allSatisfy({ $0 >= "0" && $0 <= "9" }),
+                              let number = UInt64(suffix), number < UInt64.max
+        {
+            "\(baseName[..<separator]) \(number + 1)"
+        } else {
+            "\(baseName) 2"
+        }
+        return pathExtension.isEmpty ? numberedName : "\(numberedName).\(pathExtension)"
+    }
 }
