@@ -8,8 +8,60 @@
 
 @testable import Euclid
 import XCTest
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 final class ColorTests: XCTestCase {
+    func testSRGBTransferFunctionsPreserveAlphaAndExtendedRange() {
+        let encoded = Color(red: 0.5, green: 0.02, blue: 1.25, alpha: 0.5)
+        let linear = encoded.toLinear()
+        XCTAssertEqual(linear.red, 0.21404114048223255, accuracy: 1e-12)
+        XCTAssertEqual(linear.green, 0.02 / 12.92, accuracy: 1e-12)
+        XCTAssertEqual(linear.alpha, 0.5)
+        XCTAssertEqual(linear.toSRGB(), encoded, accuracy: 1e-12)
+        XCTAssertEqual(Color(white: -0.5).toLinear().red, -linear.red, accuracy: 1e-12)
+        XCTAssertEqual(Color(white: 0.002).toSRGB().red, 0.02584, accuracy: 1e-12)
+    }
+
+    #if canImport(UIKit) || canImport(AppKit)
+    func testPlatformColorConversionsUseSRGBByDefault() throws {
+        let color = Color(red: 0.5, green: 0.25, blue: 0.75, alpha: 0.4)
+        let srgb = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
+        let linear = try XCTUnwrap(CGColorSpace(name: CGColorSpace.extendedLinearSRGB))
+        let input = OSColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 0.4)
+        XCTAssertEqual(Color(input), color, accuracy: 1e-6)
+        XCTAssertEqual(Color(OSColor(color), colorSpace: srgb), color, accuracy: 1e-6)
+        XCTAssertEqual(Color(OSColor(color), colorSpace: linear), color.toLinear(), accuracy: 1e-6)
+        XCTAssertEqual(Color(OSColor(color.toLinear(), colorSpace: linear)), color, accuracy: 1e-6)
+        XCTAssertEqual(Color(input, colorSpace: nil), color, accuracy: 1e-6)
+        XCTAssertEqual(Color(CGColor(gray: 0.5, alpha: 0.4)).alpha, 0.4, accuracy: 1e-6)
+    }
+
+    func testPlatformWhiteMatchesNumericSRGBGray() {
+        let gray = Color(white: 0.5, alpha: 0.4)
+        XCTAssertEqual(Color(OSColor(white: 0.5, alpha: 0.4)), gray, accuracy: 1e-6)
+        XCTAssertEqual(Color(OSColor(gray)), gray, accuracy: 1e-6)
+    }
+
+    func testPlatformColorImportConvertsDisplayP3() throws {
+        let space = try XCTUnwrap(CGColorSpace(name: CGColorSpace.displayP3))
+        let srgb = try XCTUnwrap(CGColorSpace(name: CGColorSpace.extendedSRGB))
+        let input = try XCTUnwrap(CGColor(colorSpace: space, components: [0.7, 0.3, 0.2, 0.4]))
+        let expected = try XCTUnwrap(input.converted(to: srgb, intent: .defaultIntent, options: nil))
+        XCTAssertEqual(Color(input), Color(expected, colorSpace: nil), accuracy: 1e-6)
+        XCTAssertEqual(Color(OSColor(Color(input))), Color(input), accuracy: 1e-6)
+    }
+
+    func testComponentMultiplicationMatchesPlatformColorConversion() {
+        let color = Color(red: 0.5, green: 0.25, blue: 0.75, alpha: 0.4)
+        let product = Color(OSColor(color)) * Color(OSColor(color))
+        XCTAssertEqual(product, Color(red: 0.25, green: 0.0625, blue: 0.5625, alpha: 0.16), accuracy: 1e-6)
+    }
+    #endif
+
     func testCompositedOpaqueForeground() {
         XCTAssertEqual(Color.red.composited(over: .blue.withAlphaComponent(0.5)), .red)
     }
@@ -34,7 +86,7 @@ final class ColorTests: XCTestCase {
     func testCompositedOntoOpaqueBackground() {
         XCTAssertEqual(
             Color.red.withAlphaComponent(0.5).composited(over: .blue),
-            Color(red: 0.5, green: 0, blue: 0.5),
+            Color(red: 0.5, green: 0, blue: 0.5).toSRGB(),
             accuracy: epsilon
         )
     }
@@ -42,9 +94,33 @@ final class ColorTests: XCTestCase {
     func testCompositedTranslucentColors() {
         XCTAssertEqual(
             Color.red.withAlphaComponent(0.5).composited(over: .blue.withAlphaComponent(0.5)),
-            Color(red: 2.0 / 3, green: 0, blue: 1.0 / 3, alpha: 0.75),
+            Color(red: 2.0 / 3, green: 0, blue: 1.0 / 3, alpha: 0.75).toSRGB(),
             accuracy: epsilon
         )
+    }
+
+    func testCompositingMidtonesInLinearLight() {
+        let result = Color(white: 0.5, alpha: 0.5).composited(over: .black)
+        XCTAssertEqual(result.red, 0.3607802138332792, accuracy: 1e-12)
+        XCTAssertEqual(result.alpha, 1)
+        XCTAssertEqual(
+            Color.white.withAlphaComponent(0.5).composited(over: .black).red,
+            0.7353569830524495,
+            accuracy: 1e-12
+        )
+    }
+
+    func testLuminancePreservesStoredComponents() {
+        XCTAssertEqual(Color.gray.luminance, 0.5, accuracy: 1e-12)
+        XCTAssertEqual(Color.white.luminance, 1, accuracy: 1e-12)
+        XCTAssertEqual(Color.red.withAlphaComponent(0.5).luminance, 0.2126, accuracy: 1e-12)
+        XCTAssertEqual(Color(red: 0.5, green: 0.25, blue: 0.75).luminance, 0.33925, accuracy: 1e-12)
+    }
+
+    func testRelativeLuminanceUsesExplicitLinearConversion() {
+        XCTAssertEqual(Color.gray.toLinear().luminance, 0.21404114048223255, accuracy: 1e-12)
+        XCTAssertEqual(Color.white.toLinear().luminance, 1, accuracy: 1e-12)
+        XCTAssertEqual(Color.red.withAlphaComponent(0.5).toLinear().luminance, 0.2126, accuracy: 1e-12)
     }
 
     func testCollectionLerp() {

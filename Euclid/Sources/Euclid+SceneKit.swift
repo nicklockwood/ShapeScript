@@ -35,46 +35,6 @@ import SceneKit
 
 let scnMaterialTypes: [AnyClass] = [SCNMaterial.self]
 
-// MARK: SRGB conversion
-
-private func srgbToLinear(_ x: Double) -> Double {
-    switch x {
-    case ..<0: 0
-    case 1...: 1
-    case 0 ..< 0.04045: x / 12.92
-    default: pow((x + 0.055) / 1.055, 2.4)
-    }
-}
-
-private func linearToSRGB(_ x: Double) -> Double {
-    switch x {
-    case ..<0: 0
-    case 1...: 1
-    case 0 ..< 0.00031308: 12.92 * x
-    default: 1.055 * pow(x, 1 / 2.4) - 0.055
-    }
-}
-
-private extension Color {
-    func toLinear() -> Color {
-        .init(
-            red: srgbToLinear(red),
-            green: srgbToLinear(green),
-            blue: srgbToLinear(blue),
-            alpha: srgbToLinear(alpha)
-        )
-    }
-
-    func toSRGB() -> Color {
-        .init(
-            red: linearToSRGB(red),
-            green: linearToSRGB(green),
-            blue: linearToSRGB(blue),
-            alpha: linearToSRGB(alpha)
-        )
-    }
-}
-
 // MARK: export
 
 public extension SCNVector3 {
@@ -96,9 +56,8 @@ public extension SCNVector4 {
 public extension SCNQuaternion {
     /// Creates a new SceneKit quaternion from a `Rotation`
     /// - Parameter rotation: The rotation to convert.
-    ///
-    /// > Note: `SCNQuaternion` is actually just a typealias for ``SCNVector4`` so be
-    /// careful to avoid type ambiguity when using this value.
+    /// - Note: `SCNQuaternion` is actually just a typealias for ``SCNVector4`` so be
+    ///   careful to avoid type ambiguity when using this value.
     init(_ rotation: Rotation) {
         self.init(rotation.x, rotation.y, rotation.z, rotation.w)
     }
