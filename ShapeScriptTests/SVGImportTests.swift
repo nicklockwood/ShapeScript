@@ -639,6 +639,14 @@ final class SVGImportTests: XCTestCase {
         )
     }
 
+    func testCSSMidtonesStaySRGBAndOpacityStaysLinear() throws {
+        for paint in ["rgb(50% 25% 75% / 50%)", "hsl(270 50% 50% / 50%)"] {
+            let geometry = try load(svg("<rect width=\"10\" height=\"10\" fill=\"\(paint)\" fill-opacity=\"0.5\"/>"))
+            let color = try XCTUnwrap(geometry.paths(pretransformed: true).first?.uniformVertexColor)
+            XCTAssertEqual(color, Color(red: 0.5, green: 0.25, blue: 0.75, alpha: 0.25))
+        }
+    }
+
     func testCSSSolidColorSyntaxAndOpacity() throws {
         for paint in ["red", "#f00", "#ff0000", "rgb(255,0,0)", "rgb(100% 0% 0%)", "hsl(0 100% 50%)"] {
             let paths = try load(svg("<rect width=\"10\" height=\"10\" fill=\"\(paint)\"/>"))

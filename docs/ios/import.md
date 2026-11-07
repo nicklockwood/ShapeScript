@@ -161,6 +161,8 @@ extrude import "Drawing.svg#part"
 
 The SVG importer supports paths, rectangles, circles, ellipses, polygons, polylines, lines, text, transforms and local `<use>` references. The imported scale is determined by the SVG document dimensions and `viewBox`. The SVG Y axis is flipped to point upwards for consistency with the ShapeScript coordinate system. Imported shapes retain their original positions.
 
+SVG solid paint values use sRGB; importing them does not apply a gamma conversion. Opacity remains a linear coverage value. This is a geometry importer, not an SVG renderer: group opacity is distributed to child paths, so overlapping translucent shapes may differ from SVG group compositing. SVG filters and `color-interpolation` rendering modes are not reproduced.
+
 Fill and stroke colors are preserved as path colors, but can be overridden with the ShapeScript `color` command. Gradients, patterns, images and masks and external references are not supported. Some text formatting features are also not currently supported. Convert these to paths in an SVG editor if precise results are required.
 
 ## Text and Data

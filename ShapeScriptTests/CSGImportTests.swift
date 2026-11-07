@@ -530,6 +530,15 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testNumericAndHexMidtonesUseTheSameEncodedComponents() throws {
+        for value in ["[0.5019607843137255, 0.25098039215686274, 0.7529411764705882, 0.4]", "\"#8040c066\""] {
+            let scene = try Scene(csgString: "color(\(value)) cube(1);", isCancelled: { false })
+            XCTAssertTrue(scene.build { false })
+            let expected = Color(red: 128.0 / 255, green: 64.0 / 255, blue: 192.0 / 255, alpha: 0.4)
+            XCTAssertTrue(scene.geometry.merged().polygons.allSatisfy { ($0.material as? Material)?.color == expected })
+        }
+    }
+
     func testUnknownColorWarnsAndUsesInheritedColor() throws {
         let scene = try Scene(csgString: "color([1,0,0]) color(\"notacolor\") cube(1);", isCancelled: { false })
         XCTAssertEqual(scene.warnings.count, 1)

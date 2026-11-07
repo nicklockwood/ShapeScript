@@ -57,6 +57,8 @@ mesh {
 
 ![Colored triangle](../images/colored-triangle.png)
 
+Vertex RGB colors are interpolated in linear light, with alpha interpolated independently. Subdividing or splitting a polygon preserves its color gradient along the new edges. See [Color Representation](materials.md#color-representation) for how this relates to numeric color values.
+
 ## Watertightness
 
 Most of the mesh-construction commands in ShapeScript produce shapes that are *watertight*, meaning that they do not contain any holes that would expose the inside of the polygon surface. Manually-created meshes may contain holes, but ShapeScript now preserves watertightness automatically when it builds the final geometry, so unlike in earlier versions you won't normally need to add extra faces just to make a mesh usable with [CSG](csg.md) operations.

@@ -30,6 +30,14 @@ group {
 sphere // green sphere
 ```
 
+### Color Representation
+
+RGB values use sRGB, the same color convention used by hexadecimal colors and CSS color names. HSB colors are converted to RGB using this convention too. A gray value of `0.5` sets each sRGB component to `0.5`; its appearance also depends on the material, lighting, and renderer.
+
+When rendering, RGB values are converted to linear light for lighting, material tint multiplication, and transparency compositing. Vertex-color gradients also interpolate RGB in linear light, including when geometry is subdivided or split by CSG operations. Alpha is interpolated independently.
+
+Arithmetic on color components uses the stored sRGB values. Alpha and numeric opacity represent transparency directly and are never gamma-corrected. Normal maps, roughness, and metallicity are also data values rather than sRGB colors.
+
 ### RGB Colors
 
 As mentioned in [Getting Started](getting-started.md), `color` can accept a tuple of up to 4 values that represent the red, green, blue and alpha color channels respectively. Values should be specified in the range 0 (no color) to 1 (full color):
@@ -46,27 +54,27 @@ The red, green and blue channels control the color itself, and the alpha channel
 sphere { color 1 0 0 0.5 }
 ```
 
-If fewer than 3 parameters are passed to the `color` command, the first parameter is treated as the overall luminance (brightness) value, meaning that the resultant color will be set to a shade of gray between 0 (black) and 1 (white).
+If fewer than 3 parameters are passed to the `color` command, the first parameter is treated as an sRGB white level, meaning that the resultant color will be set to a shade of gray between 0 (black) and 1 (white).
 
 The table below shows how RGBA color values are interpreted, based on the number of components:
 
 Number of parameters         | Meaning
 :--------------------------- | :--------------------------
-1                            | Luminance
-2                            | Luminance and alpha
+1                            | White level
+2                            | White level and alpha
 3                            | Red, green and blue
 4                            | Red, green, blue and alpha
 
 <br/>
 
-For example, the following both produce a light shade gray of gray, with a luminance of 0.8:
+For example, the following both produce a light shade of gray, with an sRGB white level of 0.8:
 
 ```swift
 color 0.8
 color 0.8 0.8 0.8
 ```
 
-And the following both produce 50% a translucent white, with full luminance and 50% alpha :
+And the following both produce translucent white, with a white level of 1 and 50% alpha:
 
 ```swift
 color 1 0.5
@@ -83,7 +91,7 @@ color hsb(1 / 3 1 1) // green
 color hsb(2 / 3 1 1) // blue
 ```
 
-The hue component specifies a position around the color wheel from 0 to 1. The saturation component controls the intensity of the color, and the brightness component controls how light or dark it is. Like RGB colors, HSB colors can include an optional fourth alpha component:
+The hue component specifies a position around the color wheel from 0 to 1. The saturation component controls how vivid the color is, and the brightness component sets its maximum sRGB component. For example, `hsb(0 0 0.5)` produces the same gray as `rgb(0.5 0.5 0.5)`. Like RGB colors, HSB colors can include an optional fourth alpha component:
 
 ```swift
 color hsb(0 1 1 0.5) // 50% transparent red
@@ -178,7 +186,7 @@ You can override these built-in colors using the `define` command, or define new
 ```swift
 define red 1 0.3 0.1 // override the default red color with a custom shade
 
-define lightGray 0.8 // define a new color "lightGray" with 80% luminance
+define lightGray 0.8 // define a new color "lightGray" with an sRGB white level of 0.8
 ```
 
 ### Alpha Override
@@ -450,9 +458,3 @@ cube {
 
 ---
 [Index](index.md) | Next: [Transforms](transforms.md)
-
-### Color representation
-
-Numeric RGB, HSV, named colors, hex literals, and CSS colors use sRGB components. The renderers convert RGB to linear light where needed, preserving alpha and numeric opacity without gamma correction. Platform colors are converted using their declared color space.
-
-Color interpolation and the color multiplication operator act component-wise on sRGB values. Rendering tint multiplication, source-over compositing, and relative luminance use linear light. Opacity, roughness, and metallicity are data values and are not gamma-corrected.

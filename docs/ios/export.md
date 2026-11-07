@@ -32,6 +32,22 @@ usd / usdz            | Universal Scene Description
 
 Some model formats do not support embedding geometry and textures or materials in a single file; In this case, ShapeScript will export a folder containing the model and associated assets as separate files.
 
+## Color Conventions
+
+ShapeScript uses the [sRGB color convention](materials.md#color-representation) for numeric RGB, HSB, named, and hexadecimal colors. File conversion depends on the destination format:
+
+- **CSG/SCAD:** RGB and alpha values are preserved numerically, matching OpenSCAD's numeric, named, and hex color conventions.
+- **3MF:** Solid colors use sRGB hexadecimal bytes, rounded to the nearest integer. A color group's alpha alone does not specify a translucent printed material; that requires additional material properties. Texture images retain their embedded profiles.
+- **STL:** Binary color extensions have no declared color space. Components are preserved, with 5-bit facet quantization. ASCII STL has no color support.
+- **USD:** Material colors are written as linear RGB. Textures keep their own encoding, and opacity remains a linear scalar.
+- **OFF:** The current exporter writes geometry without colors.
+- **SVG:** Export creates a cross-section with fixed black outlines and a light-gray fill; it does not preserve the model's material colors.
+- **Images:** Rendered images use their image color profiles. The software renderer tags its component values as sRGB.
+
+OBJ, PLY, Alembic, Collada, and native SceneKit scene export use Apple's scene exporters. Supported material features and cross-application color fidelity depend on those exporters and the receiving application; a successful file export does not imply every material feature is preserved.
+
+The [3MF materials specification](https://github.com/3MFConsortium/spec_materials/blob/master/3MF%20Materials%20Extension.md) defines sRGB colors, rounding, and material-layer behavior. The [OpenUSD color guide](https://openusd.org/25.11/user_guides/color_user_guide.html) defines linear Rec.709 as the default color space. STL's incompatible color extensions are described in the [Library of Congress format notes](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml).
+
 Exported models can be used in a variety of ways:
 
 ## Games and AR

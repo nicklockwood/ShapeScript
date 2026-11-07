@@ -175,6 +175,7 @@
         - [Dynamic Imports](import.md#dynamic-imports)
 - [Export](export.md)
     - [Model and Scene Formats](export.md#model-and-scene-formats)
+    - [Color Conventions](export.md#color-conventions)
     - [Games and AR](export.md#games-and-ar)
     - [3D Printing](export.md#3d-printing)
     - [Plotters and CNC Machines](export.md#plotters-and-cnc-machines)
