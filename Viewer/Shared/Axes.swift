@@ -78,6 +78,11 @@ struct Axes {
 extension SCNNode {
     convenience init(_ axes: Axes) {
         self.init(axes.geometry)
+        enumerateChildNodes { node, _ in
+            for material in node.geometry?.materials ?? [] {
+                material.lightingModel = .constant
+            }
+        }
     }
 }
 

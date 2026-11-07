@@ -115,6 +115,19 @@ private final class PivotResettingSCNView: SCNView {
 
 @MainActor
 final class ViewTests: XCTestCase {
+    func testAxesLinesAndLabelsUseUnlitMaterials() {
+        let node = SCNNode(Axes(scale: 1, camera: .default, color: .white))
+        XCTAssertEqual(node.childNodes.count, 9)
+        var materialCount = 0
+        node.enumerateChildNodes { child, _ in
+            for material in child.geometry?.materials ?? [] {
+                materialCount += 1
+                XCTAssertEqual(material.lightingModel, .constant)
+            }
+        }
+        XCTAssertGreaterThanOrEqual(materialCount, 9)
+    }
+
     @available(macOS 13.0, *)
     func testRerenderAfterFailurePreservesErrorWithoutEvaluatingSource() async throws {
         let partialScene = try evaluate(parse("cube"), delegate: nil)
