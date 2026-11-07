@@ -29,6 +29,32 @@ final class PlatformTests: XCTestCase {
 
     // MARK: SceneKit conversion
 
+    func testWireframeContrastRetainsSRGBMidgrayThreshold() {
+        for (white, expected) in [(0.4, Color.white), (0.6, Color.black)] {
+            let scene = Scene(background: .color(Color(white: white)), children: [], cache: nil)
+            let options = scene.outputOptions(for: nil, backgroundColor: .white, wireframe: true)
+            XCTAssertEqual(options.lineColor, expected)
+        }
+    }
+
+    func testSceneKitPreservesSRGBMaterialAndVertexColors() throws {
+        let color = Color(red: 0.5, green: 0.25, blue: 0.75, alpha: 0.4)
+        let context = EvaluationContext(source: "", delegate: nil)
+        let geometry = Geometry(type: .mesh(Mesh.cube().mapVertexColors { _ in color }), in: context)
+        let scene = Scene(background: .color(.clear), children: [geometry], cache: nil)
+        XCTAssertTrue(scene.build { false })
+        scene.scnBuild(with: .default)
+        let rendered = try XCTUnwrap(SCNNode(geometry).geometry)
+        let imported = try XCTUnwrap(Mesh(rendered))
+        let vertex = try XCTUnwrap(imported.polygons.first?.vertices.first?.color)
+        let expected = color
+        XCTAssertEqual(vertex.red, expected.red, accuracy: 1e-6)
+        XCTAssertEqual(vertex.alpha, expected.alpha, accuracy: 1e-6)
+        let material = SCNMaterial(Material(color: color), isOpaque: false)
+        let tint = try XCTUnwrap(material.diffuse.contents as? OSColor)
+        XCTAssertEqual(Color(tint, colorSpace: nil).red, color.red, accuracy: 1e-6)
+    }
+
     func testEmptyGroupGeometryDoesNotExpandSceneKitBounds() throws {
         let scene = try evaluate(parse("group { position 10\ncube }"), delegate: nil)
         XCTAssertTrue(scene.build { false })
@@ -86,7 +112,7 @@ final class PlatformTests: XCTestCase {
         XCTAssertFalse(materials.isEmpty)
         for material in materials {
             let color = try XCTUnwrap(material.diffuse.contents as? OSColor)
-            XCTAssertEqual(Color(color), .gray)
+            XCTAssertEqual(Color(color, colorSpace: nil), .gray)
             XCTAssertEqual((material.transparent.contents as? NSNumber)?.doubleValue, 0.5)
             XCTAssertFalse(material.writesToDepthBuffer)
         }

@@ -18,7 +18,7 @@ public extension MaterialProperty {
         }
     }
 
-    /// The average, aggregate luminance of the material when placed over a background color.
+    /// The average, aggregate linear relative luminance of the material when placed over a background color.
     func averageLuminance(over background: Color) -> Double {
         averageColor.luminance(over: background)
     }
@@ -35,9 +35,9 @@ public extension MaterialProperty {
 }
 
 public extension Color {
-    /// The aggregate luminance of a translucent color when placed over a background color.
+    /// The aggregate linear relative luminance of a translucent color when placed over a background color.
     func luminance(over background: Color) -> Double {
-        composited(over: background).luminance
+        composited(over: background).toLinear().luminance
     }
 
     @available(*, deprecated, message: "Do not use")

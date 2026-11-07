@@ -450,3 +450,9 @@ cube {
 
 ---
 [Index](index.md) | Next: [Transforms](transforms.md)
+
+### Color representation
+
+Numeric RGB, HSV, named colors, hex literals, and CSS colors use sRGB components. The renderers convert RGB to linear light where needed, preserving alpha and numeric opacity without gamma correction. Platform colors are converted using their declared color space.
+
+Color interpolation and the color multiplication operator act component-wise on sRGB values. Rendering tint multiplication, source-over compositing, and relative luminance use linear light. Opacity, roughness, and metallicity are data values and are not gamma-corrected.

@@ -27,8 +27,8 @@ extension DocumentViewControllerProtocol {
 
     var isBrightBackground: Bool {
         let color = Color(backgroundColor)
-        let luminance = background?.averageLuminance(over: color) ?? color.luminance
-        return luminance > 0.5
+        let luminance = background?.averageLuminance(over: color) ?? color.toLinear().luminance
+        return luminance > Color.gray.toLinear().luminance
     }
 
     var interfaceColor: OSColor {

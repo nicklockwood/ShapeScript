@@ -159,7 +159,7 @@ public extension Scene {
         let size = visibleBounds.size
         options.lineWidth = max(0.005, 0.002 * max(size.x, size.y, size.z))
         let background = camera?.background ?? background
-        options.lineColor = background.averageLuminance(over: color) > 0.5 ? .black : .white
+        options.lineColor = background.averageLuminance(over: color) > Color.gray.toLinear().luminance ? .black : .white
         options.wireframe = wireframe
         #if arch(x86_64)
         // Use stroke on x86 as line rendering looks bad
@@ -332,7 +332,8 @@ private extension Geometry {
                 if let material = overlayMaterial {
                     let m = SCNMaterial(material, isOpaque: false)
                     m.writesToDepthBuffer = !options.isBackground
-                    geometry = SCNGeometry(options.isBackground ? mesh : mesh.scaled(by: 1.001)) { _ in m }
+                    geometry = SCNGeometry(options.isBackground ? mesh : mesh
+                        .scaled(by: 1.001)) { _ in m }
                 } else {
                     geometry = SCNGeometry(
                         mesh,

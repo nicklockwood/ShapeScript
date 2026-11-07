@@ -15,6 +15,15 @@ private final class ActiveCallRecorder: @unchecked Sendable {
 }
 
 final class InterpreterTests: XCTestCase {
+    func testNumericHexAndHSVColorsUseSRGB() throws {
+        let sources = ["color 0.5 0.5 0.5", "color #808080", "color hsb 0 0 0.5"]
+        let expected = [0.5, 128.0 / 255, 0.5]
+        for (source, value) in zip(sources, expected) {
+            let scene = try evaluate(parse(source + "\ncube"), delegate: nil)
+            XCTAssertEqual(scene.children.first?.material.color, Color(white: value))
+        }
+    }
+
     func testCustomRuntimeErrorPreservesDiagnosticAndSourceRange() throws {
         let source = "cube"
         let range = source.startIndex ..< source.endIndex

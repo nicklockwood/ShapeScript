@@ -48,8 +48,8 @@ func render(mesh: Mesh, camera: ShapeScript.Camera, background: Color) throws ->
         let albedo = material.albedo?.color ?? .white
         let vertexColor = polygon.vertices[0].color
         let opacity = material.opacity?.color?.alpha ?? 1
-        let color = (albedo * vertexColor)
-            .withAlphaComponent(albedo.alpha * opacity * vertexColor.alpha) * Color(white: shade)
+        let color = (albedo.toLinear() * vertexColor.toLinear() * Color(white: shade))
+            .toSRGB().withAlphaComponent(albedo.alpha * opacity * vertexColor.alpha)
         rasterize(vertices, color: color, pixels: &pixels, depth: &depth, width: width, height: height)
     }
     return SoftwareImage(pixels: pixels, width: width, height: height)

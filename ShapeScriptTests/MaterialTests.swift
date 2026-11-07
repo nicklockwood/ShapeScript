@@ -11,6 +11,18 @@ import Euclid
 import XCTest
 
 final class MaterialTests: XCTestCase {
+    func testRelativeLuminanceAndDataChannelsUseDifferentConventions() {
+        let gray = Color(white: 0.5)
+        XCTAssertEqual(gray.luminance(over: .black), 0.21404114048223255, accuracy: 1e-12)
+        XCTAssertEqual(MaterialProperty.color(gray).averageLuminance, 0.5, accuracy: 1e-12)
+        XCTAssertEqual(MaterialProperty.color(gray).averageOpacity, 1)
+        XCTAssertEqual(
+            gray.withAlphaComponent(0.5).composited(over: .black).red,
+            0.3607802138332792,
+            accuracy: 1e-12
+        )
+    }
+
     func testLuminanceOverOpaqueBackground() {
         let color = Color.red.withAlphaComponent(0.5)
         XCTAssertEqual(color.luminance(over: .blue), (0.2126 + 0.0722) / 2, accuracy: 0.000001)

@@ -573,7 +573,8 @@ final class CLITests: XCTestCase {
             XCTAssertEqual(Array(data[2 ..< 6]), [78, 0, 0, 0])
             XCTAssertEqual(Array(data[10 ..< 14]), [54, 0, 0, 0])
             XCTAssertEqual(Array(data[28 ..< 34]), [24, 0, 0, 0, 0, 0])
-            let row: [UInt8] = [75, 75, 203, 75, 75, 203, 75, 75, 203, 0, 0, 0]
+            // Half-transparent sRGB red composited over sRGB gray (150/255) in linear light.
+            let row: [UInt8] = [109, 109, 211, 109, 109, 211, 109, 109, 211, 0, 0, 0]
             XCTAssertEqual(Array(data.dropFirst(54)), row + row)
         }
     }
