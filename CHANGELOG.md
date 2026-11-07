@@ -1,5 +1,24 @@
 # Change Log
 
+## [1.12.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.1) (2026-11-08)
+
+- Fixed texture seams on convex hulls of smooth meshes
+- Corrected color compositing to use linear light while preserving sRGB color values
+- Corrected vertex color interpolation to use linear light
+- Corrected rendering tint multiplication to use linear light
+- Fixed imported material color intensity, transparency masks and inherited node opacity
+- Fixed imported model texture paths and color-channel selection
+- Fixed folder-access handling for textures referenced by imported models
+- Fixed texture intensity handling in material opacity and luminance calculations
+- Fixed vertex alpha handling and interface contrast calculations
+- Axis labels now use unlit materials to match the axis lines
+- Fixed world transform composition for nested geometry
+- Fixed document duplication and rename handling on iOS
+- Fixed named color parsing in OpenSCAD CSG imports
+- Clarified color conventions, vertex color interpolation and import/export format limitations in the docs
+- Fixed OBJ vertex weight handling and clamped out-of-range colors in binary STL exports
+- Bumped Euclid to version 0.10.5
+
 ## [1.12.0](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.0) (2026-10-31)
 
 - Raised minimum supported OS versions to macOS 12, iOS 15, tvOS 15, watchOS 9 and visionOS 1.3

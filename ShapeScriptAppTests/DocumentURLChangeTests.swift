@@ -512,6 +512,13 @@ final class DocumentURLChangeTests: XCTestCase {
     }
 
     #if os(macOS)
+
+    @MainActor
+    private final class WarningButtonActions {
+        var next = 0
+        var dismissAll = 0
+    }
+
     func testWarningTextClickDoesNotAdvanceForSelectionOrDrag() async throws {
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 320, height: 80),
@@ -841,6 +848,7 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertNil(document.error)
         XCTAssertEqual(document.scene?.geometry.merged().bounds, expectedBounds)
     }
+
     #endif
 
     func testCSGDocumentLoadingAndErrors() async throws {
@@ -957,11 +965,3 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertNotNil(viewController.geometry)
     }
 }
-
-#if os(macOS)
-@MainActor
-private final class WarningButtonActions {
-    var next = 0
-    var dismissAll = 0
-}
-#endif
