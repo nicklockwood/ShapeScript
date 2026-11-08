@@ -9,6 +9,10 @@
 @testable import ShapeScript
 import Euclid
 import XCTest
+#if canImport(SceneKit)
+import ImageIO
+import SceneKit
+#endif
 
 final class MaterialTests: XCTestCase {
     func testRelativeLuminanceAndDataChannelsUseDifferentConventions() {
@@ -75,4 +79,113 @@ final class MaterialTests: XCTestCase {
         XCTAssertNil(result.color)
         XCTAssertEqual(result.opacity, source.opacity)
     }
+
+    #if canImport(SceneKit)
+    func testSceneKitImportCombinesOpacityFactors() throws {
+        let source = SCNMaterial()
+        source.diffuse.contents = OSColor(Color.red.withAlphaComponent(0.25))
+        source.transparent.contents = OSColor(Color.white.withAlphaComponent(0.5))
+        source.transparent.intensity = 0.5
+        source.transparency = 0.5
+        let material = try XCTUnwrap(Material(source))
+        XCTAssertEqual(material.averageOpacity, 0.03125, accuracy: 1e-6)
+        XCTAssertEqual(source.transparency, 0.5)
+        XCTAssertEqual(source.transparent.intensity, 0.5)
+    }
+
+    func testSceneKitImportPreservesScalarTransparencyWithDefaultMask() throws {
+        let source = SCNMaterial()
+        source.transparency = 0.25
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.25, accuracy: 1e-6)
+    }
+
+    func testSceneKitImportScalesColorInLinearLightAndDataWithoutGamma() throws {
+        let source = SCNMaterial()
+        source.diffuse.contents = OSColor.white
+        source.diffuse.intensity = 0.5
+        source.lightingModel = .physicallyBased
+        source.roughness.contents = 0.5
+        source.roughness.intensity = 0.5
+        let material = try XCTUnwrap(Material(source))
+        XCTAssertEqual(try XCTUnwrap(material.color).red, Color(white: 0.5).toSRGB().red, accuracy: 1e-6)
+        XCTAssertEqual(try XCTUnwrap(material.roughness?.color).red, 0.25, accuracy: 1e-6)
+        XCTAssertEqual(material.averageOpacity, 1, accuracy: 1e-6)
+    }
+
+    func testSceneKitImportRGBZeroIgnoresAlphaAndInvertsLuminance() throws {
+        let source = SCNMaterial()
+        source.transparencyMode = .rgbZero
+        source.transparent.contents = OSColor.white
+        source.transparent.intensity = 0.25
+        source.transparency = 0.5
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.875, accuracy: 1e-6)
+        source.transparent.contents = OSColor(Color(white: 0.5, alpha: 0.1))
+        source.transparent.intensity = 1
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.75, accuracy: 1e-6)
+        source.transparent.contents = OSColor.black
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 1, accuracy: 1e-6)
+    }
+
+    func testSceneKitImportTextureMaskUsesExplicitChannel() throws {
+        let bytes: [UInt8] = [0, 0, 0, 255, 255, 255, 255, 255]
+        let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
+        let image = try XCTUnwrap(try CGImage(
+            width: 2, height: 1, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 8,
+            space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent
+        ))
+        let data = NSMutableData()
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        var grayscaleMask = Material.default
+        grayscaleMask.opacity = .texture(.data(data as Data, intensity: 0.25))
+        XCTAssertEqual(grayscaleMask.averageOpacity, 0.125, accuracy: 1e-6)
+        let source = SCNMaterial()
+        source.transparent.contents = image
+        source.transparencyMode = .aOne
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 1, accuracy: 1e-6)
+        source.transparency = 0.5
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.5, accuracy: 1e-6)
+        source.transparency = 1
+        source.transparencyMode = .rgbZero
+        XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.5, accuracy: 1e-6)
+    }
+
+    func testSceneKitImportPreservesNodeOpacityWithoutMaterials() throws {
+        let node = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
+        node.geometry?.materials = []
+        node.opacity = 0.25
+        let imported = try Geometry(node)
+        guard case let .mesh(mesh) = imported.type else { return XCTFail("Expected mesh") }
+        let material = try XCTUnwrap(mesh.polygons.first?.material as? Material)
+        XCTAssertEqual(material.averageOpacity, 0.25, accuracy: 1e-6)
+    }
+
+    func testSceneKitImportAccumulatesNodeOpacity() throws {
+        let root = SCNNode()
+        root.opacity = 0.5
+        let child = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
+        child.opacity = 0.5
+        let material = SCNMaterial()
+        material.transparency = 0.5
+        child.geometry?.materials = [material]
+        root.addChildNode(child)
+        let scene = SCNScene()
+        scene.rootNode.addChildNode(root)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".scn")
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertTrue(scene.write(to: url, options: nil, delegate: nil, progressHandler: nil))
+        let loaded = try SCNScene(url: url)
+        let imported = try Geometry(XCTUnwrap(loaded.rootNode.childNodes.first))
+        guard case let .mesh(mesh) = imported.children.first?.type else {
+            return XCTFail("Expected imported mesh")
+        }
+        let result = try XCTUnwrap(mesh.polygons.first?.material as? Material)
+        XCTAssertEqual(result.averageOpacity, 0.125, accuracy: 1e-6)
+        XCTAssertEqual(child.opacity, 0.5)
+        XCTAssertEqual(material.transparency, 0.5)
+    }
+    #endif
 }

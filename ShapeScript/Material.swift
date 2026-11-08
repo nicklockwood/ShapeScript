@@ -61,7 +61,7 @@ extension MaterialProperty {
         case let .color(color):
             color.luminance
         case let .texture(texture):
-            texture.averageLuminance
+            texture.averageLuminance * texture.intensity
         }
     }
 }
@@ -117,8 +117,13 @@ extension Material {
         guard let opacity else {
             return 1
         }
-        let alphaOpacity = opacity.averageOpacity
-        return alphaOpacity < 1 ? alphaOpacity : opacity.averageLuminance
+        switch opacity {
+        case let .color(color):
+            return color.alpha < 1 ? color.alpha : color.luminance
+        case let .texture(texture):
+            let alpha = texture.averageOpacity
+            return (alpha < 1 ? alpha : texture.averageLuminance) * texture.intensity
+        }
     }
 }
 

@@ -423,10 +423,9 @@ private extension Geometry {
         }
         return result
     }
-}
 
-public extension Geometry {
-    convenience init(_ scnNode: SCNNode, isCancelled: CancellationHandler = { false }) throws {
+    convenience init(_ scnNode: SCNNode, inheritedOpacity: Double, isCancelled: CancellationHandler) throws {
+        let opacity = inheritedOpacity * Double(scnNode.opacity)
         let type: GeometryType
         var transform = Transform.transform(from: scnNode)
         if let scnCamera = scnNode.camera {
@@ -454,11 +453,21 @@ public extension Geometry {
                 shadowOpacity: Color(scnLight.shadowColor).alpha
             ))
         } else if let scnGeometry = scnNode.geometry {
-            type = try .mesh(Mesh(
+            @Sendable func applyingOpacity(to material: Material) -> Material {
+                guard opacity != 1 else { return material }
+                var override = Material.default
+                override.opacity = .color(Color(white: opacity, alpha: opacity))
+                return material.withOverrides(override)
+            }
+            var mesh = try Mesh(
                 scnGeometry,
-                materialLookup: Material.init(_:),
+                materialLookup: { applyingOpacity(to: Material($0) ?? .default) },
                 isCancelled: isCancelled
-            ))
+            )
+            if opacity != 1 {
+                mesh = mesh.replacing(nil, with: applyingOpacity(to: .default))
+            }
+            type = .mesh(mesh)
         } else {
             type = .group
         }
@@ -469,10 +478,16 @@ public extension Geometry {
             material: .default,
             smoothing: nil,
             children: scnNode.childNodes.map {
-                try Geometry($0, isCancelled: isCancelled)
+                try Geometry($0, inheritedOpacity: opacity, isCancelled: isCancelled)
             },
             sourceLocation: nil
         )
+    }
+}
+
+public extension Geometry {
+    convenience init(_ scnNode: SCNNode, isCancelled: CancellationHandler = { false }) throws {
+        try self.init(scnNode, inheritedOpacity: 1, isCancelled: isCancelled)
     }
 }
 
