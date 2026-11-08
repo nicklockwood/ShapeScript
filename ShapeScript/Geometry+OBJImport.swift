@@ -12,7 +12,7 @@ extension Geometry {
     /// Preserve OBJ object/group boundaries that platform mesh loaders may merge.
     static func namedOBJ(
         _ source: String,
-        materials: @autoclosure () -> [String: Material],
+        materials: @autoclosure () throws -> [String: Material],
         isCancelled: CancellationHandler
     ) throws -> Geometry? {
         let sourceLines = source.components(separatedBy: .newlines)
@@ -20,7 +20,7 @@ extension Geometry {
             let parts = $0.split(whereSeparator: \.isWhitespace)
             return parts.count > 1 && (parts[0] == "o" || parts[0] == "g")
         }) else { return nil }
-        let materials = materials()
+        let materials = try materials()
         final class Node {
             var name: String?
             var children = [Node]()

@@ -153,6 +153,82 @@ final class MaterialTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(Material(source)).averageOpacity, 0.5, accuracy: 1e-6)
     }
 
+    func testSceneKitImportStringTexturePathsAndRGBOnlyDiffuse() throws {
+        let provider = try XCTUnwrap(CGDataProvider(data: Data([64, 64, 64, 64]) as CFData))
+        let image = try XCTUnwrap(try CGImage(
+            width: 1, height: 1, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 4,
+            space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent
+        ))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + " mask.png")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        for path in [url.path, url.absoluteString] {
+            let source = SCNMaterial()
+            source.diffuse.contents = path
+            source.diffuse.textureComponents = [.red, .green, .blue]
+            source.transparent.contents = path
+            source.transparent.textureComponents = .alpha
+            let material = try XCTUnwrap(Material(source))
+            let texture = try XCTUnwrap(material.texture)
+            XCTAssertEqual(texture.averageOpacity, 1, accuracy: 1e-6)
+            XCTAssertEqual(try XCTUnwrap(texture.averageColor).red, 1, accuracy: 1e-6)
+            XCTAssertEqual(material.averageOpacity, 64 / 255.0, accuracy: 1e-6)
+            XCTAssertEqual(source.diffuse.textureComponents, [.red, .green, .blue])
+        }
+    }
+
+    func testModelTexturesUseDocumentResourceResolver() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("mask.png")
+        let data = Data([1, 2, 3])
+        try data.write(to: url)
+        let material = SCNMaterial()
+        material.diffuse.contents = "mask.png"
+        material.transparent.contents = url
+        let node = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
+        node.geometry?.materials = [material]
+        let delegate = TestDelegate(directory: directory)
+        let context = EvaluationContext(source: "", delegate: delegate)
+        try context.resolveTextures(in: node, relativeTo: directory.appendingPathComponent("model.usda"))
+        XCTAssertEqual(Set(delegate.imports), [url.path])
+        XCTAssertEqual(material.diffuse.contents as? Data, data)
+        XCTAssertEqual(material.transparent.contents as? Data, data)
+    }
+
+    func testModelTexturePermissionFailureIsNotSilentlyDiscarded() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("mask.png")
+        try Data([1, 2, 3]).write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: url.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path) }
+        guard !FileManager.default.isReadableFile(atPath: url.path) else {
+            throw XCTSkip("This environment can read files without read permission")
+        }
+        let material = SCNMaterial()
+        material.transparent.contents = url.path
+        let node = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
+        node.geometry?.materials = [material]
+        let context = EvaluationContext(source: "", delegate: nil)
+        XCTAssertThrowsError(try context.resolveTextures(
+            in: node,
+            relativeTo: directory.appendingPathComponent("model.usda")
+        )) { error in
+            guard case let RuntimeErrorType.fileAccessRestricted(_, parent) = error else {
+                return XCTFail("Expected texture access error, got \(error)")
+            }
+            XCTAssertEqual(parent.path, directory.path)
+        }
+        XCTAssertEqual(material.transparent.contents as? String, url.path)
+    }
+
     func testSceneKitImportPreservesNodeOpacityWithoutMaterials() throws {
         let node = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
         node.geometry?.materials = []

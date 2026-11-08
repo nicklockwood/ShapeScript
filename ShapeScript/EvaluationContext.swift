@@ -551,10 +551,11 @@ extension EvaluationContext {
         case .wavefront:
             try url.validateFileSize(limit: FileSizeLimit.mesh)
             let source = try String(contentsOf: url)
-            func loadMaterials() -> [String: Material] {
+            func loadMaterials() throws -> [String: Material] {
                 var materials = [String: Material]()
                 #if canImport(SceneKit)
                 if let scene = try? SCNScene(url: url, options: [.flattenScene: false]) {
+                    try resolveTextures(in: scene.rootNode, relativeTo: url)
                     scene.rootNode.enumerateChildNodes { node, _ in
                         for material in node.geometry?.materials ?? [] {
                             if let name = material.name { materials[name] = Material(material) }
@@ -600,11 +601,58 @@ extension EvaluationContext {
             .convertToYUp: true,
             .preserveOriginalTopology: true,
         ])
+        try resolveTextures(in: scene.rootNode, relativeTo: url)
         return try Geometry(scene.rootNode, isCancelled: isCancelled)
         #else
         return nil
         #endif
     }
+
+    #if canImport(SceneKit)
+    /// Resolve model assets through the document delegate, just like explicit texture imports.
+    /// This restores security-scoped access and registers the files for change monitoring.
+    func resolveTextures(in node: SCNNode, relativeTo modelURL: URL) throws {
+        for material in node.geometry?.materials ?? [] {
+            for property in [
+                material.diffuse,
+                material.transparent,
+                material.normal,
+                material.emission,
+                material.metalness,
+                material.roughness,
+            ] {
+                let resource: URL
+                switch property.contents {
+                case let url as URL:
+                    guard url.isFileURL else { continue }
+                    resource = url
+                case let path as String:
+                    if let url = URL(string: path), url.isFileURL {
+                        resource = url
+                    } else {
+                        resource = URL(fileURLWithPath: path, relativeTo: modelURL.deletingLastPathComponent())
+                    }
+                default:
+                    continue
+                }
+                let resolved = try resolveURL(for: resource.path)
+                do {
+                    try resolved.validateFileSize(limit: FileSizeLimit.image)
+                    // Load while access is active, and don't silently drop unreadable opacity masks.
+                    property.contents = try Data(contentsOf: resolved)
+                } catch let error as CocoaError where error.code == .fileReadNoPermission {
+                    throw RuntimeErrorType.fileAccessRestricted(
+                        for: resource.path,
+                        at: resolved.deletingLastPathComponent()
+                    )
+                }
+            }
+        }
+        for child in node.childNodes {
+            try resolveTextures(in: child, relativeTo: modelURL)
+        }
+    }
+    #endif
 
     private func loadMesh(
         at url: URL,

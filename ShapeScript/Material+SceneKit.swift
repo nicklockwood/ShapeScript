@@ -130,6 +130,7 @@ extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty, linearColor: Bool) {
         func scaled(_ color: Color) -> Color {
             let intensity = scnMaterialProperty.intensity
+            guard intensity != 1 else { return color }
             var result = linearColor ? color.toLinear() : color
             result.red *= intensity
             result.green *= intensity
@@ -157,6 +158,12 @@ extension MaterialProperty {
             self = .texture(texture)
         case let data as Data:
             self = .texture(.data(data, intensity: scnMaterialProperty.intensity))
+        case let path as String:
+            let url = URL(string: path).flatMap { $0.isFileURL ? $0 : nil } ?? URL(fileURLWithPath: path)
+            guard let texture = try? Texture.file(
+                name: url.displayName, url: url, intensity: scnMaterialProperty.intensity
+            ) else { return nil }
+            self = .texture(texture)
         case let url as URL:
             guard let texture = try? Texture.file(
                 name: url.displayName,
@@ -169,6 +176,12 @@ extension MaterialProperty {
         default:
             return nil
         }
+        if case let .texture(texture) = self {
+            guard let selected = texture.selectingComponents(scnMaterialProperty.textureComponents) else {
+                return nil
+            }
+            self = .texture(selected)
+        }
     }
 }
 
@@ -177,6 +190,7 @@ private extension SCNMaterial {
         // Decode the source channel explicitly. ShapeScript's grayscale fallback
         // must not reinterpret an opaque alpha mask as a luminance mask.
         let property = SCNMaterialProperty(contents: transparent.contents ?? OSColor.black)
+        property.textureComponents = transparent.textureComponents
         let intensity = transparent.intensity
         let scalar = Double(transparency)
         let rgbZero = transparencyMode == .rgbZero
@@ -225,6 +239,50 @@ private extension SCNMaterial {
         case nil:
             return .color(Color(white: scalar, alpha: scalar))
         }
+    }
+}
+
+private extension Texture {
+    /// Bake SceneKit's channel selection because ShapeScript textures use RGBA.
+    func selectingComponents(_ components: SCNColorMask) -> Texture? {
+        guard components != .all else { return self }
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { return nil }
+        var bytes = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        guard let context = CGContext(
+            data: &bytes, width: image.width, height: image.height,
+            bitsPerComponent: 8, bytesPerRow: image.width * 4,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let channels: [SCNColorMask] = [.red, .green, .blue, .alpha]
+        let selected = channels.indices.filter { components.contains(channels[$0]) }
+        for i in stride(from: 0, to: bytes.count, by: 4) {
+            let alpha = Double(bytes[i + 3]) / 255
+            let divisor = max(Double(bytes[i + 3]), 1)
+            var values = (0 ..< 3).map { Double(bytes[i + $0]) / divisor } + [alpha]
+            if selected.count == 1, let channel = selected.first {
+                values = Array(repeating: values[channel], count: 4)
+            } else {
+                for channel in 0 ..< 3 where !components.contains(channels[channel]) {
+                    values[channel] = 0
+                }
+                if !components.contains(.alpha) { values[3] = 1 }
+            }
+            for channel in 0 ..< 4 {
+                let value = values[channel] * (channel == 3 ? 1 : values[3])
+                bytes[i + channel] = UInt8((max(0, min(1, value)) * 255).rounded())
+            }
+        }
+        guard let output = context.makeImage() else { return nil }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil)
+        else { return nil }
+        CGImageDestinationAddImage(destination, output, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return .data(data as Data, intensity: intensity)
     }
 }
 

@@ -20,7 +20,7 @@ final class TestDelegate: EvaluationDelegate {
     var imports = [String]()
     func resolveURL(for name: String) -> URL {
         imports.append(name)
-        return directory.appendingPathComponent(name)
+        return (name as NSString).isAbsolutePath ? URL(fileURLWithPath: name) : directory.appendingPathComponent(name)
     }
 
     var log = [AnyHashable?]()
