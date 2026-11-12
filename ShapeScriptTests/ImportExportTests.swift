@@ -15,6 +15,20 @@ import SceneKit
 #endif
 
 final class ImportExportTests: XCTestCase {
+    func testMeshImportCancellationPropagates() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        for ext in ["stl", "ply", "obj"] {
+            let url = directory.appendingPathComponent("mesh.\(ext)")
+            try Mesh.sphere().write(to: url)
+            let context = EvaluationContext(source: "", delegate: nil, isCancelled: { true })
+            XCTAssertThrowsError(try context.importGeometry(at: url), ext) {
+                XCTAssertTrue($0 is CancellationError, "\(ext): \($0)")
+            }
+        }
+    }
+
     #if canImport(SceneKit)
     func testUSDZTextureByteRanges() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".usdz")

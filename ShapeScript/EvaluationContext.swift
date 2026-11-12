@@ -547,6 +547,7 @@ extension EvaluationContext {
     }
 
     func importGeometry(at url: URL) throws -> Geometry? {
+        if isCancelled() { throw CancellationError() }
         if let geometry = try delegate?.importGeometry(for: url) {
             // Allow delegate to implement alternative loading mechanism, e.g. hard-coded geometry for testing
             return geometry
@@ -578,16 +579,30 @@ extension EvaluationContext {
                 var materials = [String: Material]()
                 var materialLibraries = [String]()
                 #if canImport(SceneKit)
-                if let scene = try? SCNScene(url: url, options: [.flattenScene: false]) {
+                let scene: SCNScene?
+                do {
+                    guard let source = SCNSceneSource(url: url, options: [.flattenScene: false]) else {
+                        throw CocoaError(.fileReadCorruptFile)
+                    }
+                    scene = try source.scene(options: [.flattenScene: false], isCancelled: isCancelled)
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    scene = nil
+                }
+                if let scene {
                     try resolveTextures(in: scene.rootNode, relativeTo: url)
-                    scene.rootNode.enumerateChildNodes { node, _ in
+                    scene.rootNode.enumerateChildNodes { node, stop in
+                        if isCancelled() { return stop.pointee = true }
                         for material in node.geometry?.materials ?? [] {
                             if let name = material.name { materials[name] = Material(material) }
                         }
                     }
+                    if isCancelled() { throw CancellationError() }
                 }
                 #endif
                 for line in source.components(separatedBy: .newlines) {
+                    if isCancelled() { throw CancellationError() }
                     let parts = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
                         .split(whereSeparator: \.isWhitespace)
                     guard parts.first == "mtllib" else { continue }
@@ -613,10 +628,19 @@ extension EvaluationContext {
                 #if canImport(SceneKit)
                 // Load through Euclid after resolving external resources so its OBJ
                 // opacity corrections also apply to named objects and fragments.
-                if let mesh = try? Mesh(url: url) {
-                    let node = SCNNode(geometry: SCNGeometry(mesh))
+                let mesh: Mesh?
+                do {
+                    mesh = try Mesh(url: url, isCancelled: isCancelled)
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    mesh = nil
+                }
+                if let mesh {
+                    let node = try SCNNode(geometry: SCNGeometry(triangles: mesh, isCancelled: isCancelled))
                     try resolveTextures(in: node, relativeTo: url)
                     for material in node.geometry?.materials ?? [] {
+                        if isCancelled() { throw CancellationError() }
                         if let name = material.name { materials[name] = Material(material) }
                     }
                 }
@@ -656,12 +680,16 @@ extension EvaluationContext {
             break
         }
         #if canImport(SceneKit)
-        let scene = try SCNScene(url: url, options: [
+        let options: [SCNSceneSource.LoadingOption: Any] = [
             .flattenScene: false,
             .createNormalsIfAbsent: true,
             .convertToYUp: true,
             .preserveOriginalTopology: true,
-        ])
+        ]
+        guard let source = SCNSceneSource(url: url, options: options) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        let scene = try source.scene(options: options, isCancelled: isCancelled)
         try resolveTextures(in: scene.rootNode, relativeTo: url)
         scene.rootNode.prepareImportedVertexColors(fileExtension: url.pathExtension)
         scene.rootNode.prepareImportedUSDColors(fileExtension: url.pathExtension)
@@ -675,6 +703,7 @@ extension EvaluationContext {
     /// Resolve model assets through the document delegate, just like explicit texture imports.
     /// This restores security-scoped access and registers the files for change monitoring.
     func resolveTextures(in node: SCNNode, relativeTo modelURL: URL) throws {
+        if isCancelled() { throw CancellationError() }
         for material in node.geometry?.materials ?? [] {
             for property in [
                 material.diffuse,
@@ -723,15 +752,17 @@ extension EvaluationContext {
         try url.validateFileSize(limit: FileSizeLimit.mesh)
         if url.pathExtension.lowercased() == "obj",
            url.deletingLastPathComponent().pathExtension.lowercased() == "obj",
-           let mesh = try Mesh(objString: String(contentsOf: url))
+           let mesh = try Mesh(objString: String(contentsOf: url), isCancelled: isCancelled)
         {
             return mesh
         }
         do {
-            return try Mesh(url: url, materialLookup: materialLookup)
+            return try Mesh(url: url, isCancelled: isCancelled, materialLookup: materialLookup)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch let error where url.pathExtension.lowercased() == "obj" {
             let string = try String(contentsOf: url)
-            guard let mesh = Mesh(objString: string) else {
+            guard let mesh = try Mesh(objString: string, isCancelled: isCancelled) else {
                 throw error
             }
             return mesh
