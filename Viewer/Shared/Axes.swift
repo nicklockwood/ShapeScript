@@ -7,9 +7,9 @@
 //
 
 import Euclid
+import RealityKit
 import SceneKit
 import ShapeScript
-import RealityKit
 
 struct Axes {
     let geometry: Geometry

@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.12.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.2) (2026-11-15)
+
+- Added experimental RealityKit renderer (debug mode only)
+- Added COFF import and OFF face color and vertex attributes support
+- Fixed colors and transparency in imported OBJ, PLY, Collada and USD models
+- Fixed missing or incorrect textures when importing and re-exporting models
+- Improved interface contrast for textured backgrounds
+- Reduced memory use and improved cancellation responsiveness when importing models
+- Bumped Euclid to version 0.10.6
+
 ## [1.12.1](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.1) (2026-11-08)
 
 - Fixed texture seams on convex hulls of smooth meshes
