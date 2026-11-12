@@ -72,7 +72,7 @@ abc                   | Alembic
 csg                   | OpenSCAD Constructive Solid Geometry
 dae                   | COLLADA Digital Asset Exchange
 obj                   | Wavefront Object
-off                   | Object File Format
+off / coff            | Object File Format
 ply                   | Polygon File Format
 scn / scnz            | SceneKit Scene
 stl / stla            | Stereolithography

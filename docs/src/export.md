@@ -20,7 +20,7 @@ abc                   | Alembic
 csg / scad            | OpenSCAD CSG
 dae                   | COLLADA Digital Asset Exchange
 obj                   | Wavefront Object
-off                   | Object File Format
+off / coff            | Object File Format
 ply                   | Polygon File Format
 scn / scnz            | SceneKit Scene
 stl / stla            | Stereolithography
@@ -28,25 +28,7 @@ usd / usdz            | Universal Scene Description
 
 <br/>
 
-**Note:** Not all formats support all features of ShapeScript scenes, so you may need to experiment.
-
-Some model formats do not support embedding geometry and textures or materials in a single file; In this case, ShapeScript will export a folder containing the model and associated assets as separate files.
-
-## Color Conventions
-
-ShapeScript uses the [sRGB color convention](materials.md#color-representation) for numeric RGB, HSB, named, and hexadecimal colors. File conversion depends on the destination format:
-
-- **CSG/SCAD:** RGB and alpha values are preserved numerically, matching OpenSCAD's numeric, named, and hex color conventions.
-- **3MF:** Solid colors use sRGB hexadecimal bytes, rounded to the nearest integer. A color group's alpha alone does not specify a translucent printed material; that requires additional material properties. Texture images retain their embedded profiles.
-- **STL:** Binary color extensions have no declared color space. Components are preserved, with 5-bit facet quantization. ASCII STL has no color support.
-- **USD:** Material colors are written as linear RGB. Textures keep their own encoding, and opacity remains a linear scalar.
-- **OFF:** The current exporter writes geometry without colors.
-- **SVG:** Export creates a cross-section with fixed black outlines and a light-gray fill; it does not preserve the model's material colors.
-- **Images:** Rendered images use their image color profiles. The software renderer tags its component values as sRGB.
-
-OBJ, PLY, Alembic, Collada, and native SceneKit scene export use Apple's scene exporters. Supported material features and cross-application color fidelity depend on those exporters and the receiving application; a successful file export does not imply every material feature is preserved.
-
-The [3MF materials specification](https://github.com/3MFConsortium/spec_materials/blob/master/3MF%20Materials%20Extension.md) defines sRGB colors, rounding, and material-layer behavior. The [OpenUSD color guide](https://openusd.org/25.11/user_guides/color_user_guide.html) defines linear Rec.709 as the default color space. STL's incompatible color extensions are described in the [Library of Congress format notes](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml).
+**Note:** Not all formats support all features of ShapeScript scenes, so you may need to experiment. Some formats flatten the scene hierarchy into a single mesh, or strip elements such as cameras, lights and [materials](#colors-and-materials).
 
 Exported models can be used in a variety of ways:
 
@@ -54,7 +36,7 @@ Exported models can be used in a variety of ways:
 
 Models exported from ShapeScript are well-suited to use in realtime 3D because the `detail` command gives you fine control over the triangle count. For realtime use you should generally set the detail level as low as you can get away with.
 
-You can import DAE or OBJ files into a game development tool like Unity, or use USD(Z) files with Apple's SceneKit and RealityKit frameworks in Xcode.
+You can import Collada (DAE) or Wavefront (OBJ) files into a game development tool like Unity, or use USD(Z) files with Apple's SceneKit and RealityKit frameworks in Xcode.
 
 ## 3D Printing
 
@@ -76,9 +58,9 @@ By selecting the SVG option, you can export your model as a 2D cross-section. Un
 
 ## Image Formats
 
-In addition to 3D models and 2D vector paths, ShapeScript can also export bitmap images. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window.
+In addition to 3D models and 2D vector paths, ShapeScript can also export rendered 2D images of your scenes. By default, images will be captured using the current camera, but you can select a different [camera view](cameras.md) from the export window.
 
-The following image formats are supported:
+The following image export formats are supported:
 
 Extension             | File Type                                         | Supports Transparency
 :---------------------| :-------------------------------------------------|:------------------------------
@@ -106,6 +88,31 @@ When exporting an image (or exporting a model for non-realtime use) you can impr
 The [preview](debugging.md#preview) symbol is `false` during export, so you can use this to specify different detail settings for editing and final output.
 
 **Note:** Although ShapeScript can export images, for best results you should export as a 3D model and then import that into a [ray tracing](https://en.wikipedia.org/wiki/Ray_tracing_(graphics)) program that provides fine-grained control over scene lighting and camera placement.
+
+## Colors and Materials
+
+ShapeScript scenes can contain colors, textures and [materials](materials.md), but these cannot be faithfully represented in all formats.
+
+Some formats do not support embedding geometry and textures or materials in a single file, in which case ShapeScript will export a folder containing the model and associated assets as separate files.
+
+ShapeScript uses the [sRGB color convention](materials.md#color-representation) for numeric RGB, HSB, named, and hexadecimal colors. File conversion depends on the destination format:
+
+- **CSG/SCAD:** RGB and alpha values are preserved numerically, matching OpenSCAD's numeric, named, and hex color conventions.
+- **3MF:** Solid colors use sRGB hexadecimal bytes, rounded to the nearest integer. A color group's alpha alone does not specify a translucent printed material - that requires additional material properties. Texture images retain their embedded profiles.
+- **ABC:** Export preserves geometry but does not preserve material colors, vertex colors or textures.
+- **DAE:** Exports static COLLADA XML with scene hierarchy, perspective and orthographic cameras, lights, sRGB material and vertex colors, vertex alpha, normals, texture coordinates, and diffuse, emission, and opacity textures. Normal maps, PBR material properties, shadows, and camera background/render settings are omitted. Spotlight penumbra is approximated. Textured exports use a folder containing the `.dae` file and its images.
+- **STL:** Binary color extensions have no declared color space. Components are preserved, with 5-bit facet quantization. ASCII STL has no color support.
+- **USD:** Material colors are written as linear RGB. Textures keep their own encoding.
+- **OBJ:** Exports sRGB material and vertex RGB. The vertex-color extension does not preserve vertex alpha.
+- **OFF/COFF:** Both preserve face colors and alpha. `.off` exports always use an OFF header and omit vertex colors; choose `.coff` to preserve vertex RGB and alpha with a COFF header. Color components use ShapeScript’s sRGB convention without gamma conversion, as OFF does not declare a color space. Normals, texture coordinates and texture images are not preserved. Imports accept either header with either extension.
+- **PLY:** Supports sRGB vertex colors and alpha, including scalar material tint, but does not embed textures.
+- **USD:** Export preserves vertex colors and alpha by baking them into textures. Color, opacity, normal, roughness, metalness and emission textures share the same UV layout, preserving their alignment when reimported. Baking can reduce fine texture detail, and vertex colors are no longer editable as vertex data. Material shading may also differ between ShapeScript and a USD PBR renderer.
+- **SVG:** Export creates a cross-section with fixed black outlines and a light-gray fill. It does not preserve the model's material colors.
+- **Images:** Rendered images use their image color profiles. The software renderer tags its component values as sRGB.
+
+Cross-application color and material fidelity depend on the exporters and receiving applications. A successful export does not imply every material feature was preserved. Readers that assume a different color convention can produce different results.
+
+The [3MF materials specification](https://github.com/3MFConsortium/spec_materials/blob/master/3MF%20Materials%20Extension.md) defines sRGB colors, rounding, and material-layer behavior. The [OpenUSD color guide](https://openusd.org/25.11/user_guides/color_user_guide.html) defines linear Rec.709 as the default color space. STL's incompatible color extensions are described in the [Library of Congress format notes](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml).
 
 ## Command-Line Export
 
