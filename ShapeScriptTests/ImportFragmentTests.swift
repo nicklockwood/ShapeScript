@@ -187,6 +187,57 @@ final class ImportFragmentTests: XCTestCase {
     }
 
     #if canImport(SceneKit)
+    func testOBJDiffuseTextureTintPreservesAlpha() throws {
+        try withDirectory { directory in
+            let image = try XCTUnwrap(CGImage(
+                width: 2, height: 1, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 8,
+                space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                provider: XCTUnwrap(CGDataProvider(data: Data([128, 64, 32, 128, 32, 64, 128, 255]) as CFData)),
+                decode: nil, shouldInterpolate: false, intent: .defaultIntent
+            ))
+            let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(
+                directory.appendingPathComponent("paint.png") as CFURL, "public.png" as CFString, 1, nil
+            ))
+            CGImageDestinationAddImage(destination, image, nil)
+            XCTAssertTrue(CGImageDestinationFinalize(destination))
+            try "newmtl paint\nKd 0.2 0.2 0.2\nmap_Kd paint.png\nKd 0.5 0.25 0.75\nd 0.4\n".write(
+                to: directory.appendingPathComponent("paint.mtl"), atomically: true, encoding: .utf8
+            )
+            for (object, fragment) in [("", ""), ("o triangle\n", "#triangle")] {
+                let url = directory.appendingPathComponent("paint.obj")
+                try ("mtllib paint.mtl\n" + object + "v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl paint\nf 1 2 3\n")
+                    .write(to: url, atomically: true, encoding: .utf8)
+                let scene = try evaluate(parse("import \"\(url.path)\(fragment)\""), delegate: nil)
+                XCTAssertTrue(scene.build { false })
+                let material = try XCTUnwrap(scene.geometry.merged().polygons.first?.material as? Material)
+                let texture = try XCTUnwrap(material.texture)
+                let source = try XCTUnwrap(CGImageSourceCreateWithData(texture.data as CFData, nil))
+                let result = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+                var pixels = [UInt8](repeating: 0, count: 8)
+                let context = try XCTUnwrap(CGContext(
+                    data: &pixels, width: 2, height: 1, bitsPerComponent: 8, bytesPerRow: 8,
+                    space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                ))
+                context.draw(result, in: CGRect(x: 0, y: 0, width: 2, height: 1))
+                let tint = Color(red: 0.5, green: 0.25, blue: 0.75).toLinear()
+                for (index, input) in [
+                    Color(red: 1, green: 0.5, blue: 0.25),
+                    Color(red: 32 / 255.0, green: 64 / 255.0, blue: 128 / 255.0),
+                ].enumerated() {
+                    let expected = (input.toLinear() * tint).toSRGB()
+                    let alpha = index == 0 ? 128.0 : 255.0
+                    for (channel, value) in [expected.red, expected.green, expected.blue].enumerated() {
+                        XCTAssertEqual(Double(pixels[index * 4 + channel]), value * alpha, accuracy: 1.1)
+                    }
+                    XCTAssertEqual(Double(pixels[index * 4 + 3]), alpha)
+                }
+                XCTAssertEqual(material.averageOpacity, (128 / 255.0 + 1) / 2 * 0.4, accuracy: 0.002)
+            }
+        }
+    }
+
     func testOBJOpacityChannelsAndDissolveWithNamedFragments() throws {
         try withDirectory { directory in
             let bytes: [UInt8] = [64, 128, 192, 255]

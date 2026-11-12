@@ -111,8 +111,9 @@ extension Geometry {
 
 extension [String: Material] {
     /// Keep numeric MTL diffuse colors in sRGB instead of accepting platform shading conversions.
-    mutating func restoreOBJColors(from source: String) {
+    mutating func restoreOBJColors(from source: String) throws {
         var name: String?
+        var tints = [String: Color]()
         for line in source.components(separatedBy: .newlines) {
             let parts = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
                 .split(whereSeparator: \.isWhitespace)
@@ -121,13 +122,18 @@ extension [String: Material] {
             guard let name, command == "Kd" else { continue }
             let values = parts.dropFirst().compactMap { Double($0) }
             guard values.count == 1 || values.count == 3, values.allSatisfy(\.isFinite) else { continue }
-            var material = self[name] ?? .default
-            // Texture tint multiplication requires baking; retain the loaded texture in that case.
-            guard material.texture == nil else { continue }
-            material.albedo = .color(Color(
+            tints[name] = Color(
                 red: values[0], green: values.count == 1 ? values[0] : values[1],
-                blue: values.count == 1 ? values[0] : values[2], alpha: material.color?.alpha ?? 1
-            ))
+                blue: values.count == 1 ? values[0] : values[2]
+            )
+        }
+        for (name, tint) in tints {
+            var material = self[name] ?? .default
+            if let texture = material.texture {
+                material.albedo = try .texture(texture.tinted(by: tint))
+            } else {
+                material.albedo = .color(tint.withAlphaComponent(material.color?.alpha ?? 1))
+            }
             self[name] = material
         }
     }

@@ -107,6 +107,49 @@ public extension Texture {
     }
 }
 
+extension Texture {
+    /// Bake an sRGB material tint into color pixels in linear light, preserving texture alpha and intensity.
+    func tinted(by tint: Color) throws -> Texture {
+        guard tint != .white else { return self }
+        #if canImport(CoreGraphics) && canImport(ImageIO)
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let space = CGColorSpace(name: CGColorSpace.sRGB)
+        else { throw CocoaError(.fileReadCorruptFile) }
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        guard let context = CGContext(
+            data: &pixels, width: image.width, height: image.height,
+            bitsPerComponent: 8, bytesPerRow: image.width * 4, space: space,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { throw CocoaError(.fileReadCorruptFile) }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let linearTint = tint.withAlphaComponent(1).toLinear()
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            let alpha = Double(pixels[index + 3])
+            guard alpha > 0 else { continue }
+            let color = Color(
+                red: Double(pixels[index]) / alpha,
+                green: Double(pixels[index + 1]) / alpha,
+                blue: Double(pixels[index + 2]) / alpha
+            )
+            let tinted = (color.toLinear() * linearTint).toSRGB()
+            for (channel, value) in [tinted.red, tinted.green, tinted.blue].enumerated() {
+                pixels[index + channel] = UInt8((min(1, max(0, value)) * alpha).rounded())
+            }
+        }
+        guard let image = context.makeImage() else { throw CocoaError(.fileWriteUnknown) }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, "public.png" as CFString, 1, nil)
+        else { throw CocoaError(.fileWriteUnknown) }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
+        return .data(output as Data, intensity: intensity)
+        #else
+        return self
+        #endif
+    }
+}
+
 #if canImport(CoreGraphics) && canImport(ImageIO)
 
 extension Texture {

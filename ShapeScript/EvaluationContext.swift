@@ -621,9 +621,7 @@ extension EvaluationContext {
                     }
                 }
                 #endif
-                for library in materialLibraries {
-                    materials.restoreOBJColors(from: library)
-                }
+                try materials.restoreOBJColors(from: materialLibraries.joined(separator: "\n"))
                 return materials
             }
             if let geometry = try Geometry.namedOBJ(source, materials: loadMaterials(), isCancelled: isCancelled) {
