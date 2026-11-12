@@ -236,31 +236,41 @@ extension Texture.Info {
 
 private extension CGImage {
     var averageColor: Color? {
-        let alphaInfo = CGImageAlphaInfo.premultipliedLast
-        let bytesPerPixel = 4
-        let bytesPerRow = bytesPerPixel
-
-        var components = [UInt8](repeating: 0, count: 4)
+        // Average premultiplied linear RGB so transparent pixels contribute in proportion
+        // to their coverage, then return the unpremultiplied sRGB convention used by Color.
+        guard let space = CGColorSpace(name: CGColorSpace.linearSRGB) else { return nil }
+        // Process strips to avoid allocating a floating-point copy of the entire texture.
+        let stripHeight = min(height, 64)
+        var components = [Float](repeating: 0, count: width * stripHeight * 4)
         guard let context = CGContext(
             data: &components,
-            width: 1,
-            height: 1,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue
-        ) else {
-            return nil
+            width: width,
+            height: stripHeight,
+            bitsPerComponent: 32,
+            bytesPerRow: width * 4 * MemoryLayout<Float>.size,
+            space: space,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue |
+                CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+        ) else { return nil }
+        context.setBlendMode(.copy)
+        var red = 0.0, green = 0.0, blue = 0.0, alpha = 0.0
+        for row in stride(from: 0, to: height, by: stripHeight) {
+            context.draw(self, in: CGRect(x: 0, y: stripHeight - height + row, width: width, height: height))
+            let count = width * min(stripHeight, height - row) * 4
+            for index in stride(from: 0, to: count, by: 4) {
+                red += Double(components[index])
+                green += Double(components[index + 1])
+                blue += Double(components[index + 2])
+                alpha += Double(components[index + 3])
+            }
         }
-
-        let rect = CGRect(x: 0, y: 0, width: 1, height: 1)
-        context.draw(self, in: rect)
+        guard alpha > 0 else { return .clear }
         return Color(
-            red: Double(components[0]) / 255,
-            green: Double(components[1]) / 255,
-            blue: Double(components[2]) / 255,
-            alpha: Double(components[3]) / 255
-        )
+            red: red / alpha,
+            green: green / alpha,
+            blue: blue / alpha,
+            alpha: alpha / Double(width * height)
+        ).toSRGB()
     }
 
     var opacityValues: Texture.Info.OpacityValues {

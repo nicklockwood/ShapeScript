@@ -228,6 +228,79 @@ final class PlatformTests: XCTestCase {
         XCTAssertEqual(color.alpha, 1, accuracy: 0.01)
     }
 
+    func testTextureAverageColorUnpremultipliesAlpha() throws {
+        let data = try pngData(pixels: [
+            .init(red: 128, green: 128, blue: 128, alpha: 128),
+        ])
+        let texture = Texture.data(data)
+        let color = try XCTUnwrap(texture.averageColor)
+        XCTAssertEqual(color.red, 1, accuracy: 0.0001)
+        XCTAssertEqual(color.green, 1, accuracy: 0.0001)
+        XCTAssertEqual(color.blue, 1, accuracy: 0.0001)
+        XCTAssertEqual(color.alpha, 128 / 255.0, accuracy: 0.0001)
+        XCTAssertEqual(
+            MaterialProperty.texture(texture).averageLuminance(over: .black),
+            128 / 255.0,
+            accuracy: 0.0001
+        )
+    }
+
+    func testTextureAverageColorUsesLinearLight() throws {
+        let data = try pngData(pixels: [
+            .init(red: 0, green: 0, blue: 0, alpha: 255),
+            .init(red: 255, green: 255, blue: 255, alpha: 255),
+        ])
+        let color = try XCTUnwrap(Texture.data(data).averageColor)
+        XCTAssertEqual(color.red, 0.7353569830524495, accuracy: 0.0001)
+        XCTAssertEqual(color.green, color.red, accuracy: 0.0001)
+        XCTAssertEqual(color.blue, color.red, accuracy: 0.0001)
+        XCTAssertEqual(color.alpha, 1, accuracy: 0.0001)
+    }
+
+    func testTextureAverageColorWeightsColorsByAlpha() throws {
+        let data = try pngData(pixels: [
+            .init(red: 64, green: 0, blue: 0, alpha: 64),
+            .init(red: 0, green: 0, blue: 192, alpha: 192),
+            .init(red: 0, green: 0, blue: 0, alpha: 0),
+        ])
+        let color = try XCTUnwrap(Texture.data(data).averageColor)
+        XCTAssertEqual(color.toLinear().red, 0.25, accuracy: 0.0001)
+        XCTAssertEqual(color.green, 0, accuracy: 0.0001)
+        XCTAssertEqual(color.toLinear().blue, 0.75, accuracy: 0.0001)
+        XCTAssertEqual(color.alpha, 256 / (255.0 * 3), accuracy: 0.0001)
+    }
+
+    func testTextureAverageColorPreservesSRGBMidtones() throws {
+        let data = try pngData(pixels: [
+            .init(red: 128, green: 64, blue: 192, alpha: 255),
+            .init(red: 0, green: 0, blue: 0, alpha: 0),
+        ])
+        let color = try XCTUnwrap(Texture.data(data).averageColor)
+        XCTAssertEqual(color.red, 128 / 255.0, accuracy: 0.001)
+        XCTAssertEqual(color.green, 64 / 255.0, accuracy: 0.001)
+        XCTAssertEqual(color.blue, 192 / 255.0, accuracy: 0.001)
+        XCTAssertEqual(color.alpha, 0.5, accuracy: 0.0001)
+    }
+
+    func testTextureAverageColorIncludesPartialStrips() throws {
+        var pixels = [Pixel](repeating: .init(red: 0, green: 0, blue: 0, alpha: 255), count: 65)
+        pixels[0] = .init(red: 255, green: 255, blue: 255, alpha: 255)
+        pixels[64] = .init(red: 0, green: 0, blue: 0, alpha: 0)
+        let data = try pngData(pixels: pixels, width: 1)
+        let color = try XCTUnwrap(Texture.data(data).averageColor)
+        XCTAssertEqual(color.toLinear().red, 1 / 64.0, accuracy: 0.0001)
+        XCTAssertEqual(color.toLinear().green, 1 / 64.0, accuracy: 0.0001)
+        XCTAssertEqual(color.toLinear().blue, 1 / 64.0, accuracy: 0.0001)
+        XCTAssertEqual(color.alpha, 64 / 65.0, accuracy: 0.0001)
+    }
+
+    func testTextureAverageColorOfTransparentPixelsIsClear() throws {
+        let data = try pngData(pixels: [
+            .init(red: 0, green: 0, blue: 0, alpha: 0),
+        ])
+        XCTAssertEqual(Texture.data(data).averageColor, .clear)
+    }
+
     func testSceneBuildDisablesDepthBufferWritesForOverlappingTransparentGeometry() throws {
         let transparent = cube(material: Material(color: .red.withAlphaComponent(0.5)))
         let opaque = cube(material: Material(color: .blue))
@@ -483,10 +556,10 @@ final class PlatformTests: XCTestCase {
         var alpha: UInt8
     }
 
-    private func pngData(pixels: [Pixel]) throws -> Data {
+    private func pngData(pixels: [Pixel], width: Int? = nil) throws -> Data {
         var components = pixels.flatMap { [$0.red, $0.green, $0.blue, $0.alpha] }
-        let width = pixels.count
-        let height = 1
+        let width = width ?? pixels.count
+        let height = pixels.count / width
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
         let context = try XCTUnwrap(CGContext(
