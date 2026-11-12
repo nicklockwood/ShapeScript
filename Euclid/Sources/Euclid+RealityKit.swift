@@ -33,6 +33,7 @@
 
 import CoreGraphics
 import Metal
+import ModelIO
 import RealityKit
 
 @available(tvOS 26.0, *)
@@ -65,6 +66,8 @@ private func defaultMaterialLookup(_ material: Polygon.Material?) -> RealityKit.
     switch material {
     case let wrapper as MaterialWrapper:
         return wrapper.material
+    case let material as MDLMaterial:
+        return PhysicallyBasedMaterial(material)
     case let color as Color:
         return defaultMaterialLookup(OSColor(color))
     case let color as OSColor:
@@ -93,6 +96,65 @@ private func defaultMaterialLookup(_ material: Polygon.Material?) -> RealityKit.
         return material
     default:
         return nil
+    }
+}
+
+@MainActor
+@available(tvOS 26.0, *)
+public extension PhysicallyBasedMaterial {
+    /// Creates a physically based material from Model I/O color, texture and surface properties.
+    /// - Parameter source: The material to convert. Numeric RGB components are linear; CGColors use their color space.
+    init(_ source: MDLMaterial) {
+        func scalar(_ semantic: MDLMaterialSemantic, default fallback: Float) -> Float {
+            guard let property = source.property(with: semantic), property.type == .float else { return fallback }
+            return property.floatValue
+        }
+        func texture(
+            _ semantic: MDLMaterialSemantic,
+            _ usage: TextureResource.Semantic
+        ) -> PhysicallyBasedMaterial.Texture? {
+            guard let sampler = source.property(with: semantic)?.textureSamplerValue,
+                  let image = sampler.texture?.imageFromTexture()?.takeUnretainedValue()
+            else { return nil }
+            let options = TextureResource.CreateOptions(semantic: usage)
+            #if os(tvOS)
+            let resource = try? TextureResource(image: image, options: options)
+            #else
+            let resource = try? TextureResource.generate(from: image, options: options)
+            #endif
+            guard let resource else { return nil }
+            let descriptor = MTLSamplerDescriptor()
+            func wrap(_ mode: MDLMaterialTextureWrapMode) -> MTLSamplerAddressMode {
+                switch mode {
+                case .clamp: .clampToEdge
+                case .mirror: .mirrorRepeat
+                default: .repeat
+                }
+            }
+            descriptor.sAddressMode = wrap(sampler.hardwareFilter?.sWrapMode ?? .repeat)
+            descriptor.tAddressMode = wrap(sampler.hardwareFilter?.tWrapMode ?? .repeat)
+            descriptor.magFilter = sampler.hardwareFilter?.magFilter == .nearest ? .nearest : .linear
+            descriptor.minFilter = sampler.hardwareFilter?.minFilter == .nearest ? .nearest : .linear
+            return .init(resource, sampler: .init(descriptor))
+        }
+        var material = PhysicallyBasedMaterial()
+        let color = source.property(with: .baseColor).flatMap { Euclid.Color($0) } ?? .white
+        material.baseColor = .init(tint: OSColor(color.withAlphaComponent(1)), texture: texture(.baseColor, .color))
+        material.metallic = .init(scale: scalar(.metallic, default: 0), texture: texture(.metallic, .raw))
+        material.roughness = .init(scale: scalar(.roughness, default: 1), texture: texture(.roughness, .raw))
+        material.normal = .init(texture: texture(.tangentSpaceNormal, .normal))
+        material.ambientOcclusion = .init(texture: texture(.ambientOcclusion, .raw))
+        if let emission = source.property(with: .emission).flatMap({ Euclid.Color($0) }) {
+            material.emissiveColor = .init(color: OSColor(emission), texture: texture(.emission, .color))
+        } else if let emission = texture(.emission, .color) {
+            material.emissiveColor = .init(color: .white, texture: emission)
+        }
+        let opacity = scalar(.opacity, default: 1) * Float(color.alpha)
+        let opacityTexture = texture(.opacity, .raw)
+        if opacity < 1 || opacityTexture != nil || material.baseColor.texture != nil {
+            material.blending = .transparent(opacity: .init(scale: opacity, texture: opacityTexture))
+        }
+        self = material
     }
 }
 
@@ -203,6 +265,17 @@ private struct RealityKitVertex {
     var color: SIMD4<Float>
 }
 
+private struct RealityKitPositionNormalVertex {
+    var position: SIMD3<Float>
+    var normal: SIMD3<Float>
+}
+
+private struct RealityKitColoredVertex {
+    var position: SIMD3<Float>
+    var normal: SIMD3<Float>
+    var color: SIMD4<Float>
+}
+
 @available(macOS 15.0, iOS 18.0, tvOS 26.0, visionOS 2.0, *)
 public extension LowLevelMesh {
     /// Creates a triangle mesh preserving vertex colors, normals, texture coordinates, and materials.
@@ -247,54 +320,77 @@ private extension LowLevelMesh {
             attributes.append(.init(
                 semantic: .color,
                 format: .float4,
-                offset: MemoryLayout<RealityKitVertex>.offset(of: \.color)!
+                offset: data.texcoords == nil ? MemoryLayout<RealityKitColoredVertex>.offset(of: \.color)!
+                    : MemoryLayout<RealityKitVertex>.offset(of: \.color)!
             ))
         }
+        let vertexStride = data.texcoords != nil ? MemoryLayout<RealityKitVertex>.stride : data.colors != nil
+            ? MemoryLayout<RealityKitColoredVertex>.stride : MemoryLayout<RealityKitPositionNormalVertex>.stride
         try self.init(descriptor: .init(
             vertexCapacity: max(1, data.positions.count),
             vertexAttributes: attributes,
-            vertexLayouts: [.init(bufferIndex: 0, bufferStride: MemoryLayout<RealityKitVertex>.stride)],
+            vertexLayouts: [.init(bufferIndex: 0, bufferStride: vertexStride)],
             indexCapacity: max(1, data.indices.count),
             indexType: .uint32
         ))
-        // LowLevelMesh does not generate the tangent frame needed by normal maps.
-        var tangents = [SIMD3<Float>](repeating: .zero, count: data.positions.count)
-        var bitangents = tangents
-        if let texcoords = data.texcoords {
-            for offset in stride(from: 0, to: data.indices.count, by: 3) {
-                let indices = data.indices[offset ..< offset + 3].map(Int.init)
-                let edge1 = data.positions[indices[1]] - data.positions[indices[0]]
-                let edge2 = data.positions[indices[2]] - data.positions[indices[0]]
-                let uv1 = texcoords[indices[1]] - texcoords[indices[0]]
-                let uv2 = texcoords[indices[2]] - texcoords[indices[0]]
-                let determinant = uv1.x * uv2.y - uv1.y * uv2.x
-                guard abs(determinant) > Float.ulpOfOne else { continue }
-                let tangent = (edge1 * uv2.y - edge2 * uv1.y) / determinant
-                let bitangent = (edge2 * uv1.x - edge1 * uv2.x) / determinant
-                for index in indices {
-                    tangents[index] += tangent
-                    bitangents[index] += bitangent
+        if data.texcoords == nil {
+            withUnsafeMutableBytes(bufferIndex: 0) { buffer in
+                if let colors = data.colors {
+                    let vertices = buffer.bindMemory(to: RealityKitColoredVertex.self)
+                    for index in data.positions.indices {
+                        vertices[index] = RealityKitColoredVertex(
+                            position: data.positions[index], normal: data.normals[index], color: colors[index]
+                        )
+                    }
+                } else {
+                    let vertices = buffer.bindMemory(to: RealityKitPositionNormalVertex.self)
+                    for index in data.positions.indices {
+                        vertices[index] = RealityKitPositionNormalVertex(
+                            position: data.positions[index], normal: data.normals[index]
+                        )
+                    }
                 }
             }
-        }
-        withUnsafeMutableBytes(bufferIndex: 0) { buffer in
-            let vertices = buffer.bindMemory(to: RealityKitVertex.self)
-            for index in data.positions.indices {
-                let normal = simd_length_squared(data.normals[index]) > Float.ulpOfOne
-                    ? simd_normalize(data.normals[index]) : SIMD3<Float>(0, 0, 1)
-                var tangent = tangents[index] - normal * simd_dot(normal, tangents[index])
-                if simd_length_squared(tangent) < Float.ulpOfOne {
-                    tangent = simd_cross(abs(normal.x) < 0.9 ? [1, 0, 0] : [0, 1, 0], normal)
+        } else {
+            // LowLevelMesh does not generate the tangent frame needed by normal maps.
+            var tangents = [SIMD3<Float>](repeating: .zero, count: data.positions.count)
+            var bitangents = tangents
+            if let texcoords = data.texcoords {
+                for offset in stride(from: 0, to: data.indices.count, by: 3) {
+                    let indices = data.indices[offset ..< offset + 3].map(Int.init)
+                    let edge1 = data.positions[indices[1]] - data.positions[indices[0]]
+                    let edge2 = data.positions[indices[2]] - data.positions[indices[0]]
+                    let uv1 = texcoords[indices[1]] - texcoords[indices[0]]
+                    let uv2 = texcoords[indices[2]] - texcoords[indices[0]]
+                    let determinant = uv1.x * uv2.y - uv1.y * uv2.x
+                    guard abs(determinant) > Float.ulpOfOne else { continue }
+                    let tangent = (edge1 * uv2.y - edge2 * uv1.y) / determinant
+                    let bitangent = (edge2 * uv1.x - edge1 * uv2.x) / determinant
+                    for index in indices {
+                        tangents[index] += tangent
+                        bitangents[index] += bitangent
+                    }
                 }
-                tangent = simd_normalize(tangent)
-                let cross = simd_cross(normal, tangent)
-                let bitangent = simd_dot(cross, bitangents[index]) < 0 ? -cross : cross
-                vertices[index] = RealityKitVertex(
-                    position: data.positions[index], normal: data.normals[index],
-                    texcoord: data.texcoords?[index] ?? .zero,
-                    tangent: tangent, bitangent: bitangent,
-                    color: data.colors?[index] ?? .one
-                )
+            }
+            withUnsafeMutableBytes(bufferIndex: 0) { buffer in
+                let vertices = buffer.bindMemory(to: RealityKitVertex.self)
+                for index in data.positions.indices {
+                    let normal = simd_length_squared(data.normals[index]) > Float.ulpOfOne
+                        ? simd_normalize(data.normals[index]) : SIMD3<Float>(0, 0, 1)
+                    var tangent = tangents[index] - normal * simd_dot(normal, tangents[index])
+                    if simd_length_squared(tangent) < Float.ulpOfOne {
+                        tangent = simd_cross(abs(normal.x) < 0.9 ? [1, 0, 0] : [0, 1, 0], normal)
+                    }
+                    tangent = simd_normalize(tangent)
+                    let cross = simd_cross(normal, tangent)
+                    let bitangent = simd_dot(cross, bitangents[index]) < 0 ? -cross : cross
+                    vertices[index] = RealityKitVertex(
+                        position: data.positions[index], normal: data.normals[index],
+                        texcoord: data.texcoords?[index] ?? .zero,
+                        tangent: tangent, bitangent: bitangent,
+                        color: data.colors?[index] ?? .one
+                    )
+                }
             }
         }
         withUnsafeMutableIndices { buffer in

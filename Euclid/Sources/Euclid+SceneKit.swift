@@ -32,6 +32,7 @@
 #if canImport(SceneKit)
 
 import SceneKit
+import SceneKit.ModelIO
 
 let scnMaterialTypes: [AnyClass] = [SCNMaterial.self]
 
@@ -89,6 +90,18 @@ func defaultMaterialLookup(_ material: Polygon.Material?) -> SCNMaterial? {
     switch material {
     case let scnMaterial as SCNMaterial:
         return scnMaterial
+    case let material as MDLMaterial:
+        let result = SCNMaterial(mdlMaterial: material)
+        // Model I/O scalar textures use red; SceneKit's opacity shader samples alpha instead.
+        if let texture = material.property(with: .opacity)?.textureSamplerValue?.texture,
+           texture.channelCount == 1,
+           let image = texture.imageFromTexture()?.takeUnretainedValue(),
+           let mask = image.objOpacityImage(for: .red)
+        {
+            result.transparent.contents = mask
+            result.transparent.textureComponents = .all
+        }
+        return result
     case let color as Color:
         return defaultMaterialLookup(OSColor(color))
     case let cfType as CFTypeRef where [
@@ -143,6 +156,17 @@ public extension SCNGeometry {
     ///   - mesh: The mesh to convert into a SceneKit geometry.
     ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     convenience init(triangles mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
+        try! self.init(triangles: mesh, materialLookup: materialLookup, isCancelled: { false })
+    }
+
+    /// Creates geometry, throwing `CancellationError` when cancelled.
+    convenience init(
+        triangles mesh: Mesh,
+        materialLookup: SCNMaterialProvider? = nil,
+        isCancelled: CancellationHandler
+    ) throws {
+        var cancellationCountdown = cancellationCheckInterval
+        try checkCancellation(isCancelled)
         var elements = [SCNGeometryElement]()
         var vertices = [SCNVector3]()
         var normals = [SCNVector3]()
@@ -158,7 +182,8 @@ public extension SCNGeometry {
             let polygons = polygonsByMaterial[material] ?? []
             materials.append(materialLookup(material) ?? SCNMaterial())
             var indices = [UInt32]()
-            for triangle in polygons.triangulate(isCancelled: { false }) {
+            for triangle in polygons.triangulate(isCancelled: isCancelled) {
+                try checkCancellation(isCancelled, countdown: &cancellationCountdown)
                 for vertex in triangle.vertices {
                     if let index = indicesByVertex[vertex] {
                         indices.append(index)
@@ -187,6 +212,7 @@ public extension SCNGeometry {
         if hasVertexColors {
             sources.append(SCNGeometrySource(colors: colors))
         }
+        try checkCancellation(isCancelled)
         self.init(sources: sources, elements: elements)
         self.materials = materials
     }
@@ -196,6 +222,17 @@ public extension SCNGeometry {
     ///   - mesh: The mesh to convert into a SceneKit geometry.
     ///   - materialLookup: A closure to map the polygon material to a SceneKit material.
     convenience init(polygons mesh: Mesh, materialLookup: SCNMaterialProvider? = nil) {
+        try! self.init(polygons: mesh, materialLookup: materialLookup, isCancelled: { false })
+    }
+
+    /// Creates geometry, throwing `CancellationError` when cancelled.
+    convenience init(
+        polygons mesh: Mesh,
+        materialLookup: SCNMaterialProvider? = nil,
+        isCancelled: CancellationHandler
+    ) throws {
+        var cancellationCountdown = cancellationCheckInterval
+        try checkCancellation(isCancelled)
         var elementData = [(Int, Data)]()
         var vertices = [SCNVector3]()
         var normals = [SCNVector3]()
@@ -210,7 +247,7 @@ public extension SCNGeometry {
         for material in mesh.materials {
             materials.append(materialLookup(material) ?? SCNMaterial())
             let polygons = polygonsByMaterial[material]?.tessellate(
-                isCancelled: { false }
+                isCancelled: isCancelled
             ) ?? []
             let bufferSize = polygons.reduce(polygons.count) { $0 + $1.vertices.count }
             let indexBuffer = Buffer(capacity: bufferSize * 4)
@@ -218,6 +255,7 @@ public extension SCNGeometry {
                 indexBuffer.append(UInt32(polygon.vertices.count))
             }
             for polygon in polygons {
+                try checkCancellation(isCancelled, countdown: &cancellationCountdown)
                 for vertex in polygon.vertices {
                     if let index = indicesByVertex[vertex] {
                         indexBuffer.append(index)
@@ -246,6 +284,7 @@ public extension SCNGeometry {
         if hasVertexColors {
             sources.append(SCNGeometrySource(colors: colors))
         }
+        try checkCancellation(isCancelled)
         self.init(
             sources: sources,
             elements: elementData.map { count, indexData in
@@ -410,12 +449,12 @@ private extension Data {
         [float(at: index), float(at: index + 4), float(at: index + 8)]
     }
 
-    func color(at index: Int) -> Color {
+    func color(at index: Int, hasAlpha: Bool) -> Color {
         Color(
             red: float(at: index),
             green: float(at: index + 4),
             blue: float(at: index + 8),
-            alpha: float(at: index + 12)
+            alpha: hasAlpha ? float(at: index + 12) : 1
         )
     }
 }
@@ -478,17 +517,23 @@ public extension Mesh {
     /// - Parameters:
     ///   - scnNode: The `SCNNode` to convert into a mesh.
     ///   - ignoringTransforms: Should transforms from the input node and its children be ignored.
+    ///   - linearColors: Interpret vertex RGB as linear light and convert to sRGB. Alpha is unchanged.
     ///   - materialLookup: An optional closure to map the SceneKit materials to Euclid materials.
     ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
-    init(_ scnNode: SCNNode, ignoringTransforms: Bool = false, materialLookup: SCNMaterialProvider? = nil) {
+    init(
+        _ scnNode: SCNNode,
+        ignoringTransforms: Bool = false,
+        linearColors: Bool = true,
+        materialLookup: SCNMaterialProvider? = nil
+    ) {
         var meshes = [Mesh]()
         if let mesh = scnNode.geometry.flatMap({
-            Mesh($0, materialLookup: materialLookup)
+            Mesh($0, linearColors: linearColors, materialLookup: materialLookup)
         }) {
             meshes.append(mesh)
         }
         meshes += scnNode.childNodes.map {
-            Mesh($0, ignoringTransforms: ignoringTransforms, materialLookup: materialLookup)
+            Mesh($0, ignoringTransforms: ignoringTransforms, linearColors: linearColors, materialLookup: materialLookup)
         }
         var mesh = Mesh.merge(meshes)
         if !ignoringTransforms {
@@ -500,14 +545,54 @@ public extension Mesh {
         self = mesh
     }
 
+    /// Creates a mesh from a node, throwing `CancellationError` when cancelled.
+    init(
+        _ scnNode: SCNNode,
+        ignoringTransforms: Bool = false,
+        linearColors: Bool = true,
+        materialLookup: SCNMaterialProvider? = nil,
+        isCancelled: CancellationHandler
+    ) throws {
+        try checkCancellation(isCancelled)
+        var meshes = [Mesh]()
+        if let mesh = try scnNode.geometry.map({
+            try Mesh($0, linearColors: linearColors, materialLookup: materialLookup, isCancelled: isCancelled)
+        }) {
+            meshes.append(mesh)
+        }
+        meshes += try scnNode.childNodes.map {
+            try Mesh(
+                $0,
+                ignoringTransforms: ignoringTransforms,
+                linearColors: linearColors,
+                materialLookup: materialLookup,
+                isCancelled: isCancelled
+            )
+        }
+        var mesh = Mesh.merge(meshes)
+        if !ignoringTransforms {
+            if !SCNMatrix4IsIdentity(scnNode.pivot) {
+                mesh = mesh.transformed(by: Transform(SCNMatrix4Invert(scnNode.pivot)))
+            }
+            mesh = mesh.transformed(by: .transform(from: scnNode))
+        }
+        try checkCancellation(isCancelled)
+        self = mesh
+    }
+
     /// Creates a mesh from a SceneKit geometry, with optional material mapping.
     /// - Parameters:
     ///   - scnGeometry: The `SCNGeometry` to convert into a mesh.
+    ///   - linearColors: Interpret vertex RGB as linear light and convert to sRGB. Alpha is unchanged.
     ///   - materialLookup: An optional closure to map SceneKit materials to Euclid materials.
     ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
-    init?(_ scnGeometry: SCNGeometry, materialLookup: SCNMaterialProvider? = nil) {
+    init?(
+        _ scnGeometry: SCNGeometry,
+        linearColors: Bool = true,
+        materialLookup: SCNMaterialProvider? = nil
+    ) {
         do {
-            try self.init(scnGeometry, materialLookup: materialLookup) { false }
+            try self.init(scnGeometry, linearColors: linearColors, materialLookup: materialLookup) { false }
         } catch {
             print(error)
             return nil
@@ -517,14 +602,18 @@ public extension Mesh {
     /// Creates a mesh from a SceneKit geometry, with optional material mapping.
     /// - Parameters:
     ///   - scnGeometry: The `SCNGeometry` to convert into a mesh.
+    ///   - linearColors: Interpret vertex RGB as linear light and convert to sRGB. Alpha is unchanged.
     ///   - materialLookup: An optional closure to map SceneKit materials to Euclid materials.
     ///     If omitted, the `SCNMaterial` will be directly used as the mesh material.
     ///   - isCancelled: Callback used to cancel the operation.
     init(
         _ scnGeometry: SCNGeometry,
+        linearColors: Bool = true,
         materialLookup: SCNMaterialProvider? = nil,
         isCancelled: CancellationHandler
     ) throws {
+        var cancellationCountdown = cancellationCheckInterval
+        try checkCancellation(isCancelled)
         // Force properties to update
         let scnGeometry = scnGeometry.copy() as! SCNGeometry
 
@@ -553,7 +642,8 @@ public extension Mesh {
             case .normal:
                 vertex.normal = source.data.vector(at: offset)
             case .color:
-                vertex.color = source.data.color(at: offset).toSRGB()
+                let color = source.data.color(at: offset, hasAlpha: source.componentsPerVector > 3)
+                vertex.color = linearColors ? color.toSRGB() : color
             case .texcoord:
                 vertex.texcoord = [
                     source.data.float(at: offset),
@@ -595,6 +685,7 @@ public extension Mesh {
                 return Int(indexData.index(at: index, bytes: indexSize))
             }
             func vertex(at i: Int, channelIndexCount: Int, offset: Int = 0) throws -> Vertex {
+                try checkCancellation(isCancelled, countdown: &cancellationCountdown)
                 var vertex = Vertex(.zero)
                 for (source, channel) in supportedSources {
                     try apply(
@@ -696,6 +787,7 @@ public extension Mesh {
             isKnownConvex = false
             noSubmeshes = false
         }
+        try checkCancellation(isCancelled)
         var holeEdges = polygons.holeEdges(isCancelled: isCancelled)
         var precision = epsilon * 10
         for _ in 0 ..< 3 where !holeEdges.isEmpty && !isCancelled() {
@@ -707,6 +799,7 @@ public extension Mesh {
             holeEdges = polygons.holeEdges(isCancelled: isCancelled)
             precision *= 10
         }
+        try checkCancellation(isCancelled)
         self.init(
             unchecked: polygons,
             bounds: Bounds(scnGeometry.boundingBox),
@@ -727,6 +820,42 @@ public extension Mesh {
         self.init(scnGeometry) { _ in material }
     }
 }
+
+public extension SCNSceneSource {
+    /// Loads a scene, throwing `CancellationError` if the callback requests cancellation.
+    func scene(
+        options: [SCNSceneSource.LoadingOption: Any]? = nil,
+        isCancelled: @escaping CancellationHandler
+    ) throws -> SCNScene {
+        try checkCancellation(isCancelled)
+        let cancellation = IOCancellation()
+        let scene = scene(options: options) { _, _, error, stop in
+            cancellation.record(error)
+            if cancellation.check(isCancelled) { stop.pointee = true }
+        }
+        try checkCancellation(isCancelled)
+        if cancellation.check(isCancelled) { throw CancellationError() }
+        guard let scene else { throw cancellation.failure() ?? CocoaError(.fileReadCorruptFile) }
+        return scene
+    }
+}
+
+#if !os(watchOS)
+
+extension SCNScene {
+    func write(to url: URL, isCancelled: @escaping CancellationHandler) throws -> Bool {
+        try checkCancellation(isCancelled)
+        let cancellation = IOCancellation()
+        let result = write(to: url, options: nil, delegate: nil) { _, _, stop in
+            if cancellation.check(isCancelled) { stop.pointee = true }
+        }
+        try checkCancellation(isCancelled)
+        if cancellation.check(isCancelled) { throw CancellationError() }
+        return result
+    }
+}
+
+#endif
 
 #else
 

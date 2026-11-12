@@ -22,6 +22,45 @@ private extension Data {
 }
 
 final class MeshImportTests: XCTestCase {
+    func testNativeImportCancellation() throws {
+        let mesh = Mesh.sphere(slices: 32)
+        let inputs = try [mesh.stlString(), mesh.offString(), mesh.objString(), mesh.plyString()]
+        let readers: [(String, CancellationHandler) throws -> Mesh?] = [
+            { try Mesh(stlString: $0, isCancelled: $1) },
+            { try Mesh(offString: $0, isCancelled: $1) },
+            { try Mesh(objString: $0, isCancelled: $1) },
+            { try Mesh(plyString: $0, isCancelled: $1) },
+        ]
+        for (input, read) in zip(inputs, readers) {
+            XCTAssertNotNil(try read(input) { false })
+            let counter = ImportCancellationCounter()
+            XCTAssertThrowsError(try read(input) { counter.poll() }) {
+                XCTAssertTrue($0 is CancellationError)
+            }
+        }
+        XCTAssertThrowsError(try Mesh(url: URL(fileURLWithPath: "/missing.stl"), isCancelled: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+    }
+
+    func testBinarySTLImportThrottlesCancellation() throws {
+        let data = Mesh.sphere(slices: 64).stlData()
+        let progress = ImportCancellationProgress()
+        XCTAssertThrowsError(try Mesh(
+            stlData: data,
+            options: .init(repairWinding: false),
+            materialLookup: { color in
+                progress.readFacet()
+                return color
+            },
+            isCancelled: { progress.poll() }
+        )) { XCTAssertTrue($0 is CancellationError) }
+        let (facets, polls) = progress.counts
+        XCTAssertGreaterThanOrEqual(facets, 42)
+        XCTAssertLessThanOrEqual(facets, 42 + cancellationCheckInterval)
+        XCTAssertLessThan(polls, facets / 10)
+    }
+
     func testOBJVertexWeightIsNotInterpretedAsColor() throws {
         let mesh = try XCTUnwrap(Mesh(objString: """
         v 0 0 0 0.5
@@ -860,5 +899,42 @@ final class MeshImportTests: XCTestCase {
         XCTAssertTrue(mesh.polygons.allSatisfy { $0.vertices.count == 3 })
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertFalse(mesh.isConvex { false })
+    }
+}
+
+private final class ImportCancellationCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func poll() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        count += 1
+        return count >= 2
+    }
+}
+
+private final class ImportCancellationProgress: @unchecked Sendable {
+    private let lock = NSLock()
+    private var facets = 0
+    private var polls = 0
+
+    var counts: (Int, Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (facets, polls)
+    }
+
+    func readFacet() {
+        lock.lock()
+        defer { lock.unlock() }
+        facets += 1
+    }
+
+    func poll() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        polls += 1
+        return facets >= 42
     }
 }

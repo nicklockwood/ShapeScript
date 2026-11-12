@@ -13,14 +13,24 @@ import Foundation
 public extension Mesh {
     /// Return Wavefront OBJ string data for the mesh.
     func objString() -> String {
+        // This overload cannot cancel, so the throwing implementation cannot fail.
+        try! objString(isCancelled: { false })
+    }
+
+    /// Returns OBJ text, throwing `CancellationError` when cancelled.
+    func objString(isCancelled: CancellationHandler) throws -> String {
+        var cancellationCountdown = cancellationCheckInterval
+        try checkCancellation(isCancelled)
         var vertices = [Vertex](), indicesByVertex = [Vertex: Int]()
         var texcoords = [Vector](), indicesByTexcoord = [Vector: Int]()
         var normals = [Vector](), indicesByNormal = [Vector: Int]()
         let hasTexcoords = hasTexcoords, hasVertexNormals = hasVertexNormals
         let hasVertexColors = hasVertexColors
 
-        let indices = polygons.tessellate { false }.map { polygon -> [OBJVertex] in
-            polygon.vertices.map { vertex -> OBJVertex in
+        let indices = try polygons.tessellate(isCancelled: isCancelled).map { polygon -> [OBJVertex] in
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return try polygon.vertices.map { vertex -> OBJVertex in
+                try checkCancellation(isCancelled, countdown: &cancellationCountdown)
                 let texcoordIndex = hasTexcoords ? indicesByTexcoord[vertex.texcoord] ?? {
                     let index = indicesByTexcoord.count + 1
                     indicesByTexcoord[vertex.texcoord] = index
@@ -64,10 +74,23 @@ public extension Mesh {
             "vt \(vector.x.objString) \(vector.y.objString)\(vector.z == 0 ? "" : " \(vector.z.objString)")"
         }
 
-        let vertexStrings = vertices.map(vertexString)
-        let texcoordStrings = hasTexcoords ? texcoords.map(textcoordString) : nil
-        let normalStrings = hasVertexNormals ? normals.map { "vn \($0.objString)" } : nil
-        let indexStrings = indices.map { "f \($0.map(vertexIndexString).joined(separator: " "))" }
+        let vertexStrings = try vertices.map {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return vertexString($0)
+        }
+        let texcoordStrings = try hasTexcoords ? texcoords.map {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return textcoordString($0)
+        } : nil
+        let normalStrings = try hasVertexNormals ? normals.map {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return "vn \($0.objString)"
+        } : nil
+        let indexStrings = try indices.map {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return "f \($0.map(vertexIndexString).joined(separator: " "))"
+        }
+        try checkCancellation(isCancelled)
         return [
             vertexStrings.joined(separator: "\n"),
             texcoordStrings?.joined(separator: "\n"),
@@ -110,13 +133,23 @@ public extension Mesh {
     ///   - objString: OBJ string data.
     ///   - options: The import options.
     init?(objString: String, options: ImportOptions = .init()) {
+        try? self.init(objString: objString, options: options, isCancelled: { false })
+    }
+
+    /// Creates a mesh from OBJ text, throwing `CancellationError` if the callback returns `true`.
+    init?(
+        objString: String, options: ImportOptions = .init(), isCancelled: CancellationHandler
+    ) throws {
+        var cancellationCountdown = cancellationCheckInterval
+        try checkCancellation(isCancelled)
         var vertices = [Vertex]()
         var normals = [Vector]()
         var texcoords = [Vector]()
         var faces = [[OBJVertex]]()
 
-        var lines = ArraySlice(objString.components(separatedBy: .newlines))
-        while let command = lines.readCommand() {
+        var lines = StringLines(objString)
+        while let command = try lines.readCommand(isCancelled: isCancelled) {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
             switch command {
             case let .vertex(vertex):
                 vertices.append(vertex)
@@ -142,12 +175,14 @@ public extension Mesh {
             return vertex
         }
 
-        var mesh = Mesh(faces.flatMap {
-            [Polygon]($0.compactMap(lookup), material: nil)
+        var mesh = try Mesh(faces.flatMap {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            return [Polygon]($0.compactMap(lookup), material: nil)
         })
         if options.repairWinding ?? false {
-            mesh = mesh.withConsistentWinding()
+            mesh = mesh.withConsistentWinding(isCancelled: isCancelled)
         }
+        try checkCancellation(isCancelled)
         self = mesh
     }
 }
@@ -159,18 +194,22 @@ private enum OBJCommand {
     case face([OBJVertex])
 }
 
-private extension ArraySlice<String> {
-    mutating func skipBlankLinesAndComments() {
+private extension StringLines {
+    mutating func skipBlankLinesAndComments(isCancelled: CancellationHandler) throws {
+        var cancellationCountdown = cancellationCheckInterval
         while let line = first?.trimmingCharacters(in: .whitespaces),
               line.isEmpty || line.hasPrefix("#")
         {
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
             removeFirst()
         }
     }
 
-    mutating func readCommand() -> OBJCommand? {
+    mutating func readCommand(isCancelled: CancellationHandler) throws -> OBJCommand? {
+        var cancellationCountdown = cancellationCheckInterval
         while true {
-            skipBlankLinesAndComments()
+            try checkCancellation(isCancelled, countdown: &cancellationCountdown)
+            try skipBlankLinesAndComments(isCancelled: isCancelled)
             guard let line = popFirst() else { return nil }
 
             var parts = ArraySlice(line
@@ -201,9 +240,10 @@ private extension ArraySlice<String> {
                 return (index(at: 0), index(at: 1), index(at: 2))
             }
 
-            func readFace() -> [OBJVertex] {
+            func readFace() throws -> [OBJVertex] {
                 var indices = [OBJVertex]()
                 while let index = readIndex() {
+                    try checkCancellation(isCancelled, countdown: &cancellationCountdown)
                     indices.append(index)
                 }
                 return indices
@@ -213,7 +253,7 @@ private extension ArraySlice<String> {
             case "v": return .vertex(readVertex())
             case "vn": return .normal(readVector())
             case "vt": return .texcoord(readVector())
-            case "f": return .face(readFace())
+            case "f": return try .face(readFace())
             default: continue
             }
         }
