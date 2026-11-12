@@ -9,6 +9,7 @@
 @testable import ShapeScript
 import XCTest
 #if canImport(SceneKit)
+import ImageIO
 import SceneKit
 #endif
 
@@ -173,6 +174,82 @@ final class ImportFragmentTests: XCTestCase {
     }
 
     #if canImport(SceneKit)
+
+    func testOBJMissingMaterialLibraryStillImportsGeometry() throws {
+        try withDirectory { directory in
+            let url = directory.appendingPathComponent("missing.obj")
+            try "mtllib missing.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"
+                .write(to: url, atomically: true, encoding: .utf8)
+            let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+            XCTAssertTrue(scene.build { false })
+            XCTAssertFalse(scene.geometry.merged().isEmpty)
+        }
+    }
+
+    #if canImport(SceneKit)
+    func testOBJOpacityChannelsAndDissolveWithNamedFragments() throws {
+        try withDirectory { directory in
+            let bytes: [UInt8] = [64, 128, 192, 255]
+            let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
+            let image = try XCTUnwrap(CGImage(
+                width: 1, height: 1, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 4,
+                space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent
+            ))
+            let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(
+                directory.appendingPathComponent("opacity.png") as CFURL, "public.png" as CFString, 1, nil
+            ))
+            CGImageDestinationAddImage(destination, image, nil)
+            XCTAssertTrue(CGImageDestinationFinalize(destination))
+            for (channel, value) in [("r", 64.0), ("g", 128.0), ("b", 192.0), ("m", 255.0)] {
+                try "newmtl paint\nKd 0.5 0.25 0.75\nd 0.4\nmap_d -imfchan \(channel) opacity.png\n".write(
+                    to: directory.appendingPathComponent("paint.mtl"), atomically: true, encoding: .utf8
+                )
+                for (object, fragment) in [("", ""), ("o triangle\n", ""), ("o triangle\n", "#triangle")] {
+                    let url = directory.appendingPathComponent("paint.obj")
+                    try ("mtllib paint.mtl\n" + object + "v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl paint\nf 1 2 3\n")
+                        .write(to: url, atomically: true, encoding: .utf8)
+                    let scene = try evaluate(parse("import \"\(url.path)\(fragment)\""), delegate: nil)
+                    XCTAssertTrue(scene.build { false })
+                    let polygons = scene.geometry.merged().polygons
+                    XCTAssertFalse(polygons.isEmpty)
+                    for polygon in polygons {
+                        let material = try XCTUnwrap(polygon.material as? Material)
+                        XCTAssertEqual(material.averageOpacity, value / 255 * 0.4, accuracy: 1 / 255.0, channel)
+                        XCTAssertEqual(try XCTUnwrap(material.color).red, 0.5, accuracy: 1e-6)
+                    }
+                }
+            }
+        }
+    }
+    #endif
+
+    func testOBJMaterialMidtonesWithAndWithoutObjectNames() throws {
+        try withDirectory { directory in
+            try "newmtl paint\nKd 0.5 0.25 0.75\nd 0.4\n".write(
+                to: directory.appendingPathComponent("paint.mtl"), atomically: true, encoding: .utf8
+            )
+            for object in ["", "o triangle\n"] {
+                let url = directory.appendingPathComponent("paint.obj")
+                try ("mtllib paint.mtl\n" + object + "v 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl paint\nf 1 2 3\n")
+                    .write(to: url, atomically: true, encoding: .utf8)
+                let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+                XCTAssertTrue(scene.build { false })
+                let polygons = scene.geometry.merged().polygons
+                XCTAssertFalse(polygons.isEmpty)
+                for polygon in polygons {
+                    let material = try XCTUnwrap(polygon.material as? Material)
+                    let color = try XCTUnwrap(material.color)
+                    XCTAssertEqual(color.red, 0.5, accuracy: 1e-6)
+                    XCTAssertEqual(color.green, 0.25, accuracy: 1e-6)
+                    XCTAssertEqual(color.blue, 0.75, accuracy: 1e-6)
+                    XCTAssertEqual(material.averageOpacity, 0.4, accuracy: 1e-6)
+                }
+            }
+        }
+    }
+
     func testOBJFragmentPreservesMaterialLibrary() throws {
         try withDirectory { directory in
             try "newmtl red\nKd 1 0 0\n".write(

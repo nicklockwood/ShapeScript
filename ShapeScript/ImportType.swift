@@ -18,6 +18,7 @@ enum ImportType: Equatable, Sendable {
     case wavefront
     case stereolithography
     case object
+    case polygon
     case model
     case unknown
 
@@ -32,6 +33,7 @@ enum ImportType: Equatable, Sendable {
         case "obj": self = .wavefront
         case "stl", "stla": self = .stereolithography
         case "off": self = .object
+        case "ply": self = .polygon
         case "": self = .unknown
         case _ where url.isImageFile: self = .image
         case _ where url.isFontFile: self = .font
@@ -48,7 +50,7 @@ struct ImportFileReference {
         if let hash = path.firstIndex(of: "#") {
             let file = String(path[..<hash])
             switch ImportType(URL(fileURLWithPath: file), resolveFragment: false) {
-            case .shape, .svg, .csg, .wavefront, .stereolithography, .object, .model:
+            case .shape, .svg, .csg, .wavefront, .stereolithography, .object, .polygon, .model:
                 self.path = file
                 let fragment = String(path[path.index(after: hash)...])
                 self.id = fragment.isEmpty ? nil : fragment.removingPercentEncoding ?? fragment

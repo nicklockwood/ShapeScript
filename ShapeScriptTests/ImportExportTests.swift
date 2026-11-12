@@ -15,6 +15,106 @@ import SceneKit
 #endif
 
 final class ImportExportTests: XCTestCase {
+    #if canImport(SceneKit)
+    func testUSDZTextureByteRanges() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".usdz")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data([1, 2, 3, 4, 5, 6]).write(to: url)
+        func reference(_ query: String) throws -> URL {
+            try XCTUnwrap(URL(string: url.absoluteString + "?" + query))
+        }
+        XCTAssertEqual(try url.readTextureData(referencedBy: reference("offset=2&size=3")), Data([3, 4, 5]))
+        XCTAssertEqual(try url.readTextureData(referencedBy: reference("offset=1&size=2")), Data([2, 3]))
+        for query in ["offset=-1&size=2", "offset=0", "offset=5&size=2", "offset=0&size=\(FileSizeLimit.image + 1)"] {
+            XCTAssertThrowsError(try url.readTextureData(referencedBy: reference(query)), query)
+        }
+    }
+
+    func testBinaryPLYImportUsesEuclidColorCorrection() throws {
+        for bigEndian in [false, true] {
+            let header = """
+            ply
+            format binary_\(bigEndian ? "big" : "little")_endian 1.0
+            element vertex 3
+            property float x
+            property float y
+            property float z
+            property uchar red
+            property uchar green
+            property uchar blue
+            element face 1
+            property list uchar int vertex_indices
+            end_header
+
+            """
+            var data = Data(header.utf8)
+            func append(_ bits: UInt32) {
+                var value = bigEndian ? bits.bigEndian : bits.littleEndian
+                withUnsafeBytes(of: &value) { data.append(contentsOf: $0) }
+            }
+            for position: [Float] in [[0, 0, 0], [1, 0, 0], [0, 1, 0]] {
+                position.forEach { append($0.bitPattern) }
+                data.append(contentsOf: [128, 64, 191])
+            }
+            data.append(3)
+            [UInt32(0), 1, 2].forEach(append)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".ply")
+            defer { try? FileManager.default.removeItem(at: url) }
+            try data.write(to: url)
+            let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+            XCTAssertTrue(scene.build { false })
+            let mesh = scene.geometry.merged()
+            let vertices = try XCTUnwrap(mesh.polygons.first?.vertices)
+            XCTAssertEqual(vertices.count, 3)
+            for vertex in vertices {
+                XCTAssertEqual(vertex.color.red, 128 / 255.0, accuracy: 1e-6)
+                XCTAssertEqual(vertex.color.green, 64 / 255.0, accuracy: 1e-6)
+                XCTAssertEqual(vertex.color.blue, 191 / 255.0, accuracy: 1e-6)
+                XCTAssertEqual(vertex.color.alpha, 1)
+            }
+        }
+    }
+    #endif
+
+    func testASCIIPLYPreservesRGBAAndSkipsUnknownProperties() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".ply")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try """
+        ply
+        format ascii 1.0
+        comment property order is intentionally unusual
+        element vertex 3
+        property uchar alpha
+        property float x
+        property float y
+        property float z
+        property uchar blue
+        property uchar red
+        property uchar green
+        property float confidence
+        element edge 1
+        property list uchar int endpoints
+        element face 1
+        property float quality
+        property list uchar int vertex_indices
+        end_header
+        102 0 0 0 191 128 64 0.9
+        204 1 0 0 32 64 128 0.8
+        153 0 1 0 255 255 255 0.7
+        2 0 1
+        0.9 3 0 1 2
+        """.write(to: url, atomically: true, encoding: .utf8)
+        let scene = try evaluate(parse("import \"\(url.path)\""), delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        let polygon = try XCTUnwrap(scene.geometry.merged().polygons.first)
+        XCTAssertEqual(polygon.vertices.count, 3)
+        let color = try XCTUnwrap(polygon.vertices.first { $0.position == .zero }?.color)
+        XCTAssertEqual(color.red, 128 / 255.0, accuracy: 1e-6)
+        XCTAssertEqual(color.green, 64 / 255.0, accuracy: 1e-6)
+        XCTAssertEqual(color.blue, 191 / 255.0, accuracy: 1e-6)
+        XCTAssertEqual(color.alpha, 0.4, accuracy: 1e-6)
+    }
+
     private func withSparseFile(
         extension fileExtension: String,
         size: Int,

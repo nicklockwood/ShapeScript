@@ -9,9 +9,11 @@
 @testable import ShapeScript
 import Euclid
 import XCTest
+
 #if canImport(SceneKit)
 import ImageIO
 import SceneKit
+import SceneKit.ModelIO
 #endif
 
 final class MaterialTests: XCTestCase {
@@ -81,6 +83,40 @@ final class MaterialTests: XCTestCase {
     }
 
     #if canImport(SceneKit)
+
+    func testModelIOImportScalarOpacityTexture() throws {
+        let texture = MDLTexture(
+            data: Data([64]), topLeftOrigin: true, name: "opacity",
+            dimensions: [1, 1], rowStride: 1, channelCount: 1, channelEncoding: .uInt8, isCube: false
+        )
+        let sampler = MDLTextureSampler()
+        sampler.texture = texture
+        let source = MDLMaterial(name: "paint", scatteringFunction: MDLScatteringFunction())
+        source.setProperty(MDLMaterialProperty(name: "opacity", semantic: .opacity, textureSampler: sampler))
+        let material = try XCTUnwrap(Material(source))
+        XCTAssertEqual(material.averageOpacity, 64 / 255.0, accuracy: 1 / 255.0)
+    }
+
+    func testSceneKitImportModelIOTexture() throws {
+        let texture = MDLTexture(
+            data: Data([64, 32, 96, 128]), topLeftOrigin: true, name: "texture",
+            dimensions: [1, 1], rowStride: 4, channelCount: 4, channelEncoding: .uInt8, isCube: false
+        )
+        let property = SCNMaterialProperty(contents: texture)
+        let imported = try XCTUnwrap(MaterialProperty(property)?.texture)
+        XCTAssertEqual(imported.averageOpacity, 128 / 255.0, accuracy: 1e-6)
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(imported.data as CFData, nil))
+        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        var pixels = [UInt8](repeating: 0, count: 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        XCTAssertEqual(pixels, [64, 32, 96, 128])
+    }
+
     func testSceneKitImportCombinesOpacityFactors() throws {
         let source = SCNMaterial()
         source.diffuse.contents = OSColor(Color.red.withAlphaComponent(0.25))
@@ -263,5 +299,46 @@ final class MaterialTests: XCTestCase {
         XCTAssertEqual(child.opacity, 0.5)
         XCTAssertEqual(material.transparency, 0.5)
     }
+
+    func testOnlyColladaVertexColorsAreDecodedBeforeSceneKitConversion() throws {
+        for ext in ["dae", "ply", "scn"] {
+            let values: [Float] = [0.5, 0.25, 0.75, 0.4]
+            let source = SCNGeometrySource(
+                data: values.withUnsafeBytes { Data($0) }, semantic: .color,
+                vectorCount: 1, usesFloatComponents: true, componentsPerVector: 4,
+                bytesPerComponent: 4, dataOffset: 0, dataStride: 16
+            )
+            let node = SCNNode(geometry: SCNGeometry(sources: [source], elements: []))
+            node.prepareImportedVertexColors(fileExtension: ext)
+            let result = try XCTUnwrap(node.geometry?.sources(for: .color).first)
+            let red = result.data.withUnsafeBytes { $0.loadUnaligned(as: Float.self) }
+            XCTAssertEqual(Double(red), ext == "dae" ? Color(white: 0.5).toLinear().red : 0.5, accuracy: 1e-6)
+            let alpha = result.data.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 12, as: Float.self) }
+            XCTAssertEqual(alpha, 0.4, accuracy: 1e-6)
+        }
+    }
+
+    func testUSDImportCorrectsMislabelledLinearColorsOnlyForUSD() throws {
+        let components: [CGFloat] = [0.2140411405, 0.0508760882, 0.522521554, 0.4]
+        for ext in ["usda", "usd", "usdc", "usdz", "scn"] {
+            let material = SCNMaterial()
+            material.diffuse.contents = try XCTUnwrap(CGColor(
+                colorSpace: XCTUnwrap(CGColorSpace(name: CGColorSpace.linearDisplayP3)), components: components
+            ))
+            let node = SCNNode(geometry: SCNBox(width: 1, height: 1, length: 1, chamferRadius: 0))
+            node.geometry?.materials = [material]
+            let original = try XCTUnwrap(MaterialProperty(material.diffuse)?.color)
+            node.prepareImportedUSDColors(fileExtension: ext)
+            let result = try XCTUnwrap(MaterialProperty(material.diffuse)?.color)
+            if ext == "scn" { XCTAssertEqual(result, original) }
+            else {
+                XCTAssertEqual(result.red, 0.5, accuracy: 1e-5)
+                XCTAssertEqual(result.green, 0.25, accuracy: 1e-5)
+                XCTAssertEqual(result.blue, 0.75, accuracy: 1e-5)
+            }
+            XCTAssertEqual(result.alpha, 0.4, accuracy: 1e-6)
+        }
+    }
+
     #endif
 }

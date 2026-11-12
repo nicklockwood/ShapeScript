@@ -19,6 +19,7 @@ import CoreText
 
 #if canImport(SceneKit)
 import SceneKit
+import SceneKit.ModelIO
 #endif
 
 // MARK: Implementation
@@ -358,6 +359,28 @@ extension URL {
         #endif
     }
 
+    /// Read a resolved texture file or the byte range supplied by SceneKit for a USDZ image.
+    func readTextureData(referencedBy resource: URL) throws -> Data {
+        let query = URLComponents(url: resource, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        if resource.pathExtension.lowercased() == "usdz", !query.isEmpty {
+            guard let offset = query.first(where: { $0.name == "offset" })?.value.flatMap(UInt64.init),
+                  let size = query.first(where: { $0.name == "size" })?.value.flatMap(Int.init), size >= 0
+            else { throw CocoaError(.fileReadCorruptFile) }
+            guard size <= FileSizeLimit.image else {
+                throw FileError.tooLarge(self, maximumSize: FileSizeLimit.image)
+            }
+            let file = try FileHandle(forReadingFrom: self)
+            defer { try? file.close() }
+            try file.seek(toOffset: offset)
+            guard let data = try file.read(upToCount: size), data.count == size else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            return data
+        }
+        try validateFileSize(limit: FileSizeLimit.image)
+        return try Data(contentsOf: self)
+    }
+
     func validateFileSize(limit: Int) throws {
         let values = try resourceValues(forKeys: [.fileSizeKey])
         guard let size = values.fileSize else {
@@ -553,6 +576,7 @@ extension EvaluationContext {
             let source = try String(contentsOf: url)
             func loadMaterials() throws -> [String: Material] {
                 var materials = [String: Material]()
+                var materialLibraries = [String]()
                 #if canImport(SceneKit)
                 if let scene = try? SCNScene(url: url, options: [.flattenScene: false]) {
                     try resolveTextures(in: scene.rootNode, relativeTo: url)
@@ -563,13 +587,50 @@ extension EvaluationContext {
                     }
                 }
                 #endif
+                for line in source.components(separatedBy: .newlines) {
+                    let parts = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
+                        .split(whereSeparator: \.isWhitespace)
+                    guard parts.first == "mtllib" else { continue }
+                    let directory = url.deletingLastPathComponent()
+                    let joined = parts.dropFirst().joined(separator: " ")
+                    let names = FileManager.default.fileExists(atPath: directory.appendingPathComponent(joined).path) ?
+                        [joined] : parts.dropFirst().map(String.init)
+                    for name in names {
+                        let resource = directory.appendingPathComponent(name)
+                        do {
+                            let resolved = try resolveURL(for: resource.path)
+                            try resolved.validateFileSize(limit: FileSizeLimit.text)
+                            try materialLibraries.append(String(contentsOf: resolved))
+                        } catch RuntimeErrorType.fileNotFound {
+                            continue
+                        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+                            continue
+                        } catch let error as CocoaError where error.code == .fileReadNoPermission {
+                            throw RuntimeErrorType.fileAccessRestricted(for: resource.path, at: directory)
+                        }
+                    }
+                }
+                #if canImport(SceneKit)
+                // Load through Euclid after resolving external resources so its OBJ
+                // opacity corrections also apply to named objects and fragments.
+                if let mesh = try? Mesh(url: url) {
+                    let node = SCNNode(geometry: SCNGeometry(mesh))
+                    try resolveTextures(in: node, relativeTo: url)
+                    for material in node.geometry?.materials ?? [] {
+                        if let name = material.name { materials[name] = Material(material) }
+                    }
+                }
+                #endif
+                for library in materialLibraries {
+                    materials.restoreOBJColors(from: library)
+                }
                 return materials
             }
             if let geometry = try Geometry.namedOBJ(source, materials: loadMaterials(), isCancelled: isCancelled) {
                 return geometry
             }
             fallthrough
-        case .stereolithography, .object:
+        case .stereolithography, .object, .polygon:
             let mesh = try loadMesh(at: url) {
                 switch $0 {
                 case let color as Color:
@@ -577,6 +638,8 @@ extension EvaluationContext {
                 #if canImport(SceneKit)
                 case let scnMaterial as SCNMaterial:
                     Material(scnMaterial)
+                case let mdlMaterial as MDLMaterial:
+                    Material(mdlMaterial)
                 #endif
                 default:
                     nil
@@ -602,6 +665,8 @@ extension EvaluationContext {
             .preserveOriginalTopology: true,
         ])
         try resolveTextures(in: scene.rootNode, relativeTo: url)
+        scene.rootNode.prepareImportedVertexColors(fileExtension: url.pathExtension)
+        scene.rootNode.prepareImportedUSDColors(fileExtension: url.pathExtension)
         return try Geometry(scene.rootNode, isCancelled: isCancelled)
         #else
         return nil
@@ -637,9 +702,8 @@ extension EvaluationContext {
                 }
                 let resolved = try resolveURL(for: resource.path)
                 do {
-                    try resolved.validateFileSize(limit: FileSizeLimit.image)
-                    // Load while access is active, and don't silently drop unreadable opacity masks.
-                    property.contents = try Data(contentsOf: resolved)
+                    // Load while access is active, preserving embedded USDZ texture ranges.
+                    property.contents = try resolved.readTextureData(referencedBy: resource)
                 } catch let error as CocoaError where error.code == .fileReadNoPermission {
                     throw RuntimeErrorType.fileAccessRestricted(
                         for: resource.path,
@@ -920,7 +984,7 @@ extension EvaluationContext {
                     message: error.localizedDescription
                 )
             }
-        case .csg, .wavefront, .stereolithography, .object, .model, .unknown:
+        case .csg, .wavefront, .stereolithography, .object, .polygon, .model, .unknown:
             do {
                 let geometry: Geometry
                 if case let .geometry(entry) = importCache.store[url] {

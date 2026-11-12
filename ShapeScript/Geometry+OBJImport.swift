@@ -16,10 +16,6 @@ extension Geometry {
         isCancelled: CancellationHandler
     ) throws -> Geometry? {
         let sourceLines = source.components(separatedBy: .newlines)
-        guard sourceLines.contains(where: {
-            let parts = $0.split(whereSeparator: \.isWhitespace)
-            return parts.count > 1 && (parts[0] == "o" || parts[0] == "g")
-        }) else { return nil }
         let materials = try materials()
         final class Node {
             var name: String?
@@ -45,7 +41,6 @@ extension Geometry {
         var indices = [[Int: Int]](repeating: [:], count: 3)
         var lines = [String]()
         var material: Material?
-        var hasNames = false
         func flush() {
             if let mesh = Mesh(objString: lines.joined(separator: "\n")), !mesh.isEmpty {
                 group.meshes.append(mesh.replacing(nil, with: material))
@@ -68,7 +63,6 @@ extension Geometry {
                 object = Node(name.isEmpty ? nil : name)
                 root.children.append(object)
                 group = object
-                hasNames = hasNames || !name.isEmpty
             case "g":
                 flush()
                 if name.isEmpty || name == "off" {
@@ -79,7 +73,6 @@ extension Geometry {
                     group = Node(name)
                     object.children.append(group)
                 }
-                hasNames = hasNames || group !== object
             case "usemtl":
                 flush()
                 material = materials[name]
@@ -112,6 +105,30 @@ extension Geometry {
             }
         }
         flush()
-        return hasNames ? root.geometry() : nil
+        return root.geometry()
+    }
+}
+
+extension [String: Material] {
+    /// Keep numeric MTL diffuse colors in sRGB instead of accepting platform shading conversions.
+    mutating func restoreOBJColors(from source: String) {
+        var name: String?
+        for line in source.components(separatedBy: .newlines) {
+            let parts = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
+                .split(whereSeparator: \.isWhitespace)
+            guard let command = parts.first else { continue }
+            if command == "newmtl" { name = parts.dropFirst().joined(separator: " "); continue }
+            guard let name, command == "Kd" else { continue }
+            let values = parts.dropFirst().compactMap { Double($0) }
+            guard values.count == 1 || values.count == 3, values.allSatisfy(\.isFinite) else { continue }
+            var material = self[name] ?? .default
+            // Texture tint multiplication requires baking; retain the loaded texture in that case.
+            guard material.texture == nil else { continue }
+            material.albedo = .color(Color(
+                red: values[0], green: values.count == 1 ? values[0] : values[1],
+                blue: values.count == 1 ? values[0] : values[2], alpha: material.color?.alpha ?? 1
+            ))
+            self[name] = material
+        }
     }
 }

@@ -12,6 +12,7 @@ import Euclid
 
 import ImageIO
 import SceneKit
+import SceneKit.ModelIO
 
 public extension MaterialProperty {
     init?(_ scnMaterialProperty: SCNMaterialProperty) {
@@ -110,6 +111,18 @@ private extension MaterialProperty {
 }
 
 public extension Material {
+    init?(_ mdlMaterial: MDLMaterial) {
+        let material = SCNMaterial(mdlMaterial: mdlMaterial)
+        // Model I/O scalar opacity textures use red rather than alpha.
+        if let texture = mdlMaterial.property(with: .opacity)?.textureSamplerValue?.texture,
+           texture.channelCount == 1
+        {
+            material.transparent.contents = texture
+            material.transparent.textureComponents = .red
+        }
+        self.init(material)
+    }
+
     init?(_ scnMaterial: SCNMaterial) {
         opacity = scnMaterial.importedOpacity?.ifNot(.white)
         albedo = MaterialProperty(scnMaterial.diffuse)?.ifNot(.white)
@@ -137,7 +150,10 @@ extension MaterialProperty {
             result.blue *= intensity
             return linearColor ? result.toSRGB() : result
         }
-        switch scnMaterialProperty.contents {
+        let contents: Any? = (scnMaterialProperty.contents as? MDLTexture).map {
+            $0.imageFromTexture()?.takeUnretainedValue()
+        } ?? scnMaterialProperty.contents
+        switch contents {
         case let number as NSNumber:
             self = .color(scaled(Color(white: number.doubleValue, alpha: number.doubleValue)))
         case let color as OSColor:
@@ -222,8 +238,9 @@ private extension SCNMaterial {
                     green: Double(bytes[i + 1]) / divisor,
                     blue: Double(bytes[i + 2]) / divisor, alpha: alpha
                 )
-                let value = UInt8((max(0, min(1, rgbZero ? 1 - color.luminance * intensity * scalar : alpha)) * 255)
-                    .rounded())
+                let value = UInt8(
+                    (max(0, min(1, rgbZero ? 1 - color.luminance * intensity * scalar : alpha)) * 255).rounded()
+                )
                 // White with premultiplied alpha, including white for opaque pixels.
                 for channel in 0 ..< 4 {
                     bytes[i + channel] = value
@@ -306,6 +323,81 @@ extension Texture {
 extension OSImage {
     convenience init?(_ texture: Texture) {
         self.init(data: texture.data)
+    }
+}
+
+extension SCNNode {
+    /// SceneKit passes Collada vertex RGB through unchanged; Euclid’s SceneKit bridge expects linear RGB.
+    func prepareImportedVertexColors(fileExtension: String) {
+        guard fileExtension.lowercased() == "dae" else { return }
+        if let geometry {
+            let sources = geometry.sources.map { source -> SCNGeometrySource in
+                guard source.semantic == .color, source.usesFloatComponents,
+                      source.componentsPerVector >= 3, [4, 8].contains(source.bytesPerComponent)
+                else { return source }
+                var values = [Float]()
+                for index in 0 ..< source.vectorCount {
+                    let components = (0 ..< source.componentsPerVector).map { channel -> Double in
+                        let offset = source.dataOffset + index * source.dataStride + channel * source.bytesPerComponent
+                        return source.data.withUnsafeBytes { bytes in
+                            source.bytesPerComponent == 8
+                                ? bytes.loadUnaligned(fromByteOffset: offset, as: Double.self)
+                                : Double(bytes.loadUnaligned(fromByteOffset: offset, as: Float.self))
+                        }
+                    }
+                    let color = Color(
+                        red: components[0],
+                        green: components[1],
+                        blue: components[2],
+                        alpha: components.count > 3 ? components[3] : 1
+                    ).toLinear()
+                    values += [Float(color.red), Float(color.green), Float(color.blue), Float(color.alpha)]
+                }
+                return SCNGeometrySource(
+                    data: values.withUnsafeBytes { Data($0) }, semantic: .color,
+                    vectorCount: source.vectorCount, usesFloatComponents: true,
+                    componentsPerVector: 4, bytesPerComponent: MemoryLayout<Float>.size,
+                    dataOffset: 0, dataStride: 4 * MemoryLayout<Float>.size
+                )
+            }
+            let copy = SCNGeometry(sources: sources, elements: geometry.elements)
+            copy.materials = geometry.materials
+            copy.name = geometry.name
+            self.geometry = copy
+        }
+        childNodes.forEach { $0.prepareImportedVertexColors(fileExtension: fileExtension) }
+    }
+
+    /// USD's default is linear Rec.709. SceneKit can attach a linear Display P3 profile
+    /// without converting the stored components. Correct that tag only for USD assets.
+    func prepareImportedUSDColors(fileExtension: String) {
+        guard ["usd", "usda", "usdc", "usdz"].contains(fileExtension.lowercased()),
+              let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB)
+        else { return }
+        let incorrectSpaces = [CGColorSpace.linearDisplayP3, CGColorSpace.extendedLinearDisplayP3]
+            .compactMap { CGColorSpace(name: $0)?.name }
+        for material in geometry?.materials ?? [] {
+            for property in [
+                material.diffuse,
+                material.emission,
+                material.specular,
+                material.ambient,
+                material.reflective,
+                material.multiply,
+            ] {
+                let color: CGColor? = switch property.contents {
+                case let value as OSColor: value.cgColor
+                case let value as CGColor where CFGetTypeID(value) == CGColor.typeID: value
+                default: nil
+                }
+                guard let color, let space = color.colorSpace?.name,
+                      incorrectSpaces.contains(space), let components = color.components,
+                      let corrected = CGColor(colorSpace: linearSRGB, components: components)
+                else { continue }
+                property.contents = corrected
+            }
+        }
+        childNodes.forEach { $0.prepareImportedUSDColors(fileExtension: fileExtension) }
     }
 }
 

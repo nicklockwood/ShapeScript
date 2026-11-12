@@ -1168,23 +1168,22 @@ private struct CSGImporter {
                         ))
                         try checkCancellation()
                         return result(imported.paths(pretransformed: true), material: material)
-                    case .csg, .wavefront, .stereolithography, .object, .model, .unknown:
-                        break
+                    case .csg, .wavefront, .stereolithography, .object, .polygon, .model, .unknown:
+                        guard case let .mesh(imported) = try context.importFile(at: url, named: path) else {
+                            throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
+                        }
+                        try checkCancellation()
+                        let geometry = imported.with(
+                            transform: .identity, material: material, smoothing: nil,
+                            sourceLocation: sourceLocation ?? { nil }
+                        )
+                        return .init(
+                            geometry: geometry,
+                            paths: geometry.path().map { _ in geometry.paths(pretransformed: true) }
+                        )
                     case .shape, .text, .json, .image, .font:
                         throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
                     }
-                    guard case let .mesh(imported) = try context.importFile(at: url, named: path) else {
-                        throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
-                    }
-                    try checkCancellation()
-                    let geometry = imported.with(
-                        transform: .identity, material: material, smoothing: nil,
-                        sourceLocation: sourceLocation ?? { nil }
-                    )
-                    return .init(
-                        geometry: geometry,
-                        paths: geometry.path().map { _ in geometry.paths(pretransformed: true) }
-                    )
                 } catch let error as RuntimeErrorType {
                     let range = ProgramError(node.error(""), in: source).range ?? source.startIndex ..< source.endIndex
                     throw ProgramError.runtimeError(RuntimeError(error, at: range))

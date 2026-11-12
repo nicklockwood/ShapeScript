@@ -1074,12 +1074,12 @@ extension Expression {
                 break
             }
             guard let file else { return .any }
-            switch ImportType(URL(fileURLWithPath: file)) {
-            case .text: return .string
-            case .shape, .json, .unknown: return .any
-            case .image: return .texture
-            case .font: return .font
-            case .csg, .svg, .wavefront, .stereolithography, .object, .model: return .mesh
+            return switch ImportType(URL(fileURLWithPath: file)) {
+            case .text: .string
+            case .shape, .json, .unknown: .any
+            case .image: .texture
+            case .font: .font
+            case .csg, .svg, .wavefront, .stereolithography, .object, .polygon, .model: .mesh
             }
         case let .ifelse(_, body, else: elseBody):
             var type: ValueType = .void
