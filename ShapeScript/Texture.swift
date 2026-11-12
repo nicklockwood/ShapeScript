@@ -24,25 +24,27 @@ public struct Texture: Hashable, Sendable {
     public var data: Data { info.data }
 }
 
-/// Encodes only the script-facing texture identity, not the resolved image payload.
+/// Encodes the texture name and content identity, not the resolved image payload.
 /// Used for preserving unique material identity in `GeometryCache` keys.
 /// Decoded textures cannot be rendered directly.
 extension Texture: Codable {
     private enum CodingKeys: CodingKey {
-        case name, intensity
+        case name, intensity, contentKey
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let name = try container.decodeIfPresent(String.self, forKey: .name)
         let intensity = try container.decode(Double.self, forKey: .intensity)
-        self.init(name: name, url: nil, data: Data(), intensity: intensity)
+        let contentKey = try container.decodeIfPresent(String.self, forKey: .contentKey)
+        self.init(info: Info(url: nil, data: Data(), contentKey: contentKey), name: name, intensity: intensity)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(name, forKey: .name)
         try container.encode(intensity, forKey: .intensity)
+        try container.encode(info.contentKey, forKey: .contentKey)
     }
 }
 
@@ -50,6 +52,7 @@ private extension Texture {
     final class Info: Hashable, @unchecked Sendable {
         let url: URL?
         let data: Data
+        let contentKey: String
 
         #if canImport(CoreGraphics) && canImport(ImageIO)
         fileprivate typealias OpacityValues = (
@@ -66,16 +69,30 @@ private extension Texture {
         private var opacityValuesIfSet: OpacityValues?
         #endif
 
-        init(url: URL?, data: Data) {
+        init(url: URL?, data: Data, contentKey: String? = nil) {
             self.url = url
             self.data = data
+            if let contentKey {
+                self.contentKey = contentKey
+            } else {
+                // Stable cache identity, computed once instead of hashing image bytes per polygon.
+                var hash1: UInt64 = 0xCBF29CE484222325
+                var hash2: UInt64 = 0x84222325CBF29CE4
+                for byte in data {
+                    hash1 = (hash1 ^ UInt64(byte)) &* 0x100000001B3
+                    hash2 = (hash2 ^ (UInt64(byte) &+ 0x9E3779B97F4A7C15)) &* 0x100000001B3
+                }
+                self.contentKey = "\(data.count):\(String(hash1, radix: 16)):\(String(hash2, radix: 16))"
+            }
         }
 
-        static func == (_: Info, _: Info) -> Bool {
-            true
+        static func == (lhs: Info, rhs: Info) -> Bool {
+            lhs === rhs || lhs.contentKey == rhs.contentKey
         }
 
-        func hash(into _: inout Hasher) {}
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(contentKey)
+        }
     }
 
     init(

@@ -17,6 +17,69 @@ import SceneKit.ModelIO
 #endif
 
 final class MaterialTests: XCTestCase {
+    func testEmbeddedTexturesHaveContentIdentity() {
+        let first = Texture.data(Data([1, 2, 3]))
+        let same = Texture.data(Data([1, 2, 3]))
+        let second = Texture.data(Data([3, 2, 1]))
+        XCTAssertEqual(first, same)
+        XCTAssertNotEqual(first, second)
+        XCTAssertEqual(Set([first, same, second]).count, 2)
+        XCTAssertEqual(first.withIntensity(0.5), same.withIntensity(0.5))
+        XCTAssertNotEqual(first, first.withIntensity(0.5))
+        var left = Material.default
+        left.albedo = .texture(first)
+        var right = Material.default
+        right.albedo = .texture(second)
+        XCTAssertEqual(Set([left, right]).count, 2)
+    }
+
+    func testTextureCacheEncodingPreservesIdentityWithoutImagePayload() throws {
+        let textures = [
+            Texture.data(Data(repeating: 17, count: 10000)),
+            Texture.data(Data(repeating: 23, count: 10000)),
+        ]
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(textures)
+        XCTAssertLessThan(data.count, 512)
+        let decoded = try JSONDecoder().decode([Texture].self, from: data)
+        XCTAssertEqual(decoded, textures)
+        XCTAssertEqual(Set(decoded).count, 2)
+        XCTAssertTrue(decoded.allSatisfy(\.data.isEmpty))
+        XCTAssertEqual(try encoder.encode(decoded), data)
+        let legacy = try JSONDecoder().decode(Texture.self, from: Data("{\"name\":\"paint.png\",\"intensity\":1}".utf8))
+        XCTAssertEqual(legacy.name, "paint.png")
+    }
+
+    func testCachedMeshPreservesDistinctEmbeddedMaterials() throws {
+        var left = Material.default
+        left.albedo = .texture(.data(Data([1, 2, 3])))
+        var right = Material.default
+        right.albedo = .texture(.data(Data([3, 2, 1])))
+        let mesh = Mesh.merge([
+            Mesh.cube(material: left).translated(by: [-2, 0, 0]),
+            Mesh.cube(material: right).translated(by: [2, 0, 0]),
+        ])
+        XCTAssertEqual(mesh.materials.count, 2)
+        let data = try JSONEncoder().encode(CachedMesh(mesh))
+        let decoded = try JSONDecoder().decode(CachedMesh.self, from: data).mesh
+        XCTAssertEqual(Set(decoded.materials.compactMap { $0 as? Material }), [left, right])
+    }
+
+    func testSameNamedFileTexturesDoNotMergeDifferentContents() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = directory.appendingPathComponent("first.png")
+        let second = directory.appendingPathComponent("second.png")
+        try Data([1, 2, 3]).write(to: first)
+        try Data([3, 2, 1]).write(to: second)
+        XCTAssertNotEqual(
+            try Texture.file(name: "paint.png", url: first),
+            try Texture.file(name: "paint.png", url: second)
+        )
+    }
+
     func testRelativeLuminanceAndDataChannelsUseDifferentConventions() {
         let gray = Color(white: 0.5)
         XCTAssertEqual(gray.luminance(over: .black), 0.21404114048223255, accuracy: 1e-12)
