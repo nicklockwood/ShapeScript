@@ -157,6 +157,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindowController.showWindow(self)
     }
 
+    @objc func showAboutWindow(_ sender: Any) {
+        cliInstallWindowController.window?.orderOut(sender)
+        NSApp.orderFrontStandardAboutPanel(sender)
+    }
+
     @objc func showCLIInstallWindow(_: Any) {
         cliInstallWindowController.window?.level = .floating
         cliInstallWindowController.showWindow(self)
@@ -240,7 +245,7 @@ extension AppDelegate {
 
         let appMenu = NSMenu(title: "ShapeScript")
         mainMenu.addItem(menu("ShapeScript", submenu: appMenu))
-        appMenu.addItem(item("About ShapeScript", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:))))
+        appMenu.addItem(item("About ShapeScript", action: #selector(showAboutWindow(_:)), target: self))
         appMenu.addItem(item("Open Source Licenses", action: #selector(showLicenses(_:)), target: self))
         appMenu.addItem(.separator())
         appMenu.addItem(item("Preferences...", action: #selector(showPreferences(sender:)), key: ",", target: self))
