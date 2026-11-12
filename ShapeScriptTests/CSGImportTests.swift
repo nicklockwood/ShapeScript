@@ -1687,6 +1687,61 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testOFFImportsIgnoreVertexAttributesButKeepFaceColors() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let rootURL = directory.appendingPathComponent("main.csg")
+        let faceColor = Color(red: 0.25, green: 0.5, blue: 0.75, alpha: 0.4)
+        for ext in ["off", "coff"] {
+            for faceMaterial: Color? in [nil, faceColor] {
+                let mesh = try Mesh(Mesh.cube().polygons.map { polygon in
+                    try XCTUnwrap(Polygon(
+                        polygon.vertices.map {
+                            $0.withColor($0.position.y > 0 ? .clear : .red).withNormal($0.position.normalized())
+                        },
+                        material: faceMaterial
+                    ))
+                })
+                let url = directory.appendingPathComponent("part.\(ext)")
+                try mesh.offString(options: .init(
+                    vertexNormals: true, vertexColors: true, textureCoordinates: true
+                )).write(to: url, atomically: true, encoding: .utf8)
+                let source = "translate([2,0,0]) import(\"part.\(ext)\");"
+                let context = EvaluationContext(source: source, fileURL: rootURL, delegate: nil)
+                // Populate the shared import cache before loading the same mesh through CSG.
+                guard case let .mesh(original) = try context.importFile(at: url, named: url.lastPathComponent) else {
+                    return XCTFail("Expected a mesh import")
+                }
+                let geometry = try Geometry(csgString: source, at: rootURL, context: context)
+                XCTAssertTrue(geometry.build { false })
+                let imported = geometry.merged()
+                XCTAssertEqual(imported.bounds.center, Vector(2, 0, 0))
+                XCTAssertEqual(imported.signedVolume, 1, accuracy: 1e-6)
+                XCTAssertTrue(imported.polygons.flatMap(\.vertices).allSatisfy { $0.color == .white })
+                XCTAssertTrue(imported.polygons.flatMap(\.vertices).allSatisfy { $0.texcoord == .zero })
+                XCTAssertTrue(imported.polygons.allSatisfy { polygon in
+                    polygon.vertices.allSatisfy { $0.normal == polygon.plane.normal }
+                })
+                if let faceMaterial {
+                    XCTAssertTrue(imported.polygons.allSatisfy { ($0.material as? Material)?.color == faceMaterial })
+                } else {
+                    XCTAssertTrue(imported.polygons.allSatisfy {
+                        let color = ($0.material as? Material)?.color
+                        return color == nil || color == .white
+                    })
+                }
+                XCTAssertTrue(original.build { false })
+                XCTAssertTrue(original.merged().hasVertexColors)
+                XCTAssertTrue(original.merged().polygons.flatMap(\.vertices).contains { $0.texcoord != .zero })
+                XCTAssertTrue(original.merged().polygons.contains { polygon in
+                    polygon.vertices.contains { $0.normal != polygon.plane.normal }
+                })
+                XCTAssertTrue(original.merged().polygons.flatMap(\.vertices).contains { $0.color.alpha == 0 })
+            }
+        }
+    }
+
     func testImportedMeshCanBeUsedAsSubtractionOperand() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

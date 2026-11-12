@@ -597,8 +597,29 @@ final class ImportExportTests: XCTestCase {
         }
     }
 
+    func testCOFFImportsWithEitherExtension() throws {
+        let mesh = Mesh.cube().withMaterial(Color.blue).mapVertexColors { _ in Color(
+            red: 1,
+            green: 0,
+            blue: 0,
+            alpha: 0.5
+        ) }
+        for ext in ["off", "coff"] {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID()).\(ext)")
+            defer { try? FileManager.default.removeItem(at: url) }
+            try mesh.coffString().write(to: url, atomically: true, encoding: .utf8)
+            let context = EvaluationContext(source: "", delegate: nil)
+            let geometry = try XCTUnwrap(context.importGeometry(at: url))
+            XCTAssertTrue(geometry.build { false })
+            let polygons = geometry.merged().polygons
+            XCTAssertEqual(polygons.count, 6)
+            XCTAssertTrue(polygons.allSatisfy { ($0.material as? Material)?.color == .blue })
+            XCTAssertTrue(polygons.flatMap(\.vertices).allSatisfy { $0.color.alpha == 0.5 })
+        }
+    }
+
     func testOversizedMeshImportsAreRejected() throws {
-        for fileExtension in ["stl", "stla", "obj", "off"] {
+        for fileExtension in ["stl", "stla", "obj", "off", "coff"] {
             try withSparseFile(extension: fileExtension, size: FileSizeLimit.mesh + 1) { url in
                 let context = EvaluationContext(source: "", delegate: nil)
                 XCTAssertThrowsError(try context.importGeometry(at: url)) { error in

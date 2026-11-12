@@ -32,7 +32,7 @@ enum ImportType: Equatable, Sendable {
         case "svg": self = .svg
         case "obj": self = .wavefront
         case "stl", "stla": self = .stereolithography
-        case "off": self = .object
+        case "off", "coff": self = .object
         case "ply": self = .polygon
         case "": self = .unknown
         case _ where url.isImageFile: self = .image

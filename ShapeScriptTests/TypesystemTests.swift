@@ -94,7 +94,7 @@ final class TypesystemTests: XCTestCase {
             ("image.png", .image), ("image.JPG", .image), ("font.OTF", .font),
             ("font.ttf", .font), ("model.CSG", .csg), ("model.obj", .wavefront),
             ("model.stl", .stereolithography), ("model.STLA", .stereolithography),
-            ("model.off", .object), ("model.dae", .model), ("model.custom", .model),
+            ("model.off", .object), ("model.COFF", .object), ("model.dae", .model), ("model.custom", .model),
             ("folder.with.dot/file", .unknown),
         ]
         for (path, expected) in cases {

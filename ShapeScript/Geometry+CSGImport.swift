@@ -1173,7 +1173,17 @@ private struct CSGImporter {
                             throw RuntimeErrorType.fileTypeMismatch(for: path, at: url, expected: nil)
                         }
                         try checkCancellation()
-                        let geometry = imported.with(
+                        let source: Geometry = if ImportType(url) == .object, case let .mesh(mesh) = imported.type {
+                            // OpenSCAD reads OFF face colors but ignores vertex colors, normals and UVs.
+                            // Copy the mesh so ordinary imports retain their cached vertex attributes.
+                            self.geometry(
+                                .mesh(mesh.withoutVertexColors().withoutTexcoords().flatteningNormals()),
+                                material: imported.material, transform: imported.transform
+                            )
+                        } else {
+                            imported
+                        }
+                        let geometry = source.with(
                             transform: .identity, material: material, smoothing: nil,
                             sourceLocation: sourceLocation ?? { nil }
                         )
