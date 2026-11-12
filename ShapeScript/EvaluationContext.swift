@@ -685,13 +685,32 @@ extension EvaluationContext {
             .createNormalsIfAbsent: true,
             .convertToYUp: true,
             .preserveOriginalTopology: true,
+            .assetDirectoryURLs: [url.deletingLastPathComponent()],
         ]
-        guard let source = SCNSceneSource(url: url, options: options) else {
-            throw CocoaError(.fileReadCorruptFile)
+        let nativeSceneData: Data?
+        if url.pathExtension.lowercased() == "dae" {
+            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            let archive = data.starts(with: Data("bplist00".utf8))
+                ? (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+                : nil
+            nativeSceneData = archive?["$archiver"] as? String == "SCNKeyedArchiver" ? data : nil
+        } else {
+            nativeSceneData = nil
         }
+        let source: SCNSceneSource? = if let nativeSceneData {
+            // Let SceneKit identify the archive by its contents rather than the misleading extension.
+            SCNSceneSource(data: nativeSceneData, options: options)
+        } else {
+            SCNSceneSource(url: url, options: options)
+        }
+        guard let source else { throw CocoaError(.fileReadCorruptFile) }
         let scene = try source.scene(options: options, isCancelled: isCancelled)
         try resolveTextures(in: scene.rootNode, relativeTo: url)
-        scene.rootNode.prepareImportedVertexColors(fileExtension: url.pathExtension)
+        // Native SCN archives store linear vertex RGB. Legacy iOS DAE exports instead use
+        // SceneKit's compiled scene format with the same sRGB vertex values as COLLADA exports.
+        if nativeSceneData == nil {
+            scene.rootNode.prepareImportedVertexColors(fileExtension: url.pathExtension)
+        }
         scene.rootNode.prepareImportedUSDColors(fileExtension: url.pathExtension)
         return try Geometry(scene.rootNode, isCancelled: isCancelled)
         #else
