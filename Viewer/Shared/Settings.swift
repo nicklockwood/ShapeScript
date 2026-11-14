@@ -22,6 +22,18 @@ extension Notification.Name {
     static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
 }
 
+enum DocumentVersionKey: String, CaseIterable {
+    case formatVersion
+    case clientVersion
+
+    var currentValue: SemanticVersion {
+        switch self {
+        case .formatVersion: ShapeScript.version
+        case .clientVersion: appVersion
+        }
+    }
+}
+
 final class Settings: @unchecked Sendable {
     static let shared = Settings()
 
@@ -77,8 +89,7 @@ final class Settings: @unchecked Sendable {
         andGlobally applyGlobally: Bool = false
     ) {
         if let url = document._fileURL {
-            documentSettings[url, default: [:]][key] = value
-            try? url.setXattr(Data(value), for: key.xattrName)
+            try? set(value, for: key, at: url)
         }
         if applyGlobally {
             // Set global default
@@ -96,6 +107,18 @@ final class Settings: @unchecked Sendable {
         andGlobally applyGlobally: Bool = false
     ) {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
+    }
+
+    fileprivate func set(_ value: (some Any)?, for key: String, at url: URL) throws {
+        documentSettings[url, default: [:]][key] = value
+        try url.setXattr(Data(value), for: key.xattrName)
+    }
+
+    func markCurrentVersion(at url: URL) throws {
+        for key in DocumentVersionKey.allCases {
+            try set(key.currentValue.rawValue, for: key.rawValue, at: url)
+            defaults.removeObject(forKey: key.rawValue)
+        }
     }
 
     // MARK: App version
@@ -122,6 +145,21 @@ final class Settings: @unchecked Sendable {
     var keepWindowInFront: Bool {
         get { defaults.object(forKey: #function) as? Bool ?? false }
         set { defaults.set(newValue, forKey: #function) }
+    }
+
+    // MARK: Renderer
+
+    var sceneRendererKind: SceneRendererKind {
+        get {
+            let kind = defaults.string(forKey: #function)
+                .flatMap(SceneRendererKind.init(rawValue:)) ?? .sceneKit
+            return kind.isSupported ? kind : .sceneKit
+        }
+        set {
+            guard newValue != sceneRendererKind else { return }
+            defaults.set(newValue.rawValue, forKey: #function)
+            NotificationCenter.default.post(name: .settingsUpdated, object: nil)
+        }
     }
 
     // MARK: Disk cache
@@ -215,6 +253,12 @@ final class Settings: @unchecked Sendable {
 
 private extension DocumentProtocol {
     var _fileURL: URL? { documentFileURL }
+}
+
+extension URL {
+    func markCreatedWithCurrentVersion() throws {
+        try Settings.shared.markCurrentVersion(at: self)
+    }
 }
 
 private extension URL {

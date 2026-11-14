@@ -1171,6 +1171,71 @@ final class GeometryTests: XCTestCase {
         XCTAssertNotNil(minkowski.cachedMesh)
     }
 
+    func testSceneBuildPreviewCallbackRunsAfterAllTopLevelPreviews() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            sphere
+        }
+        union {
+            cube { position 2 }
+            sphere { position 3 }
+        }
+        """), delegate: nil)
+        let firstUnion = try XCTUnwrap(scene.children.first)
+        let secondUnion = try XCTUnwrap(scene.children.last)
+        var callbackCount = 0
+
+        let progress = RenderProgress(didBuildPreview: {
+            callbackCount += 1
+            XCTAssertNil(firstUnion.cachedMesh)
+            XCTAssertNil(secondUnion.cachedMesh)
+            XCTAssertTrue(firstUnion.children.allSatisfy { $0.cachedMesh != nil })
+            XCTAssertTrue(secondUnion.children.allSatisfy { $0.cachedMesh != nil })
+        })
+        XCTAssertTrue(scene.build(progress: progress))
+
+        XCTAssertEqual(callbackCount, 1)
+        XCTAssertNotNil(firstUnion.cachedMesh)
+        XCTAssertNotNil(secondUnion.cachedMesh)
+    }
+
+    func testCancelledSceneBuildDoesNotNotifyPreview() throws {
+        let scene = try evaluate(parse("cube"), delegate: nil)
+        var callbackCount = 0
+        let progress = RenderProgress(didBuildPreview: { callbackCount += 1 })
+        progress.cancel()
+
+        XCTAssertFalse(scene.build(progress: progress))
+        XCTAssertEqual(callbackCount, 0)
+    }
+
+    func testSceneBuildCanCancelFromPreviewCallback() throws {
+        let scene = try evaluate(parse("""
+        union {
+            cube
+            sphere
+        }
+        """), delegate: nil)
+        let union = try XCTUnwrap(scene.children.first)
+        var callbackCount = 0
+        weak var weakProgress: RenderProgress?
+        let progress = RenderProgress(didBuildPreview: {
+            callbackCount += 1
+            XCTAssertNotNil(weakProgress?.fractionCompleted)
+            XCTAssertEqual(weakProgress?.isFinished, false)
+            weakProgress?.cancel()
+        })
+        weakProgress = progress
+
+        XCTAssertFalse(scene.build(progress: progress))
+        XCTAssertEqual(callbackCount, 1)
+        XCTAssertTrue(progress.isCancelled)
+        XCTAssertFalse(progress.isFinished)
+        XCTAssertNil(union.cachedMesh)
+        XCTAssertTrue(union.children.allSatisfy { $0.cachedMesh != nil })
+    }
+
     func testDifferenceRenderedChildrenDependOnDebugState() throws {
         let scene = try evaluate(parse("""
         difference {
@@ -1570,6 +1635,17 @@ final class GeometryTests: XCTestCase {
         for _ in 0 ..< 20 {
             XCTAssertEqual(try generatedMeshFingerprint(), expected)
         }
+    }
+
+    func testFlattenedGroupIncludesChildren() throws {
+        let scene = try evaluate(parse("""
+        cube { position -0.5 }
+        cube { position 0.5 }
+        """), delegate: nil)
+        XCTAssertTrue(scene.build { false })
+        let mesh = scene.visibleGeometry.flattened()
+        XCTAssertFalse(mesh.polygons.isEmpty)
+        XCTAssertEqual(mesh.bounds.size, [2, 1, 1])
     }
 
     func testTextFourCounterUsesOddEvenFillForCaps() throws {

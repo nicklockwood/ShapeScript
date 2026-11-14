@@ -89,9 +89,29 @@ private final class SelectionSubmenu: NSMenu, @unchecked Sendable {
 
 @MainActor
 final class DocumentViewController: NSViewController, DocumentViewControllerProtocol {
-    let scnScene = SCNScene()
-    var renderTimer: Timer?
-    private(set) var scnView: SCNView = .init()
+    private(set) var rendererKind: SceneRendererKind {
+        didSet {
+            guard rendererKind != oldValue, isViewLoaded else {
+                return
+            }
+            Settings.shared.sceneRendererKind = rendererKind
+            updateRendererView()
+            document?.didUpdateSource()
+        }
+    }
+
+    let sceneKitRenderer = SceneKitRenderer()
+    private var realityKitRendererStorage: Any?
+
+    @available(macOS 15.0, *)
+    private var realityKitRenderer: RealityKitRenderer {
+        if let renderer = realityKitRendererStorage as? RealityKitRenderer {
+            return renderer
+        }
+        let renderer = RealityKitRenderer()
+        realityKitRendererStorage = renderer
+        return renderer
+    }
 
     private var splitView: NSSplitView = .init()
     private var errorScrollView: NSScrollView = .init()
@@ -107,13 +127,39 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     private var warningDismissHandler: (@MainActor @Sendable () -> Void)?
     private var lastLayoutBackgroundColor: NSColor?
 
+    var renderer: any SceneRenderer {
+        switch rendererKind {
+        case .sceneKit:
+            sceneKitRenderer
+        case .realityKit:
+            if #available(macOS 15.0, *) {
+                realityKitRenderer
+            } else {
+                sceneKitRenderer
+            }
+        }
+    }
+
+    var scnView: SCNView {
+        sceneKitRenderer.view
+    }
+
+    private var renderView: NSView {
+        switch rendererKind {
+        case .sceneKit:
+            sceneKitRenderer.view
+        case .realityKit:
+            if #available(macOS 15.0, *) {
+                realityKitRenderer.view
+            } else {
+                sceneKitRenderer.view
+            }
+        }
+    }
+
     weak var document: Document?
 
     var isQuickLook: Bool = false
-
-    lazy var cameraNode: SCNNode = makeCameraNode()
-
-    weak var axesNode: SCNNode?
 
     var errorMessage: NSAttributedString? {
         didSet {
@@ -260,14 +306,49 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
     }
 
     var background: MaterialProperty? {
-        get { MaterialProperty(scnScene.background) }
+        get {
+            switch rendererKind {
+            case .sceneKit:
+                sceneKitRenderer.background
+            case .realityKit:
+                nil
+            }
+        }
         set {
-            newValue?.configureProperty(scnScene.background)
-            renderProgressView.color = interfaceColor
+            if newValue != background {
+                switch rendererKind {
+                case .sceneKit:
+                    sceneKitRenderer.background = newValue
+                    renderProgressView.color = interfaceColor
+                case .realityKit:
+                    break
+                }
+            }
         }
     }
 
-    weak var selectedGeometry: Geometry?
+    weak var selectedGeometry: Geometry? {
+        didSet {
+            guard selectedGeometry !== oldValue else {
+                return
+            }
+            if #available(macOS 15.0, *),
+               let realityKitRenderer = renderer as? RealityKitRenderer
+            {
+                realityKitRenderer.select(selectedGeometry)
+            }
+        }
+    }
+
+    init(rendererKind: SceneRendererKind = Settings.shared.sceneRendererKind) {
+        self.rendererKind = rendererKind
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        nil
+    }
 
     override func loadView() {
         let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 700, height: 500))
@@ -382,30 +463,60 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         )
     }
 
+    private func updateRendererView() {
+        let renderView = renderView
+        if splitView.arrangedSubviews.first !== renderView {
+            if let oldRenderView = splitView.arrangedSubviews.first {
+                splitView.removeArrangedSubview(oldRenderView)
+            }
+            renderView.frame = splitView.bounds
+            renderView.autoresizingMask = [.width, .height]
+            splitView.insertArrangedSubview(renderView, at: 0)
+        }
+        document?.updateViews()
+        refreshGeometry()
+    }
+
+    private func selectRealityKitGeometry(_ geometry: Geometry?) {
+        guard let root = self.geometry,
+              let geometry
+        else {
+            selectedGeometry = nil
+            return
+        }
+        let focus = root.childIsFocused
+        selectedGeometry = geometry
+            .selectionMenuPath(root: root)
+            .first { $0.isSelectableInSelectionMenu(focus: focus) }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // create view
-        scnView = SCNView(frame: splitView.bounds)
-        scnView.autoresizingMask = [.width, .height]
+        if #available(macOS 15.0, *) {
+            addChild(realityKitRenderer.hostingController)
+            realityKitRenderer.onSelectGeometry = { [weak self] geometry in
+                self?.selectRealityKitGeometry(geometry)
+            }
+        }
+
         scnView.postsFrameChangedNotifications = true
         NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(sceneViewDidResize),
-            name: NSView.frameDidChangeNotification,
-            object: scnView
+            self, selector: #selector(sceneViewDidResize),
+            name: NSView.frameDidChangeNotification, object: scnView
         )
-        splitView.insertArrangedSubview(scnView, at: 0)
 
         // set view background color
         scnView.wantsLayer = true
 
         // set the scene to the view
-        scnView.scene = scnScene
+        scnView.scene = sceneKitRenderer.scene
 
         // configure the view
         scnView.backgroundColor = .clear
-        scnView.pointOfView = cameraNode
+        scnView.pointOfView = sceneKitRenderer.cameraNode
+        updateRendererView()
         document?.updateViews()
         refreshScene()
 
@@ -431,7 +542,7 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     override func viewDidDisappear() {
         super.viewDidDisappear()
-        scnView.defaultCameraController.stopInertia()
+        sceneKitRenderer.view.defaultCameraController.stopInertia()
     }
 
     @discardableResult
@@ -658,6 +769,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
         NSPasteboard.general.setString(code, forType: .string)
     }
 
+    func toggleRendererKind() {
+        rendererKind = rendererKind == .sceneKit ? .realityKit : .sceneKit
+    }
+
     @objc func handleClick(_ gestureRecognizer: NSGestureRecognizer) {
         let location = gestureRecognizer.location(in: scnView)
         selectGeometry(at: location)
@@ -673,6 +788,10 @@ final class DocumentViewController: NSViewController, DocumentViewControllerProt
 
     @objc private func selectContextMenuItem(_ menuItem: NSMenuItem) {
         guard let geometry = menuItem.representedObject as? Geometry else {
+            return
+        }
+        if rendererKind == .realityKit {
+            selectedGeometry = geometry
             return
         }
         selectGeometry(geometry.scnNode)

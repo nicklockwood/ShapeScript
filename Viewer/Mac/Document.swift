@@ -397,6 +397,10 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         isOrthographic.toggle()
     }
 
+    @objc func toggleRendererKind(_: NSMenuItem) {
+        viewController?.toggleRendererKind()
+    }
+
     // MARK: Menus
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
@@ -408,6 +412,9 @@ final class Document: NSDocument, @preconcurrency DocumentProtocol, @unchecked S
         case #selector(setOrthographic(_:)):
             menuItem.state = camera.isOrthographic ?? isOrthographic ? .on : .off
             return camera.isOrthographic == nil
+        case #selector(toggleRendererKind(_:)):
+            menuItem.state = viewController?.rendererKind == .realityKit ? .on : .off
+            return SceneRendererKind.realityKit.isSupported
         case #selector(selectCamera(_:)) where menuItem.tag < cameras.count:
             if camera == cameras[menuItem.tag] {
                 menuItem.state = cameraHasMoved ? .mixed : .on

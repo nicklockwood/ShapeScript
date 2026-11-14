@@ -8,7 +8,6 @@
 
 import Euclid
 import Foundation
-import SceneKit
 import ShapeScript
 
 @MainActor
@@ -16,14 +15,11 @@ protocol DocumentViewControllerProtocol: AnyObject, Sendable {
     associatedtype Document: DocumentProtocol
 
     var document: Document? { get }
-    var scnScene: SCNScene { get }
-    var renderTimer: Timer? { get set }
-    var scnView: SCNView { get }
+    var renderer: any SceneRenderer { get }
+    var sceneKitRenderer: SceneKitRenderer { get }
     var errorTextView: OSTextView { get }
     var grantAccessButton: OSButton { get }
     var isQuickLook: Bool { get set }
-    var cameraNode: SCNNode { get }
-    var axesNode: SCNNode? { get set }
     var errorMessage: NSAttributedString? { get set }
     var isLoading: Bool { get set }
     var renderProgress: Double? { get set }

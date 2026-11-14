@@ -29,6 +29,12 @@ jobs:
           pathCoverage=Build/Build/ProfileData/${directory}/Coverage.profdata
           cd ../../../../
           xcrun llvm-cov export -format="lcov" -instr-profile $pathCoverage Build/Build/Products/Debug/ShapeScript.framework/ShapeScript > info.lcov
+      - name: Upload failed test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-macos-${{ matrix.macos }}
+          path: Build/Logs/Test/
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:

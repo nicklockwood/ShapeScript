@@ -296,7 +296,7 @@ final class MetadataTests: XCTestCase {
                 let dateEnd = try XCTUnwrap(line.lastIndex(of: ")"))
                 let date = line[line.index(after: dateStart) ..< dateEnd]
                 releases.append((String(version), String(date), []))
-            } else if line.hasPrefix("-") {
+            } else if line.hasPrefix("-"), !releases.isEmpty {
                 notes.append(String(line[line.index(after: line.startIndex)...]))
             }
         }

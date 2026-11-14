@@ -18,14 +18,14 @@ private final class ModelInfoMockViewController: DocumentViewControllerProtocol,
     static let documentBackgroundColor = Color.clear
 
     weak var document: ModelInfoMockDocument?
-    let scnScene = SCNScene()
-    var renderTimer: Timer?
-    let scnView = SCNView()
+    let sceneKitRenderer = SceneKitRenderer()
+    var renderer: any SceneRenderer { sceneKitRenderer }
+    var scnScene: SCNScene { sceneKitRenderer.scene }
+    var scnView: SCNView { sceneKitRenderer.view }
     let errorTextView = OSTextView()
     let grantAccessButton = OSButton()
     var isQuickLook = false
-    let cameraNode = SCNNode()
-    var axesNode: SCNNode?
+    var cameraNode: SCNNode { sceneKitRenderer.cameraNode }
     var errorMessage: NSAttributedString?
     var isLoading = false
     var renderProgress: Double?

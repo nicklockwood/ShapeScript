@@ -16,6 +16,7 @@ public final class RenderProgress: @unchecked Sendable {
     private var _isFinished: Bool = false
     private var _isCancelled: Bool = false
     private var cancellationHandler: CancellationHandler = { false }
+    private let previewHandler: (() -> Void)?
     private var activeUnitStart: Int = 0
     private var activeUnitCount: Int = 1
     private var activeCheckpointCount: Int = 0
@@ -40,9 +41,13 @@ public final class RenderProgress: @unchecked Sendable {
         self.totalUnitCount = max(0, totalUnitCount)
         self._isFinished = isFinished
         self._isCancelled = isCancelled
+        self.previewHandler = nil
     }
 
-    public init() {}
+    /// The preview callback runs synchronously before final geometry is built.
+    public init(didBuildPreview: (() -> Void)? = nil) {
+        self.previewHandler = didBuildPreview
+    }
 }
 
 public extension RenderProgress {
@@ -78,6 +83,10 @@ public extension RenderProgress {
 }
 
 extension RenderProgress {
+    func didBuildPreview() {
+        previewHandler?()
+    }
+
     func beginTracking(totalUnitCount: Int, isCancelled: @escaping CancellationHandler) {
         lock.lock()
         phase = .buildingLeaves

@@ -14,7 +14,7 @@ final class MetadataTests: XCTestCase {
     // MARK: What's New
 
     func testWhatsNew() throws {
-        #if os(iOS)
+        #if canImport(UIKit)
         let whatsNew = try loadRTF("WhatsNew").string
         #else
         let whatsNew = loadRTF("WhatsNew").string

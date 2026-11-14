@@ -9,6 +9,7 @@
 import Euclid
 import SceneKit
 import ShapeScript
+import RealityKit
 
 struct Axes {
     let geometry: Geometry
@@ -21,8 +22,8 @@ struct Axes {
         let textScale = 0.1
         let distance = 1 + textScale
         let material = Material(color: color)
-        self.geometry = Geometry(transform: .scale(scale), children: [
-            Geometry(type: .path(.line(-.unitX, .unitX, color: color))),
+        self.geometry = Geometry(transform: .scale(scale), material: material, children: [
+            Geometry(type: .path(.line(-.unitX, .unitX)), material: material),
             Geometry(
                 label: "+X",
                 offset: .unitX * distance,
@@ -37,7 +38,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitY, .unitY, color: color))),
+            Geometry(type: .path(.line(-.unitY, .unitY)), material: material),
             Geometry(
                 label: "+Y",
                 offset: .unitY * distance,
@@ -52,7 +53,7 @@ struct Axes {
                 scale: textScale,
                 material: material
             ),
-            Geometry(type: .path(.line(-.unitZ, .unitZ, color: color))),
+            Geometry(type: .path(.line(-.unitZ, .unitZ)), material: material),
             Geometry(
                 label: "+Z",
                 offset: .unitZ * distance,
@@ -69,14 +70,14 @@ struct Axes {
             ),
         ])
         _ = geometry.build { false }
-        var options = Scene.OutputOptions.default
-        options.lineColor = color
-        geometry.scnBuild(with: options)
     }
 }
 
 extension SCNNode {
     convenience init(_ axes: Axes) {
+        var options = Scene.OutputOptions.default
+        options.lineColor = axes.geometry.material.color ?? options.lineColor
+        axes.geometry.scnBuild(with: options)
         self.init(axes.geometry)
         enumerateChildNodes { node, _ in
             for material in node.geometry?.materials ?? [] {
@@ -86,11 +87,43 @@ extension SCNNode {
     }
 }
 
+@available(macOS 15.0, iOS 18.0, tvOS 26.0, visionOS 1.0, *)
+extension Entity {
+    convenience init(_ axes: Axes, lineWidth: Double) throws {
+        self.init()
+        let scale = axes.geometry.transform.scale.x
+        var options = Scene.OutputOptions.default
+        // Path strokes are built in local coordinates, then scaled with the axes.
+        options.lineWidth = scale > 0 ? lineWidth / scale : 0
+        let scene = Scene(
+            background: .color(.clear),
+            children: [axes.geometry],
+            cache: nil
+        )
+        for reference in try scene.realityKitEntityReferences(with: options) {
+            if var model = reference.entity.components[ModelComponent.self] {
+                model.materials = model.materials.map { material in
+                    guard let material = material as? PhysicallyBasedMaterial else { return material }
+                    var unlit = UnlitMaterial(color: material.baseColor.tint)
+                    switch material.blending {
+                    case .opaque: break
+                    case let .transparent(opacity): unlit.blending = .transparent(opacity: opacity)
+                    @unknown default: break
+                    }
+                    return unlit
+                }
+                reference.entity.components.set(model)
+            }
+            addChild(reference.entity)
+        }
+    }
+}
+
 private extension Geometry {
     convenience init(
         type: GeometryType = .group,
-        transform: Transform = .identity,
-        material: Material = .default,
+        transform: Euclid.Transform = .identity,
+        material: ShapeScript.Material = .default,
         smoothing: Angle? = nil,
         children: [Geometry] = []
     ) {
@@ -110,7 +143,7 @@ private extension Geometry {
         offset: Vector,
         rotation: Rotation,
         scale: Double,
-        material: Material
+        material: ShapeScript.Material
     ) {
         let paths = Path.text(label)
         self.init(type: .fill(paths), transform: Transform(

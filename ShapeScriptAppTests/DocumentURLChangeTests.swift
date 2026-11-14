@@ -18,14 +18,14 @@ private final class URLChangeMockViewController: DocumentViewControllerProtocol,
     static let documentBackgroundColor = Color.clear
 
     weak var document: URLChangeMockDocument?
-    let scnScene = SCNScene()
-    var renderTimer: Timer?
-    let scnView = SCNView()
+    let sceneKitRenderer = SceneKitRenderer()
+    var renderer: any SceneRenderer { sceneKitRenderer }
+    var scnScene: SCNScene { sceneKitRenderer.scene }
+    var scnView: SCNView { sceneKitRenderer.view }
     let errorTextView = OSTextView()
     let grantAccessButton = OSButton()
     var isQuickLook = false
-    let cameraNode = SCNNode()
-    var axesNode: SCNNode?
+    var cameraNode: SCNNode { sceneKitRenderer.cameraNode }
     var errorMessage: NSAttributedString?
     var isLoading = true
     var renderProgress: Double?
@@ -225,7 +225,7 @@ final class DocumentURLChangeTests: XCTestCase {
         try Data().write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         document.documentFileURL = url
-        viewController.cameraNode.camera = SCNCamera()
+        viewController.sceneKitRenderer.cameraNode.camera = SCNCamera()
         document.scene = try Scene(csgString: "cube([2,4,10],true);", isCancelled: { false })
         XCTAssertTrue(try XCTUnwrap(document.scene).build { false })
         viewController.scnView.frame.size = CGSize(width: 200, height: 200)
@@ -234,7 +234,7 @@ final class DocumentURLChangeTests: XCTestCase {
         // The document type remains authoritative even if the scene is stale.
         document.scene = document.scene?.with(zUp: false)
         viewController.refreshAxesAndCamera()
-        let geometry = try Geometry(viewController.cameraNode)
+        let geometry = try Geometry(viewController.sceneKitRenderer.cameraNode)
         XCTAssertEqual(Vector.unitY.rotated(by: geometry.transform.rotation).z, 1, accuracy: 1e-8)
         XCTAssertEqual(geometry.transform.translation.y, -12, accuracy: 1e-6)
     }
@@ -487,6 +487,33 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertEqual(viewController.warningMessages.last, "Another warning")
     }
 
+    func testCreationAndDocumentUpdatesShareVersionMetadata() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("model.shape")
+        try "cube".write(to: url, atomically: true, encoding: .utf8)
+        let document = URLChangeMockDocument(fileURL: url)
+        document.formatVersion = "1.0.0"
+        document.clientVersion = "1.0.0"
+        try url.markCreatedWithCurrentVersion()
+        // Stamping must also invalidate previously cached values for this URL.
+        XCTAssertEqual(document.formatVersion, ShapeScript.version)
+        XCTAssertEqual(document.clientVersion, appVersion)
+        document.formatVersion = "1.0.0"
+        document.clientVersion = "1.0.0"
+        document.markUpdatedWithCurrentVersion()
+        let freshSettings = Settings()
+        let formatVersion: SemanticVersion? = freshSettings.value(
+            for: DocumentVersionKey.formatVersion.rawValue, in: document
+        )
+        let clientVersion: SemanticVersion? = freshSettings.value(
+            for: DocumentVersionKey.clientVersion.rawValue, in: document
+        )
+        XCTAssertEqual(formatVersion, ShapeScript.version)
+        XCTAssertEqual(clientVersion, appVersion)
+    }
+
     func testVersionWarningDismissalIsAlsoSessionOnly() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -595,13 +622,13 @@ final class DocumentURLChangeTests: XCTestCase {
         for size in [NSSize(width: 300, height: 600), NSSize(width: 800, height: 400)] {
             window.setContentSize(size)
             viewController.view.layoutSubtreeIfNeeded()
-            let position = viewController.cameraNode.position
-            let scale = viewController.cameraNode.camera?.orthographicScale
+            let position = viewController.sceneKitRenderer.cameraNode.position
+            let scale = viewController.sceneKitRenderer.cameraNode.camera?.orthographicScale
             viewController.refreshScene()
-            XCTAssertEqual(viewController.cameraNode.position.x, position.x, accuracy: 0.001)
-            XCTAssertEqual(viewController.cameraNode.position.y, position.y, accuracy: 0.001)
-            XCTAssertEqual(viewController.cameraNode.position.z, position.z, accuracy: 0.001)
-            XCTAssertEqual(viewController.cameraNode.camera?.orthographicScale, scale)
+            XCTAssertEqual(viewController.sceneKitRenderer.cameraNode.position.x, position.x, accuracy: 0.001)
+            XCTAssertEqual(viewController.sceneKitRenderer.cameraNode.position.y, position.y, accuracy: 0.001)
+            XCTAssertEqual(viewController.sceneKitRenderer.cameraNode.position.z, position.z, accuracy: 0.001)
+            XCTAssertEqual(viewController.sceneKitRenderer.cameraNode.camera?.orthographicScale, scale)
         }
     }
 

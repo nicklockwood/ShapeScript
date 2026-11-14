@@ -67,6 +67,21 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             return configuration
         }
 
+        #if os(visionOS)
+        if #available(visionOS 26.0, *),
+           activityType == volumeActivityType ||
+           connectingSceneSession.configuration.name == volumeSceneConfigurationName ||
+           connectingSceneSession.role == .windowApplicationVolumetric
+        {
+            let configuration = UISceneConfiguration(
+                name: volumeSceneConfigurationName,
+                sessionRole: connectingSceneSession.role
+            )
+            configuration.delegateClass = VisionDocumentSceneDelegate.self
+            return configuration
+        }
+        #endif
+
         let configuration = UISceneConfiguration(
             name: mainSceneConfigurationName,
             sessionRole: connectingSceneSession.role
@@ -84,6 +99,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         }) else {
             return
         }
+        #if os(visionOS)
+        UIApplication.shared.closeAuxiliaryScenes()
+        #else
         UIApplication.shared.closeAuxiliaryScenesIfNoMainScenesRemain()
+        #endif
     }
 }

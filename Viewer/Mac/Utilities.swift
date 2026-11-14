@@ -114,6 +114,7 @@ let onlineHelpURL = URL(string: "https://shapescript.info/\(ShapeScript.version)
                 Data()
             }
             try data.write(to: url, options: .atomic)
+            try url.markCreatedWithCurrentVersion()
             NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
                 if let error {
                     NSDocumentController.shared.presentError(error)

@@ -1722,9 +1722,11 @@ private extension Geometry {
             isCancelled: isCancelled
         )
         defer { progress.endTracking() }
-        let didBuild = buildLeaves(progress, plan: plan) &&
-            buildPreview(progress) &&
-            buildFinal(progress, plan: plan)
+        guard buildLeaves(progress, plan: plan), buildPreview(progress), !progress.isCancelled else {
+            return false
+        }
+        progress.didBuildPreview()
+        let didBuild = buildFinal(progress, plan: plan)
         if didBuild {
             progress.finish()
         }

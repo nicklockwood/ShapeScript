@@ -78,6 +78,7 @@ extension DocumentProtocol {
     }
 
     func rerender() {
+        let renderer = viewController?.renderer
         if case let .failure(error) = loadingProgress?.status {
             // Appearance and display settings can change after evaluation fails.
             // Redraw the partial scene without retrying the script or clearing its error.
@@ -93,7 +94,7 @@ extension DocumentProtocol {
             loadingProgress = progress
             progress.dispatch { progress in
                 progress.setStatus(.partial(scene, .geometryBuilt))
-                scene.scnBuild(with: options)
+                renderer?.prepare(scene, options: options)
                 progress.setStatus(.failure(error))
             }
             return
@@ -110,7 +111,7 @@ extension DocumentProtocol {
                !scene.children.isEmpty
             {
                 progress.setStatus(.partial(scene, .geometryBuilt))
-                scene.scnBuild(with: scene.outputOptions(
+                renderer?.prepare(scene, options: scene.outputOptions(
                     for: cameraSettings,
                     backgroundColor: Color(backgroundColor),
                     wireframe: showWireframe
@@ -161,6 +162,7 @@ extension DocumentProtocol {
         let showWireframe = showWireframe
         let fileURL = documentFileURL
         let input = sourceString
+        let renderer = viewController?.renderer
         let previousScene = scene ?? .empty
         loadingProgress = LoadingProgress { [weak self] status in
             guard let self else {
@@ -300,12 +302,19 @@ extension DocumentProtocol {
                 }
                 progress.setStatus(.partial(previousScene, .evaluated))
 
-                let renderProgress = RenderProgress()
+                try renderer?.validate(scene, source: input)
                 let options = scene.outputOptions(
                     for: cameraSettings,
                     backgroundColor: Color(backgroundColor),
                     wireframe: showWireframe
                 )
+                let renderProgress = RenderProgress(didBuildPreview: {
+                    guard !progress.isCancelledOrFailed else { return }
+                    progress.performUpdate {
+                        renderer?.prepare(scene, options: options)
+                        progress.setStatus(.partial(scene, .evaluated))
+                    }
+                })
 
                 // Clear errors and previous geometry
                 progress.setStatus(.partial(.empty, .evaluated))
@@ -320,7 +329,9 @@ extension DocumentProtocol {
                             return
                         }
                         Swift.print(String(format: "[\(progress.id)] rendering..."))
-                        scene.scnBuild(with: options)
+                        if renderer?.supportsIncrementalGeometryUpdates == true {
+                            renderer?.prepare(scene, options: options)
+                        }
                         guard !renderProgress.isFinished else {
                             return
                         }
@@ -347,7 +358,7 @@ extension DocumentProtocol {
                 // on its serial queue so SceneKit conversion never overlaps.
                 progress.performUpdate {
                     progress.setStatus(.partial(scene, .geometryBuilt))
-                    scene.scnBuild(with: options)
+                    renderer?.prepare(scene, options: options)
                 }
 
                 // Show error
@@ -779,8 +790,7 @@ extension DocumentProtocol {
         if input != sourceString {
             if !sourceString.isEmpty {
                 // Treat as edit
-                formatVersion = ShapeScript.version
-                clientVersion = appVersion
+                markUpdatedWithCurrentVersion()
             }
             sourceString = input
             DispatchQueue.main.async { [weak self] in
@@ -806,13 +816,18 @@ extension DocumentProtocol {
         updateViews()
     }
 
+    func markUpdatedWithCurrentVersion() {
+        guard let documentFileURL else { return }
+        try? settings.markCurrentVersion(at: documentFileURL)
+    }
+
     var formatVersion: SemanticVersion? {
-        get { settings.value(for: #function, in: self) }
-        set { settings.set(newValue, for: #function, in: self) }
+        get { settings.value(for: DocumentVersionKey.formatVersion.rawValue, in: self) }
+        set { settings.set(newValue, for: DocumentVersionKey.formatVersion.rawValue, in: self) }
     }
 
     var clientVersion: SemanticVersion? {
-        get { settings.value(for: #function, in: self) }
-        set { settings.set(newValue, for: #function, in: self) }
+        get { settings.value(for: DocumentVersionKey.clientVersion.rawValue, in: self) }
+        set { settings.set(newValue, for: DocumentVersionKey.clientVersion.rawValue, in: self) }
     }
 }

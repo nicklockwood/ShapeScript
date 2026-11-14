@@ -80,7 +80,7 @@ extension Scene {
     func camera(named name: String) throws -> Camera {
         let cameras = CameraType.allCases.map {
             Camera(type: $0, zUp: zUp)
-        } + self.cameras.enumerated().map { index, geometry in
+        } + cameras.enumerated().map { index, geometry in
             Camera(geometry: geometry, index: index, zUp: zUp)
         }
         let matches = cameras.filter {
@@ -222,5 +222,66 @@ extension Camera: Equatable {
             return settings
         }
         return .default
+    }
+}
+
+struct CameraFraming {
+    let transform: Transform
+    let orthographicScale: Double
+}
+
+extension Camera {
+    func framing(visibleBounds: Bounds, viewSize: CGSize, showAxes: Bool) -> CameraFraming {
+        let camera = self
+        let bounds = visibleBounds
+        let extent = max(-visibleBounds.min, visibleBounds.max)
+        let axisScale = max(extent.x, extent.y, extent.z) * 1.1 * 2.2
+        let size = camera.framingSize(bounds.size)
+        var distance, scale: Double
+        let aspectRatio = Double(viewSize.height / viewSize.width)
+        var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
+        switch camera.type {
+        case .front, .back:
+            distance = max(size.x * aspectRatio, size.y) + size.z / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
+        case .left, .right:
+            distance = max(size.z * aspectRatio, size.y) + size.x / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
+        case .top, .bottom:
+            distance = max(size.x * aspectRatio, size.z) + size.y / 2
+            scale = max(size.x * aspectRatio, size.y * aspectRatio, size.z)
+            offset = Vector(0, 0, 0.000001)
+        default:
+            distance = max(size.x * aspectRatio, size.y) + bounds.size.z / 2
+            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
+        }
+        if showAxes {
+            distance = max(distance, axisScale)
+            scale = max(scale, axisScale)
+        }
+        scale /= 1.8
+        let orientation: Rotation
+        let center = showAxes ? Vector.zero : visibleBounds.center
+        var position = center - camera.direction * distance + offset.rotated(by: camera.axisRotation)
+        if let geometry = camera.geometry {
+            orientation = geometry.worldTransform.rotation
+            if camera.hasPosition {
+                position = geometry.worldTransform.translation
+            }
+            if camera.hasScale {
+                let v = geometry.worldTransform.scale
+                scale = max(v.x, v.y, v.z)
+            }
+        } else {
+            orientation = camera.orientation
+        }
+        return CameraFraming(
+            transform: Transform(
+                rotation: !hasOrientation && geometry != nil ?
+                    lookOrientation(towards: center - position) : orientation,
+                translation: position
+            ),
+            orthographicScale: scale
+        )
     }
 }

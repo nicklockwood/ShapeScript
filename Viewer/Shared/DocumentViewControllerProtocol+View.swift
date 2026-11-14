@@ -123,29 +123,11 @@ extension DocumentViewControllerProtocol {
         }
     }
 
-    func makeCameraNode() -> SCNNode {
-        let cameraNode = SCNNode()
-        cameraNode.camera = SCNCamera()
-        cameraNode.position = SCNVector3(0, 0, 1)
-        cameraNode.camera?.zNear = 0.01
-        cameraNode.camera?.automaticallyAdjustsZRange = true
-        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
-        cameraNode.eulerAngles = SCNVector3(0, 0, 0)
-        return cameraNode
-    }
-
-    var usesOrthographicProjection: Bool {
-        camera.isOrthographic ?? (isOrthographic && !isQuickLook)
-    }
-
     var cameraHasMoved: Bool {
-        scnView.pointOfView != cameraNode
-    }
-
-    var axesSize: Double {
-        let bounds = visibleBounds
-        let m = max(-bounds.min, bounds.max)
-        return max(m.x, m.y, m.z) * 1.1
+        guard renderer is SceneKitRenderer else {
+            return false
+        }
+        return sceneKitRenderer.cameraHasMoved
     }
 
     var viewCenter: Vector {
@@ -153,102 +135,79 @@ extension DocumentViewControllerProtocol {
     }
 
     func resetView() {
-        scnView.pointOfView = cameraNode
-        scnView.defaultCameraController.worldUp = SCNVector3(camera.upVector)
-        scnView.defaultCameraController.target = SCNVector3(viewCenter)
-        scnView.antialiasingMode = camera.settings.antialiased ? .multisampling4X : .none
-        refreshView()
-        didResetView()
-    }
-
-    func resetCamera() {
-        refreshAxesAndCamera()
-        resetView()
+        defer { didResetView() }
+        guard renderer is SceneKitRenderer else {
+            return
+        }
+        sceneKitRenderer.resetCamera(
+            camera: camera,
+            visibleBounds: visibleBounds,
+            showAxes: showAxes
+        )
     }
 
     func refreshView() {
-        renderTimer?.invalidate()
-        scnView.rendersContinuously = true
-        let timer = Timer(timeInterval: 0.1, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.scnView.rendersContinuously = false
-                self?.renderTimer = nil
-            }
+        guard renderer is SceneKitRenderer else {
+            return
         }
-        timer.tolerance = 0.05
-        RunLoop.main.add(timer, forMode: .common)
-        renderTimer = timer
+        sceneKitRenderer.refreshView()
     }
 
     func refreshScene() {
         defer { didRefreshScene() }
-        guard let geometry else {
+        if geometry == nil {
             selectedGeometry = nil
-            scnScene.rootNode.childNodes.forEach { $0.removeFromParentNode() }
-            scnView.allowsCameraControl = showAxes
-            refreshAxesAndCamera()
-            resetView()
+        }
+        if renderer is SceneKitRenderer {
+            sceneKitRenderer.refreshGeometry(
+                geometry,
+                selectedGeometry: selectedGeometry,
+                showAxes: showAxes,
+                isQuickLook: isQuickLook,
+                camera: camera,
+                isOrthographic: isOrthographic,
+                visibleBounds: visibleBounds,
+                interfaceColor: interfaceColor
+            )
             return
         }
-
-        let oldAxesNode = axesNode
-        let geometryNodes = scnScene.rootNode.childNodes.filter { $0 !== oldAxesNode }
-        if geometryNodes.count == geometry.children.count,
-           zip(geometryNodes, geometry.children).allSatisfy({ $1.scnNode === $0 })
+        if #available(macOS 15.0, iOS 18.0, visionOS 1.0, *),
+           document?.loadingProgress?.inProgress != true,
+           let scene = document?.scene
         {
-            for (node, child) in zip(geometryNodes, geometry.children) {
-                node.update(with: child)
-            }
-        } else {
-            geometryNodes.forEach { $0.removeFromParentNode() }
-            for child in geometry.children {
-                scnScene.rootNode.addChildNode(SCNNode(child))
-            }
-        }
-
-        // restore selection
-        selectGeometry(selectedGeometry?.scnNode)
-
-        // update camera
-        refreshAxesAndCamera()
-        scnView.allowsCameraControl = true
-        scnView.autoenablesDefaultLighting = true
-        if !cameraHasMoved {
-            resetView()
-        } else {
-            refreshView()
+            renderer.prepare(
+                scene,
+                options: scene.outputOptions(
+                    for: camera.settings,
+                    backgroundColor: Color(backgroundColor),
+                    wireframe: document?.showWireframe ?? false
+                )
+            )
         }
     }
 
     func selectGeometry(at location: CGPoint) {
-        let focus = geometry?.childIsFocused ?? false
-        let geometry = selectableGeometries(at: location).first {
-            $0.type != .group && $0.isSelectableInSelectionMenu(focus: focus)
+        guard renderer is SceneKitRenderer else {
+            return
         }
-        selectGeometry(geometry?.scnNode)
+        selectedGeometry = geometry.flatMap {
+            sceneKitRenderer.selectGeometry(at: location, in: $0)
+        }
     }
 
     func selectGeometry(_ scnNode: SCNNode?) {
-        selectedGeometry = geometry?.select(with: scnNode)
+        guard renderer is SceneKitRenderer else {
+            selectedGeometry = nil
+            return
+        }
+        selectedGeometry = sceneKitRenderer.selectGeometry(scnNode, in: geometry)
     }
 
     func selectableGeometries(at location: CGPoint) -> [Geometry] {
-        let hits = scnView.hitTest(location, options: [.searchMode: SCNHitTestSearchMode.all.rawValue])
-        guard let root = geometry else {
+        guard renderer is SceneKitRenderer else {
             return []
         }
-        var geometries = [Geometry]()
-        for hit in hits where hit.isVisible {
-            guard let geometry = root.geometry(for: hit.node) else {
-                continue
-            }
-            for geometry in geometry.selectionMenuPath(root: root)
-                where !geometries.contains(where: { $0 === geometry })
-            {
-                geometries.append(geometry)
-            }
-        }
-        return geometries
+        return geometry.map { sceneKitRenderer.selectableGeometries(at: location, in: $0) } ?? []
     }
 
     func selectionMenuContext(at location: CGPoint) -> SelectionMenuContext? {
@@ -268,123 +227,62 @@ extension DocumentViewControllerProtocol {
         )
     }
 
+    func refreshGeometry() { refreshScene() }
+    func resetCamera() {
+        refreshAxesAndCamera()
+        resetView()
+    }
+
     func refreshOrthographic() {
-        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
-        scnView.pointOfView?.camera?.usesOrthographicProjection = usesOrthographicProjection
-        refreshView()
-        didRefreshOrthographic()
+        defer { didRefreshOrthographic() }
+        guard renderer is SceneKitRenderer else {
+            refreshAxesAndCamera()
+            return
+        }
+        sceneKitRenderer.refreshOrthographic(
+            camera: camera,
+            isOrthographic: isOrthographic,
+            isQuickLook: isQuickLook
+        )
     }
 
-    func refreshAxes() {
-        axesNode?.removeFromParentNode()
-        if showAxes, !isQuickLook {
-            let axesNode = SCNNode(Axes(
-                scale: axesSize,
-                camera: camera,
-                color: Color(interfaceColor)
-            ))
-            scnScene.rootNode.insertChildNode(axesNode, at: 0)
-            self.axesNode = axesNode
-        }
+    func updateAxes() {
+        refreshAxesAndCamera()
     }
 
-    func refreshCamera() {
-        let bounds = visibleBounds
-        let axisScale = axesSize * 2.2
-        let size = camera.framingSize(bounds.size)
-        var distance, scale: Double
-        let aspectRatio = Double(scnView.bounds.height / scnView.bounds.width)
-        var offset = Vector(0, 0.000001, 0) // Workaround for SceneKit bug
-        switch camera.type {
-        case .front, .back:
-            distance = max(size.x * aspectRatio, size.y) + size.z / 2
-            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
-        case .left, .right:
-            distance = max(size.z * aspectRatio, size.y) + size.x / 2
-            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
-        case .top, .bottom:
-            distance = max(size.x * aspectRatio, size.z) + size.y / 2
-            scale = max(size.x * aspectRatio, size.y * aspectRatio, size.z)
-            offset = Vector(0, 0, 0.000001)
-        default:
-            distance = max(size.x * aspectRatio, size.y) + bounds.size.z / 2
-            scale = max(size.x * aspectRatio, size.y, size.z * aspectRatio)
-        }
-        if showAxes {
-            distance = max(distance, axisScale)
-            scale = max(scale, axisScale)
-        }
-        scale /= 1.8
-        let orientation: Rotation
-        var position = viewCenter - camera.direction * distance +
-            offset.rotated(by: camera.axisRotation)
-        if let geometry = camera.geometry {
-            orientation = geometry.worldTransform.rotation
-            if camera.hasPosition {
-                position = geometry.worldTransform.translation
-            }
-            if camera.hasScale {
-                let v = geometry.worldTransform.scale
-                scale = max(v.x, v.y, v.z)
-            }
-        } else {
-            orientation = camera.orientation
-        }
-        cameraNode.camera?.orthographicScale = scale
-        cameraNode.position = SCNVector3(position)
-        cameraNode.orientation = SCNQuaternion(!camera.hasOrientation && camera.geometry != nil ?
-            camera.lookOrientation(towards: viewCenter - position) : orientation)
-        scnView.defaultCameraController.worldUp = SCNVector3(camera.upVector)
-        cameraNode.camera?.fieldOfView = CGFloat(camera.fov.degrees)
-        cameraNode.camera?.usesOrthographicProjection = usesOrthographicProjection
-        didRefreshCamera()
+    func updateCamera() {
+        refreshAxesAndCamera()
     }
 
     func refreshAxesAndCamera() {
-        refreshAxes()
-        refreshCamera()
+        defer { didRefreshCamera() }
+        if renderer is SceneKitRenderer {
+            sceneKitRenderer.updateAxesAndCamera(
+                showAxes: showAxes,
+                isQuickLook: isQuickLook,
+                camera: camera,
+                isOrthographic: isOrthographic,
+                visibleBounds: visibleBounds,
+                interfaceColor: interfaceColor
+            )
+            return
+        }
+        if #available(macOS 15.0, iOS 18.0, visionOS 1.0, *),
+           let realityKitRenderer = renderer as? RealityKitRenderer
+        {
+            realityKitRenderer.updateAxesAndCamera(
+                showAxes: showAxes,
+                isQuickLook: isQuickLook,
+                camera: camera,
+                isOrthographic: isOrthographic,
+                visibleBounds: visibleBounds,
+                interfaceColor: interfaceColor
+            )
+        }
     }
 }
 
 extension Geometry {
-    func geometry(for scnNode: SCNNode) -> Geometry? {
-        if self.scnNode === scnNode {
-            return self
-        }
-        for child in children {
-            if let geometry = child.geometry(for: scnNode) {
-                return geometry
-            }
-        }
-        return nil
-    }
-
-    func select(with scnNode: SCNNode?) -> Geometry? {
-        select(with: scnNode, ancestorIsSelected: false)
-    }
-
-    private func select(with scnNode: SCNNode?, ancestorIsSelected: Bool) -> Geometry? {
-        let isSelected = (scnNode != nil && self.scnNode === scnNode)
-        let highlight = isSelected || ancestorIsSelected
-        if highlight, self.scnNode?.geometry != nil {
-            let g = scnGeometry.copy() as! SCNGeometry
-            g.materials = scnGeometry.materials.map {
-                let material = $0.copy() as! SCNMaterial
-                material.emission.contents = OSColor.red
-                material.multiply.contents = OSColor(red: 1, green: 0.7, blue: 0.7, alpha: 1)
-                return material
-            }
-            self.scnNode?.geometry = g
-        } else if self.scnNode?.geometry != nil {
-            self.scnNode?.geometry = scnGeometry
-        }
-        var selected = isSelected ? self : nil
-        for child in children {
-            selected = child.select(with: scnNode, ancestorIsSelected: highlight) ?? selected
-        }
-        return selected
-    }
-
     func isDescendant(of geometry: Geometry) -> Bool {
         var parent = parent
         while let current = parent {
@@ -394,14 +292,5 @@ extension Geometry {
             parent = current.parent
         }
         return false
-    }
-}
-
-private extension SCNHitTestResult {
-    var isVisible: Bool {
-        let material = node.geometry.map { geometry in
-            geometry.materials[geometryIndex % geometry.materials.count]
-        }
-        return material.flatMap { Material($0)?.isVisible } ?? true
     }
 }

@@ -48,6 +48,9 @@ final class Document: UIDocument, @preconcurrency DocumentProtocol, @unchecked S
 
     var scene: Scene? {
         didSet {
+            #if os(visionOS)
+            NotificationCenter.default.post(name: .documentSceneUpdated, object: self)
+            #endif
             perform(#selector(updateCamerasAndViews), on: .main, with: nil, waitUntilDone: false)
         }
     }

@@ -327,6 +327,9 @@ extension AppDelegate {
         viewMenu.addItem(item("Orthographic", action: #selector(Document.setOrthographic(_:)), key: "O"))
         viewMenu.addItem(item("Show Wireframe", action: #selector(Document.showWireframe(_:)), key: "W"))
         viewMenu.addItem(item("Show Axes", action: #selector(Document.showAxes(_:)), key: "A"))
+        #if DEBUG
+        viewMenu.addItem(item("Use RealityKit Renderer", action: #selector(Document.toggleRendererKind(_:))))
+        #endif
         viewMenu.addItem(item("Copy Camera Settings", action: #selector(Document.copyCamera(_:)), key: "C"))
         #if DEBUG
         viewMenu.addItem(.separator())

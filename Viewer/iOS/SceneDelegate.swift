@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 let mainActivityType = "com.charcoaldesign.ShapeScriptViewer.main"
 let mainSceneConfigurationName = "Default Configuration"
 let mainSceneTitle = "ShapeScript"
+let mainURLActivityKey = "url"
 
 @MainActor
 @objc(ShapeScriptSceneDelegate)
@@ -34,9 +35,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             forOpening: [.shape, .csg]
         )
         window.backgroundColor = .clear
+        #if os(visionOS)
+        window.isOpaque = false
+        #endif
         window.makeKeyAndVisible()
         self.window = window
         self.scene(scene, openURLContexts: connectionOptions.urlContexts)
+        for activity in connectionOptions.userActivities {
+            self.scene(scene, continue: activity)
+        }
     }
 
     func stateRestorationActivity(for _: UIScene) -> NSUserActivity? {
@@ -46,14 +53,53 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         return activity
     }
 
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        guard userActivity.activityType == mainActivityType,
+              let string = userActivity.userInfo?[mainURLActivityKey] as? String,
+              let fileURL = URL(string: string),
+              let documentBrowserViewController = window?
+                  .rootViewController as? DocumentBrowserViewController
+        else {
+            return
+        }
+        documentBrowserViewController.continueMainActivity(userActivity)
+        if let windowScene = scene as? UIWindowScene {
+            windowScene.title = fileURL.displayBaseName
+        }
+    }
+
     func sceneDidDisconnect(_ scene: UIScene) {
+        #if os(visionOS)
+        UIApplication.shared.closeAuxiliaryScenes()
+        #else
         UIApplication.shared.closeAuxiliaryScenesIfNoMainScenesRemain(excluding: scene)
+        #endif
     }
 
     func scene(_: UIScene, openURLContexts urlContexts: Set<UIOpenURLContext>) {
-        guard var inputURL = urlContexts.first?.url else {
+        guard let documentBrowserViewController = window?
+            .rootViewController as? DocumentBrowserViewController else { return }
+
+        for urlContext in urlContexts {
+            documentBrowserViewController.openDocument(from: urlContext)
+        }
+    }
+}
+
+@MainActor
+extension DocumentBrowserViewController {
+    func continueMainActivity(_ userActivity: NSUserActivity) {
+        guard userActivity.activityType == mainActivityType,
+              let string = userActivity.userInfo?[mainURLActivityKey] as? String,
+              let fileURL = URL(string: string)
+        else {
             return
         }
+        presentDocumentWhenReady(at: fileURL)
+    }
+
+    func openDocument(from urlContext: UIOpenURLContext) {
+        var inputURL = urlContext.url
         if inputURL.scheme == "shapescript" {
             var path = inputURL.absoluteString
                 .deletingPrefix("shapescript:")
@@ -69,12 +115,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             }
         }
 
-        guard let documentBrowserViewController = window?
-            .rootViewController as? DocumentBrowserViewController else { return }
-
         // Ensure the URL is a file URL
         guard inputURL.isFileURL else {
-            documentBrowserViewController.presentError(
+            presentError(
                 "Could not open '\(inputURL.absoluteString)'",
                 onOK: {}
             )
@@ -82,9 +125,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
 
         // Reveal / import the document at the URL
-        documentBrowserViewController.revealDocument(at: inputURL, importIfNeeded: true) { revealedDocumentURL, error in
+        revealDocument(at: inputURL, importIfNeeded: true) { revealedDocumentURL, error in
             if let error {
-                documentBrowserViewController.presentError(
+                self.presentError(
                     "Could not open file '\(inputURL.path)'. \(error.localizedDescription)",
                     onOK: {}
                 )
@@ -95,25 +138,55 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let revealedDocumentURL = revealedDocumentURL ?? inputURL
 
             // Present the Document View Controller for the revealed URL
-            documentBrowserViewController.presentDocument(at: revealedDocumentURL)
+            self.presentDocument(at: revealedDocumentURL)
         }
     }
 }
 
 extension UIApplication {
+    func closeAuxiliaryScenes() {
+        closeHelpScenes()
+        closeSourceScenes()
+        #if os(visionOS)
+        closeVolumeScenes()
+        #endif
+    }
+
     func closeAuxiliaryScenesIfNoMainScenesRemain(excluding disconnectedScene: UIScene? = nil) {
         Task { @MainActor in
-            let hasMainScene = self.connectedScenes.contains { scene in
-                scene !== disconnectedScene &&
-                    scene.session.configuration.name == mainSceneConfigurationName
+            let hasDocumentScene = self.connectedScenes.contains { scene in
+                guard scene !== disconnectedScene else {
+                    return false
+                }
+                if scene.session.configuration.name == mainSceneConfigurationName {
+                    return true
+                }
+                #if os(visionOS)
+                if scene.isVolumeScene {
+                    return true
+                }
+                #endif
+                return false
             }
-            guard !hasMainScene else {
+            guard !hasDocumentScene else {
                 return
             }
-            self.closeHelpScenes()
-            self.closeSourceScenes()
+            self.closeAuxiliaryScenes()
         }
     }
+
+    #if os(visionOS)
+    func closeVolumeScenes() {
+        Task { @MainActor in
+            let volumeSessions = self.openSessions.filter {
+                $0.configuration.name == volumeSceneConfigurationName
+            }
+            for session in volumeSessions {
+                self.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+            }
+        }
+    }
+    #endif
 }
 
 private extension String {

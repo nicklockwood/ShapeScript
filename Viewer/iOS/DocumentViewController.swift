@@ -70,9 +70,34 @@ protocol ExportMenuProvider {
 final class DocumentViewController: UIViewController, DocumentViewControllerProtocol,
     UIAdaptivePresentationControllerDelegate
 {
-    let scnScene = SCNScene()
-    var renderTimer: Timer?
-    private(set) var scnView: SCNView = .init()
+    private var rendererKind: SceneRendererKind {
+        didSet {
+            guard rendererKind != oldValue, isViewLoaded else {
+                return
+            }
+            Settings.shared.sceneRendererKind = rendererKind
+            updateRendererView()
+            #if os(visionOS)
+            onRendererKindChanged?(self)
+            #endif
+            document?.didUpdateSource()
+            rebuildMenu()
+        }
+    }
+
+    let sceneKitRenderer = SceneKitRenderer()
+    private var realityKitRendererStorage: Any?
+
+    @available(iOS 18.0, visionOS 1.0, *)
+    private var realityKitRenderer: RealityKitRenderer {
+        if let renderer = realityKitRendererStorage as? RealityKitRenderer {
+            return renderer
+        }
+        let renderer = RealityKitRenderer()
+        realityKitRendererStorage = renderer
+        return renderer
+    }
+
     private let consoleViewController: ConsoleViewController = .init()
     private var isPreparingModalPresentation = false
     private let renderProgressView: ProgressView = .init()
@@ -86,10 +111,61 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     private var regularWarningConstraints = [NSLayoutConstraint]()
     #if os(visionOS)
     private var consoleOrnament: UIHostingOrnament<ConsoleOrnamentContainer>?
+    private weak var consoleOrnamentOwner: UIViewController?
+    private var controlsOrnament: UIHostingOrnament<ControlsOrnamentContainer>?
+    private weak var controlsOrnamentOwner: UIViewController?
+    private var toolbarLeftBarButtonItems = [UIBarButtonItem]()
+    private var toolbarRightBarButtonItems = [UIBarButtonItem]()
+    private var volumeSize = VolumeSize.volume
+    var onRendererKindChanged: ((DocumentViewController) -> Void)?
     #endif
 
     let errorTextView: UITextView = .init()
     let grantAccessButton: UIButton = .init(type: .system)
+
+    var renderer: any SceneRenderer {
+        switch rendererKind {
+        case .sceneKit:
+            sceneKitRenderer
+        case .realityKit:
+            if #available(iOS 18.0, visionOS 1.0, *) {
+                realityKitRenderer
+            } else {
+                sceneKitRenderer
+            }
+        }
+    }
+
+    var scnView: SCNView {
+        sceneKitRenderer.view
+    }
+
+    #if os(visionOS)
+    var showsWindowBackground: Bool {
+        rendererKind == .sceneKit
+    }
+
+    var usesRealityKitRenderer: Bool {
+        rendererKind == .realityKit
+    }
+
+    var realityKitView: RealityKitView {
+        realityKitRenderer.realityKitView
+    }
+    #endif
+
+    private var renderView: UIView {
+        switch rendererKind {
+        case .sceneKit:
+            sceneKitRenderer.view
+        case .realityKit:
+            if #available(iOS 18.0, visionOS 1.0, *) {
+                realityKitRenderer.view
+            } else {
+                sceneKitRenderer.view
+            }
+        }
+    }
 
     private var closeButton: UIBarButtonItem = .init()
     private var loadingItem: UIBarButtonItem = .init()
@@ -105,12 +181,27 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
     }
 
+    init(rendererKind: SceneRendererKind = Settings.shared.sceneRendererKind) {
+        self.rendererKind = rendererKind
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        nil
+    }
+
+    #if os(visionOS)
+    func setVolumeSizeHandler(_ handler: ((VolumeSize) -> Void)?) {
+        realityKitRenderer.onVolumeSizeChanged = { [weak self] size in
+            self?.volumeSize = size
+            handler?(size)
+        }
+    }
+    #endif
+
     /// In preview mode, document view is non-editable. Used for QuickLook
     var isQuickLook: Bool = false
-
-    lazy var cameraNode: SCNNode = makeCameraNode()
-
-    weak var axesNode: SCNNode?
 
     var navigationBar: UINavigationBar? {
         navigationController?.navigationBar
@@ -242,10 +333,23 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     var background: MaterialProperty? {
-        get { MaterialProperty(scnScene.background) }
+        get {
+            switch rendererKind {
+            case .sceneKit:
+                sceneKitRenderer.background
+            case .realityKit:
+                nil
+            }
+        }
         set {
             if newValue != background {
-                newValue?.configureProperty(scnScene.background)
+                switch rendererKind {
+                case .sceneKit:
+                    sceneKitRenderer.background = newValue
+                case .realityKit:
+                    break
+                }
+                updateDocumentBackground()
                 updateInterfaceColor()
             }
         }
@@ -302,6 +406,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             return
         }
         navigationItem.setLeftBarButtonItems(items, animated: animated)
+        #if os(visionOS)
+        toolbarLeftBarButtonItems = items
+        updateControlsOrnament()
+        #endif
     }
 
     func setRightBarButtonItems(_ items: [UIBarButtonItem], animated: Bool) {
@@ -312,6 +420,10 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             return
         }
         navigationItem.setRightBarButtonItems(items, animated: animated)
+        #if os(visionOS)
+        toolbarRightBarButtonItems = items
+        updateControlsOrnament()
+        #endif
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -334,7 +446,20 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         rebuildMenu()
     }
 
-    weak var selectedGeometry: Geometry?
+    weak var selectedGeometry: Geometry? {
+        didSet {
+            guard selectedGeometry !== oldValue else {
+                return
+            }
+            if #available(iOS 18.0, visionOS 1.0, *),
+               let realityKitRenderer = renderer as? RealityKitRenderer
+            {
+                realityKitRenderer.select(selectedGeometry)
+            }
+            updateNavigationButtons()
+            rebuildMenu()
+        }
+    }
 
     override func loadView() {
         let rootView = UIView()
@@ -390,6 +515,9 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             action: #selector(openSourceEditor)
         )
         navigationItem.leftBarButtonItem = closeButton
+        #if os(visionOS)
+        toolbarLeftBarButtonItems = [closeButton]
+        #endif
         updateNavigationButtons(animated: false)
 
         NSLayoutConstraint.activate([
@@ -409,7 +537,6 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                 constant: -20
             ),
         ])
-
         view = rootView
     }
 
@@ -424,6 +551,52 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         super.traitCollectionDidChange(previousTraitCollection)
         updateWarningLayoutConstraints()
         view.setNeedsLayout()
+    }
+
+    private func updateRendererView() {
+        #if os(visionOS)
+        if rendererKind == .realityKit {
+            if let oldRenderView = containerView.arrangedSubviews.first {
+                containerView.removeArrangedSubview(oldRenderView)
+            }
+            configureSceneKitView()
+            updateDocumentBackground()
+            updateInterfaceColor()
+            document?.updateViews()
+            refreshGeometry()
+            return
+        }
+        #endif
+        let renderView = renderView
+        if containerView.arrangedSubviews.first !== renderView {
+            if let oldRenderView = containerView.arrangedSubviews.first {
+                containerView.removeArrangedSubview(oldRenderView)
+            }
+            renderView.frame = containerView.bounds
+            renderView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            containerView.addArrangedSubview(renderView, height: nil)
+        }
+        configureSceneKitView()
+        updateDocumentBackground()
+        updateInterfaceColor()
+        document?.updateViews()
+        refreshGeometry()
+    }
+
+    private func configureSceneKitView() {
+        scnView.defaultCameraController.delegate = self
+        scnView.pointOfView = sceneKitRenderer.cameraNode
+    }
+
+    private func updateDocumentBackground() {
+        #if os(visionOS)
+        if rendererKind == .realityKit {
+            containerView.backgroundColor = .clear
+            view.backgroundColor = .clear
+            return
+        }
+        #endif
+        containerView.backgroundColor = backgroundColor
     }
 
     override func viewDidLayoutSubviews() {
@@ -442,6 +615,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
         #if os(visionOS)
         updateConsoleOrnament()
+        updateControlsOrnament()
         #endif
         rebuildMenu()
     }
@@ -450,12 +624,17 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         super.viewDidLoad()
 
         // create view
-        scnView = SCNView(frame: containerView.bounds, options: [:])
-        scnView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        containerView.addArrangedSubview(scnView, height: nil)
-
-        // set the scene to the view
-        scnView.scene = scnScene
+        if #available(iOS 18.0, visionOS 1.0, *) {
+            addChild(realityKitRenderer.hostingController)
+            realityKitRenderer.onSelectGeometry = { [weak self] geometry in
+                self?.selectRealityKitGeometry(geometry)
+            }
+        }
+        scnView.scene = sceneKitRenderer.scene
+        if #available(iOS 18.0, visionOS 1.0, *) {
+            realityKitRenderer.hostingController.didMove(toParent: self)
+        }
+        updateRendererView()
 
         // configure navigation bar
         renderProgressView.frame = CGRect(origin: .zero, size: renderProgressView.intrinsicContentSize)
@@ -469,11 +648,14 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         }
 
         // configure the view
-        containerView.backgroundColor = backgroundColor
-        scnView.backgroundColor = .clear // Important!
-        scnView.isOpaque = false
-        scnView.defaultCameraController.delegate = self
-        scnView.pointOfView = cameraNode
+        updateDocumentBackground()
+        sceneKitRenderer.view.backgroundColor = .clear // Important!
+        sceneKitRenderer.view.isOpaque = false
+        if #available(iOS 18.0, visionOS 1.0, *) {
+            realityKitRenderer.view.backgroundColor = .clear // Important!
+            realityKitRenderer.view.isOpaque = false
+        }
+        configureSceneKitView()
         updateInterfaceColor()
         updateEditButton()
         document?.updateViews()
@@ -484,8 +666,8 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
 
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        scnView.addGestureRecognizer(tapGesture)
-        scnView.addInteraction(ContextMenuInteraction { [weak self] location in
+        sceneKitRenderer.view.addGestureRecognizer(tapGesture)
+        sceneKitRenderer.view.addInteraction(ContextMenuInteraction { [weak self] location in
             guard let self,
                   let menu = selectionMenu(at: location)
             else {
@@ -733,12 +915,15 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         guard view.window != nil else {
             return
         }
+        let ornamentOwner = consoleOrnamentOwnerViewController
         if consoleOrnament == nil {
             let ornament = UIHostingOrnament(sceneAnchor: .bottom) {
                 consoleOrnamentView
             }
-            ornaments.append(ornament)
+            ornamentOwner.ornaments.append(ornament)
             consoleOrnament = ornament
+            consoleOrnamentOwner = ornamentOwner
+            updateRealityKitVolumeBottomPadding()
         } else {
             updateConsoleOrnament()
         }
@@ -778,12 +963,53 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         guard let consoleOrnament else {
             return
         }
-        ornaments.removeAll { $0 === consoleOrnament }
+        consoleOrnamentOwner?.ornaments.removeAll { $0 === consoleOrnament }
         self.consoleOrnament = nil
+        consoleOrnamentOwner = nil
+        updateRealityKitVolumeBottomPadding()
     }
 
     private func updateConsoleOrnament() {
-        consoleOrnament?.rootView = consoleOrnamentView
+        guard let consoleOrnament else {
+            return
+        }
+        let ornamentOwner = consoleOrnamentOwnerViewController
+        if consoleOrnamentOwner !== ornamentOwner {
+            consoleOrnamentOwner?.ornaments.removeAll { $0 === consoleOrnament }
+            ornamentOwner.ornaments.append(consoleOrnament)
+            consoleOrnamentOwner = ornamentOwner
+        }
+        consoleOrnament.rootView = consoleOrnamentView
+        updateRealityKitVolumeBottomPadding()
+    }
+
+    private func updateControlsOrnament() {
+        guard isViewLoaded, view.window != nil else {
+            return
+        }
+        let ornamentOwner = consoleOrnamentOwnerViewController
+        if controlsOrnament == nil {
+            let ornament = UIHostingOrnament(sceneAnchor: .trailing) {
+                controlsOrnamentView
+            }
+            ornamentOwner.ornaments.append(ornament)
+            controlsOrnament = ornament
+            controlsOrnamentOwner = ornamentOwner
+        } else if controlsOrnamentOwner !== ornamentOwner {
+            guard let controlsOrnament else {
+                return
+            }
+            controlsOrnamentOwner?.ornaments.removeAll { $0 === controlsOrnament }
+            ornamentOwner.ornaments.append(controlsOrnament)
+            controlsOrnamentOwner = ornamentOwner
+        }
+        controlsOrnament?.rootView = controlsOrnamentView
+    }
+
+    private var controlsOrnamentView: ControlsOrnamentContainer {
+        ControlsOrnamentContainer(
+            items: toolbarLeftBarButtonItems + toolbarRightBarButtonItems
+        )
     }
 
     private var consoleOrnamentView: ConsoleOrnamentContainer {
@@ -797,12 +1023,31 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     private var consoleOrnamentWidth: CGFloat {
-        let windowWidth = max(view.bounds.width, 320)
-        return max(windowWidth - 120, 280)
+        let windowWidth = max(volumeOrnamentWidth, 320)
+        let margin: CGFloat = 48
+        return max(windowWidth - margin * 2, 280)
     }
 
     private var consoleOrnamentHeight: CGFloat {
         consoleViewController.preferredHeight(maximumHeight: 150)
+    }
+
+    private func updateRealityKitVolumeBottomPadding() {
+        let padding = consoleOrnament != nil ?
+            consoleOrnamentHeight / volumeOrnamentHeight * CGFloat(volumeDefaultHeight) : 0
+        realityKitRenderer.setVolumeBottomPadding(Double(padding))
+    }
+
+    private var volumeOrnamentWidth: CGFloat {
+        volumeSize.layoutWidth(usesRealityKitRenderer: usesRealityKitRenderer) * volumeOrnamentScale
+    }
+
+    private var volumeOrnamentHeight: CGFloat {
+        volumeLayoutHeight * volumeOrnamentScale
+    }
+
+    private var consoleOrnamentOwnerViewController: UIViewController {
+        navigationController ?? self
     }
 
     #endif
@@ -839,7 +1084,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             return
         }
         addChild(consoleViewController)
-        consoleViewController.consoleView.frame.size.width = scnView.frame.width
+        consoleViewController.consoleView.frame.size.width = renderView.frame.width
         consoleViewController.consoleView.sizeToFit()
         let height = consoleViewController.consoleView.frame.height +
             view.safeAreaInsets.bottom
@@ -979,6 +1224,64 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
             }
             cameraItems.append(item)
         }
+        let viewOptions: [UIMenuElement] = [
+            UIAction(
+                title: "Orthographic",
+                image: nil,
+                identifier: nil,
+                discoverabilityTitle: nil,
+                attributes: camera.isOrthographic.map { _ in .disabled } ?? [],
+                state: camera.isOrthographic ?? isOrthographic ? .on : .off
+            ) { [weak self] _ in
+                self?.toggleOrthographic()
+            },
+            UIAction(
+                title: "Show Wireframe",
+                image: nil,
+                identifier: nil,
+                discoverabilityTitle: nil,
+                attributes: [],
+                state: document?.showWireframe == true ? .on : .off
+            ) { [weak self] _ in
+                self?.toggleWireframe()
+            },
+            UIAction(
+                title: "Show Axes",
+                image: nil,
+                identifier: nil,
+                discoverabilityTitle: nil,
+                attributes: [],
+                state: document?.showAxes == true ? .on : .off
+            ) { [weak self] _ in
+                self?.toggleAxes()
+            },
+            ({
+                #if DEBUG
+                UIAction(
+                    title: realityKitRendererTitle,
+                    image: nil,
+                    identifier: nil,
+                    discoverabilityTitle: nil,
+                    attributes: SceneRendererKind.realityKit.isSupported ? [] : .disabled,
+                    state: rendererKind == .realityKit ? .on : .off
+                ) { [weak self] _ in
+                    self?.toggleRendererKind()
+                }
+                #else
+                nil
+                #endif
+            })(),
+            UIAction(
+                title: "Copy Camera Settings",
+                image: nil,
+                identifier: nil,
+                discoverabilityTitle: nil,
+                attributes: rendererKind == .sceneKit ? [] : .disabled,
+                state: .off
+            ) { [weak self] _ in
+                self?.copyCamera()
+            },
+        ].compactMap { $0 }
         let cameraMenu = UIMenu(
             title: "",
             image: nil,
@@ -1007,48 +1310,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
                     image: nil,
                     identifier: nil,
                     options: .displayInline,
-                    children: [
-                        UIAction(
-                            title: "Orthographic",
-                            image: nil,
-                            identifier: nil,
-                            discoverabilityTitle: nil,
-                            attributes: camera.isOrthographic.map { _ in .disabled } ?? [],
-                            state: camera.isOrthographic ?? isOrthographic ? .on : .off
-                        ) { [weak self] _ in
-                            self?.toggleOrthographic()
-                        },
-                        UIAction(
-                            title: "Show Wireframe",
-                            image: nil,
-                            identifier: nil,
-                            discoverabilityTitle: nil,
-                            attributes: [],
-                            state: document?.showWireframe == true ? .on : .off
-                        ) { [weak self] _ in
-                            self?.toggleWireframe()
-                        },
-                        UIAction(
-                            title: "Show Axes",
-                            image: nil,
-                            identifier: nil,
-                            discoverabilityTitle: nil,
-                            attributes: [],
-                            state: document?.showAxes == true ? .on : .off
-                        ) { [weak self] _ in
-                            self?.toggleAxes()
-                        },
-                        UIAction(
-                            title: "Copy Camera Settings",
-                            image: nil,
-                            identifier: nil,
-                            discoverabilityTitle: nil,
-                            attributes: [],
-                            state: .off
-                        ) { [weak self] _ in
-                            self?.copyCamera()
-                        },
-                    ]
+                    children: viewOptions
                 ),
             ]
         )
@@ -1152,7 +1414,7 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     func copyCamera() {
-        guard let code = document?.cameraConfig(for: scnView) else {
+        guard rendererKind == .sceneKit, let code = document?.cameraConfig(for: scnView) else {
             return
         }
 
@@ -1185,8 +1447,33 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
         document?.isOrthographic.toggle()
     }
 
+    private var realityKitRendererTitle: String {
+        #if os(visionOS)
+        "Show in Volume"
+        #else
+        "Use RealityKit Renderer"
+        #endif
+    }
+
+    private func selectRealityKitGeometry(_ geometry: Geometry?) {
+        guard let root = self.geometry,
+              let geometry
+        else {
+            selectedGeometry = nil
+            return
+        }
+        let focus = root.childIsFocused
+        selectedGeometry = geometry
+            .selectionMenuPath(root: root)
+            .first { $0.isSelectableInSelectionMenu(focus: focus) }
+    }
+
+    private func toggleRendererKind() {
+        rendererKind = rendererKind == .sceneKit ? .realityKit : .sceneKit
+    }
+
     @objc private func handleTap(_ gestureRecognizer: UIGestureRecognizer) {
-        let location = gestureRecognizer.location(in: scnView)
+        let location = gestureRecognizer.location(in: renderView)
         selectGeometry(at: location)
     }
 
@@ -1250,6 +1537,17 @@ final class DocumentViewController: UIViewController, DocumentViewControllerProt
     }
 
     private func dismissDocument(completion: (() -> Void)? = nil) {
+        #if os(visionOS)
+        if let windowScene = view.window?.windowScene, windowScene.isVolumeScene {
+            UIApplication.shared.requestSceneSessionDestruction(
+                windowScene.session,
+                options: nil,
+                errorHandler: nil
+            )
+            completion?()
+            return
+        }
+        #endif
         let viewController = presentingViewController ?? self
         viewController.dismiss(animated: true) {
             viewController.view.window?.windowScene?.title = mainSceneTitle
@@ -1282,6 +1580,102 @@ private struct ConsoleOrnamentViewController: UIViewControllerRepresentable {
         _: ConsoleViewController,
         context _: Context
     ) {}
+}
+
+private struct ControlsOrnamentContainer: View {
+    let items: [UIBarButtonItem]
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(items.indices, id: \.self) { index in
+                if items[index].customView != nil {
+                    SwiftUI.ProgressView()
+                        .frame(width: 52, height: 52)
+                } else {
+                    OrnamentBarButton(item: items[index])
+                        .frame(width: 52, height: 52)
+                }
+            }
+        }
+        .padding(8)
+        .glassBackgroundEffect(in: .rect(cornerRadius: 26), displayMode: .always)
+    }
+}
+
+private struct OrnamentBarButton: UIViewRepresentable {
+    let item: UIBarButtonItem
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context _: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        button.preferredBehavioralStyle = .pad
+        return button
+    }
+
+    func updateUIView(_ button: UIButton, context: Context) {
+        if let actionID = context.coordinator.primaryActionID {
+            button.removeAction(identifiedBy: actionID, for: .primaryActionTriggered)
+            context.coordinator.primaryActionID = nil
+        }
+        button.removeTarget(
+            context.coordinator,
+            action: #selector(Coordinator.performAction(_:)),
+            for: .primaryActionTriggered
+        )
+        context.coordinator.item = item
+        button.isEnabled = item.isEnabled
+        button.isHidden = item.isHidden
+        button.tintColor = item.tintColor
+        button.menu = item.menu
+        button.showsMenuAsPrimaryAction = item.menu != nil &&
+            item.primaryAction == nil &&
+            item.action == nil
+        button.accessibilityLabel = item.accessibilityLabel ?? item.title
+        if let primaryAction = item.primaryAction {
+            button.addAction(primaryAction, for: .primaryActionTriggered)
+            context.coordinator.primaryActionID = primaryAction.identifier
+        } else if item.action != nil {
+            button.addTarget(
+                context.coordinator,
+                action: #selector(Coordinator.performAction(_:)),
+                for: .primaryActionTriggered
+            )
+        }
+
+        if let image = item.image {
+            var configuration = UIButton.Configuration.plain()
+            configuration.image = image
+            configuration.preferredSymbolConfigurationForImage = .init(
+                pointSize: 22,
+                weight: .regular
+            )
+            button.configuration = configuration
+        } else {
+            var configuration = UIButton.Configuration.plain()
+            configuration.title = item.title
+            button.configuration = configuration
+        }
+    }
+
+    @MainActor final class Coordinator: NSObject {
+        weak var item: UIBarButtonItem?
+        var primaryActionID: UIAction.Identifier?
+
+        @objc func performAction(_: UIButton) {
+            guard let item, let action = item.action else {
+                return
+            }
+            UIApplication.shared.sendAction(
+                action,
+                to: item.target,
+                from: item,
+                for: nil
+            )
+        }
+    }
 }
 
 #endif
@@ -1334,6 +1728,10 @@ extension DocumentViewController {
             attributes: isSelectable ? [] : [.disabled],
             state: (selectedGeometry === geometry) ? .on : .off
         ) { [weak self] _ in
+            if self?.rendererKind == .realityKit {
+                self?.selectedGeometry = geometry
+                return
+            }
             self?.selectGeometry(geometry.scnNode)
         }
     }

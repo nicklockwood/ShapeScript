@@ -23,7 +23,7 @@ private extension OSView {
         set { alphaValue = newValue }
     }
 }
-#elseif os(iOS)
+#elseif canImport(UIKit)
 import UIKit
 
 private typealias OSLoadingIndicator = UIActivityIndicatorView

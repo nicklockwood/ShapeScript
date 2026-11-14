@@ -89,6 +89,7 @@
 		<string>com.charcoaldesign.ShapeScriptViewer.main</string>
 		<string>com.charcoaldesign.ShapeScriptViewer.documentation</string>
 		<string>com.charcoaldesign.ShapeScriptViewer.source</string>
+		<string>com.charcoaldesign.ShapeScriptViewer.volume</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -145,6 +146,8 @@
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<true/>
+		<key>UIApplicationPreferredDefaultSceneSessionRole</key>
+		<string>UIWindowSceneSessionRoleApplication</string>
 		<key>UISceneConfigurations</key>
 		<dict>
 			<key>UIWindowSceneSessionRoleApplication</key>
@@ -166,6 +169,15 @@
 					<string>Source Configuration</string>
 					<key>UISceneDelegateClassName</key>
 					<string>SourceSceneDelegate</string>
+				</dict>
+			</array>
+			<key>UIWindowSceneSessionRoleVolumetricApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Volume Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>VisionDocumentSceneDelegate</string>
 				</dict>
 			</array>
 		</dict>

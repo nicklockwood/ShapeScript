@@ -597,7 +597,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.SVGPathTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator xros xrsimulator";
 			};
 			name = Debug;
 		};
@@ -618,7 +619,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.charcoaldesign.SVGPathTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos macosx appletvos appletvsimulator xros xrsimulator";
 			};
 			name = Release;
 		};

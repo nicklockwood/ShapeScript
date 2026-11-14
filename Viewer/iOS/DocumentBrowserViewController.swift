@@ -8,6 +8,9 @@
 
 import ShapeScript
 import UIKit
+#if os(visionOS)
+import SwiftUI
+#endif
 
 @MainActor
 final class DocumentBrowserViewController: UIDocumentBrowserViewController,
@@ -16,6 +19,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 {
     private weak var rootNavigationController: UINavigationController?
     private var openingDocument = false
+    private var pendingDocumentURL: URL?
     private var pendingDocumentViewController: DocumentViewController?
 
     override func viewDidLoad() {
@@ -36,6 +40,12 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+
+        if let pendingDocumentURL {
+            self.pendingDocumentURL = nil
+            presentDocument(at: pendingDocumentURL)
+            return
+        }
 
         let appDelegate = UIApplication.shared.delegate as? AppDelegate
         if Settings.shared.showWelcomeScreenAtStartup {
@@ -188,10 +198,26 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
     var transitionController: UIDocumentBrowserTransitionController?
 
+    func presentDocumentWhenReady(at documentURL: URL) {
+        guard view.window != nil else {
+            pendingDocumentURL = documentURL
+            return
+        }
+        presentDocument(at: documentURL)
+    }
+
     func presentDocument(at documentURL: URL) {
         guard !openingDocument else { return }
 
-        if let viewController = rootNavigationController?.viewControllers.first as? DocumentViewController,
+        #if os(visionOS)
+        if #available(visionOS 26.0, *) {
+            openDocumentVolume(at: documentURL)
+            return
+        }
+        #endif
+
+        if let viewController = rootNavigationController?
+            .viewControllers.first as? DocumentViewController,
            let document = viewController.document
         {
             if document.fileURL != documentURL {
@@ -217,6 +243,10 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
 
         openingDocument = true
         pendingDocumentViewController = viewController
+        guard document.documentState == .closed else {
+            finishOpeningDocument(success: true)
+            return
+        }
         document.open { [weak self] success in
             DispatchQueue.main.async { [weak self] in
                 self?.finishOpeningDocument(success: success)
@@ -237,15 +267,46 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
         }
         viewController.updateSceneTitle()
         if let navigationController = rootNavigationController {
+            configureDocumentNavigationController(navigationController)
             navigationController.setViewControllers([viewController], animated: true)
         } else {
             let navigationController = UINavigationController(
                 rootViewController: viewController
             )
             navigationController.modalPresentationStyle = .fullScreen
+            configureDocumentNavigationController(navigationController)
             rootNavigationController = navigationController
             present(navigationController, animated: true)
         }
+    }
+
+    #if os(visionOS)
+    @available(visionOS 26.0, *)
+    private func openDocumentVolume(at documentURL: URL) {
+        guard let request = UISceneSessionActivationRequest(
+            hostingDelegateClass: VisionDocumentSceneDelegate.self,
+            id: volumeWindowGroupID,
+            value: VolumeDocumentReference(fileURL: documentURL)
+        ) else {
+            presentError("Unable to open file.", onOK: {})
+            return
+        }
+
+        UIApplication.shared.activateSceneSession(for: request) { [weak self] error in
+            Task { @MainActor in
+                self?.presentError(error.localizedDescription, onOK: {})
+            }
+        }
+    }
+    #endif
+
+    private func configureDocumentNavigationController(
+        _ navigationController: UINavigationController
+    ) {
+        #if os(visionOS)
+        navigationController.view.backgroundColor = .clear
+        navigationController.view.isOpaque = false
+        #endif
     }
 
     // MARK: Document Creation
@@ -307,6 +368,7 @@ final class DocumentBrowserViewController: UIDocumentBrowserViewController,
                     Data()
                 }
                 try data.write(to: fileURL, options: .atomic)
+                try fileURL.markCreatedWithCurrentVersion()
                 completion(fileURL)
             } catch {
                 self?.presentError(

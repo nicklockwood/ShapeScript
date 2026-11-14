@@ -18,14 +18,16 @@ private final class MockViewController: DocumentViewControllerProtocol, @uncheck
     static let documentBackgroundColor = Color.clear
 
     weak var document: ViewMockDocument?
-    let scnScene = SCNScene()
-    var renderTimer: Timer?
-    let scnView: SCNView = PivotResettingSCNView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+    let sceneKitRenderer = SceneKitRenderer(
+        view: PivotResettingSCNView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+    )
+    var renderer: any SceneRenderer { sceneKitRenderer }
+    var scnScene: SCNScene { sceneKitRenderer.scene }
+    var scnView: SCNView { sceneKitRenderer.view }
     let errorTextView = OSTextView()
     let grantAccessButton = OSButton()
     var isQuickLook = false
-    lazy var cameraNode = makeCameraNode()
-    var axesNode: SCNNode?
+    var cameraNode: SCNNode { sceneKitRenderer.cameraNode }
     var errorMessage: NSAttributedString?
     var isLoading = false
     var onRenderComplete: (() -> Void)?
@@ -319,7 +321,7 @@ final class ViewTests: XCTestCase {
         viewController.scnView.pointOfView = SCNNode()
         viewController.scnView.pointOfView?.camera = SCNCamera()
 
-        viewController.refreshCamera()
+        viewController.refreshAxesAndCamera()
         XCTAssertEqual(viewController.refreshEvents, ["camera"])
 
         viewController.isOrthographic = true
