@@ -883,6 +883,7 @@ final class DocumentURLChangeTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("model.csg")
+        let expectedBounds = Bounds(.zero, [2, 3, 4])
         let cases: [(String, String?, Int, Int)] = [
             ("cube([2,3,4]);", nil, 1, 1),
             ("cube([1,2]);", "Expected a CSG vector with 3 components", 1, 1),
@@ -898,14 +899,17 @@ final class DocumentURLChangeTests: XCTestCase {
             try document.load(data, fileURL: url)
             document.didUpdateSource()
             for _ in 0 ..< 200 {
-                if document.loadingProgress?.inProgress == false, succeeds || document.error != nil {
+                // Background completion precedes delivery of the scene or error on the main actor.
+                if document.loadingProgress?.inProgress == false,
+                   succeeds ? document.scene?.geometry.merged().bounds == expectedBounds : document.error != nil
+                {
                     break
                 }
                 try await Task.sleep(nanoseconds: 10_000_000)
             }
             XCTAssertEqual(document.loadingProgress?.didSucceed, succeeds)
             if succeeds {
-                XCTAssertEqual(document.scene?.geometry.merged().bounds, Bounds(.zero, [2, 3, 4]))
+                XCTAssertEqual(document.scene?.geometry.merged().bounds, expectedBounds)
                 XCTAssertNil(document.error)
             } else {
                 XCTAssertTrue(try document.error?.message.contains(XCTUnwrap(errorMessage)) == true)
