@@ -171,7 +171,7 @@ public extension GeometryType {
         case .square:
             .square()
         case let .text(text):
-            Path(subpaths: text.paths)
+            Path(subpaths: text.paths, windingRule: .nonZero)
         case let .path(path):
             path
         case .group, .cone, .cylinder, .icosphere, .sphere, .cube,

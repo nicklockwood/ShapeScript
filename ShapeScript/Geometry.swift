@@ -703,7 +703,10 @@ public extension Geometry {
             let path = Path.square(color: material.color)
             return pretransformed ? path.transformed(by: transform) : path
         case let .text(text):
-            let path = Path(subpaths: text.paths.map { $0.materialToVertexColors(material: material) })
+            let path = Path(
+                subpaths: text.paths.map { $0.materialToVertexColors(material: material) },
+                windingRule: .nonZero
+            )
             return pretransformed ? path.transformed(by: transform) : path
         case let .path(path):
             let path = path.materialToVertexColors(material: material)
@@ -711,7 +714,8 @@ public extension Geometry {
         case .group:
             let children = visibleChildren
             guard children.allSatisfy(\.isPath) else { return nil }
-            let path = Path(subpaths: children.flatMap { $0.paths(pretransformed: true) })
+            let paths = children.flatMap { $0.paths(pretransformed: true) }
+            let path = paths.count == 1 ? paths[0] : Path(subpaths: paths)
             return pretransformed ? path.transformed(by: transform) : path
         case .union, .difference, .intersection, .xor, .hull, .minkowski:
             pathLock.lock()

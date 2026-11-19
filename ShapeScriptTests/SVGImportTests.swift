@@ -87,6 +87,25 @@ final class SVGImportTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(path.points.last?.position), [24, 68, 0], accuracy: 1e-8)
     }
 
+    func testFillRuleFollowsSVGStyle() throws {
+        let nested = "M0 0H10V10H0Z M2 2H8V8H2Z"
+        let opposed = "M0 0H10V10H0Z M2 2V8H8V2Z"
+        let geometry = try load(svg("""
+        <path d="\(nested)"/>
+        <path d="\(opposed)"/>
+        <g fill-rule="evenodd" transform="translate(20 0)">
+          <path d="\(nested)"/>
+          <path d="\(nested)" fill-rule="evenodd" style="fill-rule: nonzero"/>
+        </g>
+        """))
+        let paths = geometry.paths(pretransformed: true)
+        XCTAssertEqual(paths.map(\.windingRule), [.nonZero, .nonZero, .evenOdd, .nonZero])
+        XCTAssertEqual(paths.map { Mesh.fill($0, faces: .front).surfaceArea }, [100, 64, 64, 100])
+
+        let single = try load(svg("<g><path fill-rule=\"evenodd\" d=\"\(nested)\"/></g>"))
+        XCTAssertEqual(single.path()?.windingRule, .evenOdd)
+    }
+
     func testUseResolvesForwardReferencesWithoutRenderingDefinitions() throws {
         let source = svg("""
         <use id="instance" href="#part" x="10" y="20"/>
@@ -156,7 +175,10 @@ final class SVGImportTests: XCTestCase {
         )
         XCTAssertEqual(union.path()?.subpaths.count, 1)
         XCTAssertEqual(union.path()?.bounds.size, [15, 10, 0])
-        let hole = try load(svg("<path d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), options: .init(csg: true))
+        let hole = try load(
+            svg("<path fill-rule=\"nonzero\" d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"),
+            options: .init(csg: true)
+        )
         XCTAssertEqual(hole.path()?.subpaths.count, 2)
     }
 
@@ -486,10 +508,26 @@ final class SVGImportTests: XCTestCase {
             60,
             accuracy: 1e-8
         )
-        XCTAssertEqual(try area("<path d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), 100, accuracy: 1e-8)
+        XCTAssertEqual(
+            try area("<path fill-rule=\"evenodd\" d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"),
+            100,
+            accuracy: 1e-8
+        )
         XCTAssertEqual(try area("<path clip-rule=\"evenodd\" d=\"M0 0H10V10H0Z M2 2H8V8H2Z\"/>"), 64, accuracy: 1e-8)
         XCTAssertEqual(try area("<path d=\"M0 0H10V10H0Z M2 2V8H8V2Z\"/>"), 64, accuracy: 1e-8)
         XCTAssertEqual(try area("<path d=\"M0 0H10V10H0\"/>"), 100, accuracy: 1e-8)
+    }
+
+    func testClippingRespectsSubjectFillRule() throws {
+        let nested = "M0 0H10V10H0Z M2 2H8V8H2Z"
+        let geometry = try load(svg("""
+        <clipPath id="clip"><rect width="9" height="10"/></clipPath>
+        <path d="\(nested)" clip-path="url(#clip)"/>
+        <path d="\(nested)" fill-rule="evenodd" clip-path="url(#clip)"/>
+        """))
+        let paths = geometry.paths(pretransformed: true)
+        XCTAssertEqual(paths.map(\.windingRule), [.nonZero, .evenOdd])
+        XCTAssertEqual(paths.map { Mesh.fill($0, faces: .front).surfaceArea }, [90, 54])
     }
 
     func testClipTransformsUseReferencesAndNestedClips() throws {

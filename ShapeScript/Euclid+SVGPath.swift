@@ -48,9 +48,10 @@ public extension Path {
     /// Creates a `Path` from an `SVGPath`.
     /// - Parameters:
     ///   - svgPath: The `SVGPath` to convert.
+    ///   - windingRule: The fill rule to apply. Defaults to SVG's nonzero rule.
     ///   - detail: The detail level to apply when converting curves to line segments.
     ///   - color: An optional `Color` to apply to the path.
-    init(_ svgPath: SVGPath, detail: Int = 4, color: Color? = nil) {
+    init(_ svgPath: SVGPath, windingRule: WindingRule = .nonZero, detail: Int = 4, color: Color? = nil) {
         var paths = [Path]()
         var points = [PathPoint]()
         var startingPoint = Vector.zero
@@ -193,7 +194,7 @@ public extension Path {
         }
         svgPath.commands.forEach(addCommand)
         endPath()
-        self.init(subpaths: paths)
+        self.init(subpaths: paths, windingRule: windingRule)
     }
 }
 

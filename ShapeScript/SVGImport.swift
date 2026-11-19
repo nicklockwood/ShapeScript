@@ -180,7 +180,9 @@ final class SVGDocument {
                     // Ancestor transforms are already baked into the selected paths.
                     hierarchy[hierarchy.count - 1].append(contentsOf: children)
                 } else if shapePaths != nil || !children.isEmpty {
-                    let type = shapePaths.map { GeometryType.path(Path(subpaths: $0)) } ?? .group
+                    let type = shapePaths.map { paths in
+                        GeometryType.path(paths.count == 1 ? paths[0] : Path(subpaths: paths, windingRule: .nonZero))
+                    } ?? .group
                     let location = SourceLocation(at: element.line, in: fileURL)
                     hierarchy[hierarchy.count - 1].append(Geometry(
                         type: type, name: a["id"], transform: .identity,
@@ -284,8 +286,10 @@ final class SVGDocument {
                                 ).subpaths
                             }
                         }
-                        paths = [Path(subpaths: closed)]
+                        // OpenSCAD fills each imported shape using even-odd before taking the union.
+                        paths = [Path(subpaths: closed, windingRule: .evenOdd)]
                     } else {
+                        let windingRule: Path.WindingRule = style["fill-rule"] == "evenodd" ? .evenOdd : .nonZero
                         paths = [Path(subpaths: path.subpaths.map { subpath in
                             subpath.withColor(SVGPaint.paint(
                                 style: style,
@@ -294,7 +298,7 @@ final class SVGDocument {
                                 material: options.material,
                                 warn: warning
                             ))
-                        })]
+                        }, windingRule: windingRule)]
                     }
                     shapePaths = try paths.filter { !$0.isEmpty }.map { path in
                         let positions = path.points.map { matrix.apply($0.position) }
@@ -404,15 +408,18 @@ private struct SVGClipping {
                 } else { groups.append((color, [subpath])) }
             }
             if groups.count > 1 {
-                return try Path(subpaths: groups.map { try clip(Path(subpaths: $0.paths), to: boundary) })
+                let paths = try groups.map { group in
+                    try clip(Path(subpaths: group.paths, windingRule: path.windingRule), to: boundary)
+                }
+                return Path(subpaths: paths, windingRule: path.windingRule)
             }
         }
-        let closed = Path(subpaths: path.subpaths.filter(\.isClosed))
+        let closed = Path(subpaths: path.subpaths.filter(\.isClosed), windingRule: path.windingRule)
         let open = Path(subpaths: path.subpaths.filter { !$0.isClosed })
         guard let region = closed.intersection(boundary, isCancelled: isCancelled),
               let fragments = open.split(along: boundary, isCancelled: isCancelled)
         else { throw SVGImportError(message: "Unable to clip SVG geometry", line: 1) }
-        let result = Path(subpaths: region.subpaths + fragments.inside.subpaths)
+        let result = Path(subpaths: region.subpaths + fragments.inside.subpaths, windingRule: path.windingRule)
         if path.hasColors, let color = path.uniformVertexColor { return result.withColor(color) }
         return result
     }
@@ -574,44 +581,18 @@ private struct SVGClipping {
             #endif
         case "path", "rect", "circle", "ellipse", "polygon", "polyline", "line":
             let path = try element.path(detail: detail, segments: nil)
-            return try applyClips ? [filledRegion(path, rule: style["clip-rule"] ?? "nonzero", element: element)] :
-                [path]
+            guard applyClips else { return [path] }
+            let rule = style["clip-rule"] ?? "nonzero"
+            if rule != "nonzero", rule != "evenodd" {
+                warn("Unsupported SVG clip-rule '\(rule)'", element)
+            }
+            let contours = path.subpaths.map { $0.closed() }.filter { $0.points.count > 3 && $0.isPlanar }
+            return [Path(subpaths: contours, windingRule: rule == "evenodd" ? .evenOdd : .nonZero)]
         case "defs", "title", "desc", "metadata": return []
         default:
             if applyClips { warn("Unsupported SVG clip element '\(element.name)'", element) }
             return []
         }
-    }
-
-    func filledRegion(_ path: Path, rule: String, element: SVGElement) throws -> Path {
-        let contours = path.subpaths.map { $0.closed() }.filter { $0.points.count > 3 }
-        if rule == "evenodd" {
-            return Path.symmetricDifference(contours, isCancelled: isCancelled) ?? .empty
-        }
-        if rule != "nonzero" { warn("Unsupported SVG clip-rule '\(rule)'", element) }
-        // Track disjoint regions by winding count. A compound nonzero path is not
-        // simply the union (or XOR) of its contours: opposing windings cancel.
-        var regions = [(winding: Int, path: Path)]()
-        for contour in contours {
-            if isCancelled() { throw CancellationError() }
-            let points = contour.points.map(\.position)
-            let area = zip(points, points.dropFirst()).reduce(0.0) { $0 + $1.0.x * $1.1.y - $1.1.x * $1.0.y }
-            let sign = area < 0 ? -1 : 1
-            var remainder = contour
-            var next = [(winding: Int, path: Path)]()
-            for region in regions {
-                guard let inside = region.path.intersection(contour, isCancelled: isCancelled),
-                      let outside = region.path.subtracting(contour, isCancelled: isCancelled),
-                      let rest = remainder.subtracting(region.path, isCancelled: isCancelled)
-                else { throw SVGImportError(message: "Unable to resolve SVG clip region", line: element.line) }
-                if !outside.isEmpty { next.append((region.winding, outside)) }
-                if !inside.isEmpty { next.append((region.winding + sign, inside)) }
-                remainder = rest
-            }
-            if !remainder.isEmpty { next.append((sign, remainder)) }
-            regions = next
-        }
-        return Path.union(regions.filter { $0.winding != 0 }.map(\.path), isCancelled: isCancelled) ?? .empty
     }
 }
 

@@ -16,6 +16,20 @@ final class SVGPathTests: XCTestCase {
         XCTAssertEqual(SVGPath(Path.empty), SVGPath(commands: []))
     }
 
+    func testSVGPathDefaultsToNonzeroWinding() throws {
+        let data = "M0 0H10V10H0Z M2 2H8V8H2Z"
+        let source = try SVGPath(string: data)
+        let path = Path(source)
+        XCTAssertEqual(path.windingRule, .nonZero)
+        XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, 100)
+        XCTAssertEqual(Mesh.fill(Path(source, windingRule: .evenOdd), faces: .front).surfaceArea, 64)
+
+        let scene = try evaluate(parse("svgpath \"\(data)\""), delegate: nil)
+        let imported = try XCTUnwrap(scene.geometry.paths(pretransformed: true).first)
+        XCTAssertEqual(imported.windingRule, .nonZero)
+        XCTAssertEqual(Mesh.fill(imported, faces: .front).surfaceArea, 100)
+    }
+
     func testLinearBezierCommandsDoNotAddIntermediatePathPoints() throws {
         let path = try Path(
             SVGPath(string: "M 0,0 Q 3,0 10,0 C 12,0 18,0 20,0"),
