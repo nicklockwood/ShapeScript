@@ -1087,10 +1087,9 @@ private struct CSGImporter {
             try checkCancellation()
             return result(filled.isEmpty ? [] : [filled], material: material)
         case "linear_extrude", "rotate_extrude":
-            let names = node.name == "linear_extrude" ? ["height", "center", "twist", "slices", "scale"] : [
-                "angle",
-                "start",
-            ]
+            let names = node.name == "linear_extrude"
+                ? ["height", "center", "twist", "slices", "scale"]
+                : ["angle", "start"]
             let values = try validate(
                 node,
                 names + tessellation,
@@ -1208,8 +1207,9 @@ private struct CSGImporter {
             if !node.children.isEmpty {
                 warn("CSG primitives cannot have children", at: node)
             }
-            let names = ["text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script"] +
-                tessellation
+            let names = [
+                "text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script",
+            ] + tessellation
             let values = try validate(node, names, positional: ["text", "size", "font"])
             var unsupported = [String]()
             for (name, fallback, allowed) in [
@@ -1228,10 +1228,7 @@ private struct CSGImporter {
             }
             let spacing = try node.number(values, "spacing", default: 1)
             if !unsupported.isEmpty {
-                warn(
-                    "Unsupported CSG text options: \(unsupported.joined(separator: ", "))",
-                    at: node
-                )
+                warn("Unsupported CSG text options: \(unsupported.joined(separator: ", "))", at: node)
             }
             let text = try node.string(values, "text", default: "")
             let font = try fontName(node.string(values, "font", default: "Liberation Sans"), node: node)
@@ -1368,10 +1365,7 @@ private struct CSGImporter {
                     throw ProgramError.runtimeError(RuntimeError(error, at: range))
                 }
             }
-            warn(
-                "Unsupported CSG operation '\(node.name)'",
-                at: node
-            )
+            warn("Unsupported CSG operation '\(node.name)'", at: node)
             return try unmodifiedShape(
                 .init(name: "group", arguments: [:], children: node.children, line: node.line, column: node.column),
                 material: material
@@ -1460,10 +1454,7 @@ private struct CSGImporter {
             }
         }
         if !unsupported.isEmpty {
-            warn(
-                "Unsupported OpenSCAD font descriptors: \(unsupported.joined(separator: ", "))",
-                at: node
-            )
+            warn("Unsupported OpenSCAD font descriptors: \(unsupported.joined(separator: ", "))", at: node)
         }
         guard let style, !style.isEmpty else { return family }
         #if canImport(CoreText)
@@ -1513,10 +1504,7 @@ private struct CSGImporter {
             }
             matrix = try rows.map { try node.vector($0, count: 4) }
             if matrix[3] != [0, 0, 0, 1] {
-                warn(
-                    "Projective CSG matrices are unsupported",
-                    at: node
-                )
+                warn("Projective CSG matrices are unsupported", at: node)
             }
         case "translate", "scale":
             let values = try validate(node, ["v"], positional: ["v"])
@@ -1700,10 +1688,7 @@ private struct CSGImporter {
             return geometry
         }
         if hasPaths, !is2D {
-            warn(
-                "Mixed 2D and 3D CSG children are unsupported",
-                at: node
-            )
+            warn("Mixed 2D and 3D CSG children are unsupported", at: node)
         }
         guard determinant.isFinite else {
             throw node.error("CSG transform overflow")

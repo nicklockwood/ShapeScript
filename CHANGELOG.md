@@ -1,5 +1,19 @@
 # Change Log
 
+## [1.12.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.3) (2026-11-23)
+
+- Added support for projection, resize and 2D fill in OpenSCAD CSG imports
+- Added support for tapered `linear_extrude()` and partial `rotate_extrude()` in OpenSCAD CSG imports
+- Fixed OpenSCAD CSG offsets for overlapping profiles
+- OpenSCAD CSG imports now apply 2D transforms in the XY plane
+- ShapeScript 2D boolean operations now report errors for open or noncoplanar paths
+- SVG imports now honor `fill-rule` and `clip-rule` parameters
+- Added support for SVG `<textPath>` elements
+- Improved progress reporting during boolean operations, mesh generation and finishing
+- Made `SilentDelegate` public and added a no-op default `EvaluationDelegate.debugLog()` implementation
+- Fixed rivet placement in the Tank example
+- Bumped Euclid to version 0.10.7
+
 ## [1.12.2](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.2) (2026-11-15)
 
 - Added experimental RealityKit renderer (debug mode only)

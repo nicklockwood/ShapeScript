@@ -51,12 +51,12 @@ public extension SCNNode {
         }
 
         // debug wireframe
-//        geometry.mesh.map { self.addChildNode(SCNNode(
+//        geometry.cachedMesh.map { self.addChildNode(SCNNode(
 //            geometry: SCNGeometry(wireframe: $0)
 //        )) }
 
         // debug normals
-//        geometry.mesh.map { self.addChildNode(SCNNode(
+//        geometry.cachedMesh.map { self.addChildNode(SCNNode(
 //            geometry: SCNGeometry(normals: $0, scale: 0.1)
 //        )) }
 
@@ -66,7 +66,7 @@ public extension SCNNode {
 //        ))
 
         // debug holes
-//        geometry.mesh.map { self.addChildNode(SCNNode(
+//        geometry.cachedMesh.map { self.addChildNode(SCNNode(
 //            geometry: SCNGeometry($0.polygons.holeEdges)
 //        )) }
 
