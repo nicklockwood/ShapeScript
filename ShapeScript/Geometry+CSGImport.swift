@@ -923,6 +923,40 @@ private struct CSGImporter {
                 return polygon
             }
             return try result(Mesh(polygons), material: material)
+        case "projection":
+            let values = try validate(node, ["cut", "convexity"], positional: ["cut"])
+            let cut = try node.boolean(values, "cut", default: false)
+            _ = try node.number(values, "convexity", default: 0)
+            let children = try children(node, material: material).filter {
+                !$0.geometry.isHidden && !$0.geometry.isBackground
+            }
+            if cut, children.contains(where: { $0.is2D && !$0.isEmpty }) {
+                warn("'projection' with cut requires 3D children", at: node)
+            }
+            let solids = children.filter { !$0.is2D }.map(\.geometry)
+            let geometry = geometry(.group, material: material, children: solids)
+            guard geometry.build(isCancelled) else { throw CancellationError() }
+            let meshes = geometry.meshes(isCancelled)
+            try checkCancellation()
+            let path: Path
+            if cut {
+                // Planar meshes may be double-sided after mesh repair, but still enclose no volume.
+                let solids = meshes.filter { $0.isWatertight && !$0.isPlanar }
+                if solids.count < meshes.count {
+                    warn("'projection' with cut requires closed 3D meshes", at: node)
+                }
+                path = Mesh.union(solids, isCancelled: isCancelled)
+                    .intersection(with: .xy, isCancelled: isCancelled)
+            } else {
+                // Unioning the projected faces also handles overlapping solids.
+                path = Mesh.merge(meshes).projected(onto: .xy, isCancelled: isCancelled)
+            }
+            try checkCancellation()
+            // OpenSCAD returns filled regions. Euclid can also return open lines and closed single points.
+            guard path.isClosed, path.subpaths.contains(where: { $0.points.count >= 4 }) else {
+                return result([], material: material)
+            }
+            return result([path], material: material)
         case "offset":
             let values = try validate(node, ["r", "delta", "chamfer"] + tessellation)
             let radius = try node.number(values, "r", default: 1)
@@ -1078,16 +1112,13 @@ private struct CSGImporter {
             #endif
         case "translate", "scale", "rotate", "mirror", "multmatrix":
             return try transformed(node, material: material)
-        case "projection", "resize", "surface", "import", "roof":
+        case "resize", "surface", "import", "roof":
             let names: [String]
             let positional: [String]
             switch node.name {
             case "roof":
                 names = ["method", "convexity"] + tessellation
                 positional = ["method"]
-            case "projection":
-                names = ["cut", "convexity"]
-                positional = ["cut"]
             case "resize":
                 names = ["newsize", "auto", "convexity"]
                 positional = ["newsize", "auto"]
@@ -1117,7 +1148,7 @@ private struct CSGImporter {
             for name in ["file", "filename", "layer", "layername", "id", "method"] where values[name] != nil {
                 _ = try node.string(values, name, default: "")
             }
-            for name in ["cut", "center", "invert"] where values[name] != nil {
+            for name in ["center", "invert"] where values[name] != nil {
                 _ = try node.boolean(values, name, default: false)
             }
             for name in ["convexity", "timestamp", "scale", "dpi", "width", "height", "$fn", "$fa", "$fs"]

@@ -281,7 +281,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(extruded.build { false })
         XCTAssertEqual(extruded.geometry.merged().signedVolume, 1, accuracy: 1e-8)
         let incompatible = try Scene(
-            csgString: "cube(1); linear_extrude(height=1) projection() cube(1);",
+            csgString: "cube(1); linear_extrude(height=1) resize([1,1,1]) cube(1);",
             isCancelled: { false }
         )
         XCTAssertEqual(incompatible.warnings.count, 2)
@@ -810,6 +810,60 @@ final class CSGImportTests: XCTestCase {
         let geometry = try Geometry(csgString: source, isCancelled: { false })
         XCTAssertTrue(geometry.build { false })
         return geometry.merged()
+    }
+
+    func testProjectionReturnsSilhouetteOrSliceAtZero() throws {
+        let floating = "translate([2,3,4]) cube([2,3,4]);"
+        let silhouette = try Scene(csgString: "projection() \(floating)", isCancelled: { false })
+        let paths = silhouette.geometry.paths(pretransformed: true)
+        XCTAssertEqual(Bounds(paths), Bounds([2, 3, 0], [4, 6, 0]))
+        XCTAssertTrue(silhouette.warnings.isEmpty)
+        let miss = try Scene(csgString: "projection(cut=true) \(floating)", isCancelled: { false })
+        XCTAssertTrue(miss.geometry.paths(pretransformed: true).allSatisfy(\.isEmpty))
+        XCTAssertTrue(miss.warnings.isEmpty)
+        for source in ["cube([2,3,4], center=true);", "cube([2,3,4]);"] {
+            let cut = try mesh("linear_extrude(height=2) projection(true, convexity=3) \(source)")
+            XCTAssertTrue(cut.isWatertight, source)
+            XCTAssertEqual(cut.signedVolume, 12, accuracy: 1e-8, source)
+        }
+    }
+
+    func testProjectionDropsEdgeOnFacesAndTangentContacts() throws {
+        let verticalFace = "polyhedron([[0,0,0],[0,1,0],[0,1,1],[0,0,1]], [[0,1,2,3]]);"
+        let edge = "translate([0,0,0.7071067811865476]) rotate([0,45,0]) cube(1,center=true);"
+        let corner = "translate([0,0,0.8660254037844386]) rotate(54.735610317245346,[1,-1,0]) cube(1,center=true);"
+        XCTAssertEqual(try mesh(verticalFace).projected(onto: .xy).points.count, 2)
+        XCTAssertEqual(try mesh(edge).intersection(with: .xy).points.count, 2)
+        XCTAssertEqual(try mesh(corner).intersection(with: .xy).points.count, 1)
+        for source in ["projection() \(verticalFace)", "projection(true) \(edge)", "projection(true) \(corner)"] {
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            XCTAssertTrue(scene.geometry.paths(pretransformed: true).allSatisfy(\.isEmpty), source)
+            XCTAssertTrue(scene.warnings.isEmpty, source)
+            XCTAssertTrue(try mesh("linear_extrude(height=2) \(source)").isEmpty, source)
+        }
+    }
+
+    func testProjectionKeepsFilledRegionsAndHolesAlongsideContacts() throws {
+        let mesh = try mesh("""
+        linear_extrude(height=2) projection(cut=true) {
+            difference() {
+                cube([4,4,2], center=true);
+                cube([2,2,4], center=true);
+            }
+            translate([10,0,0.7071067811865476]) rotate([0,45,0]) cube(1,center=true);
+        }
+        """)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.bounds.size, [4, 4, 2])
+        XCTAssertEqual(mesh.signedVolume, 24, accuracy: 1e-8)
+    }
+
+    func testProjectionProjectsPlanarMeshAndDropsItsSlice() throws {
+        let face = "polyhedron([[0,0,-1],[0,1,-1],[1,1,1],[1,0,1]], [[0,1,2,3]]);"
+        XCTAssertFalse(try mesh("linear_extrude(height=1) projection() \(face)").isEmpty)
+        let section = try Scene(csgString: "projection(cut=true) \(face)", isCancelled: { false })
+        XCTAssertTrue(section.geometry.paths(pretransformed: true).allSatisfy(\.isEmpty))
+        XCTAssertEqual(section.warnings.count, 1)
     }
 
     func testCubeAndPrimitivePreservation() throws {
@@ -1548,7 +1602,7 @@ final class CSGImportTests: XCTestCase {
 
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
-            "offset(r=1) circle(1);", "projection() cube(1);", "surface(file=\"a.dat\");",
+            "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
             "resize([2,3,4]) cube(1);",
             "linear_extrude(height=2, scale=0.5) square(1);",
             "rotate_extrude(angle=90) square(1);",
