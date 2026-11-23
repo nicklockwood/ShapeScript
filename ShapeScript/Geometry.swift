@@ -1990,6 +1990,75 @@ private extension Geometry {
     /// - Returns: false if cancelled or true when completed
     func buildUncachedMesh(_ progress: RenderProgress, _ isCancelled: @escaping CancellationHandler) -> Bool {
         guard !isCancelled() else { return false }
+        let meshBuildFraction = 0.85
+        let meshRepairFraction = 0.97
+        func reportMeshBuild(_ fraction: Double) {
+            progress.reportUnitProgress(fraction * meshBuildFraction)
+        }
+
+        func union(_ operands: [Mesh], progress: (Double) -> Void) -> Mesh {
+            // Only split disconnected groups. Euclid must clip connected meshes together.
+            let meshes = operands.filter { !$0.isEmpty }
+            let bounds = meshes.map(\.bounds)
+            var remaining = Array(meshes.indices)
+            var groups = [[Int]]()
+            while !remaining.isEmpty {
+                var group = [remaining.removeFirst()]
+                var index = 0
+                while index < remaining.count {
+                    guard !isCancelled() else { return .empty }
+                    let candidate = remaining[index]
+                    if group.contains(where: { bounds[$0].intersects(bounds[candidate]) }) {
+                        group.append(remaining.remove(at: index))
+                        index = 0
+                    } else {
+                        index += 1
+                    }
+                }
+                groups.append(group.sorted())
+            }
+            let totalWork = groups.reduce(0.0) { $0 + Double($1.count) * Double($1.count) }
+            var completedWork = 0.0
+            var unions = [Mesh]()
+            for group in groups {
+                guard !isCancelled() else { return .empty }
+                unions.append(.union(group.map { meshes[$0] }, isCancelled: isCancelled))
+                guard !isCancelled() else { return .empty }
+                completedWork += Double(group.count) * Double(group.count)
+                progress(completedWork / totalWork)
+            }
+            return .merge(unions)
+        }
+
+        func combineOverlappingMeshes(
+            _ operands: [Mesh],
+            mergeAll: Bool = false,
+            using combine: (Mesh, Mesh) -> Mesh
+        ) -> Mesh {
+            var meshes = operands
+            var base = 0
+            // Preserve Euclid's operand order, including rechecking meshes skipped
+            // before the previous result's bounds changed.
+            while base < meshes.count {
+                var next = base + 1
+                while next < meshes.count {
+                    guard !isCancelled() else { return .empty }
+                    if meshes[base].bounds.intersects(meshes[next].bounds) {
+                        meshes[base] = combine(meshes[base], meshes[next])
+                        guard !isCancelled() else { return .empty }
+                        meshes.remove(at: next)
+                        reportMeshBuild(Double(operands.count - meshes.count) / Double(operands.count - 1))
+                        next = base + 1
+                    } else {
+                        next += 1
+                    }
+                }
+                if !mergeAll { return meshes[base] }
+                base += 1
+            }
+            return .merge(meshes)
+        }
+
         switch type {
         case .group, .circle, .square, .text, .path, .camera, .light:
             cachedMesh = .empty
@@ -2030,14 +2099,20 @@ private extension Geometry {
             cachedMesh = .loft(paths, isCancelled: isCancelled)
         case let .hull(vertices):
             let base = Mesh.convexHull(of: vertices, material: material, isCancelled: isCancelled)
+            reportMeshBuild(0.25)
             let meshes = ([base] + childMeshes(isCancelled) + childPathMeshes(isCancelled)).map {
                 $0.materialToVertexColors(material: material)
             }
+            reportMeshBuild(0.5)
             cachedMesh = .convexHull(of: meshes, isCancelled: isCancelled)
                 .vertexColorsToMaterial(material: material)
                 .replacing(material, with: nil)
         case .minkowski:
-            func minkowskiSum(replacing union: Geometry? = nil, with replacement: Mesh? = nil) -> Mesh {
+            func minkowskiSum(
+                replacing union: Geometry? = nil,
+                with replacement: Mesh? = nil,
+                didCombine: () -> Void
+            ) -> Mesh {
                 var children = ArraySlice(visibleChildren.enumerated().sorted {
                     switch ($0.1.path(), $1.1.path()) {
                     case let (a?, b?):
@@ -2095,10 +2170,11 @@ private extension Geometry {
                         sum = mesh(for: next).materialToVertexColors(material: next.material)
                             .minkowskiSum(with: shape, isCancelled: isCancelled)
                     }
+                    if !isCancelled() { didCombine() }
                 } else {
                     sum = mesh(for: first).materialToVertexColors(material: first.material)
                 }
-                while let next = children.popFirst() {
+                while let next = children.popFirst(), !isCancelled() {
                     if let path = next.path(pretransformed: true) {
                         sum = sum.minkowskiSum(
                             with: path.materialToVertexColors(material: next.material)
@@ -2111,23 +2187,40 @@ private extension Geometry {
                             isCancelled: isCancelled
                         )
                     }
+                    if !isCancelled() { didCombine() }
                 }
                 return sum
             }
+            let distributedUnion = distributableMinkowskiUnion
+            let components = distributedUnion.map { operand in
+                operand.childMeshes(isCancelled).map { $0.transformed(by: operand.transform) }
+            } ?? []
+            let pairsPerSum = max(visibleChildren.count - 1, 1)
+            let totalPairs = Double(pairsPerSum) * Double(max(components.count, 1))
+            let sumFraction = components.isEmpty ? 1.0 : 0.8
+            var completedPairs = 0.0
+            func didCombine() {
+                completedPairs += 1
+                reportMeshBuild(sumFraction * completedPairs / totalPairs)
+            }
             let sum: Mesh
-            if let union = distributableMinkowskiUnion {
-                let components = union.childMeshes(isCancelled).map {
-                    $0.transformed(by: union.transform)
-                }
-                sum = components.isEmpty ? minkowskiSum() : .union(components.map {
-                    minkowskiSum(replacing: union, with: $0)
-                }, isCancelled: isCancelled)
+            if components.isEmpty {
+                sum = minkowskiSum(didCombine: didCombine)
             } else {
-                sum = minkowskiSum()
+                let sums = components.map {
+                    minkowskiSum(replacing: distributedUnion, with: $0, didCombine: didCombine)
+                }
+                sum = union(sums) { reportMeshBuild(sumFraction + (1 - sumFraction) * $0) }
             }
             cachedMesh = sum.vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case .union, .lathe, .extrude, .fill:
-            let meshes = visibleChildren.compactMap { child -> Mesh? in
+            let children = visibleChildren
+            let meshes = children.enumerated().compactMap { index, child -> Mesh? in
+                defer {
+                    if !isCancelled() {
+                        reportMeshBuild(0.2 * Double(index + 1) / Double(children.count))
+                    }
+                }
                 let paths = child.paths(pretransformed: true)
                 guard !paths.isEmpty else {
                     return child.flattened(with: material, isCancelled)
@@ -2160,50 +2253,45 @@ private extension Geometry {
                 guard builder.build(isCancelled) else { return nil }
                 return builder.flattened(with: material, isCancelled)
             }
-            cachedMesh = .union(meshes, isCancelled: isCancelled)
+            cachedMesh = union(meshes) { reportMeshBuild(0.2 + 0.8 * $0) }
         case .xor:
-            cachedMesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
-        case .difference:
-            var mesh = flattenedFirstChild(isCancelled)
-            var cutters = children.dropFirst().meshes(with: material, isCancelled)
-            // Reserve one step for mesh repair after the cuts.
-            let totalSteps = cutters.count + 1
-            var index = 0
-            while index < cutters.count {
-                guard !isCancelled() else { return false }
-                let cutter = cutters[index]
-                if mesh.bounds.intersects(cutter.bounds) {
-                    mesh = mesh.subtracting(cutter, isCancelled: isCancelled)
-                    guard !isCancelled() else { return false }
-                    cutters.remove(at: index)
-                    progress.reportUnitProgress(Double(totalSteps - 1 - cutters.count) / Double(totalSteps))
-                    // Like Mesh.difference, recheck skipped cutters against the new bounds.
-                    index = 0
-                } else {
-                    index += 1
-                }
+            cachedMesh = combineOverlappingMeshes(flattenedChildren(isCancelled), mergeAll: true) {
+                $0.symmetricDifference($1, isCancelled: isCancelled)
             }
-            progress.reportUnitProgress(Double(totalSteps - 1) / Double(totalSteps))
-            cachedMesh = mesh
-        case .intersection:
-            let meshes = flattenedChildren(isCancelled)
-            cachedMesh = .intersection(meshes, isCancelled: isCancelled)
-        case .stencil:
+        case .difference, .stencil:
             let first = flattenedFirstChild(isCancelled)
             let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
-            cachedMesh = .stencil(meshes, isCancelled: isCancelled)
+            cachedMesh = combineOverlappingMeshes(meshes) {
+                type == .difference ? $0.subtracting($1, isCancelled: isCancelled) :
+                    $0.stencil($1, isCancelled: isCancelled)
+            }
+        case .intersection:
+            let meshes = flattenedChildren(isCancelled)
+            var mesh = meshes.first ?? .empty
+            for (index, operand) in meshes.dropFirst().enumerated() {
+                guard !isCancelled() else { return false }
+                mesh = mesh.intersection(operand, isCancelled: isCancelled)
+                guard !isCancelled() else { return false }
+                reportMeshBuild(Double(index + 1) / Double(meshes.count - 1))
+            }
+            cachedMesh = mesh
         case let .mesh(mesh):
             cachedMesh = .merge([mesh] + childMeshes(isCancelled))
         }
         if !isCancelled() {
+            reportMeshBuild(1)
             cachedMesh = cachedMesh?.makeWatertight(isCancelled: isCancelled)
+            guard !isCancelled() else { return false }
+            progress.reportUnitProgress(meshRepairFraction)
             if shouldDetessellate {
                 cachedMesh = cachedMesh?.detessellate(isCancelled: isCancelled)
+                guard !isCancelled() else { return false }
             }
             if let smoothing {
+                progress.reportUnitProgress(0.99)
                 cachedMesh = cachedMesh?.smoothingNormals(forAnglesGreaterThan: smoothing)
             }
-            return true
+            return !isCancelled()
         }
         return false
     }
