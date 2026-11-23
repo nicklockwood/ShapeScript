@@ -1603,6 +1603,15 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(result.signedVolume, 16, accuracy: 0.000001)
     }
 
+    func testExtrusionsSkipEdgeOnProfiles() throws {
+        let edgeOn = "rotate([90,0,0]) translate([2,0,0]) square(1);"
+        XCTAssertTrue(try mesh("linear_extrude(height=1) \(edgeOn)").isEmpty)
+        XCTAssertTrue(try mesh("rotate_extrude() \(edgeOn)").isEmpty)
+        let result = try mesh("linear_extrude(height=1) { square(1); \(edgeOn) }")
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(result.signedVolume, 1, accuracy: 1e-8)
+    }
+
     func testOffsetUnionsChildrenBeforeShrinking() throws {
         let children = "square(3); translate([2,0,0]) square(3);"
         for body in [children, "group() { \(children) }"] {

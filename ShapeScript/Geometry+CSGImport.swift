@@ -1095,12 +1095,16 @@ private struct CSGImporter {
             let deferProfiles = node.name == "linear_extrude" && children.allSatisfy {
                 $0.is2D && $0.geometry.hasClosedXYPaths
             }
-            let profiles = try (deferProfiles ? [] : paths(children, node: node)).map { path in
-                let projected = Path(subpaths: path.subpaths.map { subpath in
-                    Path(subpath.points.map { .point(Vector($0.position.x, $0.position.y), color: $0.color) })
-                })
-                return projected.faceNormal.z < 0 ? projected.inverted() : projected
+            let profiles = try (deferProfiles ? [] : paths(children, node: node)).compactMap { path -> Path? in
+                let projected = path.projected(onto: .xy, isCancelled: isCancelled)
+                let subpaths = projected.subpaths
+                let contours = subpaths.filter { $0.isClosed && $0.points.count >= 4 }
+                guard !contours.isEmpty else { return nil }
+                let profile = contours.count == subpaths.count ? projected :
+                    Path(subpaths: contours, windingRule: projected.windingRule)
+                return profile.faceNormal.z < 0 ? profile.inverted() : profile
             }
+            try checkCancellation()
             if node.name == "linear_extrude" {
                 if let scale = values["scale"] {
                     let components = try node.vector(scale, count: 2, scalar: true)
