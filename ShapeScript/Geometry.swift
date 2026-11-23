@@ -1856,8 +1856,7 @@ private extension Geometry {
             return false
         }
         if isLeaf {
-            let isCancelled: CancellationHandler = { progress.isCancelled }
-            if !buildMesh(isCancelled) {
+            if !buildMesh(progress) {
                 return false
             }
         }
@@ -1930,8 +1929,7 @@ private extension Geometry {
             return false
         }
         if !isLeaf || cachedMesh == nil {
-            let isCancelled: CancellationHandler = { progress.isCancelled }
-            if !buildMesh(isCancelled) {
+            if !buildMesh(progress) {
                 return false
             }
         }
@@ -1964,7 +1962,8 @@ private extension Geometry {
     /// Builds and caches the mesh for the receiver. Already-cached mesh will be re-used if available
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
-    func buildMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
+    func buildMesh(_ progress: RenderProgress) -> Bool {
+        let isCancelled: CancellationHandler = { progress.isCancelled }
         if !isLeaf {
             let path = path(pretransformed: false, isCancelled: isCancelled)
             guard !isCancelled() else { return false }
@@ -1982,14 +1981,14 @@ private extension Geometry {
                 self.cachedMesh = mesh
                 return !isCancelled()
             }
-            return buildUncachedMesh(isCancelled)
-        } ?? buildUncachedMesh(isCancelled)
+            return buildUncachedMesh(progress, isCancelled)
+        } ?? buildUncachedMesh(progress, isCancelled)
     }
 
     /// Builds and sets the mesh
     /// - Note: Child meshes should have already been built before calling (unchecked)
     /// - Returns: false if cancelled or true when completed
-    func buildUncachedMesh(_ isCancelled: @escaping CancellationHandler) -> Bool {
+    func buildUncachedMesh(_ progress: RenderProgress, _ isCancelled: @escaping CancellationHandler) -> Bool {
         guard !isCancelled() else { return false }
         switch type {
         case .group, .circle, .square, .text, .path, .camera, .light:
@@ -2165,9 +2164,27 @@ private extension Geometry {
         case .xor:
             cachedMesh = .symmetricDifference(flattenedChildren(isCancelled), isCancelled: isCancelled)
         case .difference:
-            let first = flattenedFirstChild(isCancelled)
-            let meshes = [first] + children.dropFirst().meshes(with: material, isCancelled)
-            cachedMesh = .difference(meshes, isCancelled: isCancelled)
+            var mesh = flattenedFirstChild(isCancelled)
+            var cutters = children.dropFirst().meshes(with: material, isCancelled)
+            // Reserve one step for mesh repair after the cuts.
+            let totalSteps = cutters.count + 1
+            var index = 0
+            while index < cutters.count {
+                guard !isCancelled() else { return false }
+                let cutter = cutters[index]
+                if mesh.bounds.intersects(cutter.bounds) {
+                    mesh = mesh.subtracting(cutter, isCancelled: isCancelled)
+                    guard !isCancelled() else { return false }
+                    cutters.remove(at: index)
+                    progress.reportUnitProgress(Double(totalSteps - 1 - cutters.count) / Double(totalSteps))
+                    // Like Mesh.difference, recheck skipped cutters against the new bounds.
+                    index = 0
+                } else {
+                    index += 1
+                }
+            }
+            progress.reportUnitProgress(Double(totalSteps - 1) / Double(totalSteps))
+            cachedMesh = mesh
         case .intersection:
             let meshes = flattenedChildren(isCancelled)
             cachedMesh = .intersection(meshes, isCancelled: isCancelled)

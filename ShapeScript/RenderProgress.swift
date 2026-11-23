@@ -19,7 +19,6 @@ public final class RenderProgress: @unchecked Sendable {
     private let previewHandler: (() -> Void)?
     private var activeUnitStart: Int = 0
     private var activeUnitCount: Int = 1
-    private var activeCheckpointCount: Int = 0
 
     enum Phase: Sendable, Equatable {
         case buildingLeaves
@@ -96,7 +95,6 @@ extension RenderProgress {
         cancellationHandler = isCancelled
         activeUnitStart = 0
         activeUnitCount = 1
-        activeCheckpointCount = 0
         lock.unlock()
     }
 
@@ -118,21 +116,15 @@ extension RenderProgress {
         self.phase = phase
         activeUnitStart = completedUnitCount
         activeUnitCount = max(1, unitCount)
-        activeCheckpointCount = 0
         lock.unlock()
         return !isCancelled
     }
 
-    func checkpoint(_ phase: Phase) -> Bool {
+    func reportUnitProgress(_ fraction: Double) {
         lock.lock()
-        self.phase = phase
-        activeCheckpointCount += 1
-        completedUnitCount = min(
-            activeUnitStart + min(activeCheckpointCount, max(0, activeUnitCount - 1)),
-            totalUnitCount
-        )
+        let units = min(Int(min(max(fraction, 0), 1) * Double(activeUnitCount)), activeUnitCount - 1)
+        completedUnitCount = max(completedUnitCount, min(activeUnitStart + units, totalUnitCount))
         lock.unlock()
-        return !isCancelled
     }
 
     func completeUnit(_ phase: Phase, by unitCount: Int = 1) -> Bool {
@@ -141,7 +133,6 @@ extension RenderProgress {
         completedUnitCount = min(activeUnitStart + max(1, unitCount), totalUnitCount)
         activeUnitStart = completedUnitCount
         activeUnitCount = 1
-        activeCheckpointCount = 0
         lock.unlock()
         return !isCancelled
     }

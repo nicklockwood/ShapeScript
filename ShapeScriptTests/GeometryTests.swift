@@ -718,16 +718,18 @@ final class GeometryTests: XCTestCase {
         XCTAssertTrue(progress.isCancelled)
     }
 
-    func testRenderProgressDoesNotCountCheckpointsTwice() {
+    func testRenderProgressDoesNotCountPartialWorkTwice() {
         let progress = RenderProgress()
         progress.beginTracking(totalUnitCount: 100, isCancelled: { false })
         _ = progress.completeUnit(.buildingLeaves, by: 10)
         _ = progress.beginUnit(.buildingFinal, unitCount: 20)
 
-        for _ in 0 ..< 5 {
-            _ = progress.checkpoint(.buildingFinal)
-        }
+        progress.reportUnitProgress(0.25)
         XCTAssertEqual(progress.fractionCompleted, 0.15)
+        progress.reportUnitProgress(0.1)
+        XCTAssertEqual(progress.fractionCompleted, 0.15)
+        progress.reportUnitProgress(1)
+        XCTAssertEqual(progress.fractionCompleted, 0.29)
 
         _ = progress.completeUnit(.buildingFinal, by: 20)
         XCTAssertEqual(progress.fractionCompleted, 0.3)
