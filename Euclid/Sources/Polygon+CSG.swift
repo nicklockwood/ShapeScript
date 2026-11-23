@@ -50,6 +50,40 @@ public extension Polygon {
         return BSP(mesh, isCancelled).clip([self], .greaterThan, isCancelled)
     }
 
+    /// Projects the polygon orthogonally onto a plane.
+    /// - Parameters:
+    ///   - plane: The plane on which the returned path lies in world coordinates.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: The outline of the covered area, or a line segment for an edge-on projection.
+    ///   Returns an empty path on cancellation.
+    func projected(onto plane: Plane, isCancelled: CancellationHandler = { false }) -> Path {
+        [self].projected(onto: plane, isCancelled: isCancelled)
+    }
+
+    /// Returns the intersection of the polygon and a plane.
+    /// - Parameters:
+    ///   - plane: The plane to intersect with.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: A closed outline for a coplanar intersection, or the segments and isolated
+    ///   points where the plane meets the polygon. A miss or cancellation returns an empty path.
+    func intersection(with plane: Plane, isCancelled: CancellationHandler = { false }) -> Path {
+        guard !isCancelled() else { return .empty }
+        if compare(with: plane) == .coplanar {
+            return projected(onto: plane, isCancelled: isCancelled)
+        }
+
+        let project = plane.makePointProjection()
+        let hasColor = hasVertexColors
+        let paths = intersectionVertices(with: plane, isCancelled: isCancelled).map { vertices in
+            let vertices = vertices.count > 2 && !hasColor ? [vertices[0], vertices[vertices.count - 1]] : vertices
+            let points = vertices.map {
+                PathPoint.point(project($0.position), color: hasColor ? $0.color : nil)
+            }
+            return Path(points)
+        }
+        return isCancelled() ? .empty : Path(subpaths: paths)
+    }
+
     /// Computes a set of edges where the polygon intersects a plane.
     /// - Parameter plane: The ``Plane`` to test against the polygon.
     /// - Returns: A `Set` of ``LineSegment`` representing the polygon edges intersecting the plane.
@@ -71,6 +105,48 @@ public extension Polygon {
             material: material,
             id: id
         )
+    }
+}
+
+extension Polygon {
+    /// Returns contacts as runs of source vertices, interpolating along crossed edges.
+    func intersectionVertices(with plane: Plane, isCancelled: CancellationHandler) -> [[Vertex]] {
+        guard !isCancelled(), let first = vertices.first, var previous = vertices.last else { return [] }
+        if compare(with: plane) == .coplanar {
+            return [vertices + [first]]
+        }
+        var previousDistance = previous.position.signedDistance(from: plane)
+        var contacts = [Vertex]()
+        for vertex in vertices {
+            guard !isCancelled() else { return [] }
+            let distance = vertex.position.signedDistance(from: plane)
+            let side = PlaneComparison(signedDistance: distance)
+            if side == .coplanar {
+                contacts.append(vertex)
+            } else if side.union(.init(signedDistance: previousDistance)) == .spanning {
+                contacts.append(previous.lerp(vertex, previousDistance / (previousDistance - distance)))
+            }
+            previous = vertex
+            previousDistance = distance
+        }
+        guard let origin = contacts.first?.position else { return [] }
+        let direction = self.plane.normal.cross(plane.normal)
+        contacts.sort { ($0.position - origin).dot(direction) < ($1.position - origin).dot(direction) }
+
+        // A concave polygon can cover several separate intervals of the intersection line.
+        var runs = [[Vertex]]()
+        var start = 0
+        for (index, vertex) in contacts.enumerated() {
+            guard !isCancelled() else { return [] }
+            let next = index + 1
+            if next == contacts.count || distanceFromCoplanarPoint(
+                vertex.position.lerp(contacts[next].position, 0.5)
+            ) > epsilon {
+                runs.append(Array(contacts[start ... index]))
+                start = next
+            }
+        }
+        return runs
     }
 }
 

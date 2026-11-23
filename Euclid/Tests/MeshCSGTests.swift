@@ -1070,6 +1070,178 @@ final class MeshCSGTests: XCTestCase {
         XCTAssertEqual(c, .intersection([a, b]))
     }
 
+    // MARK: Projection and plane intersection
+
+    func testProjectionChoosesColorsOnTheNearerOutline() {
+        let square = Mesh.fill(.square(), faces: .front)
+        let mesh = Mesh.merge([
+            square.mapVertexColors { _ in .red },
+            square.mapVertexColors { _ in .blue }.translated(by: .unitZ),
+        ])
+        let projection = mesh.projected(onto: .xy)
+        XCTAssertTrue(projection.isClosed)
+        XCTAssertTrue(projection.points.allSatisfy { $0.color == .blue })
+        XCTAssertFalse(projection.hasTexcoords)
+    }
+
+    func testProjectionRetainsColorChangesAlongAStraightEdge() {
+        let a = Mesh.fill(.square(), faces: .front)
+        let mesh = Mesh(a.merge(a.translated(by: .unitX)).polygons.flatMap { polygon in
+            polygon.mapVertices {
+                $0.withColor($0.position.x == 0.5 ? .red : .blue)
+            }
+        })
+        let path = mesh.projected(onto: .xy)
+        for y in [-0.5, 0.5] {
+            XCTAssertEqual(path.points.first { $0.position == [0.5, y, 0] }?.color, .red)
+        }
+        XCTAssertEqual(path.facePolygons().surfaceArea, 2, accuracy: epsilon)
+    }
+
+    func testMeshSectionInterpolatesColorsAndKeepsHardCorners() {
+        let cube = Mesh(Mesh.cube().polygons.flatMap { polygon in
+            polygon.mapVertices { $0.withColor($0.position.z > 0 ? .red : .blue) }
+        })
+        let path = cube.intersection(with: .xy)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertFalse(path.hasTexcoords)
+        let color = Color.red.toLinear().lerp(Color.blue.toLinear(), 0.5).toSRGB()
+        XCTAssertTrue(path.points.allSatisfy { $0.color == color })
+        XCTAssertFalse(path.points.contains(where: \.isCurved))
+    }
+
+    func testProjectionAndSectionInferCurvatureFromSmoothNormals() {
+        let sphere = Mesh.sphere(slices: 16)
+        for path in [sphere.projected(onto: .xy), sphere.intersection(with: .xy)] {
+            XCTAssertTrue(path.isClosed)
+            XCTAssertGreaterThan(path.points.count, 4)
+            XCTAssertTrue(path.points.allSatisfy(\.isCurved))
+            XCTAssertFalse(path.hasColors)
+        }
+    }
+
+    func testProjectionUnionsOverlappingFacesAndKeepsDisjointRegions() {
+        let cube = Mesh.cube()
+        let mesh = Mesh.merge([
+            cube.translated(by: [0, 0, -2]),
+            cube.translated(by: [0.5, 0, 2]),
+            cube.translated(by: [3, 0, 2]),
+        ])
+        let path = mesh.projected(onto: .xy)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.subpaths.count, 2)
+        XCTAssertEqual(path.facePolygons().surfaceArea, 2.5, accuracy: epsilon)
+        XCTAssertEqual(path.bounds, Bounds(min: [-0.5, -0.5, 0], max: [3.5, 0.5, 0]))
+        XCTAssertTrue(mesh.intersection(with: .xy).isEmpty)
+    }
+
+    func testProjectionOntoObliquePlaneReturnsWorldCoordinates() {
+        let plane = Plane(unchecked: Vector(1, 1, 1).normalized(), w: 2)
+        let path = Mesh.cube().projected(onto: plane)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertTrue(path.points.allSatisfy { plane.intersects($0.position) })
+        XCTAssertTrue(path.faceNormal.isApproximatelyEqual(to: plane.normal))
+        XCTAssertEqual(path.facePolygons().surfaceArea, 3.0.squareRoot(), accuracy: epsilon)
+    }
+
+    func testProjectionUnionsOverlappingEdgeOnFaces() {
+        let square = Mesh.fill(.square(), faces: .front)
+        let mesh = Mesh.merge([square, square.translated(by: [2, 0.5, 0])])
+        let path = mesh.projected(onto: .yz)
+        XCTAssertFalse(path.isClosed)
+        XCTAssertEqual(Set(path.points.map(\.position)), Set([[0, -0.5, 0], [0, 1, 0]]))
+        XCTAssertEqual(path.length, 1.5, accuracy: epsilon)
+    }
+
+    func testProjectionAndPlaneIntersectionPreserveHoles() {
+        let ring = Path(subpaths: [.square(size: 4), .square(size: 2)], windingRule: .evenOdd)
+        let mesh = Mesh.extrude(ring, depth: 2)
+        let cap = Plane(unchecked: .unitZ, w: 1)
+        for path in [mesh.projected(onto: .xy), mesh.intersection(with: .xy), mesh.intersection(with: cap)] {
+            XCTAssertTrue(path.isClosed)
+            XCTAssertEqual(path.subpaths.count, 2)
+            XCTAssertEqual(path.facePolygons().surfaceArea, 12, accuracy: epsilon)
+        }
+    }
+
+    func testPlaneIntersectionIncludesCoplanarFacesOnBothSides() {
+        let above = Mesh.cube().translated(by: [-2, 0, 0.5]).triangulate()
+        let below = Mesh.cube().translated(by: [2, 0, -0.5]).triangulate()
+        let mesh = Mesh.merge([above, below])
+        for plane in [Plane.xy, Plane.xy.inverted()] {
+            let path = mesh.intersection(with: plane)
+            XCTAssertTrue(path.isClosed)
+            XCTAssertEqual(path.subpaths.count, 2)
+            XCTAssertTrue(path.faceNormal.isApproximatelyEqual(to: plane.normal))
+            XCTAssertEqual(path.facePolygons().surfaceArea, 2, accuracy: epsilon)
+        }
+    }
+
+    func testPlaneIntersectionThroughVerticesReturnsFilledSection() {
+        let plane = Plane(unchecked: Vector(1, 1, 0).normalized(), w: 0)
+        let path = Mesh.cube().triangulate().intersection(with: plane)
+        XCTAssertTrue(path.isClosed)
+        XCTAssertEqual(path.subpaths.count, 1)
+        XCTAssertTrue(path.points.allSatisfy { plane.intersects($0.position) })
+        XCTAssertEqual(path.facePolygons().surfaceArea, 2.0.squareRoot(), accuracy: epsilon)
+    }
+
+    func testObliquePlaneIntersectionPreservesHoles() {
+        let ring = Path(subpaths: [.square(size: 4), .square(size: 2)], windingRule: .evenOdd)
+        let normal = Vector(-3, 4, 2).normalized()
+        let rotation = Rotation(from: .unitZ, to: normal)
+        let offset = Vector(4, -20, 6)
+        let mesh = Mesh.extrude(ring, depth: 2).rotated(by: rotation).translated(by: offset)
+        for height in [-1.0, 0, 1] {
+            let plane = Plane(unchecked: normal, pointOnPlane: offset + normal * height)
+            let path = mesh.intersection(with: plane)
+            XCTAssertTrue(path.isClosed)
+            XCTAssertEqual(path.subpaths.count, 2)
+            XCTAssertTrue(path.points.allSatisfy { plane.intersects($0.position) })
+            XCTAssertEqual(path.facePolygons().surfaceArea, 12, accuracy: epsilon)
+        }
+    }
+
+    func testPlaneIntersectionPreservesPointAndEdgeContacts() {
+        let mesh = Mesh.cube()
+        let edge = Plane(unchecked: Vector(1, 1, 0).normalized(), pointOnPlane: [0.5, 0.5, 0])
+        let corner = Plane(unchecked: Vector(1, 1, 1).normalized(), pointOnPlane: [0.5, 0.5, 0.5])
+        let line = mesh.intersection(with: edge)
+        XCTAssertFalse(line.isClosed)
+        XCTAssertEqual(Set(line.points.map(\.position)), Set([[0.5, 0.5, -0.5], [0.5, 0.5, 0.5]]))
+        let point = mesh.intersection(with: corner)
+        XCTAssertEqual(point.points.map(\.position), [[0.5, 0.5, 0.5]])
+        XCTAssertTrue(point.isClosed)
+        XCTAssertTrue(point.facePolygons().isEmpty)
+        let colored = mesh.mapVertexColors { _ in .red }
+        for plane in [edge, corner] {
+            let path = colored.intersection(with: plane)
+            XCTAssertTrue(path.hasColors)
+            XCTAssertTrue(path.points.allSatisfy { $0.color == .red })
+            XCTAssertFalse(path.hasTexcoords)
+        }
+    }
+
+    func testPlaneIntersectionPreservesAnIsolatedPointAlongsideAnEdge() {
+        let cube = Mesh.cube()
+        let edgeBody = cube.rotated(by: Rotation(from: Vector(1, 1, 0), to: .unitZ))
+        let pointBody = cube.rotated(by: Rotation(from: Vector(1, 1, 1), to: .unitZ))
+        let mesh = Mesh.merge([
+            edgeBody.translated(by: [0, 0, -edgeBody.bounds.min.z]),
+            pointBody.translated(by: [3, 0, -pointBody.bounds.min.z]),
+        ])
+        let path = mesh.intersection(with: .xy)
+        XCTAssertEqual(path.subpaths.map(\.points.count).sorted(), [1, 2])
+        XCTAssertEqual(path.length, 1, accuracy: epsilon)
+    }
+
+    func testProjectionAndPlaneIntersectionCanBeCancelled() {
+        let mesh = Mesh.cube()
+        XCTAssertTrue(mesh.projected(onto: .xy) { true }.isEmpty)
+        XCTAssertTrue(mesh.intersection(with: .xy) { true }.isEmpty)
+    }
+
     // MARK: Plane clipping
 
     func testSquareClippedToPlane() {

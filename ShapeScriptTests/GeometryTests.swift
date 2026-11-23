@@ -12,6 +12,35 @@ import Foundation
 import XCTest
 
 final class GeometryTests: XCTestCase {
+    func testLoftAveragesWallNormalsUnlessContourIsRepeated() throws {
+        for isSharp in [false, true] {
+            let scene = try evaluate(parse("""
+            loft {
+                square { size 2 }
+                translate 0 0 1
+                square { size 2 }
+                \(isSharp ? "square { size 2 }" : "")
+                translate 0 0 1
+                square
+            }
+            """), delegate: nil)
+            XCTAssertTrue(scene.build { false })
+            let mesh = scene.geometry.merged()
+            let slopedSides = mesh.polygons.filter { $0.plane.normal.z > 0 && $0.plane.normal.z < 1 }
+            XCTAssertEqual(slopedSides.count, 4)
+            for side in slopedSides {
+                let seam = side.vertices.filter { $0.position.z == 1 }
+                XCTAssertEqual(seam.count, 2)
+                let sloped = side.plane.normal
+                let straight = Vector(sloped.x, sloped.y).normalized()
+                let expected = isSharp ? sloped : (straight + sloped).normalized()
+                for vertex in seam {
+                    XCTAssertEqual((vertex.normal - expected).length, 0, accuracy: 1e-8)
+                }
+            }
+        }
+    }
+
     func testWorldTransformAppliesLocalTransformBeforeAncestors() {
         let transforms: [Transform] = [
             .translation([3, 4, 5]),

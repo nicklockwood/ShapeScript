@@ -56,18 +56,20 @@ final class MeshExtrudeTests: XCTestCase {
     }
 
     func testExtrudeTextureCoordinatesWrapClosedBeveledPath() throws {
-        let along = Path([
-            .point(0, 0), .point(0, 1), .point(3, 1), .point(3, 0), .point(0, 0),
-        ])
+        let along = Path([.point(0, 0), .point(0, 1), .point(3, 1), .point(3, 0), .point(0, 0)])
         for miterLimit in [MiterLimit.infinity, 1] {
-            let (contours, contourOffsets) = Path.square(size: 0.1).extrusionContoursWithOffsets(
-                along: along, twist: .zero, align: .tangent,
-                miterLimit: miterLimit
+            let sections = Path.square(size: 0.1).extrusionContoursWithOffsets(
+                along: along,
+                twist: .zero,
+                taper: .one,
+                align: .tangent,
+                miterLimit: miterLimit,
+                isCancelled: { false }
             )
-            XCTAssertEqual(contours.count, contourOffsets.count)
-            XCTAssertEqual(try XCTUnwrap(contourOffsets.first), 0, accuracy: 1e-8)
-            XCTAssertEqual(try XCTUnwrap(contourOffsets.last), 1, accuracy: 1e-8)
-            XCTAssertEqual(contourOffsets, contourOffsets.sorted())
+            XCTAssertEqual(sections.contours.count, sections.offsets.count)
+            XCTAssertEqual(try XCTUnwrap(sections.offsets.first), 0, accuracy: 1e-8)
+            XCTAssertEqual(try XCTUnwrap(sections.offsets.last), 1, accuracy: 1e-8)
+            XCTAssertEqual(sections.offsets, sections.offsets.sorted())
         }
     }
 
@@ -122,6 +124,163 @@ final class MeshExtrudeTests: XCTestCase {
             Mesh.extrude(shape, twist: .pi),
             Mesh.extrude(shape, twist: .pi, sections: 8)
         )
+    }
+
+    func testTwistedExtrudeKeepsVertexCorrespondenceWithOneSection() {
+        let mesh = Mesh.extrude(Path.square(size: 2), depth: 2, twist: .degrees(120), sections: 1)
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.signedVolume, 6.309401077, accuracy: 1e-8)
+    }
+
+    func testTwistedExtrudeAlongStraightGuideKeepsVertexCorrespondence() {
+        let profile = Path.square(size: 2)
+        let guide = Path.line([2, 3, 0], [2, 3, 2])
+        let mesh = Mesh.extrude(profile, along: guide, twist: .degrees(120))
+        let expected = Mesh.extrude(profile, depth: 2, twist: .degrees(120), sections: 1)
+
+        XCTAssertEqual(mesh, expected.translated(by: [2, 3, 1]))
+    }
+
+    func testTaperedExtrudeCanCollapseACompoundProfileToAnEdgeOrPoint() {
+        let profile = Path(subpaths: [.square(size: 4), .square(size: 2)])
+
+        let edge = Mesh.extrude(profile, depth: 2, taper: [0, 0.75], sections: 4)
+        XCTAssertTrue(edge.isWatertight)
+        XCTAssertEqual(edge.signedVolume, 11, accuracy: 1e-8)
+
+        let point = Mesh.extrude(profile, depth: 2, taper: .zero, sections: 4)
+        XCTAssertTrue(point.isWatertight)
+        XCTAssertEqual(point.signedVolume, 8, accuracy: 1e-8)
+    }
+
+    func testTaperedExtrudeRetainsAThinEndCap() {
+        let mesh = Mesh.extrude(Path.square(size: 2), depth: 2, taper: [1e-9, 1])
+        let cap = mesh.polygons.filter { polygon in
+            polygon.vertices.allSatisfy { $0.position.z == 1 }
+        }
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(cap.surfaceArea, 4e-9, accuracy: 1e-12)
+    }
+
+    func testTaperedExtrudeDoesNotTreatAnUnchangedLineAsCollapsed() {
+        let profile = Path.line([0, -1], [0, 1])
+        let mesh = Mesh.extrude(profile, taper: [0, 1])
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.polygons.count, 2)
+        XCTAssertEqual(mesh.surfaceArea, 4, accuracy: 1e-8)
+    }
+
+    func testTaperedExtrudeScalesInTheProfilePlane() {
+        let profile = Path.square(size: 2).translated(by: [2, 0])
+        let orientation = Rotation.pitch(.degrees(30))
+        let offset = Vector.unitZ.rotated(by: orientation) * 3
+        let inclinedProfile = profile.rotated(by: orientation).translated(by: offset)
+
+        let mesh = Mesh.extrude(inclinedProfile, depth: 2, taper: [0.5, 0.75]).translated(by: -offset)
+            .rotated(by: -orientation)
+        let expected = Mesh.extrude(profile, depth: 2, taper: [0.5, 0.75])
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.bounds.isApproximatelyEqual(to: expected.bounds))
+        XCTAssertEqual(mesh.signedVolume, expected.signedVolume, accuracy: 1e-8)
+    }
+
+    func testTaperedExtrudeAlongGuideUsesDistanceAndCanCollapseToAnEdge() {
+        let profile = Path.square(size: 2)
+        let guide = Path([.point(0, 0, 0), .point(0, 0, 1), .point(0, 0, 4)])
+        let taper = Vector(0, 1, 1)
+        let contours = profile.extrusionContours(along: guide, taper: taper)
+        XCTAssertEqual(contours.first?.bounds.size, [2, 2, 0])
+        XCTAssertEqual(contours[1].bounds.size, [1.5, 2, 0])
+        XCTAssertEqual(contours.last?.bounds.size, [0, 2, 0])
+
+        let mesh = Mesh.extrude(profile, along: guide, taper: taper)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.signedVolume, 8, accuracy: 1e-8)
+    }
+
+    func testTaperedExtrudeAlongGuideAppliesScaleAfterTwist() {
+        let profile = Path.rectangle(width: 2, height: 1)
+        let guide = Path([.point(0, 0, 0), .point(0, 0, 1), .point(0, 0, 4)])
+        let mesh = Mesh.extrude(profile, along: guide, twist: .halfPi, taper: [0.5, 0.75])
+        let top = mesh.polygons.flatMap(\.vertices).map(\.position).filter { $0.z == 4 }
+
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(Bounds(top).size, [0.5, 1.5, 0])
+    }
+
+    func testTaperedExtrudeAlongBeveledGuidePreservesEndCapsAndColors() throws {
+        let profile = Path.square(size: 0.2)
+        let guide = Path([
+            .point(0, 0, color: .red),
+            .point(2, 0, color: .white),
+            .point(2, 4, color: .blue),
+        ])
+        let contours = profile.extrusionContours(
+            along: guide, twist: .degrees(30), taper: [0.5, 0.75], miterLimit: 1
+        )
+        XCTAssertEqual(contours.first?.points.first?.color, .red)
+        XCTAssertEqual(contours.last?.points.first?.color, .blue)
+        let mesh = Mesh.extrude(
+            profile, along: guide, twist: .degrees(30), taper: [0.5, 0.75],
+            miterLimit: 1
+        )
+        XCTAssertTrue(mesh.isWatertight)
+        let start = try XCTUnwrap(mesh.polygons.first { $0.vertices.allSatisfy { $0.position.x == 0 } })
+        let end = try XCTUnwrap(mesh.polygons.first { $0.vertices.allSatisfy { $0.position.y == 4 } })
+        XCTAssertEqual(start.area, 0.04, accuracy: 1e-8)
+        XCTAssertEqual(end.area, 0.015, accuracy: 1e-8)
+        XCTAssertTrue(start.vertices.allSatisfy { $0.color == .red })
+        XCTAssertTrue(end.vertices.allSatisfy { $0.color == .blue })
+    }
+
+    func testTaperedExtrudeAlongClosedGuideJoinsTheEndProfiles() {
+        let guide = Path([.point(0, 0), .point(4, 0), .point(4, 4), .point(0, 4), .point(0, 0)])
+        let profile = Path.square()
+        for scale in [0.0, 0.5, 1.5] {
+            let taper = Vector(size: scale)
+            let contours = profile.extrusionContours(along: guide, taper: taper)
+            XCTAssertEqual(contours.first, contours.last)
+            let mesh = Mesh.extrude(profile, along: guide, taper: taper)
+            XCTAssertFalse(mesh.isEmpty)
+            XCTAssertTrue(mesh.isWatertight, "Taper \(scale)")
+            XCTAssertGreaterThan(mesh.signedVolume, 0)
+            let seam = mesh.polygons.filter {
+                $0.vertices.allSatisfy { point in
+                    let p = point.position
+                    return abs(p.x - p.y) < 1e-8 && p.length < 2
+                }
+            }
+            XCTAssertEqual(seam.surfaceArea, abs(1 - scale * scale) * sqrt(2), accuracy: 1e-8)
+            if scale == 0.5 {
+                XCTAssertTrue(Mesh.loft(contours).isWatertight)
+            }
+        }
+    }
+
+    func testTaperedExtrudeAndLoftUseFlatNormalsAtClosedGuideSeam() throws {
+        let profile = Path.square()
+        let guide = Path.circle(radius: 1, segments: 32)
+        let contours = profile.extrusionContours(along: guide, taper: .zero)
+        let seamPlane = try XCTUnwrap(contours.first?.plane)
+
+        for mesh in [Mesh.extrude(profile, along: guide, taper: .zero), Mesh.loft(contours)] {
+            let seamPolygons = mesh.polygons.filter { polygon in
+                polygon.vertices.allSatisfy { seamPlane.intersects($0.position) && $0.position.y > 0 }
+            }
+            XCTAssertEqual(seamPolygons.count, 4)
+            for polygon in seamPolygons {
+                for vertex in polygon.vertices {
+                    XCTAssertEqual(vertex.normal, polygon.plane.normal, accuracy: epsilon)
+                }
+            }
+            XCTAssertTrue(mesh.polygons.contains { polygon in
+                polygon.vertices.contains { $0.normal.dot(polygon.plane.normal) < 1 - epsilon }
+            })
+        }
     }
 
     func testNegativeTwistedExtrudeCalculatesSectionsFromMagnitude() {
@@ -209,7 +368,7 @@ final class MeshExtrudeTests: XCTestCase {
     }
 
     private func assertSelfIntersectingExtrusionAlignsNonZeroFillBoundaryEdges(_ path: Path) {
-        let fillPolygons = path.nonZeroFillPolygons(material: nil) { false }
+        let fillPolygons = path.withWindingRule(.nonZero).filledPolygons(material: nil) { false }
         let rawBoundaryEdges = fillPolygons.boundingEdges
         let alignedBoundaryEdges = fillPolygons
             .insertingEdgeVertices(
@@ -269,7 +428,7 @@ final class MeshExtrudeTests: XCTestCase {
         }
         let expectedSideEdges = Set(alignedBoundaryEdges.map(signature))
 
-        XCTAssertTrue(path.usesNonZeroFill)
+        XCTAssertTrue(path.requiresFillResolution)
         XCTAssertEqual(Set(rawBoundaryEdges.map(signature)), expectedSideEdges)
         XCTAssertEqual(boundaryEdgeSignatures(for: extrudedCapPolygons), expectedSideEdges)
         XCTAssertEqual(boundaryEdgeSignatures(for: extrudedAlongCapPolygons), expectedSideEdges)
@@ -309,6 +468,21 @@ final class MeshExtrudeTests: XCTestCase {
         let mesh = Mesh.extrude(Path(subpaths: [outer, inner]), depth: 1)
         XCTAssertEqual(mesh.polygons.surfaceArea, 192)
         XCTAssertTrue(mesh.isWatertight)
+    }
+
+    func testExtrudeCompoundPathUsesExplicitWindingForCapsAndSides() {
+        let path = Path(subpaths: [.square(size: 4), .square(size: 2)], windingRule: .nonZero)
+        let evenOdd = path.withWindingRule(.evenOdd)
+        let rail = Path.line(.zero, .unitZ)
+
+        for (input, volume, area) in [(path, 16.0, 48.0), (evenOdd, 12.0, 48.0)] {
+            for mesh in [Mesh.extrude(input), Mesh.extrude(input, along: rail)] {
+                XCTAssertTrue(mesh.polygons.areWatertight)
+                XCTAssertEqual(mesh.signedVolume, volume, accuracy: epsilon)
+                XCTAssertEqual(mesh.surfaceArea, area, accuracy: epsilon)
+            }
+        }
+        XCTAssertEqual(Mesh.extrude(path, depth: 0, faces: .front).surfaceArea, 16, accuracy: epsilon)
     }
 
     func testExtrudeNestedCompoundPathWithDoubledBackSegmentDoesNotAssert() {
@@ -384,6 +558,16 @@ final class MeshExtrudeTests: XCTestCase {
         let mesh = Mesh.extrude(Path(subpaths: [first, second]), depth: 1)
         XCTAssertEqual(mesh.polygons.surfaceArea, 380)
         XCTAssertTrue(mesh.isWatertight)
+    }
+
+    func testExtrudeOverlappingCompoundPathWithExplicitWindingRule() {
+        let square = Path.square(size: 2)
+        let path = Path(subpaths: [square, square.translated(by: .unitX)], windingRule: .nonZero)
+        for (input, expectedVolume) in [(path, 6.0), (path.withWindingRule(.evenOdd), 4.0)] {
+            let mesh = Mesh.extrude(input)
+            XCTAssertTrue(mesh.polygons.areWatertight)
+            XCTAssertEqual(mesh.signedVolume, expectedVolume, accuracy: epsilon)
+        }
     }
 
     func testExtrudeOverlappingMultiCompoundPathUsesEvenOddRule() {
@@ -814,6 +998,26 @@ final class MeshExtrudeTests: XCTestCase {
         #endif
     }
 
+    func testExtrudeResolvedNonzeroTextRetainsContourEdgesAlongNonPlanarCurve() throws {
+        #if canImport(CoreText)
+        let profile = try XCTUnwrap(Path.text("Hello", detail: 8).last)
+            .scaled(by: 0.1).rotated(by: .roll(-.halfPi))
+        let rail = Path.curve([
+            .point(0, 0),
+            .curve(0, 0, 1),
+            .curve(0, 1, 1),
+            .curve(1, 1, 1),
+            .point(1, 1, 2),
+        ], detail: 16)
+        let mesh = Mesh.extrude(profile, along: rail)
+        let expected = Mesh.extrude(profile.withWindingRule(.default), along: rail)
+
+        XCTAssertFalse(mesh.isEmpty)
+        XCTAssertEqual(mesh.polygons.count, expected.polygons.count)
+        XCTAssertEqual(mesh.signedVolume, expected.signedVolume, accuracy: epsilon)
+        #endif
+    }
+
     func testExtrudeNestedCompoundPathAlongCurvedPath() {
         func rectangle(
             _ x: Double,
@@ -946,8 +1150,11 @@ final class MeshExtrudeTests: XCTestCase {
     }
 
     func testExtrudeAlongSinglePointPath() {
-        let mesh = Mesh.extrude(.circle(), along: .init([.point(1, 0.5)]))
-        XCTAssertEqual(mesh, .fill(Path.circle().translated(by: .init(1, 0.5))))
+        let guide = Path([.point(1, 0.5)])
+        let expected = Mesh.fill(Path.circle().translated(by: [1, 0.5]))
+        for taper in [Vector.one, Vector(size: 0.5)] {
+            XCTAssertEqual(Mesh.extrude(.circle(), along: guide, taper: taper), expected)
+        }
     }
 
     func testExtrudeAlongAlignment() {

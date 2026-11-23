@@ -10,6 +10,48 @@
 import XCTest
 
 final class MeshLatheTests: XCTestCase {
+    func testPartialLatheCapsBothEndsWithOneSlice() {
+        let profile = Path.square().translated(by: [-2, 0, 0])
+        let mesh = Mesh.lathe(profile, sweep: .halfPi, slices: 1)
+        XCTAssertEqual(mesh.polygons.count, 6)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.polygons.areConsistentlyWound)
+        XCTAssertEqual(mesh.signedVolume, 2, accuracy: 1e-8)
+        XCTAssertEqual(mesh.bounds, Bounds([-2.5, -0.5, 0], [0, 0.5, 2.5]))
+
+        let reverse = Mesh.lathe(profile, sweep: -.halfPi, slices: 1)
+        XCTAssertTrue(reverse.isWatertight)
+        XCTAssertTrue(reverse.polygons.areConsistentlyWound)
+        XCTAssertEqual(reverse.signedVolume, mesh.signedVolume, accuracy: 1e-8)
+        XCTAssertEqual(reverse.bounds, Bounds([-2.5, -0.5, -2.5], [0, 0.5, 0]))
+    }
+
+    func testPartialLatheCapsAnOpenProfileWhoseEndsMeetTheAxis() {
+        let profile = Path([.point(0, 0), .point(-2, 0), .point(-2, 1), .point(0, 1)])
+        let mesh = Mesh.lathe(profile, sweep: .halfPi, slices: 1, poleDetail: 1, addDetailForFlatPoles: true)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.polygons.areConsistentlyWound)
+        XCTAssertEqual(mesh.signedVolume, 2, accuracy: 1e-8)
+    }
+
+    func testPartialLatheCapsPreserveHoles() {
+        let outer = Path.square(size: 4).translated(by: [-4, 0, 0])
+        let inner = Path.square(size: 2).translated(by: [-4, 0, 0])
+        let profile = Path(subpaths: [outer, inner], windingRule: .evenOdd)
+        let mesh = Mesh.lathe(profile, sweep: .halfPi, slices: 4)
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertTrue(mesh.polygons.areConsistentlyWound)
+        let cap = mesh.polygons.filter { $0.vertices.allSatisfy { abs($0.position.z) < 1e-8 } }
+        XCTAssertEqual(cap.reduce(0) { $0 + $1.area }, 12, accuracy: 1e-8)
+        XCTAssertTrue(cap.allSatisfy { $0.plane.normal.z < 0 })
+    }
+
+    func testLatheZeroAndFullSweep() {
+        let profile = Path.square().translated(by: [-2, 0, 0])
+        XCTAssertTrue(Mesh.lathe(profile, sweep: .zero).isEmpty)
+        XCTAssertEqual(Mesh.lathe(profile, sweep: .twoPi * 2), Mesh.lathe(profile))
+    }
+
     func testLatheAlongWrapModes() {
         let profile = Path([
             .point(-0.5, 2), .point(-0.5, 1.2), .point(-0.8, 1.2), .point(-0.8, 0),
@@ -419,6 +461,35 @@ final class MeshLatheTests: XCTestCase {
         XCTAssertEqual(submeshes.filter { $0.signedVolume < 0 }.count, 1)
         XCTAssertTrue(mesh.isWatertight)
         XCTAssertTrue(mesh.polygons.areWatertight)
+    }
+
+    func testLatheCompoundProfileUsesExplicitWindingRule() {
+        let outer = Path.square(size: 4).translated(by: [3, 2])
+        let inner = Path.square(size: 2).translated(by: [3, 2])
+        let path = Path(subpaths: [outer, inner], windingRule: .nonZero)
+        let evenOdd = path.withWindingRule(.evenOdd)
+        let axis = Path.line(.zero, [0, 4])
+        let outerVolume = Mesh.lathe(outer, slices: 8).signedVolume
+        let innerVolume = Mesh.lathe(inner, slices: 8).signedVolume
+
+        for (input, volume) in [(path, outerVolume), (evenOdd, outerVolume - innerVolume)] {
+            for mesh in [Mesh.lathe(input, slices: 8), Mesh.lathe(input, along: axis, slices: 8)] {
+                XCTAssertTrue(mesh.polygons.areWatertight)
+                XCTAssertEqual(mesh.signedVolume, volume, accuracy: epsilon)
+            }
+        }
+    }
+
+    func testLatheResolvedNonzeroTextRetainsContourEdges() throws {
+        #if canImport(CoreText)
+        let profile = try XCTUnwrap(Path.text("hello").last)
+        let mesh = Mesh.lathe(profile)
+        let expected = Mesh.lathe(profile.withWindingRule(.default))
+
+        XCTAssertTrue(mesh.polygons.areWatertight)
+        XCTAssertEqual(mesh.polygons.count, expected.polygons.count)
+        XCTAssertEqual(mesh.signedVolume, expected.signedVolume, accuracy: epsilon)
+        #endif
     }
 
     func testLatheOverlappingCompoundPathUsesEvenOddRule() {

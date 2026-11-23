@@ -46,11 +46,11 @@ A three-dimensional surface made from polygons.
 ### Creating Meshes from Paths
 
 - ``Mesh/convexHull(of:material:isCancelled:)-(Collection<Path>,_,_)``
-- ``Mesh/lathe(_:slices:poleDetail:addDetailForFlatPoles:faces:wrapMode:material:isCancelled:)``
-- ``Mesh/extrude(_:along:twist:align:miterLimit:faces:material:isCancelled:)-6crez``
-- ``Mesh/extrude(_:along:twist:align:miterLimit:faces:material:isCancelled:)-646jk``
-- ``Mesh/extrude(_:depth:twist:sections:faces:material:isCancelled:)-(Path,_,_,_,_,_,_)``
-- ``Mesh/extrude(_:depth:twist:sections:faces:material:isCancelled:)-(Collection<Path>,_,_,_,_,_,_)``
+- ``Mesh/lathe(_:sweep:slices:poleDetail:addDetailForFlatPoles:faces:wrapMode:material:isCancelled:)``
+- ``Mesh/extrude(_:along:twist:taper:align:miterLimit:faces:material:isCancelled:)-(Path,_,_,_,_,_,_,_,_)``
+- ``Mesh/extrude(_:along:twist:taper:align:miterLimit:faces:material:isCancelled:)-(Collection<Path>,_,_,_,_,_,_,_,_)``
+- ``Mesh/extrude(_:depth:twist:taper:sections:faces:material:isCancelled:)-(Path,_,_,_,_,_,_,_)``
+- ``Mesh/extrude(_:depth:twist:taper:sections:faces:material:isCancelled:)-(Collection<Path>,_,_,_,_,_,_,_)``
 - ``Mesh/fill(_:faces:material:isCancelled:)-(Path,_,_,_)``
 - ``Mesh/fill(_:faces:material:isCancelled:)-(Collection<Path>,_,_,_)``
 - ``Mesh/loft(_:faces:material:isCancelled:)``
@@ -67,30 +67,29 @@ A three-dimensional surface made from polygons.
 
 ### Creating Meshes from Text
 
-- ``Mesh/text(_:font:width:depth:detail:material:isCancelled:)``
-- ``Mesh/text(_:width:depth:detail:material:isCancelled:)``
+- ``Mesh/text(_:font:along:offset:rotation:width:depth:detail:material:isCancelled:)``
+- ``Mesh/text(_:along:offset:rotation:width:depth:detail:material:isCancelled:)``
 
 ### Creating Meshes from SceneKit Models
 
 - ``Mesh/init(_:material:)``
-- ``Mesh/init(_:ignoringTransforms:materialLookup:)``
+- ``Mesh/init(_:ignoringTransforms:linearColors:materialLookup:)``
 
 ### Importing Meshes
 
 - ``Mesh/ImportOptions``
 - ``Mesh/init(objString:options:)``
-- ``Mesh/init(offString:options:)``
+- ``Mesh/init(offString:options:materialLookup:)``
 - ``Mesh/init(stlString:options:)``
 - ``Mesh/init(stlData:options:materialLookup:)``
-- ``Mesh/init(url:options:materialLookup:)``
-- ``Mesh/init(_:ignoringTransforms:materialLookup:)``
+- ``Mesh/init(url:options:isCancelled:materialLookup:)``
 
 ### Exporting Meshes
 
 - ``Mesh/objString()``
 - ``Mesh/stlString(name:)``
 - ``Mesh/stlData(colorLookup:)``
-- ``Mesh/write(to:materialLookup:)``
+- ``Mesh/write(to:isCancelled:materialLookup:)``
 
 ### Mesh Properties
 

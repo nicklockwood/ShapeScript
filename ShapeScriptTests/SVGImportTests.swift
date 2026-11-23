@@ -364,7 +364,9 @@ final class SVGImportTests: XCTestCase {
         <text x="30" y="40" font-size="10">L</text>
         <text x="40" y="50" font-size="10">L</text>
         """)).paths(pretransformed: true).flatMap(\.subpaths)
-        XCTAssertEqual(actual, expected)
+        // A single SVG text element combines its glyphs into one path.
+        // Compare the outlines to verify span positioning independently of that grouping.
+        XCTAssertEqual(actual.map(\.points), expected.map(\.points))
     }
 
     func testTextRotationRepeatsAndPositionUnitsAreParsed() throws {

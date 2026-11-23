@@ -786,6 +786,101 @@ extension Collection<Polygon> {
         return edges.compactMap { $0 }
     }
 
+    /// Projects the polygons orthogonally onto a plane and returns the outline of the covered area.
+    /// - Parameters:
+    ///   - plane: The plane on which the returned path lies in world coordinates.
+    ///   - isCancelled: Callback used to cancel the operation.
+    /// - Returns: Closed outlines of the covered area, or line segments if the projection
+    ///   collapses edge-on. Returns an empty path on cancellation.
+    func projected(onto plane: Plane, isCancelled: Euclid.CancellationHandler) -> Path {
+        guard !isEmpty, !isCancelled() else { return .empty }
+        // Work in plane-local coordinates so the fill sees exactly coplanar contours.
+        let rotation = rotationBetweenNormalizedVectors(.unitZ, plane.normal)
+        let center = Bounds(self).center
+        let x = Vector.unitX.rotated(by: rotation)
+        let y = Vector.unitY.rotated(by: rotation)
+        let isHorizontal = plane.normal == .unitZ
+        var paths = [Path]()
+        for polygon in self {
+            guard !isCancelled() else { return .empty }
+            let facing = isHorizontal ? polygon.plane.normal.z : polygon.plane.normal.dot(plane.normal)
+            if facing == 0 { continue }
+            // Tessellation also splits faces whose outline contains bridges to holes.
+            for polygon in polygon.tessellate(isCancelled: isCancelled) {
+                var points = if isHorizontal {
+                    polygon.vertices.map { PathPoint.point($0.position.x - center.x, $0.position.y - center.y) }
+                } else {
+                    polygon.vertices.map {
+                        let offset = $0.position - center
+                        return PathPoint.point(offset.dot(x), offset.dot(y))
+                    }
+                }
+                if facing < 0 { points.reverse() }
+                let path = Path(unchecked: .points(sanitizePoints(points + points.prefix(1))), plane: .xy)
+                if path.isClosed, !path.hasZeroArea {
+                    paths.append(path)
+                }
+            }
+        }
+        // Orient every face the same way so overlapping projections add their winding counts.
+        let region = Path(unchecked: .subpaths(paths), plane: .xy, windingRule: .nonZero)
+        let welded = region.filledPolygons(material: nil, isCancelled: isCancelled)
+            .mergingVertices(withPrecision: epsilon, isCancelled: isCancelled)
+        let aligned = welded.insertingEdgeVertices(
+            with: welded.holeEdges(isCancelled: isCancelled),
+            isCancelled: isCancelled
+        )
+        guard !isCancelled() else { return .empty }
+        let contours = aligned.outlinePaths.filter { $0.isClosed && !$0.hasZeroArea }
+        let projection: Path
+        if contours.isEmpty {
+            projection = edgeOnProjection(onto: plane, isCancelled: isCancelled)
+        } else {
+            let outline = Path(unchecked: .subpaths(contours), plane: .xy, windingRule: .nonZero)
+            projection = outline.rotated(by: rotation).translated(by: center.projected(onto: plane))
+        }
+        guard !isCancelled() else { return .empty }
+        guard !projection.isEmpty, hasVertexColors || hasVertexNormals else { return projection }
+        let project = plane.makePointProjection()
+        var edges = [Path.BoundaryEdge]()
+        for polygon in self {
+            let hasColor = polygon.hasVertexColors
+            var previous = polygon.vertices[polygon.vertices.count - 1]
+            var start = project(previous.position)._quantized()
+            for vertex in polygon.vertices {
+                guard !isCancelled() else { return .empty }
+                let end = project(vertex.position)._quantized()
+                edges.append(.init(
+                    start: start, end: end, sourceStart: previous, sourceEnd: vertex,
+                    faceNormal: polygon.plane.normal, hasColor: hasColor
+                ))
+                previous = vertex
+                start = end
+            }
+        }
+        return projection.applyingBoundaryAttributes(from: edges, normal: plane.normal, isCancelled: isCancelled)
+    }
+
+    private func edgeOnProjection(onto plane: Plane, isCancelled: Euclid.CancellationHandler) -> Path {
+        let project = plane.makePointProjection()
+        var segments = Set<LineSegment>()
+        for polygon in self {
+            guard !isCancelled() else { return .empty }
+            let facing = abs(polygon.plane.normal.dot(plane.normal))
+            guard facing < epsilon, polygon.area * facing < epsilon else { continue }
+            let direction = polygon.plane.normal.cross(plane.normal)
+            let vertex = { (a: Vertex, b: Vertex) in
+                (a.position - b.position).dot(direction) < 0
+            }
+            guard let start = polygon.vertices.min(by: vertex)?.position,
+                  let end = polygon.vertices.max(by: vertex)?.position,
+                  let segment = LineSegment(undirected: project(start), project(end))
+            else { continue }
+            segments.insert(segment)
+        }
+        return Path(segments: segments, isolatedPoints: [], plane: plane, isCancelled: isCancelled)
+    }
+
     /// Returns all edges that are wound inconsistently.
     var inconsistentlyWoundEdges: [LineSegment] {
         inconsistentWindingEdges(in: windingEdgeMap)
