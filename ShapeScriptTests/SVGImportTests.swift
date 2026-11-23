@@ -33,6 +33,56 @@ final class SVGImportTests: XCTestCase {
         try body(url)
     }
 
+    #if canImport(CoreText)
+    func testTextPathReferencesUseTextCoordinatesAndPercentageOffsets() throws {
+        let actual = try load(svg("""
+        <g transform="translate(500 500)">
+          <defs><path id="guide" d="M0 0 H80" transform="translate(10 30)"/></defs>
+        </g>
+        <text transform="translate(1 2)" font-family="Helvetica" font-size="10" text-anchor="middle">
+          <textPath href="#guide" startOffset="50%">On <tspan fill="red">a path</tspan></textPath>
+        </text>
+        """))
+        let expected = try load(svg("""
+        <text x="50" y="30" transform="translate(1 2)" font-family="Helvetica" font-size="10" text-anchor="middle">On <tspan fill="red">a path</tspan></text>
+        """))
+        let actualGlyphs = actual.paths(pretransformed: true).flatMap(\.subpaths)
+        let expectedGlyphs = expected.paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertFalse(actualGlyphs.isEmpty)
+        XCTAssertEqual(actualGlyphs.count, expectedGlyphs.count)
+        for (actual, expected) in zip(actualGlyphs, expectedGlyphs) {
+            XCTAssertTrue(actual.isApproximatelyEqual(to: expected))
+        }
+    }
+
+    func testInlineTextPathTurnsGlyphsAndClipsAtTheEnd() throws {
+        let text = try load(svg("""
+        <text font-family="Courier" font-size="10">
+          <textPath path="M10 30 H22 V42">HHHHHH</textPath>
+        </text>
+        """))
+        let glyphs = text.paths(pretransformed: true).flatMap(\.subpaths)
+        XCTAssertEqual(glyphs.count, 4)
+        guard glyphs.count == 4 else { return }
+        XCTAssertEqual(glyphs[0].bounds.size.x, glyphs[2].bounds.size.y, accuracy: 1e-8)
+        XCTAssertEqual(glyphs[0].bounds.size.y, glyphs[2].bounds.size.x, accuracy: 1e-8)
+        XCTAssertLessThan(glyphs[2].bounds.center.y, glyphs[1].bounds.center.y)
+    }
+
+    func testTextPathLegacyReferenceAndSpanPositioning() throws {
+        let actual = try load(svg("""
+        <defs><path id="backward" d="M100 50 H0"/></defs>
+        <text xmlns:xlink="http://www.w3.org/1999/xlink" font-size="10">
+          <textPath xlink:href="#backward" side="right" startOffset="20"><tspan dx="3" dy="-5" rotate="90">H</tspan></textPath>
+        </text>
+        """))
+        let expected = try load(svg("<text x=\"23\" y=\"45\" rotate=\"90\" font-size=\"10\">H</text>"))
+        let actualPath = try XCTUnwrap(actual.paths(pretransformed: true).first)
+        let expectedPath = try XCTUnwrap(expected.paths(pretransformed: true).first)
+        XCTAssertTrue(actualPath.isApproximatelyEqual(to: expectedPath))
+    }
+    #endif
+
     func testPrimitiveShapesAndOpenPaths() throws {
         let geometry = try load(svg("""
         <rect id="box" x="10" y="20" width="30" height="40"/>

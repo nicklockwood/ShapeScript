@@ -250,6 +250,7 @@ final class SVGDocument {
                     #if canImport(CoreText)
                     shapePaths = try element.textPaths(
                         style: style,
+                        elements: elementsByID,
                         detail: options.detail,
                         isCancelled: isCancelled,
                         material: options.material,
@@ -571,6 +572,7 @@ private struct SVGClipping {
             #if canImport(CoreText)
             return try element.textPaths(
                 style: style,
+                elements: elements,
                 detail: detail,
                 isCancelled: isCancelled,
                 applyPaint: false, warn: applyClips ? warn : { _, _ in }
@@ -768,14 +770,7 @@ private final class SVGElement {
     func path(detail: Int, segments: ((Double) throws -> Int)?) throws -> Path {
         switch name {
         case "path":
-            do {
-                return try Path(
-                    SVGPath(string: attributes["d"] ?? "", with: .init(invertYAxis: false)),
-                    detail: max(1, detail / 4)
-                )
-            } catch {
-                throw SVGImportError(message: "Invalid SVG path: \(error.localizedDescription)", line: line)
-            }
+            return try parsePath(attributes["d"] ?? "", detail: detail)
         case "line":
             return try .line([length("x1"), length("y1")], [length("x2"), length("y2")])
         case "polygon", "polyline":
@@ -807,6 +802,14 @@ private final class SVGElement {
             let d = "M\(x + rx) \(y)H\(x + w - rx)A\(rx) \(ry) 0 0 1 \(x + w) \(y + ry)V\(y + h - ry)A\(rx) \(ry) 0 0 1 \(x + w - rx) \(y + h)H\(x + rx)A\(rx) \(ry) 0 0 1 \(x) \(y + h - ry)V\(y + ry)A\(rx) \(ry) 0 0 1 \(x + rx) \(y)Z"
             return try Path(SVGPath(string: d, with: .init(invertYAxis: false)), detail: max(1, detail / 4))
         default: return .empty
+        }
+    }
+
+    private func parsePath(_ data: String, detail: Int) throws -> Path {
+        do {
+            return try Path(SVGPath(string: data, with: .init(invertYAxis: false)), detail: max(1, detail / 4))
+        } catch {
+            throw SVGImportError(message: "Invalid SVG path: \(error.localizedDescription)", line: line)
         }
     }
 
@@ -849,6 +852,78 @@ private final class SVGElement {
 
 #if canImport(CoreText)
 private extension SVGElement {
+    /// Resolves a text baseline in the text element's own coordinate system.
+    func textGuide(
+        elements: [String: SVGElement], detail: Int, warn: (String, SVGElement) -> Void
+    ) throws -> (path: Path, startOffset: Double)? {
+        let path: Path
+        if let data = attributes["path"] {
+            path = try parsePath(data, detail: detail)
+        } else {
+            let href = attributes["href"] ?? attributes["xlink:href"] ?? ""
+            guard href.hasPrefix("#") else {
+                warn(
+                    href.isEmpty ? "SVG textPath is missing a path" : "External SVG references are not supported",
+                    self
+                )
+                return nil
+            }
+            let fragment = String(href.dropFirst())
+            let id = fragment.removingPercentEncoding ?? fragment
+            guard let target = elements[id] else {
+                warn("SVG element '#\(id)' not found", self)
+                return nil
+            }
+            guard ["path", "rect", "circle", "ellipse", "polygon", "polyline", "line"].contains(target.name) else {
+                warn("Unsupported SVG textPath target '\(target.name)'", self)
+                return nil
+            }
+            if target.attributes["pathLength"] != nil {
+                warn("SVG textPath uses the measured path length", target)
+            }
+            var guide = try target.path(detail: detail, segments: nil)
+            if !guide.isEmpty {
+                switch target.name {
+                case "circle", "ellipse":
+                    // SVG starts at the rightmost point and proceeds clockwise in screen coordinates.
+                    let rx = try target.length(target.name == "circle" ? "r" : "rx")
+                    let ry = try target.name == "circle" ? rx : target.length("ry")
+                    guide = try .circle(radius: 1, segments: detail).rotated(by: .roll(.halfPi))
+                        .scaled(by: [rx, ry, 1]).translated(by: [target.length("cx"), target.length("cy")])
+                case "rect" where guide.points.count == 5:
+                    let corners = guide.points.dropFirst()
+                    guide = Path(Array(corners) + [corners[corners.startIndex]])
+                default: break
+                }
+            }
+            let matrix = try SVGMatrix.parse(target.attributes["transform"] ?? "", line: target.line)
+            let positions = guide.points.map { matrix.apply($0.position) }
+            guard positions.allSatisfy(\.isFinite) else {
+                throw SVGImportError(message: "SVG transform overflow", line: target.line)
+            }
+            path = guide.mapPoints { $0.withPosition(matrix.apply($0.position)) }
+        }
+
+        let length = path.length
+        guard length.isFinite, length > 0 else { return nil }
+        let rawOffset = (attributes["startOffset"] ?? "0").trimmingCharacters(in: .whitespacesAndNewlines)
+        let startOffset: Double = if rawOffset.hasSuffix("%"), let fraction = Double(rawOffset.dropLast()) {
+            fraction / 100 * length
+        } else {
+            try Self.length(rawOffset, line: line)
+        }
+        guard startOffset.isFinite else {
+            throw SVGImportError(message: "Invalid SVG textPath startOffset", line: line)
+        }
+        if let method = attributes["method"], method != "align" {
+            warn("Unsupported SVG textPath method '\(method)'", self)
+        }
+        let guide = attributes["side"] == "right" ? Path(
+            subpaths: path.subpaths.reversed().map { $0.inverted() }, windingRule: path.windingRule
+        ) : path
+        return (guide, startOffset)
+    }
+
     func textLengths(_ value: String) throws -> [Double] {
         let scanner = Scanner(string: value)
         scanner.locale = Locale(identifier: "en_US_POSIX")
@@ -867,7 +942,8 @@ private extension SVGElement {
     }
 
     func textPaths(
-        style: [String: String], detail: Int, isCancelled: @escaping CancellationHandler,
+        style: [String: String], elements: [String: SVGElement], detail: Int,
+        isCancelled: @escaping CancellationHandler,
         applyPaint: Bool = true, material: Material = .default, warn: (String, SVGElement) -> Void
     ) throws -> [Path] {
         let text = NSMutableAttributedString(string: "")
@@ -876,7 +952,8 @@ private extension SVGElement {
         var chunkStart = 0.0
         var anchor = style["text-anchor"] ?? "start"
         var paths = [Path]()
-        var chunk = [Path]()
+        var chunk = [(text: NSAttributedString, x: Double, y: Double, rotation: Double)]()
+        var guide: Path?
         var preserveSpace = false
         var rotation = 0.0
         struct PositionList {
@@ -899,17 +976,7 @@ private extension SVGElement {
             guard text.length > 0 else { return }
             let line = CTLineCreateWithAttributedString(text)
             let advance = CTLineGetTypographicBounds(line, nil, nil, nil)
-            chunk += Path.text(text, detail: max(1, detail / 8), isCancelled: isCancelled).map { path in
-                let angle = rotation * .pi / 180
-                return path.mapPoints {
-                    let p = $0.position
-                    return $0.withPosition([
-                        x + cos(angle) * p.x + sin(angle) * p.y,
-                        y + sin(angle) * p.x - cos(angle) * p.y,
-                        0,
-                    ])
-                }
-            }
+            chunk.append((NSAttributedString(attributedString: text), x, y, rotation))
             x += advance
             text.deleteCharacters(in: NSRange(location: 0, length: text.length))
         }
@@ -917,7 +984,27 @@ private extension SVGElement {
             flushRun(trimTrailingSpace: true)
             let advance = x - chunkStart
             let offset = anchor == "middle" ? advance / 2 : anchor == "end" ? advance : 0
-            paths += chunk.map { $0.translated(by: [-offset, 0, 0]) }
+            for run in chunk {
+                if let guide {
+                    paths += Path.text(
+                        run.text, along: guide,
+                        offset: [run.x - offset, -run.y, 0], rotation: .degrees(run.rotation),
+                        detail: max(1, detail / 8), isCancelled: isCancelled
+                    ).map { $0.scaled(by: [1, -1, 1]) }
+                } else {
+                    let angle = run.rotation * .pi / 180
+                    paths += Path.text(run.text, detail: max(1, detail / 8), isCancelled: isCancelled).map { path in
+                        path.mapPoints {
+                            let p = $0.position
+                            return $0.withPosition([
+                                run.x - offset + cos(angle) * p.x + sin(angle) * p.y,
+                                run.y + sin(angle) * p.x - cos(angle) * p.y,
+                                0,
+                            ])
+                        }
+                    }
+                }
+            }
             chunk.removeAll()
         }
         func append(_ node: SVGElement, style inherited: [String: String], size parentSize: Double) throws {
@@ -1021,7 +1108,7 @@ private extension SVGElement {
                     } else if let last = value.last { previousWasSpace = last == " " }
                     for scalar in value.unicodeScalars {
                         if isCancelled() { throw CancellationError() }
-                        let absoluteX = position("x"), absoluteY = position("y")
+                        let absoluteX = position("x"), absoluteY = guide == nil ? position("y") : nil
                         let dx = position("dx"), dy = position("dy")
                         let angle = position("rotate") ?? 0
                         if absoluteX != nil || absoluteY != nil {
@@ -1051,6 +1138,38 @@ private extension SVGElement {
                         }
                     }
                 case let .element(child):
+                    if child.name == "textPath", node === self {
+                        let childStyle = child.style(inheriting: style)
+                        guard childStyle["display"] != "none", childStyle["visibility"] != "hidden",
+                              let baseline = try child.textGuide(
+                                  elements: elements,
+                                  detail: detail,
+                                  warn: warn
+                              )
+                        else {
+                            continue
+                        }
+                        flushChunk()
+                        // Euclid lays out text in Y-up coordinates.
+                        guide = baseline.path.scaled(by: [1, -1, 1])
+                        x = baseline.startOffset
+                        y = 0
+                        chunkStart = x
+                        anchor = childStyle["text-anchor"] ?? "start"
+                        rotation = 0
+                        previousWasSpace = true
+                        try append(child, style: style, size: size)
+                        flushChunk()
+                        guide = nil
+                        let endpoint = baseline.path.isClosed && baseline.path.subpaths.count == 1 ?
+                            baseline.path.interpolatedPoint(at: baseline.startOffset) : baseline.path.points.last
+                        x = endpoint?.position.x ?? 0
+                        y = endpoint?.position.y ?? 0
+                        chunkStart = x
+                        anchor = style["text-anchor"] ?? "start"
+                        rotation = 0
+                        continue
+                    }
                     guard child.name == "tspan" else {
                         warn("Unsupported SVG text element '\(child.name)'", child)
                         continue
