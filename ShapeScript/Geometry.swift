@@ -596,7 +596,10 @@ public extension Geometry {
 
     /// Geometry and its children produce no output
     var isEmpty: Bool {
-        type.isEmpty && children.allSatisfy(\.isEmpty)
+        if case let .lathe(_, options) = type, options.isZeroSweep {
+            return children.allSatisfy { $0.isEmpty || $0.isPath }
+        }
+        return type.isEmpty && children.allSatisfy(\.isEmpty)
     }
 
     /// The camera (if geometry is a camera)
@@ -2088,7 +2091,9 @@ private extension Geometry {
                 isCancelled: isCancelled
             ).vertexColorsToMaterial(material: material).replacing(material, with: nil)
         case let .lathe(paths, options) where paths.count == 1 && options.along.isEmpty:
-            cachedMesh = .lathe(paths[0], slices: options.segments, isCancelled: isCancelled)
+            cachedMesh = .lathe(
+                paths[0], sweep: options.sweep, slices: options.segments, isCancelled: isCancelled
+            )
         case let .lathe(paths, options) where paths.count == 1 && options.along.count == 1:
             cachedMesh = .lathe(
                 paths[0].materialToVertexColors(material: material),

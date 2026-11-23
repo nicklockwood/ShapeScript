@@ -2096,7 +2096,9 @@ final class GeometryTests: XCTestCase {
         let encoded = try JSONEncoder().encode(geometry.type)
         XCTAssertEqual(try JSONDecoder().decode(GeometryType.self, from: encoded), geometry.type)
         let legacy = Data(#"{"segments":16,"along":[]}"#.utf8)
-        XCTAssertEqual(try JSONDecoder().decode(LatheOptions.self, from: legacy).miterLimit, .infinity)
+        let options = try JSONDecoder().decode(LatheOptions.self, from: legacy)
+        XCTAssertEqual(options.miterLimit, .infinity)
+        XCTAssertEqual(options.sweep, .twoPi)
     }
 
     func testLatheAlongBendKeepsNeighboringContoursApart() throws {

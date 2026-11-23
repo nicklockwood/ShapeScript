@@ -670,14 +670,22 @@ private struct CSGImporter {
         )
     }
 
-    private func fragments(_ values: [String: CSGValue], radius: Double, node: CSGNode) throws -> Int {
+    private func fragments(
+        _ values: [String: CSGValue],
+        radius: Double,
+        sweep: Double? = nil,
+        node: CSGNode
+    ) throws -> Int {
         let fn = try node.number(values, "$fn", default: 0)
         let fa = try node.number(values, "$fa", default: 12)
         let fs = try node.number(values, "$fs", default: 2)
         guard fn >= 0, fa > 0, fs > 0 else {
             throw node.error("Invalid CSG tessellation parameters")
         }
-        let count = fn > 0 ? max(3, fn.rounded(.down)) : max(5, ceil(min(360 / fa, abs(radius) * 2 * .pi / fs)))
+        let minimum = sweep == nil ? 0 : 0.01
+        let fullTurn = fn > 0 ? max(3, fn.rounded(sweep == nil ? .down : .up)) :
+            max(5, ceil(min(360 / max(fa, minimum), abs(radius) * 2 * .pi / max(fs, minimum))))
+        let count = max(1, ceil(fullTurn * (sweep.map(abs) ?? 360) / 360))
         guard let count = Int(exactly: count),
               count <= 100_000
         else {
@@ -1088,7 +1096,7 @@ private struct CSGImporter {
             let values = try validate(
                 node,
                 names + tessellation,
-                positional: node.name == "linear_extrude" ? ["height"] : []
+                positional: node.name == "linear_extrude" ? ["height"] : ["angle", "start"]
             )
             let linear = node.name == "linear_extrude"
             let components = try values["scale"].map { try node.vector($0, count: 2, scalar: true) } ?? [1, 1]
@@ -1163,16 +1171,41 @@ private struct CSGImporter {
                 ), paths: nil)
             }
             let angle = try node.number(values, "angle", default: 360)
-            let start = try node.number(values, "start", default: 0)
-            if angle != 360 || start != 0 {
-                warn("Partial CSG rotate_extrude is unsupported", at: node)
+            let sweep = angle <= -360 || angle > 360 ? 360 : angle
+            // Older CSG exports omit the start angle and begin full revolutions at -X.
+            let start = try node.number(values, "start", default: sweep == 360 ? 180 : 0)
+            guard sweep != 0, !profiles.isEmpty else {
+                return try result(.empty, material: material)
             }
-            let radius = profiles.flatMap(\.points).map { abs($0.position.x) }.max() ?? 0
-            let detail = try fragments(values, radius: radius, node: node)
+            let bounds = Bounds(profiles)
+            guard bounds.min.x >= 0 || bounds.max.x <= 0 else {
+                warn("'rotate_extrude' profiles must lie on one side of the Y axis", at: node)
+                return try result(.empty, material: material)
+            }
+            let radius = max(abs(bounds.min.x), abs(bounds.max.x))
+            let legacyFullTurn = sweep == 360 && values["start"] == nil
+            let detail = try fragments(values, radius: radius, sweep: legacyFullTurn ? nil : sweep, node: node)
+            // Euclid always begins at negative X. OpenSCAD starts on the profile's original side.
+            let offset = start.truncatingRemainder(dividingBy: 360) - (bounds.min.x >= 0 ? 180 : 0)
+            let rotation = Rotation.roll(-.degrees(offset)) * Rotation(from: .unitY, to: .unitZ)
+            let latheProfiles: [Path]
+            if sweep == 360 {
+                latheProfiles = profiles
+            } else {
+                guard profiles.reduce(0, { $0 + $1.points.count }) <= 1_000_000 / detail else {
+                    throw node.error("CSG extrusion tessellation is too large")
+                }
+                let profile = profiles.count == 1 ? profiles[0] : Path.union(profiles, isCancelled: isCancelled)
+                try checkCancellation()
+                guard let profile else {
+                    throw node.error("CSG rotational extrusion requires closed, coplanar profiles")
+                }
+                latheProfiles = [profile]
+            }
             return .init(geometry: geometry(
-                .lathe(profiles, .init(segments: detail)),
+                .lathe(latheProfiles, .init(segments: detail, sweep: .degrees(sweep))),
                 material: material,
-                transform: .rotation(Rotation(from: .unitY, to: .unitZ))
+                transform: .rotation(rotation)
             ), paths: nil)
         case "text":
             if !node.children.isEmpty {

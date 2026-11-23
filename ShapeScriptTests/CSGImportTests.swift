@@ -195,15 +195,43 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
 
-    func testPartialRotateExtrudeHasAnExplicitFallback() throws {
+    func testPartialRotateExtrudeSpansTheExportedArc() throws {
         let partial = try Scene(
-            csgString: "rotate_extrude(angle=90, start=30, $fn=16) translate([2,0,0]) square(1);",
+            csgString: "rotate_extrude(angle=100, start=30, $fn=16) translate([2,0,0]) square(1);",
             isCancelled: { false }
         )
-        XCTAssertEqual(partial.warnings.count, 1)
-        XCTAssertTrue(partial.warnings[0].contains("Partial CSG rotate_extrude"))
+        XCTAssertTrue(partial.warnings.isEmpty)
         XCTAssertTrue(partial.build { false })
-        XCTAssertEqual(partial.geometry.merged(), try mesh("rotate_extrude($fn=16) translate([2,0,0]) square(1);"))
+        let mesh = partial.geometry.merged()
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertGreaterThan(mesh.signedVolume, 0)
+        let positions = mesh.polygons.flatMap(\.vertices).map(\.position)
+        let angles = Set(positions.filter { hypot($0.x, $0.y) > 2.9 }.map {
+            Int((atan2($0.y, $0.x) * 180 / .pi).rounded())
+        })
+        XCTAssertEqual(angles, [30, 50, 70, 90, 110, 130])
+    }
+
+    func testPartialRotateExtrudeSupportsNegativeSweepsOnEitherSideOfTheAxis() throws {
+        for (offset, side) in [(2, 1.0), (-3, -1.0)] {
+            let result = try mesh("rotate_extrude(angle=-10, $fn=16) translate([\(offset),0,0]) square(1);")
+            XCTAssertTrue(result.isWatertight)
+            XCTAssertEqual(result.signedVolume, 2.5 * sin(Angle.degrees(10)), accuracy: 1e-8)
+            let positions = result.polygons.flatMap(\.vertices).map(\.position)
+            XCTAssertTrue(positions.contains { ($0 - Vector(3 * side, 0, 0)).length < 1e-8 })
+            XCTAssertTrue(positions.allSatisfy { $0.x * side > 0 && $0.y * side <= 1e-8 })
+        }
+        XCTAssertTrue(try mesh("rotate_extrude(angle=0) square(1);").isEmpty)
+    }
+
+    func testFullRotateExtrudeHonorsStartWithAnOddSegmentCount() throws {
+        let profile = "translate([2,0,0]) square(1);"
+        let legacy = try mesh("rotate_extrude(angle=360, $fn=3) \(profile)")
+        let explicit = try mesh("rotate_extrude(angle=360, start=0, $fn=3) \(profile)")
+        XCTAssertEqual(legacy.bounds.min.x, -3, accuracy: 1e-8)
+        XCTAssertEqual(explicit.bounds.max.x, 3, accuracy: 1e-8)
+        XCTAssertEqual(explicit.bounds.min.x, -1.5, accuracy: 1e-8)
+        XCTAssertEqual(legacy.signedVolume, explicit.signedVolume, accuracy: 1e-8)
     }
 
     func testRoundedAndChamferedOffsetsHaveExplicitFallbacks() throws {
@@ -1588,6 +1616,7 @@ final class CSGImportTests: XCTestCase {
         for source in [
             "linear_extrude(height=4, twist=90, slices=4) square(1);",
             "rotate_extrude($fn=16) translate([2,0,0]) square(1);",
+            "rotate_extrude(angle=100, start=30, $fn=16) translate([2,0,0]) square(1);",
             "cylinder(h=3, r1=2, r2=1, $fn=16);",
         ] {
             let cache = GeometryCache(diskCache: nil)
@@ -1769,7 +1798,7 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
             "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
-            "rotate_extrude(angle=90) square(1);",
+            "rotate_extrude(angle=90) square(1,true);",
             "hull() { square(2); translate([0,0,1]) square(2); }",
         ] {
             let scene = try Scene(csgString: "\n\(source)", isCancelled: { false })

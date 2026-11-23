@@ -109,24 +109,58 @@ public extension TextPath {
 
 public struct LatheOptions: Hashable, Sendable, Codable {
     public var segments: Int
+    public var sweep: Angle
     public var along: [Path]
     public var miterLimit: MiterLimit
 
-    public init(segments: Int, along: [Path] = [], miterLimit: MiterLimit = .infinity) {
+    public init(
+        segments: Int,
+        sweep: Angle = .twoPi,
+        along: [Path] = [],
+        miterLimit: MiterLimit = .infinity
+    ) {
         self.segments = segments
+        self.sweep = sweep
         self.along = along
         self.miterLimit = miterLimit
     }
 
     private enum CodingKeys: String, CodingKey {
-        case segments, along, miterLimit
+        case segments, sweep, along, miterLimit
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.segments = try container.decode(Int.self, forKey: .segments)
+        self.sweep = try container.decodeIfPresent(Angle.self, forKey: .sweep) ?? .twoPi
         self.along = try container.decodeIfPresent([Path].self, forKey: .along) ?? []
         self.miterLimit = try container.decodeIfPresent(MiterLimit.self, forKey: .miterLimit) ?? .infinity
+    }
+
+    var isZeroSweep: Bool {
+        along.isEmpty && sweep.isZero
+    }
+
+    // Unit-diameter angular samples for bounds, matching the straight-axis lathe.
+    fileprivate var ringPoints: [Vector] {
+        guard !sweep.isZero else { return [] }
+        if abs(sweep) >= .twoPi {
+            return Path.circle(segments: segments)
+                .rotated(by: .roll(-.halfPi))
+                .rotated(by: .pitch(.halfPi))
+                .pointPositions
+        }
+        let slices = max(abs(sweep) >= .pi ? 2 : 1, segments)
+        return (0 ... slices).map {
+            let angle = Double($0) / Double(slices) * sweep
+            return Vector(-cos(angle) / 2, 0, sin(angle) / 2)
+        }
+    }
+
+    fileprivate func ringDiameter(for x: Double) -> Double {
+        let diameter = abs(x) * 2
+        // Preserve the minimum scale used by Path.circle for full turns.
+        return abs(sweep) >= .twoPi ? Transform(scale: diameter).scale.x : diameter
     }
 }
 
@@ -192,6 +226,8 @@ public extension GeometryType {
             false
         case let .text(text):
             text.paths.allSatisfy { $0.points.count < 2 }
+        case let .lathe(_, options) where options.isZeroSweep:
+            true
         case let .extrude(shapes, _),
              let .lathe(shapes, _),
              let .loft(shapes),
@@ -215,24 +251,22 @@ public extension GeometryType {
     func bounds(with transform: Transform) -> Bounds {
         switch self {
         case let .lathe(paths, options) where options.along.isEmpty:
+            guard !options.isZeroSweep else { return .empty }
             var linearTransform = transform
             linearTransform.translation = .zero
             // All rings share the same angular samples. Transform their bounds once,
             // then scale by each profile radius and translate along the transformed axis
-            let ring = Bounds(Path.circle(segments: options.segments)
-                .rotated(by: .roll(-.halfPi))
-                .rotated(by: .pitch(.halfPi))
-                .pointPositions.transformed(by: linearTransform))
+            let ring = Bounds(options.ringPoints.transformed(by: linearTransform))
             var bounds = Bounds.empty
             for path in paths {
                 for point in path.latheProfile.pointPositions {
-                    // Match Path.scaled(by:) at the axis, including its minimum scale
-                    let diameter = Transform(scale: abs(point.x) * 2).scale.x
+                    let diameter = options.ringDiameter(for: point.x)
                     let center = (point.y * Vector.unitY).transformed(by: transform)
-                    bounds.formUnion(Bounds(
-                        min: ring.min * diameter + center,
-                        max: ring.max * diameter + center
-                    ))
+                    // A ring on the axis is a point, which Bounds.union would skip.
+                    bounds = Bounds(
+                        min: Euclid.min(bounds.min, ring.min * diameter + center),
+                        max: Euclid.max(bounds.max, ring.max * diameter + center)
+                    )
                 }
             }
             return bounds
@@ -323,17 +357,22 @@ extension GeometryType {
                 }
             }
         case let .lathe(paths, options) where options.along.isEmpty:
+            guard !options.isZeroSweep else { return [] }
+            let circle = abs(options.sweep) >= .twoPi ? Path.circle(segments: options.segments) : nil
+            let ring = circle == nil ? options.ringPoints : []
             return paths.flatMap { path -> [Vector] in
                 let profile = path.latheProfile
                 return profile.pointPositions.flatMap { point -> [Vector] in
                     let diameter = abs(point.x) * 2
-                    let circle = Path.circle(segments: options.segments)
-                        .scaled(by: diameter)
-                        .rotated(by: .roll(-.halfPi))
-                        .rotated(by: .pitch(.halfPi))
-                    return circle
-                        .translated(by: point.y * .unitY)
-                        .pointPositions
+                    let center = point.y * Vector.unitY
+                    if let circle {
+                        return circle.scaled(by: diameter)
+                            .rotated(by: .roll(-.halfPi))
+                            .rotated(by: .pitch(.halfPi))
+                            .translated(by: center)
+                            .pointPositions
+                    }
+                    return ring.scaled(by: diameter).translated(by: center)
                 }
             }
         case let .lathe(paths, options):
