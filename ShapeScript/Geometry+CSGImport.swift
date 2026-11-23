@@ -1048,17 +1048,23 @@ private struct CSGImporter {
             if values["r"] != nil || values["delta"] == nil || chamfer {
                 warn("Rounded or chamfered CSG offsets are unsupported", at: node)
             }
-            let profiles = try paths(children(node, material: material), node: node)
-            if profiles.count > 1 {
-                warn(
-                    "CSG offset with multiple profiles is unsupported",
-                    at: node
-                )
-            }
             let delta = try node.number(values, "delta", default: radius)
-            let paths = profiles.map { $0.inset(by: -delta, isCancelled: isCancelled) }
+            let profiles = try paths(children(node, material: material), node: node)
+            guard let profile = Path.union(profiles, isCancelled: isCancelled) else {
+                try checkCancellation()
+                warn("Non-coplanar or open 2D 'offset' is unsupported", at: node)
+                let offsets = profiles.map { $0.inset(by: -delta, isCancelled: isCancelled) }
+                try checkCancellation()
+                return result(offsets, material: material)
+            }
+            let offset = profile.inset(by: -delta, isCancelled: isCancelled)
+            // Separate regions can overlap after expansion. Nonzero winding keeps
+            // the overlaps filled before we extract their combined outline.
+            let contours = offset.subpaths.filter { $0.isClosed && $0.points.count >= 4 }
+            let boundary = Path(subpaths: contours, windingRule: .nonZero)
+            let merged = Path.union([boundary], isCancelled: isCancelled) ?? .empty
             try checkCancellation()
-            return result(paths, material: material)
+            return result(merged.isEmpty ? [] : [merged], material: material)
         case "linear_extrude", "rotate_extrude":
             let names = node.name == "linear_extrude" ? ["height", "center", "twist", "slices", "scale"] : [
                 "angle",

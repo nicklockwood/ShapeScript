@@ -211,17 +211,11 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(partial.geometry.merged(), try mesh("rotate_extrude($fn=16) translate([2,0,0]) square(1);"))
     }
 
-    func testUnsupportedOffsetOptionsHaveExplicitFallbacks() throws {
+    func testRoundedAndChamferedOffsetsHaveExplicitFallbacks() throws {
         let rounded = try Scene(csgString: "offset(r=1, chamfer=true) square(2,true);", isCancelled: { false })
         XCTAssertEqual(rounded.warnings.count, 1)
         XCTAssertTrue(rounded.warnings[0].contains("Rounded or chamfered"))
         XCTAssertEqual(rounded.geometry.overestimatedBounds, Bounds([-2, -2, 0], [2, 2, 0]))
-        let multiple = try Scene(
-            csgString: "offset(delta=1) group() { square(1); translate([4,0,0]) square(1); }",
-            isCancelled: { false }
-        )
-        XCTAssertTrue(multiple.warnings.contains { $0.contains("multiple profiles") })
-        XCTAssertEqual(try XCTUnwrap(multiple.children.first?.path()).subpaths.count, 2)
     }
 
     func testUnsupportedMatrixOptionsWarnWithoutLosingOtherGeometry() throws {
@@ -1607,6 +1601,39 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(result.bounds.min.x, -2, accuracy: 0.000001)
         XCTAssertEqual(result.bounds.max.x, 2, accuracy: 0.000001)
         XCTAssertEqual(result.signedVolume, 16, accuracy: 0.000001)
+    }
+
+    func testOffsetUnionsChildrenBeforeShrinking() throws {
+        let children = "square(3); translate([2,0,0]) square(3);"
+        for body in [children, "group() { \(children) }"] {
+            let scene = try Scene(
+                csgString: "offset(delta=-0.75) { \(body) }",
+                isCancelled: { false }
+            )
+            XCTAssertTrue(scene.warnings.isEmpty)
+            let path = try XCTUnwrap(scene.geometry.path())
+            XCTAssertEqual(path.subpaths.count, 1)
+            XCTAssertEqual(path.bounds, Bounds([0.75, 0.75, 0], [4.25, 2.25, 0]))
+        }
+    }
+
+    func testOffsetMergesExpandingRegionsAndPreservesHoles() throws {
+        let merged = try mesh("""
+        linear_extrude(height=1) offset(delta=1) {
+            square(1);
+            translate([2,0,0]) square(1);
+        }
+        """)
+        XCTAssertTrue(merged.isWatertight)
+        XCTAssertEqual(merged.signedVolume, 15, accuracy: 1e-8)
+        let ring = try mesh("""
+        linear_extrude(height=1) offset(delta=0.25) difference() {
+            square(4,true);
+            square(2,true);
+        }
+        """)
+        XCTAssertTrue(ring.isWatertight)
+        XCTAssertEqual(ring.signedVolume, 18, accuracy: 1e-8)
     }
 
     func testPolyhedronAndIndexValidation() throws {
