@@ -865,8 +865,6 @@ final class MetadataTests: XCTestCase {
 
     func testExamplesAllRunWithoutError() {
         class TestDelegate: EvaluationDelegate {
-            func debugLog(_: [AnyHashable]) {}
-
             func resolveURL(for name: String) -> URL {
                 examplesDirectory.appendingPathComponent(name)
             }

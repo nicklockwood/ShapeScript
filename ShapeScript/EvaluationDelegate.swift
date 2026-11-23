@@ -17,4 +17,22 @@ public protocol EvaluationDelegate: AnyObject {
 
 public extension EvaluationDelegate {
     func importGeometry(for _: URL) throws -> Geometry? { nil }
+    func debugLog(_: [AnyHashable]) {}
+}
+
+/// Forwards file resolution and imports while suppressing debug output.
+public final class SilentDelegate: EvaluationDelegate {
+    private let delegate: EvaluationDelegate
+
+    public init(_ delegate: EvaluationDelegate) {
+        self.delegate = delegate
+    }
+
+    public func resolveURL(for path: String) -> URL {
+        delegate.resolveURL(for: path)
+    }
+
+    public func importGeometry(for url: URL) throws -> Geometry? {
+        try delegate.importGeometry(for: url)
+    }
 }

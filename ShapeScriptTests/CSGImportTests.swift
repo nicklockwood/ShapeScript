@@ -965,7 +965,6 @@ final class CSGImportTests: XCTestCase {
         final class Delegate: EvaluationDelegate {
             var importCount = 0
             func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
-            func debugLog(_: [AnyHashable]) {}
             func importGeometry(for _: URL) throws -> Geometry? {
                 importCount += 1
                 return nil
@@ -1601,7 +1600,6 @@ final class CSGImportTests: XCTestCase {
             var cancelOnImport = false
             init(progress: EvaluationProgress) { self.progress = progress }
             func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
-            func debugLog(_: [AnyHashable]) {}
             func importGeometry(for url: URL) throws -> Geometry? {
                 guard url.pathExtension == "stl" else { return nil }
                 fractions.append(progress.fractionCompleted)
@@ -1795,7 +1793,6 @@ final class CSGImportTests: XCTestCase {
             var imports = [URL]()
             var denyAccess = false
             func resolveURL(for path: String) -> URL { URL(fileURLWithPath: path) }
-            func debugLog(_: [AnyHashable]) {}
             func importGeometry(for url: URL) throws -> Geometry? {
                 imports.append(url)
                 if denyAccess {
@@ -1922,8 +1919,6 @@ final class CSGImportTests: XCTestCase {
             func resolveURL(for path: String) -> URL {
                 path.hasPrefix("/") ? URL(fileURLWithPath: path) : directory.appendingPathComponent(path)
             }
-
-            func debugLog(_: [AnyHashable]) {}
         }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
