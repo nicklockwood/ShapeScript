@@ -1065,6 +1065,21 @@ private struct CSGImporter {
             let merged = Path.union([boundary], isCancelled: isCancelled) ?? .empty
             try checkCancellation()
             return result(merged.isEmpty ? [] : [merged], material: material)
+        case "fill":
+            _ = try validate(node, [])
+            let profiles = try paths(children(node, material: material), node: node)
+            guard let profile = Path.union(profiles, isCancelled: isCancelled) else {
+                try checkCancellation()
+                warn("Non-coplanar or open 2D 'fill' is unsupported", at: node)
+                return result(profiles, material: material)
+            }
+            // Interior contours wind opposite the filled region's plane normal.
+            let subpaths = profile.subpaths
+            let exterior = subpaths.filter { $0.faceNormal.dot(profile.faceNormal) > 0 }
+            let filled = exterior.count == subpaths.count ? profile :
+                Path.union(exterior, isCancelled: isCancelled) ?? .empty
+            try checkCancellation()
+            return result(filled.isEmpty ? [] : [filled], material: material)
         case "linear_extrude", "rotate_extrude":
             let names = node.name == "linear_extrude" ? ["height", "center", "twist", "slices", "scale"] : [
                 "angle",

@@ -1636,6 +1636,41 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(ring.signedVolume, 18, accuracy: 1e-8)
     }
 
+    func testFillRemovesHolesAndKeepsConcaveAndDisjointRegions() throws {
+        let source = """
+        fill() {
+            difference() {
+                union() {
+                    square([6,3]);
+                    square([3,6]);
+                }
+                translate([0.5,0.5,0]) square(1.5);
+            }
+            translate([0.75,0.75,0]) square(0.5);
+            translate([8,0,0]) square(2);
+        }
+        """
+        let scene = try Scene(csgString: source, isCancelled: { false })
+        XCTAssertTrue(scene.warnings.isEmpty)
+        let path = try XCTUnwrap(scene.geometry.path())
+        XCTAssertEqual(path.subpaths.count, 2)
+        XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, 31, accuracy: 1e-8)
+        let result = try mesh("linear_extrude(height=2) \(source)")
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(result.signedVolume, 62, accuracy: 1e-8)
+    }
+
+    func testFillReturnsAnEmptyProfileWithNo2DChildren() throws {
+        let empty = try Scene(csgString: "linear_extrude(height=2) fill() {}", isCancelled: { false })
+        XCTAssertTrue(empty.warnings.isEmpty)
+        XCTAssertTrue(empty.build { false })
+        XCTAssertTrue(empty.geometry.merged().isEmpty)
+        let solid = try Scene(csgString: "fill() cube(1);", isCancelled: { false })
+        XCTAssertTrue(solid.warnings.contains { $0.contains("'fill' requires 2D children") })
+        XCTAssertTrue(solid.build { false })
+        XCTAssertTrue(solid.geometry.merged().isEmpty)
+    }
+
     func testPolyhedronAndIndexValidation() throws {
         let result =
             try mesh(
