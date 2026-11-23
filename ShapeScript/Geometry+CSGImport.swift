@@ -78,9 +78,14 @@ extension Geometry {
         let backgrounds = shapes.flatMap { $0.geometry.extractBackgrounds() }
         if !backgrounds.isEmpty {
             self.init(
-                type: .group, name: nil, transform: .identity, material: .default,
-                smoothing: nil, children: shapes.map(\.geometry) + backgrounds,
-                sourceLocation: sourceLocation, cache: context.geometryCache
+                type: .group,
+                name: nil,
+                transform: .identity,
+                material: .default,
+                smoothing: nil,
+                children: shapes.map(\.geometry) + backgrounds,
+                sourceLocation: sourceLocation,
+                cache: context.geometryCache
             )
             return
         }
@@ -105,8 +110,13 @@ extension Geometry {
             return
         }
         self.init(
-            type: .group, name: nil, transform: .identity, material: .default,
-            smoothing: nil, children: shapes.map(\.geometry), sourceLocation: sourceLocation,
+            type: .group,
+            name: nil,
+            transform: .identity,
+            material: .default,
+            smoothing: nil,
+            children: shapes.map(\.geometry),
+            sourceLocation: sourceLocation,
             cache: context.geometryCache
         )
     }
@@ -603,14 +613,9 @@ private struct CSGImporter {
 
     private func result(_ paths: [Path], material: Material) -> CSGShape {
         let paths = paths.map { $0.materialToVertexColors(material: material) }
-        return .init(
-            geometry: geometry(
-                .group,
-                material: material,
-                children: paths.map { geometry(.path($0), material: material) }
-            ),
-            paths: paths
-        )
+        return .init(geometry: geometry(.group, material: material, children: paths.map {
+            geometry(.path($0), material: material)
+        }), paths: paths)
     }
 
     private func children(_ node: CSGNode, material: Material) throws -> [CSGShape] {
@@ -621,7 +626,9 @@ private struct CSGImporter {
         if children.contains(where: { !$0.is2D && !$0.isEmpty }) {
             warn("'\(node.name)' requires 2D children", at: node)
         }
-        return children.filter { !$0.geometry.isHidden && !$0.geometry.isBackground }.flatMap { $0.paths ?? [] }
+        return children
+            .filter { !$0.geometry.isHidden && !$0.geometry.isBackground }
+            .flatMap { $0.paths ?? [] }
     }
 
     private func pathOperation(
@@ -723,7 +730,9 @@ private struct CSGImporter {
                     warn("Non-coplanar 2D '\(node.name)' is unsupported", at: node)
                 }
                 return .init(deferredPaths: geometry(
-                    .group, material: material, children: children.map(\.geometry)
+                    .group,
+                    material: material,
+                    children: children.map(\.geometry)
                 ))
             }
             if !children.allSatisfy({ !$0.is2D }) {
@@ -733,7 +742,10 @@ private struct CSGImporter {
                     paths: nil
                 )
             }
-            return .init(geometry: geometry(type, material: material, children: children.map(\.geometry)), paths: nil)
+            return .init(
+                geometry: geometry(type, material: material, children: children.map(\.geometry)),
+                paths: nil
+            )
         case "color":
             let values = try validate(node, ["c", "alpha"], positional: ["c", "alpha"])
             let components: [Double]
@@ -862,7 +874,8 @@ private struct CSGImporter {
                 .point(0, height / 2),
             ])
             return .init(geometry: geometry(
-                .lathe([profile], .init(segments: detail)), material: material,
+                .lathe([profile], .init(segments: detail)),
+                material: material,
                 transform: .init(rotation: axis, translation: center ? .zero : Vector(0, 0, height / 2))
             ), paths: nil)
         case "polygon", "polyhedron":
@@ -923,6 +936,77 @@ private struct CSGImporter {
                 return polygon
             }
             return try result(Mesh(polygons), material: material)
+        case "resize":
+            let values = try validate(node, ["newsize", "auto", "convexity"], positional: ["newsize", "auto"])
+            let size = try values["newsize"].map { try node.vector($0, count: 3) } ?? [0, 0, 0]
+            guard size.allSatisfy({ $0 >= 0 }) else { throw node.error("CSG resize size must be non-negative") }
+            _ = try node.number(values, "convexity", default: 0)
+            let autosize: [Bool]
+            switch values["auto"] {
+            case nil:
+                autosize = [false, false, false]
+            case let .boolean(flag)?:
+                autosize = [flag, flag, flag]
+            case let .array(flags)? where flags.count == 3:
+                // OpenSCAD's CSG exporter also writes boolean vectors as numeric 0s and 1s.
+                autosize = try flags.map {
+                    switch $0 {
+                    case let .boolean(flag): flag
+                    case .number(0): false
+                    case .number(1): true
+                    default: throw node.error("CSG resize 'auto' must be a boolean or 3 boolean flags")
+                    }
+                }
+            default:
+                throw node.error("CSG resize 'auto' must be a boolean or 3 boolean flags")
+            }
+            let child = try unmodifiedShape(.init(
+                name: "union",
+                arguments: [:],
+                children: node.children,
+                line: node.line,
+                column: node.column
+            ), material: material)
+            let axes = 0 ..< (child.is2D ? 2 : 3)
+            guard let largest = axes.max(by: { size[$0] < size[$1] }), size[largest] > 0 else {
+                return child
+            }
+            let path: Path?
+            let bounds: Bounds
+            if child.is2D {
+                path = child.geometry.path(pretransformed: true, isCancelled: isCancelled)
+                bounds = path?.bounds ?? .empty
+            } else {
+                path = nil
+                guard child.geometry.build(isCancelled) else { throw CancellationError() }
+                bounds = child.geometry.merged(isCancelled).bounds
+            }
+            try checkCancellation()
+            guard !bounds.isEmpty else { return child }
+            let dimensions = bounds.size.components
+            guard axes.allSatisfy({ size[$0] == 0 || dimensions[$0] > 0 }) else {
+                warn("Resize in direction normal to flat object is unsupported", at: node)
+                return child
+            }
+            let autoscale = size[largest] / dimensions[largest]
+            var factors = [1.0, 1.0, 1.0]
+            for axis in axes {
+                factors[axis] = size[axis] > 0 ? size[axis] / dimensions[axis] : (autosize[axis] ? autoscale : 1)
+            }
+            let scale = Vector(factors[0], factors[1], factors[2])
+            guard factors.allSatisfy({ $0.isFinite && $0 > 0 }),
+                  bounds.min.scaled(by: scale).components.allSatisfy(\.isFinite),
+                  bounds.max.scaled(by: scale).components.allSatisfy(\.isFinite)
+            else { throw node.error("CSG resize scale overflow") }
+            if let path {
+                return result([path.scaled(by: scale)], material: material)
+            }
+            return .init(geometry: geometry(
+                .group,
+                material: material,
+                children: [child.geometry],
+                transform: .scale(scale)
+            ), paths: nil)
         case "projection":
             let values = try validate(node, ["cut", "convexity"], positional: ["cut"])
             let cut = try node.boolean(values, "cut", default: false)
@@ -1034,10 +1118,7 @@ private struct CSGImporter {
             let angle = try node.number(values, "angle", default: 360)
             let start = try node.number(values, "start", default: 0)
             if angle != 360 || start != 0 {
-                warn(
-                    "Partial CSG rotate_extrude is unsupported",
-                    at: node
-                )
+                warn("Partial CSG rotate_extrude is unsupported", at: node)
             }
             let radius = profiles.flatMap(\.points).map { abs($0.position.x) }.max() ?? 0
             let detail = try fragments(values, radius: radius, node: node)
@@ -1112,16 +1193,13 @@ private struct CSGImporter {
             #endif
         case "translate", "scale", "rotate", "mirror", "multmatrix":
             return try transformed(node, material: material)
-        case "resize", "surface", "import", "roof":
+        case "surface", "import", "roof":
             let names: [String]
             let positional: [String]
             switch node.name {
             case "roof":
                 names = ["method", "convexity"] + tessellation
                 positional = ["method"]
-            case "resize":
-                names = ["newsize", "auto", "convexity"]
-                positional = ["newsize", "auto"]
             case "surface":
                 names = ["file", "center", "invert", "convexity", "timestamp"]
                 positional = ["file", "center", "convexity"]
@@ -1156,25 +1234,8 @@ private struct CSGImporter {
             {
                 _ = try node.number(values, name, default: 0)
             }
-            if let size = values["newsize"] {
-                let size = try node.vector(size, count: 3)
-                guard size.allSatisfy({ $0 >= 0 }) else { throw node.error("CSG resize size must be non-negative") }
-            }
             if let origin = values["origin"] {
                 _ = try node.vector(origin, count: 2)
-            }
-            if let auto = values["auto"] {
-                switch auto {
-                case .boolean:
-                    break
-                case let .array(values) where values.count == 3 && values.allSatisfy {
-                    if case .boolean = $0 { return true }
-                    return false
-                }:
-                    break
-                case .array, .number, .string, .undefined:
-                    throw node.error("CSG resize 'auto' must be a boolean or 3 booleans")
-                }
             }
             if node.name == "import" {
                 let path = try node.string(values, "file", default: node.string(values, "filename", default: ""))
@@ -1602,7 +1663,10 @@ private struct CSGImporter {
                 }
             }
             return .init(geometry: geometry(
-                .group, material: material, children: shapes.map(\.geometry), transform: transform
+                .group,
+                material: material,
+                children: shapes.map(\.geometry),
+                transform: transform
             ), paths: nil)
         }
         if hasModifiers || hasPaths {

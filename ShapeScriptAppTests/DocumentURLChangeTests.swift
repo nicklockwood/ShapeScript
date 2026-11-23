@@ -282,15 +282,11 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertEqual(viewController.warningMessages.count, 4)
     }
 
-    func testQuickLookWarningsCycleDismissAndYieldToErrors() throws {
+    func testQuickLookWarningsCycleDismissAndYieldToErrors() {
         let (document, viewController) = queuedWarningDocument()
         viewController.isQuickLook = true
-        document.scene = try Scene(
-            csgString: "surface(file=\"part.dat\"); resize([2,2,2]) cube(1);",
-            isCancelled: { false }
-        )
-        let warnings = try XCTUnwrap(document.scene?.warnings)
-        XCTAssertEqual(warnings.count, 2)
+        let warnings = ["First warning", "Second warning"]
+        document.scene = Scene(background: .color(.clear), children: [], cache: nil, warnings: warnings)
         viewController.checkDocumentWarnings()
         XCTAssertEqual(viewController.warningPresentation?.message, warnings[0])
         viewController.onNextWarning?()

@@ -143,7 +143,8 @@ final class CSGImportTests: XCTestCase {
         for source in [
             "text(\"Hi\", halign=\"cenetr\");", "text(\"Hi\", valign=\"botom\");",
             "text(\"Hi\", direction=\"left\");", "projection(cut=2) cube(1);",
-            "resize([1,2]) cube(1);", "resize([1,2,3], auto=\"yes\") cube(1);",
+            "resize([1,2]) cube(1);", "resize([-1,2,3]) cube(1);",
+            "resize([1,2,3], auto=\"yes\") cube(1);", "resize([1,2,3], auto=[1,2,0]) cube(1);",
             "surface(file=2);", "import(file=\"a.stl\", origin=[1,2,3]);",
             "roof(method=2) square(1);",
         ] {
@@ -163,12 +164,12 @@ final class CSGImportTests: XCTestCase {
 
     func testUnsupportedLeavesAreSkippedAndWrappersPreserveChildren() throws {
         let scene = try Scene(
-            csgString: "union() { resize([4,4,4]) cube(2,true); surface(file=\"missing.dat\"); }",
+            csgString: "union() { roof() cube(2,true); surface(file=\"missing.dat\"); }",
             isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings.count, 2)
         XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'surface'") })
-        XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'resize'") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'roof'") })
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
     }
@@ -281,7 +282,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(extruded.build { false })
         XCTAssertEqual(extruded.geometry.merged().signedVolume, 1, accuracy: 1e-8)
         let incompatible = try Scene(
-            csgString: "cube(1); linear_extrude(height=1) resize([1,1,1]) cube(1);",
+            csgString: "cube(1); linear_extrude(height=1) roof() cube(1);",
             isCancelled: { false }
         )
         XCTAssertEqual(incompatible.warnings.count, 2)
@@ -810,6 +811,43 @@ final class CSGImportTests: XCTestCase {
         let geometry = try Geometry(csgString: source, isCancelled: { false })
         XCTAssertTrue(geometry.build { false })
         return geometry.merged()
+    }
+
+    func testResizeScalesAboutOriginAndSupportsExportedAutoFlags() throws {
+        let child = "translate([2,3,4]) cube([2,3,4]);"
+        let explicit = try mesh("resize([12,6,0]) \(child)")
+        XCTAssertEqual(explicit.bounds, Bounds([12, 6, 4], [24, 12, 8]))
+        for auto in ["true", "[false,false,true]", "[0,0,1]"] {
+            let result = try mesh("resize(newsize=[12,6,0], auto=\(auto), convexity=0) \(child)")
+            XCTAssertEqual(result.bounds, Bounds([12, 6, 24], [24, 12, 48]), auto)
+        }
+        XCTAssertEqual(try mesh("resize([0,0,0], true) \(child)").bounds, try mesh(child).bounds)
+    }
+
+    func testResizeUsesEvaluatedBounds() throws {
+        let result = try mesh("""
+        resize([2,0,0]) difference() {
+            cube([8,2,2]);
+            translate([4,-1,-1]) cube([5,4,4]);
+        }
+        """)
+        XCTAssertEqual(result.bounds, Bounds(.zero, [2, 2, 2]))
+        XCTAssertEqual(result.signedVolume, 8, accuracy: 1e-8)
+        XCTAssertTrue(try mesh("resize([1,2,3]) {}").isEmpty)
+    }
+
+    func testResizeKeepsProfilesTwoDimensional() throws {
+        let source = "resize([4,0,20], true) translate([2,3,0]) square([2,3]);"
+        let scene = try Scene(csgString: source, isCancelled: { false })
+        XCTAssertTrue(scene.warnings.isEmpty)
+        XCTAssertEqual(Bounds(scene.geometry.paths(pretransformed: true)), Bounds([4, 6, 0], [8, 12, 0]))
+        let result = try mesh("linear_extrude(height=2) \(source)")
+        XCTAssertEqual(result.bounds, Bounds([4, 6, 0], [8, 12, 2]))
+        XCTAssertEqual(result.signedVolume, 48, accuracy: 1e-8)
+        let rotated = try mesh("linear_extrude(height=1) resize([6,8,0]) rotate(90) square([2,3]);")
+        XCTAssertEqual(rotated.bounds.size.x, 6, accuracy: 1e-8)
+        XCTAssertEqual(rotated.bounds.size.y, 8, accuracy: 1e-8)
+        XCTAssertEqual(rotated.signedVolume, 48, accuracy: 1e-8)
     }
 
     func testProjectionReturnsSilhouetteOrSliceAtZero() throws {
@@ -1603,7 +1641,6 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
             "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
-            "resize([2,3,4]) cube(1);",
             "linear_extrude(height=2, scale=0.5) square(1);",
             "rotate_extrude(angle=90) square(1);",
             "hull() { square(2); translate([0,0,1]) square(2); }",
