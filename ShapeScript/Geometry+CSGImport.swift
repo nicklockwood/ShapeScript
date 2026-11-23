@@ -1090,9 +1090,13 @@ private struct CSGImporter {
                 names + tessellation,
                 positional: node.name == "linear_extrude" ? ["height"] : []
             )
+            let linear = node.name == "linear_extrude"
+            let components = try values["scale"].map { try node.vector($0, count: 2, scalar: true) } ?? [1, 1]
+            let scale = Vector(max(0, components[0]), max(0, components[1]), 1)
+            let tapered = scale != .one
             // OpenSCAD's extrusion operators project 2D children onto the XY plane.
             let children = try children(node, material: material)
-            let deferProfiles = node.name == "linear_extrude" && children.allSatisfy {
+            let deferProfiles = linear && !tapered && children.allSatisfy {
                 $0.is2D && $0.geometry.hasClosedXYPaths
             }
             let profiles = try (deferProfiles ? [] : paths(children, node: node)).compactMap { path -> Path? in
@@ -1105,24 +1109,27 @@ private struct CSGImporter {
                 return profile.faceNormal.z < 0 ? profile.inverted() : profile
             }
             try checkCancellation()
-            if node.name == "linear_extrude" {
-                if let scale = values["scale"] {
-                    let components = try node.vector(scale, count: 2, scalar: true)
-                    if components != [1, 1] {
-                        warn(
-                            "Tapered CSG linear_extrude is unsupported",
-                            at: node
-                        )
-                    }
-                }
+            if linear {
                 let height = try node.number(values, "height", default: 1)
                 guard height > 0 else {
                     throw node.error("CSG extrusion height must be positive")
                 }
                 let twist = try node.number(values, "twist", default: 0)
                 let detail = try fragments(values, radius: 1, node: node)
-                // Straight extrusions need only one section, regardless of $fn/$fa/$fs.
-                let defaultSlices = twist == 0 ? 1 : max(Double(detail), ceil(abs(twist) / 15))
+                var defaultSlices = twist == 0 ? 1 : max(Double(detail), ceil(abs(twist) / 15))
+                if scale.x != scale.y, values["slices"] == nil {
+                    // Nonuniform scale can make side panels nonplanar even without twist.
+                    let change = scale - .one
+                    let distance = profiles.reduce(0.0) { maximum, path in
+                        path.points.reduce(maximum) { max($0, $1.position.scaled(by: change).length) }
+                    }
+                    if distance > 0 {
+                        let fn = try node.number(values, "$fn", default: 0)
+                        let fs = try node.number(values, "$fs", default: 2)
+                        let diagonalSlices = fn > 0 ? fn.rounded(.down) : ceil(hypot(height, distance) / fs)
+                        defaultSlices = max(defaultSlices, diagonalSlices)
+                    }
+                }
                 let slices = try node.number(values, "slices", default: defaultSlices)
                 guard let sections = Int(exactly: slices), sections > 0, sections <= 100_000 else {
                     throw node.error("Invalid CSG extrusion slices")
@@ -1132,6 +1139,21 @@ private struct CSGImporter {
                     profiles.reduce(0) { $0 + $1.points.count }
                 guard pointCount <= 1_000_000 / sections else {
                     throw node.error("CSG extrusion tessellation is too large")
+                }
+                if tapered {
+                    guard let profile = Path.union(profiles, isCancelled: isCancelled) else {
+                        try checkCancellation()
+                        throw node.error("CSG tapered extrusion requires closed, coplanar profiles")
+                    }
+                    try checkCancellation()
+                    let mesh = Mesh.extrude(
+                        profile, depth: height, twist: .degrees(twist), taper: scale,
+                        sections: sections, isCancelled: isCancelled
+                    )
+                    return try result(
+                        mesh.translated(by: center ? .zero : Vector(0, 0, height / 2)),
+                        material: material
+                    )
                 }
                 return .init(geometry: geometry(
                     .extrude(profiles, .init(depth: height, twist: .degrees(twist), sections: sections)),

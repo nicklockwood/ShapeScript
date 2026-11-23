@@ -195,12 +195,7 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
 
-    func testUnsupportedExtrusionOptionsHaveExplicitFallbacks() throws {
-        let tapered = try Scene(csgString: "linear_extrude(height=2, scale=0.5) square(1);", isCancelled: { false })
-        XCTAssertEqual(tapered.warnings.count, 1)
-        XCTAssertTrue(tapered.warnings[0].contains("Tapered CSG linear_extrude"))
-        XCTAssertTrue(tapered.build { false })
-        XCTAssertEqual(tapered.geometry.merged().signedVolume, 2, accuracy: 1e-8)
+    func testPartialRotateExtrudeHasAnExplicitFallback() throws {
         let partial = try Scene(
             csgString: "rotate_extrude(angle=90, start=30, $fn=16) translate([2,0,0]) square(1);",
             isCancelled: { false }
@@ -1148,6 +1143,62 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testLinearExtrusionTapersTheUnionOfItsChildren() throws {
+        let scene = try Scene(
+            csgString: """
+            linear_extrude(height=2, scale=0.5, center=true) {
+                square(2);
+                translate([1,0,0]) square(2);
+            }
+            """,
+            isCancelled: { false }
+        )
+        XCTAssertTrue(scene.warnings.isEmpty)
+        XCTAssertTrue(scene.build { false })
+        let result = scene.geometry.merged()
+        XCTAssertEqual(result.bounds, Bounds([0, 0, -1], [3, 2, 1]))
+        XCTAssertEqual(result.signedVolume, 7, accuracy: 1e-8)
+        XCTAssertTrue(result.isWatertight)
+    }
+
+    func testLinearExtrusionAppliesAnisotropicScaleAfterClockwiseTwist() throws {
+        let result = try mesh("""
+        linear_extrude(height=2, scale=[0.5,0.75], twist=90, slices=1)
+            translate([2,0,0]) square(1,true);
+        """)
+        let top = result.polygons.flatMap(\.vertices).map(\.position).filter { $0.z == 2 }
+        XCTAssertEqual(Bounds(top), Bounds([-0.25, -1.875, 2], [0.25, -1.125, 2]))
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(result.signedVolume, 11 / 12, accuracy: 1e-8)
+    }
+
+    func testLinearExtrusionCanTaperToAPointOrAnEdge() throws {
+        for (scale, volume) in [("0", 8.0), ("[0,0.75]", 11.0)] {
+            let result = try mesh("""
+            linear_extrude(height=2, scale=\(scale), slices=4)
+                difference() { square(4,true); square(2,true); }
+            """)
+            XCTAssertTrue(result.isWatertight, scale)
+            XCTAssertEqual(result.signedVolume, volume, accuracy: 1e-8, scale)
+            let top = result.polygons.flatMap(\.vertices).map(\.position).filter { $0.z == 2 }
+            XCTAssertEqual(Bounds(top).size.y, scale == "0" ? 0 : 3, accuracy: 1e-8, scale)
+            XCTAssertTrue(top.allSatisfy { $0.x == 0 }, scale)
+        }
+        let pyramid = try mesh("linear_extrude(height=2, scale=-1) square(2,true);")
+        XCTAssertTrue(pyramid.isWatertight)
+        XCTAssertEqual(pyramid.signedVolume, 8 / 3, accuracy: 1e-8)
+        let wedge = try mesh("linear_extrude(height=2, scale=[0,0.75], slices=1) rotate(30) square(2,true);")
+        XCTAssertTrue(wedge.isWatertight)
+        XCTAssertEqual(wedge.signedVolume, 4.532692365, accuracy: 1e-6)
+    }
+
+    func testLinearExtrusionUsesDefaultSlicesForAnisotropicTaper() throws {
+        let standard = try mesh("linear_extrude(height=4, scale=[0.5,1], $fn=4) rotate(30) square(2);")
+        let explicit = try mesh("linear_extrude(height=4, scale=[0.5,1], slices=4) rotate(30) square(2);")
+        XCTAssertEqual(standard, explicit)
+        XCTAssertTrue(standard.isWatertight)
+    }
+
     func test2DBooleansProducePathsAndExtrudeWithoutWarnings() throws {
         for (operation, area) in [("union", 6.0), ("difference", 2.0), ("intersection", 2.0)] {
             let source = "\(operation)() { square(2); translate([1,0,0]) square(2); }"
@@ -1588,6 +1639,12 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(top.allSatisfy { $0.position.y < -1 })
     }
 
+    func testCoarseTwistPreservesOpenSCADVertexCorrespondence() throws {
+        let result = try mesh("linear_extrude(height=2, twist=120, slices=1) square(2,true);")
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(result.signedVolume, 6.309401077, accuracy: 1e-8)
+    }
+
     func testFullRevolution() throws {
         let result = try mesh("rotate_extrude($fn = 16, angle = 360) translate([2,0,0]) square([1,3]);")
         XCTAssertEqual(result.bounds.min.z, 0, accuracy: 0.000001)
@@ -1712,7 +1769,6 @@ final class CSGImportTests: XCTestCase {
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
             "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
-            "linear_extrude(height=2, scale=0.5) square(1);",
             "rotate_extrude(angle=90) square(1);",
             "hull() { square(2); translate([0,0,1]) square(2); }",
         ] {
