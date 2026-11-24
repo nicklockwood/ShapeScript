@@ -315,16 +315,16 @@ extension Symbols {
         },
         // csg
         "union": .block(.group) { context in
-            .mesh(Geometry(type: .union, in: context))
+            try context.booleanGeometry(.union)
         },
         "difference": .block(.group) { context in
-            .mesh(Geometry(type: .difference, in: context))
+            try context.booleanGeometry(.difference)
         },
         "intersection": .block(.group) { context in
-            .mesh(Geometry(type: .intersection, in: context))
+            try context.booleanGeometry(.intersection)
         },
         "xor": .block(.group) { context in
-            .mesh(Geometry(type: .xor, in: context))
+            try context.booleanGeometry(.xor)
         },
         "stencil": .block(.group) { context in
             .mesh(Geometry(type: .stencil, in: context))
@@ -876,6 +876,23 @@ extension Symbols {
 }
 
 extension EvaluationContext {
+    fileprivate func booleanGeometry(_ type: GeometryType) throws -> Value {
+        let geometry = Geometry(type: type, in: self)
+        let operands = geometry.visibleChildren
+        // Closed XY operands can be built later, as usual. Validate other path
+        // operands with the same operation that computes their outline.
+        if !operands.allSatisfy(\.hasClosedXYPaths), operands.allSatisfy(\.isPath),
+           geometry.path(isCancelled: isCancelled) == nil
+        {
+            if isCancelled() { throw EvaluationCancelled() }
+            throw RuntimeErrorType.custom(
+                "2D '\(type.logDescription)' requires closed, coplanar paths",
+                hint: "Put the paths on the same plane, or use 'group' to keep them separate."
+            )
+        }
+        return .mesh(geometry)
+    }
+
     func pathValue(_ path: Path) -> Value {
         if !state.name.isEmpty {
             return .mesh(Geometry(type: .path(path), in: self, children: []))

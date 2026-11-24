@@ -283,6 +283,39 @@ final class GeometryTests: XCTestCase {
         }
     }
 
+    func testPathBooleansRejectNonCoplanarOperands() {
+        for operation in ["union", "difference", "intersection", "xor"] {
+            for transform in ["rotate 0.2 0 1 0", "translate 0 0 1"] {
+                let source = """
+                \(operation) {
+                    circle
+                    \(transform)
+                    square { size 0.8 }
+                }
+                """
+                XCTAssertThrowsError(try evaluate(parse(source), delegate: nil)) { error in
+                    XCTAssertEqual(
+                        (error as? RuntimeError)?.message,
+                        "2D '\(operation)' requires closed, coplanar paths"
+                    )
+                }
+            }
+        }
+    }
+
+    func testPathBooleansSupportATiltedCommonPlane() throws {
+        let scene = try evaluate(parse("""
+        intersection {
+            rotate 0.2 0 1 0
+            circle
+            square { size 0.8 }
+        }
+        """), delegate: nil)
+        let path = try XCTUnwrap(scene.children.first?.path())
+        XCTAssertFalse(path.isEmpty)
+        XCTAssertGreaterThan(path.bounds.size.z, 0)
+    }
+
     func testInsetPathOperationsMatchesInsetOfResult() throws {
         for operation in ["union", "difference", "intersection", "xor", "hull", "minkowski"] {
             let profile = """
