@@ -37,7 +37,7 @@ final class CSGImportTests: XCTestCase {
             XCTAssertNotNil(container.path())
             XCTAssertTrue(container.children.allSatisfy { $0.path() != nil || !$0.children.isEmpty })
             XCTAssertEqual(container.sourceLocation, SourceLocation(at: 2, in: url))
-            XCTAssertEqual(try XCTUnwrap(geometry.path()).bounds.center, [3, 4, 5])
+            XCTAssertEqual(try XCTUnwrap(geometry.path()).bounds.center, [3, 4, 0])
         }
     }
 
@@ -1301,14 +1301,24 @@ final class CSGImportTests: XCTestCase {
         )
     }
 
-    func testNonCoplanar2DHullAndMinkowskiWarn() throws {
-        for operation in ["hull", "minkowski"] {
+    func test2DOperationsUseTheXYPartOfAnImportedMatrix() throws {
+        for (operation, area) in [
+            ("union", 5.0), ("difference", 3.0), ("intersection", 1.0), ("hull", 5.0), ("minkowski", 12.0),
+        ] {
             let scene = try Scene(
-                csgString: "\(operation)() { square(2); translate([0,0,1]) square(2); }", isCancelled: { false }
+                csgString: """
+                \(operation)() {
+                    square(2,true);
+                    multmatrix([[0.5,0,0.866025,1],[0,1,0,0],[-0.866025,0,0.5,3],[0,0,0,1]]) square(2,true);
+                }
+                """,
+                isCancelled: { false }
             )
-            XCTAssertEqual(scene.warnings.count, 1)
-            XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D '\(operation)'"))
-            XCTAssertEqual(try XCTUnwrap(scene.children.first?.path()).subpaths.count, 2)
+            XCTAssertTrue(scene.warnings.isEmpty, operation)
+            let path = try XCTUnwrap(scene.children.first?.path())
+            XCTAssertEqual(path.bounds.min.z, 0, operation)
+            XCTAssertEqual(path.bounds.max.z, 0, operation)
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, operation)
         }
     }
 
@@ -1360,21 +1370,60 @@ final class CSGImportTests: XCTestCase {
             csgString: "union() { rotate([45,0,0]) square(2); rotate([45,0,0]) translate([1,0,0]) square(2); }",
             isCancelled: { false }
         )
-        XCTAssertEqual(try Mesh.fill(XCTUnwrap(tilted.path()), faces: .front).surfaceArea, 6, accuracy: 1e-8)
+        XCTAssertEqual(try Mesh.fill(XCTUnwrap(tilted.path()), faces: .front).surfaceArea, 3 * sqrt(2), accuracy: 1e-8)
         let mirrored =
             try mesh("linear_extrude(height=1) difference() { mirror([1,0,0]) square(4,true); square(2,true); }")
         XCTAssertEqual(mirrored.signedVolume, 12, accuracy: 1e-8)
     }
 
-    func testNonCoplanar2DBooleansWarnAndKeepProfiles() throws {
+    func testEach2DTransformActsInTheXYPlane() throws {
         let scene = try Scene(
-            csgString: "union() { square(2); translate([0,0,1]) square(2); }", isCancelled: { false }
+            csgString: "rotate([0,-60,0]) translate([0,0,5]) rotate([0,60,0]) square(4,true);",
+            isCancelled: { false }
         )
-        XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertTrue(scene.warnings[0].contains("Non-coplanar 2D 'union'"))
+        XCTAssertTrue(scene.warnings.isEmpty)
         let path = try XCTUnwrap(scene.children.first?.path())
-        XCTAssertEqual(path.subpaths.count, 2)
-        XCTAssertEqual(path.bounds.size, Vector(2, 2, 1))
+        XCTAssertEqual(path.bounds.center, .zero)
+        XCTAssertEqual(path.bounds.size.x, 1, accuracy: 1e-8)
+        XCTAssertEqual(path.bounds.size.y, 4)
+        XCTAssertEqual(path.bounds.size.z, 0)
+    }
+
+    func testOffsetFillAndResizeUseXYProfiles() throws {
+        for (source, area) in [
+            ("offset(delta=1) rotate([0,60,0]) square(2,true);", 12.0),
+            ("fill() difference() { rotate([0,60,0]) square(4,true); square(1,true); }", 8.0),
+            ("resize([6,0,0],auto=true) rotate([0,60,0]) square(2,true);", 72.0),
+        ] {
+            let scene = try Scene(csgString: source, isCancelled: { false })
+            XCTAssertTrue(scene.warnings.isEmpty, source)
+            let path = try XCTUnwrap(scene.children.first?.path())
+            XCTAssertEqual(Mesh.fill(path, faces: .front).surfaceArea, area, accuracy: 1e-8, source)
+        }
+    }
+
+    func testShearAfter2DTiltAndRotation() throws {
+        let geometry = try Geometry(
+            csgString: """
+            multmatrix([[1,0.5,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+                rotate([0,60,0]) rotate(90) square([2,4]);
+            """,
+            isCancelled: { false }
+        )
+        let bounds = try XCTUnwrap(geometry.path()).bounds
+        XCTAssertLessThan((bounds.min - Vector(-2, 0, 0)).length, 1e-8)
+        XCTAssertLessThan((bounds.max - Vector(1, 2, 0)).length, 1e-8)
+    }
+
+    func testExtrusionPreservesTheOrderOf2DTransforms() throws {
+        let result = try mesh("linear_extrude(height=1) rotate([0,60,0]) rotate(90) square([2,4]);")
+        XCTAssertLessThan((result.bounds.min - Vector(-2, 0, 0)).length, 1e-8)
+        XCTAssertLessThan((result.bounds.max - Vector(0, 2, 1)).length, 1e-8)
+    }
+
+    func testSmall2DScalesRetainTheirArea() throws {
+        let result = try mesh("linear_extrude(height=1) scale([1.25e-8,1.25e-8,1]) square(8e7);")
+        XCTAssertEqual(result.signedVolume, 1, accuracy: 1e-8)
     }
 
     func test2DBooleanResultCanBeOffsetAndImportedAsAProfile() throws {
@@ -1691,6 +1740,10 @@ final class CSGImportTests: XCTestCase {
 
     func testExtrusionsSkipEdgeOnProfiles() throws {
         let edgeOn = "rotate([90,0,0]) translate([2,0,0]) square(1);"
+        let scene = try Scene(csgString: edgeOn, isCancelled: { false })
+        XCTAssertTrue(scene.warnings.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(scene.children.first?.path()).isEmpty)
+        XCTAssertTrue(try mesh("linear_extrude(height=1) intersection() { square(3); \(edgeOn) }").isEmpty)
         XCTAssertTrue(try mesh("linear_extrude(height=1) \(edgeOn)").isEmpty)
         XCTAssertTrue(try mesh("rotate_extrude() \(edgeOn)").isEmpty)
         let result = try mesh("linear_extrude(height=1) { square(1); \(edgeOn) }")
@@ -1799,7 +1852,7 @@ final class CSGImportTests: XCTestCase {
         for source in [
             "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
             "rotate_extrude(angle=90) square(1,true);",
-            "hull() { square(2); translate([0,0,1]) square(2); }",
+            "hull() { square(2); cube(2); }",
         ] {
             let scene = try Scene(csgString: "\n\(source)", isCancelled: { false })
             XCTAssertFalse(scene.warnings.isEmpty, source)

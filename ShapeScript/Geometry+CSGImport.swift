@@ -646,22 +646,20 @@ private struct CSGImporter {
         return .init(geometry: geometry, paths: path.isEmpty ? [] : [path])
     }
 
-    // Projection commutes with planar booleans. Bake it into their primitive
-    // operands so extrusion can retain the operation tree without evaluating it.
-    private func projectedProfile(_ source: Geometry, transform: Transform = .identity) -> Geometry {
-        let transform = source.transform * transform
+    // Orient the profiles for extrusion while retaining the operation tree.
+    private func extrusionProfile(_ source: Geometry, isFlipped: Bool = false) -> Geometry {
+        let isFlipped = isFlipped != source.transform.isFlipped
         let type: GeometryType
         let children: [Geometry]
         if let path = source.type.path {
-            let path = path.transformed(by: transform)
-            type = .path(path.faceNormal.z < 0 ? path.inverted() : path)
+            type = .path((path.faceNormal.z < 0) != isFlipped ? path.inverted() : path)
             children = []
         } else {
             type = source.type
-            children = source.children.map { projectedProfile($0, transform: transform) }
+            children = source.children.map { extrusionProfile($0, isFlipped: isFlipped) }
         }
         return Geometry(
-            type: type, name: source.name, transform: .identity,
+            type: type, name: source.name, transform: source.transform,
             material: source.material, smoothing: source.smoothing, children: children,
             sourceLocation: source.sourceLocation.map { location in { @Sendable in location } },
             debug: source.debug, isFocused: source.isFocused, isHidden: source.isHidden,
@@ -1102,7 +1100,6 @@ private struct CSGImporter {
             let components = try values["scale"].map { try node.vector($0, count: 2, scalar: true) } ?? [1, 1]
             let scale = Vector(max(0, components[0]), max(0, components[1]), 1)
             let tapered = scale != .one
-            // OpenSCAD's extrusion operators project 2D children onto the XY plane.
             let children = try children(node, material: material)
             let deferProfiles = linear && !tapered && children.allSatisfy {
                 $0.is2D && $0.geometry.hasClosedXYPaths
@@ -1166,7 +1163,7 @@ private struct CSGImporter {
                 return .init(geometry: geometry(
                     .extrude(profiles, .init(depth: height, twist: .degrees(twist), sections: sections)),
                     material: material,
-                    children: deferProfiles ? children.map { projectedProfile($0.geometry) } : [],
+                    children: deferProfiles ? children.map { extrusionProfile($0.geometry) } : [],
                     transform: .translation(center ? .zero : Vector(0, 0, height / 2))
                 ), paths: nil)
             }
@@ -1611,7 +1608,17 @@ private struct CSGImporter {
     }
 
     private func transformed(_ node: CSGNode, material: Material) throws -> CSGShape {
-        let matrix = try matrix(node)
+        let spatialMatrix = try matrix(node)
+        let shapes = try children(node, material: material)
+        let hasPaths = shapes.contains(where: \.is2D)
+        let is2D = hasPaths && shapes.allSatisfy { $0.is2D || $0.isEmpty }
+        // OpenSCAD applies each transform to 2D geometry using only its XY components.
+        let matrix = is2D ? [
+            [spatialMatrix[0][0], spatialMatrix[0][1], 0, spatialMatrix[0][3]],
+            [spatialMatrix[1][0], spatialMatrix[1][1], 0, spatialMatrix[1][3]],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ] : spatialMatrix
         func apply(_ p: Vector) throws -> Vector {
             let coordinates = matrix.prefix(3).map { $0[0] * p.x + $0[1] * p.y + $0[2] * p.z + $0[3] }
             guard coordinates.allSatisfy(\.isFinite) else {
@@ -1619,36 +1626,40 @@ private struct CSGImporter {
             }
             return Vector(coordinates[0], coordinates[1], coordinates[2])
         }
-        let shapes = try children(node, material: material)
-        let hasModifiers = shapes.contains(where: \.geometry.hasDisplayModifiers)
         let determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) - matrix[0][1] *
             (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) + matrix[0][2] *
             (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])
 
         // Baking an entire subtree into one mesh would discard nested debug, hide, and focus flags.
-        func transformedGeometry(_ source: Geometry) throws -> Geometry {
+        func transformedGeometry(
+            _ source: Geometry,
+            applying parentTransform: (Vector) throws -> Vector
+        ) throws -> Geometry {
             try checkCancellation()
+            func applyTransform(_ point: Vector) throws -> Vector {
+                try parentTransform(point.transformed(by: source.transform))
+            }
             let type: GeometryType
             var children = [Geometry]()
             var transform = Transform.identity
             switch source.type {
             case .group, .union, .difference, .intersection, .xor, .stencil, .hull, .minkowski:
                 type = source.type
-                children = try source.children.map(transformedGeometry)
+                children = try source.children.map { try transformedGeometry($0, applying: applyTransform) }
                 if type == .minkowski {
                     // A translation applies once to the sum, not once per operand.
-                    let origin = try apply(source.worldTransform.translation)
+                    let origin = try is2D ? applyTransform(.zero) : apply(source.worldTransform.translation)
                     transform = .translation(origin * Double(1 - source.visibleChildren.count))
                 }
             case let .path(path):
-                let path = path.transformed(by: source.worldTransform)
-                type = try .path(Path(subpaths: path.subpaths.map { subpath in
+                let subpaths = try path.subpaths.map { subpath in
                     try Path(subpath.points.map { point in
                         var point = point
-                        point.position = try apply(point.position)
+                        point.position = try applyTransform(point.position)
                         return point
                     })
-                }))
+                }
+                type = .path(Path(subpaths: subpaths, windingRule: path.windingRule))
             case .cone, .cylinder, .icosphere, .sphere, .cube, .circle, .square, .text,
                  .extrude, .lathe, .loft, .fill, .mesh, .camera, .light:
                 let unmodified = geometry(
@@ -1688,38 +1699,7 @@ private struct CSGImporter {
             geometry.isBackground = source.isBackground
             return geometry
         }
-        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }) {
-            if let transform = transform(matrix) {
-                for shape in shapes where !shape.geometry.overestimatedBounds.isEmpty {
-                    for point in shape.geometry.overestimatedBounds.corners {
-                        _ = try apply(point)
-                    }
-                }
-                let result = geometry(
-                    .group,
-                    material: material,
-                    children: shapes.map(\.geometry),
-                    transform: transform
-                )
-                if result.hasClosedXYPaths {
-                    return .init(deferredPaths: result)
-                }
-            }
-            let transformed = try geometry(.group, material: material, children: shapes.map {
-                try transformedGeometry($0.geometry)
-            })
-            if transformed.hasClosedXYPaths {
-                return .init(deferredPaths: transformed)
-            }
-            let paths = try paths(shapes, node: node).map { path in
-                try Path(subpaths: path.subpaths.map { subpath in
-                    try Path(subpath.points.map { point in try .point(apply(point.position), color: point.color) })
-                })
-            }
-            return .init(geometry: transformed, paths: paths)
-        }
-        let hasPaths = shapes.contains { $0.is2D }
-        if hasPaths {
+        if hasPaths, !is2D {
             warn(
                 "Mixed 2D and 3D CSG children are unsupported",
                 at: node
@@ -1728,13 +1708,22 @@ private struct CSGImporter {
         guard determinant.isFinite else {
             throw node.error("CSG transform overflow")
         }
-        guard abs(determinant) > Double.ulpOfOne else {
+        let determinantTolerance: Double
+        if is2D {
+            // Compare with the original axes so small XY scales retain their area.
+            let x = max(abs(spatialMatrix[0][0]), abs(spatialMatrix[1][0]), abs(spatialMatrix[2][0]))
+            let y = max(abs(spatialMatrix[0][1]), abs(spatialMatrix[1][1]), abs(spatialMatrix[2][1]))
+            determinantTolerance = Double.ulpOfOne * x * y
+        } else {
+            determinantTolerance = Double.ulpOfOne
+        }
+        guard abs(determinant) > determinantTolerance else {
+            if is2D { return result([], material: material) }
             warn("Singular CSG transforms are unsupported", at: node)
             return .init(geometry: geometry(.group, material: material), paths: nil)
         }
         // Preserve ordinary transforms without tessellating their operands.
-        // Matrices containing shear fall back to baking a mesh below.
-        if !hasPaths, let transform = transform(matrix) {
+        if is2D || !hasPaths, let transform = transform(matrix) {
             for shape in shapes {
                 let bounds = shape.geometry.overestimatedBounds
                 guard !bounds.isEmpty else { continue }
@@ -1742,20 +1731,19 @@ private struct CSGImporter {
                     _ = try apply(point)
                 }
             }
-            return .init(geometry: geometry(
+            let geometry = geometry(
                 .group,
                 material: material,
                 children: shapes.map(\.geometry),
                 transform: transform
-            ), paths: nil)
-        }
-        if hasModifiers || hasPaths {
-            return try .init(
-                geometry: geometry(.group, material: material, children: shapes.map {
-                    try transformedGeometry($0.geometry)
-                }),
-                paths: nil
             )
+            return is2D ? .init(deferredPaths: geometry) : .init(geometry: geometry, paths: nil)
+        }
+        if hasPaths || shapes.contains(where: \.geometry.hasDisplayModifiers) {
+            let geometry = try geometry(.group, material: material, children: shapes.map {
+                try transformedGeometry($0.geometry, applying: apply)
+            })
+            return is2D ? .init(deferredPaths: geometry) : .init(geometry: geometry, paths: nil)
         }
         let polygons = try shapes.flatMap { shape -> [Polygon] in
             guard shape.geometry.build(isCancelled) else {
