@@ -275,11 +275,13 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(legacy, current)
     }
 
-    func testRoundedAndChamferedOffsetsHaveExplicitFallbacks() throws {
-        let rounded = try Scene(csgString: "offset(r=1, chamfer=true) square(2,true);", isCancelled: { false })
-        XCTAssertEqual(rounded.warnings.count, 1)
-        XCTAssertTrue(rounded.warnings[0].contains("Rounded or chamfered"))
-        XCTAssertEqual(rounded.geometry.overestimatedBounds, Bounds([-2, -2, 0], [2, 2, 0]))
+    func testRoundedOffsetTakesPrecedenceOverChamferedDelta() throws {
+        let rounded = try mesh("linear_extrude(1) offset(r=1, delta=3, chamfer=true, $fn=7.5) square(2,true);")
+        let defaultRadius = try mesh("linear_extrude(1) offset($fn=8) square(2,true);")
+        XCTAssertEqual(rounded, defaultRadius)
+        XCTAssertTrue(rounded.isWatertight)
+        XCTAssertEqual(rounded.bounds, Bounds([-2, -2, 0], [2, 2, 1]))
+        XCTAssertEqual(rounded.signedVolume, 12 + 2 * sqrt(2), accuracy: 1e-8)
     }
 
     func testUnsupportedMatrixOptionsWarnWithoutLosingOtherGeometry() throws {
@@ -1889,6 +1891,71 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(result.signedVolume, 16, accuracy: 0.000001)
     }
 
+    func testRoundedOffsetErodesProfilesAndRemovesCollapsedRegions() throws {
+        let eroded = try mesh("linear_extrude(2) offset(r=-1, $fn=8) square([6,7]);")
+        XCTAssertTrue(eroded.isWatertight)
+        XCTAssertEqual(eroded.bounds, Bounds([1, 1, 0], [5, 6, 2]))
+        XCTAssertEqual(eroded.signedVolume, 40, accuracy: 1e-8)
+        XCTAssertTrue(try mesh("linear_extrude(1) offset(r=-1) square(1);").isEmpty)
+        let unchanged = try mesh("linear_extrude(1) offset(r=0, delta=3) square(2);")
+        XCTAssertEqual(unchanged.bounds, Bounds([0, 0, 0], [2, 2, 1]))
+        XCTAssertEqual(unchanged.signedVolume, 4, accuracy: 1e-8)
+    }
+
+    func testRoundedOffsetCornerArcsFollowAdjacentEdges() throws {
+        let defaultMesh = try mesh("linear_extrude(1) offset() square(2,true);")
+        let defaultCorner = Vector(1 + cos(2 * .pi / 5), 1 + sin(2 * .pi / 5), 0)
+        let rotated = try mesh("linear_extrude(1) offset(r=1, $fn=8) rotate(30) square(2,true);")
+        let rotatedCorner = Vector((sqrt(3) - 1) / 2 + cos(5 * .pi / 12), (sqrt(3) + 1) / 2 + sin(5 * .pi / 12), 0)
+        let inset = try mesh("""
+        linear_extrude(1) offset(r=-1,$fn=8) polygon([[0,0],[8,0],[8,4],[4,4],[4,8],[0,8]]);
+        """)
+        let insetCorner = Vector(4 - sqrt(0.5), 4 - sqrt(0.5), 0)
+        for (mesh, corner, count) in [
+            (defaultMesh, defaultCorner, 12),
+            (rotated, rotatedCorner, 12),
+            (inset, insetCorner, 8),
+        ] {
+            let base = Set(mesh.polygons.flatMap(\.vertices).map(\.position).filter { $0.z == 0 })
+            XCTAssertEqual(base.count, count)
+            XCTAssertTrue(base.contains { ($0 - corner).length < 1e-8 })
+            XCTAssertTrue(mesh.isWatertight)
+        }
+    }
+
+    func testRoundedOffsetKeepsHolesAndJoinsExpandingRegions() throws {
+        let ring = try mesh("""
+        linear_extrude(1) offset(r=0.5, $fn=8) {
+            difference() { square(4,true); square(2,true); }
+        }
+        """)
+        XCTAssertTrue(ring.isWatertight)
+        XCTAssertEqual(ring.signedVolume, 23 + sqrt(2) / 2, accuracy: 1e-8)
+        let islands = try mesh("""
+        linear_extrude(1) offset(r=0.75, $fn=8) {
+            square(1);
+            translate([2,0,0]) square(1);
+        }
+        """)
+        XCTAssertTrue(islands.isWatertight)
+        XCTAssertEqual(islands.submeshes.count, 1)
+    }
+
+    func testChamferedOffsetsMapToPathInset() throws {
+        let cut = 2 - sqrt(2.0)
+        for (source, volume) in [
+            ("offset(delta=1, chamfer=true) square(4,true);", 36 - 2 * cut * cut),
+            ("offset(delta=-1, chamfer=true) polygon([[0,0],[8,0],[8,4],[4,4],[4,8],[0,8]]);", 20 + cut * cut / 2),
+        ] {
+            let scene = try Scene(csgString: "linear_extrude(height=1) \(source)", isCancelled: { false })
+            XCTAssertTrue(scene.warnings.isEmpty, source)
+            XCTAssertTrue(scene.build { false }, source)
+            let mesh = scene.geometry.merged()
+            XCTAssertTrue(mesh.isWatertight, source)
+            XCTAssertEqual(mesh.signedVolume, volume, accuracy: 1e-8, source)
+        }
+    }
+
     func testExtrusionsSkipEdgeOnProfiles() throws {
         let edgeOn = "rotate([90,0,0]) translate([2,0,0]) square(1);"
         let scene = try Scene(csgString: edgeOn, isCancelled: { false })
@@ -2001,7 +2068,7 @@ final class CSGImportTests: XCTestCase {
 
     func testUnsupportedOperationsAndOptionsHaveLocations() throws {
         for source in [
-            "offset(r=1) circle(1);", "surface(file=\"a.dat\");",
+            "surface(file=\"a.dat\");",
             "rotate_extrude(angle=90) square(1,true);",
             "hull() { square(2); cube(2); }",
         ] {
@@ -2040,6 +2107,7 @@ final class CSGImportTests: XCTestCase {
             "circle($fn=1e20);",
             "linear_extrude(height=1,slices=100000) circle($fn=1000);",
             "linear_extrude(height=1,slices=2,segments=1000000) square(1);",
+            "offset(r=1,$fn=40000) square(1);",
         ] {
             XCTAssertThrowsError(try mesh(source))
         }

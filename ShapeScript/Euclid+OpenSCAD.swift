@@ -224,6 +224,56 @@ extension Path {
         }).closed()
     }
 
+    /// Expands or erodes a resolved XY region using offset edges and rounded corners.
+    func openSCADRoundedOffset(
+        by radius: Double,
+        segments: Int,
+        isCancelled: CancellationHandler
+    ) throws -> Path? {
+        guard radius != 0, !isEmpty else { return self }
+        let outline = faceNormal.z < 0 ? inverted() : self
+        let step = 2 * Double.pi / Double(segments)
+        var paths = [outline]
+        for contour in outline.subpaths {
+            let points = contour.points
+            guard contour.isClosed, points.count >= 4 else { continue }
+            func normal(from p: PathPoint, to q: PathPoint) -> Vector {
+                let edge = q.position - p.position
+                return Vector(edge.y, -edge.x).normalized() * radius
+            }
+            var previous = normal(from: points[points.count - 2], to: points[0])
+            for (p, q) in zip(points, points.dropFirst()) {
+                if isCancelled() { throw CancellationError() }
+                let current = normal(from: p, to: q)
+                paths.append(Path([p, p.translated(by: current), q.translated(by: current), q]).closed())
+                let turn = atan2(previous.cross(current).z, previous.dot(current))
+                if turn * radius > 0 {
+                    // Step from the incoming edge normal and always include the outgoing normal.
+                    let steps = max(1, Int(ceil(abs(turn) / step)))
+                    let signedStep = turn < 0 ? -step : step
+                    var corner = [p, p.translated(by: previous)]
+                    for index in 1 ..< steps {
+                        let angle = signedStep * Double(index)
+                        let direction = Vector(
+                            previous.x * cos(angle) - previous.y * sin(angle),
+                            previous.x * sin(angle) + previous.y * cos(angle)
+                        )
+                        corner.append(p.translated(by: direction))
+                    }
+                    corner.append(p.translated(by: current))
+                    paths.append(Path(corner).closed())
+                }
+                previous = current
+            }
+        }
+        let offset = radius > 0 ? Path.union(paths, isCancelled: isCancelled) :
+            Path.difference(paths, isCancelled: isCancelled)
+        if isCancelled() { throw CancellationError() }
+        return offset.map { path in
+            Path(subpaths: path.subpaths.map { $0.removingCollinearOutlinePoints() }, windingRule: path.windingRule)
+        }
+    }
+
     /// Calculates the default number of slices for an OpenSCAD extrusion of an XY profile.
     /// Twist and fragment angle are in degrees.
     func openSCADSliceCount(
@@ -310,22 +360,7 @@ extension Path {
         guard isClosed, let plane, twist.isFinite, taper.isFinite else {
             return points.count <= pointLimit ? self : nil
         }
-        let contours = subpaths.map { contour -> Path in
-            // Planar Booleans can leave collinear points without distinct vertex attributes.
-            let closedPoints = contour.points
-            let points = closedPoints.dropLast()
-            let corners = points.indices.compactMap { index -> PathPoint? in
-                let point = points[index]
-                let previous = points[index == points.startIndex ? points.endIndex - 1 : index - 1]
-                let next = closedPoints[index + 1]
-                guard point.color == previous.color, point.color == next.color,
-                      point.texcoord == previous.texcoord, point.texcoord == next.texcoord
-                else { return point }
-                return isCollinearOutlinePoint(point.position, previous.position, next.position) ? nil : point
-            }
-            return corners.count >= 3 && corners.count < points.count ?
-                Path(corners, windingRule: contour.windingRule).closed() : contour
-        }
+        let contours = subpaths.map { $0.removingCollinearOutlinePoints() }
         let pointCount = contours.reduce(0) { $0 + $1.points.count }
         guard pointCount <= pointLimit else { return nil }
         var remaining = pointLimit - pointCount
@@ -387,6 +422,23 @@ extension Path {
             subdivided.append(Path(result, windingRule: contour.windingRule).closed())
         }
         return isCancelled() ? .empty : Path(subpaths: subdivided, windingRule: windingRule)
+    }
+
+    private func removingCollinearOutlinePoints() -> Path {
+        // Planar Booleans can leave collinear points without distinct vertex attributes.
+        let closedPoints = points
+        let points = closedPoints.dropLast()
+        let corners = points.indices.compactMap { index -> PathPoint? in
+            let point = points[index]
+            let previous = points[index == points.startIndex ? points.endIndex - 1 : index - 1]
+            let next = closedPoints[index + 1]
+            guard point.color == previous.color, point.color == next.color,
+                  point.texcoord == previous.texcoord, point.texcoord == next.texcoord
+            else { return point }
+            return isCollinearOutlinePoint(point.position, previous.position, next.position) ? nil : point
+        }
+        return corners.count >= 3 && corners.count < points.count ?
+            Path(corners, windingRule: windingRule).closed() : self
     }
 }
 

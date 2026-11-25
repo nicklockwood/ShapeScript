@@ -1065,21 +1065,37 @@ private struct CSGImporter {
             return result([path], material: material)
         case "offset":
             let values = try validate(node, ["r", "delta", "chamfer"] + tessellation)
-            let radius = try node.number(values, "r", default: 1)
+            let rounded = values["r"] != nil || values["delta"] == nil
+            let distance = try node.number(values, rounded ? "r" : "delta", default: 1)
             let chamfer = try node.boolean(values, "chamfer", default: false)
-            if values["r"] != nil || values["delta"] == nil || chamfer {
-                warn("Rounded or chamfered CSG offsets are unsupported", at: node)
-            }
-            let delta = try node.number(values, "delta", default: radius)
+            let miterLimit: MiterLimit = chamfer ? 1 : .infinity
             let profiles = try paths(children(node, material: material), node: node)
             guard let profile = Path.union(profiles, isCancelled: isCancelled) else {
                 try checkCancellation()
                 warn("Non-coplanar or open 2D 'offset' is unsupported", at: node)
-                let offsets = profiles.map { $0.inset(by: -delta, isCancelled: isCancelled) }
+                if rounded {
+                    return result([], material: material)
+                }
+                let offsets = profiles.map { $0.inset(by: -distance, miterLimit: miterLimit, isCancelled: isCancelled) }
                 try checkCancellation()
                 return result(offsets, material: material)
             }
-            let offset = profile.inset(by: -delta, isCancelled: isCancelled)
+            if rounded {
+                try checkCancellation()
+                guard !profile.isEmpty else { return result([], material: material) }
+                guard distance != 0 else { return result([profile], material: material) }
+                let segments = try fragments(values, radius: distance, current: true, node: node)
+                guard profile.points.count <= 100_000 / (segments + 1) else {
+                    throw node.error("CSG offset tessellation is too large")
+                }
+                guard let offset = try profile.openSCADRoundedOffset(
+                    by: distance, segments: segments, isCancelled: isCancelled
+                ) else {
+                    throw node.error("Cannot offset this CSG profile")
+                }
+                return result(offset.isEmpty ? [] : [offset], material: material)
+            }
+            let offset = profile.inset(by: -distance, miterLimit: miterLimit, isCancelled: isCancelled)
             // Separate regions can overlap after expansion. Nonzero winding keeps
             // the overlaps filled before we extract their combined outline.
             let contours = offset.subpaths.filter { $0.isClosed && $0.points.count >= 4 }
