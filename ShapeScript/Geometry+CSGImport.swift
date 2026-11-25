@@ -802,13 +802,17 @@ private struct CSGImporter {
                 warn("CSG primitives cannot have children", at: node)
             }
             let values = try validate(node, ["size", "center"], positional: ["size", "center"])
-            let count = node.name == "cube" ? 3 : 2
-            let size = try node.vector(values["size"] ?? .number(1), count: count, scalar: true)
-            guard size.allSatisfy({ $0 > 0 }) else {
-                throw node.error("CSG size must be positive")
+            let isCube = node.name == "cube"
+            let size = try node.vector(values["size"] ?? .number(1), count: isCube ? 3 : 2, scalar: true)
+            guard size.allSatisfy({ $0 >= 0 }) else {
+                throw node.error("CSG \(node.name) size cannot be negative")
             }
             let center = try node.boolean(values, "center", default: false)
-            if count == 2 {
+            if size.contains(0) {
+                // Keep an empty operand in the tree so difference preserves its base.
+                return .init(geometry: geometry(.group, material: material), paths: nil)
+            }
+            if !isCube {
                 var path = Path.rectangle(width: size[0], height: size[1], color: material.color)
                 if !center {
                     path = path.translated(by: Vector(size[0] / 2, size[1] / 2))
@@ -858,10 +862,8 @@ private struct CSGImporter {
             if node.name == "circle" {
                 let detail = try fragments(values, radius: radius, current: true, node: node)
                 let circle = Path.openSCADCircle(radius: radius, segments: detail, color: material.color)
-                return result(
-                    circle.isEmpty ? [] : [circle],
-                    material: material
-                )
+                return circle.isEmpty ? .init(geometry: geometry(.group, material: material), paths: nil) :
+                    result([circle], material: material)
             }
             let detail = try fragments(
                 values, radius: node.name == "cylinder" ? max(r1, r2) : radius, current: true, node: node
@@ -872,7 +874,7 @@ private struct CSGImporter {
                     throw node.error("CSG sphere tessellation is too large")
                 }
                 if radius == 0 {
-                    return try result(.empty, material: material)
+                    return .init(geometry: geometry(.group, material: material), paths: nil)
                 }
                 let style = try node.string(values, "style", default: "orig")
                 if style != "orig", style != "octa" {
@@ -899,6 +901,7 @@ private struct CSGImporter {
                 })
             }
             try checkCancellation()
+            if mesh.isEmpty { return .init(geometry: geometry(.group, material: material), paths: nil) }
             return .init(geometry: geometry(.mesh(mesh.replacing(nil, with: material)), material: material), paths: nil)
         case "polygon", "polyhedron":
             if !node.children.isEmpty {

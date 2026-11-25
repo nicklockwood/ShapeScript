@@ -976,6 +976,19 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testZeroSizeCubesRemainEmptyBooleanOperands() throws {
+        let solid = try mesh("cube(2);")
+        for emptyCube in [
+            "cube(0);",
+            "cube(size = [0, 0, 0], center = false);",
+            "cube(size = [2, 0, 3], center = true);",
+        ] {
+            XCTAssertTrue(try mesh(emptyCube).isEmpty, emptyCube)
+            XCTAssertTrue(try mesh("difference() { \(emptyCube) cube(2); }").isEmpty, emptyCube)
+            XCTAssertEqual(try mesh("difference() { cube(2); \(emptyCube) }"), solid, emptyCube)
+        }
+    }
+
     private func mesh(_ source: String) throws -> Mesh {
         let geometry = try Geometry(csgString: source, isCancelled: { false })
         XCTAssertTrue(geometry.build { false })
@@ -1168,6 +1181,26 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(union.signedVolume, 8, accuracy: 0.000001)
         let transformedCutter = try mesh("difference() { cube(2,true); translate([0.25,0,0]) cube(1,true); }")
         XCTAssertEqual(transformedCutter.signedVolume, 7, accuracy: 0.000001)
+    }
+
+    func testEmptyPrimitivesRemainEmptyDifferenceBases() throws {
+        for primitive in ["square([0,2]);", "circle(0);", "sphere(0);", "cylinder(h=0);", "cylinder(r=0);"] {
+            XCTAssertTrue(try mesh("difference() { \(primitive) cube(1); }").isEmpty, primitive)
+            let filled = try mesh("linear_extrude(1) { square(1); \(primitive) }")
+            XCTAssertEqual(filled.signedVolume, 1, accuracy: 1e-8, primitive)
+        }
+    }
+
+    func testTouchingAndCoplanarCSGAndCompoundProfile() throws {
+        for (source, expected) in [
+            ("union(){cube(1);translate([1,0,0])cube(1);}", 2.0),
+            ("difference(){cube(2);translate([0.5,0.5,1])cube(1);}", 7.0),
+            ("linear_extrude(2)difference(){square([6,4]);translate([1,1,0])square([4,2]);}", 32.0),
+        ] {
+            let result = try mesh(source)
+            XCTAssertTrue(result.isWatertight, source)
+            XCTAssertEqual(result.signedVolume, expected, accuracy: 1e-8, source)
+        }
     }
 
     func testHullAndMinkowski() throws {
