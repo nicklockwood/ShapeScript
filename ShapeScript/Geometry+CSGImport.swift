@@ -1088,7 +1088,7 @@ private struct CSGImporter {
             return result(filled.isEmpty ? [] : [filled], material: material)
         case "linear_extrude", "rotate_extrude":
             let names = node.name == "linear_extrude"
-                ? ["height", "center", "twist", "slices", "scale"]
+                ? ["height", "center", "twist", "slices", "scale", "segments"]
                 : ["angle", "start"]
             let values = try validate(
                 node,
@@ -1096,14 +1096,25 @@ private struct CSGImporter {
                 positional: node.name == "linear_extrude" ? ["height"] : ["angle", "start"]
             )
             let linear = node.name == "linear_extrude"
+            let requestedSegments = try node.number(values, "segments", default: 0)
+            guard let segments = Int(exactly: requestedSegments), segments >= 0, segments <= 1_000_000 else {
+                throw node.error("Invalid CSG extrusion segments")
+            }
             let components = try values["scale"].map { try node.vector($0, count: 2, scalar: true) } ?? [1, 1]
             let scale = Vector(max(0, components[0]), max(0, components[1]), 1)
             let tapered = scale != .one
+            let twist = linear ? try node.number(values, "twist", default: 0) : 0
+            let subdivide = segments > 0 || (values["segments"] == nil && (twist != 0 || scale.x != scale.y))
+            let explicitSlices = switch values["slices"] {
+            case nil, .undefined?: false
+            default: true
+            }
+            let needsResolvedProfile = tapered || subdivide || (!explicitSlices && twist != 0)
             let children = try children(node, material: material)
-            let deferProfiles = linear && !tapered && children.allSatisfy {
+            let deferProfiles = linear && !needsResolvedProfile && children.allSatisfy {
                 $0.is2D && $0.geometry.hasClosedXYPaths
             }
-            let profiles = try (deferProfiles ? [] : paths(children, node: node)).compactMap { path -> Path? in
+            var profiles = try (deferProfiles ? [] : paths(children, node: node)).compactMap { path -> Path? in
                 let projected = path.projected(onto: .xy, isCancelled: isCancelled)
                 let subpaths = projected.subpaths
                 let contours = subpaths.filter { $0.isClosed && $0.points.count >= 4 }
@@ -1118,24 +1129,25 @@ private struct CSGImporter {
                 guard height > 0 else {
                     throw node.error("CSG extrusion height must be positive")
                 }
-                let twist = try node.number(values, "twist", default: 0)
-                let detail = try fragments(values, radius: 1, node: node)
-                var defaultSlices = twist == 0 ? 1 : max(Double(detail), ceil(abs(twist) / 15))
-                if scale.x != scale.y, values["slices"] == nil {
-                    // Nonuniform scale can make side panels nonplanar even without twist.
-                    let change = scale - .one
-                    let distance = profiles.reduce(0.0) { maximum, path in
-                        path.points.reduce(maximum) { max($0, $1.position.scaled(by: change).length) }
-                    }
-                    if distance > 0 {
-                        let fn = try node.number(values, "$fn", default: 0)
-                        let fs = try node.number(values, "$fs", default: 2)
-                        let diagonalSlices = fn > 0 ? fn.rounded(.down) : ceil(hypot(height, distance) / fs)
-                        defaultSlices = max(defaultSlices, diagonalSlices)
+                let fn = try node.number(values, "$fn", default: 0)
+                let fa = try node.number(values, "$fa", default: 12)
+                let fs = try node.number(values, "$fs", default: 2)
+                guard fn >= 0, fa > 0, fs > 0 else {
+                    throw node.error("Invalid CSG tessellation parameters")
+                }
+                let slices: Int? = if explicitSlices {
+                    try Int(exactly: node.number(values, "slices", default: 1))
+                } else {
+                    try profiles.reduce(1) { maximum, profile in
+                        try checkCancellation()
+                        guard let count = profile.openSCADSliceCount(
+                            height: height, twist: twist, taper: scale, fragments: fn,
+                            fragmentAngle: fa, fragmentSize: fs
+                        ) else { throw node.error("Invalid CSG extrusion slices") }
+                        return max(maximum, count)
                     }
                 }
-                let slices = try node.number(values, "slices", default: defaultSlices)
-                guard let sections = Int(exactly: slices), sections > 0, sections <= 100_000 else {
+                guard let sections = slices, sections > 0, sections <= 100_000 else {
                     throw node.error("Invalid CSG extrusion slices")
                 }
                 let center = try node.boolean(values, "center", default: false)
@@ -1144,14 +1156,29 @@ private struct CSGImporter {
                 guard pointCount <= 1_000_000 / sections else {
                     throw node.error("CSG extrusion tessellation is too large")
                 }
-                if tapered {
-                    guard let profile = Path.union(profiles, isCancelled: isCancelled) else {
+                if tapered || subdivide {
+                    guard var profile = Path.union(profiles, isCancelled: isCancelled) else {
                         try checkCancellation()
-                        throw node.error("CSG tapered extrusion requires closed, coplanar profiles")
+                        throw node.error("CSG extrusion requires closed, coplanar profiles")
                     }
                     try checkCancellation()
+                    if subdivide {
+                        let pointLimit = 1_000_000 / (sections + 1)
+                        guard let subdivided = profile.withOpenSCADSegments(
+                            segments: segments, fragments: fn, fragmentAngle: fa, fragmentSize: fs,
+                            pointLimit: pointLimit, twist: .degrees(twist), taper: scale,
+                            sections: sections, isCancelled: isCancelled
+                        ) else {
+                            throw node.error("CSG extrusion tessellation is too large")
+                        }
+                        profile = subdivided
+                        try checkCancellation()
+                    }
+                    profiles = profile.isEmpty ? [] : [profile]
+                }
+                if tapered {
                     let mesh = Mesh.extrude(
-                        profile, depth: height, twist: .degrees(twist), taper: scale,
+                        profiles.first ?? .empty, depth: height, twist: .degrees(twist), taper: scale,
                         sections: sections, isCancelled: isCancelled
                     )
                     return try result(

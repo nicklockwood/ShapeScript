@@ -1222,7 +1222,7 @@ final class CSGImportTests: XCTestCase {
 
     func testLinearExtrusionUsesDefaultSlicesForAnisotropicTaper() throws {
         let standard = try mesh("linear_extrude(height=4, scale=[0.5,1], $fn=4) rotate(30) square(2);")
-        let explicit = try mesh("linear_extrude(height=4, scale=[0.5,1], slices=4) rotate(30) square(2);")
+        let explicit = try mesh("linear_extrude(height=4, scale=[0.5,1], slices=4, $fn=4) rotate(30) square(2);")
         XCTAssertEqual(standard, explicit)
         XCTAssertTrue(standard.isWatertight)
     }
@@ -1664,6 +1664,7 @@ final class CSGImportTests: XCTestCase {
     func testExtrusionAndRevolutionAreDeferredAndCached() throws {
         for source in [
             "linear_extrude(height=4, twist=90, slices=4) square(1);",
+            "linear_extrude(height=4, twist=30, slices=4, segments=8) square(1);",
             "rotate_extrude($fn=16) translate([2,0,0]) square(1);",
             "rotate_extrude(angle=100, start=30, $fn=16) translate([2,0,0]) square(1);",
             "cylinder(h=3, r1=2, r2=1, $fn=16);",
@@ -1704,10 +1705,94 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(result.isWatertight)
     }
 
-    func testTwistedExtrusionRetainsDefaultSections() throws {
-        let result = try mesh("linear_extrude(height=4, twist=90, $fn=30) square(1);")
-        let expected = try mesh("linear_extrude(height=4, twist=90, slices=30) square(1);")
-        XCTAssertEqual(result, expected)
+    func testExtrusionSegmentsSubdivideOutlinesIndependentlyOfSlices() throws {
+        for (arguments, profile, count) in [
+            ("segments=8", "square(10);", 8),
+            ("segments=6", "square(10);", 4),
+            ("segments=8, twist=35, $fn=512", "square([10,2]);", 8),
+            ("segments=0, twist=35", "square(10);", 4),
+            ("segments=4", "circle(5,$fn=12);", 12),
+            ("segments=8", "difference(){square(10,true);square(4,true);}", 16),
+            ("segments=8, scale=[0.5,1], twist=35", "difference(){square(10,true);square(4,true);}", 16),
+        ] {
+            let result = try mesh("linear_extrude(height=10, slices=2, \(arguments)) \(profile)")
+            let vertices = result.polygons.flatMap { $0.vertices.map(\.position) }
+            XCTAssertEqual(Set(vertices.map(\.z)), [0, 5, 10], arguments)
+            XCTAssertEqual(Set(vertices.filter { $0.z == 5 }).count, count, arguments)
+            XCTAssertTrue(result.isWatertight, arguments)
+        }
+    }
+
+    func testCSGExtrusionPreservesHighFragmentCounts() throws {
+        let result = try mesh("linear_extrude(height=2) circle(1,$fn=320);")
+        XCTAssertEqual(Set(result.polygons.flatMap { $0.vertices.map(\.position) }).count, 640)
+        XCTAssertTrue(result.isWatertight)
+    }
+
+    func testAutomaticExtrusionSegmentsInCurrentExports() throws {
+        for (arguments, profile, count) in [
+            ("twist=35, $fn=8.9, $fa=12, $fs=2", "square([10,2]);", 8),
+            ("twist=35, $fn=0, $fa=12, $fs=3", "square([10,2]);", 10),
+            ("twist=35, $fn=0, $fa=45, $fs=0.5", "square([10,2]);", 8),
+            ("twist=35, $fn=0, $fa=26, $fs=1", "square([2.999,3.001]);", 12),
+            ("twist=35, $fn=0, $fa=45, $fs=1.5", "difference(){square(10,true);square(1,true);}", 12),
+            ("twist=35, segments=0, $fn=8, $fa=12, $fs=2", "square([10,2]);", 4),
+            ("scale=1.1, $fn=8, $fa=12, $fs=2", "square([10,2]);", 4),
+            ("scale=[2,1], $fn=0, $fa=12, $fs=3", "square([10,2]);", 16),
+            ("twist=35, $fn=8, $fa=12, $fs=2", "difference(){square(10,true);square(4,true);}", 16),
+            ("scale=[2,0.75], twist=110, $fn=0, $fa=12, $fs=3", "difference(){square(10,true);square(4,true);}", 32),
+            (
+                "scale=[2,0.7], twist=-85, $fn=0, $fa=30, $fs=1.1",
+                "difference(){square(10,true);rotate(23)square([2.4,1.1],true);}",
+                22
+            ),
+        ] {
+            let result = try mesh("linear_extrude(height=10, slices=2, \(arguments)) \(profile)")
+            let vertices = result.polygons.flatMap { $0.vertices.map(\.position) }
+            XCTAssertEqual(Set(vertices.map(\.z)), [0, 5, 10], arguments)
+            XCTAssertEqual(Set(vertices.filter { $0.z == 5 }).count, count, arguments)
+            XCTAssertTrue(result.isWatertight, arguments)
+        }
+    }
+
+    func testExtrusionUsesOpenSCADDefaultSlices() throws {
+        for (arguments, count) in [
+            ("scale=1.5, $fn=16, $fa=12, $fs=2", 1),
+            ("twist=90, $fn=16, $fa=12, $fs=2", 4),
+            ("twist=90, $fn=30", 8),
+            ("twist=-135, $fn=7.5, $fa=12, $fs=2", 3),
+            ("twist=-110, segments=0, $fn=16, $fa=12, $fs=2", 5),
+            ("twist=120, $fn=0, $fa=45, $fs=0.1", 3),
+            ("twist=120, $fn=0, $fa=12, $fs=2", 4),
+            ("twist=120, scale=0.25, $fn=0, $fa=12, $fs=2", 3),
+            ("twist=-120, scale=4, $fn=0, $fa=12, $fs=2", 3),
+            ("twist=45, scale=0, $fn=0, $fa=5, $fs=1.5", 3),
+            ("twist=45, scale=[0.1,1], $fn=16.5, $fa=12, $fs=2", 16),
+            ("scale=[2,1], $fn=0, $fa=120, $fs=2", 2),
+            ("twist=90, slices=2, $fn=16, $fa=12, $fs=2", 2),
+            ("twist=90, slices=undef, $fn=16, $fa=12, $fs=2", 4),
+        ] {
+            let result = try mesh("linear_extrude(height=3, \(arguments)) square(size=[4,4], center=true);")
+            let heights = Set(result.polygons.flatMap { $0.vertices.map(\.position.z) })
+            XCTAssertEqual(heights.count, count + 1, arguments)
+            XCTAssertTrue(result.isWatertight, arguments)
+        }
+    }
+
+    func testExtrusionTessellationMatchesCurrentOpenSCADForOldExports() throws {
+        let profile = "square(size=[4,4], center=true);"
+        let exports = [
+            "height=3, center=false, convexity=1, twist=90, scale=[1,1], $fn=16, $fa=12, $fs=2",
+            "height=3, twist=90, $fn=16, $fa=12, $fs=2",
+            "height=3, twist=90, $fn=16",
+        ]
+        let expected = try mesh("linear_extrude(\(exports[0])) \(profile)")
+        for arguments in exports.dropFirst() {
+            XCTAssertEqual(try mesh("linear_extrude(\(arguments)) \(profile)"), expected)
+        }
+        let positions = Set(expected.polygons.flatMap(\.vertices).map(\.position))
+        XCTAssertEqual(Set(positions.map(\.z)), [0, 0.75, 1.5, 2.25, 3])
+        XCTAssertEqual(positions.count, 80)
     }
 
     func testTwistUsesOpenSCADClockwiseConvention() throws {
@@ -1888,6 +1973,7 @@ final class CSGImportTests: XCTestCase {
             "sphere($fn=100000);",
             "circle($fn=1e20);",
             "linear_extrude(height=1,slices=100000) circle($fn=1000);",
+            "linear_extrude(height=1,slices=2,segments=1000000) square(1);",
         ] {
             XCTAssertThrowsError(try mesh(source))
         }
