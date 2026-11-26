@@ -40,6 +40,13 @@ func openSCADRevolution(
     return (sweep, slices, rotation)
 }
 
+func openSCADExtrusionDisplacement(height: Double?, direction: Vector?, defaultHeight: Double) -> Vector {
+    if let height {
+        return (direction ?? .unitZ).normalized() * height
+    }
+    return direction ?? .unitZ * defaultHeight
+}
+
 extension Mesh {
     static func openSCADSphere(
         radius: Double,
@@ -177,6 +184,34 @@ extension Mesh {
             }
         }
         return Mesh(polygons)
+    }
+
+    /// Shears a centered Z extrusion while keeping its profile in XY.
+    func positionedForOpenSCADExtrusion(
+        along displacement: Vector,
+        centered: Bool,
+        isCancelled: CancellationHandler
+    ) throws -> Mesh {
+        let mesh: Mesh
+        if !isEmpty, displacement.x != 0 || displacement.y != 0 {
+            let height = displacement.z
+            let x = displacement.x / height, y = displacement.y / height
+            mesh = try Mesh(polygons.flatMap { polygon in
+                if isCancelled() { throw CancellationError() }
+                return polygon.mapVertices { vertex in
+                    let p = vertex.position, n = vertex.normal
+                    let t = p.z / height
+                    return Vertex(
+                        [p.x + displacement.x * t, p.y + displacement.y * t, p.z],
+                        [n.x, n.y, n.z - x * n.x - y * n.y], vertex.texcoord, vertex.color
+                    )
+                }
+            })
+        } else {
+            mesh = self
+        }
+        if isCancelled() { throw CancellationError() }
+        return centered ? mesh : mesh.translated(by: displacement / 2)
     }
 }
 

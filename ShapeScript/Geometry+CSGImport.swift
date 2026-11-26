@@ -1104,7 +1104,7 @@ private struct CSGImporter {
             return result(filled.isEmpty ? [] : [filled], material: material)
         case "linear_extrude", "rotate_extrude":
             let names = node.name == "linear_extrude"
-                ? ["height", "center", "twist", "slices", "scale", "segments"]
+                ? ["height", "v", "center", "twist", "slices", "scale", "segments"]
                 : ["angle", "start"]
             let values = try validate(
                 node,
@@ -1112,6 +1112,17 @@ private struct CSGImporter {
                 positional: node.name == "linear_extrude" ? ["height"] : ["angle", "start"]
             )
             let linear = node.name == "linear_extrude"
+            let direction = try values["v"].map { value in
+                let coordinates = try node.vector(value, count: 3)
+                return Vector(coordinates[0], coordinates[1], coordinates[2])
+            }
+            let requestedHeight = try values["height"].map { _ in try node.number(values, "height", default: 1) }
+            let displacement = openSCADExtrusionDisplacement(
+                height: requestedHeight,
+                direction: direction,
+                defaultHeight: 1
+            )
+            let oblique = displacement.x != 0 || displacement.y != 0
             let requestedSegments = try node.number(values, "segments", default: 0)
             guard let segments = Int(exactly: requestedSegments), segments >= 0, segments <= 1_000_000 else {
                 throw node.error("Invalid CSG extrusion segments")
@@ -1125,7 +1136,7 @@ private struct CSGImporter {
             case nil, .undefined?: false
             default: true
             }
-            let needsResolvedProfile = tapered || subdivide || (!explicitSlices && twist != 0)
+            let needsResolvedProfile = tapered || oblique || subdivide || (!explicitSlices && twist != 0)
             let children = try children(node, material: material)
             let deferProfiles = linear && !needsResolvedProfile && children.allSatisfy {
                 $0.is2D && $0.geometry.hasClosedXYPaths
@@ -1141,8 +1152,11 @@ private struct CSGImporter {
             }
             try checkCancellation()
             if linear {
-                let height = try node.number(values, "height", default: 1)
+                let height = displacement.z
                 guard height > 0 else {
+                    if direction != nil {
+                        return try result(.empty, material: material)
+                    }
                     throw node.error("CSG extrusion height must be positive")
                 }
                 let fn = try node.number(values, "$fn", default: 0)
@@ -1172,7 +1186,7 @@ private struct CSGImporter {
                 guard pointCount <= 1_000_000 / sections else {
                     throw node.error("CSG extrusion tessellation is too large")
                 }
-                if tapered || subdivide {
+                if tapered || oblique || subdivide {
                     guard var profile = Path.union(profiles, isCancelled: isCancelled) else {
                         try checkCancellation()
                         throw node.error("CSG extrusion requires closed, coplanar profiles")
@@ -1192,21 +1206,21 @@ private struct CSGImporter {
                     }
                     profiles = profile.isEmpty ? [] : [profile]
                 }
-                if tapered {
+                if tapered || oblique {
                     let mesh = Mesh.extrude(
                         profiles.first ?? .empty, depth: height, twist: .degrees(twist), taper: scale,
                         sections: sections, isCancelled: isCancelled
                     )
-                    return try result(
-                        mesh.translated(by: center ? .zero : Vector(0, 0, height / 2)),
-                        material: material
+                    let positioned = try mesh.positionedForOpenSCADExtrusion(
+                        along: displacement, centered: center, isCancelled: isCancelled
                     )
+                    return try result(positioned, material: material)
                 }
                 return .init(geometry: geometry(
                     .extrude(profiles, .init(depth: height, twist: .degrees(twist), sections: sections)),
                     material: material,
                     children: deferProfiles ? children.map { extrusionProfile($0.geometry) } : [],
-                    transform: .translation(center ? .zero : Vector(0, 0, height / 2))
+                    transform: .translation(center ? .zero : displacement / 2)
                 ), paths: nil)
             }
             let angle = try node.number(values, "angle", default: 360)

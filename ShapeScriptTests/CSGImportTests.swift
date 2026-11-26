@@ -195,6 +195,36 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
     }
 
+    func testVectorLinearExtrusionKeepsItsProfileInXY() throws {
+        for (arguments, min, max) in [
+            ("height=5, v=[0.6,0,0.8], center=true, $fn=0, $fa=12, $fs=2", Vector(-1.5, 0, -2), Vector(3.5, 2, 2)),
+            ("v=[3,0,4]", .zero, Vector(5, 2, 4)),
+        ] {
+            let result = try mesh("linear_extrude(\(arguments)) square(2);")
+            XCTAssertTrue(result.isWatertight)
+            XCTAssertEqual(result.signedVolume, 16, accuracy: 1e-8)
+            XCTAssertLessThan((result.bounds.min - min).length, 1e-8)
+            XCTAssertLessThan((result.bounds.max - max).length, 1e-8)
+            XCTAssertTrue(result.polygons.allSatisfy { polygon in
+                polygon.vertices.allSatisfy { ($0.normal - polygon.plane.normal).length < 1e-8 }
+            })
+        }
+        XCTAssertTrue(try mesh("linear_extrude(v=[1,0,0]) square(2);").isEmpty)
+    }
+
+    func testVectorLinearExtrusionSupportsTwistAndTaper() throws {
+        let result = try mesh("""
+        linear_extrude(height=13, v=[0.230769,-0.307692,0.923077], center=true, twist=30,
+                       slices=3, segments=0, scale=[0.5,1.5]) square(size=[2,1], center=false);
+        """)
+        let positions = Set(result.polygons.flatMap(\.vertices).map(\.position))
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(positions.count, 16)
+        XCTAssertEqual(Set(positions.map { Int($0.z.rounded()) }), [-6, -2, 2, 6])
+        XCTAssertTrue(positions.contains { ($0 - Vector(-1.5, 2, -6)).length < 1e-5 })
+        XCTAssertTrue(positions.contains { ($0 - Vector(2.3660254, -3.5, 6)).length < 1e-5 })
+    }
+
     func testPartialRotateExtrudeSpansTheExportedArc() throws {
         let partial = try Scene(
             csgString: "rotate_extrude(angle=100, start=30, $fn=16) translate([2,0,0]) square(1);",
