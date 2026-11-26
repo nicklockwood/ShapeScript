@@ -151,7 +151,7 @@ final class ViewTests: XCTestCase {
             document.rerender()
             for _ in 0 ..< 200 {
                 if document.loadingProgress?.inProgress == false { break }
-                try await Task.sleep(for: .milliseconds(10))
+                try await Task.sleep(nanoseconds: 10_000_000)
             }
             document.updateViews()
             XCTAssertTrue(document.loadingProgress?.isCancelledOrFailed == true)
