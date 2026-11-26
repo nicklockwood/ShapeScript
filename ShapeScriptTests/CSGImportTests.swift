@@ -249,12 +249,13 @@ final class CSGImportTests: XCTestCase {
     #endif
 
     func testUnsupportedRoofWarnsAndPreservesChildren() throws {
-        let expected = try Scene(csgString: "group() { square(2); }", isCancelled: { false })
+        let profile = "polygon([[0,0],[4,0],[4,2],[2,2],[2,4],[0,4]]);"
+        let expected = try Scene(csgString: "group() { \(profile) }", isCancelled: { false })
         for arguments in [
             "", "method=\"straight\"", "\"voronoi\"",
             "method=\"voronoi\", $fa=90, $fs=0, $fn=4, convexity=1",
         ] {
-            let scene = try Scene(csgString: "roof(\(arguments)) { square(2); }", isCancelled: { false })
+            let scene = try Scene(csgString: "roof(\(arguments)) { \(profile) }", isCancelled: { false })
             XCTAssertEqual(scene.warnings.count, 1)
             XCTAssertEqual(
                 scene.warnings.first,
@@ -267,6 +268,15 @@ final class CSGImportTests: XCTestCase {
         XCTAssertTrue(empty.warnings.contains { $0.contains("Unsupported CSG operation 'roof'") })
         XCTAssertTrue(empty.build { false })
         XCTAssertEqual(empty.geometry.merged().signedVolume, 1, accuracy: 1e-8)
+    }
+
+    func testRoofMethodsMatchTheOpenSCADConvexRidge() throws {
+        for method in ["straight", "voronoi"] {
+            let roof = try mesh("roof(method=\"\(method)\", $fe=0) square([4,6],true);")
+            XCTAssertTrue(roof.isWatertight)
+            XCTAssertEqual(roof.bounds, Bounds([-2, -3, 0], [2, 3, 2]))
+            XCTAssertEqual(roof.signedVolume, 56.0 / 3, accuracy: 1e-8)
+        }
     }
 
     func testVectorLinearExtrusionKeepsItsProfileInXY() throws {
@@ -2502,7 +2512,7 @@ final class CSGImportTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        try "roof() square(2);".write(
+        try "roof() polygon([[0,0],[3,0],[3,1],[1,1],[1,2],[0,2]]);".write(
             to: directory.appendingPathComponent("profile.csg"), atomically: true, encoding: .utf8
         )
         let rootURL = directory.appendingPathComponent("main.csg")

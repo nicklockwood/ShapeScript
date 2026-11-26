@@ -1424,6 +1424,18 @@ private struct CSGImporter {
             if let origin = values["origin"] {
                 _ = try node.vector(origin, count: 2)
             }
+            if node.name == "roof" {
+                let method = try node.string(values, "method", default: "voronoi")
+                let shapes = try children(node, material: material)
+                if ["straight", "voronoi"].contains(method), !shapes.isEmpty,
+                   shapes.allSatisfy({ $0.is2D || $0.isEmpty }),
+                   let outline = try Path.union(paths(shapes, node: node), isCancelled: isCancelled),
+                   let mesh = try outline.openSCADConvexRoof(isCancelled: isCancelled)
+                {
+                    try checkCancellation()
+                    return try result(mesh.replacing(nil, with: material), material: material)
+                }
+            }
             if node.name == "import" {
                 let path = try node.string(values, "file", default: node.string(values, "filename", default: ""))
                 let resolvedPath = path.isEmpty ? path : URL(fileURLWithPath: path, relativeTo: fileURL).path

@@ -237,6 +237,71 @@ extension Mesh {
 }
 
 extension Path {
+    /// Builds the 45-degree roof of resolved, convex XY contours. Both OpenSCAD
+    /// roof methods give the same surface for these contours.
+    func openSCADConvexRoof(isCancelled: CancellationHandler) throws -> Mesh? {
+        let outline = faceNormal.z < 0 ? inverted() : self
+        var polygons = [Polygon]()
+        let tolerance = 1e-8
+        var edgeCount = 0
+        for contour in outline.subpaths where !contour.isEmpty {
+            if isCancelled() { throw CancellationError() }
+            let points = Array(contour.removingCollinearOutlinePoints().points.dropLast().map(\.position))
+            guard contour.isClosed, contour.faceNormal.z > 0, points.count >= 3 else { return nil }
+            edgeCount += points.count
+            // Each facet is clipped against the planes for all the other edges.
+            guard edgeCount <= 512 else { return nil }
+            let inward = points.indices.map { index in
+                let edge = points[(index + 1) % points.count] - points[index]
+                return Vector(-edge.y, edge.x).normalized()
+            }
+            let intercepts = zip(inward, points).map { $0.dot($1) }
+            for (normal, intercept) in zip(inward, intercepts) {
+                guard points.allSatisfy({ normal.dot($0) >= intercept - tolerance }) else { return nil }
+            }
+            guard let base = Polygon(points.reversed().map { $0 }) else { return nil }
+            polygons.append(base)
+            for index in points.indices {
+                if isCancelled() { throw CancellationError() }
+                var facet = points
+                let normal = inward[index], intercept = intercepts[index]
+                for other in points.indices where other != index {
+                    guard let last = facet.last else { break }
+                    let difference = inward[other] - normal
+                    let boundary = intercepts[other] - intercept
+                    var clipped = [Vector]()
+                    var previous = last
+                    var previousDistance = difference.dot(previous) - boundary
+                    func append(_ point: Vector) {
+                        if clipped.last.map({ ($0 - point).length > tolerance }) ?? true {
+                            clipped.append(point)
+                        }
+                    }
+                    for point in facet {
+                        let distance = difference.dot(point) - boundary
+                        if (previousDistance < -tolerance) != (distance < -tolerance) {
+                            let fraction = min(1, max(0, previousDistance / (previousDistance - distance)))
+                            append(previous + (point - previous) * fraction)
+                        }
+                        if distance >= -tolerance { append(point) }
+                        previous = point
+                        previousDistance = distance
+                    }
+                    if let first = clipped.first, let last = clipped.last, (first - last).length <= tolerance {
+                        clipped.removeLast()
+                    }
+                    facet = clipped
+                }
+                if let polygon = Polygon(facet.map { point in
+                    Vector(point.x, point.y, max(0, normal.dot(point) - intercept))
+                }) {
+                    polygons.append(polygon)
+                }
+            }
+        }
+        return Mesh(polygons).makeWatertight(isCancelled: isCancelled)
+    }
+
     static func openSCADCircle(radius: Double, segments: Int, color: Color? = nil) -> Path {
         guard radius > 0, segments >= 3 else { return .empty }
         return Path((0 ..< segments).map { index in
