@@ -168,11 +168,85 @@ final class CSGImportTests: XCTestCase {
             isCancelled: { false }
         )
         XCTAssertEqual(scene.warnings.count, 2)
-        XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'surface'") })
+        XCTAssertTrue(scene.warnings.contains { $0.contains("Cannot load surface 'missing.dat'") })
         XCTAssertTrue(scene.warnings.contains { $0.contains("Unsupported CSG operation 'roof'") })
         XCTAssertTrue(scene.build { false })
         XCTAssertEqual(scene.geometry.merged().signedVolume, 8, accuracy: 1e-8)
     }
+
+    func testSurfaceLoadsHeightDataRelativeToTheCSGDocument() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try "0 1\n2 3\n".write(to: directory.appendingPathComponent("height.dat"), atomically: true, encoding: .utf8)
+        let url = directory.appendingPathComponent("part.csg")
+        let source = #"surface(file="height.dat", center=true, invert=false, timestamp=1795701839);"#
+        try source.write(to: url, atomically: true, encoding: .utf8)
+        let scene = try Scene(csgString: source, at: url, isCancelled: { false })
+        XCTAssertTrue(scene.warnings.isEmpty)
+        XCTAssertTrue(scene.build { false })
+        let mesh = scene.geometry.merged()
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.bounds, Bounds([-0.5, -0.5, -1], [0.5, 0.5, 3]))
+        XCTAssertEqual(mesh.signedVolume, 2.5, accuracy: 1e-8)
+    }
+
+    func testRaggedDATSurfacesUseZeroPaddingAndExplicitMinimum() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("height.dat")
+        for (heights, bottom, volume) in [("2 3\n4 5 6\n", 0.0, 7.0), ("0.5 2\n1 1.5 4\n", -0.5, 4.125)] {
+            try heights.write(to: url, atomically: true, encoding: .utf8)
+            let surface = try mesh("surface(file=\"\(url.path)\", invert=true);")
+            XCTAssertTrue(surface.isWatertight)
+            XCTAssertEqual(surface.bounds.min.z, bottom)
+            XCTAssertEqual(surface.signedVolume, volume, accuracy: 1e-8)
+        }
+    }
+
+    #if canImport(ImageIO)
+
+    func testPNGSurfaceRetains16BitRGBAndIgnoresAlpha() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("height.png")
+        let data = try XCTUnwrap(Data(
+            base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACEAYAAAAiJtFnAAAAK0lEQVR4nGOY48D4hWMGAwOjDlPE3xcM/xkkU0oNGFIaGGoZGLYw6vz/DwCzwgs/jqXaigAAAABJRU5ErkJggg=="
+        ))
+        try data.write(to: url)
+        let surface = try mesh("surface(file=\"\(url.path)\");")
+        let heights = [Vector(6500, 30000, 100), [32000, 180, 300], [40000, 500, 2200], [300, 600, 65000]]
+            .map { $0.dot([0.2126, 0.7152, 0.0722]) * 100 / 65535 }
+        XCTAssertTrue(surface.isWatertight)
+        XCTAssertEqual(surface.bounds.min.z, try XCTUnwrap(heights.min()) - 1, accuracy: 1e-8)
+        let points = surface.polygons.flatMap(\.vertices).map(\.position)
+        for (i, height) in heights.enumerated() {
+            let expected = Vector(Double(i % 2), Double(i / 2), height)
+            XCTAssertTrue(points.contains { ($0 - expected).length < 1e-8 })
+        }
+    }
+
+    func testInvertedPNGSurfaceKeepsNegativeHeights() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let data =
+            try XCTUnwrap(
+                Data(
+                    base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAAAAABX3VL4AAAADklEQVR4nGNgsGdo+A8AAwEBv5Ve/PAAAAAASUVORK5CYII="
+                )
+            )
+        let url = directory.appendingPathComponent("height.png")
+        try data.write(to: url)
+        let mesh = try mesh("surface(file=\"\(url.path)\", center=true, invert=true);")
+        XCTAssertTrue(mesh.isWatertight)
+        XCTAssertEqual(mesh.bounds, Bounds([-0.5, -0.5, -101], [0.5, 0.5, 0]))
+        XCTAssertEqual(mesh.signedVolume, 101 - 446.0 * 25 / 255, accuracy: 1e-8)
+    }
+
+    #endif
 
     func testUnsupportedRoofWarnsAndPreservesChildren() throws {
         let expected = try Scene(csgString: "group() { square(2); }", isCancelled: { false })

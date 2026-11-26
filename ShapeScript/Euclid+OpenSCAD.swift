@@ -6,6 +6,11 @@
 import Euclid
 import Foundation
 
+#if canImport(ImageIO)
+import CoreGraphics
+import ImageIO
+#endif
+
 func openSCADCircularSegments(
     radius: Double,
     fragments: Double,
@@ -539,3 +544,181 @@ private struct ExtrusionProfileEdgeQueue {
         return first
     }
 }
+
+private struct OpenSCADSurfaceError: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { self.errorDescription = message }
+}
+
+extension Mesh {
+    static func openSCADSurface(
+        data: Data,
+        centered: Bool,
+        inverted: Bool,
+        isCancelled: CancellationHandler
+    ) throws -> Mesh {
+        let maximumSamples = 20_000
+        let isPNG = data.starts(with: [137, 80, 78, 71, 13, 10, 26, 10])
+        let grid: [[Double]]
+        if isPNG {
+            #if canImport(ImageIO)
+            grid = try openSCADPNGHeights(
+                data,
+                maximumSamples: maximumSamples,
+                inverted: inverted,
+                isCancelled: isCancelled
+            )
+            #else
+            throw OpenSCADSurfaceError("PNG surfaces require Image I/O.")
+            #endif
+        } else {
+            guard let text = String(data: data, encoding: .utf8)
+            else { throw OpenSCADSurfaceError("Surface data must be UTF-8 numbers or a PNG.") }
+            grid = try text.split(whereSeparator: \.isNewline).compactMap { line in
+                if isCancelled() { throw CancellationError() }
+                let content = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)[0]
+                let fields = content.split(whereSeparator: \.isWhitespace)
+                if fields.isEmpty {
+                    return nil
+                }
+                return try fields.map { field in
+                    guard let n = Double(field), n.isFinite,
+                          abs(n) <= 1e9 else { throw OpenSCADSurfaceError("Invalid surface height.") }
+                    return n
+                }
+            }
+        }
+        let width = grid.map(\.count).max() ?? 0
+        let height = grid.count
+        guard width >= 2, height >= 2, width <= maximumSamples / height
+        else {
+            throw OpenSCADSurfaceError("Surface needs a grid of at least 2x2 and at most 20,000 samples.")
+        }
+        // DAT caps the minimum at one before padding missing samples with zero.
+        let minimum = grid.joined().min() ?? 0
+        let bottom = (isPNG ? minimum : min(1, minimum)) - 1
+        let offset = centered ? Vector(-Double(width - 1) / 2, -Double(height - 1) / 2, 0) : .zero
+        func point(_ x: Int, _ y: Int) -> Vector {
+            Vector(Double(x), Double(y), x < grid[y].count ? grid[y][x] : 0) + offset
+        }
+        var polygons: [Polygon] = []
+        func append(_ points: [Vector]) {
+            if let p = Polygon(points) {
+                polygons.append(p)
+            }
+        }
+        for y in 0 ..< height - 1 {
+            if isCancelled() { throw CancellationError() }
+            for x in 0 ..< width - 1 {
+                let p = [point(x, y), point(x + 1, y), point(x + 1, y + 1), point(x, y + 1)]
+                let center = p.reduce(.zero, +) / 4
+                for i in 0 ..< 4 {
+                    append([p[i], p[(i + 1) % 4], center])
+                }
+            }
+        }
+        let boundary = (0 ..< width).map { point($0, 0) }
+            + (1 ..< height).map { point(width - 1, $0) }
+            + (0 ..< width - 1).reversed().map { point($0, height - 1) }
+            + (1 ..< height - 1).reversed().map { point(0, $0) }
+        for i in boundary.indices {
+            let p = boundary[i], q = boundary[(i + 1) % boundary.count]
+            var side = [q, p]
+            if p.z != bottom { side.append(Vector(p.x, p.y, bottom)) }
+            if q.z != bottom { side.append(Vector(q.x, q.y, bottom)) }
+            append(side)
+        }
+        append(boundary.reversed().map { Vector($0.x, $0.y, bottom) })
+        return Mesh(polygons)
+    }
+}
+
+#if canImport(ImageIO)
+
+private func openSCADPNGHeights(
+    _ data: Data,
+    maximumSamples: Int,
+    inverted: Bool,
+    isCancelled: CancellationHandler
+) throws -> [[Double]] {
+    if isCancelled() { throw CancellationError() }
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? Int,
+          let height = properties[kCGImagePropertyPixelHeight] as? Int,
+          width >= 2, height >= 2, width <= maximumSamples / height
+    else { throw OpenSCADSurfaceError("Invalid PNG or surface exceeds \(maximumSamples) samples.") }
+
+    // Read the decoded samples directly. Drawing into a bitmap context can apply a color
+    // profile, premultiply the colors by alpha, or reduce the sample precision.
+    let invalid = OpenSCADSurfaceError("Cannot decode PNG surface samples.")
+    guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+          image.width == width, image.height == height, let space = image.colorSpace,
+          let provider = image.dataProvider?.data, let pixels = CFDataGetBytePtr(provider),
+          image.bytesPerRow <= CFDataGetLength(provider) / height
+    else { throw invalid }
+    defer { withExtendedLifetime(provider) {} }
+    let colorComponents: Int
+    let palette: [UInt8]?
+    switch space.model {
+    case .monochrome: (colorComponents, palette) = (1, nil)
+    case .rgb: (colorComponents, palette) = (3, nil)
+    case .indexed:
+        guard let colors = space.colorTable else { throw invalid }
+        colorComponents = 1
+        palette = colors
+    default: throw invalid
+    }
+    let firstColor: Int, components: Int
+    switch image.alphaInfo {
+    case .none: (firstColor, components) = (0, colorComponents)
+    case .last, .noneSkipLast: (firstColor, components) = (0, colorComponents + 1)
+    case .first, .noneSkipFirst: (firstColor, components) = (1, colorComponents + 1)
+    default: throw invalid
+    }
+    let depth = image.bitsPerComponent
+    guard [1, 2, 4, 8, 16].contains(depth), depth >= 8 || components == 1,
+          image.bitsPerPixel == components * depth, image.bytesPerRow >= (width * image.bitsPerPixel + 7) / 8
+    else { throw invalid }
+
+    let order = image.bitmapInfo.intersection(.byteOrderMask)
+    let reversed = depth == 8 && (order == .byteOrder32Little || order == .byteOrder16Little)
+    let littleEndian = order == .byteOrder16Little
+    let maximum = Double(palette == nil ? (1 << depth) - 1 : 255)
+    let scale = inverted ? -100.0 : 100
+    return try (0 ..< height).reversed().map { y in
+        if isCancelled() { throw CancellationError() }
+        let row = pixels + y * image.bytesPerRow
+        return try (0 ..< width).map { x in
+            func sample(_ color: Int) -> Int {
+                if depth < 8 {
+                    let bit = x * depth
+                    return Int(row[bit / 8] >> (8 - depth - bit % 8)) & ((1 << depth) - 1)
+                }
+                let component = firstColor + color
+                let index = x * components + (reversed ? components - 1 - component : component)
+                if depth == 8 { return Int(row[index]) }
+                let value = UInt16(row[index * 2]) << 8 | UInt16(row[index * 2 + 1])
+                return Int(littleEndian ? value.byteSwapped : value)
+            }
+            let firstSample = sample(0)
+            let (red, green, blue): (Int, Int, Int)
+            if let palette {
+                let index = firstSample * 3
+                guard index + 2 < palette.count else { throw invalid }
+                (red, green, blue) = (Int(palette[index]), Int(palette[index + 1]), Int(palette[index + 2]))
+            } else if colorComponents == 1 {
+                return Double(firstSample) / maximum * scale
+            } else {
+                (red, green, blue) = (firstSample, sample(1), sample(2))
+            }
+            return Color(
+                red: Double(red) / maximum,
+                green: Double(green) / maximum,
+                blue: Double(blue) / maximum
+            ).luminance * scale
+        }
+    }
+}
+
+#endif

@@ -834,6 +834,32 @@ extension EvaluationContext {
         }
     }
 
+    func importOpenSCADSurface(
+        _ file: String,
+        relativeTo source: URL?,
+        centered: Bool,
+        inverted: Bool,
+        warningLocation: SourceLocation
+    ) throws -> Mesh {
+        evaluationProgress?.beginImport()
+        defer { evaluationProgress?.completeUnit() }
+        do {
+            let path = file.isEmpty ? file : URL(fileURLWithPath: file, relativeTo: source).path
+            let url = try resolveURL(for: path)
+            try url.validateFileSize(limit: FileSizeLimit.image)
+            return try .openSCADSurface(
+                data: Data(contentsOf: url), centered: centered, inverted: inverted, isCancelled: isCancelled
+            )
+        } catch {
+            if error is CancellationError || isCancelled() { throw CancellationError() }
+            let message = (error as? RuntimeErrorType).map {
+                RuntimeError($0, at: file.startIndex ..< file.startIndex).message
+            } ?? error.localizedDescription
+            warn("Cannot load surface '\(file)': \(message)", at: warningLocation)
+            return .empty
+        }
+    }
+
     private func selectGeometry(named name: String, in roots: [Geometry], fileURL: URL) throws -> Geometry {
         let (matches, names) = try Geometry.findNamedElements(name, in: roots, isCancelled: isCancelled)
         guard let selected = matches.first else {

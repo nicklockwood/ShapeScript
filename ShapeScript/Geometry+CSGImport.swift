@@ -193,7 +193,7 @@ private struct CSGNode {
     }
 
     var importCount: Int {
-        (name == "import" ? 1 : 0) + children.reduce(0) { $0 + $1.importCount }
+        (name == "import" || name == "surface" ? 1 : 0) + children.reduce(0) { $0 + $1.importCount }
     }
 
     func validate(_ names: [String], positional: [String] = []) throws -> [String: CSGValue] {
@@ -1343,16 +1343,34 @@ private struct CSGImporter {
             #endif
         case "translate", "scale", "rotate", "mirror", "multmatrix":
             return try transformed(node, material: material)
-        case "surface", "import", "roof":
+        case "surface":
+            let values = try validate(
+                node, ["file", "center", "invert", "convexity", "timestamp"], positional: [
+                    "file",
+                    "center",
+                    "convexity",
+                ]
+            )
+            let file = try node.string(values, "file", default: "")
+            let center = try node.boolean(values, "center", default: false)
+            let invert = try node.boolean(values, "invert", default: false)
+            _ = try node.number(values, "convexity", default: 0)
+            _ = try node.number(values, "timestamp", default: 0)
+            let mesh = try context.importOpenSCADSurface(
+                file, relativeTo: fileURL, centered: center, inverted: invert, warningLocation: .init(
+                    at: node.line,
+                    in: fileURL
+                )
+            )
+            if mesh.isEmpty { return .init(geometry: geometry(.group, material: material), paths: nil) }
+            return try result(mesh.replacing(nil, with: material), material: material)
+        case "import", "roof":
             let names: [String]
             let positional: [String]
             switch node.name {
             case "roof":
                 names = ["method", "convexity"] + tessellation
                 positional = ["method"]
-            case "surface":
-                names = ["file", "center", "invert", "convexity", "timestamp"]
-                positional = ["file", "center", "convexity"]
             case "import":
                 names = [
                     "file",
