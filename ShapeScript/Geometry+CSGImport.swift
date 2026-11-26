@@ -677,16 +677,19 @@ private struct CSGImporter {
         let fn = try node.number(values, "$fn", default: 0)
         let fa = try node.number(values, "$fa", default: 12)
         let fs = try node.number(values, "$fs", default: 2)
+        let fe = try node.number(values, "$fe", default: 0)
         guard fn >= 0, fa > 0, fs > 0 else {
             throw node.error("Invalid CSG tessellation parameters")
         }
         let count: Int?
-        if current {
+        if current || fe > 0 {
             count = openSCADCircularSegments(
                 radius: radius,
                 fragments: fn,
                 fragmentAngle: fa,
-                fragmentSize: fs
+                fragmentSize: fs,
+                fragmentError: fe,
+                roundingExplicitCount: current ? .up : .down
             )
         } else {
             let fullTurn = fn > 0 ? max(3, floor(fn)) : max(5, ceil(min(360 / fa, abs(radius) * 2 * .pi / fs)))
@@ -719,7 +722,7 @@ private struct CSGImporter {
 
     private func unmodifiedShape(_ node: CSGNode, material: Material) throws -> CSGShape {
         try checkCancellation()
-        let tessellation = ["$fn", "$fa", "$fs", "convexity"]
+        let tessellation = ["$fn", "$fa", "$fs", "$fe", "convexity"]
         switch node.name {
         case "group", "union", "difference", "intersection", "hull", "minkowski", "render":
             _ = try validate(node, ["render", "minkowski"].contains(node.name) ? ["convexity"] : [])
@@ -1181,6 +1184,7 @@ private struct CSGImporter {
                 let fn = try node.number(values, "$fn", default: 0)
                 let fa = try node.number(values, "$fa", default: 12)
                 let fs = try node.number(values, "$fs", default: 2)
+                let fe = try node.number(values, "$fe", default: 0)
                 guard fn >= 0, fa > 0, fs > 0 else {
                     throw node.error("Invalid CSG tessellation parameters")
                 }
@@ -1191,7 +1195,7 @@ private struct CSGImporter {
                         try checkCancellation()
                         guard let count = profile.openSCADSliceCount(
                             height: height, twist: twist, taper: scale, fragments: fn,
-                            fragmentAngle: fa, fragmentSize: fs
+                            fragmentAngle: fa, fragmentSize: fs, fragmentError: fe
                         ) else { throw node.error("Invalid CSG extrusion slices") }
                         return max(maximum, count)
                     }
@@ -1255,11 +1259,13 @@ private struct CSGImporter {
             let fn = try node.number(values, "$fn", default: 0)
             let fa = try node.number(values, "$fa", default: 12)
             let fs = try node.number(values, "$fs", default: 2)
+            let fe = try node.number(values, "$fe", default: 0)
             guard fn >= 0, fa > 0, fs > 0 else {
                 throw node.error("Invalid CSG tessellation parameters")
             }
             guard let revolution = openSCADRevolution(
-                angle: angle, start: start, bounds: bounds, fragments: fn, fragmentAngle: fa, fragmentSize: fs
+                angle: angle, start: start, bounds: bounds, fragments: fn, fragmentAngle: fa, fragmentSize: fs,
+                fragmentError: fe
             ), revolution.slices <= 100_000 else {
                 throw node.error("CSG tessellation is too large")
             }
@@ -1410,7 +1416,7 @@ private struct CSGImporter {
             for name in ["center", "invert"] where values[name] != nil {
                 _ = try node.boolean(values, name, default: false)
             }
-            for name in ["convexity", "timestamp", "scale", "dpi", "width", "height", "$fn", "$fa", "$fs"]
+            for name in ["convexity", "timestamp", "scale", "dpi", "width", "height", "$fn", "$fa", "$fs", "$fe"]
                 where values[name] != nil
             {
                 _ = try node.number(values, name, default: 0)

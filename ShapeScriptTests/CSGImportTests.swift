@@ -1105,6 +1105,18 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testFragmentErrorControlsCircularDetailAndHelicalSlices() throws {
+        for (source, count) in [
+            ("linear_extrude(1) circle(r=2,$fe=0.1);", 20),
+            ("linear_extrude(1) circle(r=2,$fe=0.1,$fn=12);", 24),
+            ("linear_extrude(4,twist=90,segments=0,$fe=0.01) square(2,true);", 32),
+        ] {
+            let result = try mesh(source)
+            XCTAssertTrue(result.isWatertight, source)
+            XCTAssertEqual(Set(result.polygons.flatMap(\.vertices).map(\.position)).count, count, source)
+        }
+    }
+
     func testSphereAndTaperedCylinder() throws {
         let sphere = try mesh("sphere(d = 4, $fn = 16);")
         XCTAssertEqual(sphere.bounds.size.x, 4 * cos(.pi / 16), accuracy: 0.000001)

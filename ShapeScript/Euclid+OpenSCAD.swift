@@ -20,11 +20,22 @@ func openSCADCircularSegments(
     fragments: Double,
     fragmentAngle: Double,
     fragmentSize: Double,
+    fragmentError: Double = 0,
     sweep: Double = 360,
     roundingExplicitCount: FloatingPointRoundingRule = .up
 ) -> Int? {
-    let fullTurn = fragments > 0 ? max(3, fragments.rounded(roundingExplicitCount)) :
-        ceil(max(5, min(360 / max(0.01, fragmentAngle), abs(radius) * 2 * .pi / max(0.01, fragmentSize))))
+    let circumference = abs(radius) * 2 * Double.pi
+    let fullTurn: Double
+    if fragments > 0 {
+        fullTurn = max(3, fragments.rounded(roundingExplicitCount))
+    } else if fragmentError >= 1.0 / 1_048_576, radius != 0 {
+        // The error is the maximum distance from an arc to its approximating chord.
+        let ratio = fragmentError / abs(radius)
+        let limit = max(5, min(36_000, circumference / 0.01))
+        fullTurn = ratio >= 1 - cos(Double.pi / 5) ? 5 : min(limit, Double.pi / acos(1 - ratio))
+    } else {
+        fullTurn = ceil(max(5, min(360 / max(0.01, fragmentAngle), circumference / max(0.01, fragmentSize))))
+    }
     return Int(exactly: max(1, ceil(fullTurn * abs(sweep) / 360)))
 }
 
@@ -34,12 +45,13 @@ func openSCADRevolution(
     bounds: Bounds,
     fragments: Double,
     fragmentAngle: Double,
-    fragmentSize: Double
+    fragmentSize: Double,
+    fragmentError: Double = 0
 ) -> (sweep: Double, slices: Int, rotation: Rotation)? {
     let sweep = abs(angle) >= 360 ? 360 : angle
     guard let slices = openSCADCircularSegments(
         radius: max(abs(bounds.min.x), abs(bounds.max.x)),
-        fragments: fragments, fragmentAngle: fragmentAngle, fragmentSize: fragmentSize,
+        fragments: fragments, fragmentAngle: fragmentAngle, fragmentSize: fragmentSize, fragmentError: fragmentError,
         sweep: sweep
     ) else { return nil }
     let startAngle = start.truncatingRemainder(dividingBy: 360)
@@ -291,7 +303,8 @@ extension Path {
         taper: Vector,
         fragments: Double,
         fragmentAngle: Double,
-        fragmentSize: Double
+        fragmentSize: Double,
+        fragmentError: Double = 0
     ) -> Int? {
         let twist = abs(twist)
         let nonuniformTaper = taper.x != taper.y
@@ -317,6 +330,11 @@ extension Path {
             if fragments > 0 {
                 let twistCount = followsSpiral ? twist * fragments / 360 : twist / 360 * fragments
                 count = max(count, ceil(twistCount))
+            } else if fragmentError > 0, !followsSpiral {
+                if fragmentError < radius {
+                    let chordAngle = 2 * acos(1 - fragmentError / radius)
+                    count = max(count, ceil(twist * (Double.pi / 180) / chordAngle))
+                }
             } else {
                 let angularCount = ceil(twist / max(0.01, fragmentAngle))
                 if angularCount > count {
