@@ -6,6 +6,10 @@
 import Euclid
 import Foundation
 
+#if canImport(CoreText)
+import CoreText
+#endif
+
 #if canImport(ImageIO)
 import CoreGraphics
 import ImageIO
@@ -549,6 +553,121 @@ private struct OpenSCADSurfaceError: LocalizedError {
     let errorDescription: String?
     init(_ message: String) { self.errorDescription = message }
 }
+
+private func openSCADScriptTag(_ script: String) -> String? {
+    guard script.utf8.count == 4, script.utf8.allSatisfy({
+        (65 ... 90).contains($0) || (97 ... 122).contains($0)
+    }) else { return nil }
+    return script.prefix(1).uppercased() + script.dropFirst().lowercased()
+}
+
+func openSCADDefaultTextLanguage(script: String) -> String {
+    // CoreText needs a matching language to choose localized CJK glyphs.
+    switch openSCADScriptTag(script) {
+    case "Hans", "Hant", "Hanb": "zh"
+    case "Jpan": "ja"
+    case "Kore": "ko"
+    default: "en"
+    }
+}
+
+#if canImport(CoreText)
+
+func openSCADTextScriptWarning(_ script: String, text: String) -> String? {
+    guard !script.isEmpty, !text.isEmpty else { return nil }
+    guard let tag = openSCADScriptTag(script) else {
+        return "Invalid script '\(script)' (expected a four-letter script code)"
+    }
+    // Some locale script codes describe a group of Unicode scripts or a variant.
+    let scripts: [String] = switch tag {
+    case "Hans", "Hant": ["Hani"]
+    case "Jpan": ["Hani", "Hira", "Kana"]
+    case "Kore": ["Hang", "Hani"]
+    case "Hanb": ["Hani", "Bopo"]
+    case "Hrkt": ["Hira", "Kana"]
+    case "Latf", "Latg": ["Latn"]
+    case "Cyrs": ["Cyrl"]
+    case "Jamo": ["Hang"]
+    default: [tag]
+    }
+    let allowed = scripts.map { "\\p{scx=\($0)}" }.joined()
+    guard let pattern = try? NSRegularExpression(pattern: "[^\(allowed)\\p{sc=Common}\\p{sc=Inherited}]") else {
+        return "Unknown text script '\(script)'"
+    }
+    if pattern.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil {
+        return "Characters outside script '\(tag)' keep their original writing system"
+    }
+    return nil
+}
+
+private func openSCADTextLanguage(_ language: String, script: String) -> String {
+    guard let script = openSCADScriptTag(script) else { return language }
+    let identifier = CFLocaleIdentifier(rawValue: language as CFString)
+    var components = CFLocaleCreateComponentsFromLocaleIdentifier(nil, identifier) as? [String: String] ?? [:]
+    let languageKey = CFLocaleKey.languageCode.rawValue as String
+    components[languageKey] = components[languageKey] ?? "und"
+    components[CFLocaleKey.scriptCode.rawValue as String] = script
+    return CFLocaleCreateLocaleIdentifierFromComponents(nil, components as CFDictionary)?
+        .rawValue as String? ?? language
+}
+
+func openSCADTextOptions(
+    _ text: NSAttributedString,
+    direction: String,
+    language: String,
+    script: String
+) -> NSAttributedString {
+    guard text.length > 0 else { return text }
+    let attributed = NSMutableAttributedString(attributedString: text)
+    let range = NSRange(location: 0, length: text.length)
+    // CoreText uses the locale for localized glyph selection and font fallback.
+    let language = openSCADTextLanguage(language, script: script)
+    if !language.isEmpty {
+        attributed.addAttribute(.init(kCTLanguageAttributeName as String), value: language, range: range)
+    }
+    if direction == "rtl" {
+        attributed.addAttribute(.init(kCTWritingDirectionAttributeName as String), value: [1], range: range)
+    } else if direction == "ttb" || direction == "btt" {
+        attributed.addAttribute(.init(kCTVerticalFormsAttributeName as String), value: true, range: range)
+    }
+    return attributed
+}
+
+func openSCADVerticalText(
+    _ text: NSAttributedString,
+    bottomToTop: Bool,
+    spacing: Double,
+    detail: Int,
+    color: Color?,
+    isCancelled: CancellationHandler
+) -> [Path] {
+    let line = CTLineCreateWithAttributedString(text)
+    let direction = bottomToTop ? 1.0 : -1.0
+    var y = 0.0
+    var paths = [Path]()
+    for run in CTLineGetGlyphRuns(line) as! [CTRun] {
+        let attributes = CTRunGetAttributes(run) as NSDictionary
+        let font = attributes[kCTFontAttributeName] as! CTFont
+        for index in 0 ..< CTRunGetGlyphCount(run) {
+            if isCancelled() { return [] }
+            let range = CFRange(location: index, length: 1)
+            var glyph = CGGlyph()
+            var advance = CGSize.zero
+            CTRunGetGlyphs(run, range, &glyph)
+            CTRunGetAdvances(run, range, &advance)
+            if let outline = CTFontCreatePathForGlyph(font, glyph, nil) {
+                let path = Path(outline, windingRule: .nonZero, detail: detail, color: color)
+                let oriented = path.faceNormal.z > 0 ? path.inverted() : path
+                paths.append(oriented.translated(by: [0, y]))
+            }
+            let step = advance.height == 0 ? advance.width : advance.height
+            y += direction * abs(Double(step)) * spacing
+        }
+    }
+    return paths
+}
+
+#endif
 
 extension Mesh {
     static func openSCADSurface(

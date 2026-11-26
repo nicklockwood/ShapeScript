@@ -1284,40 +1284,55 @@ private struct CSGImporter {
                 warn("CSG primitives cannot have children", at: node)
             }
             let names = [
-                "text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script",
+                "text", "size", "font", "halign", "valign", "spacing", "direction", "language", "script", "em",
             ] + tessellation
             let values = try validate(node, names, positional: ["text", "size", "font"])
-            var unsupported = [String]()
             for (name, fallback, allowed) in [
                 ("halign", "left", ["default", "left", "center", "right"]),
                 ("valign", "baseline", ["default", "baseline", "top", "center", "bottom"]),
                 ("direction", "ltr", ["ltr", "rtl", "ttb", "btt"]),
-                ("language", "en", []), ("script", "Latn", []),
             ] {
                 let value = try node.string(values, name, default: fallback)
-                guard allowed.isEmpty || allowed.contains(value) else {
+                guard allowed.contains(value) else {
                     throw node.error("Invalid CSG text '\(name)' value '\(value)'")
-                }
-                if value != fallback, name != "halign", name != "valign" {
-                    unsupported.append(name)
                 }
             }
             let spacing = try node.number(values, "spacing", default: 1)
-            if !unsupported.isEmpty {
-                warn("Unsupported CSG text options: \(unsupported.joined(separator: ", "))", at: node)
-            }
+            let direction = try node.string(values, "direction", default: "ltr")
+            let script = try node.string(values, "script", default: "")
+            let language = try node.string(values, "language", default: openSCADDefaultTextLanguage(script: script))
             let text = try node.string(values, "text", default: "")
             let font = try fontName(node.string(values, "font", default: "Liberation Sans"), node: node)
             let size = try node.number(values, "size", default: 10)
-            guard size > 0 else {
+            let em = try node.number(values, "em", default: size * 100 / 72)
+            guard em > 0 else {
                 throw node.error("CSG text size must be positive")
             }
-            let detail = try fragments(values, radius: size, node: node)
+            let detail = try max(1, fragments(values, radius: em * 72 / 100, node: node) / 8)
             #if canImport(CoreText)
-            let attributedString = NSAttributedString(string: text, font: font, color: material.color, linespacing: nil)
+            if let warning = openSCADTextScriptWarning(script, text: text) {
+                warn(warning, at: node)
+            }
+            let attributedString = openSCADTextOptions(
+                NSAttributedString(string: text, font: font, color: material.color, linespacing: nil),
+                direction: direction, language: language, script: script
+            )
             let line = CTLineCreateWithAttributedString(attributedString)
-            let width = CTLineGetTypographicBounds(line, nil, nil, nil) * spacing
-            let bounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+            let vertical = direction == "ttb" || direction == "btt"
+            let paths = if vertical {
+                openSCADVerticalText(
+                    attributedString, bottomToTop: direction == "btt", spacing: spacing, detail: detail,
+                    color: material.color, isCancelled: isCancelled
+                )
+            } else {
+                textPaths(attributedString, spacing: spacing, detail: detail)
+            }
+            try checkCancellation()
+            let pathBounds = Bounds(paths)
+            let width = vertical ? pathBounds.size.x : CTLineGetTypographicBounds(line, nil, nil, nil) * spacing
+            let glyphBounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+            let low = vertical ? pathBounds.min.y : Double(glyphBounds.minY)
+            let high = vertical ? pathBounds.max.y : Double(glyphBounds.maxY)
             var offset = Vector.zero
             // Horizontal alignment uses the advance, not the visible glyph bounds.
             switch try node.string(values, "halign", default: "left") {
@@ -1326,17 +1341,12 @@ private struct CSGImporter {
             default: break // left or default (validated above)
             }
             switch try node.string(values, "valign", default: "baseline") {
-            case "top": offset.y = -Double(bounds.maxY)
-            case "center": offset.y = -Double(bounds.midY)
-            case "bottom": offset.y = -Double(bounds.minY)
+            case "top": offset.y = -high
+            case "center": offset.y = -(low + high) / 2
+            case "bottom": offset.y = -low
             default: break // baseline or default (validated above)
             }
-            let paths = textPaths(
-                attributedString, spacing: spacing, detail: max(1, detail / 8)
-            )
-            try checkCancellation()
-            // OpenSCAD uses 100 DPI for 72-point font units
-            return result(paths.translated(by: offset).scaled(by: size * 100 / 72), material: material)
+            return result(paths.translated(by: offset).scaled(by: em), material: material)
             #else
             warn("CSG text requires platform font support", at: node)
             return result([], material: material)

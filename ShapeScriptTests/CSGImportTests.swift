@@ -443,20 +443,55 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(actual.max.y, expected.max.y, accuracy: 1e-6)
     }
 
-    func testUnsupportedTextOptionsWarnAndUseDefaults() throws {
+    func testTextLanguageUsesSystemShaping() throws {
         let source = "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2, language=\"fr\");"
         let scene = try Scene(csgString: source, isCancelled: { false })
-        XCTAssertEqual(scene.warnings.count, 1)
-        XCTAssertFalse(scene.warnings[0].contains("halign"))
-        XCTAssertFalse(scene.warnings[0].contains("spacing"))
-        XCTAssertTrue(scene.warnings[0].contains("language"))
-        XCTAssertTrue(scene.warnings[0].contains("on line 1."))
+        XCTAssertTrue(scene.warnings.isEmpty)
         let fallback = try Scene(
             csgString: "text(\"Hi\", font=\"Helvetica\", halign=\"center\", spacing=2);",
             isCancelled: { false }
         )
         XCTAssertEqual(scene.geometry, fallback.geometry)
         XCTAssertTrue(fallback.warnings.isEmpty)
+    }
+
+    func testTextScriptSelectsLocalizedGlyphs() throws {
+        let simplified = try Scene(
+            csgString: #"text("骨", font="Helvetica", script="hans");"#, isCancelled: { false }
+        )
+        let traditional = try Scene(
+            csgString: #"text("骨", font="Helvetica", language="zh-Hans", script="Hant");"#, isCancelled: { false }
+        )
+        let languageOnly = try Scene(
+            csgString: #"text("骨", font="Helvetica", language="zh-Hant");"#, isCancelled: { false }
+        )
+        XCTAssertTrue(simplified.warnings.isEmpty)
+        XCTAssertTrue(traditional.warnings.isEmpty)
+        XCTAssertNotEqual(simplified.geometry, traditional.geometry)
+        XCTAssertEqual(traditional.geometry, languageOnly.geometry)
+    }
+
+    func testTextScriptWarnsWhenCoreTextCannotForceShaping() throws {
+        let scene = try Scene(
+            csgString: #"text("سلام", font="Arial", direction="rtl", language="ar", script="Latn");"#,
+            isCancelled: { false }
+        )
+        XCTAssertEqual(
+            scene.warnings,
+            ["Characters outside script 'Latn' keep their original writing system on line 1."]
+        )
+        XCTAssertFalse(scene.geometry.paths(pretransformed: true).isEmpty)
+    }
+
+    func testTextEmSizeAndVerticalWritingDirection() throws {
+        let em = try mesh(#"linear_extrude(1) text("H", font="Helvetica", size=99, em=10);"#)
+        let scaled = try mesh(#"linear_extrude(1) text("H", font="Helvetica", size=7.2);"#)
+        XCTAssertEqual(em, scaled)
+        let down = try mesh(#"linear_extrude(1) text("HHH", font="Helvetica", direction="ttb");"#)
+        let up = try mesh(#"linear_extrude(1) text("HHH", font="Helvetica", direction="btt");"#)
+        XCTAssertLessThan(down.bounds.min.y, 0)
+        XCTAssertGreaterThan(up.bounds.max.y, down.bounds.max.y)
+        XCTAssertEqual(down.bounds.size.y, up.bounds.size.y, accuracy: 1e-8)
     }
 
     func testTextAlignment() throws {
