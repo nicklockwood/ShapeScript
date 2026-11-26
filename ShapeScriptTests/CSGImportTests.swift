@@ -1205,6 +1205,46 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(transformedCutter.signedVolume, 7, accuracy: 0.000001)
     }
 
+    func testImplicitUnionOfOverlappingSolids() throws {
+        let cubes = "cube(2); translate([1,0,0]) cube(2);"
+        for (source, bounds) in [
+            (cubes, Bounds(.zero, [3, 2, 2])),
+            ("group() { \(cubes) }", Bounds(.zero, [3, 2, 2])),
+            ("translate([1,0,0]) { \(cubes) }", Bounds([1, 0, 0], [4, 2, 2])),
+            (
+                "multmatrix([[1,0.5,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]) { \(cubes) }",
+                Bounds(.zero, [4, 2, 2])
+            ),
+        ] {
+            let result = try mesh(source)
+            XCTAssertTrue(result.isWatertight, source)
+            XCTAssertEqual(result.bounds, bounds, source)
+            XCTAssertEqual(result.signedVolume, 12, accuracy: 1e-8, source)
+        }
+    }
+
+    func testImplicitUnionRemovesSharedFaces() throws {
+        let result = try mesh("cube(2); translate([2,0,0]) cube(2);")
+        XCTAssertTrue(result.isWatertight)
+        XCTAssertEqual(result.signedVolume, 16, accuracy: 1e-8)
+        XCTAssertFalse(result.polygons.contains { polygon in
+            polygon.vertices.allSatisfy { $0.position.x == 2 }
+        })
+    }
+
+    func testImplicitUnionExcludesBackgroundAndHiddenSolids() throws {
+        let scene = try Scene(csgString: """
+        cube(2);
+        translate([1,0,0]) cube(2);
+        %translate([2,0,0]) cube(2);
+        *cube(10);
+        """, isCancelled: { false })
+        XCTAssertTrue(scene.build { false })
+        XCTAssertEqual(scene.geometry.merged().signedVolume, 12, accuracy: 1e-8)
+        let overlay = try XCTUnwrap(scene.children.first?.renderedChildren.first(where: \.isBackground))
+        XCTAssertEqual(overlay.overestimatedBounds, Bounds([2, 0, 0], [4, 2, 2]))
+    }
+
     func testEmptyPrimitivesRemainEmptyDifferenceBases() throws {
         for primitive in ["square([0,2]);", "circle(0);", "sphere(0);", "cylinder(h=0);", "cylinder(r=0);"] {
             XCTAssertTrue(try mesh("difference() { \(primitive) cube(1); }").isEmpty, primitive)

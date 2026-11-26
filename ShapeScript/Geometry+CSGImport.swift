@@ -76,20 +76,7 @@ extension Geometry {
         let shapes = try nodes.map { try importer.shape($0, material: .default) }
         try importer.checkCancellation()
         let backgrounds = shapes.flatMap { $0.geometry.extractBackgrounds() }
-        if !backgrounds.isEmpty {
-            self.init(
-                type: .group,
-                name: nil,
-                transform: .identity,
-                material: .default,
-                smoothing: nil,
-                children: shapes.map(\.geometry) + backgrounds,
-                sourceLocation: sourceLocation,
-                cache: context.geometryCache
-            )
-            return
-        }
-        if shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }),
+        if backgrounds.isEmpty, shapes.contains(where: \.is2D), shapes.allSatisfy({ $0.is2D || $0.isEmpty }),
            !shapes.contains(where: \.geometry.hasDisplayModifiers)
         {
             let container = importer.geometry(.union, material: .default, children: shapes.map(\.geometry))
@@ -109,13 +96,14 @@ extension Geometry {
             )
             return
         }
+        let unionSolids = !shapes.contains { $0.is2D && !$0.geometry.isHidden } && shapes.hasIntersectingSolidBounds
         self.init(
-            type: .group,
+            type: unionSolids ? .union : .group,
             name: nil,
             transform: .identity,
             material: .default,
             smoothing: nil,
-            children: shapes.map(\.geometry),
+            children: shapes.map(\.geometry) + backgrounds,
             sourceLocation: sourceLocation,
             cache: context.geometryCache
         )
@@ -544,6 +532,22 @@ private struct CSGShape {
         self.geometry = geometry
         self._paths = nil
         self.is2D = true
+    }
+}
+
+private extension [CSGShape] {
+    var hasIntersectingSolidBounds: Bool {
+        // Disjoint operands already represent their union and can still render separately.
+        let bounds = flatMap(\.geometry.csgUnionOperandBounds).sorted { $0.min.x < $1.min.x }
+        for (index, lhs) in bounds.enumerated() {
+            let xBounds = Bounds([lhs.min.x, 0, 0], [lhs.max.x, 0, 0])
+            for rhs in bounds.dropFirst(index + 1) {
+                let start = Vector(rhs.min.x, 0, 0)
+                if !xBounds.contains(Bounds(start, start)) { break }
+                if lhs.intersects(rhs) { return true }
+            }
+        }
+        return false
     }
 }
 
@@ -1849,7 +1853,8 @@ private struct CSGImporter {
             )
             return is2D ? .init(deferredPaths: geometry) : .init(geometry: geometry, paths: nil)
         }
-        if hasPaths || shapes.contains(where: \.geometry.hasDisplayModifiers) {
+        // Keep separate operands through shear so a later union can clip their overlaps.
+        if hasPaths || shapes.hasIntersectingSolidBounds || shapes.contains(where: \.geometry.hasDisplayModifiers) {
             let geometry = try geometry(.group, material: material, children: shapes.map {
                 try transformedGeometry($0.geometry, applying: apply)
             })
@@ -1879,6 +1884,15 @@ private struct CSGImporter {
 }
 
 private extension Geometry {
+    var csgUnionOperandBounds: [Bounds] {
+        guard !isHidden, !isBackground else { return [] }
+        if type == .group {
+            return children.flatMap(\.csgUnionOperandBounds).map { $0.transformed(by: transform) }
+        }
+        let bounds = overestimatedBounds
+        return bounds.isEmpty ? [] : [bounds]
+    }
+
     var hasDisplayModifiers: Bool {
         childDebug || childIsFocused || childIsHidden || childIsBackground
     }
