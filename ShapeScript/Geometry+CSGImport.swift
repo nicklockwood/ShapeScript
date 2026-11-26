@@ -759,7 +759,7 @@ private struct CSGImporter {
                 guard try (0 ... 1).contains(node.number(values, "alpha", default: 1)) else {
                     throw node.error("Invalid CSG color")
                 }
-                guard let color = Color(string: name) else {
+                guard let color = Color(svgColor: name) else {
                     warn("Unknown CSG color '\(name)'", at: node)
                     return try shape(
                         .init(

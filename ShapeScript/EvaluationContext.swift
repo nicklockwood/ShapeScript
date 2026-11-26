@@ -800,10 +800,9 @@ extension EvaluationContext {
                 document = try SVGDocument(data: Data(contentsOf: url), isCancelled: isCancelled)
                 importCache.store[url] = .svg(document)
             }
-            var options = options
-            if !options.csg { options.material = state.material }
             let geometry = try document.geometry(
                 options: options,
+                material: state.material,
                 fileURL: url,
                 isCancelled: isCancelled
             ) {

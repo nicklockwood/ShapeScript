@@ -18,9 +18,13 @@ final class SVGImportTests: XCTestCase {
         "<svg xmlns=\"http://www.w3.org/2000/svg\" \(attributes)>\(body)</svg>"
     }
 
-    private func load(_ source: String, options: SVGImportOptions = .init()) throws -> Geometry {
+    private func load(
+        _ source: String,
+        options: SVGImportOptions = .init(),
+        material: Material = .default
+    ) throws -> Geometry {
         try SVGDocument(data: Data(source.utf8), isCancelled: { false }).geometry(
-            options: options, isCancelled: { false }, warn: { _, _ in }
+            options: options, material: material, isCancelled: { false }, warn: { _, _ in }
         )
     }
 
@@ -34,6 +38,7 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testTextPathReferencesUseTextCoordinatesAndPercentageOffsets() throws {
         let actual = try load(svg("""
         <g transform="translate(500 500)">
@@ -81,6 +86,7 @@ final class SVGImportTests: XCTestCase {
         let expectedPath = try XCTUnwrap(expected.paths(pretransformed: true).first)
         XCTAssertTrue(actualPath.isApproximatelyEqual(to: expectedPath))
     }
+
     #endif
 
     func testPrimitiveShapesAndOpenPaths() throws {
@@ -244,6 +250,7 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testTextPositionSizeAndOrientation() throws {
         let original = try Bounds(load(svg("<text font-family=\"Helvetica\" font-size=\"10\">H</text>"))
             .paths(pretransformed: true))
@@ -476,6 +483,7 @@ final class SVGImportTests: XCTestCase {
             )
         }
     }
+
     #endif
 
     func testCSGStillRejectsSVGText() throws {
@@ -509,6 +517,7 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testSVGFontWarningsOnlyAfterExhaustingFallbacks() throws {
         try withSVG("""
         <svg>
@@ -525,6 +534,7 @@ final class SVGImportTests: XCTestCase {
             ])
         }
     }
+
     #endif
 
     func testClippingClosedAndOpenPaths() throws {
@@ -679,6 +689,7 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testTextCanBeClippedAndUsedAsClipGeometry() throws {
         let source = svg("""
         <clipPath id="clip"><rect x="0" y="0" width="3" height="100"/></clipPath>
@@ -694,6 +705,7 @@ final class SVGImportTests: XCTestCase {
         let text = try load(svg("<text y=\"30\" font-size=\"20\">Hello</text>")).paths(pretransformed: true)
         XCTAssertEqual(Bounds(textClip).size, Bounds(text).size, accuracy: 1e-8)
     }
+
     #endif
 
     func testSolidPaintsChooseFillOrStrokeAndPreserveUnpaintedGeometry() throws {
@@ -789,7 +801,7 @@ final class SVGImportTests: XCTestCase {
         </g>
         """)
         func colors(_ material: Material) throws -> [Color?] {
-            try load(source, options: .init(material: material)).paths(pretransformed: true).map(\.uniformVertexColor)
+            try load(source, material: material).paths(pretransformed: true).map(\.uniformVertexColor)
         }
         XCTAssertEqual(try colors(.default), Array(repeating: .red.withAlphaComponent(0.05), count: 2))
         XCTAssertEqual(try colors(Material(color: .blue)), Array(repeating: .blue.withAlphaComponent(0.25), count: 2))
@@ -803,14 +815,16 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testTextPaintOverridesReplaceAlphaButRetainSpanOpacity() throws {
         let source = svg("""
         <text y="30" font-size="20" fill="rgba(255,0,0,0.2)" opacity="0.5">H<tspan fill-opacity="0.5">H</tspan></text>
         """)
-        let paths = try load(source, options: .init(material: Material(color: .blue)))
+        let paths = try load(source, material: Material(color: .blue))
             .paths(pretransformed: true).flatMap(\.subpaths)
         XCTAssertEqual(paths.map(\.uniformVertexColor), [.blue.withAlphaComponent(0.5), .blue.withAlphaComponent(0.25)])
     }
+
     #endif
 
     func testClippingPreservesSolidPaintsAndIgnoresClipPaint() throws {
@@ -849,6 +863,7 @@ final class SVGImportTests: XCTestCase {
     }
 
     #if canImport(CoreText)
+
     func testTextSpanColorsSurviveClipping() throws {
         let source = svg("""
         <clipPath id="clip"><rect y="10" width="100" height="30"/></clipPath>
@@ -857,6 +872,7 @@ final class SVGImportTests: XCTestCase {
         let paths = try load(source).paths(pretransformed: true).flatMap(\.subpaths)
         XCTAssertEqual(paths.map(\.uniformVertexColor), [.red, Color(red: 0, green: 0, blue: 1, alpha: 0.5)])
     }
+
     #endif
 
     func testWarningsAreDeliveredAfterXMLParsing() throws {
