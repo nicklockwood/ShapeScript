@@ -1,5 +1,18 @@
 # Change Log
 
+## [1.12.4](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.4) (2026-11-26)
+
+- Added support for chamfered and rounded offsets in OpenSCAD CSG imports
+- Added support for `surface()` with DAT height maps and PNG images in OpenSCAD CSG imports
+- Added support for `roof()` over convex profiles in OpenSCAD CSG imports
+- Added support for oblique `linear_extrude()` and the `segments` parameter in OpenSCAD CSG imports
+- Improved tessellation for OpenSCAD CSG circles, spheres, cylinders and `rotate_extrude()`
+- Improved OpenSCAD text size and alignment, and added support for vertical text and `script` selection
+- OpenSCAD CSG imports now union overlapping solids and preserve empty primitives as boolean operands
+- OpenSCAD CSG mesh imports now honor the `center` parameter
+- Dismissed compatibility warnings no longer reappear when reopening a saved document
+- Bumped Euclid to version 0.10.8
+
 ## [1.12.3](https://github.com/nicklockwood/ShapeScript/releases/tag/1.12.3) (2026-11-23)
 
 - Added support for projection, resize and 2D fill in OpenSCAD CSG imports
