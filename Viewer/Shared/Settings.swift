@@ -22,7 +22,7 @@ extension Notification.Name {
     static let settingsUpdated: Self = .init(rawValue: "settingsUpdated")
 }
 
-enum DocumentVersionKey: String, CaseIterable {
+enum DocumentVersionKey: String {
     case formatVersion
     case clientVersion
 
@@ -89,7 +89,8 @@ final class Settings: @unchecked Sendable {
         andGlobally applyGlobally: Bool = false
     ) {
         if let url = document._fileURL {
-            try? set(value, for: key, at: url)
+            documentSettings[url, default: [:]][key] = value
+            try? url.setXattr(Data(value), for: key.xattrName)
         }
         if applyGlobally {
             // Set global default
@@ -109,14 +110,12 @@ final class Settings: @unchecked Sendable {
         set(value?.rawValue, for: key, in: document, andGlobally: applyGlobally)
     }
 
-    fileprivate func set(_ value: (some Any)?, for key: String, at url: URL) throws {
-        documentSettings[url, default: [:]][key] = value
-        try url.setXattr(Data(value), for: key.xattrName)
-    }
-
     func markCurrentVersion(at url: URL) throws {
-        for key in DocumentVersionKey.allCases {
-            try set(key.currentValue.rawValue, for: key.rawValue, at: url)
+        // Write the format version last since it controls the compatibility warning.
+        for key in [DocumentVersionKey.clientVersion, .formatVersion] {
+            let value = key.currentValue.rawValue
+            try url.setXattr(Data(value), for: key.rawValue.xattrName)
+            documentSettings[url, default: [:]][key.rawValue] = value
             defaults.removeObject(forKey: key.rawValue)
         }
     }

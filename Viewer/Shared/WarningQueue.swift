@@ -20,9 +20,9 @@ final class WarningQueue {
         }
     }
 
-    private struct Key: Hashable {
-        let message: String
-        let occurrence: Int
+    private enum Key: Hashable {
+        case version(String)
+        case diagnostic(String, occurrence: Int)
     }
 
     private struct Entry {
@@ -48,12 +48,19 @@ final class WarningQueue {
         )
     }
 
-    func update(_ messages: [String]) {
+    var hasVersionWarning: Bool {
+        pending.contains { entry in
+            if case .version = entry.key { return true }
+            return false
+        }
+    }
+
+    func update(_ messages: [String], versionWarning: String?) {
         let existing = Dictionary(uniqueKeysWithValues: pending.map { ($0.key, $0.id) })
         let currentKey = pending.indices.contains(currentIndex) ? pending[currentIndex].key : nil
         var seen = Set<String>()
         var occurrences = [String: Int]()
-        let updated: [Entry] = messages.compactMap { message in
+        var updated: [Entry] = messages.compactMap { message in
             guard seen.insert(message).inserted else {
                 return nil
             }
@@ -61,11 +68,17 @@ final class WarningQueue {
             let occurrence = occurrences[normalized, default: 0]
             occurrences[normalized] = occurrence + 1
             // Preserve separate source occurrences without using their changing line numbers as identity.
-            let key = Key(message: normalized, occurrence: occurrence)
+            let key = Key.diagnostic(normalized, occurrence: occurrence)
             guard !dismissed.contains(key) else {
                 return nil
             }
             return Entry(id: existing[key] ?? UUID(), key: key, message: message)
+        }
+        if let versionWarning {
+            let key = Key.version(versionWarning)
+            if !dismissed.contains(key) {
+                updated.insert(Entry(id: existing[key] ?? UUID(), key: key, message: versionWarning), at: 0)
+            }
         }
         // Keep the cycle stable across reloads, appending newly introduced warnings.
         let updatedByKey = Dictionary(uniqueKeysWithValues: updated.map { ($0.key, $0) })

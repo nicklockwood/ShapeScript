@@ -43,15 +43,17 @@ extension DocumentViewControllerProtocol {
         guard let document else {
             return
         }
-        var messages = warnings ?? document.scene?.warnings ?? []
+        let versionWarning: String?
         if (document.formatVersion ?? ShapeScript.version) > ShapeScript.version {
             let clientVersion = document.clientVersion.map { " (\($0))" } ?? ""
-            messages.insert("""
+            versionWarning = """
             \(document.fileName) was last edited with a newer version of \
             ShapeScript\(clientVersion) and may not be fully compatible with this version.
-            """, at: 0)
+            """
+        } else {
+            versionWarning = nil
         }
-        document.warningQueue.update(messages)
+        document.warningQueue.update(warnings ?? document.scene?.warnings ?? [], versionWarning: versionWarning)
         presentQueuedWarning()
     }
 
@@ -98,10 +100,14 @@ extension DocumentViewControllerProtocol {
             presentQueuedWarning()
         }, onDismissAll: { [weak self, weak document] in
             guard let self, let document, self.document === document,
-                  document.error == nil, errorMessage == nil,
-                  document.warningQueue.dismissAll(presentation.id)
+                  document.error == nil, errorMessage == nil
             else { return }
+            let dismissesVersionWarning = document.warningQueue.hasVersionWarning
+            guard document.warningQueue.dismissAll(presentation.id) else { return }
             warningPresentation = nil
+            if dismissesVersionWarning, !isQuickLook {
+                document.markUpdatedWithCurrentVersion()
+            }
         })
     }
 

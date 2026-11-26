@@ -450,6 +450,8 @@ final class DocumentURLChangeTests: XCTestCase {
         let viewController = URLChangeMockViewController()
         let document = URLChangeMockDocument(fileURL: url, viewController: viewController)
         viewController.document = document
+        document.formatVersion = "1.0.0"
+        document.clientVersion = "1.0.0"
         document.scene = try Scene(csgString: String(contentsOf: url), at: url, isCancelled: { false })
         viewController.checkDocumentWarnings()
         XCTAssertEqual(
@@ -476,6 +478,8 @@ final class DocumentURLChangeTests: XCTestCase {
         reopened.scene = document.scene
         reopenedViewController.checkDocumentWarnings()
         XCTAssertEqual(reopenedViewController.warningMessages, [original])
+        XCTAssertEqual(reopened.formatVersion, "1.0.0")
+        XCTAssertEqual(reopened.clientVersion, "1.0.0")
 
         viewController.isQuickLook = true
         viewController.checkDocumentWarnings(["Another warning"])
@@ -510,13 +514,51 @@ final class DocumentURLChangeTests: XCTestCase {
         XCTAssertEqual(clientVersion, appVersion)
     }
 
-    func testVersionWarningDismissalIsAlsoSessionOnly() throws {
+    func testVersionWarningDismissalStampsFileAndOtherWarningsReturnOnReopen() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("model.shape")
+        let source = Data("cube".utf8)
+        try source.write(to: url)
+        let viewController = URLChangeMockViewController()
+        viewController.automaticallyDismissWarnings = false
+        let document = URLChangeMockDocument(fileURL: url, viewController: viewController)
+        viewController.document = document
+        document.formatVersion = "99.0.0"
+        document.clientVersion = "99.0.0"
+        let warnings = ["Diagnostic warning"]
+        viewController.checkDocumentWarnings(warnings)
+        XCTAssertTrue(try XCTUnwrap(viewController.warningMessages.last).contains("newer version"))
+        viewController.onNextWarning?()
+        XCTAssertEqual(viewController.warningMessages.last, "2/2 Diagnostic warning")
+        XCTAssertEqual(document.formatVersion, "99.0.0")
+        XCTAssertEqual(document.clientVersion, "99.0.0")
+        viewController.onDismissWarnings?()
+        XCTAssertNil(document.warningQueue.current)
+
+        let freshSettings = Settings()
+        for key in [DocumentVersionKey.formatVersion, .clientVersion] {
+            let version: SemanticVersion? = freshSettings.value(for: key.rawValue, in: document)
+            XCTAssertEqual(version, key.currentValue)
+        }
+        XCTAssertEqual(try Data(contentsOf: url), source)
+
+        let reopenedViewController = URLChangeMockViewController()
+        let reopened = URLChangeMockDocument(fileURL: url, viewController: reopenedViewController)
+        reopenedViewController.document = reopened
+        reopenedViewController.checkDocumentWarnings(warnings)
+        XCTAssertEqual(reopenedViewController.warningMessages, warnings)
+    }
+
+    func testQuickLookVersionWarningDismissalIsSessionOnly() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("model.shape")
         try "cube".write(to: url, atomically: true, encoding: .utf8)
         let viewController = URLChangeMockViewController()
+        viewController.isQuickLook = true
         let document = URLChangeMockDocument(fileURL: url, viewController: viewController)
         viewController.document = document
         document.formatVersion = "99.0.0"
@@ -525,9 +567,11 @@ final class DocumentURLChangeTests: XCTestCase {
         viewController.checkDocumentWarnings()
         XCTAssertEqual(viewController.warningMessages.count, 1)
         XCTAssertTrue(viewController.warningMessages[0].contains("newer version"))
+        XCTAssertEqual(document.formatVersion, "99.0.0")
         XCTAssertEqual(document.clientVersion, "99.0.0")
 
         let reopenedViewController = URLChangeMockViewController()
+        reopenedViewController.isQuickLook = true
         let reopened = URLChangeMockDocument(fileURL: url, viewController: reopenedViewController)
         reopenedViewController.document = reopened
         reopenedViewController.checkDocumentWarnings()
