@@ -2409,6 +2409,28 @@ final class CSGImportTests: XCTestCase {
         }
     }
 
+    func testMeshImportCenteringIsAppliedBeforeParentTransforms() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let rootURL = directory.appendingPathComponent("main.csg")
+        let part = Mesh.cube(center: [4, 5, 6], size: [2, 3, 4])
+        for ext in ["stl", "obj", "off"] {
+            try part.write(to: directory.appendingPathComponent("part.\(ext)"))
+            let source = """
+            import("part.\(ext)");
+            translate([10,0,0]) import("part.\(ext)", center=true);
+            translate([20,0,0]) import("part.\(ext)", center=false);
+            """
+            try source.write(to: rootURL, atomically: true, encoding: .utf8)
+            let scene = try Scene(csgString: source, at: rootURL, isCancelled: { false })
+            XCTAssertTrue(scene.build { false })
+            let bounds = try XCTUnwrap(scene.children.first).children.map { $0.merged().bounds }
+            XCTAssertEqual(bounds.map(\.center), [[4, 5, 6], [10, 0, 0], [24, 5, 6]], ext)
+            XCTAssertEqual(bounds.map(\.size), Array(repeating: part.bounds.size, count: 3), ext)
+        }
+    }
+
     func testOFFImportsIgnoreVertexAttributesButKeepFaceColors() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

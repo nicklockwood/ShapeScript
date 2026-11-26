@@ -1417,9 +1417,7 @@ private struct CSGImporter {
             for name in ["file", "filename", "layer", "layername", "id", "method"] where values[name] != nil {
                 _ = try node.string(values, name, default: "")
             }
-            for name in ["center", "invert"] where values[name] != nil {
-                _ = try node.boolean(values, name, default: false)
-            }
+            let center = try node.boolean(values, "center", default: false)
             for name in ["convexity", "timestamp", "scale", "dpi", "width", "height", "$fn", "$fa", "$fs", "$fe"]
                 where values[name] != nil
             {
@@ -1456,7 +1454,7 @@ private struct CSGImporter {
                         )
                         let imported = try context.importSVG(at: url, options: .init(
                             id: id.isEmpty ? nil : id, layer: layer.isEmpty ? nil : layer,
-                            center: node.boolean(values, "center", default: false),
+                            center: center,
                             dpi: node.number(values, "dpi", default: 96),
                             detail: fragments(values, radius: 10, node: node), csg: true,
                             segments: { try fragments(values, radius: $0, node: node) }
@@ -1478,8 +1476,10 @@ private struct CSGImporter {
                         } else {
                             imported
                         }
+                        let offset = center ? -source.exactBounds(with: source.transform, isCancelled).center : .zero
+                        try checkCancellation()
                         let geometry = source.with(
-                            transform: .identity, material: material, smoothing: nil,
+                            transform: .translation(offset), material: material, smoothing: nil,
                             sourceLocation: sourceLocation ?? { nil }
                         )
                         return .init(
