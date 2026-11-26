@@ -930,15 +930,40 @@ final class CSGImportTests: XCTestCase {
         XCTAssertEqual(try mesh("cube(2, true);").signedVolume, 8, accuracy: 0.000001)
     }
 
+    func testCirclesStartOnPositiveXAndRoundFractionalFragmentCountsUp() throws {
+        for (fragments, segments) in [(5.0, 5), (5.5, 6)] {
+            let result = try mesh("linear_extrude(1) circle(r=2, $fn=\(fragments));")
+            let base = Set(result.polygons.flatMap { $0.vertices.map(\.position) }.filter { $0.z == 0 })
+            XCTAssertEqual(base.count, segments)
+            XCTAssertTrue(base.contains([2, 0, 0]))
+            XCTAssertTrue(result.isWatertight)
+        }
+    }
+
     func testSphereAndTaperedCylinder() throws {
         let sphere = try mesh("sphere(d = 4, $fn = 16);")
-        XCTAssertEqual(sphere.bounds.size.x, 4, accuracy: 0.000001)
+        XCTAssertEqual(sphere.bounds.size.x, 4 * cos(.pi / 16), accuracy: 0.000001)
         XCTAssertTrue(sphere.isWatertight)
         let cylinder = try mesh("cylinder(h = 4, r1 = 1, r2 = 0.5, center = true, $fn = 16);")
         XCTAssertEqual(cylinder.bounds.min.z, -2, accuracy: 0.000001)
         XCTAssertEqual(cylinder.bounds.max.z, 2, accuracy: 0.000001)
         XCTAssertEqual(cylinder.bounds.size.x, 2, accuracy: 0.000001)
         XCTAssertTrue(cylinder.isWatertight)
+    }
+
+    func testOpenSCADPrimitiveStylesAndFragmentRounding() throws {
+        for (source, count) in [
+            ("sphere(r=2, style=\"orig\", $fn=5);", 15),
+            ("sphere(r=2, style=\"orig\", $fn=5.5);", 18),
+            ("sphere(r=2, style=\"octa\", $fn=12);", 38),
+            ("cylinder(r=2, h=3, $fn=5.5);", 12),
+        ] {
+            let result = try mesh(source)
+            let points = Set(result.polygons.flatMap(\.vertices).map(\.position))
+            XCTAssertTrue(result.isWatertight, source)
+            XCTAssertEqual(points.count, count, source)
+            XCTAssertTrue(points.contains { ($0 - Vector(2, 0, 0)).length < 1e-8 }, source)
+        }
     }
 
     func testTransformsAndColours() throws {

@@ -680,13 +680,20 @@ private struct CSGImporter {
         guard fn >= 0, fa > 0, fs > 0 else {
             throw node.error("Invalid CSG tessellation parameters")
         }
-        let minimum = sweep == nil ? 0 : 0.01
-        let fullTurn = fn > 0 ? max(3, fn.rounded(sweep == nil ? .down : .up)) :
-            max(5, ceil(min(360 / max(fa, minimum), abs(radius) * 2 * .pi / max(fs, minimum))))
-        let count = max(1, ceil(fullTurn * (sweep.map(abs) ?? 360) / 360))
-        guard let count = Int(exactly: count),
-              count <= 100_000
-        else {
+        let count: Int?
+        if let sweep {
+            count = openSCADCircularSegments(
+                radius: radius,
+                fragments: fn,
+                fragmentAngle: fa,
+                fragmentSize: fs,
+                sweep: sweep
+            )
+        } else {
+            let fullTurn = fn > 0 ? max(3, floor(fn)) : max(5, ceil(min(360 / fa, abs(radius) * 2 * .pi / fs)))
+            count = Int(exactly: fullTurn)
+        }
+        guard let count, count <= 100_000 else {
             throw node.error("CSG tessellation is too large")
         }
         return count
@@ -821,7 +828,11 @@ private struct CSGImporter {
             if !node.children.isEmpty {
                 warn("CSG primitives cannot have children", at: node)
             }
-            let names = node.name == "cylinder" ? ["h", "r", "r1", "r2", "d", "d1", "d2", "center"] : ["r", "d"]
+            let names: [String] = switch node.name {
+            case "sphere": ["r", "d", "style"]
+            case "cylinder": ["h", "r", "r1", "r2", "d", "d1", "d2", "center"]
+            default: ["r", "d"]
+            }
             let values = try validate(
                 node,
                 names + tessellation,
@@ -845,14 +856,18 @@ private struct CSGImporter {
             guard radius >= 0, r1 >= 0, r2 >= 0 else {
                 throw node.error("CSG radii cannot be negative")
             }
-            let detail = try fragments(values, radius: node.name == "cylinder" ? max(r1, r2) : radius, node: node)
             if node.name == "circle" {
+                let detail = try fragments(values, radius: radius, sweep: 360, node: node)
+                let circle = Path.openSCADCircle(radius: radius, segments: detail, color: material.color)
                 return result(
-                    [.circle(radius: radius, segments: detail, color: material.color)],
+                    circle.isEmpty ? [] : [circle],
                     material: material
                 )
             }
-            let axis = Rotation(from: .unitY, to: .unitZ)
+            let detail = try fragments(
+                values, radius: node.name == "cylinder" ? max(r1, r2) : radius, current: true, node: node
+            )
+            let mesh: Mesh
             if node.name == "sphere" {
                 guard detail <= 1024 else {
                     throw node.error("CSG sphere tessellation is too large")
@@ -860,30 +875,32 @@ private struct CSGImporter {
                 if radius == 0 {
                     return try result(.empty, material: material)
                 }
-                return .init(
-                    geometry: geometry(.sphere(segments: detail), material: material, transform: .init(
-                        scale: Vector(radius * 2, radius * 2, radius * 2),
-                        rotation: axis
-                    )),
-                    paths: nil
+                let style = try node.string(values, "style", default: "orig")
+                if style != "orig", style != "octa" {
+                    warn("Unknown CSG sphere style '\(style)'", at: node)
+                }
+                let sphere = Mesh.openSCADSphere(
+                    radius: radius, segments: detail, octahedral: style == "octa", isCancelled: isCancelled
                 )
+                mesh = Mesh(sphere.polygons.flatMap { polygon in
+                    polygon.mapVertices { $0.withNormal($0.position.normalized()) }
+                })
+            } else {
+                let height = try node.number(values, "h", default: 1)
+                let cylinder = try Mesh.openSCADCylinder(
+                    height: height, bottom: r1, top: r2, segments: detail,
+                    center: node.boolean(values, "center", default: false), isCancelled: isCancelled
+                )
+                mesh = Mesh(cylinder.polygons.flatMap { polygon in
+                    guard abs(polygon.plane.normal.z) < 1 else { return [polygon] }
+                    return polygon.mapVertices { vertex in
+                        let radial = Vector(vertex.position.x, vertex.position.y).normalized()
+                        return radial == .zero ? vertex : vertex.withNormal([radial.x, radial.y, (r1 - r2) / height])
+                    }
+                })
             }
-            let height = try node.number(values, "h", default: 1)
-            guard height > 0 else {
-                throw node.error("CSG cylinder height must be positive")
-            }
-            let center = try node.boolean(values, "center", default: false)
-            let profile = Path([
-                .point(0, -height / 2),
-                .point(r1, -height / 2),
-                .point(r2, height / 2),
-                .point(0, height / 2),
-            ])
-            return .init(geometry: geometry(
-                .lathe([profile], .init(segments: detail)),
-                material: material,
-                transform: .init(rotation: axis, translation: center ? .zero : Vector(0, 0, height / 2))
-            ), paths: nil)
+            try checkCancellation()
+            return .init(geometry: geometry(.mesh(mesh.replacing(nil, with: material)), material: material), paths: nil)
         case "polygon", "polyhedron":
             if !node.children.isEmpty {
                 warn("CSG primitives cannot have children", at: node)

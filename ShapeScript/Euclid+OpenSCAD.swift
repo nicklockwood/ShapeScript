@@ -6,7 +6,168 @@
 import Euclid
 import Foundation
 
+func openSCADCircularSegments(
+    radius: Double,
+    fragments: Double,
+    fragmentAngle: Double,
+    fragmentSize: Double,
+    sweep: Double = 360,
+    roundingExplicitCount: FloatingPointRoundingRule = .up
+) -> Int? {
+    let fullTurn = fragments > 0 ? max(3, fragments.rounded(roundingExplicitCount)) :
+        ceil(max(5, min(360 / max(0.01, fragmentAngle), abs(radius) * 2 * .pi / max(0.01, fragmentSize))))
+    return Int(exactly: max(1, ceil(fullTurn * abs(sweep) / 360)))
+}
+
+extension Mesh {
+    static func openSCADSphere(
+        radius: Double,
+        segments n: Int,
+        octahedral: Bool,
+        isCancelled: CancellationHandler
+    ) -> Mesh {
+        guard radius > 0, n >= 3, !isCancelled() else { return .empty }
+        if octahedral {
+            return openSCADOctahedralSphere(radius: radius, divisions: (n + 3) / 4, isCancelled: isCancelled)
+        }
+        let rings = (n + 1) / 2
+        var points: [[Vector]] = []
+        for i in 0 ..< rings {
+            if isCancelled() { return .empty }
+            let latitude = Double.pi * (Double(i) + 0.5) / Double(rings)
+            points.append((0 ..< n).map { j in
+                let longitude = 2 * Double.pi * Double(j) / Double(n)
+                return Vector(
+                    radius * sin(latitude) * cos(longitude),
+                    radius * sin(latitude) * sin(longitude),
+                    radius * cos(latitude)
+                )
+            })
+        }
+        var polygons: [Polygon] = []
+        func append(_ positions: [Vector]) {
+            if let polygon = Polygon(positions.map { Vertex($0) }) {
+                polygons.append(polygon)
+            }
+        }
+        append(points[0])
+        for i in 1 ..< rings {
+            if isCancelled() { return .empty }
+            for j in 0 ..< n {
+                let next = (j + 1) % n
+                append([points[i][j], points[i][next], points[i - 1][j]])
+                append([points[i][next], points[i - 1][next], points[i - 1][j]])
+            }
+        }
+        append(points[rings - 1].reversed())
+        return Mesh(polygons)
+    }
+
+    static func openSCADCylinder(
+        height: Double,
+        bottom: Double,
+        top: Double,
+        segments n: Int,
+        center: Bool,
+        isCancelled: CancellationHandler
+    ) -> Mesh {
+        guard height > 0, bottom >= 0, top >= 0, max(bottom, top) > 0, n >= 3, !isCancelled() else { return .empty }
+        let z = center ? -height / 2 : 0
+        let lower = (0 ..< n).map { j in Vector(
+            bottom * cos(Double(j) * 2 * Double.pi / Double(n)),
+            bottom * sin(Double(j) * 2 * Double.pi / Double(n)),
+            z
+        ) }
+        let upper = (0 ..< n).map { j in Vector(
+            top * cos(Double(j) * 2 * Double.pi / Double(n)),
+            top * sin(Double(j) * 2 * Double.pi / Double(n)),
+            z + height
+        ) }
+        var polygons: [Polygon] = []
+        func append(_ positions: [Vector]) {
+            if let polygon = Polygon(positions.map { Vertex($0) }) {
+                polygons.append(polygon)
+            }
+        }
+        append(lower.reversed())
+        append(upper)
+        for j in 0 ..< n {
+            if isCancelled() { return .empty }
+            let k = (j + 1) % n
+            if top == 0 {
+                append([lower[j], lower[k], upper[j]])
+            } else if bottom == 0 {
+                append([lower[j], upper[k], upper[j]])
+            } else if bottom == top {
+                append([lower[j], lower[k], upper[k], upper[j]])
+            } else {
+                append([lower[k], upper[j], lower[j]])
+                append([lower[k], upper[k], upper[j]])
+            }
+        }
+        return Mesh(polygons)
+    }
+
+    private static func openSCADOctahedralSphere(
+        radius: Double,
+        divisions: Int,
+        isCancelled: CancellationHandler
+    ) -> Mesh {
+        let distances = (0 ... divisions).map { index in
+            index == divisions ? 1 : sin(Double(index) * Double.pi / (2 * Double(divisions)))
+        }
+        func point(_ i: Int, _ j: Int, _ k: Int) -> Vector {
+            let position = Vector(distances[i], distances[j], distances[k])
+            guard i > 0, j > 0, k > 0 else { return position * radius }
+            // Each edge sample defines a plane through the sphere center and its two
+            // corresponding points on the octant boundary. Average their intersections.
+            let x = Vector(distances[divisions - i], -position.x, -position.x)
+            let y = Vector(-position.y, distances[divisions - j], -position.y)
+            let z = Vector(-position.z, -position.z, distances[divisions - k])
+            let direction = x.cross(y).normalized() + y.cross(z).normalized() + z.cross(x).normalized()
+            return direction.normalized() * radius
+        }
+        var grid = [[Vector]]()
+        for i in 0 ... divisions {
+            if isCancelled() { return .empty }
+            grid.append((0 ... divisions - i).map { j in point(i, j, divisions - i - j) })
+        }
+        var polygons = [Polygon]()
+        for sx in [-1.0, 1.0] {
+            for sy in [-1.0, 1.0] {
+                for sz in [-1.0, 1.0] {
+                    let signs = Vector(sx, sy, sz)
+                    func append(_ a: Vector, _ b: Vector, _ c: Vector) {
+                        let corners = sx * sy * sz > 0 ? [a, b, c] : [a, c, b]
+                        if let polygon = Polygon(corners.map { $0.scaled(by: signs) }) {
+                            polygons.append(polygon)
+                        }
+                    }
+                    for i in 0 ..< divisions {
+                        if isCancelled() { return .empty }
+                        for j in 0 ..< divisions - i {
+                            append(grid[i][j], grid[i + 1][j], grid[i][j + 1])
+                            if j + 1 < divisions - i {
+                                append(grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Mesh(polygons)
+    }
+}
+
 extension Path {
+    static func openSCADCircle(radius: Double, segments: Int, color: Color? = nil) -> Path {
+        guard radius > 0, segments >= 3 else { return .empty }
+        return Path((0 ..< segments).map { index in
+            let angle = Double(index) * 2 * Double.pi / Double(segments)
+            return .point(radius * cos(angle), radius * sin(angle), color: color)
+        }).closed()
+    }
+
     /// Calculates the default number of slices for an OpenSCAD extrusion of an XY profile.
     /// Twist and fragment angle are in degrees.
     func openSCADSliceCount(
