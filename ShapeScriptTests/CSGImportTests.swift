@@ -226,12 +226,23 @@ final class CSGImportTests: XCTestCase {
 
     func testFullRotateExtrudeHonorsStartWithAnOddSegmentCount() throws {
         let profile = "translate([2,0,0]) square(1);"
-        let legacy = try mesh("rotate_extrude(angle=360, $fn=3) \(profile)")
+        let legacy = try mesh("rotate_extrude($fn=3) \(profile)")
         let explicit = try mesh("rotate_extrude(angle=360, start=0, $fn=3) \(profile)")
         XCTAssertEqual(legacy.bounds.min.x, -3, accuracy: 1e-8)
         XCTAssertEqual(explicit.bounds.max.x, 3, accuracy: 1e-8)
         XCTAssertEqual(explicit.bounds.min.x, -1.5, accuracy: 1e-8)
         XCTAssertEqual(legacy.signedVolume, explicit.signedVolume, accuracy: 1e-8)
+        XCTAssertEqual(try mesh("rotate_extrude(angle=360, $fn=3) \(profile)"), explicit)
+    }
+
+    func testFractionalRotateExtrudeUsesCurrentDefaultsForOldExports() throws {
+        let profile = "translate([2,0,0]) square(1);"
+        let legacy = try mesh("rotate_extrude(angle=150, convexity=2, $fn=7.5) \(profile)")
+        let current = try mesh("rotate_extrude(angle=150, start=0, convexity=2, $fn=7.5) \(profile)")
+        XCTAssertTrue(legacy.isWatertight)
+        XCTAssertTrue(current.isWatertight)
+        XCTAssertEqual(Set(current.polygons.flatMap(\.vertices).map(\.position)).count, 20)
+        XCTAssertEqual(legacy, current)
     }
 
     func testRoundedAndChamferedOffsetsHaveExplicitFallbacks() throws {

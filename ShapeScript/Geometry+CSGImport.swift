@@ -671,7 +671,7 @@ private struct CSGImporter {
     private func fragments(
         _ values: [String: CSGValue],
         radius: Double,
-        sweep: Double? = nil,
+        current: Bool = false,
         node: CSGNode
     ) throws -> Int {
         let fn = try node.number(values, "$fn", default: 0)
@@ -681,13 +681,12 @@ private struct CSGImporter {
             throw node.error("Invalid CSG tessellation parameters")
         }
         let count: Int?
-        if let sweep {
+        if current {
             count = openSCADCircularSegments(
                 radius: radius,
                 fragments: fn,
                 fragmentAngle: fa,
-                fragmentSize: fs,
-                sweep: sweep
+                fragmentSize: fs
             )
         } else {
             let fullTurn = fn > 0 ? max(3, floor(fn)) : max(5, ceil(min(360 / fa, abs(radius) * 2 * .pi / fs)))
@@ -857,7 +856,7 @@ private struct CSGImporter {
                 throw node.error("CSG radii cannot be negative")
             }
             if node.name == "circle" {
-                let detail = try fragments(values, radius: radius, sweep: 360, node: node)
+                let detail = try fragments(values, radius: radius, current: true, node: node)
                 let circle = Path.openSCADCircle(radius: radius, segments: detail, color: material.color)
                 return result(
                     circle.isEmpty ? [] : [circle],
@@ -1211,10 +1210,8 @@ private struct CSGImporter {
                 ), paths: nil)
             }
             let angle = try node.number(values, "angle", default: 360)
-            let sweep = angle <= -360 || angle > 360 ? 360 : angle
-            // Older CSG exports omit the start angle and begin full revolutions at -X.
-            let start = try node.number(values, "start", default: sweep == 360 ? 180 : 0)
-            guard sweep != 0, !profiles.isEmpty else {
+            let start = try node.number(values, "start", default: values["angle"] == nil ? 180 : 0)
+            guard angle != 0, !profiles.isEmpty else {
                 return try result(.empty, material: material)
             }
             let bounds = Bounds(profiles)
@@ -1222,17 +1219,22 @@ private struct CSGImporter {
                 warn("'rotate_extrude' profiles must lie on one side of the Y axis", at: node)
                 return try result(.empty, material: material)
             }
-            let radius = max(abs(bounds.min.x), abs(bounds.max.x))
-            let legacyFullTurn = sweep == 360 && values["start"] == nil
-            let detail = try fragments(values, radius: radius, sweep: legacyFullTurn ? nil : sweep, node: node)
-            // Euclid always begins at negative X. OpenSCAD starts on the profile's original side.
-            let offset = start.truncatingRemainder(dividingBy: 360) - (bounds.min.x >= 0 ? 180 : 0)
-            let rotation = Rotation.roll(-.degrees(offset)) * Rotation(from: .unitY, to: .unitZ)
+            let fn = try node.number(values, "$fn", default: 0)
+            let fa = try node.number(values, "$fa", default: 12)
+            let fs = try node.number(values, "$fs", default: 2)
+            guard fn >= 0, fa > 0, fs > 0 else {
+                throw node.error("Invalid CSG tessellation parameters")
+            }
+            guard let revolution = openSCADRevolution(
+                angle: angle, start: start, bounds: bounds, fragments: fn, fragmentAngle: fa, fragmentSize: fs
+            ), revolution.slices <= 100_000 else {
+                throw node.error("CSG tessellation is too large")
+            }
             let latheProfiles: [Path]
-            if sweep == 360 {
+            if revolution.sweep == 360 {
                 latheProfiles = profiles
             } else {
-                guard profiles.reduce(0, { $0 + $1.points.count }) <= 1_000_000 / detail else {
+                guard profiles.reduce(0, { $0 + $1.points.count }) <= 1_000_000 / revolution.slices else {
                     throw node.error("CSG extrusion tessellation is too large")
                 }
                 let profile = profiles.count == 1 ? profiles[0] : Path.union(profiles, isCancelled: isCancelled)
@@ -1243,9 +1245,9 @@ private struct CSGImporter {
                 latheProfiles = [profile]
             }
             return .init(geometry: geometry(
-                .lathe(latheProfiles, .init(segments: detail, sweep: .degrees(sweep))),
+                .lathe(latheProfiles, .init(segments: revolution.slices, sweep: .degrees(revolution.sweep))),
                 material: material,
-                transform: .rotation(rotation)
+                transform: .rotation(revolution.rotation)
             ), paths: nil)
         case "text":
             if !node.children.isEmpty {

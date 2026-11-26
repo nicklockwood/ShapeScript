@@ -19,6 +19,27 @@ func openSCADCircularSegments(
     return Int(exactly: max(1, ceil(fullTurn * abs(sweep) / 360)))
 }
 
+func openSCADRevolution(
+    angle: Double,
+    start: Double,
+    bounds: Bounds,
+    fragments: Double,
+    fragmentAngle: Double,
+    fragmentSize: Double
+) -> (sweep: Double, slices: Int, rotation: Rotation)? {
+    let sweep = abs(angle) >= 360 ? 360 : angle
+    guard let slices = openSCADCircularSegments(
+        radius: max(abs(bounds.min.x), abs(bounds.max.x)),
+        fragments: fragments, fragmentAngle: fragmentAngle, fragmentSize: fragmentSize,
+        sweep: sweep
+    ) else { return nil }
+    let startAngle = start.truncatingRemainder(dividingBy: 360)
+    // Euclid revolves around Y and begins on -X. OpenSCAD starts on the profile's original side.
+    let offset = (bounds.max.x <= 0 ? 0 : 180) - startAngle
+    let rotation = Rotation.roll(.degrees(offset)) * Rotation(from: .unitY, to: .unitZ)
+    return (sweep, slices, rotation)
+}
+
 extension Mesh {
     static func openSCADSphere(
         radius: Double,
